@@ -1,8 +1,14 @@
+"""
+Input collector application module.
+
+This module provides the main application for collecting, visualizing, and
+logging keyboard and mouse inputs in real-time with a graphical user interface.
+"""
 import tkinter as tk
 from tkinter import ttk, scrolledtext
 import json
 import threading
-from typing import List, Dict, Optional, Callable, Set, Tuple
+from typing import List, Dict, Optional, Callable, Set, Tuple, Any, Union
 import time
 
 from .collectors import KeyboardMouseCollector
@@ -10,48 +16,74 @@ from .visualizers import KeyboardVisualizer, MouseVisualizer
 from .interfaces import InputData
 
 class InputCollectorApp:
-    """Main application for input collection and visualization"""
+    """
+    Main application for input collection and visualization.
     
-    def __init__(self, root=None):
-        """Initialize the application"""
+    This class provides a graphical user interface for collecting, visualizing,
+    and logging keyboard and mouse inputs in real-time. It integrates the
+    input collector and visualizers into a cohesive application.
+    """
+    
+    def __init__(self, root: Optional[tk.Tk] = None) -> None:
+        """
+        Initialize the application.
+        
+        Creates the application window, sets up the UI components, and initializes
+        the input collector and visualizers.
+        
+        Args:
+            root: Optional root tkinter window. If not provided, a new one is created.
+        """
         # Define app theme colors
-        self.dark_bg = "#2D2D30"
-        self.dark_frame_bg = "#252526"
-        self.text_color = "#E0E0E0"
-        self.accent_color = "#007ACC"
-        self.success_color = "#5FB878"
-        self.warning_color = "#FFAA33"
-        self.error_color = "#FF5555"
+        self.dark_bg: str = "#2D2D30"
+        self.dark_frame_bg: str = "#252526"
+        self.text_color: str = "#E0E0E0"
+        self.accent_color: str = "#007ACC"
+        self.success_color: str = "#5FB878"
+        self.warning_color: str = "#FFAA33"
+        self.error_color: str = "#FF5555"
         
         # Create root window if not provided
         if root is None:
-            self.root = tk.Tk()
+            self.root: tk.Tk = tk.Tk()
             self.root.title("Input Collector")
             self.root.geometry("800x700")
             self.root.configure(bg=self.dark_frame_bg)  # Set window background color
             
             # Configure global ttk style for dark theme
-            self.style = ttk.Style(self.root)
+            self.style: ttk.Style = ttk.Style(self.root)
             self._configure_styles()
             
-            self.owns_root = True
+            self.owns_root: bool = True
         else:
             self.root = root
             self.owns_root = False
         
         # Create collector
-        self.collector = KeyboardMouseCollector()
+        self.collector: KeyboardMouseCollector = KeyboardMouseCollector()
         
         # Enable verbose logging if needed
         # self.collector.verbose = True  # Uncomment for detailed logging
         
         # Control whether to log F3/recording control events to the UI and file logs
-        self.log_control_events = False
+        self.log_control_events: bool = False
         
         # Application state
-        self.is_recording = False
-        self.log_to_file = False
-        self.log_file = None
+        self.is_recording: bool = False
+        self.log_to_file: bool = False
+        self.log_file: Optional[Any] = None
+        
+        # UI components
+        self.record_button: Optional[tk.Button] = None
+        self.status_label: Optional[ttk.Label] = None
+        self.log_checkbox: Optional[ttk.Checkbutton] = None
+        self.log_var: Optional[tk.BooleanVar] = None
+        self.key_entry: Optional[tk.Entry] = None
+        self.key_listbox: Optional[tk.Listbox] = None
+        self.status_text: Optional[scrolledtext.ScrolledText] = None
+        self.active_keys_label: Optional[ttk.Label] = None
+        self.keyboard_viz: Optional[KeyboardVisualizer] = None
+        self.mouse_viz: Optional[MouseVisualizer] = None
         
         # Create UI
         self._create_ui()
@@ -60,7 +92,7 @@ class InputCollectorApp:
         self.collector.on_event(self._handle_input_event)
         
         # Set tracked keys based on requirements - remove F3 from tracked keys
-        self.tracked_keys = [
+        self.tracked_keys: List[str] = [
             "w", "a", "s", "d", "q", "e", "f", "m", "c", "b",
             "1", "2", "3", "4",
             "Key.space", "Key.shift", 
@@ -84,14 +116,6 @@ class InputCollectorApp:
         self.root.bind("<F9>", self._toggle_recording_key)  # F9 key
         self.root.bind("<space>", self._toggle_recording_key)  # Space key 
         
-        # Handle media play/pause key through pynput instead of tkinter
-        # Remove problematic binding
-        # self.root.bind_all("<Media_Play_Pause>", self._toggle_recording_key)  # Windows media key
-        # self.root.bind_all("<XF86AudioPlay>", self._toggle_recording_key)  # Linux/X11
-        
-        # Special handling for media keys in the keyboard collection logic
-        # The collector already detects Key.media_play_pause in keyboard_mouse.py
-        
         # Ensure the app captures keyboard events regardless of focus
         self.root.bind_all("<Key>", self._capture_keyboard_focus)
         
@@ -104,8 +128,13 @@ class InputCollectorApp:
             if name.startswith("<Key"):
                 print(f"  {name}")
     
-    def _configure_styles(self):
-        """Configure ttk styles for dark theme"""
+    def _configure_styles(self) -> None:
+        """
+        Configure ttk styles for dark theme.
+        
+        Sets up the visual styling for all ttk widgets used in the application
+        to maintain a consistent dark theme appearance.
+        """
         # For Windows, we need to use 'clam' theme to properly customize ttk widgets
         self.style.theme_use('clam')
         
@@ -160,8 +189,13 @@ class InputCollectorApp:
         self.style.configure("TSeparator",
                             background="#444444")
     
-    def _create_ui(self):
-        """Create the application UI"""
+    def _create_ui(self) -> None:
+        """
+        Create the application UI.
+        
+        Builds the complete user interface with all controls, visualizers,
+        and information displays arranged in a grid layout.
+        """
         # Configure root window to use grid
         self.root.grid_columnconfigure(0, weight=1)
         self.root.grid_rowconfigure(0, weight=1)
@@ -363,8 +397,13 @@ class InputCollectorApp:
         # Configure main_frame rows to resize properly
         main_frame.grid_rowconfigure(1, weight=1)  # Make viz_frame expandable
     
-    def _toggle_recording(self):
-        """Toggle recording state"""
+    def _toggle_recording(self) -> None:
+        """
+        Toggle recording state.
+        
+        Starts or stops the recording of input events based on the current state.
+        Updates UI elements to reflect the new state.
+        """
         if self.is_recording:
             # Stop recording
             print("Stopping recording...")
@@ -391,8 +430,13 @@ class InputCollectorApp:
         # Force update the UI immediately to reflect the change
         self.root.update_idletasks()
     
-    def _toggle_logging(self):
-        """Toggle logging to file"""
+    def _toggle_logging(self) -> None:
+        """
+        Toggle logging to file.
+        
+        Starts or stops logging input events to a file based on the
+        current state of the log checkbox.
+        """
         self.log_to_file = self.log_var.get()
         if self.log_to_file:
             # Open log file with correct timestamp
@@ -408,8 +452,16 @@ class InputCollectorApp:
                 self.log_file = None
                 self._log_status("Logging to file stopped")
     
-    def _handle_input_event(self, event: InputData):
-        """Handle input events from the collector with unified logging"""
+    def _handle_input_event(self, event: InputData) -> None:
+        """
+        Handle input events from the collector with unified logging.
+        
+        Processes input events from the collector, updates visualizers,
+        and logs events to the UI and file if appropriate.
+        
+        Args:
+            event: The input event to handle
+        """
         # Check for special toggle_recording event type first (for F9 key)
         if event.event_type == "toggle_recording":
             current_state = "RECORDING" if self.is_recording else "NOT RECORDING"
@@ -533,7 +585,17 @@ class InputCollectorApp:
                 self._log_event_to_file(event)
     
     def _format_event_text(self, event: InputData) -> str:
-        """Format event text for UI display with unified format"""
+        """
+        Format event text for UI display.
+        
+        Converts an input event into a human-readable string for display in the UI.
+        
+        Args:
+            event: The input event to format
+            
+        Returns:
+            str: Formatted text representation of the event
+        """
         # Format keyboard info - make it stand out
         keyboard_part = f"Keys: [{', '.join(event.active_keys)}]" if event.active_keys else "Keys: []"
         
@@ -560,11 +622,18 @@ class InputCollectorApp:
         
         return f"{keyboard_part} | {mouse_part}"
 
-    def _log_event_to_file(self, event: InputData):
-        """Log event to file with unified format"""
+    def _log_event_to_file(self, event: InputData) -> None:
+        """
+        Log event to file.
+        
+        Writes the input event to a JSON file in a standardized format.
+        
+        Args:
+            event: The input event to log
+        """
         try:
             # Get the active mouse buttons
-            active_buttons = []
+            active_buttons: List[str] = []
             
             # Include the current button press
             if event.button_pressed:
@@ -576,7 +645,7 @@ class InputCollectorApp:
                 pass
             
             # Create the unified log format with three main sections: timestamp, keyboard, mouse
-            unified_log = {
+            unified_log: Dict[str, Any] = {
                 "timestamp": event.timestamp,
                 "keyboard": {
                     "active_keys": event.active_keys or []
@@ -611,8 +680,13 @@ class InputCollectorApp:
         except Exception as e:
             print(f"Error logging to file: {e}")
     
-    def _add_key(self):
-        """Add a key to the tracked keys list"""
+    def _add_key(self) -> None:
+        """
+        Add a key to the tracked keys list.
+        
+        Takes the key entered in the key entry field and adds it to the
+        list of tracked keys if it's not already there.
+        """
         key = self.key_entry.get().strip()
         if key and key not in self.tracked_keys:
             self.tracked_keys.append(key)
@@ -621,8 +695,12 @@ class InputCollectorApp:
             self.key_entry.delete(0, tk.END)
             self._log_status(f"Added key: {key}")
     
-    def _remove_key(self):
-        """Remove a key from the tracked keys list"""
+    def _remove_key(self) -> None:
+        """
+        Remove a key from the tracked keys list.
+        
+        Removes the currently selected key from the tracked keys list.
+        """
         selection = self.key_listbox.curselection()
         if selection:
             index = selection[0]
@@ -632,14 +710,27 @@ class InputCollectorApp:
             self._update_key_list()
             self._log_status(f"Removed key: {key}")
     
-    def _update_key_list(self):
-        """Update the key list display"""
+    def _update_key_list(self) -> None:
+        """
+        Update the key list display.
+        
+        Updates the listbox to show the current list of tracked keys.
+        """
         self.key_listbox.delete(0, tk.END)
         for key in self.tracked_keys:
             self.key_listbox.insert(tk.END, key)
     
-    def _log_status(self, message: str, color=None):
-        """Log a message to the status area"""
+    def _log_status(self, message: str, color: Optional[str] = None) -> None:
+        """
+        Log a message to the status area.
+        
+        Adds a timestamped message to the status text area with optional 
+        color formatting.
+        
+        Args:
+            message: The message to log
+            color: Optional color for the message (as a hex string)
+        """
         self.status_text.config(state=tk.NORMAL)
         
         # Fix the timestamp format - strftime doesn't support microseconds with %f
@@ -665,8 +756,12 @@ class InputCollectorApp:
         self.status_text.see(tk.END)
         self.status_text.config(state=tk.DISABLED)
     
-    def _update_active_keys_display(self):
-        """Update the active keys display"""
+    def _update_active_keys_display(self) -> None:
+        """
+        Update the active keys display.
+        
+        Updates the label showing the currently pressed keys.
+        """
         active_keys = self.collector.get_active_keys()
         if active_keys:
             # Filter to only show tracked keys
@@ -678,14 +773,22 @@ class InputCollectorApp:
         else:
             self.active_keys_label.config(text="None")
     
-    def _schedule_ui_update(self):
-        """Schedule periodic UI updates"""
+    def _schedule_ui_update(self) -> None:
+        """
+        Schedule periodic UI updates.
+        
+        Sets up a recurring timer to update the UI components regularly.
+        """
         self._update_active_keys_display()
         # Schedule next update in 100ms
         self.root.after(100, self._schedule_ui_update)
     
-    def run(self):
-        """Run the application main loop"""
+    def run(self) -> None:
+        """
+        Run the application main loop.
+        
+        Starts the application's main event loop.
+        """
         if self.owns_root:
             # Set up cleanup on window close
             self.root.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -693,20 +796,39 @@ class InputCollectorApp:
             # Start main loop
             self.root.mainloop()
     
-    def _on_close(self):
-        """Handle window close event"""
+    def _on_close(self) -> None:
+        """
+        Handle window close event.
+        
+        Performs cleanup operations when the application window is closed.
+        """
         if self.is_recording:
             self.collector.stop_capture()
         if self.log_file:
             self.log_file.close()
         self.root.destroy()
     
-    def get_collector(self):
-        """Get the input collector instance"""
+    def get_collector(self) -> KeyboardMouseCollector:
+        """
+        Get the input collector instance.
+        
+        Returns:
+            KeyboardMouseCollector: The active input collector instance
+        """
         return self.collector
 
-    def _toggle_recording_key(self, event=None):
-        """Toggle recording state via keyboard shortcut"""
+    def _toggle_recording_key(self, event: Optional[tk.Event] = None) -> str:
+        """
+        Toggle recording state via keyboard shortcut.
+        
+        Handles keyboard shortcut events for toggling recording state.
+        
+        Args:
+            event: The keyboard event that triggered the toggle
+            
+        Returns:
+            str: "break" to prevent further processing of the event
+        """
         # This is used for tkinter key events (like F9 direct from the window)
         # Since we're already handling F9 in the collector, we only need this
         # for other keys like space
@@ -724,16 +846,34 @@ class InputCollectorApp:
         # Prevent further processing of this event
         return "break"
 
-    def _capture_keyboard_focus(self, event=None):
-        """Ensure the app receives keyboard events regardless of focus"""
+    def _capture_keyboard_focus(self, event: Optional[tk.Event] = None) -> bool:
+        """
+        Ensure the app receives keyboard events regardless of focus.
+        
+        Makes sure the application window keeps focus to capture keyboard events.
+        
+        Args:
+            event: The keyboard event that might have changed focus
+            
+        Returns:
+            bool: True to continue processing the event
+        """
         # If not already capturing, move focus back to the main window
         # which has the keyboard bindings
         if not self.is_recording:
             self.root.focus_set()
         return True
 
-# Standalone function to run the app
-def run_collector_app():
+
+def run_collector_app() -> InputCollectorApp:
+    """
+    Run the input collector application.
+    
+    Creates and runs the input collector application as a standalone program.
+    
+    Returns:
+        InputCollectorApp: The input collector application instance
+    """
     app = InputCollectorApp()
     app.run()
     return app

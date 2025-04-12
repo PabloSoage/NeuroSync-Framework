@@ -1,22 +1,41 @@
+"""
+Mouse visualization module.
+
+This module provides visualization components for mouse input events,
+displaying mouse movement and button states in a joystick-like interface.
+"""
 import tkinter as tk
 import math
 import time
 from ..interfaces import InputData
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Any, Dict, Set, Union
 
 class MouseVisualizer:
-    """Visualizes mouse input events with joystick-like representation"""
+    """
+    Visualizes mouse input events with joystick-like representation.
     
-    def __init__(self, parent_frame):
-        """Initialize the mouse visualizer"""
-        # Use dark theme colors
-        self.dark_bg = "#2D2D30"
-        self.dark_frame_bg = "#252526"
-        self.text_color = "#E0E0E0"
-        self.accent_color = "#007ACC"
-        self.highlight_color = "#3E3E42"
+    This class creates a visual representation of mouse movement and input state
+    using a joystick-like display. It shows movement direction, speed, mouse button
+    states, and scroll events in real-time.
+    """
+    
+    def __init__(self, parent_frame: tk.Frame) -> None:
+        """
+        Initialize the mouse visualizer.
         
-        self.frame = tk.Frame(parent_frame, bg=self.dark_frame_bg)
+        Creates a mouse visualization interface inside the provided parent frame.
+        
+        Args:
+            parent_frame: Tkinter frame to contain the mouse visualization
+        """
+        # Use dark theme colors
+        self.dark_bg: str = "#2D2D30"
+        self.dark_frame_bg: str = "#252526"
+        self.text_color: str = "#E0E0E0"
+        self.accent_color: str = "#007ACC"
+        self.highlight_color: str = "#3E3E42"
+        
+        self.frame: tk.Frame = tk.Frame(parent_frame, bg=self.dark_frame_bg)
         
         # Use grid layout with fixed sizes for better stability
         self.frame.grid_columnconfigure(0, weight=1)
@@ -25,11 +44,11 @@ class MouseVisualizer:
         self.frame.grid_rowconfigure(2, weight=0)
         
         # Fixed size canvas for drawing - INCREASE WIDTH to 340
-        self.canvas_width = 340  # Was 300, now wider to fit text
-        self.canvas_height = 300
+        self.canvas_width: int = 340  # Was 300, now wider to fit text
+        self.canvas_height: int = 300
         
         # Create a fixed-size frame to contain the canvas
-        self.canvas_container = tk.Frame(
+        self.canvas_container: tk.Frame = tk.Frame(
             self.frame, 
             width=self.canvas_width,
             height=self.canvas_height,
@@ -40,7 +59,7 @@ class MouseVisualizer:
         self.canvas_container.pack_propagate(False)
         
         # Canvas for drawing with fixed size - update colors for dark theme
-        self.canvas = tk.Canvas(
+        self.canvas: tk.Canvas = tk.Canvas(
             self.canvas_container,
             width=self.canvas_width,
             height=self.canvas_height,
@@ -52,20 +71,20 @@ class MouseVisualizer:
         self.canvas.place(relx=0.5, rely=0.5, anchor="center")
         
         # Pre-create commonly used display objects to avoid recreation
-        self.joystick_handle = None
-        self.direction_line = None
-        self.wheel_indicator = None
-        self.coordinate_text = None
+        self.joystick_handle: Optional[int] = None
+        self.direction_line: Optional[int] = None
+        self.wheel_indicator: Optional[int] = None
+        self.coordinate_text: Optional[int] = None
         
         # Create fixed-size text frame to prevent layout shifts - match the canvas width
-        text_frame = tk.Frame(self.frame, height=30, width=self.canvas_width, bg=self.dark_frame_bg)
+        text_frame: tk.Frame = tk.Frame(self.frame, height=30, width=self.canvas_width, bg=self.dark_frame_bg)
         text_frame.grid(row=1, column=0, sticky="ew", padx=5)
         text_frame.grid_propagate(False)
         text_frame.pack_propagate(False)
         
         # Static text label for status - using label for better performance
-        self.info_var = tk.StringVar(value="Mouse: Not moving")
-        self.info_label = tk.Label(
+        self.info_var: tk.StringVar = tk.StringVar(value="Mouse: Not moving")
+        self.info_label: tk.Label = tk.Label(
             text_frame,
             textvariable=self.info_var,
             anchor="w",
@@ -77,14 +96,14 @@ class MouseVisualizer:
         self.info_label.place(relx=0.5, rely=0.5, anchor="center")
         
         # Create another fixed-size frame for button status
-        button_frame = tk.Frame(self.frame, height=30, width=self.canvas_width, bg=self.dark_frame_bg)
+        button_frame: tk.Frame = tk.Frame(self.frame, height=30, width=self.canvas_width, bg=self.dark_frame_bg)
         button_frame.grid(row=2, column=0, sticky="ew", padx=5)
         button_frame.grid_propagate(False)
         button_frame.pack_propagate(False)
         
         # Button status label
-        self.button_var = tk.StringVar(value="Buttons: None")
-        self.button_label = tk.Label(
+        self.button_var: tk.StringVar = tk.StringVar(value="Buttons: None")
+        self.button_label: tk.Label = tk.Label(
             button_frame,
             textvariable=self.button_var,
             anchor="w",
@@ -96,30 +115,30 @@ class MouseVisualizer:
         self.button_label.place(relx=0.5, rely=0.5, anchor="center")
         
         # Mouse state
-        self.mouse_x = 150
-        self.mouse_y = 150
-        self.rel_x = 0
-        self.rel_y = 0
-        self.movement_direction = None
-        self.left_button_pressed = False
-        self.right_button_pressed = False
-        self.middle_button_pressed = False
-        self.is_moving = False
-        self.speed = 0
-        self.speed_x = 0
-        self.speed_y = 0
-        self.wheel_direction = None
+        self.mouse_x: float = 150
+        self.mouse_y: float = 150
+        self.rel_x: float = 0
+        self.rel_y: float = 0
+        self.movement_direction: Optional[str] = None
+        self.left_button_pressed: bool = False
+        self.right_button_pressed: bool = False
+        self.middle_button_pressed: bool = False
+        self.is_moving: bool = False
+        self.speed: float = 0
+        self.speed_x: float = 0
+        self.speed_y: float = 0
+        self.wheel_direction: Optional[str] = None
         
         # Canvas center coordinates
-        self.center_x = self.canvas_width / 2
-        self.center_y = self.canvas_height / 2
+        self.center_x: float = self.canvas_width / 2
+        self.center_y: float = self.canvas_height / 2
         
         # Performance settings
-        self.last_ui_update = 0
-        self.ui_update_interval = 0.033  # 30fps is plenty for UI
-        self.redraw_needed = True
-        self.last_status_update = 0
-        self.status_update_interval = 0.1  # Update status text less frequently
+        self.last_ui_update: float = 0
+        self.ui_update_interval: float = 0.033  # 30fps is plenty for UI
+        self.redraw_needed: bool = True
+        self.last_status_update: float = 0
+        self.status_update_interval: float = 0.1  # Update status text less frequently
         
         # Set up the background elements that rarely change
         self._setup_background()
@@ -127,8 +146,13 @@ class MouseVisualizer:
         # Initial drawing
         self._draw()
     
-    def _setup_background(self):
-        """Set up the static background elements to avoid redrawing them"""
+    def _setup_background(self) -> None:
+        """
+        Set up the static background elements.
+        
+        Creates the static visual elements of the mouse visualization interface
+        to avoid redrawing them on every update.
+        """
         # Clear canvas
         self.canvas.delete("all")
         
@@ -228,10 +252,17 @@ class MouseVisualizer:
             state=tk.HIDDEN
         )
     
-    def update(self, input_data: InputData):
-        """Update the mouse visualization based on input data"""
+    def update(self, input_data: InputData) -> None:
+        """
+        Update the mouse visualization based on input data.
+        
+        Processes input events to update the visual state of the mouse visualization.
+        
+        Args:
+            input_data: Input event data containing mouse state information
+        """
         # Always update state
-        state_changed = False
+        state_changed: bool = False
         
         # Handle mouse click events
         if input_data.event_type == "mouse_click":
@@ -321,8 +352,12 @@ class MouseVisualizer:
             self.last_ui_update = current_time
             self.redraw_needed = False
     
-    def _update_status_text(self):
-        """Update status text with minimal processing"""
+    def _update_status_text(self) -> None:
+        """
+        Update status text with minimal processing.
+        
+        Updates the status text labels to reflect the current mouse state.
+        """
         # Update info text
         status_text = f"Mouse: {'Moving' if self.is_moving else 'Not moving'}"
         if self.movement_direction and self.is_moving:
@@ -347,8 +382,13 @@ class MouseVisualizer:
         self.info_var.set(status_text)
         self.button_var.set(button_text)
     
-    def _draw(self):
-        """Draw the mouse visualization with joystick-like representation"""
+    def _draw(self) -> None:
+        """
+        Draw the mouse visualization with joystick-like representation.
+        
+        Updates the dynamic visual elements of the mouse visualization
+        based on the current state.
+        """
         try:
             # Only update dynamic elements, not the whole canvas
             # Calculate joystick circle radius (use fixed percentage of the canvas)
@@ -365,7 +405,7 @@ class MouseVisualizer:
             joystick_magnitude = math.sqrt(self.rel_x**2 + self.rel_y**2)
             
             # Visual indicator for when at the edge
-            if joystick_magnitude > 0.95:  # Close to the edge
+            if (joystick_magnitude > 0.95):  # Close to the edge
                 # Use a fixed handle size at the edge for stability
                 edge_color = "#402020"  # Dark red tint for the background in dark mode
                 self.canvas.itemconfig("background", fill=edge_color)
@@ -440,6 +480,11 @@ class MouseVisualizer:
         except Exception as e:
             print(f"Error drawing mouse viz: {e}")
     
-    def get_frame(self):
-        """Get the tk Frame containing the mouse visualization"""
+    def get_frame(self) -> tk.Frame:
+        """
+        Get the tk Frame containing the mouse visualization.
+        
+        Returns:
+            tk.Frame: The frame containing the mouse visualization
+        """
         return self.frame

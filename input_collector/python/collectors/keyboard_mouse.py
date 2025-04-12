@@ -1,14 +1,34 @@
+"""
+Keyboard and mouse input collection module.
+
+This module provides functionality for capturing and processing keyboard and mouse
+input events using pynput, with support for velocity-based joystick-like representation
+of mouse movement.
+"""
 from pynput import keyboard, mouse
 import time
 import math
 import threading
 from ..interfaces import InputData, AbstractInputCollector
-from typing import List, Dict, Optional, Callable, Set, Tuple
+from typing import List, Dict, Optional, Callable, Set, Tuple, Any, Union
 
 class KeyboardMouseCollector(AbstractInputCollector):
-    """Collects keyboard and mouse input events using pynput"""
+    """
+    Collects keyboard and mouse input events using pynput.
     
-    def __init__(self):
+    This class captures keyboard and mouse events from the system, processes them,
+    and provides a unified interface for accessing input state. It includes advanced
+    features like velocity-based mouse tracking, joystick-like movement representation,
+    and key state tracking.
+    """
+    
+    def __init__(self) -> None:
+        """
+        Initialize the keyboard and mouse collector.
+        
+        Sets up internal state tracking, event buffering, and prepares listeners
+        for capturing keyboard and mouse events.
+        """
         # Events storage
         self.keyboard_events: List[InputData] = []
         self.mouse_events: List[InputData] = []
@@ -29,7 +49,7 @@ class KeyboardMouseCollector(AbstractInputCollector):
         self.key_state: Dict[str, bool] = {}
         
         # Mouse state tracking
-        self.mouse_state = {
+        self.mouse_state: Dict[str, Any] = {
             'last_time': time.time(),
             'last_x': 0,
             'last_y': 0,
@@ -56,41 +76,47 @@ class KeyboardMouseCollector(AbstractInputCollector):
         }
         
         # Screen metrics for velocity scaling
-        self.screen_width = 1920
-        self.screen_height = 1080
+        self.screen_width: int = 1920
+        self.screen_height: int = 1080
         
         # Velocity to joystick mapping parameters (no longer DPI dependent)
-        self.max_velocity = 1000  # pixels per second
-        self.velocity_smoothing = 0.7  # Higher = more smoothing
+        self.max_velocity: float = 1000  # pixels per second
+        self.velocity_smoothing: float = 0.7  # Higher = more smoothing
         
         # Critical missing attributes
-        self.last_mouse_event_time = time.time()
-        self.mouse_throttle_interval = 0.010  # 100fps update rate
-        self.last_reset_time = time.time()
-        self.max_events = 50
-        self.wheel_reset_timer = None
+        self.last_mouse_event_time: float = time.time()
+        self.mouse_throttle_interval: float = 0.010  # 100fps update rate
+        self.last_reset_time: float = time.time()
+        self.max_events: int = 50
+        self.wheel_reset_timer: Optional[threading.Timer] = None
         
         # Tracked keys set for efficient lookup
-        self.tracked_keys_set = set(k.lower() for k in self.supported_keys)
+        self.tracked_keys_set: Set[str] = set(k.lower() for k in self.supported_keys)
         
         # Listener references
-        self.keyboard_listener = None
-        self.mouse_listener = None
+        self.keyboard_listener: Optional[keyboard.Listener] = None
+        self.mouse_listener: Optional[mouse.Listener] = None
         
         # Add a flag to track if F9 was just pressed to prevent multiple events
-        self.f9_just_pressed = False
+        self.f9_just_pressed: bool = False
         
         # Track F9 key's state separately from other keys to prevent accidental toggling
-        self.f9_key_state = False
+        self.f9_key_state: bool = False
         
         # Debug flag to control verbose logging output
-        self.verbose = False
+        self.verbose: bool = False
         
         # Start keyboard listener immediately for F9 control
         self.start_listeners()
     
-    def start_listeners(self):
-        """Start keyboard and mouse listeners - separated for reuse"""
+    def start_listeners(self) -> None:
+        """
+        Start keyboard and mouse listeners.
+        
+        Creates and starts the keyboard and mouse listeners to capture input events.
+        The keyboard listener is always started for F9 support, while the mouse
+        listener is only started if capture is enabled.
+        """
         # Make sure we don't have duplicates
         self.stop_listeners()
         
@@ -119,8 +145,13 @@ class KeyboardMouseCollector(AbstractInputCollector):
         if self.verbose:
             print(f"Listeners started - keyboard: {self.keyboard_listener}, mouse: {self.mouse_listener}")
     
-    def stop_listeners(self):
-        """Stop existing listeners if any"""
+    def stop_listeners(self) -> None:
+        """
+        Stop existing listeners.
+        
+        Stops and cleans up any active keyboard and mouse listeners,
+        and cancels any pending timers.
+        """
         # Stop keyboard listener if running
         if self.keyboard_listener:
             self.keyboard_listener.stop()
@@ -136,8 +167,19 @@ class KeyboardMouseCollector(AbstractInputCollector):
             self.wheel_reset_timer.cancel()
             self.wheel_reset_timer = None
     
-    def on_press(self, key):
-        """Handle key press events"""
+    def on_press(self, key: Any) -> bool:
+        """
+        Handle key press events.
+        
+        Processes keyboard press events, normalizes key representation,
+        and creates InputData events accordingly.
+        
+        Args:
+            key: The key that was pressed (as provided by pynput)
+            
+        Returns:
+            bool: True to continue listening, False to stop
+        """
         try:
             # Convert key to string representation with consistent naming
             if key == keyboard.Key.space:
@@ -174,7 +216,7 @@ class KeyboardMouseCollector(AbstractInputCollector):
             elif key == keyboard.Key.esc:
                 key_str = "Key.esc"  # Explicitly name ESC key
             elif hasattr(key, 'char'):
-                key_str = key.char.lower()  # Lowercase for consistency
+                key_str = key.char.lower() if key.char else str(key).lower()  # Lowercase for consistency
             else:
                 key_str = str(key).lower()  # Lowercase for consistency
             
@@ -249,8 +291,19 @@ class KeyboardMouseCollector(AbstractInputCollector):
         
         return True  # Continue listening
     
-    def on_release(self, key):
-        """Handle key release events"""
+    def on_release(self, key: Any) -> bool:
+        """
+        Handle key release events.
+        
+        Processes keyboard release events, normalizes key representation,
+        and creates InputData events accordingly.
+        
+        Args:
+            key: The key that was released (as provided by pynput)
+            
+        Returns:
+            bool: True to continue listening, False to stop
+        """
         try:
             # Convert key to string representation with consistent naming
             if key == keyboard.Key.space:
@@ -262,7 +315,7 @@ class KeyboardMouseCollector(AbstractInputCollector):
             elif key == keyboard.Key.f9:
                 key_str = "Key.f9"
             elif hasattr(key, 'char'):
-                key_str = key.char.lower()
+                key_str = key.char.lower() if key.char else str(key).lower()
             else:
                 key_str = str(key).lower()
             
@@ -318,8 +371,17 @@ class KeyboardMouseCollector(AbstractInputCollector):
         
         return True  # Continue listening
 
-    def on_move(self, x, y):
-        """Velocity-based mouse movement handler with independent velocity tracking"""
+    def on_move(self, x: int, y: int) -> None:
+        """
+        Velocity-based mouse movement handler with independent velocity tracking.
+        
+        Processes mouse movement events, calculates velocities, updates joystick-like
+        position values, and creates corresponding InputData events.
+        
+        Args:
+            x: The current x-coordinate of the mouse cursor
+            y: The current y-coordinate of the mouse cursor
+        """
         try:
             current_time = time.time()
             
@@ -461,8 +523,16 @@ class KeyboardMouseCollector(AbstractInputCollector):
             import traceback
             traceback.print_exc()
     
-    def _reset_mouse_state(self, x, y):
-        """Reset mouse velocity and state"""
+    def _reset_mouse_state(self, x: int, y: int) -> None:
+        """
+        Reset mouse velocity and state.
+        
+        Resets the mouse movement state when the mouse stops moving.
+        
+        Args:
+            x: The current x-coordinate of the mouse cursor
+            y: The current y-coordinate of the mouse cursor
+        """
         current_time = time.time()
         
         # Avoid resetting too frequently
@@ -506,8 +576,19 @@ class KeyboardMouseCollector(AbstractInputCollector):
         )
         self._process_event(reset_event)
 
-    def on_click(self, x, y, button, pressed):
-        """Handle mouse click events"""
+    def on_click(self, x: int, y: int, button: Any, pressed: bool) -> None:
+        """
+        Handle mouse click events.
+        
+        Processes mouse button press and release events and creates
+        corresponding InputData events.
+        
+        Args:
+            x: The x-coordinate where the click occurred
+            y: The y-coordinate where the click occurred
+            button: The mouse button that was pressed/released
+            pressed: True if the button was pressed, False if released
+        """
         try:
             # Determine button type
             if button == mouse.Button.left:
@@ -548,8 +629,18 @@ class KeyboardMouseCollector(AbstractInputCollector):
         except Exception as e:
             print(f"Mouse click error: {e}")
 
-    def on_scroll(self, x, y, dx, dy):
-        """Handle mouse scroll events"""
+    def on_scroll(self, x: int, y: int, dx: int, dy: int) -> None:
+        """
+        Handle mouse scroll events.
+        
+        Processes mouse wheel scrolling and creates corresponding InputData events.
+        
+        Args:
+            x: The x-coordinate where the scroll occurred
+            y: The y-coordinate where the scroll occurred
+            dx: The horizontal scroll amount (unused)
+            dy: The vertical scroll amount (positive for scroll up, negative for scroll down)
+        """
         try:
             # Determine scroll direction
             scroll_direction = None
@@ -596,8 +687,17 @@ class KeyboardMouseCollector(AbstractInputCollector):
         except Exception as e:
             print(f"Mouse scroll error: {e}")
     
-    def _reset_wheel(self, x, y):
-        """Reset wheel state and create a visual reset event"""
+    def _reset_wheel(self, x: int, y: int) -> None:
+        """
+        Reset wheel state and create a visual reset event.
+        
+        Resets the wheel scroll state after a short delay and generates
+        a reset event for visualization purposes.
+        
+        Args:
+            x: The x-coordinate where the scroll occurred
+            y: The y-coordinate where the scroll occurred
+        """
         try:
             if self.mouse_state['wheel_up'] or self.mouse_state['wheel_down']:
                 self.mouse_state['wheel_up'] = False
@@ -625,8 +725,15 @@ class KeyboardMouseCollector(AbstractInputCollector):
         except Exception as e:
             print(f"Wheel reset error: {e}")
     
-    def _process_event(self, event: InputData):
-        """Process a single event - combine mouse and keyboard information"""
+    def _process_event(self, event: InputData) -> None:
+        """
+        Process a single event - combine mouse and keyboard information.
+        
+        Adds the event to the event history and notifies registered callbacks.
+        
+        Args:
+            event: The input event to process
+        """
         # Make sure event always includes current active keys
         if not hasattr(event, 'active_keys') or event.active_keys is None:
             event.active_keys = self.get_active_keys()
@@ -652,8 +759,13 @@ class KeyboardMouseCollector(AbstractInputCollector):
             except Exception as e:
                 print(f"Callback error: {e}")
     
-    def start_capture(self):
-        """Start capturing input events"""
+    def start_capture(self) -> None:
+        """
+        Start capturing input events.
+        
+        Begins the process of capturing input events from the keyboard and mouse.
+        Does nothing if capture is already active.
+        """
         if self.is_capturing:
             return
         
@@ -665,8 +777,14 @@ class KeyboardMouseCollector(AbstractInputCollector):
         if self.verbose:
             print("Input capturing started with full keyboard and mouse monitoring")
     
-    def stop_capture(self):
-        """Stop capturing input events"""
+    def stop_capture(self) -> None:
+        """
+        Stop capturing input events.
+        
+        Stops the process of capturing input events from the mouse.
+        The keyboard listener remains active for F9 support.
+        Does nothing if capture is already stopped.
+        """
         if not self.is_capturing:
             return
         
@@ -686,7 +804,12 @@ class KeyboardMouseCollector(AbstractInputCollector):
             print("Input capturing stopped, but keyboard listener remains for F9 monitoring")
     
     def get_input_event(self) -> InputData:
-        """Get the most recent input event"""
+        """
+        Get the most recent input event.
+        
+        Returns:
+            InputData: The most recent input event, or a placeholder event if no events exist
+        """
         # Only use mouse_events since they now include all event types
         if not self.mouse_events:
             # Create a blank event with current active keys
@@ -700,7 +823,12 @@ class KeyboardMouseCollector(AbstractInputCollector):
         return self.mouse_events[-1]
     
     def get_active_keys(self) -> List[str]:
-        """Get currently pressed keys - filtered to only include tracked keys"""
+        """
+        Get currently pressed keys - filtered to only include tracked keys.
+        
+        Returns:
+            List[str]: List of currently pressed keys that match the tracked keys list
+        """
         # Only return keys that are both pressed AND in the tracked keys set
         active_keys = []
         for k, v in self.key_state.items():
@@ -716,12 +844,25 @@ class KeyboardMouseCollector(AbstractInputCollector):
                             break
         return active_keys
     
-    def on_event(self, callback: Callable[[InputData], None]):
-        """Register a callback for input events"""
+    def on_event(self, callback: Callable[[InputData], None]) -> None:
+        """
+        Register a callback for input events.
+        
+        Args:
+            callback: Function to be called when a new input event is processed
+        """
         self.event_callbacks.append(callback)
     
-    def set_supported_keys(self, keys: List[str]):
-        """Set the keys to be tracked by the collector"""
+    def set_supported_keys(self, keys: List[str]) -> None:
+        """
+        Set the keys to be tracked by the collector.
+        
+        Updates the list of keys that the collector should track and report.
+        Any keys not in this list will be ignored.
+        
+        Args:
+            keys: List of key identifiers to track
+        """
         self.supported_keys = keys
         # Update tracked keys set for efficient lookup
         self.tracked_keys_set = set(k.lower() for k in self.supported_keys)
@@ -731,17 +872,39 @@ class KeyboardMouseCollector(AbstractInputCollector):
                 del self.key_state[key]
     
     def get_events_since(self, timestamp: float) -> List[InputData]:
-        """Get all events since a specific timestamp"""
+        """
+        Get all events since a specific timestamp.
+        
+        Args:
+            timestamp: Time (in seconds since epoch) to retrieve events from
+            
+        Returns:
+            List[InputData]: List of input events that occurred since the given timestamp
+        """
         # Only use mouse_events since they now include all event types
         return [e for e in self.mouse_events if e.timestamp >= timestamp]
 
-    def clear_events(self):
-        """Clear all stored events"""
+    def clear_events(self) -> None:
+        """
+        Clear all stored events.
+        
+        Removes all events from the collector's event history while
+        maintaining the current input state.
+        """
         self.keyboard_events.clear()
         self.mouse_events.clear()
     
-    def set_screen_dimensions(self, width: int, height: int):
-        """Set screen dimensions for velocity calibration"""
+    def set_screen_dimensions(self, width: int, height: int) -> None:
+        """
+        Set screen dimensions for velocity calibration.
+        
+        Updates the screen dimensions used for velocity calculations and
+        joystick position mapping.
+        
+        Args:
+            width: Screen width in pixels
+            height: Screen height in pixels
+        """
         self.screen_width = width
         self.screen_height = height
         self.mouse_state['center_x'] = width / 2
@@ -753,16 +916,19 @@ class KeyboardMouseCollector(AbstractInputCollector):
         self.max_velocity = diagonal * 0.25  # Reduced from 0.4 for less sensitivity        
         print(f"Screen dimensions set to {width}x{height}, max velocity: {self.max_velocity:.1f} pixels/sec")
     
-    def set_joystick_sensitivity(self, sensitivity: float):
-        """Set joystick sensitivity (0.1-5.0, LOWER = LESS sensitive)
-        This works by dividing the base_velocity by sensitivity:
-        - Lower sensitivity values (0.1-0.5) = higher max_velocity = LESS sensitive (harder to reach edge)
-        - Higher sensitivity values (1.0-5.0) = lower max_velocity = MORE sensitive (easier to reach edge)
+    def set_joystick_sensitivity(self, sensitivity: float) -> None:
+        """
+        Set joystick sensitivity.
         
-        Recommended values:
-        - 0.25: Low sensitivity (harder to reach edge) - good for precise control
-        - 1.0: Medium sensitivity
-        - 3.0: High sensitivity (easier to reach edge) - good for quick movements
+        Adjusts the sensitivity of the joystick-like mouse movement representation.
+        Lower values make the joystick less sensitive (harder to reach the edge),
+        while higher values make it more sensitive (easier to reach the edge).
+        
+        Args:
+            sensitivity: Sensitivity value between 0.1 and 5.0
+                         - 0.25: Low sensitivity (harder to reach edge)
+                         - 1.0: Medium sensitivity
+                         - 3.0: High sensitivity (easier to reach edge)
         """
         if 0.1 <= sensitivity <= 5.0:
             # Adjust max_velocity inversely with sensitivity
@@ -772,6 +938,10 @@ class KeyboardMouseCollector(AbstractInputCollector):
         else:
             print(f"Sensitivity must be between 0.1 and 5.0, got {sensitivity}")
     
-    def __del__(self):
-        """Ensure resources are cleaned up"""
+    def __del__(self) -> None:
+        """
+        Clean up resources when the object is garbage collected.
+        
+        Ensures that all listeners and timers are properly stopped.
+        """
         self.stop_listeners()
