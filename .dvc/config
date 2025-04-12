@@ -1,0 +1,7 @@
+[core]
+    remote = eeg
+    analytics = false
+    autostage = true
+['remote "unity"']
+    url = s3://eeg-interpreter
+    endpointurl = http://revnant.dnsdyn.net:9009

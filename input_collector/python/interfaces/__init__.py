@@ -1,0 +1,1 @@
+from .collector_interface import InputData, AbstractInputCollector
