@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
-from brainflow.data_filter import DataFilter, FilterTypes, DetrendOperations
+from brainflow.data_filter import DataFilter, FilterTypes, DetrendOperations, WindowOperations
 
 from ..collectors.eeg_collector import EEGCollector
 from ..processors.signal_processor import SignalProcessor
@@ -155,42 +155,97 @@ class EEGVisualizer:
                 
             # Update time series plots
             for i, channel in enumerate(self.eeg_channels):
-                if i < len(self.curves):
-                    channel_data = data_to_plot[channel][-self.num_points:]
-                    if len(channel_data) > 0:
-                        self.curves[i].setData(
-                            self.time_vector[-len(channel_data):], 
-                            channel_data
-                        )
+                if i < len(self.curves) and channel < data_to_plot.shape[0]:
+                    try:
+                        # Get channel data and ensure it's 1D
+                        channel_data = data_to_plot[channel][-self.num_points:]
+                        if len(channel_data) > 0:
+                            # Force to 1D array even if it's already 1D (this handles different numpy array structures)
+                            channel_data = np.asarray(channel_data).flatten()
+                            time_vector = self.time_vector[-len(channel_data):]
+                            self.curves[i].setData(time_vector, channel_data)
+                    except Exception as e:
+                        logging.error(f"Error plotting time series for channel {channel}: {e}")
             
             # Update FFT plots (for first few channels)
             nfft = DataFilter.get_nearest_power_of_two(self.sampling_rate)
             for i, channel in enumerate(self.eeg_channels):
-                if i < len(self.fft_curves):
-                    channel_data = data_to_plot[channel][-self.num_points:]
-                    if len(channel_data) > 0:
-                        psd = DataFilter.get_psd_welch(
-                            channel_data, 
-                            nfft, 
-                            nfft // 2,
-                            self.sampling_rate, 
-                            WindowOperations.HANNING.value
-                        )
-                        freq = np.linspace(0, self.sampling_rate / 2, len(psd))
-                        self.fft_curves[i].setData(freq, psd)
+                if i < len(self.fft_curves) and channel < data_to_plot.shape[0]:
+                    try:
+                        # Get channel data and ensure it's 1D
+                        channel_data = data_to_plot[channel][-self.num_points:]
+                        if len(channel_data) > 0:
+                            # Force to 1D array
+                            channel_data = np.asarray(channel_data).flatten()
+                            
+                            # Check if we have enough data for FFT
+                            if len(channel_data) > nfft:
+                                # Calculate PSD with proper error handling
+                                try:
+                                    # Use a smaller nfft if necessary
+                                    actual_nfft = min(nfft, len(channel_data) // 2)
+                                    actual_nfft = DataFilter.get_nearest_power_of_two(actual_nfft)
+                                    
+                                    # Get PSD using BrainFlow's DataFilter
+                                    psd = DataFilter.get_psd_welch(
+                                        channel_data, 
+                                        actual_nfft, 
+                                        actual_nfft // 2,
+                                        self.sampling_rate, 
+                                        WindowOperations.HANNING.value
+                                    )
+                                    
+                                    # Ensure PSD is a 1D numpy array
+                                    psd = np.asarray(psd).flatten()
+                                    
+                                    # Generate frequency vector of the same length as PSD
+                                    freq = np.linspace(0, self.sampling_rate / 2, len(psd))
+                                    
+                                    # Both freq and psd must be 1D arrays of the same length
+                                    if len(freq) == len(psd) and len(freq) > 0:
+                                        self.fft_curves[i].setData(freq, psd)
+                                except Exception as e:
+                                    logging.error(f"PSD calculation error for channel {channel}: {e}")
+                            else:
+                                logging.debug(f"Not enough data for FFT on channel {channel}: {len(channel_data)} < {nfft}")
+                    except Exception as e:
+                        logging.error(f"Error plotting FFT for channel {channel}: {e}")
             
             # Update band powers
             if len(self.eeg_channels) > 0:
                 # Use first channel for band powers
                 channel = self.eeg_channels[0]
-                channel_data = data_to_plot[channel][-self.num_points:]
-                if len(channel_data) > 0:
-                    powers = []
-                    for low, high in self.band_ranges:
-                        band_power = self.processor.get_band_power(
-                            data_to_plot[[channel]], low, high)[0]
-                        powers.append(10 * np.log10(band_power))  # Convert to dB
-                    self.bar_graph.setOpts(height=powers)
+                if channel < data_to_plot.shape[0]:
+                    try:
+                        channel_data = data_to_plot[channel][-self.num_points:]
+                        if len(channel_data) > 0:
+                            # Force to 1D array
+                            channel_data_flat = np.asarray(channel_data).flatten()
+                            
+                            # Check if we have enough data for band power calculation
+                            if len(channel_data_flat) > nfft:
+                                # Create a properly formatted single-channel array for band power calculation
+                                single_channel_data = np.array([channel_data_flat])
+                                
+                                powers = []
+                                for low, high in self.band_ranges:
+                                    try:
+                                        band_power = self.processor.get_band_power(
+                                            single_channel_data, low, high)[0]
+                                        # Convert to dB with safety check for non-positive values
+                                        power_db = 10 * np.log10(max(band_power, 1e-10))
+                                        powers.append(power_db)
+                                    except Exception as e:
+                                        logging.error(f"Error calculating band power {low}-{high}Hz: {e}")
+                                        powers.append(-100)  # Default low value on error
+                                        
+                                # Update the bar graph
+                                if len(powers) == len(self.bands):
+                                    self.bar_graph.setOpts(height=powers)
+                            else:
+                                logging.debug(f"Not enough data for band power: {len(channel_data_flat)} < {nfft}")
+                    except Exception as e:
+                        logging.error(f"Error plotting band powers: {e}")
             
         except Exception as e:
             logging.error(f"Error updating plots: {e}")
