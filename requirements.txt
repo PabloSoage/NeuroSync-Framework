@@ -1,1 +1,4 @@
 pynput
+pyqt5
+brainflow
+pyqtgraph
