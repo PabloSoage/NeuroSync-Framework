@@ -1,10 +1,9 @@
-import numpy as np
 import logging
-from typing import List, Optional, Tuple
 
+import numpy as np
 import pyqtgraph as pg
+from brainflow.data_filter import DataFilter, WindowOperations
 from pyqtgraph.Qt import QtCore
-from brainflow.data_filter import DataFilter, FilterTypes, DetrendOperations, WindowOperations
 
 from ..collectors.eeg_collector import EEGCollector
 from ..processors.signal_processor import SignalProcessor

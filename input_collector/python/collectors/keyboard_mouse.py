@@ -5,12 +5,15 @@ This module provides functionality for capturing and processing keyboard and mou
 input events using pynput, with support for velocity-based joystick-like representation
 of mouse movement.
 """
-from pynput import keyboard, mouse
-import time
 import math
 import threading
+import time
+from typing import List, Dict, Optional, Callable, Set, Any
+
+from pynput import keyboard, mouse
+
 from ..interfaces import InputData, AbstractInputCollector
-from typing import List, Dict, Optional, Callable, Set, Tuple, Any, Union
+
 
 class KeyboardMouseCollector(AbstractInputCollector):
     """

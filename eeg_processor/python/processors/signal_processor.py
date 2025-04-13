@@ -1,7 +1,7 @@
-import numpy as np
 import logging
-from typing import Dict, List, Any, Optional, Tuple, Union
+from typing import Dict, List, Tuple
 
+import numpy as np
 from brainflow.data_filter import DataFilter, FilterTypes, AggOperations, WindowOperations, WaveletTypes
 from brainflow.data_filter import NoiseTypes, DetrendOperations, WaveletDenoisingTypes, ThresholdTypes
 from brainflow.data_filter import WaveletExtensionTypes, NoiseEstimationLevelTypes

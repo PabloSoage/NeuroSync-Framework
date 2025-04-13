@@ -1,24 +1,31 @@
-import os
-import sys
-import time
 import logging
-from typing import Dict, List, Any, Optional
-import json
+import os
+import time
 
-from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtWidgets import (QMainWindow, QApplication, QWidget, QVBoxLayout, QHBoxLayout,
-                           QComboBox, QPushButton, QLabel, QGroupBox, QCheckBox,
-                           QSpinBox, QDoubleSpinBox, QFileDialog, QTabWidget,
-                           QRadioButton, QSlider, QMessageBox)
-from PyQt5.QtCore import Qt, QTimer
-
-from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds, LogLevels
-from brainflow.data_filter import FilterTypes, AggOperations, WindowOperations, WaveletTypes
+import numpy as np
+from PyQt5 import QtWidgets
+from PyQt5.QtCore import QTimer
+from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+                             QComboBox, QPushButton, QLabel, QGroupBox, QCheckBox,
+                             QSpinBox, QDoubleSpinBox, QFileDialog, QTabWidget,
+                             QRadioButton, QMessageBox, QGridLayout)
+from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds
+from brainflow.data_filter import (DataFilter, FilterTypes, AggOperations, WindowOperations,
+                                   WaveletTypes)
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
 
 from .collectors.eeg_collector import EEGCollector
 from .processors.signal_processor import SignalProcessor
 from .visualizers.eeg_viz import EEGVisualizer
 
+# Check if MNE is available
+try:
+    import mne
+    MNE_AVAILABLE = True
+except ImportError:
+    MNE_AVAILABLE = False
+    logging.warning("MNE package not found. MNE integration will be disabled.")
 
 class EEGProcessorApp(QMainWindow):
     """
@@ -84,6 +91,17 @@ class EEGProcessorApp(QMainWindow):
         recording_tab = QWidget()
         tabs.addTab(recording_tab, "Recording")
         self.setup_recording_tab(recording_tab)
+
+        # Advanced Processing tab (new)
+        advanced_tab = QWidget()
+        tabs.addTab(advanced_tab, "Advanced Processing")
+        self.setup_advanced_processing_tab(advanced_tab)
+        
+        # MNE Integration tab (new)
+        if MNE_AVAILABLE:
+            mne_tab = QWidget()
+            tabs.addTab(mne_tab, "MNE Integration")
+            self.setup_mne_tab(mne_tab)
         
         # Status bar for showing current status
         self.statusBar().showMessage("Ready")
@@ -374,6 +392,699 @@ class EEGProcessorApp(QMainWindow):
         layout.addWidget(record_group)
         layout.addStretch()
         
+    def setup_advanced_processing_tab(self, tab):
+        """Set up the advanced processing tab with additional signal processing features."""
+        layout = QVBoxLayout(tab)
+
+        # ICA Section
+        ica_group = QGroupBox("Independent Component Analysis (ICA)")
+        ica_layout = QVBoxLayout(ica_group)
+
+        # ICA Parameters
+        ica_params_layout = QHBoxLayout()
+        ica_params_layout.addWidget(QLabel("Number of Components:"))
+        self.ica_components_spin = QSpinBox()
+        self.ica_components_spin.setRange(1, 10)
+        self.ica_components_spin.setValue(2)
+        ica_params_layout.addWidget(self.ica_components_spin)
+
+        ica_params_layout.addWidget(QLabel("Channel:"))
+        self.ica_channel_combo = QComboBox()
+        self.ica_channel_combo.addItem("All Channels", -1)  # Special value for all channels
+        # Channels will be populated when connected to a board
+        ica_params_layout.addWidget(self.ica_channel_combo)
+
+        ica_layout.addLayout(ica_params_layout)
+
+        # ICA Controls
+        ica_buttons_layout = QHBoxLayout()
+        self.compute_ica_btn = QPushButton("Compute ICA")
+        self.compute_ica_btn.clicked.connect(self.compute_ica)
+        self.compute_ica_btn.setEnabled(False)
+        ica_buttons_layout.addWidget(self.compute_ica_btn)
+        
+        self.view_ica_components_btn = QPushButton("View ICA Components")
+        self.view_ica_components_btn.clicked.connect(self.view_ica_components)
+        self.view_ica_components_btn.setEnabled(False)
+        ica_buttons_layout.addWidget(self.view_ica_components_btn)
+        
+        ica_layout.addLayout(ica_buttons_layout)
+
+        # Wavelet Transform Section
+        wavelet_group = QGroupBox("Wavelet Transforms")
+        wavelet_layout = QVBoxLayout(wavelet_group)
+
+        # Wavelet Parameters
+        wavelet_params_layout = QGridLayout()
+        
+        wavelet_params_layout.addWidget(QLabel("Wavelet Type:"), 0, 0)
+        self.wavelet_type_combo = QComboBox()
+        self.wavelet_type_combo.addItem("DB4", WaveletTypes.DB4)
+        self.wavelet_type_combo.addItem("DB6", WaveletTypes.DB6)
+        self.wavelet_type_combo.addItem("DB5", WaveletTypes.DB5)
+        self.wavelet_type_combo.addItem("BIOR3_9", WaveletTypes.BIOR3_9)
+        self.wavelet_type_combo.addItem("HAAR", WaveletTypes.HAAR)
+        wavelet_params_layout.addWidget(self.wavelet_type_combo, 0, 1)
+        
+        wavelet_params_layout.addWidget(QLabel("Decomposition Level:"), 0, 2)
+        self.wavelet_level_spin = QSpinBox()
+        self.wavelet_level_spin.setRange(1, 8)
+        self.wavelet_level_spin.setValue(3)
+        wavelet_params_layout.addWidget(self.wavelet_level_spin, 0, 3)
+
+        wavelet_params_layout.addWidget(QLabel("Channel:"), 1, 0)
+        self.wavelet_channel_combo = QComboBox()
+        # Channels will be populated when connected to a board
+        wavelet_params_layout.addWidget(self.wavelet_channel_combo, 1, 1)
+
+        wavelet_layout.addLayout(wavelet_params_layout)
+
+        # Wavelet Controls
+        wavelet_buttons_layout = QHBoxLayout()
+        self.compute_wavelet_btn = QPushButton("Compute Wavelet Transform")
+        self.compute_wavelet_btn.clicked.connect(self.compute_wavelet)
+        self.compute_wavelet_btn.setEnabled(False)
+        wavelet_buttons_layout.addWidget(self.compute_wavelet_btn)
+        
+        self.inverse_wavelet_btn = QPushButton("Apply Inverse Transform")
+        self.inverse_wavelet_btn.clicked.connect(self.apply_inverse_wavelet)
+        self.inverse_wavelet_btn.setEnabled(False)
+        wavelet_buttons_layout.addWidget(self.inverse_wavelet_btn)
+        
+        wavelet_layout.addLayout(wavelet_buttons_layout)
+
+        # Downsampling Section
+        downsample_group = QGroupBox("Downsampling")
+        downsample_layout = QVBoxLayout(downsample_group)
+
+        # Downsampling Parameters
+        downsample_params_layout = QHBoxLayout()
+        
+        downsample_params_layout.addWidget(QLabel("Factor:"))
+        self.downsample_factor_spin = QSpinBox()
+        self.downsample_factor_spin.setRange(2, 10)
+        self.downsample_factor_spin.setValue(2)
+        downsample_params_layout.addWidget(self.downsample_factor_spin)
+        
+        downsample_params_layout.addWidget(QLabel("Aggregation Method:"))
+        self.downsample_agg_combo = QComboBox()
+        self.downsample_agg_combo.addItem("Mean", AggOperations.MEAN)
+        self.downsample_agg_combo.addItem("Median", AggOperations.MEDIAN)
+        self.downsample_agg_combo.addItem("Each", AggOperations.EACH)
+        downsample_params_layout.addWidget(self.downsample_agg_combo)
+        
+        downsample_layout.addLayout(downsample_params_layout)
+
+        # Downsampling Controls
+        downsample_buttons_layout = QHBoxLayout()
+        self.apply_downsample_btn = QPushButton("Apply Downsampling")
+        self.apply_downsample_btn.clicked.connect(self.apply_downsampling)
+        self.apply_downsample_btn.setEnabled(False)
+        downsample_buttons_layout.addWidget(self.apply_downsample_btn)
+        
+        downsample_layout.addLayout(downsample_buttons_layout)
+
+        # Advanced Filtering Section
+        adv_filter_group = QGroupBox("Advanced Filtering Options")
+        adv_filter_layout = QVBoxLayout(adv_filter_group)
+
+        # Filter Type Selection
+        filter_type_layout = QHBoxLayout()
+        filter_type_layout.addWidget(QLabel("Filter Type:"))
+        self.filter_type_combo = QComboBox()
+        self.filter_type_combo.addItem("Butterworth", FilterTypes.BUTTERWORTH)
+        self.filter_type_combo.addItem("Chebyshev Type 1", FilterTypes.CHEBYSHEV_TYPE_1)
+        self.filter_type_combo.addItem("Bessel", FilterTypes.BESSEL)
+        self.filter_type_combo.addItem("Butterworth Zero Phase", FilterTypes.BUTTERWORTH_ZERO_PHASE)
+        filter_type_layout.addWidget(self.filter_type_combo)
+        
+        filter_type_layout.addWidget(QLabel("Window Function:"))
+        self.window_function_combo = QComboBox()
+        self.window_function_combo.addItem("Hanning", WindowOperations.HANNING)
+        self.window_function_combo.addItem("Hamming", WindowOperations.HAMMING)
+        self.window_function_combo.addItem("Blackman Harris", WindowOperations.BLACKMAN_HARRIS)
+        self.window_function_combo.addItem("No Window", WindowOperations.NO_WINDOW)
+        filter_type_layout.addWidget(self.window_function_combo)
+        
+        adv_filter_layout.addLayout(filter_type_layout)
+
+        # Apply Advanced Filtering
+        filter_buttons_layout = QHBoxLayout()
+        self.apply_adv_filter_btn = QPushButton("Apply Advanced Filters")
+        self.apply_adv_filter_btn.clicked.connect(self.apply_advanced_filters)
+        self.apply_adv_filter_btn.setEnabled(False)
+        filter_buttons_layout.addWidget(self.apply_adv_filter_btn)
+        
+        adv_filter_layout.addLayout(filter_buttons_layout)
+
+        # Add all groups to main layout
+        layout.addWidget(ica_group)
+        layout.addWidget(wavelet_group)
+        layout.addWidget(downsample_group)
+        layout.addWidget(adv_filter_group)
+        layout.addStretch()
+
+    def setup_mne_tab(self, tab):
+        """Set up the MNE integration tab if MNE is available."""
+        layout = QVBoxLayout(tab)
+
+        if not MNE_AVAILABLE:
+            layout.addWidget(QLabel("MNE package is not installed. Please install it to use this feature."))
+            return
+
+        # MNE conversion section
+        mne_group = QGroupBox("Convert to MNE Format")
+        mne_layout = QVBoxLayout(mne_group)
+
+        # Add description
+        mne_layout.addWidget(QLabel("Convert BrainFlow data to MNE format for advanced analysis"))
+
+        # MNE Parameters
+        mne_params_layout = QHBoxLayout()
+        mne_params_layout.addWidget(QLabel("Data Duration (seconds):"))
+        self.mne_duration_spin = QSpinBox()
+        self.mne_duration_spin.setRange(1, 60)
+        self.mne_duration_spin.setValue(5)
+        mne_params_layout.addWidget(self.mne_duration_spin)
+        
+        mne_layout.addLayout(mne_params_layout)
+
+        # MNE Controls
+        mne_buttons_layout = QHBoxLayout()
+        
+        self.convert_to_mne_btn = QPushButton("Convert to MNE")
+        self.convert_to_mne_btn.clicked.connect(self.convert_to_mne)
+        self.convert_to_mne_btn.setEnabled(False)
+        mne_buttons_layout.addWidget(self.convert_to_mne_btn)
+        
+        mne_layout.addLayout(mne_buttons_layout)
+
+        # MNE Visualization Options
+        mne_viz_group = QGroupBox("MNE Visualization")
+        mne_viz_layout = QVBoxLayout(mne_viz_group)
+
+        mne_viz_buttons = QHBoxLayout()
+        
+        self.plot_mne_psd_btn = QPushButton("Plot PSD")
+        self.plot_mne_psd_btn.clicked.connect(lambda: self.plot_mne_visualization('psd'))
+        self.plot_mne_psd_btn.setEnabled(False)
+        mne_viz_buttons.addWidget(self.plot_mne_psd_btn)
+        
+        self.plot_mne_topomap_btn = QPushButton("Plot Topomap")
+        self.plot_mne_topomap_btn.clicked.connect(lambda: self.plot_mne_visualization('topomap'))
+        self.plot_mne_topomap_btn.setEnabled(False)
+        mne_viz_buttons.addWidget(self.plot_mne_topomap_btn)
+        
+        mne_viz_layout.addLayout(mne_viz_buttons)
+
+        # Matplotlib figure for MNE plots
+        self.mne_figure = Figure(figsize=(8, 6))
+        self.mne_canvas = FigureCanvas(self.mne_figure)
+        mne_viz_layout.addWidget(self.mne_canvas)
+
+        # Add all groups to main layout
+        layout.addWidget(mne_group)
+        layout.addWidget(mne_viz_group)
+        layout.addStretch()
+        
+        # Store MNE objects
+        self.mne_raw = None
+
+    # New methods for the advanced features
+
+    def compute_ica(self):
+        """Compute ICA components for the selected channel."""
+        if not self.collector or not self.processor or not self.is_streaming:
+            return
+
+        try:
+            # Get data
+            data, _ = self.collector.get_data(5 * self.collector.sampling_rate)  # Get 5 seconds of data
+            if data.size == 0:
+                return
+
+            # Get selected channel or use all channels
+            selected_index = self.ica_channel_combo.currentIndex()
+            if selected_index == 0:  # All channels option
+                # Use all EEG channels
+                channels_for_ica = self.collector.get_eeg_channels()
+                ica_data = data[channels_for_ica]
+            else:
+                channel = self.ica_channel_combo.currentData()
+                ica_data = data[channel:channel+1]  # Keep as 2D array
+
+            # Reshape data for ICA if needed
+            samples_per_channel = ica_data.shape[1]
+            num_components = min(self.ica_components_spin.value(), ica_data.shape[0])
+            
+            # Compute ICA
+            w, k, a, s = self.processor.perform_ica(ica_data, num_components)
+            
+            # Store ICA results
+            self.ica_results = {
+                'w': w,
+                'k': k, 
+                'a': a,
+                's': s,
+                'original_data': ica_data,
+                'num_components': num_components
+            }
+            
+            # Enable viewing components
+            self.view_ica_components_btn.setEnabled(True)
+            
+            self.statusBar().showMessage(f"ICA computed with {num_components} components")
+            
+        except Exception as e:
+            QMessageBox.warning(self, "ICA Error", f"Error calculating ICA: {str(e)}")
+            logging.error(f"ICA error: {e}")
+
+    def view_ica_components(self):
+        """Show ICA components in a separate window."""
+        if not hasattr(self, 'ica_results') or not self.ica_results:
+            return
+            
+        try:
+            # Create dialog for ICA visualization
+            dialog = QtWidgets.QDialog(self)
+            dialog.setWindowTitle("ICA Components")
+            dialog.setMinimumSize(800, 600)
+            
+            layout = QVBoxLayout(dialog)
+            
+            # Create matplotlib figure
+            fig = Figure(figsize=(8, 6))
+            canvas = FigureCanvas(fig)
+            layout.addWidget(canvas)
+            
+            s = self.ica_results['s']
+            num_components = self.ica_results['num_components']
+            
+            # Plot each component
+            for i in range(num_components):
+                ax = fig.add_subplot(num_components, 1, i+1)
+                ax.plot(s[i])
+                ax.set_title(f'Component {i+1}')
+                if i < num_components - 1:
+                    ax.set_xticks([])
+            
+            fig.tight_layout()
+            canvas.draw()
+            
+            # Add close button
+            close_button = QPushButton("Close")
+            close_button.clicked.connect(dialog.close)
+            layout.addWidget(close_button)
+            
+            # Show dialog
+            dialog.exec_()
+            
+        except Exception as e:
+            QMessageBox.warning(self, "Visualization Error", f"Error visualizing ICA components: {str(e)}")
+            logging.error(f"ICA visualization error: {e}")
+
+    def compute_wavelet(self):
+        """Compute wavelet transform for the selected channel."""
+        if not self.collector or not self.processor or not self.is_streaming:
+            return
+            
+        try:
+            # Get data
+            data, _ = self.collector.get_data(4 * self.collector.sampling_rate)  # Get 4 seconds of data
+            if data.size == 0:
+                return
+                
+            # Get selected channel
+            channel = self.wavelet_channel_combo.currentData()
+            wavelet_data = data[channel]
+            
+            # Get wavelet parameters
+            wavelet_type = self.wavelet_type_combo.currentData()
+            decomposition_level = self.wavelet_level_spin.value()
+            
+            # Compute wavelet transform
+            wavelet_coeffs, lengths = DataFilter.perform_wavelet_transform(
+                wavelet_data, wavelet_type, decomposition_level)
+                
+            # Store wavelet results for potential inverse transform
+            self.wavelet_results = {
+                'coeffs': wavelet_coeffs,
+                'lengths': lengths,
+                'original_data': wavelet_data,
+                'wavelet_type': wavelet_type,
+                'level': decomposition_level
+            }
+            
+            # Enable inverse button
+            self.inverse_wavelet_btn.setEnabled(True)
+            
+            # Show wavelet coefficients in a dialog
+            self._show_wavelet_coefficients()
+            
+            self.statusBar().showMessage(f"Wavelet transform computed with {wavelet_type} wavelet")
+            
+        except Exception as e:
+            QMessageBox.warning(self, "Wavelet Error", f"Error computing wavelet transform: {str(e)}")
+            logging.error(f"Wavelet error: {e}")
+
+    def _show_wavelet_coefficients(self):
+        """Show wavelet coefficients in a dialog."""
+        if not hasattr(self, 'wavelet_results') or not self.wavelet_results:
+            return
+            
+        try:
+            dialog = QtWidgets.QDialog(self)
+            dialog.setWindowTitle("Wavelet Coefficients")
+            dialog.setMinimumSize(800, 600)
+            
+            layout = QVBoxLayout(dialog)
+            
+            # Create matplotlib figure
+            fig = Figure(figsize=(8, 6))
+            canvas = FigureCanvas(fig)
+            layout.addWidget(canvas)
+            
+            # Extract coefficient blocks
+            coeffs = self.wavelet_results['coeffs']
+            lengths = self.wavelet_results['lengths']
+            level = self.wavelet_results['level']
+            
+            ax = fig.add_subplot(111)
+            ax.plot(coeffs)
+            
+            # Mark boundaries between coefficient blocks with vertical lines
+            cumsum = 0
+            for i, length in enumerate(lengths):
+                cumsum += length
+                ax.axvline(x=cumsum, color='r', linestyle='--')
+                if i == 0:
+                    ax.text(cumsum/2, ax.get_ylim()[1]*0.9, f"A({level})", ha='center')
+                else:
+                    ax.text((cumsum+cumsum-lengths[i])/2, ax.get_ylim()[1]*0.9, 
+                           f"D({level-i+1})", ha='center')
+            
+            ax.set_title('Wavelet Coefficients')
+            ax.set_xlabel('Coefficient Index')
+            ax.set_ylabel('Value')
+            
+            fig.tight_layout()
+            canvas.draw()
+            
+            # Add close button
+            close_button = QPushButton("Close")
+            close_button.clicked.connect(dialog.close)
+            layout.addWidget(close_button)
+            
+            # Show dialog
+            dialog.exec_()
+            
+        except Exception as e:
+            QMessageBox.warning(self, "Visualization Error", f"Error visualizing wavelet coefficients: {str(e)}")
+            logging.error(f"Wavelet visualization error: {e}")
+
+    def apply_inverse_wavelet(self):
+        """Apply inverse wavelet transform with the stored coefficients."""
+        if not hasattr(self, 'wavelet_results') or not self.wavelet_results:
+            QMessageBox.warning(self, "Wavelet Error", "No wavelet transform data available")
+            return
+            
+        try:
+            # Apply inverse wavelet transform
+            orig_data = self.wavelet_results['original_data']
+            coeffs = self.wavelet_results['coeffs']
+            lengths = self.wavelet_results['lengths']
+            wavelet_type = self.wavelet_results['wavelet_type']
+            level = self.wavelet_results['level']
+            
+            # Create coefficient tuple in required format
+            coeffs_tuple = (coeffs, lengths)
+            
+            # Apply inverse transform
+            reconstructed = DataFilter.perform_inverse_wavelet_transform(
+                coeffs_tuple, orig_data.shape[0], wavelet_type, level)
+                
+            # Display comparison of original and reconstructed signal
+            self._show_wavelet_reconstruction(orig_data, reconstructed)
+            
+            self.statusBar().showMessage("Inverse wavelet transform applied")
+            
+        except Exception as e:
+            QMessageBox.warning(self, "Wavelet Error", f"Error applying inverse wavelet transform: {str(e)}")
+            logging.error(f"Inverse wavelet error: {e}")
+
+    def _show_wavelet_reconstruction(self, original, reconstructed):
+        """Show comparison between original and reconstructed signal."""
+        dialog = QtWidgets.QDialog(self)
+        dialog.setWindowTitle("Signal Reconstruction")
+        dialog.setMinimumSize(800, 600)
+        
+        layout = QVBoxLayout(dialog)
+        
+        # Create matplotlib figure
+        fig = Figure(figsize=(8, 6))
+        canvas = FigureCanvas(fig)
+        layout.addWidget(canvas)
+        
+        # Plot original and reconstructed signals
+        ax1 = fig.add_subplot(211)
+        ax1.plot(original)
+        ax1.set_title('Original Signal')
+        ax1.set_xticks([])
+        
+        ax2 = fig.add_subplot(212)
+        ax2.plot(reconstructed)
+        ax2.set_title('Reconstructed Signal')
+        
+        fig.tight_layout()
+        canvas.draw()
+        
+        # Add close button
+        close_button = QPushButton("Close")
+        close_button.clicked.connect(dialog.close)
+        layout.addWidget(close_button)
+        
+        # Show dialog
+        dialog.exec_()
+
+    def apply_downsampling(self):
+        """Apply downsampling to EEG data."""
+        if not self.collector or not self.processor or not self.is_streaming:
+            return
+            
+        try:
+            # Get data
+            data, _ = self.collector.get_data(4 * self.collector.sampling_rate)  # Get 4 seconds of data
+            if data.size == 0:
+                return
+                
+            # Get downsampling parameters
+            factor = self.downsample_factor_spin.value()
+            operation = self.downsample_agg_combo.currentData()
+            
+            # Apply downsampling
+            downsampled_data = self.processor.perform_downsampling(data, factor, operation)
+            self.collector.set_processed_data(downsampled_data)
+            
+            # Calculate new sampling rate
+            new_sampling_rate = self.collector.sampling_rate / factor
+            
+            # Display results
+            self._show_downsampling_results(data, downsampled_data, factor, new_sampling_rate)
+            
+            self.statusBar().showMessage(f"Data downsampled by factor {factor}, new rate: {new_sampling_rate:.1f} Hz")
+            
+        except Exception as e:
+            QMessageBox.warning(self, "Downsampling Error", f"Error applying downsampling: {str(e)}")
+            logging.error(f"Downsampling error: {e}")
+
+    def _show_downsampling_results(self, original, downsampled, factor, new_rate):
+        """Show comparison between original and downsampled data."""
+        dialog = QtWidgets.QDialog(self)
+        dialog.setWindowTitle("Downsampling Results")
+        dialog.setMinimumSize(800, 600)
+        
+        layout = QVBoxLayout(dialog)
+        
+        # Create information label
+        info_text = (f"Original sampling rate: {self.collector.sampling_rate} Hz\n"
+                    f"New sampling rate: {new_rate:.1f} Hz\n"
+                    f"Downsampling factor: {factor}")
+        layout.addWidget(QLabel(info_text))
+        
+        # Create matplotlib figure
+        fig = Figure(figsize=(8, 5))
+        canvas = FigureCanvas(fig)
+        layout.addWidget(canvas)
+        
+        # Select first EEG channel for visualization
+        channel = self.collector.get_eeg_channels()[0]
+        
+        # Plot original and downsampled signals
+        ax1 = fig.add_subplot(211)
+        ax1.plot(original[channel][:500])  # Show just a portion for clarity
+        ax1.set_title('Original Signal')
+        ax1.set_xticks([])
+        
+        ax2 = fig.add_subplot(212)
+        ax2.plot(downsampled[channel][:500//factor])
+        ax2.set_title('Downsampled Signal')
+        
+        fig.tight_layout()
+        canvas.draw()
+        
+        # Add buttons
+        buttons_layout = QHBoxLayout()
+        
+        # Save downsampled data button
+        save_btn = QPushButton("Save Downsampled Data")
+        save_btn.clicked.connect(lambda: self._save_downsampled_data(downsampled))
+        buttons_layout.addWidget(save_btn)
+        
+        # Close button
+        close_button = QPushButton("Close")
+        close_button.clicked.connect(dialog.close)
+        buttons_layout.addWidget(close_button)
+        
+        layout.addLayout(buttons_layout)
+        
+        # Show dialog
+        dialog.exec_()
+
+    def _save_downsampled_data(self, downsampled):
+        """Save downsampled data to a file."""
+        try:
+            filename, _ = QFileDialog.getSaveFileName(self, "Save Downsampled Data", "", "CSV files (*.csv)")
+            if filename:
+                DataFilter.write_file(downsampled, filename, 'w')
+                self.statusBar().showMessage(f"Downsampled data saved to {filename}")
+        except Exception as e:
+            QMessageBox.critical(self, "Save Error", f"Failed to save data: {str(e)}")
+            logging.error(f"Save error: {e}")
+
+    def apply_advanced_filters(self):
+        """Apply advanced filtering options."""
+        if not self.collector or not self.processor or not self.is_streaming:
+            return
+            
+        try:
+            # Get data
+            data, _ = self.collector.get_data(4 * self.collector.sampling_rate)
+            if data.size == 0:
+                return
+                
+            # Get filter parameters
+            filter_type = self.filter_type_combo.currentData()
+            
+            # Process the data
+            filtered_data = data.copy()
+            
+            # Apply a bandpass filter with the selected filter type
+            for channel in self.collector.get_eeg_channels():
+                DataFilter.perform_bandpass(filtered_data[channel], self.collector.sampling_rate,
+                                         1.0, 50.0, 4, filter_type, 0)
+            
+            # Store the filtered data
+            self.collector.set_processed_data(filtered_data)
+            
+            # Update visualization if running
+            if self.visualizer:
+                self.visualizer.update_plots()
+            
+            self.statusBar().showMessage(f"Advanced filters applied with filter type: {filter_type}")
+            
+        except Exception as e:
+            QMessageBox.warning(self, "Filtering Error", f"Error applying advanced filters: {str(e)}")
+            logging.error(f"Advanced filtering error: {e}")
+
+    def convert_to_mne(self):
+        """Convert BrainFlow data to MNE format."""
+        if not MNE_AVAILABLE:
+            QMessageBox.warning(self, "MNE Error", "MNE package is not installed")
+            return
+            
+        if not self.collector or not self.processor or not self.is_streaming:
+            return
+            
+        try:
+            # Get data
+            seconds = self.mne_duration_spin.value()
+            data, _ = self.collector.get_data(seconds * self.collector.sampling_rate)
+            if data.size == 0:
+                return
+                
+            # Get EEG channels and names
+            eeg_channels = self.collector.get_eeg_channels()
+            eeg_data = data[eeg_channels, :]
+            
+            # Convert from microvolts to volts for MNE
+            eeg_data = eeg_data / 1000000
+            
+            # Get channel names (or use generic ones if not available)
+            try:
+                ch_names = BoardShim.get_eeg_names(self.collector.board_id)
+            except:
+                ch_names = [f'EEG {i+1}' for i in range(len(eeg_channels))]
+                
+            # Create MNE info object
+            sampling_rate = self.collector.sampling_rate
+            ch_types = ['eeg'] * len(eeg_channels)
+            info = mne.create_info(ch_names=ch_names, sfreq=sampling_rate, ch_types=ch_types)
+            
+            # Create Raw object
+            self.mne_raw = mne.io.RawArray(eeg_data, info)
+            
+            # Enable visualization buttons
+            self.plot_mne_psd_btn.setEnabled(True)
+            self.plot_mne_topomap_btn.setEnabled(True)
+            
+            self.statusBar().showMessage(f"Data converted to MNE format: {seconds}s at {sampling_rate}Hz")
+            
+        except Exception as e:
+            QMessageBox.warning(self, "MNE Error", f"Error converting to MNE format: {str(e)}")
+            logging.error(f"MNE conversion error: {e}")
+
+    def plot_mne_visualization(self, plot_type):
+        """Plot MNE visualizations."""
+        if not MNE_AVAILABLE or self.mne_raw is None:
+            return
+            
+        try:
+            # Clear the figure
+            self.mne_figure.clear()
+            
+            if plot_type == 'psd':
+                # Create PSD plot
+                ax = self.mne_figure.add_subplot(111)
+                self.mne_raw.plot_psd(ax=ax, fmax=100, show=False)
+                ax.set_title('Power Spectral Density')
+                
+            elif plot_type == 'topomap':
+                # For topomap we need channel locations
+                # Use default 10-20 system for visualization
+                montage = mne.channels.make_standard_montage('standard_1020')
+                self.mne_raw.set_montage(montage)
+                
+                # Calculate PSDs for topomap
+                psds, freqs = mne.time_frequency.psd_welch(
+                    self.mne_raw, fmin=0, fmax=100, n_fft=256)
+                
+                # Find indices for frequency bands
+                freq_idx = np.searchsorted(freqs, [8, 13])[0]  # Alpha band
+                
+                # Plot topomap
+                ax = self.mne_figure.add_subplot(111)
+                mne.viz.plot_topomap(np.mean(psds[:, :, freq_idx], axis=1), 
+                                    self.mne_raw.info, axes=ax, show=False)
+                ax.set_title('Alpha Band Power Topomap')
+            
+            # Update canvas
+            self.mne_figure.tight_layout()
+            self.mne_canvas.draw()
+            
+        except Exception as e:
+            QMessageBox.warning(self, "MNE Error", f"Error creating MNE visualization: {str(e)}")
+            logging.error(f"MNE visualization error: {e}")
+
     def on_board_type_changed(self):
         """Handle board type selection changes."""
         board_id = self.board_type_combo.currentData()
@@ -504,11 +1215,43 @@ class EEGProcessorApp(QMainWindow):
                 self.apply_filters_btn.setEnabled(True)
                 self.calculate_metrics_btn.setEnabled(True)
                 
+                # Enable advanced processing buttons
+                self.compute_ica_btn.setEnabled(True)
+                self.compute_wavelet_btn.setEnabled(True)
+                self.apply_downsample_btn.setEnabled(True)
+                self.apply_adv_filter_btn.setEnabled(True)
+                
+                # Enable MNE buttons if available
+                if MNE_AVAILABLE:
+                    self.convert_to_mne_btn.setEnabled(True)
+                
+                # Populate channel selection dropdowns
+                self._populate_channel_dropdowns()
+                
                 self.statusBar().showMessage("Streaming started")
                 
         except Exception as e:
             QMessageBox.critical(self, "Streaming Error", f"Failed to start streaming: {str(e)}")
             logging.error(f"Streaming error: {e}")
+
+    def _populate_channel_dropdowns(self):
+        """Populate channel selection dropdowns with available channels."""
+        if not self.collector:
+            return
+            
+        # Get EEG channels
+        eeg_channels = self.collector.get_eeg_channels()
+        
+        # Clear and populate wavelet channel combo
+        self.wavelet_channel_combo.clear()
+        for i, channel in enumerate(eeg_channels):
+            self.wavelet_channel_combo.addItem(f"Channel {channel}", channel)
+        
+        # Clear and populate ICA channel combo (keep "All Channels" as first option)
+        self.ica_channel_combo.clear()
+        self.ica_channel_combo.addItem("All Channels", -1)
+        for i, channel in enumerate(eeg_channels):
+            self.ica_channel_combo.addItem(f"Channel {channel}", channel)
             
     def stop_stream(self):
         """Stop streaming data from the board."""

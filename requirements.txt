@@ -1,4 +1,10 @@
 pynput
-pyqt5
 brainflow
+numpy
+pyqt5
 pyqtgraph
+matplotlib
+pandas
+
+# Optional dependencies for advanced features
+mne

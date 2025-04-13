@@ -6,9 +6,10 @@ This script runs the EEG Processor application for collecting, processing, and
 visualizing EEG data from various devices including g.tec unicorn.
 """
 
-import sys
-import os
 import logging
+import os
+import sys
+
 from PyQt5.QtWidgets import QApplication
 
 # Add the parent directory to the path to allow importing the package

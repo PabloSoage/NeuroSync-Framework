@@ -1,9 +1,9 @@
-import time
-import numpy as np
 import logging
-from typing import Dict, List, Any, Optional, Tuple, Union
+import time
+from typing import Dict, List, Any, Optional, Tuple
 
-from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds, LogLevels
+import numpy as np
+from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds
 from brainflow.data_filter import DataFilter
 
 from ..interfaces.collector_interface import CollectorInterface

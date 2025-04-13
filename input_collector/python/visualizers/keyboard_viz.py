@@ -5,8 +5,10 @@ This module provides visualization components for keyboard input events,
 displaying a virtual keyboard with key highlight states.
 """
 import tkinter as tk
-from typing import Dict, Set, List, Any, Optional
+from typing import Dict, Set, List
+
 from ..interfaces import InputData
+
 
 class KeyboardVisualizer:
     """

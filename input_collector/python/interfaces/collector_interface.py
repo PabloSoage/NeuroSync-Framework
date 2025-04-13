@@ -4,10 +4,10 @@ Interfaces and data structures for input collection.
 This module defines the core data structures and interfaces used for input collection,
 event representation and processing throughout the application.
 """
-from dataclasses import dataclass
-from typing import List, Dict, Optional, Callable, Union, Tuple
-import time
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import List, Optional, Callable
+
 
 @dataclass
 class InputData:

@@ -4,11 +4,13 @@ Mouse visualization module.
 This module provides visualization components for mouse input events,
 displaying mouse movement and button states in a joystick-like interface.
 """
-import tkinter as tk
 import math
 import time
+import tkinter as tk
+from typing import Optional
+
 from ..interfaces import InputData
-from typing import List, Tuple, Optional, Any, Dict, Set, Union
+
 
 class MouseVisualizer:
     """

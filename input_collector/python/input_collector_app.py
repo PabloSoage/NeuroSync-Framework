@@ -4,16 +4,16 @@ Input collector application module.
 This module provides the main application for collecting, visualizing, and
 logging keyboard and mouse inputs in real-time with a graphical user interface.
 """
+import json
+import time
 import tkinter as tk
 from tkinter import ttk, scrolledtext
-import json
-import threading
-from typing import List, Dict, Optional, Callable, Set, Tuple, Any, Union
-import time
+from typing import List, Dict, Optional, Any
 
 from .collectors import KeyboardMouseCollector
-from .visualizers import KeyboardVisualizer, MouseVisualizer
 from .interfaces import InputData
+from .visualizers import KeyboardVisualizer, MouseVisualizer
+
 
 class InputCollectorApp:
     """
