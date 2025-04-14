@@ -745,77 +745,55 @@ class InputCollectorApp:
 
     def _log_event_to_file(self, event: InputData) -> None:
         """
-        Log event to file.
+        Log event to file with a simplified, uniform format.
         
-        Writes the input event to a JSON file in a standardized format.
+        Creates clean, consistent logs that are easy to process for machine learning
+        or pattern recognition, with just the essential data for each tracking mode.
         
         Args:
             event: The input event to log
         """
         try:
-            # Get the active mouse buttons
-            active_buttons: List[str] = []
+            # Determine current tracking mode
+            tracking_mode = getattr(event, 'mouse_tracking_mode', 'joystick')
             
-            # Include the current button press
-            if event.button_pressed:
-                active_buttons.append(event.button_pressed)
+            # Convert scroll direction to numeric value (1=up, 0=null, -1=down)
+            scroll_value = 0  # Default (null)
+            if event.event_type == "mouse_scroll" and event.direction is not None:
+                if event.direction == "up":
+                    scroll_value = 1
+                elif event.direction == "down":
+                    scroll_value = -1
             
-            # For mouse move events, check if buttons are pressed
-            if event.event_type == "mouse_move":
-                # The button_pressed field is now included from the collector
-                pass
-            
-            # Create the unified log format with three main sections: timestamp, keyboard, mouse
-            unified_log: Dict[str, Any] = {
+            # Create a simplified log structure
+            clean_log = {
                 "timestamp": event.timestamp,
+                "mode": tracking_mode,
                 "keyboard": {
-                    "active_keys": event.active_keys or []
+                    "keys": event.active_keys or []
                 },
                 "mouse": {
-                    # Movement information - base movement
-                    "is_moving": event.is_moving if event.is_moving is not None else False,
-                    "direction": event.direction if hasattr(event, 'direction') and event.direction else None,
-                    
-                    # Include tracking mode
-                    "tracking_mode": event.mouse_tracking_mode if hasattr(event, 'mouse_tracking_mode') else "joystick",
-                    
-                    # Include specific data based on tracking mode
-                    "joystick": {
-                        "rel_x": event.rel_x if event.rel_x is not None else 0.0,
-                        "rel_y": event.rel_y if event.rel_y is not None else 0.0,
-                        "speed": event.speed if event.speed is not None else 0.0,
-                        "speed_x": event.speed_x if event.speed_x is not None else 0.0,
-                        "speed_y": event.speed_y if event.speed_y is not None else 0.0,
-                    },
-                    
-                    "delta": {
-                        "x": event.mouse_delta_x if hasattr(event, 'mouse_delta_x') and event.mouse_delta_x is not None else 0.0,
-                        "y": event.mouse_delta_y if hasattr(event, 'mouse_delta_y') and event.mouse_delta_y is not None else 0.0,
-                        "magnitude": event.mouse_delta_magnitude if hasattr(event, 'mouse_delta_magnitude') and event.mouse_delta_magnitude is not None else 0.0
-                    },
-                    
-                    "angle": {
-                        "degrees": event.mouse_delta_angle if hasattr(event, 'mouse_delta_angle') and event.mouse_delta_angle is not None else 0.0,
-                        "magnitude": event.mouse_delta_magnitude if hasattr(event, 'mouse_delta_magnitude') and event.mouse_delta_magnitude is not None else 0.0
-                    },
-                    
-                    # Scroll information
-                    "scroll": {
-                        "is_scrolling": (event.event_type == "mouse_scroll" and event.direction is not None) or 
-                                       (hasattr(event, 'wheel_direction') and event.wheel_direction is not None),
-                        "direction": event.direction if (event.event_type == "mouse_scroll" or 
-                                                       (hasattr(event, 'wheel_direction') and event.wheel_direction is not None)) else None
-                    },
-                    # Click information
-                    "click": {
-                        "is_clicking": event.button_pressed is not None,
-                        "buttons": [event.button_pressed] if event.button_pressed else []
-                    }
+                    "buttons": [event.button_pressed] if event.button_pressed else [],
+                    "scroll_direction": scroll_value
                 }
             }
-
-            # Write to file and flush immediately
-            self.log_file.write(json.dumps(unified_log) + "\n")
+            
+            # Add only the relevant data for the current tracking mode
+            if tracking_mode == "joystick":
+                clean_log["mouse"]["speed_x"] = event.speed_x if hasattr(event, 'speed_x') and event.speed_x is not None else 0.0
+                clean_log["mouse"]["speed_y"] = event.speed_y if hasattr(event, 'speed_y') and event.speed_y is not None else 0.0
+                # "is_moving" removed as it can be inferred from speed values
+            
+            elif tracking_mode == "delta":
+                clean_log["mouse"]["delta_x"] = event.mouse_delta_x if hasattr(event, 'mouse_delta_x') and event.mouse_delta_x is not None else 0.0
+                clean_log["mouse"]["delta_y"] = event.mouse_delta_y if hasattr(event, 'mouse_delta_y') and event.mouse_delta_y is not None else 0.0
+            
+            elif tracking_mode == "angle":
+                clean_log["mouse"]["angle"] = event.mouse_delta_angle if hasattr(event, 'mouse_delta_angle') and event.mouse_delta_angle is not None else 0.0
+                clean_log["mouse"]["magnitude"] = event.mouse_delta_magnitude if hasattr(event, 'mouse_delta_magnitude') and event.mouse_delta_magnitude is not None else 0.0
+            
+            # Write the clean log to file and flush immediately
+            self.log_file.write(json.dumps(clean_log) + "\n")
             self.log_file.flush()
         except Exception as e:
             print(f"Error logging to file: {e}")
