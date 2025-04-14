@@ -112,6 +112,9 @@ class InputCollectorApp:
         # Set joystick sensitivity - LOWER value = LESS sensitive
         self.collector.set_joystick_sensitivity(0.1)
         
+        # IMPORTANT: Initialize mouse tracking mode to match UI defaults
+        self._set_mouse_tracking_mode(self.tracking_mode_var.get())
+        
         # Bind global keyboard shortcuts for recording control
         self.root.bind("<F9>", self._toggle_recording_key)  # F9 key
         self.root.bind("<space>", self._toggle_recording_key)  # Space key 
@@ -515,6 +518,20 @@ class InputCollectorApp:
         )
         self.angle_grouping_display.pack(side=tk.LEFT, padx=5)
         
+        # Add a frame for scroll checkbox
+        scroll_frame = ttk.Frame(mouse_settings_frame, style="TFrame")
+        scroll_frame.grid(row=1, column=1, sticky="w", padx=5, pady=5)
+        
+        # Add Capture Scroll checkbox
+        self.capture_scroll_var = tk.BooleanVar(value=False)  # Default to False
+        self.capture_scroll_cb = ttk.Checkbutton(
+            scroll_frame, 
+            text="Capture Scroll Data",
+            variable=self.capture_scroll_var,
+            style="TCheckbutton"
+        )
+        self.capture_scroll_cb.pack(side=tk.LEFT, padx=5)
+        
         # Apply button
         apply_button = tk.Button(
             mouse_settings_frame,
@@ -813,10 +830,13 @@ class InputCollectorApp:
                     "keys": event.active_keys or []
                 },
                 "mouse": {
-                    "buttons": [event.button_pressed] if event.button_pressed else [],
-                    "scroll_direction": scroll_value
+                    "buttons": [event.button_pressed] if event.button_pressed else []
                 }
             }
+
+            # Only include scroll_direction if capture_scroll is enabled
+            if self.capture_scroll_var.get() or scroll_value != 0:
+                clean_log["mouse"]["scroll_direction"] = scroll_value
             
             # Add only the relevant data for the current tracking mode
             if tracking_mode == "joystick":
@@ -1073,6 +1093,9 @@ class InputCollectorApp:
         angle_grouping = self.angle_grouping_var.get()
         self.collector.set_angle_grouping(angle_grouping)
         self._log_status(f"Angle grouping set to: {angle_grouping}° ({360 // angle_grouping} values)")
+        
+        # Log scroll capture status
+        self._log_status(f"Scroll data capture: {'Enabled' if self.capture_scroll_var.get() else 'Disabled'}")
         
         # Re-apply current tracking mode to ensure all settings are updated
         self._set_mouse_tracking_mode(self.tracking_mode_var.get())
