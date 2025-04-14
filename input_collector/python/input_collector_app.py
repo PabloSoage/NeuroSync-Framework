@@ -303,6 +303,44 @@ class InputCollectorApp:
         )
         remove_button.pack(side=tk.LEFT, padx=4)
         
+        # Add mouse tracking mode controls after key tracking frame
+        ttk.Separator(control_frame, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=5)
+        
+        # Mouse tracking mode frame
+        mouse_mode_frame = ttk.Frame(control_frame, style="TFrame")
+        mouse_mode_frame.pack(side=tk.LEFT, fill=tk.X)
+        
+        ttk.Label(mouse_mode_frame, text="Mouse Mode:", style="TLabel").pack(side=tk.LEFT, padx=5)
+        
+        # Create a dropdown for tracking modes
+        self.tracking_mode_var = tk.StringVar(value="joystick")
+        tracking_modes = ["joystick", "delta", "angle"]
+        
+        # Use a dark theme option menu
+        tracking_dropdown = tk.OptionMenu(
+            mouse_mode_frame, 
+            self.tracking_mode_var, 
+            *tracking_modes,
+            command=self._set_mouse_tracking_mode
+        )
+        tracking_dropdown.config(
+            bg=self.dark_bg,
+            fg=self.text_color,
+            activebackground=self.accent_color,
+            activeforeground="#FFFFFF",
+            relief=tk.FLAT,
+            highlightthickness=0,
+            bd=1
+        )
+        tracking_dropdown["menu"].config(
+            bg=self.dark_bg,
+            fg=self.text_color,
+            activebackground=self.accent_color,
+            activeforeground="#FFFFFF",
+            relief=tk.FLAT,
+        )
+        tracking_dropdown.pack(side=tk.LEFT, padx=5)
+        
         # Visualization area with grid layout - add some breathing room
         viz_frame = ttk.Frame(main_frame, style="TFrame")
         viz_frame.grid(row=row_index, column=0, sticky="nsew", pady=8)
@@ -393,6 +431,65 @@ class InputCollectorApp:
         )
         self.status_text.grid(row=0, column=0, sticky="ew")
         self.status_text.config(state=tk.DISABLED)
+        
+        # Mouse settings section
+        mouse_settings_frame = ttk.LabelFrame(main_frame, text="Mouse Settings", style="TLabelframe")
+        mouse_settings_frame.grid(row=row_index, column=0, sticky="ew", pady=5)
+        row_index += 1
+        
+        # Configure settings frame
+        mouse_settings_frame.grid_columnconfigure(0, weight=1)
+        mouse_settings_frame.grid_columnconfigure(1, weight=1)
+        
+        # Delta smoothing slider
+        delta_frame = ttk.Frame(mouse_settings_frame, style="TFrame")
+        delta_frame.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
+        
+        ttk.Label(delta_frame, text="Delta Smoothing:", style="TLabel").pack(side=tk.LEFT, padx=5)
+        
+        self.delta_smoothing_var = tk.DoubleVar(value=0.5)
+        delta_smoothing_slider = ttk.Scale(
+            delta_frame,
+            from_=0.0,
+            to=0.9,
+            orient=tk.HORIZONTAL,
+            variable=self.delta_smoothing_var,
+            command=lambda x: None  # Will be applied on button press
+        )
+        delta_smoothing_slider.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+        
+        # Joystick sensitivity slider
+        joystick_frame = ttk.Frame(mouse_settings_frame, style="TFrame")
+        joystick_frame.grid(row=0, column=1, sticky="ew", padx=5, pady=5)
+        
+        ttk.Label(joystick_frame, text="Joystick Sensitivity:", style="TLabel").pack(side=tk.LEFT, padx=5)
+        
+        self.sensitivity_var = tk.DoubleVar(value=0.1)
+        sensitivity_slider = ttk.Scale(
+            joystick_frame,
+            from_=0.1,
+            to=2.0,
+            orient=tk.HORIZONTAL,
+            variable=self.sensitivity_var,
+            command=lambda x: None  # Will be applied on button press
+        )
+        sensitivity_slider.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+        
+        # Apply button
+        apply_button = tk.Button(
+            mouse_settings_frame,
+            text="Apply Settings",
+            command=self._apply_mouse_settings,
+            bg=self.accent_color,
+            fg="#FFFFFF",
+            relief=tk.FLAT,
+            padx=8,
+            pady=2,
+            activebackground="#0066aa",
+            activeforeground="#FFFFFF",
+            bd=0
+        )
+        apply_button.grid(row=1, column=1, sticky="e", padx=10, pady=5)
         
         # Configure main_frame rows to resize properly
         main_frame.grid_rowconfigure(1, weight=1)  # Make viz_frame expandable
@@ -586,9 +683,10 @@ class InputCollectorApp:
     
     def _format_event_text(self, event: InputData) -> str:
         """
-        Format event text for UI display.
+        Format event text for UI display based on tracking mode.
         
-        Converts an input event into a human-readable string for display in the UI.
+        Converts an input event into a human-readable string for display in the UI,
+        with information relevant to the current tracking mode.
         
         Args:
             event: The input event to format
@@ -599,26 +697,49 @@ class InputCollectorApp:
         # Format keyboard info - make it stand out
         keyboard_part = f"Keys: [{', '.join(event.active_keys)}]" if event.active_keys else "Keys: []"
         
-        # Format mouse info
+        # Format mouse info based on tracking mode
         mouse_parts = []
+        tracking_mode = getattr(event, 'mouse_tracking_mode', 'joystick')
         
-        # Movement info
-        if event.is_moving:
-            movement = f"Moving:{event.direction or 'None'} Speed:{event.speed:.1f}"
-            mouse_parts.append(movement)
-        
-        # Click info
+        # Click info - common to all modes
         if event.event_type == "mouse_click" and event.button_pressed:
             mouse_parts.append(f"Click:{event.button_pressed}")
         elif hasattr(event, 'button_pressed') and event.button_pressed:
             mouse_parts.append(f"Click:{event.button_pressed}")
         
-        # Scroll info
+        # Scroll info - common to all modes
         if event.event_type == "mouse_scroll" and event.direction:
             mouse_parts.append(f"Scroll:{event.direction}")
         
+        # Movement info - mode specific
+        if event.is_moving:
+            if tracking_mode == "delta":
+                # Delta mode shows raw deltas and magnitude
+                if hasattr(event, 'mouse_delta_x') and hasattr(event, 'mouse_delta_y'):
+                    mouse_parts.append(f"Δx:{event.mouse_delta_x:.1f} Δy:{event.mouse_delta_y:.1f}")
+                if hasattr(event, 'mouse_delta_magnitude'):
+                    mouse_parts.append(f"Mag:{event.mouse_delta_magnitude:.1f}")
+                if event.direction:
+                    mouse_parts.append(f"Dir:{event.direction}")
+            elif tracking_mode == "angle":
+                # Angle mode shows angle and magnitude
+                if hasattr(event, 'mouse_delta_angle'):
+                    mouse_parts.append(f"Angle:{event.mouse_delta_angle:.1f}°")
+                if hasattr(event, 'mouse_delta_magnitude'):
+                    mouse_parts.append(f"Mag:{event.mouse_delta_magnitude:.1f}")
+                if event.direction:
+                    mouse_parts.append(f"Dir:{event.direction}")
+            else:  # joystick mode
+                # Joystick shows direction, rel position, and speed
+                if event.direction:
+                    mouse_parts.append(f"Dir:{event.direction}")
+                if event.speed is not None:
+                    mouse_parts.append(f"Speed:{event.speed:.1f}")
+                if event.rel_x is not None and event.rel_y is not None:
+                    mouse_parts.append(f"Rel:({event.rel_x:.2f},{event.rel_y:.2f})")
+        
         # Combine all mouse info
-        mouse_part = f"Mouse: {' | '.join(mouse_parts)}" if mouse_parts else "Mouse: Idle"
+        mouse_part = f"Mouse[{tracking_mode}]: {' | '.join(mouse_parts)}" if mouse_parts else f"Mouse[{tracking_mode}]: Idle"
         
         return f"{keyboard_part} | {mouse_part}"
 
@@ -651,14 +772,33 @@ class InputCollectorApp:
                     "active_keys": event.active_keys or []
                 },
                 "mouse": {
-                    # Movement information
+                    # Movement information - base movement
                     "is_moving": event.is_moving if event.is_moving is not None else False,
                     "direction": event.direction if hasattr(event, 'direction') and event.direction else None,
-                    "speed": {
-                        "overall": event.speed if event.speed is not None else 0.0,
-                        "x": event.speed_x if event.speed_x is not None else 0.0,
-                        "y": event.speed_y if event.speed_y is not None else 0.0
+                    
+                    # Include tracking mode
+                    "tracking_mode": event.mouse_tracking_mode if hasattr(event, 'mouse_tracking_mode') else "joystick",
+                    
+                    # Include specific data based on tracking mode
+                    "joystick": {
+                        "rel_x": event.rel_x if event.rel_x is not None else 0.0,
+                        "rel_y": event.rel_y if event.rel_y is not None else 0.0,
+                        "speed": event.speed if event.speed is not None else 0.0,
+                        "speed_x": event.speed_x if event.speed_x is not None else 0.0,
+                        "speed_y": event.speed_y if event.speed_y is not None else 0.0,
                     },
+                    
+                    "delta": {
+                        "x": event.mouse_delta_x if hasattr(event, 'mouse_delta_x') and event.mouse_delta_x is not None else 0.0,
+                        "y": event.mouse_delta_y if hasattr(event, 'mouse_delta_y') and event.mouse_delta_y is not None else 0.0,
+                        "magnitude": event.mouse_delta_magnitude if hasattr(event, 'mouse_delta_magnitude') and event.mouse_delta_magnitude is not None else 0.0
+                    },
+                    
+                    "angle": {
+                        "degrees": event.mouse_delta_angle if hasattr(event, 'mouse_delta_angle') and event.mouse_delta_angle is not None else 0.0,
+                        "magnitude": event.mouse_delta_magnitude if hasattr(event, 'mouse_delta_magnitude') and event.mouse_delta_magnitude is not None else 0.0
+                    },
+                    
                     # Scroll information
                     "scroll": {
                         "is_scrolling": (event.event_type == "mouse_scroll" and event.direction is not None) or 
@@ -863,6 +1003,30 @@ class InputCollectorApp:
         if not self.is_recording:
             self.root.focus_set()
         return True
+
+    def _set_mouse_tracking_mode(self, mode: str) -> None:
+        """
+        Change the mouse tracking mode.
+        
+        Args:
+            mode: The tracking mode to use
+        """
+        self.collector.set_mouse_tracking_mode(mode)
+        self._log_status(f"Mouse tracking mode set to: {mode}", color=self.accent_color)
+    
+    def _apply_mouse_settings(self) -> None:
+        """
+        Apply the current mouse settings.
+        """
+        # Apply delta smoothing
+        smoothing = self.delta_smoothing_var.get()
+        self.collector.set_delta_smoothing(smoothing)
+        self._log_status(f"Delta smoothing set to: {smoothing:.2f}")
+        
+        # Apply joystick sensitivity
+        sensitivity = self.sensitivity_var.get()
+        self.collector.set_joystick_sensitivity(sensitivity)
+        self._log_status(f"Joystick sensitivity set to: {sensitivity:.2f}")
 
 
 def run_collector_app() -> InputCollectorApp:

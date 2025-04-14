@@ -49,6 +49,13 @@ class InputData:
     is_moving: Optional[bool] = None  # Whether the mouse is considered to be in motion
     active_keys: List[str] = None  # List of all currently active keys
     
+    # New delta-based tracking fields
+    mouse_delta_x: Optional[float] = None  # Raw mouse movement delta X
+    mouse_delta_y: Optional[float] = None  # Raw mouse movement delta Y
+    mouse_delta_magnitude: Optional[float] = None  # Total movement magnitude
+    mouse_delta_angle: Optional[float] = None  # Movement angle in degrees (0=right, 90=down)
+    mouse_tracking_mode: Optional[str] = None  # Which tracking mode is being used
+    
     def __post_init__(self) -> None:
         """
         Initialize default values after instance creation.

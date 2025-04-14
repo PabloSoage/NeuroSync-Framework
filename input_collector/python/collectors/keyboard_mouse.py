@@ -75,7 +75,16 @@ class KeyboardMouseCollector(AbstractInputCollector):
             'velocity_y': 0,
             # Velocity history for smoothing
             'velocity_history_x': [0] * 5,
-            'velocity_history_y': [0] * 5
+            'velocity_history_y': [0] * 5,
+            
+            # New tracking fields for delta-based control
+            'delta_x': 0,            # Raw mouse movement delta X 
+            'delta_y': 0,            # Raw mouse movement delta Y
+            'delta_magnitude': 0,    # Total movement magnitude
+            'delta_angle': 0,        # Movement angle in degrees
+            'delta_history_x': [0] * 3,  # Shorter history for deltas
+            'delta_history_y': [0] * 3,  # Shorter history for deltas
+            'delta_smoothing': 0.5,  # Smoothing factor for delta movements
         }
         
         # Screen metrics for velocity scaling
@@ -111,6 +120,9 @@ class KeyboardMouseCollector(AbstractInputCollector):
         
         # Start keyboard listener immediately for F9 control
         self.start_listeners()
+        
+        # Tracking mode
+        self.mouse_tracking_mode = "joystick"  # "joystick", "delta", or "angle"
     
     def start_listeners(self) -> None:
         """
@@ -376,14 +388,7 @@ class KeyboardMouseCollector(AbstractInputCollector):
 
     def on_move(self, x: int, y: int) -> None:
         """
-        Velocity-based mouse movement handler with independent velocity tracking.
-        
-        Processes mouse movement events, calculates velocities, updates joystick-like
-        position values, and creates corresponding InputData events.
-        
-        Args:
-            x: The current x-coordinate of the mouse cursor
-            y: The current y-coordinate of the mouse cursor
+        Handle mouse movement with multiple tracking modes.
         """
         try:
             current_time = time.time()
@@ -405,16 +410,42 @@ class KeyboardMouseCollector(AbstractInputCollector):
                 self.mouse_state['last_time'] = current_time
                 return  # Skip first reading as we have no velocity yet
             
-            # Calculate real movements in pixels
+            # Calculate raw movements in pixels
             x_move = x - self.mouse_state['last_x']
             y_move = y - self.mouse_state['last_y']
             
             # Avoid division by zero
             if delta_time < 0.001:
                 delta_time = 0.001
-                
+            
+            # ==== DELTA-BASED TRACKING (FPS style) ====
+            # Store raw deltas and update delta history
+            self.mouse_state['delta_history_x'].pop(0)
+            self.mouse_state['delta_history_x'].append(x_move)
+            self.mouse_state['delta_history_y'].pop(0)
+            self.mouse_state['delta_history_y'].append(y_move)
+            
+            # Apply smoothing to deltas
+            smooth_factor = self.mouse_state['delta_smoothing']
+            smoothed_delta_x = sum(self.mouse_state['delta_history_x']) / len(self.mouse_state['delta_history_x'])
+            smoothed_delta_y = sum(self.mouse_state['delta_history_y']) / len(self.mouse_state['delta_history_y'])
+            self.mouse_state['delta_x'] = smoothed_delta_x
+            self.mouse_state['delta_y'] = smoothed_delta_y
+            
+            # Calculate delta magnitude and angle
+            delta_magnitude = math.sqrt(smoothed_delta_x**2 + smoothed_delta_y**2)
+            self.mouse_state['delta_magnitude'] = delta_magnitude
+            
+            # Calculate movement angle (0 degrees is right, 90 is down)
+            if abs(smoothed_delta_x) > 0.001 or abs(smoothed_delta_y) > 0.001:
+                angle = math.degrees(math.atan2(smoothed_delta_y, smoothed_delta_x))
+                self.mouse_state['delta_angle'] = angle
+            
+            # Determine if there's meaningful movement based on delta
+            delta_is_moving = delta_magnitude > 0.5  # Very small threshold for deltas
+            
+            # ==== JOYSTICK-BASED TRACKING ====
             # Calculate raw instantaneous velocity in pixels per second
-            # This is the actual physical movement speed of the mouse cursor
             inst_velocity_x = x_move / delta_time
             inst_velocity_y = y_move / delta_time
             
@@ -425,7 +456,6 @@ class KeyboardMouseCollector(AbstractInputCollector):
             self.mouse_state['velocity_history_y'].append(inst_velocity_y)
             
             # Apply exponential smoothing to velocity
-            # This gives more weight to recent movements while smoothing jitter
             smooth_factor = self.velocity_smoothing
             prev_velocity_x = self.mouse_state['velocity_x']
             prev_velocity_y = self.mouse_state['velocity_y']
@@ -444,7 +474,7 @@ class KeyboardMouseCollector(AbstractInputCollector):
             speed = math.sqrt(velocity_x**2 + velocity_y**2)
             
             # Determine if mouse is actually moving based on physical velocity
-            is_moving = speed > 20  # pixels per second
+            joystick_is_moving = speed > 20  # pixels per second
             
             # Calculate joystick position - SEPARATE from velocity tracking
             velocity_magnitude = math.sqrt(velocity_x**2 + velocity_y**2)
@@ -460,20 +490,22 @@ class KeyboardMouseCollector(AbstractInputCollector):
                 rel_x = 0
                 rel_y = 0
             
-            # Determine movement direction based on velocity components
-            direction = None
-            if is_moving:
-                direction_parts = []
-                if abs(velocity_x) > 20:  # Threshold for directional indicator
-                    direction_parts.append("X+" if velocity_x > 0 else "X-")
-                if abs(velocity_y) > 20:
-                    direction_parts.append("Y+" if velocity_y > 0 else "Y-")
-                direction = "".join(direction_parts) if direction_parts else None
+            # ==== DETERMINE MOVEMENT ====
+            # Choose which tracking mode to use for this update
+            if self.mouse_tracking_mode == "delta":
+                is_moving = delta_is_moving
+                direction = self._get_delta_direction()  # Function to determine direction from deltas
+            elif self.mouse_tracking_mode == "angle":
+                is_moving = joystick_is_moving  # Use joystick threshold for movement detection
+                direction = self._get_angle_direction()  # Function to convert angle to direction
+            else:  # Default joystick mode
+                is_moving = joystick_is_moving
+                direction = self._get_joystick_direction(velocity_x, velocity_y)
             
             # Check if state changed from moving to not moving
             state_changed = self.mouse_state['is_moving'] != is_moving
             
-            # Update state
+            # Update general state regardless of mode
             self.mouse_state['is_moving'] = is_moving
             self.mouse_state['last_x'] = x
             self.mouse_state['last_y'] = y
@@ -485,10 +517,7 @@ class KeyboardMouseCollector(AbstractInputCollector):
             self.mouse_state['speed_x'] = speed_x
             self.mouse_state['speed_y'] = speed_y
             
-            # Get currently active keys - make sure to always include in events
-            active_keys = self.get_active_keys()
-            
-            # Create event with complete information, including button states
+            # Get currently active keys
             active_keys = self.get_active_keys()
             
             # Determine which mouse buttons are currently pressed
@@ -498,6 +527,7 @@ class KeyboardMouseCollector(AbstractInputCollector):
             elif self.mouse_state['click_right']:
                 button_pressed = "Button.right"
             
+            # Create event with all tracking data
             event = InputData(
                 timestamp=current_time,
                 event_type="mouse_move",
@@ -510,8 +540,14 @@ class KeyboardMouseCollector(AbstractInputCollector):
                 rel_x=rel_x,
                 rel_y=rel_y,
                 is_moving=is_moving,
-                button_pressed=button_pressed,  # Include currently pressed button
-                active_keys=active_keys
+                button_pressed=button_pressed,
+                active_keys=active_keys,
+                # Add additional tracking data fields
+                mouse_delta_x=self.mouse_state['delta_x'],
+                mouse_delta_y=self.mouse_state['delta_y'],
+                mouse_delta_magnitude=self.mouse_state['delta_magnitude'],
+                mouse_delta_angle=self.mouse_state['delta_angle'],
+                mouse_tracking_mode=self.mouse_tracking_mode
             )
             
             # Process event
@@ -940,6 +976,94 @@ class KeyboardMouseCollector(AbstractInputCollector):
             print(f"Joystick sensitivity set to {sensitivity}, max velocity: {self.max_velocity:.1f} pixels/sec")
         else:
             print(f"Sensitivity must be between 0.1 and 5.0, got {sensitivity}")
+    
+    def set_mouse_tracking_mode(self, mode: str) -> None:
+        """
+        Set which mouse tracking mode to use.
+        
+        Args:
+            mode: One of "joystick", "delta", or "angle"
+        """
+        valid_modes = ["joystick", "delta", "angle"]
+        if mode not in valid_modes:
+            print(f"Invalid mouse tracking mode: {mode}. Must be one of {valid_modes}")
+            return
+            
+        self.mouse_tracking_mode = mode
+        print(f"Mouse tracking mode set to {mode}")
+    
+    def set_delta_smoothing(self, smoothing: float) -> None:
+        """
+        Set smoothing factor for delta-based mouse movement.
+        
+        Args:
+            smoothing: Smoothing factor between 0.0 (no smoothing) and 0.9 (very smooth)
+        """
+        if 0.0 <= smoothing <= 0.9:
+            self.mouse_state['delta_smoothing'] = smoothing
+            print(f"Delta smoothing set to {smoothing}")
+        else:
+            print(f"Smoothing must be between 0.0 and 0.9, got {smoothing}")
+    
+    def _get_delta_direction(self) -> Optional[str]:
+        """Get direction based on delta movement."""
+        delta_x = self.mouse_state['delta_x']
+        delta_y = self.mouse_state['delta_y']
+        
+        # Only report direction if there's significant movement
+        if abs(delta_x) < 0.5 and abs(delta_y) < 0.5:
+            return None
+            
+        direction_parts = []
+        if abs(delta_x) > 0.5:
+            direction_parts.append("X+" if delta_x > 0 else "X-")
+        if abs(delta_y) > 0.5:
+            direction_parts.append("Y+" if delta_y > 0 else "Y-")
+        
+        return "".join(direction_parts) if direction_parts else None
+    
+    def _get_angle_direction(self) -> Optional[str]:
+        """Convert angle to cardinal direction."""
+        angle = self.mouse_state['delta_angle']
+        magnitude = self.mouse_state['delta_magnitude']
+        
+        # Only report direction if there's significant movement
+        if magnitude < 0.5:
+            return None
+            
+        # Map angle to cardinal directions but use X+/Y- format for consistency
+        if -22.5 <= angle <= 22.5:
+            return "X+"  # Right (East)
+        elif 22.5 < angle <= 67.5:
+            return "X+Y+"  # Down-right (Southeast)
+        elif 67.5 < angle <= 112.5:
+            return "Y+"  # Down (South)
+        elif 112.5 < angle <= 157.5:
+            return "X-Y+"  # Down-left (Southwest)
+        elif angle > 157.5 or angle <= -157.5:
+            return "X-"  # Left (West)
+        elif -157.5 < angle <= -112.5:
+            return "X-Y-"  # Up-left (Northwest)
+        elif -112.5 < angle <= -67.5:
+            return "Y-"  # Up (North)
+        elif -67.5 < angle <= -22.5:
+            return "X+Y-"  # Up-right (Northeast)
+        
+        return None
+    
+    def _get_joystick_direction(self, velocity_x: float, velocity_y: float) -> Optional[str]:
+        """Get direction based on joystick velocity."""
+        # Only report direction if there's significant movement
+        if abs(velocity_x) < 20 and abs(velocity_y) < 20:
+            return None
+            
+        direction_parts = []
+        if abs(velocity_x) > 20:
+            direction_parts.append("X+" if velocity_x > 0 else "X-")
+        if abs(velocity_y) > 20:
+            direction_parts.append("Y+" if velocity_y > 0 else "Y-")
+        
+        return "".join(direction_parts) if direction_parts else None
     
     def __del__(self) -> None:
         """

@@ -131,6 +131,13 @@ class MouseVisualizer:
         self.speed_y: float = 0
         self.wheel_direction: Optional[str] = None
         
+        # Add delta tracking fields
+        self.delta_x: float = 0
+        self.delta_y: float = 0
+        self.delta_magnitude: float = 0
+        self.delta_angle: float = 0
+        self.tracking_mode: str = "joystick"
+        
         # Canvas center coordinates
         self.center_x: float = self.canvas_width / 2
         self.center_y: float = self.canvas_height / 2
@@ -158,8 +165,8 @@ class MouseVisualizer:
         # Clear canvas
         self.canvas.delete("all")
         
-        # Calculate joystick circle radius
-        radius = min(self.canvas_width, self.canvas_height) * 0.4
+        # Calculate joystick circle radius - REDUCED SIZE to fit better
+        radius = min(self.canvas_width, self.canvas_height) * 0.25  # Reduced from 0.3 to 0.25
         
         # Draw joystick area background - updated for dark theme
         self.canvas.create_oval(
@@ -196,22 +203,35 @@ class MouseVisualizer:
             tags=("background",)
         )
         
-        # Draw labels for axes - update text colors for dark theme
+        # Draw labels for axes with new tag and corrected formatting
+        # Use "axis_labels" tag instead of "background" to prevent style overrides
         self.canvas.create_text(
             self.center_x + radius + 15, self.center_y, 
-            text="X+", fill=self.text_color, tags=("background",)
+            text="X+", 
+            fill="#FFFFFF",       # Bright white for visibility
+            tags=("axis_labels",),
+            font=("Consolas", 11, "bold")  # Fixed font format, slightly bigger
         )
         self.canvas.create_text(
             self.center_x - radius - 15, self.center_y, 
-            text="X-", fill=self.text_color, tags=("background",)
+            text="X-", 
+            fill="#FFFFFF",
+            tags=("axis_labels",),
+            font=("Consolas", 11, "bold")
         )
         self.canvas.create_text(
             self.center_x, self.center_y - radius - 15, 
-            text="Y-", fill=self.text_color, tags=("background",)
+            text="Y-", 
+            fill="#FFFFFF",
+            tags=("axis_labels",),
+            font=("Consolas", 11, "bold")
         )
         self.canvas.create_text(
             self.center_x, self.center_y + radius + 15, 
-            text="Y+", fill=self.text_color, tags=("background",)
+            text="Y+", 
+            fill="#FFFFFF",
+            tags=("axis_labels",),
+            font=("Consolas", 11, "bold")
         )
         
         # Create coordinate text item with updated position and color
@@ -342,6 +362,18 @@ class MouseVisualizer:
             if old_movement != self.is_moving or old_direction != self.movement_direction:
                 state_changed = True
         
+        # Update with delta tracking data if available
+        if hasattr(input_data, 'mouse_delta_x') and input_data.mouse_delta_x is not None:
+            self.delta_x = input_data.mouse_delta_x
+        if hasattr(input_data, 'mouse_delta_y') and input_data.mouse_delta_y is not None:
+            self.delta_y = input_data.mouse_delta_y
+        if hasattr(input_data, 'mouse_delta_magnitude') and input_data.mouse_delta_magnitude is not None:
+            self.delta_magnitude = input_data.mouse_delta_magnitude
+        if hasattr(input_data, 'mouse_delta_angle') and input_data.mouse_delta_angle is not None:
+            self.delta_angle = input_data.mouse_delta_angle
+        if hasattr(input_data, 'mouse_tracking_mode') and input_data.mouse_tracking_mode is not None:
+            self.tracking_mode = input_data.mouse_tracking_mode
+        
         # Update display text, but don't do it too often to avoid performance issues
         current_time = time.time()
         if state_changed or current_time - self.last_status_update > self.status_update_interval:
@@ -360,14 +392,32 @@ class MouseVisualizer:
         
         Updates the status text labels to reflect the current mouse state.
         """
-        # Update info text
-        status_text = f"Mouse: {'Moving' if self.is_moving else 'Not moving'}"
-        if self.movement_direction and self.is_moving:
-            status_text += f" | Direction: {self.movement_direction}"
-        if self.is_moving:
-            status_text += f" | Speed: {self.speed:.1f}"
-        if self.wheel_direction:
-            status_text += f" | Wheel: {self.wheel_direction}"
+        # Update info text based on tracking mode
+        if self.tracking_mode == "delta":
+            status_text = f"Mouse: {'Moving' if self.is_moving else 'Not moving'}"
+            if self.is_moving:
+                status_text += f" | Δx:{self.delta_x:.1f} Δy:{self.delta_y:.1f}"
+                status_text += f" | Mag:{self.delta_magnitude:.1f}"
+            if self.movement_direction:
+                status_text += f" | Dir:{self.movement_direction}"
+            if self.wheel_direction:
+                status_text += f" | Wheel:{self.wheel_direction}"
+        elif self.tracking_mode == "angle":
+            status_text = f"Mouse: {'Moving' if self.is_moving else 'Not moving'}"
+            if self.is_moving:
+                status_text += f" | Angle:{self.delta_angle:.1f}° Mag:{self.delta_magnitude:.1f}"
+            if self.movement_direction:
+                status_text += f" | Dir:{self.movement_direction}"
+            if self.wheel_direction:
+                status_text += f" | Wheel:{self.wheel_direction}"
+        else:  # joystick mode
+            status_text = f"Mouse: {'Moving' if self.is_moving else 'Not moving'}"
+            if self.movement_direction and self.is_moving:
+                status_text += f" | Dir:{self.movement_direction}"
+            if self.is_moving:
+                status_text += f" | Speed:{self.speed:.1f}"
+            if self.wheel_direction:
+                status_text += f" | Wheel:{self.wheel_direction}"
         
         # Update button text
         button_states = []
@@ -394,7 +444,7 @@ class MouseVisualizer:
         try:
             # Only update dynamic elements, not the whole canvas
             # Calculate joystick circle radius (use fixed percentage of the canvas)
-            radius = min(self.canvas_width, self.canvas_height) * 0.4
+            radius = min(self.canvas_width, self.canvas_height) * 0.25  # Reduced from 0.3 to 0.25
             
             # Calculate joystick position
             joystick_x = self.center_x + (self.rel_x * radius)
@@ -474,11 +524,22 @@ class MouseVisualizer:
             else:
                 self.canvas.itemconfig(self.wheel_indicator, state=tk.HIDDEN)
             
-            # Update coordinate text
-            self.canvas.itemconfig(
-                self.coordinate_text,
-                text=f"Rel: ({self.rel_x:.2f}, {self.rel_y:.2f})"
-            )
+            # Update coordinate text based on tracking mode
+            if self.tracking_mode == "delta":
+                self.canvas.itemconfig(
+                    self.coordinate_text,
+                    text=f"Delta: ({self.delta_x:.2f}, {self.delta_y:.2f})"
+                )
+            elif self.tracking_mode == "angle":
+                self.canvas.itemconfig(
+                    self.coordinate_text,
+                    text=f"Angle: {self.delta_angle:.1f}° Mag: {self.delta_magnitude:.1f}"
+                )
+            else:  # joystick mode
+                self.canvas.itemconfig(
+                    self.coordinate_text,
+                    text=f"Rel: ({self.rel_x:.2f}, {self.rel_y:.2f})"
+                )
         except Exception as e:
             print(f"Error drawing mouse viz: {e}")
     
