@@ -56,6 +56,14 @@ class InputData:
     mouse_delta_angle: Optional[float] = None  # Movement angle in degrees (0=right, 90=down)
     mouse_tracking_mode: Optional[str] = None  # Which tracking mode is being used
     
+    # New direction-only mode fields
+    direction_only: Optional[bool] = None  # Whether direction-only mode is active
+    discrete_angle: Optional[int] = None  # Discretized angle value (0-359)
+    north: Optional[float] = None  # Membership value for north direction (0.0 to 1.0)
+    south: Optional[float] = None  # Membership value for south direction (0.0 to 1.0)
+    east: Optional[float] = None   # Membership value for east direction (0.0 to 1.0)
+    west: Optional[float] = None   # Membership value for west direction (0.0 to 1.0)
+    
     def __post_init__(self) -> None:
         """
         Initialize default values after instance creation.

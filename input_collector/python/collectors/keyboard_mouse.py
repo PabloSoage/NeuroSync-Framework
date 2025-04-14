@@ -122,7 +122,18 @@ class KeyboardMouseCollector(AbstractInputCollector):
         self.start_listeners()
         
         # Tracking mode
-        self.mouse_tracking_mode = "joystick"  # "joystick", "delta", or "angle"
+        self.mouse_tracking_mode = "joystick"  # "joystick", "delta", "angle", or "axis"
+        
+        # Direction-only mode flag and settings
+        self.direction_only = True  # Default to direction-only mode
+        self.angle_grouping = 10    # Default to 10-degree grouping (36 values)
+        
+        # Add fields for direction-only modes
+        self.mouse_state['discrete_angle'] = 0  # Discretized angle for direction-only mode
+        self.mouse_state['north'] = 0.0  # Membership value for north (0.0 to 1.0)
+        self.mouse_state['south'] = 0.0  # Membership value for south (0.0 to 1.0)
+        self.mouse_state['east'] = 0.0   # Membership value for east (0.0 to 1.0)
+        self.mouse_state['west'] = 0.0   # Membership value for west (0.0 to 1.0)
     
     def start_listeners(self) -> None:
         """
@@ -439,7 +450,39 @@ class KeyboardMouseCollector(AbstractInputCollector):
             # Calculate movement angle (0 degrees is right, 90 is down)
             if abs(smoothed_delta_x) > 0.001 or abs(smoothed_delta_y) > 0.001:
                 angle = math.degrees(math.atan2(smoothed_delta_y, smoothed_delta_x))
+                # Convert to 0-359 range for consistency
+                angle = (angle + 360) % 360
                 self.mouse_state['delta_angle'] = angle
+            
+            # Process direction-only modes
+            if self.direction_only:
+                # Discretize angle if we have meaningful movement
+                if delta_magnitude > 0.5:
+                    # Calculate discrete angle based on grouping
+                    angle = self.mouse_state['delta_angle']
+                    grouped_angle = int(round(angle / self.angle_grouping) * self.angle_grouping) % 360
+                    self.mouse_state['discrete_angle'] = grouped_angle
+                    
+                    # Calculate cardinal direction membership values for axis mode
+                    # Convert angle to radians for cosine calculation
+                    angle_rad = math.radians(angle)
+                    
+                    # Calculate membership values for each cardinal direction
+                    # North = negative Y, South = positive Y, East = positive X, West = negative X
+                    
+                    # Calculate raw membership values (using cosine projections)
+                    north_value = max(0, -math.cos(angle_rad - math.pi/2))  # North is at 270°
+                    south_value = max(0, -math.cos(angle_rad + math.pi/2))  # South is at 90°
+                    east_value = max(0, math.cos(angle_rad))                # East is at 0°
+                    west_value = max(0, -math.cos(angle_rad))               # West is at 180°
+                    
+                    # Normalize so they sum to 1.0
+                    total = north_value + south_value + east_value + west_value
+                    if total > 0:
+                        self.mouse_state['north'] = north_value / total
+                        self.mouse_state['south'] = south_value / total
+                        self.mouse_state['east'] = east_value / total
+                        self.mouse_state['west'] = west_value / total
             
             # Determine if there's meaningful movement based on delta
             delta_is_moving = delta_magnitude > 0.5  # Very small threshold for deltas
@@ -547,7 +590,14 @@ class KeyboardMouseCollector(AbstractInputCollector):
                 mouse_delta_y=self.mouse_state['delta_y'],
                 mouse_delta_magnitude=self.mouse_state['delta_magnitude'],
                 mouse_delta_angle=self.mouse_state['delta_angle'],
-                mouse_tracking_mode=self.mouse_tracking_mode
+                mouse_tracking_mode=self.mouse_tracking_mode,
+                # Add direction-only fields
+                direction_only=self.direction_only,
+                discrete_angle=self.mouse_state['discrete_angle'],
+                north=self.mouse_state['north'],
+                south=self.mouse_state['south'],
+                east=self.mouse_state['east'],
+                west=self.mouse_state['west']
             )
             
             # Process event
@@ -977,20 +1027,46 @@ class KeyboardMouseCollector(AbstractInputCollector):
         else:
             print(f"Sensitivity must be between 0.1 and 5.0, got {sensitivity}")
     
-    def set_mouse_tracking_mode(self, mode: str) -> None:
+    def set_mouse_tracking_mode(self, mode: str, direction_only: bool = False, angle_grouping: int = 10) -> None:
         """
         Set which mouse tracking mode to use.
         
         Args:
-            mode: One of "joystick", "delta", or "angle"
+            mode: One of "joystick", "delta", "angle", or "axis"
+            direction_only: Whether to use direction-only mode
+            angle_grouping: Angle grouping in degrees (1-60)
         """
-        valid_modes = ["joystick", "delta", "angle"]
+        # Define valid modes based on direction_only flag
+        if direction_only:
+            valid_modes = ["angle", "axis"]
+        else:
+            valid_modes = ["joystick", "delta", "angle"]
+        
         if mode not in valid_modes:
             print(f"Invalid mouse tracking mode: {mode}. Must be one of {valid_modes}")
             return
-            
+        
         self.mouse_tracking_mode = mode
-        print(f"Mouse tracking mode set to {mode}")
+        self.direction_only = direction_only
+        
+        # Update angle grouping if provided (ensure it's in valid range)
+        self.set_angle_grouping(angle_grouping)
+        
+        print(f"Mouse tracking mode set to {mode}" + 
+              (f" (direction-only)" if direction_only else "") +
+              (f" with {self.angle_grouping}° grouping" if mode == "angle" and direction_only else ""))
+
+    def set_angle_grouping(self, grouping: int) -> None:
+        """
+        Set angle grouping for direction-only angle mode.
+        
+        Args:
+            grouping: Grouping value in degrees (1-60)
+        """
+        # Constrain to reasonable range
+        grouping = max(1, min(60, grouping))
+        self.angle_grouping = grouping
+        print(f"Angle grouping set to {grouping}° ({360 // grouping} discrete values)")
     
     def set_delta_smoothing(self, smoothing: float) -> None:
         """

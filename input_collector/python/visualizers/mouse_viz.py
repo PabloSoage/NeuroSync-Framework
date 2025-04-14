@@ -374,6 +374,21 @@ class MouseVisualizer:
         if hasattr(input_data, 'mouse_tracking_mode') and input_data.mouse_tracking_mode is not None:
             self.tracking_mode = input_data.mouse_tracking_mode
         
+        # Update tracking mode
+        if hasattr(input_data, 'mouse_tracking_mode') and input_data.mouse_tracking_mode is not None:
+            self.tracking_mode = input_data.mouse_tracking_mode
+        
+        # Update direction-only flag and related fields
+        if hasattr(input_data, 'direction_only'):
+            self.direction_only = input_data.direction_only
+        if hasattr(input_data, 'discrete_angle') and input_data.discrete_angle is not None:
+            self.discrete_angle = input_data.discrete_angle
+        if hasattr(input_data, 'north') and input_data.north is not None:
+            self.north = input_data.north
+            self.south = input_data.south if hasattr(input_data, 'south') else 0
+            self.east = input_data.east if hasattr(input_data, 'east') else 0
+            self.west = input_data.west if hasattr(input_data, 'west') else 0
+        
         # Update display text, but don't do it too often to avoid performance issues
         current_time = time.time()
         if state_changed or current_time - self.last_status_update > self.status_update_interval:
@@ -403,11 +418,30 @@ class MouseVisualizer:
             if self.wheel_direction:
                 status_text += f" | Wheel:{self.wheel_direction}"
         elif self.tracking_mode == "angle":
+            if hasattr(self, 'direction_only') and self.direction_only:
+                # Direction-only angle mode
+                status_text = f"Mouse: {'Moving' if self.is_moving else 'Not moving'}"
+                if self.is_moving:
+                    status_text += f" | Angle:{getattr(self, 'discrete_angle', 0)}°"
+                if self.movement_direction:
+                    status_text += f" | Dir:{self.movement_direction}"
+                if self.wheel_direction:
+                    status_text += f" | Wheel:{self.wheel_direction}"
+            else:
+                # Standard angle mode
+                status_text = f"Mouse: {'Moving' if self.is_moving else 'Not moving'}"
+                if self.is_moving:
+                    status_text += f" | Angle:{self.delta_angle:.1f}° Mag:{self.delta_magnitude:.1f}"
+                if self.movement_direction:
+                    status_text += f" | Dir:{self.movement_direction}"
+                if self.wheel_direction:
+                    status_text += f" | Wheel:{self.wheel_direction}"
+        elif self.tracking_mode == "axis":
+            # Axis mode with membership values
             status_text = f"Mouse: {'Moving' if self.is_moving else 'Not moving'}"
-            if self.is_moving:
-                status_text += f" | Angle:{self.delta_angle:.1f}° Mag:{self.delta_magnitude:.1f}"
-            if self.movement_direction:
-                status_text += f" | Dir:{self.movement_direction}"
+            if self.is_moving and hasattr(self, 'north'):
+                status_text += f" | N:{self.north:.1f} S:{self.south:.1f}"
+                status_text += f" E:{self.east:.1f} W:{self.west:.1f}"
             if self.wheel_direction:
                 status_text += f" | Wheel:{self.wheel_direction}"
         else:  # joystick mode
@@ -531,9 +565,25 @@ class MouseVisualizer:
                     text=f"Delta: ({self.delta_x:.2f}, {self.delta_y:.2f})"
                 )
             elif self.tracking_mode == "angle":
+                if hasattr(self, 'direction_only') and self.direction_only:
+                    self.canvas.itemconfig(
+                        self.coordinate_text,
+                        text=f"Discrete Angle: {getattr(self, 'discrete_angle', 0)}°"
+                    )
+                else:
+                    self.canvas.itemconfig(
+                        self.coordinate_text,
+                        text=f"Angle: {self.delta_angle:.1f}° Mag: {self.delta_magnitude:.1f}"
+                    )
+            elif self.tracking_mode == "axis":
+                # Display membership values
+                n = getattr(self, 'north', 0)
+                s = getattr(self, 'south', 0)
+                e = getattr(self, 'east', 0)
+                w = getattr(self, 'west', 0)
                 self.canvas.itemconfig(
                     self.coordinate_text,
-                    text=f"Angle: {self.delta_angle:.1f}° Mag: {self.delta_magnitude:.1f}"
+                    text=f"N:{n:.1f} S:{s:.1f} E:{e:.1f} W:{w:.1f}"
                 )
             else:  # joystick mode
                 self.canvas.itemconfig(

@@ -310,20 +310,28 @@ class InputCollectorApp:
         mouse_mode_frame = ttk.Frame(control_frame, style="TFrame")
         mouse_mode_frame.pack(side=tk.LEFT, fill=tk.X)
         
+        # Direction Only Mode checkbox
+        self.direction_only_var = tk.BooleanVar(value=True)  # Enabled by default
+        self.direction_only_cb = ttk.Checkbutton(
+            mouse_mode_frame, 
+            text="Direction Only",
+            variable=self.direction_only_var,
+            command=self._update_tracking_modes,
+            style="TCheckbutton"
+        )
+        self.direction_only_cb.pack(side=tk.LEFT, padx=5)
+        
         ttk.Label(mouse_mode_frame, text="Mouse Mode:", style="TLabel").pack(side=tk.LEFT, padx=5)
         
         # Create a dropdown for tracking modes
-        self.tracking_mode_var = tk.StringVar(value="joystick")
-        tracking_modes = ["joystick", "delta", "angle"]
-        
-        # Use a dark theme option menu
-        tracking_dropdown = tk.OptionMenu(
+        self.tracking_mode_var = tk.StringVar(value="angle")  # Default to angle when direction only
+        self.tracking_dropdown = tk.OptionMenu(
             mouse_mode_frame, 
             self.tracking_mode_var, 
-            *tracking_modes,
+            "angle", "axis",  # Start with direction-only modes
             command=self._set_mouse_tracking_mode
         )
-        tracking_dropdown.config(
+        self.tracking_dropdown.config(
             bg=self.dark_bg,
             fg=self.text_color,
             activebackground=self.accent_color,
@@ -332,14 +340,14 @@ class InputCollectorApp:
             highlightthickness=0,
             bd=1
         )
-        tracking_dropdown["menu"].config(
+        self.tracking_dropdown["menu"].config(
             bg=self.dark_bg,
             fg=self.text_color,
             activebackground=self.accent_color,
             activeforeground="#FFFFFF",
             relief=tk.FLAT,
         )
-        tracking_dropdown.pack(side=tk.LEFT, padx=5)
+        self.tracking_dropdown.pack(side=tk.LEFT, padx=5)
         
         # Visualization area with grid layout - add some breathing room
         viz_frame = ttk.Frame(main_frame, style="TFrame")
@@ -474,6 +482,38 @@ class InputCollectorApp:
             command=lambda x: None  # Will be applied on button press
         )
         sensitivity_slider.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+        
+        # Add Angle Grouping slider (for angle mode)
+        angle_frame = ttk.Frame(mouse_settings_frame, style="TFrame")
+        angle_frame.grid(row=1, column=0, sticky="ew", padx=5, pady=5)
+        
+        ttk.Label(angle_frame, text="Angle Grouping:", style="TLabel").pack(side=tk.LEFT, padx=5)
+        
+        self.angle_grouping_var = tk.IntVar(value=10)  # Default to 10 degrees (36 values)
+        
+        # Create a frame for the slider and its value display
+        angle_slider_frame = ttk.Frame(angle_frame, style="TFrame")
+        angle_slider_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        
+        # Create the slider
+        angle_grouping_slider = ttk.Scale(
+            angle_slider_frame,
+            from_=1,
+            to=60,
+            orient=tk.HORIZONTAL,
+            variable=self.angle_grouping_var,
+            command=self._update_angle_grouping_display
+        )
+        angle_grouping_slider.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+        
+        # Add a label to display current value and resulting number of angles
+        self.angle_grouping_display = ttk.Label(
+            angle_slider_frame, 
+            text="10° (36 values)", 
+            style="TLabel",
+            width=15
+        )
+        self.angle_grouping_display.pack(side=tk.LEFT, padx=5)
         
         # Apply button
         apply_button = tk.Button(
@@ -782,15 +822,25 @@ class InputCollectorApp:
             if tracking_mode == "joystick":
                 clean_log["mouse"]["speed_x"] = event.speed_x if hasattr(event, 'speed_x') and event.speed_x is not None else 0.0
                 clean_log["mouse"]["speed_y"] = event.speed_y if hasattr(event, 'speed_y') and event.speed_y is not None else 0.0
-                # "is_moving" removed as it can be inferred from speed values
             
             elif tracking_mode == "delta":
                 clean_log["mouse"]["delta_x"] = event.mouse_delta_x if hasattr(event, 'mouse_delta_x') and event.mouse_delta_x is not None else 0.0
                 clean_log["mouse"]["delta_y"] = event.mouse_delta_y if hasattr(event, 'mouse_delta_y') and event.mouse_delta_y is not None else 0.0
             
             elif tracking_mode == "angle":
-                clean_log["mouse"]["angle"] = event.mouse_delta_angle if hasattr(event, 'mouse_delta_angle') and event.mouse_delta_angle is not None else 0.0
-                clean_log["mouse"]["magnitude"] = event.mouse_delta_magnitude if hasattr(event, 'mouse_delta_magnitude') and event.mouse_delta_magnitude is not None else 0.0
+                # Handle direction-only angle mode differently
+                if hasattr(event, 'direction_only') and event.direction_only:
+                    clean_log["mouse"]["discrete_angle"] = event.discrete_angle if hasattr(event, 'discrete_angle') else 0
+                else:
+                    clean_log["mouse"]["angle"] = event.mouse_delta_angle if hasattr(event, 'mouse_delta_angle') and event.mouse_delta_angle is not None else 0.0
+                    clean_log["mouse"]["magnitude"] = event.mouse_delta_magnitude if hasattr(event, 'mouse_delta_magnitude') and event.mouse_delta_magnitude is not None else 0.0
+            
+            elif tracking_mode == "axis":
+                # Axis mode includes membership values for cardinal directions
+                clean_log["mouse"]["north"] = event.north if hasattr(event, 'north') else 0.0
+                clean_log["mouse"]["south"] = event.south if hasattr(event, 'south') else 0.0
+                clean_log["mouse"]["east"] = event.east if hasattr(event, 'east') else 0.0
+                clean_log["mouse"]["west"] = event.west if hasattr(event, 'west') else 0.0
             
             # Write the clean log to file and flush immediately
             self.log_file.write(json.dumps(clean_log) + "\n")
@@ -989,9 +1039,22 @@ class InputCollectorApp:
         Args:
             mode: The tracking mode to use
         """
-        self.collector.set_mouse_tracking_mode(mode)
+        # Update the tracking mode
+        self.tracking_mode_var.set(mode)
+        
+        # Pass the direction-only flag and angle grouping if applicable
+        direction_only = self.direction_only_var.get()
+        angle_grouping = self.angle_grouping_var.get()
+        
+        self.collector.set_mouse_tracking_mode(mode, direction_only, angle_grouping)
         self._log_status(f"Mouse tracking mode set to: {mode}", color=self.accent_color)
-    
+        
+        # Update display properties based on mode
+        if mode == "axis":
+            self._log_status("Axis mode shows membership values for N, S, E, W directions", color="#AAAAAA")
+        elif mode == "angle" and direction_only:
+            self._log_status(f"Angle mode using {angle_grouping}° grouping ({360 // angle_grouping} values)", color="#AAAAAA")
+
     def _apply_mouse_settings(self) -> None:
         """
         Apply the current mouse settings.
@@ -1005,7 +1068,55 @@ class InputCollectorApp:
         sensitivity = self.sensitivity_var.get()
         self.collector.set_joystick_sensitivity(sensitivity)
         self._log_status(f"Joystick sensitivity set to: {sensitivity:.2f}")
+        
+        # Apply angle grouping
+        angle_grouping = self.angle_grouping_var.get()
+        self.collector.set_angle_grouping(angle_grouping)
+        self._log_status(f"Angle grouping set to: {angle_grouping}° ({360 // angle_grouping} values)")
+        
+        # Re-apply current tracking mode to ensure all settings are updated
+        self._set_mouse_tracking_mode(self.tracking_mode_var.get())
 
+    def _update_tracking_modes(self) -> None:
+        """
+        Update available tracking modes based on the Direction Only checkbox.
+        """
+        # Get current tracking mode
+        current_mode = self.tracking_mode_var.get()
+        
+        # Clear current menu
+        menu = self.tracking_dropdown["menu"]
+        menu.delete(0, "end")
+        
+        # Add appropriate modes based on checkbox state
+        if self.direction_only_var.get():
+            # Direction-only modes
+            for mode in ["angle", "axis"]:
+                menu.add_command(label=mode, 
+                                 command=lambda m=mode: self.tracking_mode_var.set(m) or self._set_mouse_tracking_mode(m))
+            
+            # Make sure the current mode is valid for direction-only
+            if current_mode not in ["angle", "axis"]:
+                self.tracking_mode_var.set("angle")
+                self._set_mouse_tracking_mode("angle")
+        else:
+            # Standard modes
+            for mode in ["joystick", "delta", "angle"]:
+                menu.add_command(label=mode, 
+                                 command=lambda m=mode: self.tracking_mode_var.set(m) or self._set_mouse_tracking_mode(m))
+            
+            # Make sure the current mode is valid for standard
+            if current_mode not in ["joystick", "delta", "angle"]:
+                self.tracking_mode_var.set("joystick")
+                self._set_mouse_tracking_mode("joystick")
+
+    def _update_angle_grouping_display(self, *args) -> None:
+        """
+        Update the display showing current angle grouping and resulting number of values.
+        """
+        grouping = self.angle_grouping_var.get()
+        num_values = 360 // grouping if grouping > 0 else 360
+        self.angle_grouping_display.config(text=f"{grouping}° ({num_values} values)")
 
 def run_collector_app() -> InputCollectorApp:
     """
