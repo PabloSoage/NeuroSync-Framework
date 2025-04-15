@@ -649,6 +649,16 @@ class InputCollectorApp(QMainWindow):
             self.keyboard_viz.update(temp_press_event)
             return
         
+        # FILTER: Ignore mouse button release events for logging (when button_pressed is None)
+        if event.event_type == "mouse_click" and event.button_pressed is None:
+            # Only update visualizers but don't log anything
+            self.mouse_viz.update(event)
+            self._update_active_keys_display()
+            
+            # Update mouse buttons selector to remove any highlighted buttons
+            self.mouse_buttons_selector.setActiveButtons([])
+            return
+        
         # Don't log events if we're not recording
         if not self.is_recording:
             # Still update visualizers, but don't log anything
@@ -707,8 +717,8 @@ class InputCollectorApp(QMainWindow):
         should_log = (
             (event.event_type == "key_press") or
             (event.event_type == "mouse_move" and event.is_moving) or
-            (event.event_type == "mouse_click") or
-            (event.event_type == "mouse_scroll") or
+            (event.event_type == "mouse_click" and event.button_pressed is not None) or  # Only log press, not release
+            (event.event_type == "mouse_scroll" and event.direction is not None) or  # Only log actual scroll, not reset
             (event.button_pressed is not None)
         )
         
