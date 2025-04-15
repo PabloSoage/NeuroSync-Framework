@@ -120,6 +120,9 @@ class InputCollectorApp(QMainWindow):
         # Initialize mouse buttons selector
         self.mouse_buttons_selector.setTrackedButtons(self.tracked_keys)
         self.mouse_buttons_selector.setScrollTracking(self.capture_scroll_check.isChecked())
+
+        self.last_toggle_time = None
+        self.f9_key_down = False
     
     def _set_dark_theme(self) -> None:
         """Set the application to use a dark theme."""
@@ -502,6 +505,12 @@ class InputCollectorApp(QMainWindow):
     
     def _toggle_recording(self) -> None:
         """Toggle recording state."""
+        current_time = time.time()
+        if self.last_toggle_time and (
+                current_time - self.last_toggle_time) < 0.2:  # 500ms between toggles
+            return
+
+        self.last_toggle_time = current_time
         if self.is_recording:
             # Stop recording
             print("Stopping recording...")
@@ -637,7 +646,9 @@ class InputCollectorApp(QMainWindow):
         """Process input events in the main thread."""
         # Check for special toggle_recording event type first (for F9 key)
         if event.event_type == "toggle_recording":
-            self._toggle_recording()
+            if not self.f9_key_down:
+                self._toggle_recording()
+                self.f9_key_down = True
             
             # Highlight the F9 key in the keyboard visualizer
             temp_press_event = InputData(
@@ -673,6 +684,8 @@ class InputCollectorApp(QMainWindow):
         
         # Don't process key_release events for logging
         if event.event_type == "key_release":
+            if event.key == "Key.media_play_pause":
+                self.f9_key_down = False
             # Only update the visualizer
             self.keyboard_viz.update(event)
             self._update_active_keys_display()
