@@ -150,7 +150,7 @@ class Canvas(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.setMinimumSize(300, 250)  # Aumentar altura mínima
+        self.setMinimumSize(300, 270)  # Aumentado a 270 para mejor visualización
         
         # Define dark theme colors
         self.dark_bg = QColor("#1E1E1E")

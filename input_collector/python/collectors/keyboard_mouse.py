@@ -237,6 +237,10 @@ class KeyboardMouseCollector(AbstractInputCollector):
                     # Process this event immediately with high priority 
                     self._process_event(media_event)
                     
+                    # FIX: No generar un evento key_press adicional para F9
+                    # para evitar que se active el toggle de grabación dos veces
+                    return True
+                    
                 # Don't continue processing F9 as a regular key
                 return True
             elif key == keyboard.Key.esc:

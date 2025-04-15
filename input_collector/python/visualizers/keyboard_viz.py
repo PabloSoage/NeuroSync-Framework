@@ -57,8 +57,8 @@ class KeyboardVisualizer(QWidget):
         self.key_rects = {}
         
         # Set size policy and minimum size
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.setMinimumSize(400, 200)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.setMinimumSize(400, 200)  # Aumentado desde 180 a 200 para más altura
     
     def _create_key_mappings(self) -> None:
         """Create mappings for special keys"""
@@ -153,13 +153,17 @@ class KeyboardVisualizer(QWidget):
         height = self.height()
         
         # Ajustar el tamaño para evitar que se corte
-        width_padding = width * 0.02
-        height_padding = height * 0.05
+        width_padding = width * 0.025  # Reducido desde 0.03 para dar más espacio horizontal
+        height_padding = height * 0.05  # Reducido desde 0.06 para dar más espacio vertical
         effective_width = width - (2 * width_padding)
         effective_height = height - (2 * height_padding)
         
+        # Escalar la visualización del teclado - aumentar ancho general
+        scale_factor = 0.95  # Aumentado desde 0.92 para hacer el teclado más grande
+        effective_width *= scale_factor
+        
         # Scale font and key sizes based on available space
-        font_size = max(7, min(10, int(effective_width / 60)))
+        font_size = max(7, min(10, int(effective_width / 60)))  # Aumentado ligeramente
         font = QFont("Segoe UI", font_size)
         painter.setFont(font)
         
@@ -169,7 +173,8 @@ class KeyboardVisualizer(QWidget):
         
         # Calcular el ancho y alto base de las teclas
         base_key_width = effective_width / (max_keys_in_row + 2)
-        base_key_height = effective_height / (num_rows + 0.5)
+        # Reducir la altura de las teclas, pero no tanto como antes
+        base_key_height = min(effective_height / (num_rows + 0.6), base_key_width * 0.85)  # Aumentado desde 0.8
         
         # Limpiar el diccionario de rectángulos de teclas
         self.key_rects = {}
@@ -181,13 +186,13 @@ class KeyboardVisualizer(QWidget):
             # Calcular el ancho total de esta fila
             total_row_width = sum([
                 base_key_width * (4 if key == "Space" else
-                                 1.8 if key in ["Backspace", "Enter"] else
+                                 2.0 if key in ["Backspace", "Enter"] else  # Increased width for these keys
                                  1.5 if key in ["Shift", "Tab"] else 1)
                 for key in row
             ])
             
             # Añadir espaciado entre teclas
-            total_row_width += base_key_width * 0.2 * (len(row) - 1)
+            total_row_width += base_key_width * 0.15 * (len(row) - 1)  # Reduced spacing between keys
             
             # Centrar la fila
             x_offset = (width - total_row_width) / 2
@@ -198,7 +203,7 @@ class KeyboardVisualizer(QWidget):
                 if key_label == "Space":
                     key_width_actual = base_key_width * 4
                 elif key_label in ["Backspace", "Enter"]:
-                    key_width_actual = base_key_width * 1.8
+                    key_width_actual = base_key_width * 2.0  # Increased from 1.8 to 2.0
                 elif key_label in ["Shift", "Tab"]:
                     key_width_actual = base_key_width * 1.5
                 
@@ -290,18 +295,18 @@ class KeyboardVisualizer(QWidget):
                     painter.drawText(key_rect, Qt.AlignCenter, key_label)
                 
                 # Moverse a la siguiente posición
-                x_offset += key_width_actual + (base_key_width * 0.2)
+                x_offset += key_width_actual + (base_key_width * 0.15)  # Reduced spacing from 0.2 to 0.15
             
-            # Moverse a la siguiente fila
-            y_offset += base_key_height * 1.1
+            # Moverse a la siguiente fila con menos espaciado
+            y_offset += base_key_height * 1.05  # Reduced from 1.1 to 1.05
     
     def sizeHint(self) -> QSize:
         """Suggested size for the widget"""
-        return QSize(500, 300)
+        return QSize(500, 280)  # Aumentado desde 480,260 para sugerir un tamaño mayor
     
     def minimumSizeHint(self) -> QSize:
         """Minimum suggested size for the widget"""
-        return QSize(400, 220)
+        return QSize(400, 200)  # Aumentado desde 400,180 para asegurar suficiente altura
     
     def force_update(self) -> None:
         """Force a redraw of the keyboard"""

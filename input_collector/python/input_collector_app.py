@@ -19,7 +19,7 @@ from typing import List, Dict, Optional, Any
 
 from .collectors import KeyboardMouseCollector
 from .interfaces import InputData
-from .visualizers import KeyboardVisualizer, MouseVisualizer
+from .visualizers import KeyboardVisualizer, MouseVisualizer, MouseButtonsSelector
 
 
 class InputCollectorApp(QMainWindow):
@@ -86,7 +86,8 @@ class InputCollectorApp(QMainWindow):
             "w", "a", "s", "d", "q", "e", "f", "m", "c", "b",
             "1", "2", "3", "4",
             "Key.space", "Key.shift", 
-            "Key.media_play_pause"
+            "Key.media_play_pause",
+            "Button.left", "Button.right"  # Añadir botones del ratón por defecto
         ]
         self.collector.set_supported_keys(self.tracked_keys)
         
@@ -112,6 +113,13 @@ class InputCollectorApp(QMainWindow):
         
         # Setup shortcuts
         self._setup_shortcuts()
+        
+        # Connect scroll checkbox to mouse buttons selector
+        self.capture_scroll_check.toggled.connect(self._on_capture_scroll_changed)
+        
+        # Initialize mouse buttons selector
+        self.mouse_buttons_selector.setTrackedButtons(self.tracked_keys)
+        self.mouse_buttons_selector.setScrollTracking(self.capture_scroll_check.isChecked())
     
     def _set_dark_theme(self) -> None:
         """Set the application to use a dark theme."""
@@ -260,8 +268,11 @@ class InputCollectorApp(QMainWindow):
         
         main_layout.addLayout(control_panel)
         
-        # Visualization area - Aumentar el espacio relativo
+        # Visualization area - Ajustar el espacio relativo
         viz_layout = QHBoxLayout()
+        
+        # Left side: Keyboard visualization + Mouse buttons
+        left_viz_layout = QVBoxLayout()
         
         # Keyboard visualization
         keyboard_group = QGroupBox("Keyboard Input")
@@ -270,19 +281,33 @@ class InputCollectorApp(QMainWindow):
         # Conectar señales para la edición de teclas
         self.keyboard_viz.mousePressEvent = self._handle_keyboard_viz_click
         keyboard_layout.addWidget(self.keyboard_viz)
-        viz_layout.addWidget(keyboard_group)
         
-        # Mouse visualization
+        # Añadir selector de botones del ratón debajo del teclado
+        mouse_buttons_group = QGroupBox("Mouse Buttons")
+        mouse_buttons_layout = QVBoxLayout(mouse_buttons_group)
+        self.mouse_buttons_selector = MouseButtonsSelector()
+        # Conectar la señal del selector de botones
+        self.mouse_buttons_selector.button_toggled.connect(self._handle_mouse_button_toggled)
+        mouse_buttons_layout.addWidget(self.mouse_buttons_selector)
+        
+        # Añadir ambos al layout izquierdo
+        left_viz_layout.addWidget(keyboard_group, 3)  # Peso mayor para el teclado
+        left_viz_layout.addWidget(mouse_buttons_group, 1)  # Peso menor para los botones
+        
+        # Mouse visualization (derecha)
         mouse_group = QGroupBox("Mouse Input")
         mouse_layout = QVBoxLayout(mouse_group)
         self.mouse_viz = MouseVisualizer()
         mouse_layout.addWidget(self.mouse_viz)
-        viz_layout.addWidget(mouse_group)
+        
+        # Añadir ambas secciones al layout de visualización
+        viz_layout.addLayout(left_viz_layout, 55)  # Asignar 55% del espacio horizontal
+        viz_layout.addWidget(mouse_group, 45)  # Asignar 45% del espacio horizontal
         
         # Dar más peso vertical a la visualización
-        main_layout.addLayout(viz_layout, 3)  # Aumentar el factor de estiramiento
+        main_layout.addLayout(viz_layout, 4)  # Aumentado de 3 a 4 para dar más espacio vertical
         
-        # Active keys display
+        # Active keys display (ahora ya no está el selector de mouse buttons aquí)
         active_keys_group = QGroupBox("Active Keys")
         active_keys_layout = QVBoxLayout(active_keys_group)
         self.active_keys_label = QLabel("None")
@@ -292,12 +317,12 @@ class InputCollectorApp(QMainWindow):
         
         # Eliminar la sección "Tracked Keys" que ya no es necesaria
         
-        # Status area
+        # Status area - reducir aún más para dar más espacio a los visualizadores
         status_group = QGroupBox("Status")
         status_layout = QVBoxLayout(status_group)
         self.status_text = QTextEdit()
         self.status_text.setReadOnly(True)
-        self.status_text.setMaximumHeight(100)  # Reducir altura para dar más espacio a las visualizaciones
+        self.status_text.setMaximumHeight(80)  # Reducido de 100 a 80
         status_layout.addWidget(self.status_text)
         main_layout.addWidget(status_group)
         
@@ -367,15 +392,17 @@ class InputCollectorApp(QMainWindow):
         if self.edit_keys_mode:
             self.edit_keys_button.setText("Finish Editing")
             self.edit_keys_button.setStyleSheet("background-color: #5FB878; color: white;")
-            self._log_status("Click on keys to add/remove them from tracking", self.success_color)
+            self._log_status("Click on keys or mouse buttons to add/remove them from tracking", self.success_color)
             # Cambiar el cursor para indicar modo de edición
             self.keyboard_viz.setCursor(Qt.PointingHandCursor)
+            self.mouse_buttons_selector.setEditMode(True)
         else:
             self.edit_keys_button.setText("Edit Keys")
             self.edit_keys_button.setStyleSheet(f"background-color: {self.accent_color}; color: white;")
             self._log_status("Key editing finished", self.accent_color)
             # Restaurar cursor normal
             self.keyboard_viz.setCursor(Qt.ArrowCursor)
+            self.mouse_buttons_selector.setEditMode(False)
 
     def _handle_keyboard_viz_click(self, event) -> None:
         """Handle clicks on the keyboard visualizer."""
@@ -422,6 +449,36 @@ class InputCollectorApp(QMainWindow):
             # Actualizar la lista de teclas y la visualización
             self.collector.set_supported_keys(self.tracked_keys)
             self.keyboard_viz.set_tracked_keys(self.tracked_keys)
+
+    def _handle_mouse_button_toggled(self, button_id: str, is_tracked: bool) -> None:
+        """Handle toggling of mouse buttons in the selector."""
+        if not self.edit_keys_mode:
+            # Solo responder en modo de edición
+            return
+        
+        # Manejar el caso especial del scroll
+        if button_id == "Button.scroll":
+            self.capture_scroll_check.setChecked(is_tracked)
+            self._log_status(f"Scroll tracking {'enabled' if is_tracked else 'disabled'}", 
+                           self.success_color if is_tracked else self.warning_color)
+            return
+        
+        # Para los demás botones, actualizar la lista de teclas trackeadas
+        if is_tracked:
+            # Añadir el botón si no está ya en la lista
+            if button_id not in self.tracked_keys:
+                self.tracked_keys.append(button_id)
+                self._log_status(f"Added tracking for {button_id}", self.success_color)
+        else:
+            # Eliminar el botón si está en la lista
+            if button_id in self.tracked_keys:
+                self.tracked_keys.remove(button_id)
+                self._log_status(f"Removed tracking for {button_id}", self.warning_color)
+        
+        # Actualizar el colector y la visualización
+        self.collector.set_supported_keys(self.tracked_keys)
+        self.keyboard_viz.set_tracked_keys(self.tracked_keys)
+        self.mouse_buttons_selector.setTrackedButtons(self.tracked_keys)
 
     def _setup_shortcuts(self) -> None:
         """Set up keyboard shortcuts for the application."""
@@ -611,14 +668,30 @@ class InputCollectorApp(QMainWindow):
             self._update_active_keys_display()
             return
         
-        # Handle regular media_play_pause key (from actual media key)
-        if (event.event_type == "key_press" and
-            event.key and "media_play_pause" in event.key.lower()):
-            # Call the toggle method
-            self._toggle_recording()
-            
-            # Update keyboard visualizer
+        # FIX: Problema con media_play_pause - evitar que eventos de key_press con media_play_pause 
+        # activen un nuevo toggle de grabación (porque ya fue manejado por toggle_recording)
+        # Solo responder a media_play_pause si viene directo del keyboard_listener, no de eventos internos
+        if (event.event_type == "key_press" and event.key == "Key.media_play_pause"):
+            # Ya no llamamos a toggle_recording aquí - este evento es solo para actualizar la visualización
             self.keyboard_viz.update(event)
+            return
+        
+        # Verificar si los botones del ratón están siendo trackeados antes de procesarlos
+        if event.event_type == "mouse_click" and event.button_pressed:
+            # Solo procesar botones que estén en la lista de trackeados
+            if not any(btn.lower() == event.button_pressed.lower() for btn in self.tracked_keys):
+                # Si el botón no está en la lista de trackeados, no lo procesamos
+                return
+        
+        # FIX: Limpiar el button_pressed si no está en la lista de botones trackeados
+        # Esto evita que los botones no trackeados aparezcan en los logs durante el movimiento del ratón
+        if hasattr(event, 'button_pressed') and event.button_pressed:
+            if not any(btn.lower() == event.button_pressed.lower() for btn in self.tracked_keys):
+                event.button_pressed = None  # Eliminar la referencia al botón no trackeado
+        
+        # Similar para scroll - solo procesar si está habilitado
+        if event.event_type == "mouse_scroll" and not self.capture_scroll_check.isChecked():
+            # No procesar eventos de scroll si no está habilitado
             return
         
         # Update visualizers immediately
@@ -646,6 +719,15 @@ class InputCollectorApp(QMainWindow):
             # Log to file if enabled
             if self.log_file and self.log_to_file:
                 self._log_event_to_file(event)
+        
+        # Actualizar el selector de botones del ratón si hay botones presionados
+        if hasattr(event, 'button_pressed') and event.button_pressed:
+            # Solo destacar botones que estén en la lista de trackeados
+            if any(btn.lower() == event.button_pressed.lower() for btn in self.tracked_keys):
+                active_buttons = [event.button_pressed]
+                self.mouse_buttons_selector.setActiveButtons(active_buttons)
+        else:
+            self.mouse_buttons_selector.setActiveButtons([])
     
     def _format_event_text(self, event: InputData) -> str:
         """Format event text for UI display based on tracking mode."""
@@ -832,6 +914,30 @@ class InputCollectorApp(QMainWindow):
         
         # Accept the close event
         event.accept()
+
+    def _on_capture_scroll_changed(self, checked: bool) -> None:
+        """Sync scroll capture checkbox state with the mouse buttons selector."""
+        self.mouse_buttons_selector.setScrollTracking(checked)
+        if self.edit_keys_mode:
+            self._log_status(f"Scroll tracking {'enabled' if checked else 'disabled'}", 
+                           self.success_color if checked else self.warning_color)
+        
+        # Update tracking status if this represents a change in button tracking
+        button_id = "Button.scroll"
+        is_tracked = button_id in self.tracked_keys
+        
+        # Ensure scroll button state is consistent with checkbox
+        if checked and not is_tracked:
+            # Add to tracked keys
+            self.tracked_keys.append(button_id)
+            self.collector.set_supported_keys(self.tracked_keys)
+        elif not checked and is_tracked:
+            # Remove from tracked keys
+            self.tracked_keys.remove(button_id)
+            self.collector.set_supported_keys(self.tracked_keys)
+        
+        # Update the mouse buttons display
+        self.mouse_buttons_selector.setTrackedButtons(self.tracked_keys)
 
 
 def run_collector_app() -> None:
