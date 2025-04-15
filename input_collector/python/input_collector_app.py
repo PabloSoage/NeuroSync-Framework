@@ -326,7 +326,7 @@ class InputCollectorApp(QMainWindow):
         mouse_mode_frame.addWidget(QLabel("Mode:"))
         
         self.tracking_mode_combo = QComboBox()
-        self.tracking_mode_combo.addItems(["angle", "axis"])
+        self.tracking_mode_combo.addItems(["axis", "angle"])
         self.tracking_mode_combo.setMinimumWidth(80)
         self.tracking_mode_combo.currentTextChanged.connect(self._set_mouse_tracking_mode)
         mouse_mode_frame.addWidget(self.tracking_mode_combo)
@@ -903,12 +903,12 @@ class InputCollectorApp(QMainWindow):
         # Add appropriate modes
         if direction_only:
             # Direction-only modes
-            self.tracking_mode_combo.addItems(["angle", "axis"])
+            self.tracking_mode_combo.addItems(["axis", "angle"])
             # Set appropriate mode
-            if current_mode in ["angle", "axis"]:
+            if current_mode in ["axis", "angle"]:
                 self.tracking_mode_combo.setCurrentText(current_mode)
             else:
-                self.tracking_mode_combo.setCurrentText("angle")
+                self.tracking_mode_combo.setCurrentText("axis")
         else:
             # Standard modes
             self.tracking_mode_combo.addItems(["joystick", "delta", "angle"])
