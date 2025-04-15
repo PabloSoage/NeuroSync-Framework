@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QComboBox, QPushButton, QLabel, QGroupBox, QCheckBox,
                              QSpinBox, QDoubleSpinBox, QFileDialog, QTabWidget,
                              QRadioButton, QMessageBox, QGridLayout, QScrollArea)
+from PyQt5.QtGui import QColor, QPalette, QFont
 from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds
 from brainflow.data_filter import (DataFilter, FilterTypes, AggOperations, WindowOperations,
                                    WaveletTypes)
@@ -42,8 +43,20 @@ class EEGProcessorApp(QMainWindow):
         logging.basicConfig(level=logging.INFO)
         BoardShim.enable_dev_board_logger()
         
+        # Define app theme colors
+        self.dark_bg = "#2D2D30"
+        self.dark_frame_bg = "#252526"
+        self.text_color = "#E0E0E0"
+        self.accent_color = "#007ACC"
+        self.success_color = "#5FB878"
+        self.warning_color = "#FFAA33"
+        self.error_color = "#FF5555"
+        
         self.setWindowTitle("EEG Processor")
         self.setGeometry(100, 100, 1200, 800)
+        
+        # Set application style
+        self._set_dark_theme()
         
         # Data handling objects
         self.collector = None
@@ -65,6 +78,126 @@ class EEGProcessorApp(QMainWindow):
         self.status_timer.start(1000)  # Update every second
         
         logging.info("EEG Processor application initialized")
+        
+    def _set_dark_theme(self):
+        """Set the application to use a dark theme."""
+        palette = QPalette()
+        
+        # Set colors
+        palette.setColor(QPalette.Window, QColor(self.dark_bg))
+        palette.setColor(QPalette.WindowText, QColor(self.text_color))
+        palette.setColor(QPalette.Base, QColor(self.dark_frame_bg))
+        palette.setColor(QPalette.AlternateBase, QColor(self.dark_bg))
+        palette.setColor(QPalette.ToolTipBase, QColor(self.dark_bg))
+        palette.setColor(QPalette.ToolTipText, QColor(self.text_color))
+        palette.setColor(QPalette.Text, QColor(self.text_color))
+        palette.setColor(QPalette.Button, QColor(self.dark_bg))
+        palette.setColor(QPalette.ButtonText, QColor(self.text_color))
+        palette.setColor(QPalette.BrightText, QColor(255, 0, 0))
+        palette.setColor(QPalette.Link, QColor(self.accent_color))
+        palette.setColor(QPalette.Highlight, QColor(self.accent_color))
+        palette.setColor(QPalette.HighlightedText, QColor(255, 255, 255))
+        
+        self.setPalette(palette)
+        
+        # Set stylesheet for detailed control
+        self.setStyleSheet(f"""
+            QMainWindow, QWidget {{ background-color: {self.dark_bg}; color: {self.text_color}; }}
+            QGroupBox {{ 
+                border: 1px solid #444; 
+                margin-top: 0.5em;
+                border-radius: 3px;
+                padding: 0.5em;
+            }}
+            QGroupBox::title {{
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                padding: 0 5px;
+                color: {self.text_color};
+            }}
+            QPushButton {{ 
+                background-color: {self.accent_color}; 
+                color: white; 
+                border: none; 
+                padding: 4px 8px;
+                min-height: 24px;
+                border-radius: 2px;
+            }}
+            QPushButton:pressed {{ background-color: #005599; }}
+            QPushButton:hover {{ background-color: #0066aa; }}
+            QPushButton:disabled {{ 
+                background-color: #555555; 
+                color: #999999; 
+            }}
+            QLineEdit, QTextEdit, QListWidget, QComboBox, QSpinBox, QDoubleSpinBox {{ 
+                background-color: {self.dark_frame_bg}; 
+                color: {self.text_color}; 
+                border: 1px solid #444;
+                padding: 2px;
+                border-radius: 2px;
+            }}
+            QTextEdit {{ font-family: 'Consolas', monospace; }}
+            QComboBox::drop-down {{ border: 0px; }}
+            QComboBox::down-arrow {{ 
+                width: 12px;
+                height: 12px;
+            }}
+            QSlider::groove:horizontal {{
+                border: 1px solid #444;
+                height: 8px;
+                background: {self.dark_frame_bg};
+                margin: 2px 0;
+                border-radius: 2px;
+            }}
+            QSlider::handle:horizontal {{
+                background: {self.accent_color};
+                border: none;
+                width: 18px;
+                margin: -2px 0;
+                border-radius: 4px;
+            }}
+            QCheckBox::indicator {{
+                width: 13px;
+                height: 13px;
+                border: 1px solid #444;
+                border-radius: 2px;
+            }}
+            QCheckBox::indicator:checked {{
+                background-color: {self.accent_color};
+            }}
+            QTabWidget::pane {{
+                border: 1px solid #444;
+                background-color: {self.dark_bg};
+            }}
+            QTabBar::tab {{
+                background-color: {self.dark_frame_bg};
+                color: {self.text_color};
+                padding: 6px 12px;
+                margin-right: 2px;
+                border-top-left-radius: 3px;
+                border-top-right-radius: 3px;
+            }}
+            QTabBar::tab:selected {{
+                background-color: {self.accent_color};
+            }}
+            QTabBar::tab:!selected {{
+                margin-top: 2px;
+            }}
+            QScrollArea, QScrollBar {{
+                background-color: {self.dark_frame_bg};
+                border: 1px solid #444;
+            }}
+            QLabel {{ color: {self.text_color}; }}
+            QRadioButton::indicator {{
+                width: 13px;
+                height: 13px;
+                border-radius: 7px;
+                border: 1px solid #444;
+            }}
+            QRadioButton::indicator:checked {{
+                background-color: {self.accent_color};
+            }}
+        """)
         
     def setup_ui(self):
         """Set up the user interface."""
@@ -1159,7 +1292,9 @@ class EEGProcessorApp(QMainWindow):
             self.connect_btn.setEnabled(False)
             self.disconnect_btn.setEnabled(True)
             self.start_stream_btn.setEnabled(True)
+            self.stop_stream_btn.setEnabled(False)  # Asegurar que está desactivado
             self.save_data_btn.setEnabled(True)
+            self.show_viz_btn.setEnabled(False)  # Asegurar que está desactivado
             
             # Update board info
             board_info = self.collector.get_board_info()
@@ -1197,6 +1332,7 @@ class EEGProcessorApp(QMainWindow):
             self.save_data_btn.setEnabled(False)
             self.apply_filters_btn.setEnabled(False)
             self.calculate_metrics_btn.setEnabled(False)
+            self.show_viz_btn.setEnabled(False)  # Asegurar que está desactivado
             
             # Update info
             self.board_info_label.setText("No board connected")
@@ -1226,7 +1362,8 @@ class EEGProcessorApp(QMainWindow):
                 self.add_marker_btn.setEnabled(True)
                 self.apply_filters_btn.setEnabled(True)
                 self.calculate_metrics_btn.setEnabled(True)
-                # Update visualization button state
+                
+                # Update visualization button state - debe estar deshabilitado porque la ventana está visible
                 self.show_viz_btn.setEnabled(False)
                 self.show_viz_btn.setStyleSheet("font-weight: bold; padding: 6px;")
                 
@@ -1248,25 +1385,6 @@ class EEGProcessorApp(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Streaming Error", f"Failed to start streaming: {str(e)}")
             logging.error(f"Streaming error: {e}")
-
-    def _populate_channel_dropdowns(self):
-        """Populate channel selection dropdowns with available channels."""
-        if not self.collector:
-            return
-            
-        # Get EEG channels
-        eeg_channels = self.collector.get_eeg_channels()
-        
-        # Clear and populate wavelet channel combo
-        self.wavelet_channel_combo.clear()
-        for i, channel in enumerate(eeg_channels):
-            self.wavelet_channel_combo.addItem(f"Channel {channel}", channel)
-        
-        # Clear and populate ICA channel combo (keep "All Channels" as first option)
-        self.ica_channel_combo.clear()
-        self.ica_channel_combo.addItem("All Channels", -1)
-        for i, channel in enumerate(eeg_channels):
-            self.ica_channel_combo.addItem(f"Channel {channel}", channel)
             
     def stop_stream(self):
         """Stop streaming data from the board."""
@@ -1287,13 +1405,112 @@ class EEGProcessorApp(QMainWindow):
                 self.start_record_btn.setEnabled(False)
                 self.stop_record_btn.setEnabled(False)
                 self.add_marker_btn.setEnabled(False)
+                self.show_viz_btn.setEnabled(False)  # Al parar el stream ya no se puede mostrar la visualización
+                self.apply_filters_btn.setEnabled(False)  # Deshabilitar filtros si no hay stream
+                self.calculate_metrics_btn.setEnabled(False)  # Deshabilitar cálculo de métricas sin stream
+                
+                # Disable advanced processing buttons
+                self.compute_ica_btn.setEnabled(False)
+                self.compute_wavelet_btn.setEnabled(False)
+                self.apply_downsample_btn.setEnabled(False)
+                self.apply_adv_filter_btn.setEnabled(False)
+                
+                # Disable MNE buttons if available
+                if MNE_AVAILABLE:
+                    self.convert_to_mne_btn.setEnabled(False)
                 
                 self.statusBar().showMessage("Streaming stopped")
                 
         except Exception as e:
             QMessageBox.warning(self, "Streaming Error", f"Error stopping stream: {str(e)}")
             logging.error(f"Error stopping stream: {e}")
+
+    def update_status(self):
+        """Update status information."""
+        if self.is_recording:
+            duration = (int(round(time.time() * 1000)) - self.start_time) / 1000  # Duration in seconds
+            self.recording_status_label.setText(f"Recording... ({duration:.1f}s)")
+        
+        # Check if visualization window was closed and update button state
+        if self.is_streaming and self.visualizer:
+            if not self.visualizer.is_visible():
+                # Si el stream está activo pero la ventana está cerrada, permitir reabrirla
+                self.show_viz_btn.setEnabled(True)
+                # Make the button more noticeable when the window is closed
+                self.show_viz_btn.setStyleSheet("font-weight: bold; background-color: #4CAF50; color: white; padding: 6px;")
+            else:
+                # Si la ventana está visible, no se necesita el botón
+                self.show_viz_btn.setEnabled(False)
+                self.show_viz_btn.setStyleSheet("font-weight: bold; padding: 6px;")
+        elif not self.is_streaming:
+            # Si no hay stream, desactivar el botón
+            self.show_viz_btn.setEnabled(False)
+            self.show_viz_btn.setStyleSheet("font-weight: bold; padding: 6px;")
+    
+    def show_visualization(self):
+        """Show the EEG visualization if it was closed."""
+        if self.is_streaming and self.collector and self.processor:
+            if not self.visualizer or not self.visualizer.is_visible():
+                # Create new visualizer or restart if it was closed
+                self.visualizer = EEGVisualizer(self.collector, self.processor)
+                self.apply_filters()  # Apply filter settings
+                self.visualizer.start()
+                self.show_viz_btn.setEnabled(False)
+                self.show_viz_btn.setStyleSheet("font-weight: bold; padding: 6px;")
+                self.statusBar().showMessage("Visualization window reopened")
+    
+    def closeEvent(self, event):
+        """Handle application close event."""
+        if self.collector:
+            try:
+                if self.is_streaming:
+                    self.collector.stop_stream()
+                self.collector.release_session()
+            except Exception as e:
+                logging.error(f"Error during shutdown: {e}")
+        
+        event.accept()
+        
+    def apply_filters(self):
+        """Apply the selected filters to visualization."""
+        if not self.visualizer:
+            return
             
+        self.visualizer.set_bandpass_filter(
+            self.bandpass_check.isChecked(),
+            self.bandpass_low_spin.value(),
+            self.bandpass_high_spin.value()
+        )
+        self.visualizer.set_notch_filter(self.notch_check.isChecked())
+        self.visualizer.set_detrend(self.detrend_check.isChecked())
+        
+        self.statusBar().showMessage("Filters applied to visualization")
+        
+    def calculate_metrics(self):
+        """Calculate EEG metrics from the current data."""
+        if not self.collector or not self.processor or not self.is_streaming:
+            return
+            
+        try:
+            data, _ = self.collector.get_data(4 * self.collector.sampling_rate)  # Get 4 seconds of data
+            if data.size == 0:
+                return
+                
+            metrics = self.processor.get_eeg_metrics(data, self.collector.get_eeg_channels())
+            
+            # Update display
+            metrics_text = f"Mindfulness: {metrics['mindfulness']:.2f}\n"
+            metrics_text += f"Concentration: {metrics['concentration']:.2f}\n"
+            metrics_text += f"Relaxation: {metrics['relaxation']:.2f}\n"
+            metrics_text += f"Restfulness: {metrics['restfulness']:.2f}"
+            self.metrics_label.setText(metrics_text)
+            
+            self.statusBar().showMessage("EEG metrics calculated")
+            
+        except Exception as e:
+            QMessageBox.warning(self, "Metrics Error", f"Failed to calculate metrics: {str(e)}")
+            logging.error(f"Metrics error: {e}")
+
     def start_recording(self):
         """Start recording data to file."""
         if not self.collector or not self.is_streaming:
@@ -1361,82 +1578,21 @@ class EEGProcessorApp(QMainWindow):
             QMessageBox.critical(self, "Save Error", f"Failed to save data: {str(e)}")
             logging.error(f"Save error: {e}")
             
-    def apply_filters(self):
-        """Apply the selected filters to visualization."""
-        if not self.visualizer:
+    def _populate_channel_dropdowns(self):
+        """Populate channel selection dropdowns with available channels."""
+        if not self.collector:
             return
             
-        self.visualizer.set_bandpass_filter(
-            self.bandpass_check.isChecked(),
-            self.bandpass_low_spin.value(),
-            self.bandpass_high_spin.value()
-        )
-        self.visualizer.set_notch_filter(self.notch_check.isChecked())
-        self.visualizer.set_detrend(self.detrend_check.isChecked())
+        # Get EEG channels
+        eeg_channels = self.collector.get_eeg_channels()
         
-        self.statusBar().showMessage("Filters applied to visualization")
+        # Clear and populate wavelet channel combo
+        self.wavelet_channel_combo.clear()
+        for i, channel in enumerate(eeg_channels):
+            self.wavelet_channel_combo.addItem(f"Channel {channel}", channel)
         
-    def calculate_metrics(self):
-        """Calculate EEG metrics from the current data."""
-        if not self.collector or not self.processor or not self.is_streaming:
-            return
-            
-        try:
-            data, _ = self.collector.get_data(4 * self.collector.sampling_rate)  # Get 4 seconds of data
-            if data.size == 0:
-                return
-                
-            metrics = self.processor.get_eeg_metrics(data, self.collector.get_eeg_channels())
-            
-            # Update display
-            metrics_text = f"Mindfulness: {metrics['mindfulness']:.2f}\n"
-            metrics_text += f"Concentration: {metrics['concentration']:.2f}\n"
-            metrics_text += f"Relaxation: {metrics['relaxation']:.2f}\n"
-            metrics_text += f"Restfulness: {metrics['restfulness']:.2f}"
-            self.metrics_label.setText(metrics_text)
-            
-            self.statusBar().showMessage("EEG metrics calculated")
-            
-        except Exception as e:
-            QMessageBox.warning(self, "Metrics Error", f"Failed to calculate metrics: {str(e)}")
-            logging.error(f"Metrics error: {e}")
-    
-    def update_status(self):
-        """Update status information."""
-        if self.is_recording:
-            duration = (int(round(time.time() * 1000)) - self.start_time) / 1000  # Duration in seconds
-            self.recording_status_label.setText(f"Recording... ({duration:.1f}s)")
-        
-        # Check if visualization window was closed and update button state
-        if self.is_streaming and self.visualizer:
-            if not self.visualizer.is_visible():
-                self.show_viz_btn.setEnabled(True)
-                # Make the button more noticeable when the window is closed
-                self.show_viz_btn.setStyleSheet("font-weight: bold; background-color: #4CAF50; color: white; padding: 6px;")
-            else:
-                self.show_viz_btn.setEnabled(False)
-                self.show_viz_btn.setStyleSheet("font-weight: bold; padding: 6px;")
-    
-    def show_visualization(self):
-        """Show the EEG visualization if it was closed."""
-        if self.is_streaming and self.collector and self.processor:
-            if not self.visualizer or not self.visualizer.is_visible():
-                # Create new visualizer or restart if it was closed
-                self.visualizer = EEGVisualizer(self.collector, self.processor)
-                self.apply_filters()  # Apply filter settings
-                self.visualizer.start()
-                self.show_viz_btn.setEnabled(False)
-                self.show_viz_btn.setStyleSheet("font-weight: bold; padding: 6px;")
-                self.statusBar().showMessage("Visualization window reopened")
-    
-    def closeEvent(self, event):
-        """Handle application close event."""
-        if self.collector:
-            try:
-                if self.is_streaming:
-                    self.collector.stop_stream()
-                self.collector.release_session()
-            except Exception as e:
-                logging.error(f"Error during shutdown: {e}")
-        
-        event.accept()
+        # Clear and populate ICA channel combo (keep "All Channels" as first option)
+        self.ica_channel_combo.clear()
+        self.ica_channel_combo.addItem("All Channels", -1)
+        for i, channel in enumerate(eeg_channels):
+            self.ica_channel_combo.addItem(f"Channel {channel}", channel)
