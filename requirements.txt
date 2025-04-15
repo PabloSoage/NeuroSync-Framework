@@ -5,6 +5,8 @@ pyqt5
 pyqtgraph
 matplotlib
 pandas
+pysdl2
+pysdl2-dll
 
 # Optional dependencies for advanced features
 mne
