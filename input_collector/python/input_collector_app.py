@@ -47,7 +47,8 @@ class InputCollectorApp:
         if root is None:
             self.root: tk.Tk = tk.Tk()
             self.root.title("Input Collector")
-            self.root.geometry("800x700")
+            self.root.geometry("800x700")  # Initial size
+            self.root.minsize(750, 650)    # Set minimum size to prevent elements from being too squished
             self.root.configure(bg=self.dark_frame_bg)  # Set window background color
             
             # Configure global ttk style for dark theme
@@ -72,6 +73,16 @@ class InputCollectorApp:
         self.is_recording: bool = False
         self.log_to_file: bool = False
         self.log_file: Optional[Any] = None
+        
+        # Track fullscreen state
+        self.is_fullscreen = False
+        
+        # Bind F11 for fullscreen toggle
+        self.root.bind("<F11>", self._toggle_fullscreen)
+        self.root.bind("<Escape>", self._end_fullscreen)
+        
+        # Resize handling
+        self.last_resize_time = 0
         
         # UI components
         self.record_button: Optional[tk.Button] = None
@@ -210,123 +221,150 @@ class InputCollectorApp:
         # Configure main frame rows and columns
         main_frame.grid_columnconfigure(0, weight=1)
         
+        # Configure rows with appropriate weights to allow resizing
+        for i in range(10):  # Allocate enough rows for all components
+            weight = 1 if i == 1 else 0  # Give weight to visualization row only
+            main_frame.grid_rowconfigure(i, weight=weight)
+        
         row_index = 0
         
         # Control panel - make it stand out with a subtle border
         control_frame = ttk.Frame(main_frame, style="TFrame")
         control_frame.grid(row=row_index, column=0, sticky="ew", pady=8)
-        control_frame['padding'] = (10, 5, 10, 5)  # Add internal padding
+        control_frame['padding'] = (5, 5, 5, 5)  # Reduced padding to save space
+        
+        # Configure control frame with better proportions to prevent overflow
+        control_frame.grid_columnconfigure(0, weight=0)  # Recording controls - fixed width
+        control_frame.grid_columnconfigure(1, weight=2)  # Key tracking - more expandable
+        control_frame.grid_columnconfigure(2, weight=0)  # Mouse tracking - fixed width but adequate
+        
         row_index += 1
         
-        # Record button with reliable tk.Button
+        # Left side: Recording controls - more compact
+        recording_frame = ttk.Frame(control_frame, style="TFrame")
+        recording_frame.grid(row=0, column=0, sticky="w")
+        
+        # Record button with reliable tk.Button - more compact
         self.record_button = tk.Button(
-            control_frame,
-            text="Start Recording",
+            recording_frame,
+            text="Record",  # Shorter text saves space
             command=self._toggle_recording,
-            bg="#AA3333",  # Red background
-            fg="#FFFFFF",  # White text
+            bg="#AA3333",
+            fg="#FFFFFF",
             relief=tk.FLAT,
-            padx=8,
-            pady=4,
+            padx=6,  # Reduced padding
+            pady=3,  # Reduced padding
             activebackground="#CC3333",
             activeforeground="#FFFFFF",
             bd=0,
             font=("Segoe UI", 9)
         )
-        self.record_button.pack(side=tk.LEFT, padx=8)
+        self.record_button.pack(side=tk.LEFT, padx=5)
         
-        # Log to file checkbox with improved style
+        # Log to file checkbox - more compact
         self.log_var = tk.BooleanVar(value=False)
         self.log_checkbox = ttk.Checkbutton(
-            control_frame, 
-            text="Log to File",
+            recording_frame, 
+            text="Log",  # Shorter text saves space
             variable=self.log_var,
             command=self._toggle_logging,
             style="TCheckbutton"
         )
-        self.log_checkbox.pack(side=tk.LEFT, padx=8)
+        self.log_checkbox.pack(side=tk.LEFT, padx=5)
         
         # Status label with better text
         self.status_label = ttk.Label(
-            control_frame, 
+            recording_frame, 
             text="Not Recording",
             style="TLabel"
         )
-        self.status_label.pack(side=tk.LEFT, padx=10)
+        self.status_label.pack(side=tk.LEFT, padx=5)
         
-        # Separator - make it more subtle
-        ttk.Separator(control_frame, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=5)
+        # Middle: Key tracking controls - better space management
+        key_tracking_frame = ttk.Frame(control_frame, style="TFrame")
+        key_tracking_frame.grid(row=0, column=1, sticky="ew", padx=5)
         
-        # Key tracking frame - improved layout (KEEP ONLY THIS INSTANCE)
-        key_frame = ttk.Frame(control_frame, style="TFrame")
-        key_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        # Configure grid for better control of element sizes
+        key_tracking_frame.grid_columnconfigure(0, weight=0)  # Label - fixed
+        key_tracking_frame.grid_columnconfigure(1, weight=1)  # Entry - expandable
+        key_tracking_frame.grid_columnconfigure(2, weight=0)  # Add button - fixed
+        key_tracking_frame.grid_columnconfigure(3, weight=0)  # Remove button - fixed
         
-        ttk.Label(key_frame, text="Key:", style="TLabel").pack(side=tk.LEFT)
+        # Use grid for key controls instead of pack for better alignment
+        ttk.Label(key_tracking_frame, text="Key:", style="TLabel").grid(row=0, column=0, padx=2, sticky="w")
         
         # Create a dark theme entry for key input
         self.key_entry = tk.Entry(
-            key_frame, 
+            key_tracking_frame, 
             width=10, 
             bg=self.dark_bg,
             fg=self.text_color,
-            insertbackground=self.text_color,  # Cursor color
+            insertbackground=self.text_color,
             relief=tk.FLAT,
             bd=1,
         )
-        self.key_entry.pack(side=tk.LEFT, padx=5)
+        self.key_entry.grid(row=0, column=1, padx=2, sticky="ew")
         
-        # Replace ttk buttons with tk buttons for more reliable styling
+        # Replace ttk buttons with tk buttons - more compact styling
         add_button = tk.Button(
-            key_frame, 
-            text="Add Key", 
+            key_tracking_frame, 
+            text="Add",  # Shorter text saves space
             command=self._add_key,
             bg=self.accent_color,
             fg="#FFFFFF",
             relief=tk.FLAT,
-            padx=8,
-            pady=2,
+            padx=4,  # Reduced padding
+            pady=1,  # Reduced padding
             activebackground="#0066aa",
             activeforeground="#FFFFFF",
             bd=0
         )
-        add_button.pack(side=tk.LEFT, padx=4)
+        add_button.grid(row=0, column=2, padx=2)
         
         remove_button = tk.Button(
-            key_frame, 
-            text="Remove Key", 
+            key_tracking_frame, 
+            text="Remove",  # Shorter text saves space
             command=self._remove_key,
             bg=self.accent_color,
             fg="#FFFFFF",
             relief=tk.FLAT,
-            padx=8, 
-            pady=2,
+            padx=4,  # Reduced padding
+            pady=1,  # Reduced padding
             activebackground="#0066aa",
             activeforeground="#FFFFFF",
             bd=0
         )
-        remove_button.pack(side=tk.LEFT, padx=4)
+        remove_button.grid(row=0, column=3, padx=2)
         
-        # Add mouse tracking mode controls after key tracking frame
-        ttk.Separator(control_frame, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=5)
+        # Right side: Mouse tracking mode controls - use grid for better layout
+        mouse_frame = ttk.Frame(control_frame, style="TFrame")
+        mouse_frame.grid(row=0, column=2, sticky="e", padx=(5, 0))
         
-        # Mouse tracking mode frame
-        mouse_mode_frame = ttk.Frame(control_frame, style="TFrame")
-        mouse_mode_frame.pack(side=tk.LEFT, fill=tk.X)
+        # Fixed-size container for mouse mode controls
+        mouse_mode_frame = ttk.Frame(mouse_frame, width=230, height=35, style="TFrame")
+        mouse_mode_frame.pack(side=tk.RIGHT)
+        mouse_mode_frame.pack_propagate(False)  # Critical: Prevent the frame from collapsing
         
-        # Direction Only Mode checkbox
+        # Use grid layout within the mouse mode frame for better control
+        mouse_mode_frame.grid_columnconfigure(0, weight=0)  # Checkbox - fixed
+        mouse_mode_frame.grid_columnconfigure(1, weight=0)  # Label - fixed
+        mouse_mode_frame.grid_columnconfigure(2, weight=0)  # Dropdown - fixed
+        
+        # Direction Only Mode checkbox with improved layout - more compact
         self.direction_only_var = tk.BooleanVar(value=True)  # Enabled by default
         self.direction_only_cb = ttk.Checkbutton(
             mouse_mode_frame, 
-            text="Direction Only",
+            text="Dir Only",  # Shorter text saves space
             variable=self.direction_only_var,
             command=self._update_tracking_modes,
             style="TCheckbutton"
         )
-        self.direction_only_cb.pack(side=tk.LEFT, padx=5)
+        self.direction_only_cb.grid(row=0, column=0, padx=(2, 2), sticky="w")
         
-        ttk.Label(mouse_mode_frame, text="Mouse Mode:", style="TLabel").pack(side=tk.LEFT, padx=5)
+        # Mode label - more compact
+        ttk.Label(mouse_mode_frame, text="Mode:", style="TLabel").grid(row=0, column=1, padx=(2, 2), sticky="w")
         
-        # Create a dropdown for tracking modes
+        # Create a dropdown for tracking modes - define fixed width to prevent disappearing
         self.tracking_mode_var = tk.StringVar(value="angle")  # Default to angle when direction only
         self.tracking_dropdown = tk.OptionMenu(
             mouse_mode_frame, 
@@ -341,7 +379,9 @@ class InputCollectorApp:
             activeforeground="#FFFFFF",
             relief=tk.FLAT,
             highlightthickness=0,
-            bd=1
+            bd=1,
+            width=7,  # Fixed width that fits both "joystick" and "angle"
+            font=("Segoe UI", 9)  # Slightly smaller font
         )
         self.tracking_dropdown["menu"].config(
             bg=self.dark_bg,
@@ -349,8 +389,9 @@ class InputCollectorApp:
             activebackground=self.accent_color,
             activeforeground="#FFFFFF",
             relief=tk.FLAT,
+            font=("Segoe UI", 9)  # Consistent font size
         )
-        self.tracking_dropdown.pack(side=tk.LEFT, padx=5)
+        self.tracking_dropdown.grid(row=0, column=2, padx=(2, 5), sticky="w")
         
         # Visualization area with grid layout - add some breathing room
         viz_frame = ttk.Frame(main_frame, style="TFrame")
@@ -381,6 +422,9 @@ class InputCollectorApp:
         
         self.mouse_viz = MouseVisualizer(right_frame)
         self.mouse_viz.get_frame().grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        
+        # Add resize event handler
+        self.root.bind("<Configure>", self._on_window_resize)
         
         # Active keys display - improved appearance
         active_keys_frame = ttk.LabelFrame(main_frame, text="Active Keys", style="TLabelframe")
@@ -563,7 +607,7 @@ class InputCollectorApp:
             print("Stopping recording...")
             self.collector.stop_capture()
             self.is_recording = False
-            self.record_button.config(text="Start Recording")
+            self.record_button.config(text="Record")  # Update for more compact text
             self.status_label.config(text="Not Recording")
             self._log_status("Recording stopped", color=self.warning_color)
             if self.log_file:
@@ -574,7 +618,7 @@ class InputCollectorApp:
             print("Starting recording...")
             self.collector.start_capture()
             self.is_recording = True
-            self.record_button.config(text="Stop Recording")
+            self.record_button.config(text="Stop")  # Update for more compact text
             self.status_label.config(text="RECORDING")
             self._log_status("Recording started", color=self.success_color)
             if self.log_file:
@@ -1132,6 +1176,9 @@ class InputCollectorApp:
             if current_mode not in ["joystick", "delta", "angle"]:
                 self.tracking_mode_var.set("joystick")
                 self._set_mouse_tracking_mode("joystick")
+        
+        # Keep width fixed (don't allow it to collapse based on selected item)
+        self.tracking_dropdown.config(width=7)  # Ensure consistent width
 
     def _update_angle_grouping_display(self, *args) -> None:
         """
@@ -1140,6 +1187,86 @@ class InputCollectorApp:
         grouping = self.angle_grouping_var.get()
         num_values = 360 // grouping if grouping > 0 else 360
         self.angle_grouping_display.config(text=f"{grouping}° ({num_values} values)")
+
+    def _on_window_resize(self, event=None) -> None:
+        """
+        Handle window resize events.
+        
+        Updates visualizers and UI components when the window size changes.
+        
+        Args:
+            event: The window resize event
+        """
+        # Only respond to root window resize events
+        if event and event.widget == self.root:
+            current_time = time.time()
+            
+            # Always update the mouse mode dropdown width to ensure visibility
+            self.tracking_dropdown.config(width=7)
+            
+            # More aggressive resize handling for fullscreen transitions
+            if abs(current_time - self.last_resize_time) > 0.5:  # Major size change
+                self.last_resize_time = current_time
+                self._force_visualizer_updates()
+            else:
+                # Just schedule an update once resize settles
+                self.root.after_cancel(getattr(self, '_resize_after_id', 'dummy'))
+                self._resize_after_id = self.root.after(200, self._update_visualizers_size)
+    
+    def _update_visualizers_size(self) -> None:
+        """
+        Update visualizers size based on current window dimensions.
+        """
+        if hasattr(self.keyboard_viz, 'update_size'):
+            self.keyboard_viz.update_size()
+        
+        if hasattr(self.mouse_viz, 'update_size'):
+            self.mouse_viz.update_size()
+
+    def _toggle_fullscreen(self, event=None) -> None:
+        """
+        Toggle fullscreen mode.
+        
+        Args:
+            event: The keyboard event that triggered this
+        """
+        self.is_fullscreen = not self.is_fullscreen
+        self.root.attributes("-fullscreen", self.is_fullscreen)
+        
+        # Force visualizer updates after fullscreen toggle
+        self.root.after(200, self._force_visualizer_updates)
+        
+        # Also explicitly update the tracking dropdown to ensure it remains visible
+        self.tracking_dropdown.config(width=7)
+        
+        return "break"
+    
+    def _end_fullscreen(self, event=None) -> None:
+        """
+        Exit fullscreen mode.
+        
+        Args:
+            event: The keyboard event that triggered this
+        """
+        if self.is_fullscreen:
+            self.is_fullscreen = False
+            self.root.attributes("-fullscreen", False)
+            
+            # Force visualizer updates after exiting fullscreen
+            self.root.after(200, self._force_visualizer_updates)
+        return "break"
+    
+    def _force_visualizer_updates(self) -> None:
+        """
+        Force visualizers to update after window state changes.
+        
+        This ensures proper layout after fullscreen transitions.
+        """
+        if hasattr(self.keyboard_viz, 'force_update'):
+            self.keyboard_viz.force_update()
+            
+        if hasattr(self.mouse_viz, 'force_update'):
+            self.mouse_viz.force_update()
 
 def run_collector_app() -> InputCollectorApp:
     """

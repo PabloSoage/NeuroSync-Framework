@@ -37,7 +37,11 @@ class MouseVisualizer:
         self.accent_color: str = "#007ACC"
         self.highlight_color: str = "#3E3E42"
         
+        # Store parent frame for resizing
+        self.parent_frame = parent_frame
+        
         self.frame: tk.Frame = tk.Frame(parent_frame, bg=self.dark_frame_bg)
+        self.frame.pack(fill=tk.BOTH, expand=True)
         
         # Use grid layout with fixed sizes for better stability
         self.frame.grid_columnconfigure(0, weight=1)
@@ -45,32 +49,26 @@ class MouseVisualizer:
         self.frame.grid_rowconfigure(1, weight=0)
         self.frame.grid_rowconfigure(2, weight=0)
         
-        # Fixed size canvas for drawing - INCREASE WIDTH to 340
-        self.canvas_width: int = 340  # Was 300, now wider to fit text
+        # Canvas dimensions will be set dynamically
+        self.canvas_width: int = 340  
         self.canvas_height: int = 300
         
-        # Create a fixed-size frame to contain the canvas
+        # Create a responsive frame to contain the canvas
         self.canvas_container: tk.Frame = tk.Frame(
             self.frame, 
-            width=self.canvas_width,
-            height=self.canvas_height,
             bg=self.dark_frame_bg
         )
         self.canvas_container.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
-        self.canvas_container.grid_propagate(False)
-        self.canvas_container.pack_propagate(False)
         
-        # Canvas for drawing with fixed size - update colors for dark theme
+        # Canvas for drawing with dynamic size
         self.canvas: tk.Canvas = tk.Canvas(
             self.canvas_container,
-            width=self.canvas_width,
-            height=self.canvas_height,
-            bg=self.dark_bg,  # Dark background
-            bd=0,            # No border for clean look
-            relief=tk.FLAT,  # Flat relief for modern appearance
-            highlightthickness=0  # Remove highlight border
+            bg=self.dark_bg,
+            bd=0,
+            relief=tk.FLAT,
+            highlightthickness=0
         )
-        self.canvas.place(relx=0.5, rely=0.5, anchor="center")
+        self.canvas.pack(fill=tk.BOTH, expand=True)
         
         # Pre-create commonly used display objects to avoid recreation
         self.joystick_handle: Optional[int] = None
@@ -78,30 +76,27 @@ class MouseVisualizer:
         self.wheel_indicator: Optional[int] = None
         self.coordinate_text: Optional[int] = None
         
-        # Create fixed-size text frame to prevent layout shifts - match the canvas width
-        text_frame: tk.Frame = tk.Frame(self.frame, height=30, width=self.canvas_width, bg=self.dark_frame_bg)
+        # Create text frame to prevent layout shifts
+        text_frame: tk.Frame = tk.Frame(self.frame, height=30, bg=self.dark_frame_bg)
         text_frame.grid(row=1, column=0, sticky="ew", padx=5)
         text_frame.grid_propagate(False)
-        text_frame.pack_propagate(False)
         
-        # Static text label for status - using label for better performance
+        # Static text label for status
         self.info_var: tk.StringVar = tk.StringVar(value="Mouse: Not moving")
         self.info_label: tk.Label = tk.Label(
             text_frame,
             textvariable=self.info_var,
             anchor="w",
             bg=self.dark_bg,
-            fg=self.text_color,  # Light text color for contrast
-            height=1,
-            width=48  # Increased width to match canvas width
+            fg=self.text_color,
+            height=1
         )
-        self.info_label.place(relx=0.5, rely=0.5, anchor="center")
+        self.info_label.pack(fill=tk.X, padx=5)
         
         # Create another fixed-size frame for button status
-        button_frame: tk.Frame = tk.Frame(self.frame, height=30, width=self.canvas_width, bg=self.dark_frame_bg)
+        button_frame: tk.Frame = tk.Frame(self.frame, height=30, bg=self.dark_frame_bg)
         button_frame.grid(row=2, column=0, sticky="ew", padx=5)
         button_frame.grid_propagate(False)
-        button_frame.pack_propagate(False)
         
         # Button status label
         self.button_var: tk.StringVar = tk.StringVar(value="Buttons: None")
@@ -110,11 +105,10 @@ class MouseVisualizer:
             textvariable=self.button_var,
             anchor="w",
             bg=self.dark_bg,
-            fg=self.text_color,  # Light text color
-            height=1,
-            width=48  # Increased width
+            fg=self.text_color,
+            height=1
         )
-        self.button_label.place(relx=0.5, rely=0.5, anchor="center")
+        self.button_label.pack(fill=tk.X, padx=5)
         
         # Mouse state
         self.mouse_x: float = 150
@@ -138,7 +132,7 @@ class MouseVisualizer:
         self.delta_angle: float = 0
         self.tracking_mode: str = "joystick"
         
-        # Canvas center coordinates
+        # Canvas center coordinates - will be updated on resize
         self.center_x: float = self.canvas_width / 2
         self.center_y: float = self.canvas_height / 2
         
@@ -149,11 +143,66 @@ class MouseVisualizer:
         self.last_status_update: float = 0
         self.status_update_interval: float = 0.1  # Update status text less frequently
         
+        # Bind resize events
+        self.canvas.bind("<Configure>", self._on_canvas_resize)
+        
         # Set up the background elements that rarely change
         self._setup_background()
         
         # Initial drawing
         self._draw()
+    
+    def _on_canvas_resize(self, event) -> None:
+        """
+        Handle canvas resize events.
+        
+        Args:
+            event: The resize event
+        """
+        # Always update on canvas resize events
+        if event.width > 10 and event.height > 10:  # Avoid invalid dimensions
+            self.canvas_width = event.width
+            self.canvas_height = event.height
+            
+            # Update center coordinates
+            self.center_x = self.canvas_width / 2
+            self.center_y = self.canvas_height / 2
+            
+            # Redraw the background and foreground
+            self._setup_background()
+            self._draw()
+    
+    def update_size(self) -> None:
+        """
+        Update canvas size based on container size.
+        
+        Called when the parent container is resized.
+        """
+        if self.parent_frame.winfo_width() > 20 and self.parent_frame.winfo_height() > 20:
+            # Get current frame dimensions
+            frame_width = self.parent_frame.winfo_width()
+            frame_height = self.parent_frame.winfo_height()
+            
+            # Update canvas dimensions to match available space
+            self.canvas_width = max(300, frame_width - 20)  # Leave some padding
+            self.canvas_height = max(250, frame_height - 70)  # Reserve space for info text
+            
+            # Update center coordinates
+            self.center_x = self.canvas_width / 2
+            self.center_y = self.canvas_height / 2
+            
+            # Force a full redraw
+            self._setup_background()
+            self._draw()
+            
+    def force_update(self) -> None:
+        """
+        Force update visualization size.
+        
+        Called after fullscreen transitions.
+        """
+        # Force an immediate size update
+        self.update_size()
     
     def _setup_background(self) -> None:
         """
@@ -165,16 +214,16 @@ class MouseVisualizer:
         # Clear canvas
         self.canvas.delete("all")
         
-        # Calculate joystick circle radius - REDUCED SIZE to fit better
-        radius = min(self.canvas_width, self.canvas_height) * 0.25  # Reduced from 0.3 to 0.25
+        # Calculate joystick circle radius - adaptive to canvas size
+        radius = min(self.canvas_width, self.canvas_height) * 0.25
         
         # Draw joystick area background - updated for dark theme
         self.canvas.create_oval(
             self.center_x - radius, self.center_y - radius,
             self.center_x + radius, self.center_y + radius,
-            fill="#1E1E1E",           # Darker inner circle
-            outline=self.accent_color, # Blue accent outline
-            width=1,                  # Thinner line for modern look
+            fill="#1E1E1E",
+            outline=self.accent_color,
+            width=1,
             tags=("background",)
         )
         
@@ -182,15 +231,15 @@ class MouseVisualizer:
         self.canvas.create_line(
             self.center_x - radius, self.center_y,
             self.center_x + radius, self.center_y,
-            fill="#555555",       # Subtle gray
-            dash=(4, 4),          # Dashed line
+            fill="#555555",
+            dash=(4, 4),
             tags=("background",)
         )
         self.canvas.create_line(
             self.center_x, self.center_y - radius,
             self.center_x, self.center_y + radius,
-            fill="#555555",       # Subtle gray
-            dash=(4, 4),          # Dashed line
+            fill="#555555",
+            dash=(4, 4),
             tags=("background",)
         )
         
@@ -198,66 +247,70 @@ class MouseVisualizer:
         self.canvas.create_oval(
             self.center_x - 5, self.center_y - 5,
             self.center_x + 5, self.center_y + 5,
-            fill="#3E3E42",       # Slightly lighter than background
-            outline="#555555",    # Gray outline
+            fill="#3E3E42",
+            outline="#555555",
             tags=("background",)
         )
+        
+        # Calculate font size based on canvas dimensions
+        font_size = max(9, min(11, int(self.canvas_width / 40)))
         
         # Draw labels for axes with new tag and corrected formatting
         # Use "axis_labels" tag instead of "background" to prevent style overrides
         self.canvas.create_text(
             self.center_x + radius + 15, self.center_y, 
             text="X+", 
-            fill="#FFFFFF",       # Bright white for visibility
+            fill="#FFFFFF",
             tags=("axis_labels",),
-            font=("Consolas", 11, "bold")  # Fixed font format, slightly bigger
+            font=("Consolas", font_size, "bold")
         )
         self.canvas.create_text(
             self.center_x - radius - 15, self.center_y, 
             text="X-", 
             fill="#FFFFFF",
             tags=("axis_labels",),
-            font=("Consolas", 11, "bold")
+            font=("Consolas", font_size, "bold")
         )
         self.canvas.create_text(
             self.center_x, self.center_y - radius - 15, 
             text="Y-", 
             fill="#FFFFFF",
             tags=("axis_labels",),
-            font=("Consolas", 11, "bold")
+            font=("Consolas", font_size, "bold")
         )
         self.canvas.create_text(
             self.center_x, self.center_y + radius + 15, 
             text="Y+", 
             fill="#FFFFFF",
             tags=("axis_labels",),
-            font=("Consolas", 11, "bold")
+            font=("Consolas", font_size, "bold")
         )
         
         # Create coordinate text item with updated position and color
         self.coordinate_text = self.canvas.create_text(
-            self.center_x, self.center_y + radius + 35,  # Moved down slightly
+            self.center_x, self.center_y + radius + 35,
             text="Rel: (0.00, 0.00)",
-            fill=self.text_color,     # Light text color
+            fill=self.text_color,
             tags=("dynamic",),
-            font=("Consolas", 9)      # Monospaced font for better readability
+            font=("Consolas", max(8, min(9, font_size - 1)))
         )
         
         # Create placeholders for dynamic elements
+        handle_size = max(8, min(10, int(radius/10)))
         self.joystick_handle = self.canvas.create_oval(
-            self.center_x - 10, self.center_y - 10,
-            self.center_x + 10, self.center_y + 10,
-            fill=self.accent_color,   # Blue accent color for handle
-            outline="#FFFFFF",        # White outline
-            width=1,                  # Thin outline
+            self.center_x - handle_size, self.center_y - handle_size,
+            self.center_x + handle_size, self.center_y + handle_size,
+            fill=self.accent_color,
+            outline="#FFFFFF",
+            width=1,
             tags=("dynamic",)
         )
         
         self.direction_line = self.canvas.create_line(
             self.center_x, self.center_y,
             self.center_x, self.center_y,
-            fill="#5FB878",          # Green for direction line
-            width=2,                 # Line thickness
+            fill="#5FB878",
+            width=2,
             arrow=tk.LAST,          
             tags=("dynamic",),
             state=tk.HIDDEN
@@ -267,9 +320,9 @@ class MouseVisualizer:
             self.center_x - 10, self.center_y - 15,
             self.center_x, self.center_y - 30,
             self.center_x + 10, self.center_y - 15,
-            fill="#5FB878",          # Green for scroll up
-            outline="#FFFFFF",       # White outline 
-            width=1,                 # Thin outline
+            fill="#5FB878",
+            outline="#FFFFFF",
+            width=1,
             tags=("dynamic",),
             state=tk.HIDDEN
         )

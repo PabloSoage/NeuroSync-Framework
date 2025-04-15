@@ -47,9 +47,12 @@ class KeyboardVisualizer:
         self.secondary_key_bg: str = "#5FB878"
         self.record_key_bg: str = "#AA3333"
         
-        # Create a fixed size frame to contain the keyboard
-        self.frame: tk.Frame = tk.Frame(parent_frame, width=400, height=200, bg=self.dark_frame_bg)
-        self.frame.grid_propagate(False)  # Prevent the frame from resizing
+        # Store parent frame for resizing
+        self.parent_frame = parent_frame
+        
+        # Create a responsive frame to contain the keyboard
+        self.frame: tk.Frame = tk.Frame(parent_frame, bg=self.dark_frame_bg)
+        self.frame.pack(fill=tk.BOTH, expand=True)
         
         self.key_buttons: Dict[str, tk.Button] = {}
         self.active_keys: Set[str] = set()
@@ -57,10 +60,71 @@ class KeyboardVisualizer:
         
         # Inner frame for the keyboard that will be centered
         self.keyboard_frame: tk.Frame = tk.Frame(self.frame, bg=self.dark_frame_bg)
-        self.keyboard_frame.place(relx=0.5, rely=0.5, anchor="center")
+        self.keyboard_frame.pack(expand=True, fill=tk.BOTH)
+        
+        # Track size
+        self.current_width = 0
+        self.current_height = 0
         
         # Create keyboard layout
         self._create_keyboard()
+        
+        # Update size initially
+        self.update_size()
+        
+        # Set up resize event handling
+        self.frame.bind("<Configure>", self.on_frame_resize)
+    
+    def on_frame_resize(self, event) -> None:
+        """
+        Handle frame resize events.
+        
+        Args:
+            event: The resize event
+        """
+        # Always update on resize events, especially fullscreen transitions
+        self.frame.after_cancel(getattr(self, '_resize_id', 'dummy'))
+        self._resize_id = self.frame.after(50, self.update_size)
+    
+    def update_size(self) -> None:
+        """
+        Update keyboard size based on parent frame size.
+        
+        Adjusts the keyboard layout to fit the current frame dimensions.
+        """
+        # Get current frame size
+        width = self.parent_frame.winfo_width()
+        height = self.parent_frame.winfo_height()
+        
+        # Only update if we have a valid size
+        if width > 100 and height > 100:
+            self.current_width = width
+            self.current_height = height
+            
+            # Scale font and key sizes based on available space
+            frame_width = max(350, min(width - 20, 550))
+            
+            # Calculate key sizes - more responsive to different sizes
+            key_width = max(3, int(frame_width / 90))  # Reduced divisor for smaller keys
+            key_height = max(1, int(height / 210))     # Add height calculation 
+            
+            # Adjust font size more dynamically based on available space
+            font_size = max(7, min(9, int(frame_width / 55)))  # Slightly smaller font
+            
+            # Update all keys
+            for key_name, button in self.key_buttons.items():
+                # Calculate width based on key type
+                if key_name in ["space", "key.space"]:
+                    button.config(width=key_width * 4)  # Spacebar wider
+                elif key_name in ["backspace", "enter"]:
+                    button.config(width=key_width * 2)  # These keys moderately wider
+                elif key_name in ["shift", "tab"]:
+                    button.config(width=int(key_width * 1.5))  # These keys slightly wider
+                else:
+                    button.config(width=key_width)  # Standard keys
+                
+                # Set consistent height for all keys
+                button.config(height=key_height, font=("Segoe UI", font_size))
     
     def set_tracked_keys(self, keys: List[str]) -> None:
         """
@@ -80,13 +144,17 @@ class KeyboardVisualizer:
         
         Builds the visual keyboard layout with buttons for each key.
         """
+        # Use a frame that centers the keyboard
+        center_frame = tk.Frame(self.keyboard_frame, bg=self.dark_frame_bg)
+        center_frame.pack(expand=True, fill=tk.BOTH)
+        
         for row_idx, row in enumerate(self.DEFAULT_KEYBOARD_LAYOUT):
-            row_frame = tk.Frame(self.keyboard_frame, bg=self.dark_frame_bg)
-            row_frame.pack(pady=2)
+            row_frame = tk.Frame(center_frame, bg=self.dark_frame_bg)
+            row_frame.pack(pady=1)
             
             for key_label in row:
-                # Create a button for each key with fixed width and height
-                width = 5 if key_label not in ["Space", "Backspace", "Enter", "Shift", "Tab"] else 8
+                # Create a button for each key with minimal initial width
+                width = 4 if key_label not in ["Space", "Backspace", "Enter", "Shift", "Tab"] else 6
                 
                 # Modern, flat look for keys
                 btn = tk.Button(
@@ -94,15 +162,15 @@ class KeyboardVisualizer:
                     text=key_label,
                     width=width,
                     height=1,
-                    relief=tk.FLAT,  # Flat relief for modern look
-                    bd=0,            # No border
-                    bg=self.key_bg,  # Dark key background
-                    fg=self.key_text, # Light text
-                    activebackground="#505054", # Slightly lighter when clicked
-                    activeforeground="#FFFFFF", # White text when active
-                    font=("Segoe UI", 8)  # More modern font
+                    relief=tk.FLAT,
+                    bd=0,
+                    bg=self.key_bg,
+                    fg=self.key_text,
+                    activebackground="#505054",
+                    activeforeground="#FFFFFF",
+                    font=("Segoe UI", 8)
                 )
-                btn.pack(side=tk.LEFT, padx=2)  # Added more padding between keys
+                btn.pack(side=tk.LEFT, padx=1, pady=0)  # Minimal padding
                 
                 # Store the button reference with lowercase key name
                 key_lower = key_label.lower()
@@ -240,3 +308,13 @@ class KeyboardVisualizer:
             tk.Frame: The frame containing the keyboard visualization
         """
         return self.frame
+    
+    def force_update(self) -> None:
+        """
+        Force a size update regardless of change detection.
+        
+        Used when transitioning between fullscreen and normal modes.
+        """
+        self.current_width = 0  # Reset size tracking to force update
+        self.current_height = 0
+        self.update_size()  # Update immediately
