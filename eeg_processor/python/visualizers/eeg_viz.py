@@ -54,6 +54,9 @@ class EEGVisualizer:
         self.win.resize(1000, 600)
         self.win.setWindowTitle('Real-time EEG Visualization')
         
+        # Set up close event handler
+        self.win.closeEvent = self.handle_close_event
+        
         # Create plots for each EEG channel
         self.plots = []
         self.curves = []
@@ -73,8 +76,8 @@ class EEGVisualizer:
             else:
                 plot.hideAxis('bottom')
             
-            # Add channel labels
-            ch_name = f"Channel {self.eeg_channels[i]}"
+            # Change from "Channel X" to "CHX" for more compact labels
+            ch_name = f"CH {self.eeg_channels[i]}"
             plot.setLabel('left', ch_name)
             
             # Add curve for the data
@@ -90,9 +93,25 @@ class EEGVisualizer:
         self.fft_plot.setLogMode(x=False, y=True)  # Log scale for power
         self.fft_curves = []
         
-        for i in range(min(self.num_channels, 4)):  # Limit to 4 channels for clarity
-            curve = self.fft_plot.plot(pen=pg.mkPen(color=(i * 50 % 255, 255 - i * 30 % 255, i * 20 % 255), width=2))
+        # Determinar número de columnas para la leyenda en función del número de canales
+        legend_columns = 1
+        if self.num_channels > 8:
+            legend_columns = 2
+        if self.num_channels > 16:
+            legend_columns = 3
+            
+        # Create legend with multiple columns for better space management
+        self.fft_legend = self.fft_plot.addLegend(offset=(-10, 10), colCount=legend_columns)
+        
+        # Aumentamos el número máximo de canales en el espectro (hasta 16 en lugar de 4)
+        max_fft_channels = min(self.num_channels, 16)  # Mostrar hasta 16 canales en lugar de 4
+        
+        for i in range(max_fft_channels):  # Ahora mostramos más canales
+            color = pg.mkPen(color=(i * 50 % 255, 255 - i * 30 % 255, i * 20 % 255), width=2)
+            curve = self.fft_plot.plot(pen=color)
             self.fft_curves.append(curve)
+            # Add entry to legend with compact channel name (más compacto para ocupar menos espacio)
+            self.fft_legend.addItem(curve, f"CH{self.eeg_channels[i]}")
         
         # Add band power indicator
         self.band_plot = self.win.addPlot(row=self.num_channels//2, col=1, rowspan=self.num_channels//2)
@@ -118,9 +137,18 @@ class EEGVisualizer:
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.update_plots)
         
+    def handle_close_event(self, event):
+        """Handle window close event to signal the app that visualization was closed."""
+        self.stop()  # Stop the timer
+        # Emit signal or notify that window was closed
+        logging.info("EEG visualization window closed by user")
+        # Accept the close event
+        event.accept()
+        
     def start(self):
         """Start updating the visualizer."""
         self.timer.start(self.update_speed_ms)
+        self.win.show()  # Make sure window is visible
         logging.info("EEG visualizer started")
         
     def stop(self):
@@ -166,7 +194,7 @@ class EEGVisualizer:
                     except Exception as e:
                         logging.error(f"Error plotting time series for channel {channel}: {e}")
             
-            # Update FFT plots (for first few channels)
+            # Update FFT plots (for channels)
             nfft = DataFilter.get_nearest_power_of_two(self.sampling_rate)
             for i, channel in enumerate(self.eeg_channels):
                 if i < len(self.fft_curves) and channel < data_to_plot.shape[0]:
@@ -279,3 +307,15 @@ class EEGVisualizer:
             enabled: Whether to enable detrending
         """
         self.apply_detrend = enabled
+
+    def set_frequency_range(self, min_freq: float, max_freq: float):
+        """Set the frequency range for the FFT plot."""
+        self.fft_plot.setXRange(min_freq, max_freq)
+        
+    def set_log_mode(self, use_log: bool):
+        """Set whether to use logarithmic scale for power spectrum."""
+        self.fft_plot.setLogMode(x=False, y=use_log)
+
+    def is_visible(self):
+        """Check if the visualization window is visible."""
+        return self.win.isVisible()

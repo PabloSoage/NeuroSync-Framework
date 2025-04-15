@@ -8,7 +8,7 @@ from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QComboBox, QPushButton, QLabel, QGroupBox, QCheckBox,
                              QSpinBox, QDoubleSpinBox, QFileDialog, QTabWidget,
-                             QRadioButton, QMessageBox, QGridLayout)
+                             QRadioButton, QMessageBox, QGridLayout, QScrollArea)
 from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds
 from brainflow.data_filter import (DataFilter, FilterTypes, AggOperations, WindowOperations,
                                    WaveletTypes)
@@ -110,6 +110,17 @@ class EEGProcessorApp(QMainWindow):
         """Set up the connection tab."""
         layout = QVBoxLayout(tab)
         
+        # Visualization control - Agregado al principio para mayor visibilidad
+        visualization_group = QGroupBox("Visualization Control")
+        visualization_layout = QVBoxLayout(visualization_group)
+        
+        self.show_viz_btn = QPushButton("Show Visualization Window")
+        self.show_viz_btn.clicked.connect(self.show_visualization)
+        self.show_viz_btn.setEnabled(False)
+        # Destacar con estilo visual
+        self.show_viz_btn.setStyleSheet("font-weight: bold; padding: 6px;")
+        visualization_layout.addWidget(self.show_viz_btn)
+        
         # Board selection
         board_group = QGroupBox("Board Selection")
         board_layout = QVBoxLayout(board_group)
@@ -210,7 +221,8 @@ class EEGProcessorApp(QMainWindow):
         self.board_info_label = QLabel("No board connected")
         info_layout.addWidget(self.board_info_label)
         
-        # Add groups to tab
+        # Add groups to tab - Añadimos el grupo de visualización antes de los otros para que esté bien visible
+        layout.addWidget(visualization_group)
         layout.addWidget(board_group)
         layout.addWidget(info_group)
         layout.addStretch()
@@ -1214,6 +1226,9 @@ class EEGProcessorApp(QMainWindow):
                 self.add_marker_btn.setEnabled(True)
                 self.apply_filters_btn.setEnabled(True)
                 self.calculate_metrics_btn.setEnabled(True)
+                # Update visualization button state
+                self.show_viz_btn.setEnabled(False)
+                self.show_viz_btn.setStyleSheet("font-weight: bold; padding: 6px;")
                 
                 # Enable advanced processing buttons
                 self.compute_ica_btn.setEnabled(True)
@@ -1391,6 +1406,28 @@ class EEGProcessorApp(QMainWindow):
         if self.is_recording:
             duration = (int(round(time.time() * 1000)) - self.start_time) / 1000  # Duration in seconds
             self.recording_status_label.setText(f"Recording... ({duration:.1f}s)")
+        
+        # Check if visualization window was closed and update button state
+        if self.is_streaming and self.visualizer:
+            if not self.visualizer.is_visible():
+                self.show_viz_btn.setEnabled(True)
+                # Make the button more noticeable when the window is closed
+                self.show_viz_btn.setStyleSheet("font-weight: bold; background-color: #4CAF50; color: white; padding: 6px;")
+            else:
+                self.show_viz_btn.setEnabled(False)
+                self.show_viz_btn.setStyleSheet("font-weight: bold; padding: 6px;")
+    
+    def show_visualization(self):
+        """Show the EEG visualization if it was closed."""
+        if self.is_streaming and self.collector and self.processor:
+            if not self.visualizer or not self.visualizer.is_visible():
+                # Create new visualizer or restart if it was closed
+                self.visualizer = EEGVisualizer(self.collector, self.processor)
+                self.apply_filters()  # Apply filter settings
+                self.visualizer.start()
+                self.show_viz_btn.setEnabled(False)
+                self.show_viz_btn.setStyleSheet("font-weight: bold; padding: 6px;")
+                self.statusBar().showMessage("Visualization window reopened")
     
     def closeEvent(self, event):
         """Handle application close event."""

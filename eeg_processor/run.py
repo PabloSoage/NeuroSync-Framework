@@ -20,13 +20,12 @@ from eeg_processor.python.eeg_processor_app import EEGProcessorApp
 
 def main():
     """Run the EEG Processor application."""
-    # Configure logging
+    # Configure logging - only to console by default, file logging controlled by UI
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
-            logging.FileHandler("eeg_processor.log"),
-            logging.StreamHandler()
+            logging.StreamHandler()  # Only console logging by default
         ]
     )
     
