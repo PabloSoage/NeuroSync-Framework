@@ -237,7 +237,7 @@ def main():
         wavelet_coeffs, lengths = DataFilter.perform_wavelet_transform(data[channel], WaveletTypes.DB5, 3)
         app_coefs = wavelet_coeffs[0: lengths[0]]
         detailed_coeffs_first_block = wavelet_coeffs[lengths[0]: lengths[1]]
-        # you can do smth with wavelet coeffs here, for example denoising works via thresholds 
+        # you can do smth with wavelet coeffs here, for example denoising works via thresholds
         # for wavelets coefficients
         restored_data = DataFilter.perform_inverse_wavelet_transform((wavelet_coeffs, lengths), data[channel].shape[0],
                                                                      WaveletTypes.DB5, 3)

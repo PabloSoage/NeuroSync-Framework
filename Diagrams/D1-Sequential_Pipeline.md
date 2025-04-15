@@ -7,19 +7,19 @@
         +stopAcquisition(): void
         +getData(): any
     }
-    
+
     class IInputCollector {
         <<interface>>
         +startCapture(): void
         +stopCapture(): void
         +getEvents(): any[]
     }
-    
+
     class IEmulator {
         <<interface>>
         +simulateAction(action: Action): void
     }
-    
+
     %% Data Types
     class EEGData {
         +timestamp: number
@@ -27,7 +27,7 @@
         +samplingRate: number
         +metadata: Map<string, any>
     }
-    
+
     class InputData {
         +timestamp: number
         +eventType: string
@@ -36,25 +36,25 @@
         +mouseY: number|null
         +buttonPressed: string|null
     }
-    
+
     class SynchronizedData {
         +eegData: EEGData[]
         +inputEvents: InputData[]
         +synchronizationMarkers: Map<number, number>
     }
-    
+
     class ProcessedData {
         +filteredSignals: number[][]
         +epochs: number[][][]
         +artifactMask: boolean[]
     }
-    
+
     class FeatureVector {
         +features: number[][]
         +labels: string[]|number[]
         +metadata: Map<string, any>
     }
-    
+
     class TrainedModel {
         +modelType: string
         +architecture: string
@@ -62,7 +62,7 @@
         +hyperparameters: Map<string, any>
         +performanceMetrics: Map<string, number>
     }
-    
+
     class Action {
         +actionType: string
         +keyCode: number|null
@@ -70,7 +70,7 @@
         +buttonAction: string|null
         +confidence: number
     }
-    
+
     %% Main Modules
     class EEGDataCollector {
         -device: string
@@ -89,7 +89,7 @@
         +getAvailableDevices(): string[]
         +testDeviceConnection(): boolean
     }
-    
+
     class InputDataCollector {
         -isCapturing: boolean
         -keyboardEvents: InputData[]
@@ -104,7 +104,7 @@
         +getEventsSince(timestamp: number): InputData[]
         +clearEvents(): void
     }
-    
+
     class DataSynchronizer {
         -syncMethod: string
         -windowSize: number
@@ -116,7 +116,7 @@
         +verifySyncAccuracy(data: SynchronizedData): number
         +detectSynchronizationIssues(data: SynchronizedData): Map<string, any>
     }
-    
+
     class DataLogger {
         -storageFormat: string
         -compressionEnabled: boolean
@@ -131,7 +131,7 @@
         +importFromFormat(path: string, format: string): SynchronizedData
         +annotateData(data: SynchronizedData, annotations: Map<string, any>): void
     }
-    
+
     class DataPreprocessor {
         -filterTypes: string[]
         -artifactRejectionMethod: string
@@ -146,7 +146,7 @@
         +calculateSignalQuality(data: EEGData): Map<string, number>
         +visualizeData(data: ProcessedData): any
     }
-    
+
     class ModelTrainer {
         -modelType: string
         -architecture: Map<string, any>
@@ -163,7 +163,7 @@
         +loadModel(path: string): TrainedModel
         +visualizeTraining(metrics: Map<string, any[]>): any
     }
-    
+
     class InferenceEngine {
         -model: TrainedModel
         -inferenceDevice: string
@@ -178,7 +178,7 @@
         +benchmark(): Map<string, number>
         +getLatestPredictions(count: number): Action[]
     }
-    
+
     class VirtualDeviceEmulator {
         -supportedDevices: string[]
         -currentDevice: string
@@ -190,25 +190,25 @@
         +testEmulation(): boolean
         +getEmulationStatus(): string
     }
-    
+
     %% Relationships
     IDataSource <|.. EEGDataCollector
     IInputCollector <|.. InputDataCollector
     IEmulator <|.. VirtualDeviceEmulator
-    
+
     EEGDataCollector "1" --> "1" DataSynchronizer : "provides EEGData"
     InputDataCollector "1" --> "1" DataSynchronizer : "provides InputData"
-    
+
     DataSynchronizer "1" --> "1" DataLogger : "stores SynchronizedData"
-    
+
     DataLogger "1" --> "1" DataPreprocessor : "provides raw data"
-    
+
     DataPreprocessor "1" --> "1" ModelTrainer : "generates FeatureVector"
-    
+
     ModelTrainer "1" --> "1" InferenceEngine : "delivers TrainedModel"
-    
+
     InferenceEngine "1" --> "1" VirtualDeviceEmulator : "generates Action"
-    
+
     EEGDataCollector -- EEGData : "produces"
     InputDataCollector -- InputData : "produces"
     DataSynchronizer -- SynchronizedData : "produces"

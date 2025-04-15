@@ -50,7 +50,7 @@ class CollectorInterface(ABC):
         pass
 
     @abstractmethod
-    def save_data(self, filename: str, data_type: str = 'raw') -> None:
+    def save_data(self, filename: str, data_type: str = "raw") -> None:
         """
         Save collected data to a file.
 

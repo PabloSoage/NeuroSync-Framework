@@ -23,12 +23,10 @@ def main():
     # Configure logging - only to console by default, file logging controlled by UI
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.StreamHandler()  # Only console logging by default
-        ]
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[logging.StreamHandler()],  # Only console logging by default
     )
-    
+
     # Create and start the application
     app = QApplication(sys.argv)
     ex = EEGProcessorApp()
