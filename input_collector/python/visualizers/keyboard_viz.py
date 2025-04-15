@@ -53,6 +53,9 @@ class KeyboardVisualizer(QWidget):
         self.key_mappings = {}
         self._create_key_mappings()
         
+        # Almacenar información de posición de las teclas para interacción
+        self.key_rects = {}
+        
         # Set size policy and minimum size
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setMinimumSize(400, 200)
@@ -116,6 +119,22 @@ class KeyboardVisualizer(QWidget):
         # Call the base class update method to request a repaint
         super().update()
     
+    def get_key_at_position(self, x, y) -> str:
+        """
+        Get the key at the specified position.
+        
+        Args:
+            x: X coordinate
+            y: Y coordinate
+            
+        Returns:
+            The key name at the position, or None if no key is at that position
+        """
+        for key, rect in self.key_rects.items():
+            if rect.contains(x, y):
+                return key
+        return None
+    
     def paintEvent(self, event) -> None:
         """
         Paint the keyboard layout with appropriate highlighting.
@@ -133,57 +152,82 @@ class KeyboardVisualizer(QWidget):
         width = self.width()
         height = self.height()
         
+        # Ajustar el tamaño para evitar que se corte
+        width_padding = width * 0.02
+        height_padding = height * 0.05
+        effective_width = width - (2 * width_padding)
+        effective_height = height - (2 * height_padding)
+        
         # Scale font and key sizes based on available space
-        font_size = max(7, min(10, int(width / 55)))
+        font_size = max(7, min(10, int(effective_width / 60)))
         font = QFont("Segoe UI", font_size)
         painter.setFont(font)
         
-        # Calculate key dimensions
+        # Determinar dimensiones de las teclas
         num_rows = len(self.DEFAULT_KEYBOARD_LAYOUT)
         max_keys_in_row = max(len(row) for row in self.DEFAULT_KEYBOARD_LAYOUT)
         
-        key_width = max(20, width / (max_keys_in_row + 2))
-        key_height = max(10, height / (num_rows + 1))
+        # Calcular el ancho y alto base de las teclas
+        base_key_width = effective_width / (max_keys_in_row + 2)
+        base_key_height = effective_height / (num_rows + 0.5)
         
-        # Draw keys
-        y_offset = key_height / 2
+        # Limpiar el diccionario de rectángulos de teclas
+        self.key_rects = {}
+        
+        # Dibujar el teclado, centrado en el widget
+        y_offset = height_padding
+        
         for row_idx, row in enumerate(self.DEFAULT_KEYBOARD_LAYOUT):
-            # Center the row horizontally
-            row_width = key_width * (len(row) + (len(row) - 1) * 0.2)
-            x_offset = (width - row_width) / 2
+            # Calcular el ancho total de esta fila
+            total_row_width = sum([
+                base_key_width * (4 if key == "Space" else
+                                 1.8 if key in ["Backspace", "Enter"] else
+                                 1.5 if key in ["Shift", "Tab"] else 1)
+                for key in row
+            ])
+            
+            # Añadir espaciado entre teclas
+            total_row_width += base_key_width * 0.2 * (len(row) - 1)
+            
+            # Centrar la fila
+            x_offset = (width - total_row_width) / 2
             
             for key_label in row:
-                # Define key rectangle
-                key_width_actual = key_width
+                # Determinar ancho de esta tecla
+                key_width_actual = base_key_width
                 if key_label == "Space":
-                    key_width_actual = key_width * 4
+                    key_width_actual = base_key_width * 4
                 elif key_label in ["Backspace", "Enter"]:
-                    key_width_actual = key_width * 1.8
+                    key_width_actual = base_key_width * 1.8
                 elif key_label in ["Shift", "Tab"]:
-                    key_width_actual = key_width * 1.5
+                    key_width_actual = base_key_width * 1.5
                 
+                # Definir rectángulo de la tecla
                 key_rect = QRect(
                     int(x_offset),
                     int(y_offset),
                     int(key_width_actual),
-                    int(key_height)
+                    int(base_key_height)
                 )
                 
-                # Determine key color based on state
+                # Guardar el rectángulo para detección de clics
+                self.key_rects[key_label] = key_rect
+                
+                # Determinar color de la tecla
                 key_lower = key_label.lower()
                 
-                # Default key background
+                # Color predeterminado
                 key_color = self.key_bg
                 
-                # Special handling for spacebar
+                # Manejo especial para la barra espaciadora
                 if key_lower == "space":
                     key_color = QColor("#464649")
                 
-                # Special handling for F9/record key
+                # Manejo especial para F9/tecla de grabación
                 if key_lower == "f9":
                     key_color = self.record_key_bg
                 
-                # Check if the key is tracked
+                # Verificar si la tecla está siendo tracked
                 for tracked_key in self.tracked_keys:
                     if tracked_key.lower() == key_lower or (
                         tracked_key == "key.space" and key_lower == "space"
@@ -195,37 +239,37 @@ class KeyboardVisualizer(QWidget):
                         key_color = self.tracked_key_bg
                         break
                 
-                # Check if the key is active
+                # Verificar si la tecla está activa
                 is_active = False
                 for active_key in self.active_keys:
                     active_key_lower = active_key.lower()
                     
-                    # Handle the spacebar
+                    # Manejar la barra espaciadora
                     if (active_key_lower in ["key.space", "space", " "] and key_lower == "space"):
                         key_color = self.active_key_bg
                         is_active = True
                         break
-                    # Handle the shift key
+                    # Manejar la tecla shift
                     elif (active_key_lower in ["key.shift", "key.shift_l", "key.shift_r"] and key_lower == "shift"):
                         key_color = self.active_key_bg
                         is_active = True
                         break
-                    # Handle the media play/pause key (F9)
+                    # Manejar la tecla de media play/pause (F9)
                     elif (active_key_lower == "key.media_play_pause" and key_lower == "f9"):
-                        key_color = QColor("#FF5555")  # Brighter red for active state
+                        key_color = QColor("#FF5555")  # Rojo más brillante para estado activo
                         is_active = True
                         break
-                    # Handle regular keys
+                    # Manejar teclas normales
                     elif active_key_lower == key_lower:
                         is_tracked = key_lower in self.tracked_keys
                         key_color = self.active_key_bg if is_tracked else self.secondary_key_bg
                         is_active = True
                         break
                 
-                # Draw the key
+                # Dibujar la tecla
                 pen = QPen(Qt.NoPen)
                 if is_active:
-                    # Use a sunken effect for active keys
+                    # Usar efecto hundido para teclas activas
                     offset = 1
                     shadow_rect = key_rect.adjusted(offset, offset, 0, 0)
                     painter.fillRect(shadow_rect, QColor(0, 0, 0, 70))
@@ -234,26 +278,30 @@ class KeyboardVisualizer(QWidget):
                 painter.setBrush(QBrush(key_color))
                 painter.drawRect(key_rect)
                 
-                # Draw key text
+                # Dibujar texto de la tecla
                 painter.setPen(QPen(self.key_text))
                 
-                # Special handling for F9 key
+                # Manejo especial para la tecla F9
                 if key_lower == "f9":
-                    # Draw the F9 text
+                    # Dibujar texto F9 con indicación de REC
                     painter.drawText(key_rect, Qt.AlignCenter, "F9\n(REC)")
                 else:
-                    # Draw regular key text
+                    # Dibujar texto normal
                     painter.drawText(key_rect, Qt.AlignCenter, key_label)
                 
-                # Move to next key
-                x_offset += key_width_actual * 1.2
+                # Moverse a la siguiente posición
+                x_offset += key_width_actual + (base_key_width * 0.2)
             
-            # Move to next row
-            y_offset += key_height * 1.2
+            # Moverse a la siguiente fila
+            y_offset += base_key_height * 1.1
     
     def sizeHint(self) -> QSize:
         """Suggested size for the widget"""
         return QSize(500, 300)
+    
+    def minimumSizeHint(self) -> QSize:
+        """Minimum suggested size for the widget"""
+        return QSize(400, 220)
     
     def force_update(self) -> None:
         """Force a redraw of the keyboard"""

@@ -58,6 +58,9 @@ class InputCollectorApp(QMainWindow):
         self.log_file = None
         self.is_fullscreen = False
         
+        # Añadir variable para el modo de edición de teclas
+        self.edit_keys_mode = False
+        
         # Setup UI
         self.setWindowTitle("Input Collector")
         self.setGeometry(100, 100, 800, 700)
@@ -86,7 +89,6 @@ class InputCollectorApp(QMainWindow):
             "Key.media_play_pause"
         ]
         self.collector.set_supported_keys(self.tracked_keys)
-        self._update_key_list()
         
         # Set the tracked keys in the keyboard visualizer for highlighting
         self.keyboard_viz.set_tracked_keys(self.tracked_keys)
@@ -229,23 +231,13 @@ class InputCollectorApp(QMainWindow):
         control_panel.addLayout(recording_frame)
         control_panel.addStretch(1)
         
-        # Key tracking controls
-        key_tracking_frame = QHBoxLayout()
-        key_tracking_frame.addWidget(QLabel("Key:"))
+        # Reemplazar la sección de entrada de teclas por un botón de edición
+        self.edit_keys_button = QPushButton("Edit Keys")
+        self.edit_keys_button.clicked.connect(self._toggle_edit_mode)
+        self.edit_keys_button.setCheckable(True)
+        self.edit_keys_button.setStyleSheet(f"background-color: {self.accent_color}; color: white;")
+        control_panel.addWidget(self.edit_keys_button)
         
-        self.key_entry = QLineEdit()
-        self.key_entry.setMaximumWidth(100)
-        key_tracking_frame.addWidget(self.key_entry)
-        
-        add_key_button = QPushButton("Add")
-        add_key_button.clicked.connect(self._add_key)
-        key_tracking_frame.addWidget(add_key_button)
-        
-        remove_key_button = QPushButton("Remove")
-        remove_key_button.clicked.connect(self._remove_key)
-        key_tracking_frame.addWidget(remove_key_button)
-        
-        control_panel.addLayout(key_tracking_frame)
         control_panel.addStretch(1)
         
         # Mouse tracking mode controls
@@ -268,13 +260,15 @@ class InputCollectorApp(QMainWindow):
         
         main_layout.addLayout(control_panel)
         
-        # Visualization area
+        # Visualization area - Aumentar el espacio relativo
         viz_layout = QHBoxLayout()
         
         # Keyboard visualization
         keyboard_group = QGroupBox("Keyboard Input")
         keyboard_layout = QVBoxLayout(keyboard_group)
         self.keyboard_viz = KeyboardVisualizer()
+        # Conectar señales para la edición de teclas
+        self.keyboard_viz.mousePressEvent = self._handle_keyboard_viz_click
         keyboard_layout.addWidget(self.keyboard_viz)
         viz_layout.addWidget(keyboard_group)
         
@@ -285,7 +279,8 @@ class InputCollectorApp(QMainWindow):
         mouse_layout.addWidget(self.mouse_viz)
         viz_layout.addWidget(mouse_group)
         
-        main_layout.addLayout(viz_layout, 1)
+        # Dar más peso vertical a la visualización
+        main_layout.addLayout(viz_layout, 3)  # Aumentar el factor de estiramiento
         
         # Active keys display
         active_keys_group = QGroupBox("Active Keys")
@@ -295,20 +290,14 @@ class InputCollectorApp(QMainWindow):
         active_keys_layout.addWidget(self.active_keys_label)
         main_layout.addWidget(active_keys_group)
         
-        # Tracked keys list
-        tracked_keys_group = QGroupBox("Tracked Keys")
-        tracked_keys_layout = QVBoxLayout(tracked_keys_group)
-        self.key_listbox = QListWidget()
-        self.key_listbox.setMaximumHeight(100)
-        tracked_keys_layout.addWidget(self.key_listbox)
-        main_layout.addWidget(tracked_keys_group)
+        # Eliminar la sección "Tracked Keys" que ya no es necesaria
         
         # Status area
         status_group = QGroupBox("Status")
         status_layout = QVBoxLayout(status_group)
         self.status_text = QTextEdit()
         self.status_text.setReadOnly(True)
-        self.status_text.setMaximumHeight(150)
+        self.status_text.setMaximumHeight(100)  # Reducir altura para dar más espacio a las visualizaciones
         status_layout.addWidget(self.status_text)
         main_layout.addWidget(status_group)
         
@@ -370,7 +359,70 @@ class InputCollectorApp(QMainWindow):
         settings_layout.addLayout(settings_row2)
         
         main_layout.addWidget(settings_group)
-    
+
+    def _toggle_edit_mode(self) -> None:
+        """Toggle key editing mode."""
+        self.edit_keys_mode = not self.edit_keys_mode
+        
+        if self.edit_keys_mode:
+            self.edit_keys_button.setText("Finish Editing")
+            self.edit_keys_button.setStyleSheet("background-color: #5FB878; color: white;")
+            self._log_status("Click on keys to add/remove them from tracking", self.success_color)
+            # Cambiar el cursor para indicar modo de edición
+            self.keyboard_viz.setCursor(Qt.PointingHandCursor)
+        else:
+            self.edit_keys_button.setText("Edit Keys")
+            self.edit_keys_button.setStyleSheet(f"background-color: {self.accent_color}; color: white;")
+            self._log_status("Key editing finished", self.accent_color)
+            # Restaurar cursor normal
+            self.keyboard_viz.setCursor(Qt.ArrowCursor)
+
+    def _handle_keyboard_viz_click(self, event) -> None:
+        """Handle clicks on the keyboard visualizer."""
+        # Si no estamos en modo edición, usar el comportamiento predeterminado
+        if not self.edit_keys_mode:
+            QWidget.mousePressEvent(self.keyboard_viz, event)
+            return
+            
+        # Obtener la tecla en la posición del clic
+        key = self.keyboard_viz.get_key_at_position(event.x(), event.y())
+        
+        if key:
+            key_lower = key.lower()
+            
+            # Manejar casos especiales
+            if key_lower == "space":
+                key = "Key.space"
+            elif key_lower == "shift":
+                key = "Key.shift"
+            elif key_lower == "f9":
+                key = "Key.media_play_pause"
+            
+            # Verificar si la tecla está en la lista de tracked_keys (ignorar mayúsculas/minúsculas)
+            key_in_tracked = any(tracked.lower() == key.lower() for tracked in self.tracked_keys)
+            
+            # Alternar la tecla en la lista de tracked_keys
+            if key_in_tracked:
+                # No permitir eliminar F9/media_play_pause
+                if key.lower() == "key.media_play_pause".lower():
+                    self._log_status("Cannot remove F9/media_play_pause key", self.warning_color)
+                    return
+                
+                # Eliminar la tecla (necesitamos encontrar la versión exacta en la lista)
+                for tracked in self.tracked_keys.copy():
+                    if tracked.lower() == key.lower():
+                        self.tracked_keys.remove(tracked)
+                        break
+                self._log_status(f"Removed key: {key}")
+            else:
+                # Añadir la tecla
+                self.tracked_keys.append(key)
+                self._log_status(f"Added key: {key}")
+            
+            # Actualizar la lista de teclas y la visualización
+            self.collector.set_supported_keys(self.tracked_keys)
+            self.keyboard_viz.set_tracked_keys(self.tracked_keys)
+
     def _setup_shortcuts(self) -> None:
         """Set up keyboard shortcuts for the application."""
         # F9 key for toggling recording
@@ -441,34 +493,6 @@ class InputCollectorApp(QMainWindow):
                 self.log_file.close()
                 self.log_file = None
                 self._log_status("Logging to file stopped")
-    
-    def _add_key(self) -> None:
-        """Add a key to the tracked keys list."""
-        key = self.key_entry.text().strip()
-        if key and key not in self.tracked_keys:
-            self.tracked_keys.append(key)
-            self.collector.set_supported_keys(self.tracked_keys)
-            self._update_key_list()
-            self.key_entry.clear()
-            self._log_status(f"Added key: {key}")
-            self.keyboard_viz.set_tracked_keys(self.tracked_keys)
-    
-    def _remove_key(self) -> None:
-        """Remove a key from the tracked keys list."""
-        selected_items = self.key_listbox.selectedItems()
-        if selected_items:
-            key = selected_items[0].text()
-            self.tracked_keys.remove(key)
-            self.collector.set_supported_keys(self.tracked_keys)
-            self._update_key_list()
-            self._log_status(f"Removed key: {key}")
-            self.keyboard_viz.set_tracked_keys(self.tracked_keys)
-    
-    def _update_key_list(self) -> None:
-        """Update the key list display."""
-        self.key_listbox.clear()
-        for key in self.tracked_keys:
-            self.key_listbox.addItem(key)
     
     def _update_tracking_modes(self) -> None:
         """Update available tracking modes based on Direction Only checkbox."""
