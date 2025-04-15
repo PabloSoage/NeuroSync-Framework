@@ -2,12 +2,19 @@
 Input collector application module.
 
 This module provides the main application for collecting, visualizing, and
-logging keyboard and mouse inputs in real-time with a graphical user interface.
+logging keyboard and mouse inputs in real-time with a graphical user interface using PyQt5.
 """
+import sys
 import json
 import time
-import tkinter as tk
-from tkinter import ttk, scrolledtext
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
+    QPushButton, QLabel, QLineEdit, QTextEdit, QCheckBox, QComboBox,
+    QFrame, QSplitter, QGroupBox, QListWidget, QSlider, QSpacerItem,
+    QSizePolicy, QAction  # Added QAction here instead
+)
+from PyQt5.QtCore import Qt, QTimer, QSize, pyqtSignal, pyqtSlot
+from PyQt5.QtGui import QColor, QPalette, QFont, QTextCursor  # Removed QAction from here
 from typing import List, Dict, Optional, Any
 
 from .collectors import KeyboardMouseCollector
@@ -15,7 +22,7 @@ from .interfaces import InputData
 from .visualizers import KeyboardVisualizer, MouseVisualizer
 
 
-class InputCollectorApp:
+class InputCollectorApp(QMainWindow):
     """
     Main application for input collection and visualization.
     
@@ -24,86 +31,55 @@ class InputCollectorApp:
     input collector and visualizers into a cohesive application.
     """
     
-    def __init__(self, root: Optional[tk.Tk] = None) -> None:
+    # Signal for event handling between threads
+    event_received = pyqtSignal(object)
+    
+    def __init__(self) -> None:
         """
         Initialize the application.
         
         Creates the application window, sets up the UI components, and initializes
         the input collector and visualizers.
-        
-        Args:
-            root: Optional root tkinter window. If not provided, a new one is created.
         """
+        super().__init__()
+        
         # Define app theme colors
-        self.dark_bg: str = "#2D2D30"
-        self.dark_frame_bg: str = "#252526"
-        self.text_color: str = "#E0E0E0"
-        self.accent_color: str = "#007ACC"
-        self.success_color: str = "#5FB878"
-        self.warning_color: str = "#FFAA33"
-        self.error_color: str = "#FF5555"
+        self.dark_bg = "#2D2D30"
+        self.dark_frame_bg = "#252526"
+        self.text_color = "#E0E0E0"
+        self.accent_color = "#007ACC"
+        self.success_color = "#5FB878"
+        self.warning_color = "#FFAA33"
+        self.error_color = "#FF5555"
         
-        # Create root window if not provided
-        if root is None:
-            self.root: tk.Tk = tk.Tk()
-            self.root.title("Input Collector")
-            self.root.geometry("800x700")  # Initial size
-            self.root.minsize(750, 650)    # Set minimum size to prevent elements from being too squished
-            self.root.configure(bg=self.dark_frame_bg)  # Set window background color
-            
-            # Configure global ttk style for dark theme
-            self.style: ttk.Style = ttk.Style(self.root)
-            self._configure_styles()
-            
-            self.owns_root: bool = True
-        else:
-            self.root = root
-            self.owns_root = False
-        
-        # Create collector
-        self.collector: KeyboardMouseCollector = KeyboardMouseCollector()
-        
-        # Enable verbose logging if needed
-        # self.collector.verbose = True  # Uncomment for detailed logging
-        
-        # Control whether to log F3/recording control events to the UI and file logs
-        self.log_control_events: bool = False
-        
-        # Application state
-        self.is_recording: bool = False
-        self.log_to_file: bool = False
-        self.log_file: Optional[Any] = None
-        
-        # Track fullscreen state
+        # App state
+        self.is_recording = False
+        self.log_to_file = False
+        self.log_file = None
         self.is_fullscreen = False
         
-        # Bind F11 for fullscreen toggle
-        self.root.bind("<F11>", self._toggle_fullscreen)
-        self.root.bind("<Escape>", self._end_fullscreen)
+        # Setup UI
+        self.setWindowTitle("Input Collector")
+        self.setGeometry(100, 100, 800, 700)
+        self.setMinimumSize(750, 650)
         
-        # Resize handling
-        self.last_resize_time = 0
+        # Set application style
+        self._set_dark_theme()
         
-        # UI components
-        self.record_button: Optional[tk.Button] = None
-        self.status_label: Optional[ttk.Label] = None
-        self.log_checkbox: Optional[ttk.Checkbutton] = None
-        self.log_var: Optional[tk.BooleanVar] = None
-        self.key_entry: Optional[tk.Entry] = None
-        self.key_listbox: Optional[tk.Listbox] = None
-        self.status_text: Optional[scrolledtext.ScrolledText] = None
-        self.active_keys_label: Optional[ttk.Label] = None
-        self.keyboard_viz: Optional[KeyboardVisualizer] = None
-        self.mouse_viz: Optional[MouseVisualizer] = None
-        
-        # Create UI
+        # Create UI components
         self._create_ui()
+        
+        # Create collector
+        self.collector = KeyboardMouseCollector()
         
         # Connect collector callbacks
         self.collector.on_event(self._handle_input_event)
         
-        # Set tracked keys based on requirements - remove F3 from tracked keys
-        self.tracked_keys: List[str] = [
+        # Connect event signal to slot
+        self.event_received.connect(self._process_event)
+        
+        # Set tracked keys
+        self.tracked_keys = [
             "w", "a", "s", "d", "q", "e", "f", "m", "c", "b",
             "1", "2", "3", "4",
             "Key.space", "Key.shift", 
@@ -116,533 +92,349 @@ class InputCollectorApp:
         self.keyboard_viz.set_tracked_keys(self.tracked_keys)
         
         # Set screen dimensions for velocity-based joystick control
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
+        screen_rect = QApplication.desktop().screenGeometry()
+        screen_width = screen_rect.width()
+        screen_height = screen_rect.height()
         self.collector.set_screen_dimensions(screen_width, screen_height)
         
-        # Set joystick sensitivity - LOWER value = LESS sensitive
+        # Set joystick sensitivity
         self.collector.set_joystick_sensitivity(0.1)
         
-        # IMPORTANT: Initialize mouse tracking mode to match UI defaults
-        self._set_mouse_tracking_mode(self.tracking_mode_var.get())
+        # Initialize mouse tracking mode to match UI defaults
+        self._set_mouse_tracking_mode(self.tracking_mode_combo.currentText())
         
-        # Bind global keyboard shortcuts for recording control
-        self.root.bind("<F9>", self._toggle_recording_key)  # F9 key
-        self.root.bind("<space>", self._toggle_recording_key)  # Space key 
+        # Start timer for periodic UI updates
+        self.update_timer = QTimer(self)
+        self.update_timer.timeout.connect(self._update_active_keys_display)
+        self.update_timer.start(100)
         
-        # Ensure the app captures keyboard events regardless of focus
-        self.root.bind_all("<Key>", self._capture_keyboard_focus)
-        
-        # Start periodic UI updates
-        self._schedule_ui_update()
-
-        # Debug - print recognized key names
-        print("Recognized Tkinter key names:")
-        for name in self.root.tk.call("event", "info"):
-            if name.startswith("<Key"):
-                print(f"  {name}")
+        # Setup shortcuts
+        self._setup_shortcuts()
     
-    def _configure_styles(self) -> None:
-        """
-        Configure ttk styles for dark theme.
+    def _set_dark_theme(self) -> None:
+        """Set the application to use a dark theme."""
+        palette = QPalette()
         
-        Sets up the visual styling for all ttk widgets used in the application
-        to maintain a consistent dark theme appearance.
-        """
-        # For Windows, we need to use 'clam' theme to properly customize ttk widgets
-        self.style.theme_use('clam')
+        # Set colors
+        palette.setColor(QPalette.Window, QColor(self.dark_bg))
+        palette.setColor(QPalette.WindowText, QColor(self.text_color))
+        palette.setColor(QPalette.Base, QColor(self.dark_frame_bg))
+        palette.setColor(QPalette.AlternateBase, QColor(self.dark_bg))
+        palette.setColor(QPalette.ToolTipBase, QColor(self.dark_bg))
+        palette.setColor(QPalette.ToolTipText, QColor(self.text_color))
+        palette.setColor(QPalette.Text, QColor(self.text_color))
+        palette.setColor(QPalette.Button, QColor(self.dark_bg))
+        palette.setColor(QPalette.ButtonText, QColor(self.text_color))
+        palette.setColor(QPalette.BrightText, Qt.red)
+        palette.setColor(QPalette.Link, QColor(self.accent_color))
+        palette.setColor(QPalette.Highlight, QColor(self.accent_color))
+        palette.setColor(QPalette.HighlightedText, Qt.white)
         
-        self.style.configure("TFrame", background=self.dark_frame_bg)
-        self.style.configure("TLabel", background=self.dark_frame_bg, foreground=self.text_color)
+        QApplication.setPalette(palette)
         
-        # Style for standard buttons - fix background colors
-        self.style.configure("TButton", 
-                            background=self.accent_color,  # Blue background
-                            foreground="#FFFFFF",         # White text
-                            relief=tk.FLAT,
-                            borderwidth=1,
-                            padding=4)
-        
-        # Button when pressed (active)
-        self.style.map("TButton",
-                      background=[('active', '#0066aa'), ('pressed', '#005599')],
-                      relief=[('pressed', 'sunken')])
-        
-        # Special style for the record button
-        self.style.configure("Record.TButton", 
-                           background="#AA3333",  # Red background
-                           foreground="#FFFFFF")  # White text
-        
-        # Record button when pressed
-        self.style.map("Record.TButton",
-                      background=[('active', '#BB4444'), ('pressed', '#992222')])
-        
-        # Style for checkbuttons
-        self.style.configure("TCheckbutton", 
-                            background=self.dark_frame_bg,
-                            foreground=self.text_color)
-        
-        # Fix checkbutton indicator colors
-        self.style.map("TCheckbutton",
-                      indicatorcolor=[('selected', '#5FB878'), ('!selected', self.dark_bg)],
-                      indicatorbackground=[('selected', self.dark_bg), ('!selected', self.dark_bg)],
-                      background=[('active', self.dark_frame_bg)],
-                      foreground=[('active', self.text_color)])
-        
-        # Style for frames and labelframes
-        self.style.configure("TLabelframe", 
-                           background=self.dark_frame_bg,
-                           foreground=self.text_color,
-                           bordercolor="#444444")
-        
-        self.style.configure("TLabelframe.Label", 
-                           background=self.dark_frame_bg,
-                           foreground=self.text_color)
-        
-        # Fix separator color
-        self.style.configure("TSeparator",
-                            background="#444444")
+        # Set stylesheet for detailed control
+        self.setStyleSheet(f"""
+            QMainWindow, QWidget {{ background-color: {self.dark_bg}; color: {self.text_color}; }}
+            QGroupBox {{ 
+                border: 1px solid #444; 
+                margin-top: 0.5em;
+                border-radius: 3px;
+                padding: 0.5em;
+            }}
+            QGroupBox::title {{
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                padding: 0 5px;
+                color: {self.text_color};
+            }}
+            QPushButton {{ 
+                background-color: {self.accent_color}; 
+                color: white; 
+                border: none; 
+                padding: 4px 8px;
+                min-height: 24px;
+                border-radius: 2px;
+            }}
+            QPushButton:pressed {{ background-color: #005599; }}
+            QPushButton:hover {{ background-color: #0066aa; }}
+            QLineEdit, QTextEdit, QListWidget, QComboBox {{ 
+                background-color: {self.dark_frame_bg}; 
+                color: {self.text_color}; 
+                border: 1px solid #444;
+                padding: 2px;
+                border-radius: 2px;
+            }}
+            QTextEdit {{ font-family: 'Consolas', monospace; }}
+            QComboBox::drop-down {{ border: 0px; }}
+            QComboBox::down-arrow {{ 
+                image: url(dropdown.png); 
+                width: 12px;
+                height: 12px;
+            }}
+            QSlider::groove:horizontal {{
+                border: 1px solid #444;
+                height: 8px;
+                background: {self.dark_frame_bg};
+                margin: 2px 0;
+                border-radius: 2px;
+            }}
+            QSlider::handle:horizontal {{
+                background: {self.accent_color};
+                border: none;
+                width: 18px;
+                margin: -2px 0;
+                border-radius: 4px;
+            }}
+            QCheckBox::indicator {{
+                width: 13px;
+                height: 13px;
+                border: 1px solid #444;
+                border-radius: 2px;
+            }}
+            QCheckBox::indicator:checked {{
+                background-color: {self.accent_color};
+            }}
+            QLabel {{ color: {self.text_color}; }}
+        """)
     
     def _create_ui(self) -> None:
-        """
-        Create the application UI.
+        """Create the application UI components."""
+        # Central widget
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
         
-        Builds the complete user interface with all controls, visualizers,
-        and information displays arranged in a grid layout.
-        """
-        # Configure root window to use grid
-        self.root.grid_columnconfigure(0, weight=1)
-        self.root.grid_rowconfigure(0, weight=1)
+        # Main layout
+        main_layout = QVBoxLayout(central_widget)
+        main_layout.setSpacing(8)
+        main_layout.setContentsMargins(10, 10, 10, 10)
         
-        # Main frame using grid instead of pack
-        main_frame = ttk.Frame(self.root, padding=10, style="TFrame")
-        main_frame.grid(row=0, column=0, sticky="nsew")
+        # Control panel
+        control_panel = QHBoxLayout()
         
-        # Configure main frame rows and columns
-        main_frame.grid_columnconfigure(0, weight=1)
+        # Recording controls
+        recording_frame = QHBoxLayout()
         
-        # Configure rows with appropriate weights to allow resizing
-        for i in range(10):  # Allocate enough rows for all components
-            weight = 1 if i == 1 else 0  # Give weight to visualization row only
-            main_frame.grid_rowconfigure(i, weight=weight)
+        self.record_button = QPushButton("Record")
+        self.record_button.setStyleSheet(f"background-color: #AA3333; color: white;")
+        self.record_button.clicked.connect(self._toggle_recording)
+        recording_frame.addWidget(self.record_button)
         
-        row_index = 0
+        self.log_checkbox = QCheckBox("Log")
+        self.log_checkbox.toggled.connect(self._toggle_logging)
+        recording_frame.addWidget(self.log_checkbox)
         
-        # Control panel - make it stand out with a subtle border
-        control_frame = ttk.Frame(main_frame, style="TFrame")
-        control_frame.grid(row=row_index, column=0, sticky="ew", pady=8)
-        control_frame['padding'] = (5, 5, 5, 5)  # Reduced padding to save space
+        self.status_label = QLabel("Not Recording")
+        recording_frame.addWidget(self.status_label)
         
-        # Configure control frame with better proportions to prevent overflow
-        control_frame.grid_columnconfigure(0, weight=0)  # Recording controls - fixed width
-        control_frame.grid_columnconfigure(1, weight=2)  # Key tracking - more expandable
-        control_frame.grid_columnconfigure(2, weight=0)  # Mouse tracking - fixed width but adequate
+        control_panel.addLayout(recording_frame)
+        control_panel.addStretch(1)
         
-        row_index += 1
+        # Key tracking controls
+        key_tracking_frame = QHBoxLayout()
+        key_tracking_frame.addWidget(QLabel("Key:"))
         
-        # Left side: Recording controls - more compact
-        recording_frame = ttk.Frame(control_frame, style="TFrame")
-        recording_frame.grid(row=0, column=0, sticky="w")
+        self.key_entry = QLineEdit()
+        self.key_entry.setMaximumWidth(100)
+        key_tracking_frame.addWidget(self.key_entry)
         
-        # Record button with reliable tk.Button - more compact
-        self.record_button = tk.Button(
-            recording_frame,
-            text="Record",  # Shorter text saves space
-            command=self._toggle_recording,
-            bg="#AA3333",
-            fg="#FFFFFF",
-            relief=tk.FLAT,
-            padx=6,  # Reduced padding
-            pady=3,  # Reduced padding
-            activebackground="#CC3333",
-            activeforeground="#FFFFFF",
-            bd=0,
-            font=("Segoe UI", 9)
-        )
-        self.record_button.pack(side=tk.LEFT, padx=5)
+        add_key_button = QPushButton("Add")
+        add_key_button.clicked.connect(self._add_key)
+        key_tracking_frame.addWidget(add_key_button)
         
-        # Log to file checkbox - more compact
-        self.log_var = tk.BooleanVar(value=False)
-        self.log_checkbox = ttk.Checkbutton(
-            recording_frame, 
-            text="Log",  # Shorter text saves space
-            variable=self.log_var,
-            command=self._toggle_logging,
-            style="TCheckbutton"
-        )
-        self.log_checkbox.pack(side=tk.LEFT, padx=5)
+        remove_key_button = QPushButton("Remove")
+        remove_key_button.clicked.connect(self._remove_key)
+        key_tracking_frame.addWidget(remove_key_button)
         
-        # Status label with better text
-        self.status_label = ttk.Label(
-            recording_frame, 
-            text="Not Recording",
-            style="TLabel"
-        )
-        self.status_label.pack(side=tk.LEFT, padx=5)
+        control_panel.addLayout(key_tracking_frame)
+        control_panel.addStretch(1)
         
-        # Middle: Key tracking controls - better space management
-        key_tracking_frame = ttk.Frame(control_frame, style="TFrame")
-        key_tracking_frame.grid(row=0, column=1, sticky="ew", padx=5)
+        # Mouse tracking mode controls
+        mouse_mode_frame = QHBoxLayout()
         
-        # Configure grid for better control of element sizes
-        key_tracking_frame.grid_columnconfigure(0, weight=0)  # Label - fixed
-        key_tracking_frame.grid_columnconfigure(1, weight=1)  # Entry - expandable
-        key_tracking_frame.grid_columnconfigure(2, weight=0)  # Add button - fixed
-        key_tracking_frame.grid_columnconfigure(3, weight=0)  # Remove button - fixed
+        self.direction_only_check = QCheckBox("Dir Only")
+        self.direction_only_check.setChecked(True)
+        self.direction_only_check.toggled.connect(self._update_tracking_modes)
+        mouse_mode_frame.addWidget(self.direction_only_check)
         
-        # Use grid for key controls instead of pack for better alignment
-        ttk.Label(key_tracking_frame, text="Key:", style="TLabel").grid(row=0, column=0, padx=2, sticky="w")
+        mouse_mode_frame.addWidget(QLabel("Mode:"))
         
-        # Create a dark theme entry for key input
-        self.key_entry = tk.Entry(
-            key_tracking_frame, 
-            width=10, 
-            bg=self.dark_bg,
-            fg=self.text_color,
-            insertbackground=self.text_color,
-            relief=tk.FLAT,
-            bd=1,
-        )
-        self.key_entry.grid(row=0, column=1, padx=2, sticky="ew")
+        self.tracking_mode_combo = QComboBox()
+        self.tracking_mode_combo.addItems(["angle", "axis"])
+        self.tracking_mode_combo.setMinimumWidth(80)
+        self.tracking_mode_combo.currentTextChanged.connect(self._set_mouse_tracking_mode)
+        mouse_mode_frame.addWidget(self.tracking_mode_combo)
         
-        # Replace ttk buttons with tk buttons - more compact styling
-        add_button = tk.Button(
-            key_tracking_frame, 
-            text="Add",  # Shorter text saves space
-            command=self._add_key,
-            bg=self.accent_color,
-            fg="#FFFFFF",
-            relief=tk.FLAT,
-            padx=4,  # Reduced padding
-            pady=1,  # Reduced padding
-            activebackground="#0066aa",
-            activeforeground="#FFFFFF",
-            bd=0
-        )
-        add_button.grid(row=0, column=2, padx=2)
+        control_panel.addLayout(mouse_mode_frame)
         
-        remove_button = tk.Button(
-            key_tracking_frame, 
-            text="Remove",  # Shorter text saves space
-            command=self._remove_key,
-            bg=self.accent_color,
-            fg="#FFFFFF",
-            relief=tk.FLAT,
-            padx=4,  # Reduced padding
-            pady=1,  # Reduced padding
-            activebackground="#0066aa",
-            activeforeground="#FFFFFF",
-            bd=0
-        )
-        remove_button.grid(row=0, column=3, padx=2)
+        main_layout.addLayout(control_panel)
         
-        # Right side: Mouse tracking mode controls - use grid for better layout
-        mouse_frame = ttk.Frame(control_frame, style="TFrame")
-        mouse_frame.grid(row=0, column=2, sticky="e", padx=(5, 0))
+        # Visualization area
+        viz_layout = QHBoxLayout()
         
-        # Fixed-size container for mouse mode controls
-        mouse_mode_frame = ttk.Frame(mouse_frame, width=230, height=35, style="TFrame")
-        mouse_mode_frame.pack(side=tk.RIGHT)
-        mouse_mode_frame.pack_propagate(False)  # Critical: Prevent the frame from collapsing
+        # Keyboard visualization
+        keyboard_group = QGroupBox("Keyboard Input")
+        keyboard_layout = QVBoxLayout(keyboard_group)
+        self.keyboard_viz = KeyboardVisualizer()
+        keyboard_layout.addWidget(self.keyboard_viz)
+        viz_layout.addWidget(keyboard_group)
         
-        # Use grid layout within the mouse mode frame for better control
-        mouse_mode_frame.grid_columnconfigure(0, weight=0)  # Checkbox - fixed
-        mouse_mode_frame.grid_columnconfigure(1, weight=0)  # Label - fixed
-        mouse_mode_frame.grid_columnconfigure(2, weight=0)  # Dropdown - fixed
+        # Mouse visualization
+        mouse_group = QGroupBox("Mouse Input")
+        mouse_layout = QVBoxLayout(mouse_group)
+        self.mouse_viz = MouseVisualizer()
+        mouse_layout.addWidget(self.mouse_viz)
+        viz_layout.addWidget(mouse_group)
         
-        # Direction Only Mode checkbox with improved layout - more compact
-        self.direction_only_var = tk.BooleanVar(value=True)  # Enabled by default
-        self.direction_only_cb = ttk.Checkbutton(
-            mouse_mode_frame, 
-            text="Dir Only",  # Shorter text saves space
-            variable=self.direction_only_var,
-            command=self._update_tracking_modes,
-            style="TCheckbutton"
-        )
-        self.direction_only_cb.grid(row=0, column=0, padx=(2, 2), sticky="w")
+        main_layout.addLayout(viz_layout, 1)
         
-        # Mode label - more compact
-        ttk.Label(mouse_mode_frame, text="Mode:", style="TLabel").grid(row=0, column=1, padx=(2, 2), sticky="w")
+        # Active keys display
+        active_keys_group = QGroupBox("Active Keys")
+        active_keys_layout = QVBoxLayout(active_keys_group)
+        self.active_keys_label = QLabel("None")
+        self.active_keys_label.setAlignment(Qt.AlignCenter)
+        active_keys_layout.addWidget(self.active_keys_label)
+        main_layout.addWidget(active_keys_group)
         
-        # Create a dropdown for tracking modes - define fixed width to prevent disappearing
-        self.tracking_mode_var = tk.StringVar(value="angle")  # Default to angle when direction only
-        self.tracking_dropdown = tk.OptionMenu(
-            mouse_mode_frame, 
-            self.tracking_mode_var, 
-            "angle", "axis",  # Start with direction-only modes
-            command=self._set_mouse_tracking_mode
-        )
-        self.tracking_dropdown.config(
-            bg=self.dark_bg,
-            fg=self.text_color,
-            activebackground=self.accent_color,
-            activeforeground="#FFFFFF",
-            relief=tk.FLAT,
-            highlightthickness=0,
-            bd=1,
-            width=7,  # Fixed width that fits both "joystick" and "angle"
-            font=("Segoe UI", 9)  # Slightly smaller font
-        )
-        self.tracking_dropdown["menu"].config(
-            bg=self.dark_bg,
-            fg=self.text_color,
-            activebackground=self.accent_color,
-            activeforeground="#FFFFFF",
-            relief=tk.FLAT,
-            font=("Segoe UI", 9)  # Consistent font size
-        )
-        self.tracking_dropdown.grid(row=0, column=2, padx=(2, 5), sticky="w")
+        # Tracked keys list
+        tracked_keys_group = QGroupBox("Tracked Keys")
+        tracked_keys_layout = QVBoxLayout(tracked_keys_group)
+        self.key_listbox = QListWidget()
+        self.key_listbox.setMaximumHeight(100)
+        tracked_keys_layout.addWidget(self.key_listbox)
+        main_layout.addWidget(tracked_keys_group)
         
-        # Visualization area with grid layout - add some breathing room
-        viz_frame = ttk.Frame(main_frame, style="TFrame")
-        viz_frame.grid(row=row_index, column=0, sticky="nsew", pady=8)
-        row_index += 1
+        # Status area
+        status_group = QGroupBox("Status")
+        status_layout = QVBoxLayout(status_group)
+        self.status_text = QTextEdit()
+        self.status_text.setReadOnly(True)
+        self.status_text.setMaximumHeight(150)
+        status_layout.addWidget(self.status_text)
+        main_layout.addWidget(status_group)
         
-        # Configure viz frame to resize properly
-        viz_frame.grid_columnconfigure(0, weight=1)
-        viz_frame.grid_columnconfigure(1, weight=1)
-        viz_frame.grid_rowconfigure(0, weight=1)
+        # Mouse settings
+        settings_group = QGroupBox("Mouse Settings")
+        settings_layout = QVBoxLayout(settings_group)
         
-        # Create visualization frames with grid - better titles for sections
-        left_frame = ttk.LabelFrame(viz_frame, text="Keyboard Input", style="TLabelframe")
-        left_frame.grid(row=0, column=0, sticky="nsew", padx=5)
+        # Settings rows
+        settings_row1 = QHBoxLayout()
         
-        right_frame = ttk.LabelFrame(viz_frame, text="Mouse Input", style="TLabelframe")
-        right_frame.grid(row=0, column=1, sticky="nsew", padx=5)
+        # Delta smoothing
+        delta_layout = QHBoxLayout()
+        delta_layout.addWidget(QLabel("Delta Smoothing:"))
+        self.delta_smoothing_slider = QSlider(Qt.Horizontal)
+        self.delta_smoothing_slider.setRange(0, 90)
+        self.delta_smoothing_slider.setValue(50)  # 0.5
+        delta_layout.addWidget(self.delta_smoothing_slider)
+        settings_row1.addLayout(delta_layout)
         
-        # Configure frames to resize properly
-        left_frame.grid_columnconfigure(0, weight=1)
-        left_frame.grid_rowconfigure(0, weight=1)
-        right_frame.grid_columnconfigure(0, weight=1)
-        right_frame.grid_rowconfigure(0, weight=1)
+        # Joystick sensitivity
+        sensitivity_layout = QHBoxLayout()
+        sensitivity_layout.addWidget(QLabel("Joystick Sensitivity:"))
+        self.sensitivity_slider = QSlider(Qt.Horizontal)
+        self.sensitivity_slider.setRange(10, 200)
+        self.sensitivity_slider.setValue(10)  # 0.1
+        sensitivity_layout.addWidget(self.sensitivity_slider)
+        settings_row1.addLayout(sensitivity_layout)
         
-        # Create visualizers
-        self.keyboard_viz = KeyboardVisualizer(left_frame)
-        self.keyboard_viz.get_frame().grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        settings_layout.addLayout(settings_row1)
         
-        self.mouse_viz = MouseVisualizer(right_frame)
-        self.mouse_viz.get_frame().grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        # Settings row 2
+        settings_row2 = QHBoxLayout()
         
-        # Add resize event handler
-        self.root.bind("<Configure>", self._on_window_resize)
+        # Angle grouping
+        angle_layout = QHBoxLayout()
+        angle_layout.addWidget(QLabel("Angle Grouping:"))
+        self.angle_grouping_slider = QSlider(Qt.Horizontal)
+        self.angle_grouping_slider.setRange(1, 60)
+        self.angle_grouping_slider.setValue(10)
+        self.angle_grouping_slider.valueChanged.connect(self._update_angle_grouping_display)
+        angle_layout.addWidget(self.angle_grouping_slider)
+        self.angle_grouping_label = QLabel("10° (36 values)")
+        self.angle_grouping_label.setMinimumWidth(100)
+        angle_layout.addWidget(self.angle_grouping_label)
+        settings_row2.addLayout(angle_layout)
         
-        # Active keys display - improved appearance
-        active_keys_frame = ttk.LabelFrame(main_frame, text="Active Keys", style="TLabelframe")
-        active_keys_frame.grid(row=row_index, column=0, sticky="ew", pady=5)
-        row_index += 1
-        
-        active_keys_frame.grid_columnconfigure(0, weight=1)
-        self.active_keys_label = ttk.Label(
-            active_keys_frame, 
-            text="None", 
-            anchor="center",
-            style="TLabel"
-        )
-        self.active_keys_label.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
-        
-        # Key list with dark theme
-        key_list_frame = ttk.LabelFrame(main_frame, text="Tracked Keys", style="TLabelframe")
-        key_list_frame.grid(row=row_index, column=0, sticky="ew", pady=5)
-        row_index += 1
-        
-        key_list_frame.grid_columnconfigure(0, weight=1)
-        
-        # Dark-themed listbox
-        self.key_listbox = tk.Listbox(
-            key_list_frame, 
-            height=5,
-            bg=self.dark_bg,
-            fg=self.text_color,
-            selectbackground=self.accent_color,
-            selectforeground="#FFFFFF",
-            relief=tk.FLAT,
-            borderwidth=1,
-            highlightthickness=0
-        )
-        self.key_listbox.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
-        
-        # Status area with improved styling
-        status_frame = ttk.Frame(main_frame, style="TFrame")
-        status_frame.grid(row=row_index, column=0, sticky="ew", pady=5)
-        row_index += 1
-        
-        status_frame.grid_columnconfigure(0, weight=1)
-        
-        # Dark theme scrolledtext for logs with syntax highlighting
-        self.status_text = scrolledtext.ScrolledText(
-            status_frame, 
-            height=6,
-            bg=self.dark_bg,
-            fg=self.text_color,
-            insertbackground=self.text_color,
-            selectbackground=self.accent_color,
-            selectforeground="#FFFFFF",
-            relief=tk.FLAT,
-            borderwidth=1,
-            highlightthickness=0,
-            font=("Consolas", 9),  # Monospaced font for better log readability
-            padx=5,
-            pady=5
-        )
-        self.status_text.grid(row=0, column=0, sticky="ew")
-        self.status_text.config(state=tk.DISABLED)
-        
-        # Mouse settings section
-        mouse_settings_frame = ttk.LabelFrame(main_frame, text="Mouse Settings", style="TLabelframe")
-        mouse_settings_frame.grid(row=row_index, column=0, sticky="ew", pady=5)
-        row_index += 1
-        
-        # Configure settings frame
-        mouse_settings_frame.grid_columnconfigure(0, weight=1)
-        mouse_settings_frame.grid_columnconfigure(1, weight=1)
-        
-        # Delta smoothing slider
-        delta_frame = ttk.Frame(mouse_settings_frame, style="TFrame")
-        delta_frame.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
-        
-        ttk.Label(delta_frame, text="Delta Smoothing:", style="TLabel").pack(side=tk.LEFT, padx=5)
-        
-        self.delta_smoothing_var = tk.DoubleVar(value=0.5)
-        delta_smoothing_slider = ttk.Scale(
-            delta_frame,
-            from_=0.0,
-            to=0.9,
-            orient=tk.HORIZONTAL,
-            variable=self.delta_smoothing_var,
-            command=lambda x: None  # Will be applied on button press
-        )
-        delta_smoothing_slider.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
-        
-        # Joystick sensitivity slider
-        joystick_frame = ttk.Frame(mouse_settings_frame, style="TFrame")
-        joystick_frame.grid(row=0, column=1, sticky="ew", padx=5, pady=5)
-        
-        ttk.Label(joystick_frame, text="Joystick Sensitivity:", style="TLabel").pack(side=tk.LEFT, padx=5)
-        
-        self.sensitivity_var = tk.DoubleVar(value=0.1)
-        sensitivity_slider = ttk.Scale(
-            joystick_frame,
-            from_=0.1,
-            to=2.0,
-            orient=tk.HORIZONTAL,
-            variable=self.sensitivity_var,
-            command=lambda x: None  # Will be applied on button press
-        )
-        sensitivity_slider.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
-        
-        # Add Angle Grouping slider (for angle mode)
-        angle_frame = ttk.Frame(mouse_settings_frame, style="TFrame")
-        angle_frame.grid(row=1, column=0, sticky="ew", padx=5, pady=5)
-        
-        ttk.Label(angle_frame, text="Angle Grouping:", style="TLabel").pack(side=tk.LEFT, padx=5)
-        
-        self.angle_grouping_var = tk.IntVar(value=10)  # Default to 10 degrees (36 values)
-        
-        # Create a frame for the slider and its value display
-        angle_slider_frame = ttk.Frame(angle_frame, style="TFrame")
-        angle_slider_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        
-        # Create the slider
-        angle_grouping_slider = ttk.Scale(
-            angle_slider_frame,
-            from_=1,
-            to=60,
-            orient=tk.HORIZONTAL,
-            variable=self.angle_grouping_var,
-            command=self._update_angle_grouping_display
-        )
-        angle_grouping_slider.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
-        
-        # Add a label to display current value and resulting number of angles
-        self.angle_grouping_display = ttk.Label(
-            angle_slider_frame, 
-            text="10° (36 values)", 
-            style="TLabel",
-            width=15
-        )
-        self.angle_grouping_display.pack(side=tk.LEFT, padx=5)
-        
-        # Add a frame for scroll checkbox
-        scroll_frame = ttk.Frame(mouse_settings_frame, style="TFrame")
-        scroll_frame.grid(row=1, column=1, sticky="w", padx=5, pady=5)
-        
-        # Add Capture Scroll checkbox
-        self.capture_scroll_var = tk.BooleanVar(value=False)  # Default to False
-        self.capture_scroll_cb = ttk.Checkbutton(
-            scroll_frame, 
-            text="Capture Scroll Data",
-            variable=self.capture_scroll_var,
-            style="TCheckbutton"
-        )
-        self.capture_scroll_cb.pack(side=tk.LEFT, padx=5)
+        # Scroll capture checkbox
+        scroll_layout = QHBoxLayout()
+        self.capture_scroll_check = QCheckBox("Capture Scroll Data")
+        scroll_layout.addWidget(self.capture_scroll_check)
+        scroll_layout.addStretch(1)
         
         # Apply button
-        apply_button = tk.Button(
-            mouse_settings_frame,
-            text="Apply Settings",
-            command=self._apply_mouse_settings,
-            bg=self.accent_color,
-            fg="#FFFFFF",
-            relief=tk.FLAT,
-            padx=8,
-            pady=2,
-            activebackground="#0066aa",
-            activeforeground="#FFFFFF",
-            bd=0
-        )
-        apply_button.grid(row=1, column=1, sticky="e", padx=10, pady=5)
+        apply_button = QPushButton("Apply Settings")
+        apply_button.clicked.connect(self._apply_mouse_settings)
+        scroll_layout.addWidget(apply_button)
         
-        # Configure main_frame rows to resize properly
-        main_frame.grid_rowconfigure(1, weight=1)  # Make viz_frame expandable
+        settings_row2.addLayout(scroll_layout)
+        settings_layout.addLayout(settings_row2)
+        
+        main_layout.addWidget(settings_group)
+    
+    def _setup_shortcuts(self) -> None:
+        """Set up keyboard shortcuts for the application."""
+        # F9 key for toggling recording
+        self.f9_shortcut = QAction("Toggle Recording", self)
+        self.f9_shortcut.setShortcut("F9")
+        self.f9_shortcut.triggered.connect(self._toggle_recording)
+        self.addAction(self.f9_shortcut)
+        
+        # F11 for fullscreen
+        self.f11_shortcut = QAction("Fullscreen", self)
+        self.f11_shortcut.setShortcut("F11")
+        self.f11_shortcut.triggered.connect(self._toggle_fullscreen)
+        self.addAction(self.f11_shortcut)
+        
+        # Escape to exit fullscreen
+        self.esc_shortcut = QAction("Exit Fullscreen", self)
+        self.esc_shortcut.setShortcut("Esc")
+        self.esc_shortcut.triggered.connect(self._exit_fullscreen)
+        self.addAction(self.esc_shortcut)
     
     def _toggle_recording(self) -> None:
-        """
-        Toggle recording state.
-        
-        Starts or stops the recording of input events based on the current state.
-        Updates UI elements to reflect the new state.
-        """
+        """Toggle recording state."""
         if self.is_recording:
             # Stop recording
             print("Stopping recording...")
             self.collector.stop_capture()
             self.is_recording = False
-            self.record_button.config(text="Record")  # Update for more compact text
-            self.status_label.config(text="Not Recording")
-            self._log_status("Recording stopped", color=self.warning_color)
+            self.record_button.setText("Record")
+            self.record_button.setStyleSheet("background-color: #AA3333; color: white;")
+            self.status_label.setText("Not Recording")
+            self._log_status("Recording stopped", self.warning_color)
             if self.log_file:
                 self.log_file.write(f"{{\n\"event\": \"recording_stopped\",\n\"timestamp\": {time.time()}\n}}\n")
-            print("Recording stopped, UI updated")
+                self.log_file.flush()
         else:
             # Start recording
             print("Starting recording...")
             self.collector.start_capture()
             self.is_recording = True
-            self.record_button.config(text="Stop")  # Update for more compact text
-            self.status_label.config(text="RECORDING")
-            self._log_status("Recording started", color=self.success_color)
+            self.record_button.setText("Stop")
+            self.record_button.setStyleSheet("background-color: #CC3333; color: white;")
+            self.status_label.setText("RECORDING")
+            self._log_status("Recording started", self.success_color)
             if self.log_file:
                 self.log_file.write(f"{{\n\"event\": \"recording_started\",\n\"timestamp\": {time.time()}\n}}\n")
-            print("Recording started, UI updated")
+                self.log_file.flush()
         
-        # Force update the UI immediately to reflect the change
-        self.root.update_idletasks()
+        # Force update the UI
+        QApplication.processEvents()
     
-    def _toggle_logging(self) -> None:
-        """
-        Toggle logging to file.
-        
-        Starts or stops logging input events to a file based on the
-        current state of the log checkbox.
-        """
-        self.log_to_file = self.log_var.get()
+    def _toggle_logging(self, checked: bool) -> None:
+        """Toggle logging to file."""
+        self.log_to_file = checked
         if self.log_to_file:
-            # Open log file with correct timestamp
+            # Open log file with timestamp
             current_time = time.time()
             timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime(current_time))
             filename = f"input_log_{timestamp}.json"
-            self.log_file = open(filename, "w")
-            self._log_status(f"Logging to {filename}")
+            try:
+                self.log_file = open(filename, "w")
+                self._log_status(f"Logging to {filename}")
+            except Exception as e:
+                self._log_status(f"Error opening log file: {e}", self.error_color)
+                self.log_checkbox.setChecked(False)
         else:
             # Close log file
             if self.log_file:
@@ -650,64 +442,121 @@ class InputCollectorApp:
                 self.log_file = None
                 self._log_status("Logging to file stopped")
     
+    def _add_key(self) -> None:
+        """Add a key to the tracked keys list."""
+        key = self.key_entry.text().strip()
+        if key and key not in self.tracked_keys:
+            self.tracked_keys.append(key)
+            self.collector.set_supported_keys(self.tracked_keys)
+            self._update_key_list()
+            self.key_entry.clear()
+            self._log_status(f"Added key: {key}")
+            self.keyboard_viz.set_tracked_keys(self.tracked_keys)
+    
+    def _remove_key(self) -> None:
+        """Remove a key from the tracked keys list."""
+        selected_items = self.key_listbox.selectedItems()
+        if selected_items:
+            key = selected_items[0].text()
+            self.tracked_keys.remove(key)
+            self.collector.set_supported_keys(self.tracked_keys)
+            self._update_key_list()
+            self._log_status(f"Removed key: {key}")
+            self.keyboard_viz.set_tracked_keys(self.tracked_keys)
+    
+    def _update_key_list(self) -> None:
+        """Update the key list display."""
+        self.key_listbox.clear()
+        for key in self.tracked_keys:
+            self.key_listbox.addItem(key)
+    
+    def _update_tracking_modes(self) -> None:
+        """Update available tracking modes based on Direction Only checkbox."""
+        direction_only = self.direction_only_check.isChecked()
+        
+        # Remember current mode
+        current_mode = self.tracking_mode_combo.currentText()
+        
+        # Clear combo box
+        self.tracking_mode_combo.clear()
+        
+        # Add appropriate modes
+        if direction_only:
+            # Direction-only modes
+            self.tracking_mode_combo.addItems(["angle", "axis"])
+            
+            # Set appropriate mode
+            if current_mode in ["angle", "axis"]:
+                self.tracking_mode_combo.setCurrentText(current_mode)
+            else:
+                self.tracking_mode_combo.setCurrentText("angle")
+        else:
+            # Standard modes
+            self.tracking_mode_combo.addItems(["joystick", "delta", "angle"])
+            
+            # Set appropriate mode
+            if current_mode in ["joystick", "delta", "angle"]:
+                self.tracking_mode_combo.setCurrentText(current_mode)
+            else:
+                self.tracking_mode_combo.setCurrentText("joystick")
+        
+        # Apply the mode
+        self._set_mouse_tracking_mode(self.tracking_mode_combo.currentText())
+    
+    def _set_mouse_tracking_mode(self, mode: str) -> None:
+        """Change the mouse tracking mode."""
+        direction_only = self.direction_only_check.isChecked()
+        angle_grouping = self.angle_grouping_slider.value()
+        
+        self.collector.set_mouse_tracking_mode(mode, direction_only, angle_grouping)
+        self._log_status(f"Mouse tracking mode set to: {mode}", self.accent_color)
+        
+        # Update display properties based on mode
+        if mode == "axis":
+            self._log_status("Axis mode shows membership values for N, S, E, W directions", "#AAAAAA")
+        elif mode == "angle" and direction_only:
+            self._log_status(f"Angle mode using {angle_grouping}° grouping ({360 // angle_grouping} values)", "#AAAAAA")
+    
+    def _update_angle_grouping_display(self) -> None:
+        """Update the display showing current angle grouping and resulting number of values."""
+        grouping = self.angle_grouping_slider.value()
+        num_values = 360 // grouping if grouping > 0 else 360
+        self.angle_grouping_label.setText(f"{grouping}° ({num_values} values)")
+    
+    def _apply_mouse_settings(self) -> None:
+        """Apply mouse settings."""
+        # Apply delta smoothing
+        smoothing = self.delta_smoothing_slider.value() / 100.0
+        self.collector.set_delta_smoothing(smoothing)
+        self._log_status(f"Delta smoothing set to: {smoothing:.2f}")
+        
+        # Apply joystick sensitivity
+        sensitivity = self.sensitivity_slider.value() / 100.0
+        self.collector.set_joystick_sensitivity(sensitivity)
+        self._log_status(f"Joystick sensitivity set to: {sensitivity:.2f}")
+        
+        # Apply angle grouping
+        angle_grouping = self.angle_grouping_slider.value()
+        self.collector.set_angle_grouping(angle_grouping)
+        self._log_status(f"Angle grouping set to: {angle_grouping}° ({360 // angle_grouping} values)")
+        
+        # Log scroll capture status
+        self._log_status(f"Scroll data capture: {'Enabled' if self.capture_scroll_check.isChecked() else 'Disabled'}")
+        
+        # Re-apply current tracking mode to ensure all settings are updated
+        self._set_mouse_tracking_mode(self.tracking_mode_combo.currentText())
+    
     def _handle_input_event(self, event: InputData) -> None:
-        """
-        Handle input events from the collector with unified logging.
-        
-        Processes input events from the collector, updates visualizers,
-        and logs events to the UI and file if appropriate.
-        
-        Args:
-            event: The input event to handle
-        """
+        """Handle events from the input collector."""
+        # Use signal to safely handle events from collector thread
+        self.event_received.emit(event)
+    
+    @pyqtSlot(object)
+    def _process_event(self, event: InputData) -> None:
+        """Process input events in the main thread."""
         # Check for special toggle_recording event type first (for F9 key)
         if event.event_type == "toggle_recording":
-            current_state = "RECORDING" if self.is_recording else "NOT RECORDING"
-            if self.collector.verbose:
-                print(f"*** DEBUG: Received toggle_recording event, current state: {current_state} ***")
-            
-            # Only log to application logs if control event logging is enabled
-            if self.log_control_events:
-                self._log_status(f"Recording {'stopped' if self.is_recording else 'started'} via F9 key")
-            
-            # CRITICAL FIX: Explicitly start recording if not recording
-            if not self.is_recording:
-                if self.collector.verbose:
-                    print("*** DEBUG: FORCIBLY STARTING recording from F9 key ***")
-                # Full restart of collector to fix synchronization issues
-                self.collector.stop_capture()  # Make sure it's truly stopped
-                time.sleep(0.1)  # Small delay to let things settle
-                self.collector.start_capture()  # Restart properly
-                self.is_recording = True
-                self.record_button.config(text="Stop Recording")
-                self.status_label.config(text="RECORDING")
-                
-                # Only log to status area if control event logging is enabled
-                if self.log_control_events:
-                    self._log_status("Recording started via F9 key")
-                
-                # Always log to file if file logging is enabled
-                if self.log_file:
-                    self.log_file.write(f"{{\n\"event\": \"recording_started\",\n\"timestamp\": {time.time()}\n}}\n")
-            else:
-                if self.collector.verbose:
-                    print("*** DEBUG: FORCIBLY STOPPING recording from F9 key ***")
-                # Stop recording
-                self.collector.stop_capture()
-                self.is_recording = False
-                self.record_button.config(text="Start Recording")
-                self.status_label.config(text="Not Recording")
-                
-                # Only log to status area if control event logging is enabled
-                if self.log_control_events:
-                    self._log_status("Recording stopped via F9 key")
-                
-                # Always log to file if file logging is enabled
-                if self.log_file:
-                    self.log_file.write(f"{{\n\"event\": \"recording_stopped\",\n\"timestamp\": {time.time()}\n}}\n")
-            
-            # Force update UI
-            self.root.update_idletasks()
+            self._toggle_recording()
             
             # Highlight the F9 key in the keyboard visualizer
             temp_press_event = InputData(
@@ -717,11 +566,9 @@ class InputCollectorApp:
                 active_keys=event.active_keys or []
             )
             self.keyboard_viz.update(temp_press_event)
-            
-            # Don't process this event any further
             return
-
-        # Don't log events if we're not recording (requirement #3)
+        
+        # Don't log events if we're not recording
         if not self.is_recording:
             # Still update visualizers, but don't log anything
             if event.event_type in ["key_press", "key_release"]:
@@ -729,49 +576,43 @@ class InputCollectorApp:
             elif event.event_type in ["mouse_move", "mouse_click", "mouse_scroll"]:
                 self.mouse_viz.update(event)
             
-            # Update active keys display (faster than waiting for scheduled update)
+            # Update active keys display
             self._update_active_keys_display()
             return
-
-        # Don't process key_release events for logging (requirement #2)
+        
+        # Don't process key_release events for logging
         if event.event_type == "key_release":
             # Only update the visualizer
             self.keyboard_viz.update(event)
             self._update_active_keys_display()
             return
-
+        
         # Handle regular media_play_pause key (from actual media key)
-        if (event.event_type == "key_press" and 
+        if (event.event_type == "key_press" and
             event.key and "media_play_pause" in event.key.lower()):
-            # Add debug logging to understand when this is called
-            print(f"Media play/pause key press detected in event handler: {event.key}")
-            # Directly call the toggle method that updates both UI and recording state
+            # Call the toggle method
             self._toggle_recording()
             
-            # Update keyboard visualizer to show the key as pressed anyway
+            # Update keyboard visualizer
             self.keyboard_viz.update(event)
-            
-            # No need to process this event further
             return
         
-        # Update visualizers immediately for real-time display
+        # Update visualizers immediately
         if event.event_type in ["key_press", "key_release"]:
             self.keyboard_viz.update(event)
         elif event.event_type in ["mouse_move", "mouse_click", "mouse_scroll"]:
             self.mouse_viz.update(event)
         
-        # Update active keys display (faster than waiting for scheduled update)
+        # Update active keys display
         self._update_active_keys_display()
         
-        # Log to the UI when recording is active
-        # Consider mouse clicks and scrolls as significant events that should be logged
-        # regardless of movement
+        # Determine if we should log the event
         should_log = (
             (event.event_type == "key_press") or
             (event.event_type == "mouse_move" and event.is_moving) or
             (event.event_type == "mouse_click") or
             (event.event_type == "mouse_scroll") or
-            (event.button_pressed is not None)  # Always log when a button is pressed
+            (event.button_pressed is not None)
         )
         
         if self.is_recording and should_log:
@@ -779,43 +620,31 @@ class InputCollectorApp:
             self._log_status(event_text)
             
             # Log to file if enabled
-            if self.log_file:
+            if self.log_file and self.log_to_file:
                 self._log_event_to_file(event)
     
     def _format_event_text(self, event: InputData) -> str:
-        """
-        Format event text for UI display based on tracking mode.
-        
-        Converts an input event into a human-readable string for display in the UI,
-        with information relevant to the current tracking mode.
-        
-        Args:
-            event: The input event to format
-            
-        Returns:
-            str: Formatted text representation of the event
-        """
-        # Format keyboard info - make it stand out
+        """Format event text for UI display based on tracking mode."""
+        # Format keyboard info
         keyboard_part = f"Keys: [{', '.join(event.active_keys)}]" if event.active_keys else "Keys: []"
         
         # Format mouse info based on tracking mode
         mouse_parts = []
         tracking_mode = getattr(event, 'mouse_tracking_mode', 'joystick')
         
-        # Click info - common to all modes
+        # Click info
         if event.event_type == "mouse_click" and event.button_pressed:
             mouse_parts.append(f"Click:{event.button_pressed}")
         elif hasattr(event, 'button_pressed') and event.button_pressed:
             mouse_parts.append(f"Click:{event.button_pressed}")
         
-        # Scroll info - common to all modes
+        # Scroll info
         if event.event_type == "mouse_scroll" and event.direction:
             mouse_parts.append(f"Scroll:{event.direction}")
         
         # Movement info - mode specific
         if event.is_moving:
             if tracking_mode == "delta":
-                # Delta mode shows raw deltas and magnitude
                 if hasattr(event, 'mouse_delta_x') and hasattr(event, 'mouse_delta_y'):
                     mouse_parts.append(f"Δx:{event.mouse_delta_x:.1f} Δy:{event.mouse_delta_y:.1f}")
                 if hasattr(event, 'mouse_delta_magnitude'):
@@ -823,48 +652,40 @@ class InputCollectorApp:
                 if event.direction:
                     mouse_parts.append(f"Dir:{event.direction}")
             elif tracking_mode == "angle":
-                # Angle mode shows angle and magnitude
-                if hasattr(event, 'mouse_delta_angle'):
-                    mouse_parts.append(f"Angle:{event.mouse_delta_angle:.1f}°")
-                if hasattr(event, 'mouse_delta_magnitude'):
-                    mouse_parts.append(f"Mag:{event.mouse_delta_magnitude:.1f}")
+                if hasattr(event, 'direction_only') and event.direction_only:
+                    if hasattr(event, 'discrete_angle'):
+                        mouse_parts.append(f"Angle:{event.discrete_angle}°")
+                else:
+                    if hasattr(event, 'mouse_delta_angle'):
+                        mouse_parts.append(f"Angle:{event.mouse_delta_angle:.1f}°")
+                    if hasattr(event, 'mouse_delta_magnitude'):
+                        mouse_parts.append(f"Mag:{event.mouse_delta_magnitude:.1f}")
                 if event.direction:
                     mouse_parts.append(f"Dir:{event.direction}")
+            elif tracking_mode == "axis":
+                if hasattr(event, 'north') and hasattr(event, 'south') and hasattr(event, 'east') and hasattr(event, 'west'):
+                    mouse_parts.append(f"N:{event.north:.1f} S:{event.south:.1f} E:{event.east:.1f} W:{event.west:.1f}")
             else:  # joystick mode
-                # Joystick shows direction, rel position, and speed
                 if event.direction:
                     mouse_parts.append(f"Dir:{event.direction}")
                 if event.speed is not None:
                     mouse_parts.append(f"Speed:{event.speed:.1f}")
-                if event.rel_x is not None and event.rel_y is not None:
-                    mouse_parts.append(f"Rel:({event.rel_x:.2f},{event.rel_y:.2f})")
         
         # Combine all mouse info
         mouse_part = f"Mouse[{tracking_mode}]: {' | '.join(mouse_parts)}" if mouse_parts else f"Mouse[{tracking_mode}]: Idle"
         
         return f"{keyboard_part} | {mouse_part}"
-
+    
     def _log_event_to_file(self, event: InputData) -> None:
-        """
-        Log event to file with a simplified, uniform format.
-        
-        Creates clean, consistent logs that are easy to process for machine learning
-        or pattern recognition, with just the essential data for each tracking mode.
-        
-        Args:
-            event: The input event to log
-        """
+        """Log event to file."""
         try:
             # Determine current tracking mode
             tracking_mode = getattr(event, 'mouse_tracking_mode', 'joystick')
             
-            # Convert scroll direction to numeric value (1=up, 0=null, -1=down)
-            scroll_value = 0  # Default (null)
+            # Convert scroll direction to numeric value
+            scroll_value = 0
             if event.event_type == "mouse_scroll" and event.direction is not None:
-                if event.direction == "up":
-                    scroll_value = 1
-                elif event.direction == "down":
-                    scroll_value = -1
+                scroll_value = 1 if event.direction == "up" else -1
             
             # Create a simplified log structure
             clean_log = {
@@ -878,405 +699,124 @@ class InputCollectorApp:
                 }
             }
 
-            # Only include scroll_direction if capture_scroll is enabled
-            if self.capture_scroll_var.get() or scroll_value != 0:
+            # Only include scroll_direction if capture_scroll is enabled or there's actual scrolling
+            if self.capture_scroll_check.isChecked() or scroll_value != 0:
                 clean_log["mouse"]["scroll_direction"] = scroll_value
             
-            # Add only the relevant data for the current tracking mode
+            # Add tracking mode specific data
             if tracking_mode == "joystick":
-                clean_log["mouse"]["speed_x"] = event.speed_x if hasattr(event, 'speed_x') and event.speed_x is not None else 0.0
-                clean_log["mouse"]["speed_y"] = event.speed_y if hasattr(event, 'speed_y') and event.speed_y is not None else 0.0
-            
+                clean_log["mouse"]["rel_x"] = event.rel_x if event.rel_x is not None else 0.0
+                clean_log["mouse"]["rel_y"] = event.rel_y if event.rel_y is not None else 0.0
+                clean_log["mouse"]["speed"] = event.speed if event.speed is not None else 0.0
             elif tracking_mode == "delta":
-                clean_log["mouse"]["delta_x"] = event.mouse_delta_x if hasattr(event, 'mouse_delta_x') and event.mouse_delta_x is not None else 0.0
-                clean_log["mouse"]["delta_y"] = event.mouse_delta_y if hasattr(event, 'mouse_delta_y') and event.mouse_delta_y is not None else 0.0
-            
+                clean_log["mouse"]["delta_x"] = event.mouse_delta_x if hasattr(event, 'mouse_delta_x') else 0.0
+                clean_log["mouse"]["delta_y"] = event.mouse_delta_y if hasattr(event, 'mouse_delta_y') else 0.0
             elif tracking_mode == "angle":
-                # Handle direction-only angle mode differently
                 if hasattr(event, 'direction_only') and event.direction_only:
                     clean_log["mouse"]["discrete_angle"] = event.discrete_angle if hasattr(event, 'discrete_angle') else 0
                 else:
-                    clean_log["mouse"]["angle"] = event.mouse_delta_angle if hasattr(event, 'mouse_delta_angle') and event.mouse_delta_angle is not None else 0.0
-                    clean_log["mouse"]["magnitude"] = event.mouse_delta_magnitude if hasattr(event, 'mouse_delta_magnitude') and event.mouse_delta_magnitude is not None else 0.0
-            
+                    clean_log["mouse"]["angle"] = event.mouse_delta_angle if hasattr(event, 'mouse_delta_angle') else 0.0
+                    clean_log["mouse"]["magnitude"] = event.mouse_delta_magnitude if hasattr(event, 'mouse_delta_magnitude') else 0.0
             elif tracking_mode == "axis":
-                # Axis mode includes membership values for cardinal directions
                 clean_log["mouse"]["north"] = event.north if hasattr(event, 'north') else 0.0
                 clean_log["mouse"]["south"] = event.south if hasattr(event, 'south') else 0.0
                 clean_log["mouse"]["east"] = event.east if hasattr(event, 'east') else 0.0
                 clean_log["mouse"]["west"] = event.west if hasattr(event, 'west') else 0.0
             
-            # Write the clean log to file and flush immediately
+            # Write to file and flush
             self.log_file.write(json.dumps(clean_log) + "\n")
             self.log_file.flush()
         except Exception as e:
             print(f"Error logging to file: {e}")
     
-    def _add_key(self) -> None:
-        """
-        Add a key to the tracked keys list.
-        
-        Takes the key entered in the key entry field and adds it to the
-        list of tracked keys if it's not already there.
-        """
-        key = self.key_entry.get().strip()
-        if key and key not in self.tracked_keys:
-            self.tracked_keys.append(key)
-            self.collector.set_supported_keys(self.tracked_keys)
-            self._update_key_list()
-            self.key_entry.delete(0, tk.END)
-            self._log_status(f"Added key: {key}")
-    
-    def _remove_key(self) -> None:
-        """
-        Remove a key from the tracked keys list.
-        
-        Removes the currently selected key from the tracked keys list.
-        """
-        selection = self.key_listbox.curselection()
-        if selection:
-            index = selection[0]
-            key = self.key_listbox.get(index)
-            self.tracked_keys.remove(key)
-            self.collector.set_supported_keys(self.tracked_keys)
-            self._update_key_list()
-            self._log_status(f"Removed key: {key}")
-    
-    def _update_key_list(self) -> None:
-        """
-        Update the key list display.
-        
-        Updates the listbox to show the current list of tracked keys.
-        """
-        self.key_listbox.delete(0, tk.END)
-        for key in self.tracked_keys:
-            self.key_listbox.insert(tk.END, key)
-    
     def _log_status(self, message: str, color: Optional[str] = None) -> None:
         """
         Log a message to the status area.
-        
-        Adds a timestamped message to the status text area with optional 
-        color formatting.
         
         Args:
             message: The message to log
             color: Optional color for the message (as a hex string)
         """
-        self.status_text.config(state=tk.NORMAL)
-        
-        # Fix the timestamp format - strftime doesn't support microseconds with %f
+        # Get current time with millisecond precision
         current_time = time.time()
         timestamp = time.strftime('%H:%M:%S', time.localtime(current_time))
         ms = int((current_time - int(current_time)) * 1000)
         formatted_time = f"{timestamp}.{ms:03d}"
         
-        # Add timestamp in muted color
-        self.status_text.insert(tk.END, formatted_time, "timestamp")
-        self.status_text.insert(tk.END, " - ", "timestamp")
-        
-        # Use color tags for different message types if color provided
+        # Format the message with HTML for color
         if color:
-            self.status_text.insert(tk.END, f"{message}\n", "colored")
-            self.status_text.tag_config("colored", foreground=color)
+            html_message = f"<span style='color: #999999;'>{formatted_time} - </span><span style='color: {color};'>{message}</span>"
         else:
-            self.status_text.insert(tk.END, f"{message}\n")
-            
-        # Configure timestamp tag with muted color
-        self.status_text.tag_config("timestamp", foreground="#999999")
+            html_message = f"<span style='color: #999999;'>{formatted_time} - </span>{message}"
         
-        self.status_text.see(tk.END)
-        self.status_text.config(state=tk.DISABLED)
+        # Append the message
+        self.status_text.append(html_message)
+        
+        # Auto-scroll to bottom
+        self.status_text.moveCursor(QTextCursor.End)
     
     def _update_active_keys_display(self) -> None:
-        """
-        Update the active keys display.
-        
-        Updates the label showing the currently pressed keys.
-        """
-        active_keys = self.collector.get_active_keys()
-        if active_keys:
-            # Filter to only show tracked keys
-            tracked_active = [k for k in active_keys if any(
-                k.lower() == tracked.lower() or k.lower().endswith(tracked.lower()) 
-                for tracked in self.tracked_keys
-            )]
-            self.active_keys_label.config(text=", ".join(tracked_active))
+        """Update the active keys display."""
+        active = self.collector.get_active_keys()
+        if active:
+            self.active_keys_label.setText(", ".join(active))
         else:
-            self.active_keys_label.config(text="None")
+            self.active_keys_label.setText("None")
     
-    def _schedule_ui_update(self) -> None:
-        """
-        Schedule periodic UI updates.
-        
-        Sets up a recurring timer to update the UI components regularly.
-        """
-        self._update_active_keys_display()
-        # Schedule next update in 100ms
-        self.root.after(100, self._schedule_ui_update)
-    
-    def run(self) -> None:
-        """
-        Run the application main loop.
-        
-        Starts the application's main event loop.
-        """
-        if self.owns_root:
-            # Set up cleanup on window close
-            self.root.protocol("WM_DELETE_WINDOW", self._on_close)
-            
-            # Start main loop
-            self.root.mainloop()
-    
-    def _on_close(self) -> None:
-        """
-        Handle window close event.
-        
-        Performs cleanup operations when the application window is closed.
-        """
-        if self.is_recording:
-            self.collector.stop_capture()
-        if self.log_file:
-            self.log_file.close()
-        self.root.destroy()
-    
-    def get_collector(self) -> KeyboardMouseCollector:
-        """
-        Get the input collector instance.
-        
-        Returns:
-            KeyboardMouseCollector: The active input collector instance
-        """
-        return self.collector
-
-    def _toggle_recording_key(self, event: Optional[tk.Event] = None) -> str:
-        """
-        Toggle recording state via keyboard shortcut.
-        
-        Handles keyboard shortcut events for toggling recording state.
-        
-        Args:
-            event: The keyboard event that triggered the toggle
-            
-        Returns:
-            str: "break" to prevent further processing of the event
-        """
-        # This is used for tkinter key events (like F9 direct from the window)
-        # Since we're already handling F9 in the collector, we only need this
-        # for other keys like space
-        
-        # Prevent F9 from causing double-toggling by checking the key
-        if hasattr(event, 'keysym') and event.keysym == 'F9':
-            # The pynput handler will take care of this one
-            return "break"
-        
-        print(f"Toggle recording via keyboard shortcut: {event}")
-        
-        # Toggle recording
-        self._toggle_recording()
-        
-        # Prevent further processing of this event
-        return "break"
-
-    def _capture_keyboard_focus(self, event: Optional[tk.Event] = None) -> bool:
-        """
-        Ensure the app receives keyboard events regardless of focus.
-        
-        Makes sure the application window keeps focus to capture keyboard events.
-        
-        Args:
-            event: The keyboard event that might have changed focus
-            
-        Returns:
-            bool: True to continue processing the event
-        """
-        # If not already capturing, move focus back to the main window
-        # which has the keyboard bindings
-        if not self.is_recording:
-            self.root.focus_set()
-        return True
-
-    def _set_mouse_tracking_mode(self, mode: str) -> None:
-        """
-        Change the mouse tracking mode.
-        
-        Args:
-            mode: The tracking mode to use
-        """
-        # Update the tracking mode
-        self.tracking_mode_var.set(mode)
-        
-        # Pass the direction-only flag and angle grouping if applicable
-        direction_only = self.direction_only_var.get()
-        angle_grouping = self.angle_grouping_var.get()
-        
-        self.collector.set_mouse_tracking_mode(mode, direction_only, angle_grouping)
-        self._log_status(f"Mouse tracking mode set to: {mode}", color=self.accent_color)
-        
-        # Update display properties based on mode
-        if mode == "axis":
-            self._log_status("Axis mode shows membership values for N, S, E, W directions", color="#AAAAAA")
-        elif mode == "angle" and direction_only:
-            self._log_status(f"Angle mode using {angle_grouping}° grouping ({360 // angle_grouping} values)", color="#AAAAAA")
-
-    def _apply_mouse_settings(self) -> None:
-        """
-        Apply the current mouse settings.
-        """
-        # Apply delta smoothing
-        smoothing = self.delta_smoothing_var.get()
-        self.collector.set_delta_smoothing(smoothing)
-        self._log_status(f"Delta smoothing set to: {smoothing:.2f}")
-        
-        # Apply joystick sensitivity
-        sensitivity = self.sensitivity_var.get()
-        self.collector.set_joystick_sensitivity(sensitivity)
-        self._log_status(f"Joystick sensitivity set to: {sensitivity:.2f}")
-        
-        # Apply angle grouping
-        angle_grouping = self.angle_grouping_var.get()
-        self.collector.set_angle_grouping(angle_grouping)
-        self._log_status(f"Angle grouping set to: {angle_grouping}° ({360 // angle_grouping} values)")
-        
-        # Log scroll capture status
-        self._log_status(f"Scroll data capture: {'Enabled' if self.capture_scroll_var.get() else 'Disabled'}")
-        
-        # Re-apply current tracking mode to ensure all settings are updated
-        self._set_mouse_tracking_mode(self.tracking_mode_var.get())
-
-    def _update_tracking_modes(self) -> None:
-        """
-        Update available tracking modes based on the Direction Only checkbox.
-        """
-        # Get current tracking mode
-        current_mode = self.tracking_mode_var.get()
-        
-        # Clear current menu
-        menu = self.tracking_dropdown["menu"]
-        menu.delete(0, "end")
-        
-        # Add appropriate modes based on checkbox state
-        if self.direction_only_var.get():
-            # Direction-only modes
-            for mode in ["angle", "axis"]:
-                menu.add_command(label=mode, 
-                                 command=lambda m=mode: self.tracking_mode_var.set(m) or self._set_mouse_tracking_mode(m))
-            
-            # Make sure the current mode is valid for direction-only
-            if current_mode not in ["angle", "axis"]:
-                self.tracking_mode_var.set("angle")
-                self._set_mouse_tracking_mode("angle")
-        else:
-            # Standard modes
-            for mode in ["joystick", "delta", "angle"]:
-                menu.add_command(label=mode, 
-                                 command=lambda m=mode: self.tracking_mode_var.set(m) or self._set_mouse_tracking_mode(m))
-            
-            # Make sure the current mode is valid for standard
-            if current_mode not in ["joystick", "delta", "angle"]:
-                self.tracking_mode_var.set("joystick")
-                self._set_mouse_tracking_mode("joystick")
-        
-        # Keep width fixed (don't allow it to collapse based on selected item)
-        self.tracking_dropdown.config(width=7)  # Ensure consistent width
-
-    def _update_angle_grouping_display(self, *args) -> None:
-        """
-        Update the display showing current angle grouping and resulting number of values.
-        """
-        grouping = self.angle_grouping_var.get()
-        num_values = 360 // grouping if grouping > 0 else 360
-        self.angle_grouping_display.config(text=f"{grouping}° ({num_values} values)")
-
-    def _on_window_resize(self, event=None) -> None:
-        """
-        Handle window resize events.
-        
-        Updates visualizers and UI components when the window size changes.
-        
-        Args:
-            event: The window resize event
-        """
-        # Only respond to root window resize events
-        if event and event.widget == self.root:
-            current_time = time.time()
-            
-            # Always update the mouse mode dropdown width to ensure visibility
-            self.tracking_dropdown.config(width=7)
-            
-            # More aggressive resize handling for fullscreen transitions
-            if abs(current_time - self.last_resize_time) > 0.5:  # Major size change
-                self.last_resize_time = current_time
-                self._force_visualizer_updates()
-            else:
-                # Just schedule an update once resize settles
-                self.root.after_cancel(getattr(self, '_resize_after_id', 'dummy'))
-                self._resize_after_id = self.root.after(200, self._update_visualizers_size)
-    
-    def _update_visualizers_size(self) -> None:
-        """
-        Update visualizers size based on current window dimensions.
-        """
-        if hasattr(self.keyboard_viz, 'update_size'):
-            self.keyboard_viz.update_size()
-        
-        if hasattr(self.mouse_viz, 'update_size'):
-            self.mouse_viz.update_size()
-
-    def _toggle_fullscreen(self, event=None) -> None:
-        """
-        Toggle fullscreen mode.
-        
-        Args:
-            event: The keyboard event that triggered this
-        """
+    def _toggle_fullscreen(self) -> None:
+        """Toggle fullscreen mode."""
         self.is_fullscreen = not self.is_fullscreen
-        self.root.attributes("-fullscreen", self.is_fullscreen)
+        if self.is_fullscreen:
+            self.showFullScreen()
+        else:
+            self.showNormal()
         
-        # Force visualizer updates after fullscreen toggle
-        self.root.after(200, self._force_visualizer_updates)
-        
-        # Also explicitly update the tracking dropdown to ensure it remains visible
-        self.tracking_dropdown.config(width=7)
-        
-        return "break"
+        # Force update visualizers
+        QTimer.singleShot(200, self._force_update_visualizers)
     
-    def _end_fullscreen(self, event=None) -> None:
-        """
-        Exit fullscreen mode.
-        
-        Args:
-            event: The keyboard event that triggered this
-        """
+    def _exit_fullscreen(self) -> None:
+        """Exit fullscreen mode."""
         if self.is_fullscreen:
             self.is_fullscreen = False
-            self.root.attributes("-fullscreen", False)
-            
-            # Force visualizer updates after exiting fullscreen
-            self.root.after(200, self._force_visualizer_updates)
-        return "break"
+            self.showNormal()
+            # Force update visualizers
+            QTimer.singleShot(200, self._force_update_visualizers)
     
-    def _force_visualizer_updates(self) -> None:
-        """
-        Force visualizers to update after window state changes.
+    def _force_update_visualizers(self) -> None:
+        """Force update of visualizers."""
+        self.keyboard_viz.force_update()
+        self.mouse_viz.force_update()
+    
+    def resizeEvent(self, event) -> None:
+        """Handle resize events."""
+        super().resizeEvent(event)
+        # Update visualizers after resize
+        QTimer.singleShot(100, self._force_update_visualizers)
+    
+    def run(self) -> None:
+        """Run the application."""
+        self.show()
+    
+    def closeEvent(self, event) -> None:
+        """Handle application close event."""
+        # Stop collectors and close log file
+        if self.is_recording:
+            self.collector.stop_capture()
         
-        This ensures proper layout after fullscreen transitions.
-        """
-        if hasattr(self.keyboard_viz, 'force_update'):
-            self.keyboard_viz.force_update()
-            
-        if hasattr(self.mouse_viz, 'force_update'):
-            self.mouse_viz.force_update()
+        if self.log_file:
+            self.log_file.close()
+        
+        # Accept the close event
+        event.accept()
 
-def run_collector_app() -> InputCollectorApp:
+
+def run_collector_app() -> None:
     """
     Run the input collector application.
     
     Creates and runs the input collector application as a standalone program.
-    
-    Returns:
-        InputCollectorApp: The input collector application instance
     """
-    app = InputCollectorApp()
-    app.run()
-    return app
+    app = QApplication(sys.argv)
+    collector_app = InputCollectorApp()
+    collector_app.run()
+    sys.exit(app.exec_())

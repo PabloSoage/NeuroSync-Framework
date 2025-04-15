@@ -2,17 +2,17 @@
 Mouse visualization module.
 
 This module provides visualization components for mouse input events,
-displaying mouse movement and button states in a joystick-like interface.
+displaying mouse movement and button states in a joystick-like interface using PyQt5.
 """
 import math
-import time
-import tkinter as tk
-from typing import Optional
+from PyQt5.QtWidgets import QWidget, QSizePolicy, QVBoxLayout, QLabel, QFrame
+from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QFont, QPolygon
+from PyQt5.QtCore import Qt, QPoint, QRect, QSize
 
 from ..interfaces import InputData
 
 
-class MouseVisualizer:
+class MouseVisualizer(QWidget):
     """
     Visualizes mouse input events with joystick-like representation.
     
@@ -21,328 +21,177 @@ class MouseVisualizer:
     states, and scroll events in real-time.
     """
     
-    def __init__(self, parent_frame: tk.Frame) -> None:
+    def __init__(self, parent=None) -> None:
         """
         Initialize the mouse visualizer.
-        
-        Creates a mouse visualization interface inside the provided parent frame.
-        
-        Args:
-            parent_frame: Tkinter frame to contain the mouse visualization
         """
-        # Use dark theme colors
-        self.dark_bg: str = "#2D2D30"
-        self.dark_frame_bg: str = "#252526"
-        self.text_color: str = "#E0E0E0"
-        self.accent_color: str = "#007ACC"
-        self.highlight_color: str = "#3E3E42"
+        super().__init__(parent)
         
-        # Store parent frame for resizing
-        self.parent_frame = parent_frame
+        # Define dark theme colors
+        self.dark_bg = QColor("#2D2D30")
+        self.dark_frame_bg = QColor("#252526")
+        self.text_color = QColor("#E0E0E0")
+        self.accent_color = QColor("#007ACC")
+        self.highlight_color = QColor("#3E3E42")
         
-        self.frame: tk.Frame = tk.Frame(parent_frame, bg=self.dark_frame_bg)
-        self.frame.pack(fill=tk.BOTH, expand=True)
+        # Set size policy and minimum size
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.setMinimumSize(300, 250)
         
-        # Use grid layout with fixed sizes for better stability
-        self.frame.grid_columnconfigure(0, weight=1)
-        self.frame.grid_rowconfigure(0, weight=1)
-        self.frame.grid_rowconfigure(1, weight=0)
-        self.frame.grid_rowconfigure(2, weight=0)
+        # Create layout
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(5)
         
-        # Canvas dimensions will be set dynamically
-        self.canvas_width: int = 340  
-        self.canvas_height: int = 300
+        # Canvas takes most of the space
+        self.canvas = Canvas(self)
+        layout.addWidget(self.canvas, 1)
         
-        # Create a responsive frame to contain the canvas
-        self.canvas_container: tk.Frame = tk.Frame(
-            self.frame, 
-            bg=self.dark_frame_bg
-        )
-        self.canvas_container.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
-        
-        # Canvas for drawing with dynamic size
-        self.canvas: tk.Canvas = tk.Canvas(
-            self.canvas_container,
-            bg=self.dark_bg,
-            bd=0,
-            relief=tk.FLAT,
-            highlightthickness=0
-        )
-        self.canvas.pack(fill=tk.BOTH, expand=True)
-        
-        # Pre-create commonly used display objects to avoid recreation
-        self.joystick_handle: Optional[int] = None
-        self.direction_line: Optional[int] = None
-        self.wheel_indicator: Optional[int] = None
-        self.coordinate_text: Optional[int] = None
-        
-        # Create text frame to prevent layout shifts
-        text_frame: tk.Frame = tk.Frame(self.frame, height=30, bg=self.dark_frame_bg)
-        text_frame.grid(row=1, column=0, sticky="ew", padx=5)
-        text_frame.grid_propagate(False)
-        
-        # Static text label for status
-        self.info_var: tk.StringVar = tk.StringVar(value="Mouse: Not moving")
-        self.info_label: tk.Label = tk.Label(
-            text_frame,
-            textvariable=self.info_var,
-            anchor="w",
-            bg=self.dark_bg,
-            fg=self.text_color,
-            height=1
-        )
-        self.info_label.pack(fill=tk.X, padx=5)
-        
-        # Create another fixed-size frame for button status
-        button_frame: tk.Frame = tk.Frame(self.frame, height=30, bg=self.dark_frame_bg)
-        button_frame.grid(row=2, column=0, sticky="ew", padx=5)
-        button_frame.grid_propagate(False)
+        # Info label
+        self.info_label = QLabel("Mouse: Not moving")
+        self.info_label.setStyleSheet(f"background-color: #252526; color: {self.text_color.name()}; padding: 5px;")
+        self.info_label.setFrameStyle(QFrame.StyledPanel | QFrame.Sunken)
+        layout.addWidget(self.info_label, 0)
         
         # Button status label
-        self.button_var: tk.StringVar = tk.StringVar(value="Buttons: None")
-        self.button_label: tk.Label = tk.Label(
-            button_frame,
-            textvariable=self.button_var,
-            anchor="w",
-            bg=self.dark_bg,
-            fg=self.text_color,
-            height=1
-        )
-        self.button_label.pack(fill=tk.X, padx=5)
-        
-        # Mouse state
-        self.mouse_x: float = 150
-        self.mouse_y: float = 150
-        self.rel_x: float = 0
-        self.rel_y: float = 0
-        self.movement_direction: Optional[str] = None
-        self.left_button_pressed: bool = False
-        self.right_button_pressed: bool = False
-        self.middle_button_pressed: bool = False
-        self.is_moving: bool = False
-        self.speed: float = 0
-        self.speed_x: float = 0
-        self.speed_y: float = 0
-        self.wheel_direction: Optional[str] = None
-        
-        # Add delta tracking fields
-        self.delta_x: float = 0
-        self.delta_y: float = 0
-        self.delta_magnitude: float = 0
-        self.delta_angle: float = 0
-        self.tracking_mode: str = "joystick"
-        
-        # Canvas center coordinates - will be updated on resize
-        self.center_x: float = self.canvas_width / 2
-        self.center_y: float = self.canvas_height / 2
-        
-        # Performance settings
-        self.last_ui_update: float = 0
-        self.ui_update_interval: float = 0.033  # 30fps is plenty for UI
-        self.redraw_needed: bool = True
-        self.last_status_update: float = 0
-        self.status_update_interval: float = 0.1  # Update status text less frequently
-        
-        # Bind resize events
-        self.canvas.bind("<Configure>", self._on_canvas_resize)
-        
-        # Set up the background elements that rarely change
-        self._setup_background()
-        
-        # Initial drawing
-        self._draw()
+        self.button_label = QLabel("Buttons: None")
+        self.button_label.setStyleSheet(f"background-color: #252526; color: {self.text_color.name()}; padding: 5px;")
+        self.button_label.setFrameStyle(QFrame.StyledPanel | QFrame.Sunken)
+        layout.addWidget(self.button_label, 0)
     
-    def _on_canvas_resize(self, event) -> None:
-        """
-        Handle canvas resize events.
-        
-        Args:
-            event: The resize event
-        """
-        # Always update on canvas resize events
-        if event.width > 10 and event.height > 10:  # Avoid invalid dimensions
-            self.canvas_width = event.width
-            self.canvas_height = event.height
-            
-            # Update center coordinates
-            self.center_x = self.canvas_width / 2
-            self.center_y = self.canvas_height / 2
-            
-            # Redraw the background and foreground
-            self._setup_background()
-            self._draw()
-    
-    def update_size(self) -> None:
-        """
-        Update canvas size based on container size.
-        
-        Called when the parent container is resized.
-        """
-        if self.parent_frame.winfo_width() > 20 and self.parent_frame.winfo_height() > 20:
-            # Get current frame dimensions
-            frame_width = self.parent_frame.winfo_width()
-            frame_height = self.parent_frame.winfo_height()
-            
-            # Update canvas dimensions to match available space
-            self.canvas_width = max(300, frame_width - 20)  # Leave some padding
-            self.canvas_height = max(250, frame_height - 70)  # Reserve space for info text
-            
-            # Update center coordinates
-            self.center_x = self.canvas_width / 2
-            self.center_y = self.canvas_height / 2
-            
-            # Force a full redraw
-            self._setup_background()
-            self._draw()
-            
-    def force_update(self) -> None:
-        """
-        Force update visualization size.
-        
-        Called after fullscreen transitions.
-        """
-        # Force an immediate size update
-        self.update_size()
-    
-    def _setup_background(self) -> None:
-        """
-        Set up the static background elements.
-        
-        Creates the static visual elements of the mouse visualization interface
-        to avoid redrawing them on every update.
-        """
-        # Clear canvas
-        self.canvas.delete("all")
-        
-        # Calculate joystick circle radius - adaptive to canvas size
-        radius = min(self.canvas_width, self.canvas_height) * 0.25
-        
-        # Draw joystick area background - updated for dark theme
-        self.canvas.create_oval(
-            self.center_x - radius, self.center_y - radius,
-            self.center_x + radius, self.center_y + radius,
-            fill="#1E1E1E",
-            outline=self.accent_color,
-            width=1,
-            tags=("background",)
-        )
-        
-        # Draw coordinate axes - softer grid lines
-        self.canvas.create_line(
-            self.center_x - radius, self.center_y,
-            self.center_x + radius, self.center_y,
-            fill="#555555",
-            dash=(4, 4),
-            tags=("background",)
-        )
-        self.canvas.create_line(
-            self.center_x, self.center_y - radius,
-            self.center_x, self.center_y + radius,
-            fill="#555555",
-            dash=(4, 4),
-            tags=("background",)
-        )
-        
-        # Draw center indicator - more subtle center point
-        self.canvas.create_oval(
-            self.center_x - 5, self.center_y - 5,
-            self.center_x + 5, self.center_y + 5,
-            fill="#3E3E42",
-            outline="#555555",
-            tags=("background",)
-        )
-        
-        # Calculate font size based on canvas dimensions
-        font_size = max(9, min(11, int(self.canvas_width / 40)))
-        
-        # Draw labels for axes with new tag and corrected formatting
-        # Use "axis_labels" tag instead of "background" to prevent style overrides
-        self.canvas.create_text(
-            self.center_x + radius + 15, self.center_y, 
-            text="X+", 
-            fill="#FFFFFF",
-            tags=("axis_labels",),
-            font=("Consolas", font_size, "bold")
-        )
-        self.canvas.create_text(
-            self.center_x - radius - 15, self.center_y, 
-            text="X-", 
-            fill="#FFFFFF",
-            tags=("axis_labels",),
-            font=("Consolas", font_size, "bold")
-        )
-        self.canvas.create_text(
-            self.center_x, self.center_y - radius - 15, 
-            text="Y-", 
-            fill="#FFFFFF",
-            tags=("axis_labels",),
-            font=("Consolas", font_size, "bold")
-        )
-        self.canvas.create_text(
-            self.center_x, self.center_y + radius + 15, 
-            text="Y+", 
-            fill="#FFFFFF",
-            tags=("axis_labels",),
-            font=("Consolas", font_size, "bold")
-        )
-        
-        # Create coordinate text item with updated position and color
-        self.coordinate_text = self.canvas.create_text(
-            self.center_x, self.center_y + radius + 35,
-            text="Rel: (0.00, 0.00)",
-            fill=self.text_color,
-            tags=("dynamic",),
-            font=("Consolas", max(8, min(9, font_size - 1)))
-        )
-        
-        # Create placeholders for dynamic elements
-        handle_size = max(8, min(10, int(radius/10)))
-        self.joystick_handle = self.canvas.create_oval(
-            self.center_x - handle_size, self.center_y - handle_size,
-            self.center_x + handle_size, self.center_y + handle_size,
-            fill=self.accent_color,
-            outline="#FFFFFF",
-            width=1,
-            tags=("dynamic",)
-        )
-        
-        self.direction_line = self.canvas.create_line(
-            self.center_x, self.center_y,
-            self.center_x, self.center_y,
-            fill="#5FB878",
-            width=2,
-            arrow=tk.LAST,          
-            tags=("dynamic",),
-            state=tk.HIDDEN
-        )
-        
-        self.wheel_indicator = self.canvas.create_polygon(
-            self.center_x - 10, self.center_y - 15,
-            self.center_x, self.center_y - 30,
-            self.center_x + 10, self.center_y - 15,
-            fill="#5FB878",
-            outline="#FFFFFF",
-            width=1,
-            tags=("dynamic",),
-            state=tk.HIDDEN
-        )
-    
-    def update(self, input_data: InputData) -> None:
+    def update(self, input_data=None) -> None:
         """
         Update the mouse visualization based on input data.
-        
-        Processes input events to update the visual state of the mouse visualization.
         
         Args:
             input_data: Input event data containing mouse state information
         """
-        # Always update state
-        state_changed: bool = False
+        if input_data is not None:
+            # Update canvas
+            self.canvas.update_state(input_data)
+            
+            # Update info text based on tracking mode
+            tracking_mode = getattr(input_data, 'mouse_tracking_mode', 'joystick')
+            is_moving = getattr(input_data, 'is_moving', False)
+            
+            status_text = f"Mouse: {'Moving' if is_moving else 'Not moving'}"
+            
+            if tracking_mode == "delta":
+                if is_moving:
+                    if hasattr(input_data, 'mouse_delta_x') and input_data.mouse_delta_x is not None:
+                        status_text += f" | Δx:{input_data.mouse_delta_x:.1f} Δy:{input_data.mouse_delta_y:.1f}"
+                    if hasattr(input_data, 'mouse_delta_magnitude'):
+                        status_text += f" | Mag:{input_data.mouse_delta_magnitude:.1f}"
+                if input_data.direction:
+                    status_text += f" | Dir:{input_data.direction}"
+                if hasattr(input_data, 'wheel_direction') and input_data.wheel_direction:
+                    status_text += f" | Wheel:{input_data.wheel_direction}"
+                    
+            elif tracking_mode == "angle":
+                # Handle direction-only angle mode
+                if hasattr(input_data, 'direction_only') and input_data.direction_only:
+                    if is_moving:
+                        if hasattr(input_data, 'discrete_angle'):
+                            status_text += f" | Angle:{input_data.discrete_angle}°"
+                    if input_data.direction:
+                        status_text += f" | Dir:{input_data.direction}"
+                else:
+                    # Standard angle mode
+                    if is_moving:
+                        if hasattr(input_data, 'mouse_delta_angle'):
+                            status_text += f" | Angle:{input_data.mouse_delta_angle:.1f}° Mag:{input_data.mouse_delta_magnitude:.1f}"
+                    if input_data.direction:
+                        status_text += f" | Dir:{input_data.direction}"
+                        
+            elif tracking_mode == "axis":
+                # Axis mode with membership values
+                if is_moving and hasattr(input_data, 'north'):
+                    status_text += f" | N:{input_data.north:.1f} S:{input_data.south:.1f}"
+                    status_text += f" E:{input_data.east:.1f} W:{input_data.west:.1f}"
+                    
+            else:  # joystick mode
+                if input_data.direction and is_moving:
+                    status_text += f" | Dir:{input_data.direction}"
+                if is_moving and hasattr(input_data, 'speed'):
+                    status_text += f" | Speed:{input_data.speed:.1f}"
+            
+            if hasattr(input_data, 'wheel_direction') and input_data.wheel_direction:
+                status_text += f" | Wheel:{input_data.wheel_direction}"
+            
+            self.info_label.setText(status_text)
+            
+            # Update button text
+            button_states = []
+            if hasattr(self.canvas, 'left_button_pressed') and self.canvas.left_button_pressed:
+                button_states.append("Left")
+            if hasattr(self.canvas, 'right_button_pressed') and self.canvas.right_button_pressed:
+                button_states.append("Right")
+            if hasattr(self.canvas, 'middle_button_pressed') and self.canvas.middle_button_pressed:
+                button_states.append("Middle")
+            
+            button_text = "Buttons: " + (", ".join(button_states) if button_states else "None")
+            self.button_label.setText(button_text)
         
+        super().update()
+    
+    def force_update(self) -> None:
+        """Force a redraw of the visualization"""
+        self.canvas.update()
+        self.update()
+    
+    def sizeHint(self) -> QSize:
+        """Suggested size for the widget"""
+        return QSize(400, 350)
+
+
+class Canvas(QWidget):
+    """The actual mouse visualization canvas"""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.setMinimumSize(300, 200)
+        
+        # Define dark theme colors
+        self.dark_bg = QColor("#1E1E1E")
+        self.accent_color = QColor("#007ACC")
+        self.text_color = QColor("#E0E0E0")
+        self.highlight_color = QColor("#5FB878")
+        
+        # Mouse state
+        self.mouse_x = 0
+        self.mouse_y = 0
+        self.rel_x = 0.0
+        self.rel_y = 0.0
+        self.movement_direction = None
+        self.left_button_pressed = False
+        self.right_button_pressed = False
+        self.middle_button_pressed = False
+        self.is_moving = False
+        self.speed = 0.0
+        self.speed_x = 0.0
+        self.speed_y = 0.0
+        self.wheel_direction = None
+        
+        # Delta tracking fields
+        self.delta_x = 0.0
+        self.delta_y = 0.0
+        self.delta_magnitude = 0.0
+        self.delta_angle = 0.0
+        self.tracking_mode = "joystick"
+        
+        # Direction-only fields
+        self.direction_only = False
+        self.discrete_angle = 0
+        self.north = 0.0
+        self.south = 0.0
+        self.east = 0.0
+        self.west = 0.0
+    
+    def update_state(self, input_data):
+        """Update the visualization state based on input data"""
         # Handle mouse click events
         if input_data.event_type == "mouse_click":
-            old_button_state = (self.left_button_pressed, self.right_button_pressed, self.middle_button_pressed)
-            
             if input_data.button_pressed:
                 if "left" in input_data.button_pressed.lower():
                     self.left_button_pressed = True
@@ -352,53 +201,29 @@ class MouseVisualizer:
                     self.middle_button_pressed = True
             else:
                 # Button release
-                if input_data.mouse_x is not None:  # Make sure it's a valid click event
-                    # Check which button was released (by string match)
-                    if "left" in str(input_data):
-                        self.left_button_pressed = False
-                    elif "right" in str(input_data):
-                        self.right_button_pressed = False
-                    elif "middle" in str(input_data):
-                        self.middle_button_pressed = False
-                    else:
-                        # If we can't determine, reset all buttons
-                        self.left_button_pressed = False
-                        self.right_button_pressed = False
-                        self.middle_button_pressed = False
-            
-            # Check if buttons changed            
-            new_button_state = (self.left_button_pressed, self.right_button_pressed, self.middle_button_pressed)
-            if old_button_state != new_button_state:
-                state_changed = True
-                self.redraw_needed = True
+                if "left" in str(input_data):
+                    self.left_button_pressed = False
+                elif "right" in str(input_data):
+                    self.right_button_pressed = False
+                elif "middle" in str(input_data):
+                    self.middle_button_pressed = False
+                else:
+                    # If we can't determine, reset all buttons
+                    self.left_button_pressed = False
+                    self.right_button_pressed = False
+                    self.middle_button_pressed = False
         
         # Handle mouse scroll events
         if input_data.event_type == "mouse_scroll":
-            old_wheel = self.wheel_direction
             self.wheel_direction = input_data.direction  # Will be None when reset
-            
-            if old_wheel != self.wheel_direction:
-                state_changed = True
-                self.redraw_needed = True
-                
-                # Ensure visual update even when direction is None (reset)
-                if self.wheel_direction is None:
-                    self._update_status_text()
-                    self._draw()
         
         # Handle actual coordinates and movement state
         if input_data.rel_x is not None and input_data.rel_y is not None:
-            # Only consider significant changes to avoid excessive redraws
-            if abs(self.rel_x - input_data.rel_x) > 0.01 or abs(self.rel_y - input_data.rel_y) > 0.01:
-                self.rel_x = input_data.rel_x
-                self.rel_y = input_data.rel_y
-                self.redraw_needed = True
+            self.rel_x = input_data.rel_x
+            self.rel_y = input_data.rel_y
         
         # Update movement state
         if input_data.event_type == "mouse_move":
-            old_movement = self.is_moving
-            old_direction = self.movement_direction
-            
             self.movement_direction = input_data.direction
             if input_data.is_moving is not None:
                 self.is_moving = input_data.is_moving
@@ -410,10 +235,6 @@ class MouseVisualizer:
                     self.speed_x = input_data.speed_x
                 if input_data.speed_y is not None:
                     self.speed_y = input_data.speed_y
-            
-            # Check if movement status changed
-            if old_movement != self.is_moving or old_direction != self.movement_direction:
-                state_changed = True
         
         # Update with delta tracking data if available
         if hasattr(input_data, 'mouse_delta_x') and input_data.mouse_delta_x is not None:
@@ -424,10 +245,6 @@ class MouseVisualizer:
             self.delta_magnitude = input_data.mouse_delta_magnitude
         if hasattr(input_data, 'mouse_delta_angle') and input_data.mouse_delta_angle is not None:
             self.delta_angle = input_data.mouse_delta_angle
-        if hasattr(input_data, 'mouse_tracking_mode') and input_data.mouse_tracking_mode is not None:
-            self.tracking_mode = input_data.mouse_tracking_mode
-        
-        # Update tracking mode
         if hasattr(input_data, 'mouse_tracking_mode') and input_data.mouse_tracking_mode is not None:
             self.tracking_mode = input_data.mouse_tracking_mode
         
@@ -442,215 +259,151 @@ class MouseVisualizer:
             self.east = input_data.east if hasattr(input_data, 'east') else 0
             self.west = input_data.west if hasattr(input_data, 'west') else 0
         
-        # Update display text, but don't do it too often to avoid performance issues
-        current_time = time.time()
-        if state_changed or current_time - self.last_status_update > self.status_update_interval:
-            self._update_status_text()
-            self.last_status_update = current_time
-        
-        # Only redraw at a limited rate if needed
-        if self.redraw_needed and current_time - self.last_ui_update > self.ui_update_interval:
-            self._draw()
-            self.last_ui_update = current_time
-            self.redraw_needed = False
+        self.update()  # Request repaint
     
-    def _update_status_text(self) -> None:
-        """
-        Update status text with minimal processing.
+    def paintEvent(self, event):
+        """Paint the mouse visualization"""
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
         
-        Updates the status text labels to reflect the current mouse state.
-        """
-        # Update info text based on tracking mode
+        # Fill background
+        painter.fillRect(self.rect(), self.dark_bg)
+        
+        # Calculate joystick circle radius
+        radius = min(self.width(), self.height()) * 0.25
+        
+        # Calculate center coordinates
+        center_x = self.width() / 2
+        center_y = self.height() / 2
+        
+        # Draw joystick area background
+        pen = QPen(self.accent_color, 1)
+        painter.setPen(pen)
+        painter.setBrush(QBrush(QColor(30, 30, 30)))
+        painter.drawEllipse(QPoint(int(center_x), int(center_y)), int(radius), int(radius))
+        
+        # Draw coordinate axes
+        pen = QPen(QColor(85, 85, 85), 1, Qt.DashLine)
+        painter.setPen(pen)
+        painter.drawLine(
+            int(center_x - radius), int(center_y),
+            int(center_x + radius), int(center_y)
+        )
+        painter.drawLine(
+            int(center_x), int(center_y - radius),
+            int(center_x), int(center_y + radius)
+        )
+        
+        # Draw center indicator
+        pen = QPen(QColor(85, 85, 85), 1)
+        painter.setPen(pen)
+        painter.setBrush(QBrush(QColor(62, 62, 66)))
+        painter.drawEllipse(QPoint(int(center_x), int(center_y)), 5, 5)
+        
+        # Draw axis labels
+        font = QFont("Consolas", max(9, min(11, int(self.width() / 40))))
+        painter.setFont(font)
+        painter.setPen(QPen(QColor(255, 255, 255)))
+        
+        # Right label (X+)
+        painter.drawText(
+            int(center_x + radius + 5), int(center_y),
+            "X+"
+        )
+        # Left label (X-)
+        painter.drawText(
+            int(center_x - radius - 25), int(center_y),
+            "X-"
+        )
+        # Top label (Y-)
+        painter.drawText(
+            int(center_x - 10), int(center_y - radius - 10),
+            "Y-"
+        )
+        # Bottom label (Y+)
+        painter.drawText(
+            int(center_x - 10), int(center_y + radius + 20),
+            "Y+"
+        )
+        
+        # Calculate joystick position
+        joystick_x = center_x + (self.rel_x * radius)
+        joystick_y = center_y + (self.rel_y * radius)
+        
+        # Calculate joystick magnitude (distance from center)
+        joystick_magnitude = math.sqrt(self.rel_x**2 + self.rel_y**2)
+        
+        # Visual indicator for when at the edge
+        if joystick_magnitude > 0.95:
+            # Use a slightly larger handle at the edge
+            handle_radius = radius * 0.12
+            handle_outline_width = 2
+            handle_outline_color = QColor(255, 85, 85)
+        else:
+            handle_radius = radius * 0.1
+            handle_outline_width = 1
+            handle_outline_color = QColor(255, 255, 255)
+        
+        # Update handle color based on button state
+        handle_fill = QColor(255, 85, 85) if self.left_button_pressed else \
+                     QColor(85, 85, 255) if self.right_button_pressed else \
+                     QColor(170, 85, 170) if self.middle_button_pressed else \
+                     self.accent_color
+        
+        # Draw direction line if moving
+        if self.is_moving and self.movement_direction:
+            pen = QPen(QColor(95, 184, 120), 2)
+            painter.setPen(pen)
+            painter.drawLine(
+                int(center_x), int(center_y),
+                int(joystick_x), int(joystick_y)
+            )
+        
+        # Draw joystick handle
+        pen = QPen(handle_outline_color, handle_outline_width)
+        painter.setPen(pen)
+        painter.setBrush(QBrush(handle_fill))
+        painter.drawEllipse(
+            QPoint(int(joystick_x), int(joystick_y)),
+            int(handle_radius), int(handle_radius)
+        )
+        
+        # Draw wheel indicator if needed
+        if self.wheel_direction:
+            wheel_y_offset = -15 if self.wheel_direction == "up" else 15
+            wheel_color = QColor(95, 184, 120) if self.wheel_direction == "up" else QColor(255, 85, 85)
+            
+            points = QPolygon([
+                QPoint(int(joystick_x - 10), int(joystick_y + wheel_y_offset)),
+                QPoint(int(joystick_x), int(joystick_y + wheel_y_offset * 2)),
+                QPoint(int(joystick_x + 10), int(joystick_y + wheel_y_offset))
+            ])
+            
+            pen = QPen(QColor(255, 255, 255), 1)
+            painter.setPen(pen)
+            painter.setBrush(QBrush(wheel_color))
+            painter.drawPolygon(points)
+        
+        # Draw coordinate text based on tracking mode
+        font = QFont("Consolas", max(8, min(9, int(self.width() / 55))))
+        painter.setFont(font)
+        painter.setPen(QPen(self.text_color))
+        
         if self.tracking_mode == "delta":
-            status_text = f"Mouse: {'Moving' if self.is_moving else 'Not moving'}"
-            if self.is_moving:
-                status_text += f" | Δx:{self.delta_x:.1f} Δy:{self.delta_y:.1f}"
-                status_text += f" | Mag:{self.delta_magnitude:.1f}"
-            if self.movement_direction:
-                status_text += f" | Dir:{self.movement_direction}"
-            if self.wheel_direction:
-                status_text += f" | Wheel:{self.wheel_direction}"
+            text = f"Delta: ({self.delta_x:.2f}, {self.delta_y:.2f})"
         elif self.tracking_mode == "angle":
-            if hasattr(self, 'direction_only') and self.direction_only:
-                # Direction-only angle mode
-                status_text = f"Mouse: {'Moving' if self.is_moving else 'Not moving'}"
-                if self.is_moving:
-                    status_text += f" | Angle:{getattr(self, 'discrete_angle', 0)}°"
-                if self.movement_direction:
-                    status_text += f" | Dir:{self.movement_direction}"
-                if self.wheel_direction:
-                    status_text += f" | Wheel:{self.wheel_direction}"
+            if self.direction_only:
+                text = f"Discrete Angle: {self.discrete_angle}°"
             else:
-                # Standard angle mode
-                status_text = f"Mouse: {'Moving' if self.is_moving else 'Not moving'}"
-                if self.is_moving:
-                    status_text += f" | Angle:{self.delta_angle:.1f}° Mag:{self.delta_magnitude:.1f}"
-                if self.movement_direction:
-                    status_text += f" | Dir:{self.movement_direction}"
-                if self.wheel_direction:
-                    status_text += f" | Wheel:{self.wheel_direction}"
+                text = f"Angle: {self.delta_angle:.1f}° Mag: {self.delta_magnitude:.1f}"
         elif self.tracking_mode == "axis":
-            # Axis mode with membership values
-            status_text = f"Mouse: {'Moving' if self.is_moving else 'Not moving'}"
-            if self.is_moving and hasattr(self, 'north'):
-                status_text += f" | N:{self.north:.1f} S:{self.south:.1f}"
-                status_text += f" E:{self.east:.1f} W:{self.west:.1f}"
-            if self.wheel_direction:
-                status_text += f" | Wheel:{self.wheel_direction}"
+            text = f"N:{self.north:.1f} S:{self.south:.1f} E:{self.east:.1f} W:{self.west:.1f}"
         else:  # joystick mode
-            status_text = f"Mouse: {'Moving' if self.is_moving else 'Not moving'}"
-            if self.movement_direction and self.is_moving:
-                status_text += f" | Dir:{self.movement_direction}"
-            if self.is_moving:
-                status_text += f" | Speed:{self.speed:.1f}"
-            if self.wheel_direction:
-                status_text += f" | Wheel:{self.wheel_direction}"
+            text = f"Rel: ({self.rel_x:.2f}, {self.rel_y:.2f})"
         
-        # Update button text
-        button_states = []
-        if self.left_button_pressed:
-            button_states.append("Left")
-        if self.right_button_pressed:
-            button_states.append("Right")
-        if self.middle_button_pressed:
-            button_states.append("Middle")
-        
-        button_text = "Buttons: " + (", ".join(button_states) if button_states else "None")
-        
-        # Update the StringVars which is more efficient than updating text widgets
-        self.info_var.set(status_text)
-        self.button_var.set(button_text)
-    
-    def _draw(self) -> None:
-        """
-        Draw the mouse visualization with joystick-like representation.
-        
-        Updates the dynamic visual elements of the mouse visualization
-        based on the current state.
-        """
-        try:
-            # Only update dynamic elements, not the whole canvas
-            # Calculate joystick circle radius (use fixed percentage of the canvas)
-            radius = min(self.canvas_width, self.canvas_height) * 0.25  # Reduced from 0.3 to 0.25
-            
-            # Calculate joystick position
-            joystick_x = self.center_x + (self.rel_x * radius)
-            joystick_y = self.center_y + (self.rel_y * radius)
-            
-            # Update joystick handle position (don't recreate it)
-            handle_radius = radius * 0.1  # 10% of the circle radius
-            
-            # Calculate joystick magnitude (distance from center)
-            joystick_magnitude = math.sqrt(self.rel_x**2 + self.rel_y**2)
-            
-            # Visual indicator for when at the edge
-            if (joystick_magnitude > 0.95):  # Close to the edge
-                # Use a fixed handle size at the edge for stability
-                edge_color = "#402020"  # Dark red tint for the background in dark mode
-                self.canvas.itemconfig("background", fill=edge_color)
-                
-                # Make the handle slightly larger at the edge
-                handle_radius *= 1.2
-                
-                # Make the handle brighter at the edge
-                handle_outline_width = 2
-                handle_outline_color = "#FF5555"  # Brighter red in dark theme
-            else:
-                # Normal background and handle
-                self.canvas.itemconfig("background", fill="#1E1E1E")  # Dark background
-                handle_outline_width = 1
-                handle_outline_color = "#FFFFFF"  # White outline
-            
-            # Update handle position and appearance
-            self.canvas.coords(
-                self.joystick_handle,
-                joystick_x - handle_radius, joystick_y - handle_radius,
-                joystick_x + handle_radius, joystick_y + handle_radius
-            )
-            
-            self.canvas.itemconfig(
-                self.joystick_handle, 
-                outline=handle_outline_color,
-                width=handle_outline_width
-            )
-            
-            # Update handle color based on button state - more vibrant colors for dark theme
-            handle_fill = "#FF5555" if self.left_button_pressed else \
-                          "#5555FF" if self.right_button_pressed else \
-                          "#AA55AA" if self.middle_button_pressed else \
-                          self.accent_color
-            self.canvas.itemconfig(self.joystick_handle, fill=handle_fill)
-            
-            # Update direction line if moving
-            if self.is_moving and self.movement_direction:
-                self.canvas.coords(
-                    self.direction_line,
-                    self.center_x, self.center_y,
-                    joystick_x, joystick_y
-                )
-                self.canvas.itemconfig(self.direction_line, state=tk.NORMAL)
-            else:
-                self.canvas.itemconfig(self.direction_line, state=tk.HIDDEN)
-            
-            # Update wheel indicator if needed
-            if self.wheel_direction:
-                wheel_y_offset = -15 if self.wheel_direction == "up" else 15
-                wheel_color = "#5FB878" if self.wheel_direction == "up" else "#FF5555"
-                
-                self.canvas.coords(
-                    self.wheel_indicator,
-                    joystick_x - 10, joystick_y + wheel_y_offset,
-                    joystick_x, joystick_y + wheel_y_offset * 2,
-                    joystick_x + 10, joystick_y + wheel_y_offset
-                )
-                self.canvas.itemconfig(
-                    self.wheel_indicator, 
-                    fill=wheel_color,
-                    state=tk.NORMAL
-                )
-            else:
-                self.canvas.itemconfig(self.wheel_indicator, state=tk.HIDDEN)
-            
-            # Update coordinate text based on tracking mode
-            if self.tracking_mode == "delta":
-                self.canvas.itemconfig(
-                    self.coordinate_text,
-                    text=f"Delta: ({self.delta_x:.2f}, {self.delta_y:.2f})"
-                )
-            elif self.tracking_mode == "angle":
-                if hasattr(self, 'direction_only') and self.direction_only:
-                    self.canvas.itemconfig(
-                        self.coordinate_text,
-                        text=f"Discrete Angle: {getattr(self, 'discrete_angle', 0)}°"
-                    )
-                else:
-                    self.canvas.itemconfig(
-                        self.coordinate_text,
-                        text=f"Angle: {self.delta_angle:.1f}° Mag: {self.delta_magnitude:.1f}"
-                    )
-            elif self.tracking_mode == "axis":
-                # Display membership values
-                n = getattr(self, 'north', 0)
-                s = getattr(self, 'south', 0)
-                e = getattr(self, 'east', 0)
-                w = getattr(self, 'west', 0)
-                self.canvas.itemconfig(
-                    self.coordinate_text,
-                    text=f"N:{n:.1f} S:{s:.1f} E:{e:.1f} W:{w:.1f}"
-                )
-            else:  # joystick mode
-                self.canvas.itemconfig(
-                    self.coordinate_text,
-                    text=f"Rel: ({self.rel_x:.2f}, {self.rel_y:.2f})"
-                )
-        except Exception as e:
-            print(f"Error drawing mouse viz: {e}")
-    
-    def get_frame(self) -> tk.Frame:
-        """
-        Get the tk Frame containing the mouse visualization.
-        
-        Returns:
-            tk.Frame: The frame containing the mouse visualization
-        """
-        return self.frame
+        # Create text rectangle
+        text_rect = QRect(
+            0, int(center_y + radius + 30),
+            self.width(), 20
+        )
+        painter.drawText(text_rect, Qt.AlignCenter, text)
