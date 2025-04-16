@@ -505,3 +505,50 @@ class SignalProcessor:
             
         logging.info(f"Restored data from wavelet coefficients at level {level_to_restore}")
         return restored_data
+
+    def get_signal_quality(self, data: np.ndarray, channel: int, gain: int = 24) -> float:
+        """
+        Calculate signal quality based on railed percentage.
+        
+        Args:
+            data: Input data array
+            channel: Channel index to check
+            gain: Amplifier gain
+            
+        Returns:
+            Quality score between 0 (bad) and 1 (good)
+        """
+        try:
+            if channel >= data.shape[0] or data.size == 0:
+                return 0.0
+                
+            channel_data = data[channel]
+            railed_percentage = DataFilter.get_railed_percentage(channel_data, gain)
+            
+            # Convert to quality score (0 to 1, where 1 is best quality)
+            # A high railed percentage means poor quality
+            quality = 1.0 - min(railed_percentage / 100.0, 1.0)
+            
+            logging.debug(f"Channel {channel} railed percentage: {railed_percentage}%, quality: {quality:.2f}")
+            return quality
+            
+        except Exception as e:
+            logging.error(f"Error calculating signal quality: {e}")
+            return 0.0  # Return worst quality on error
+
+    def get_all_channels_quality(self, data: np.ndarray, channels: List[int], gain: int = 24) -> Dict[int, float]:
+        """
+        Calculate quality for multiple channels.
+        
+        Args:
+            data: Input data array
+            channels: List of channel indices
+            gain: Amplifier gain
+            
+        Returns:
+            Dictionary mapping channel indices to quality scores
+        """
+        quality_dict = {}
+        for channel in channels:
+            quality_dict[channel] = self.get_signal_quality(data, channel, gain)
+        return quality_dict

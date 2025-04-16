@@ -60,6 +60,18 @@ class EEGVisualizer:
         # Create plots for each EEG channel
         self.plots = []
         self.curves = []
+        
+        # Quality indicators
+        self.quality_indicators = []
+        
+        # Define quality colors
+        self.quality_colors = [
+            (255, 0, 0),      # Red (bad quality)
+            (255, 165, 0),    # Orange (poor quality)
+            (255, 255, 0),    # Yellow (fair quality)
+            (144, 238, 144),  # Light green (good quality)
+            (0, 128, 0)       # Dark green (excellent quality)
+        ]
 
         for i in range(self.num_channels):
             plot = self.win.addPlot(row=i, col=0)
@@ -88,6 +100,11 @@ class EEGVisualizer:
             )
             self.plots.append(plot)
             self.curves.append(curve)
+            
+            # Add quality indicator (circle with color indicating quality)
+            quality_indicator = pg.ScatterPlotItem()
+            plot.addItem(quality_indicator)
+            self.quality_indicators.append(quality_indicator)
 
         # Add FFT plot
         self.fft_plot = self.win.addPlot(row=0, col=1, rowspan=self.num_channels // 2)
@@ -194,17 +211,46 @@ class EEGVisualizer:
             if self.apply_detrend:
                 data_to_plot = self.processor.detrend(data_to_plot)
 
+            # Calculate signal quality for each channel
+            quality_scores = self.processor.get_all_channels_quality(data_to_plot, self.eeg_channels)
+
             # Update time series plots
             for i, channel in enumerate(self.eeg_channels):
                 if i < len(self.curves) and channel < data_to_plot.shape[0]:
                     try:
                         # Get channel data and ensure it's 1D
-                        channel_data = data_to_plot[channel][-self.num_points :]
+                        channel_data = data_to_plot[channel][-self.num_points:]
                         if len(channel_data) > 0:
-                            # Force to 1D array even if it's already 1D (this handles different numpy array structures)
+                            # Force to 1D array even if it's already 1D
                             channel_data = np.asarray(channel_data).flatten()
-                            time_vector = self.time_vector[-len(channel_data) :]
+                            time_vector = self.time_vector[-len(channel_data):]
                             self.curves[i].setData(time_vector, channel_data)
+                            
+                            # Update quality indicator
+                            quality = quality_scores.get(channel, 0)
+                            
+                            # Position quality indicator at the latest data point
+                            if len(time_vector) > 0 and len(channel_data) > 0:
+                                x = time_vector[-1]
+                                y = channel_data[-1]
+                                
+                                # Determine color based on quality score
+                                color_idx = min(int(quality * len(self.quality_colors)), len(self.quality_colors) - 1)
+                                color = self.quality_colors[color_idx]
+                                
+                                # Set size based on quality (better quality = smaller dot)
+                                size = 12 - (quality * 5)  # Size between 7-12px
+                                
+                                # Update position and appearance
+                                self.quality_indicators[i].setData(
+                                    [x], [y], 
+                                    size=size, 
+                                    brush=pg.mkBrush(color), 
+                                    pxMode=True
+                                )
+                                
+                                # Optional: Add border to dots for better visibility
+                                self.quality_indicators[i].setPen(pg.mkPen('w', width=0.5))
                     except Exception as e:
                         logging.error(
                             f"Error plotting time series for channel {channel}: {e}"
@@ -216,7 +262,7 @@ class EEGVisualizer:
                 if i < len(self.fft_curves) and channel < data_to_plot.shape[0]:
                     try:
                         # Get channel data and ensure it's 1D
-                        channel_data = data_to_plot[channel][-self.num_points :]
+                        channel_data = data_to_plot[channel][-self.num_points:]
                         if len(channel_data) > 0:
                             # Force to 1D array
                             channel_data = np.asarray(channel_data).flatten()
@@ -268,7 +314,7 @@ class EEGVisualizer:
                 channel = self.eeg_channels[0]
                 if channel < data_to_plot.shape[0]:
                     try:
-                        channel_data = data_to_plot[channel][-self.num_points :]
+                        channel_data = data_to_plot[channel][-self.num_points:]
                         if len(channel_data) > 0:
                             # Force to 1D array
                             channel_data_flat = np.asarray(channel_data).flatten()
