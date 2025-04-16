@@ -40,6 +40,9 @@ from .collectors.eeg_collector import EEGCollector
 from .processors.signal_processor import SignalProcessor
 from .visualizers.eeg_viz import EEGVisualizer
 
+# Importar la nueva clase BoardConfiguration
+from .collectors.board_configuration import BoardConfiguration
+
 # Check if MNE is available
 try:
     import mne
@@ -249,6 +252,11 @@ class EEGProcessorApp(QMainWindow):
         tabs.addTab(recording_tab, "Recording")
         self.setup_recording_tab(recording_tab)
 
+        # Streaming tab - new
+        streaming_tab = QWidget()
+        tabs.addTab(streaming_tab, "Streaming")
+        self.setup_streaming_tab(streaming_tab)
+
         # Advanced Processing tab (new)
         advanced_tab = QWidget()
         tabs.addTab(advanced_tab, "Advanced Processing")
@@ -267,14 +275,13 @@ class EEGProcessorApp(QMainWindow):
         """Set up the connection tab."""
         layout = QVBoxLayout(tab)
 
-        # Visualization control - Agregado al principio para mayor visibilidad
+        # Visualization control
         visualization_group = QGroupBox("Visualization Control")
         visualization_layout = QVBoxLayout(visualization_group)
 
         self.show_viz_btn = QPushButton("Show Visualization Window")
         self.show_viz_btn.clicked.connect(self.show_visualization)
         self.show_viz_btn.setEnabled(False)
-        # Destacar con estilo visual
         self.show_viz_btn.setStyleSheet("font-weight: bold; padding: 6px;")
         visualization_layout.addWidget(self.show_viz_btn)
 
@@ -282,74 +289,102 @@ class EEGProcessorApp(QMainWindow):
         board_group = QGroupBox("Board Selection")
         board_layout = QVBoxLayout(board_group)
 
-        board_type_layout = QHBoxLayout()
-        board_type_label = QLabel("Board Type:")
-        self.board_type_combo = QComboBox()
-
-        # Add supported boards
-        self.board_type_combo.addItem("Synthetic Board", BoardIds.SYNTHETIC_BOARD)
-        self.board_type_combo.addItem("Unicorn Board", BoardIds.UNICORN_BOARD)
-        self.board_type_combo.addItem(
-            "Playback File Board", BoardIds.PLAYBACK_FILE_BOARD
-        )
-        self.board_type_combo.addItem("Streaming Board", BoardIds.STREAMING_BOARD)
-
-        self.board_type_combo.currentIndexChanged.connect(self.on_board_type_changed)
-
+        # Board type organization - new grouped approach
+        board_type_layout = QVBoxLayout()
+        board_type_label = QLabel("Select Board:")
         board_type_layout.addWidget(board_type_label)
+        
+        # Get board groups from the helper class
+        self.board_groups = BoardConfiguration.get_all_boards()
+        
+        # Create a combo box for board selection
+        self.board_type_combo = QComboBox()
+        for name, board_id in self.board_groups:
+            self.board_type_combo.addItem(name, board_id)
+            
+        # Filter functionality for easier board selection
+        filter_layout = QHBoxLayout()
+        filter_label = QLabel("Filter:")
+        self.filter_edit = QtWidgets.QLineEdit()
+        self.filter_edit.setPlaceholderText("Type to filter boards...")
+        self.filter_edit.textChanged.connect(self.filter_boards)
+        filter_layout.addWidget(filter_label)
+        filter_layout.addWidget(self.filter_edit)
+        
+        board_type_layout.addLayout(filter_layout)
         board_type_layout.addWidget(self.board_type_combo)
+        
+        # Connect signal after adding all items
+        self.board_type_combo.currentIndexChanged.connect(self.on_board_type_changed)
+        
         board_layout.addLayout(board_type_layout)
 
         # Parameters group
-        param_group = QGroupBox("Board Parameters")
-        param_layout = QVBoxLayout(param_group)
+        self.param_group = QGroupBox("Board Parameters")
+        param_layout = QVBoxLayout(self.param_group)
 
-        # Serial port (for boards that need it)
-        serial_layout = QHBoxLayout()
-        serial_label = QLabel("Serial Port:")
-        self.serial_edit = QtWidgets.QLineEdit()
-        serial_layout.addWidget(serial_label)
-        serial_layout.addWidget(self.serial_edit)
-        param_layout.addLayout(serial_layout)
-
+        # Create all parameter fields
+        self.param_fields = {}
+        
+        # Serial port
+        serial_layout = self._create_param_field("serial_port", "Serial Port:", param_layout)
+        
+        # IP fields
+        ip_layout = self._create_param_field("ip_address", "IP Address:", param_layout)
+        ip_port_layout = self._create_param_field("ip_port", "IP Port:", param_layout, is_numeric=True)
+        
+        # MAC Address
+        mac_layout = self._create_param_field("mac_address", "MAC Address:", param_layout)
+        
+        # Serial Number
+        serial_number_layout = self._create_param_field("serial_number", "Serial Number:", param_layout)
+        
         # File for playback board
         file_layout = QHBoxLayout()
         file_label = QLabel("File Path:")
-        self.file_edit = QtWidgets.QLineEdit()
+        self.param_fields["file"] = QtWidgets.QLineEdit()
         file_browse_btn = QPushButton("Browse")
         file_browse_btn.clicked.connect(self.browse_file)
         file_layout.addWidget(file_label)
-        file_layout.addWidget(self.file_edit)
+        file_layout.addWidget(self.param_fields["file"])
         file_layout.addWidget(file_browse_btn)
         param_layout.addLayout(file_layout)
 
         # Master board (for playback/streaming boards)
         master_layout = QHBoxLayout()
         master_label = QLabel("Master Board:")
-        self.master_combo = QComboBox()
-        self.master_combo.addItem("Synthetic Board", BoardIds.SYNTHETIC_BOARD)
-        self.master_combo.addItem("Unicorn Board", BoardIds.UNICORN_BOARD)
+        self.param_fields["master_board"] = QComboBox()
+        
+        # Add boards to master board dropdown
+        for name, board_id in self.board_groups:
+            self.param_fields["master_board"].addItem(name, board_id)
+            
         master_layout.addWidget(master_label)
-        master_layout.addWidget(self.master_combo)
+        master_layout.addWidget(self.param_fields["master_board"])
         param_layout.addLayout(master_layout)
-
-        # IP settings (for streaming board)
-        ip_layout = QHBoxLayout()
-        ip_label = QLabel("IP Address:")
-        self.ip_edit = QtWidgets.QLineEdit()
-        self.ip_edit.setText("225.1.1.1")  # Default multicast address
-        ip_port_label = QLabel("Port:")
-        self.ip_port_spin = QSpinBox()
-        self.ip_port_spin.setRange(1000, 65535)
-        self.ip_port_spin.setValue(6677)  # Default port
-        ip_layout.addWidget(ip_label)
-        ip_layout.addWidget(self.ip_edit)
-        ip_layout.addWidget(ip_port_label)
-        ip_layout.addWidget(self.ip_port_spin)
-        param_layout.addLayout(ip_layout)
+        
+        # Other Info
+        other_info_layout = self._create_param_field("other_info", "Other Info:", param_layout)
+        
+        # Timeout
+        timeout_layout = self._create_param_field("timeout", "Timeout (ms):", param_layout, is_numeric=True)
+        
+        # Preset selection
+        preset_layout = QHBoxLayout()
+        preset_label = QLabel("Data Preset:")
+        self.preset_combo = QComboBox()
+        
+        # Add presets
+        preset_info = BoardConfiguration.get_preset_info()
+        for preset_val, preset_desc in preset_info.items():
+            self.preset_combo.addItem(preset_desc, preset_val)
+            
+        preset_layout.addWidget(preset_label)
+        preset_layout.addWidget(self.preset_combo)
+        param_layout.addLayout(preset_layout)
 
         # Add parameter group to layout
-        board_layout.addWidget(param_group)
+        board_layout.addWidget(self.param_group)
 
         # Connection control
         control_layout = QHBoxLayout()
@@ -377,17 +412,165 @@ class EEGProcessorApp(QMainWindow):
         # Board info
         info_group = QGroupBox("Board Information")
         info_layout = QVBoxLayout(info_group)
+        
+        # Create a scrollable area for board info
+        info_scroll = QScrollArea()
+        info_scroll.setWidgetResizable(True)
+        info_widget = QWidget()
+        info_scroll_layout = QVBoxLayout(info_widget)
+        
         self.board_info_label = QLabel("No board connected")
-        info_layout.addWidget(self.board_info_label)
+        self.board_info_label.setWordWrap(True)
+        info_scroll_layout.addWidget(self.board_info_label)
+        info_scroll_layout.addStretch()
+        
+        info_scroll.setWidget(info_widget)
+        info_layout.addWidget(info_scroll)
 
-        # Add groups to tab - Añadimos el grupo de visualización antes de los otros para que esté bien visible
+        # Add groups to tab
         layout.addWidget(visualization_group)
         layout.addWidget(board_group)
         layout.addWidget(info_group)
         layout.addStretch()
 
-        # Initially hide parameters that aren't needed
+        # Initially update visible parameters based on selected board
         self.on_board_type_changed()
+        
+    def _create_param_field(self, param_name, label_text, parent_layout, is_numeric=False):
+        """Helper method to create parameter input fields"""
+        layout = QHBoxLayout()
+        label = QLabel(label_text)
+        
+        if is_numeric:
+            field = QSpinBox()
+            field.setRange(0, 65535)
+            if param_name == "ip_port":
+                field.setValue(6677)  # Default port
+            elif param_name == "timeout":
+                field.setValue(15000)  # Default timeout
+        else:
+            field = QtWidgets.QLineEdit()
+            if param_name == "ip_address":
+                field.setText("225.1.1.1")  # Default multicast address
+                
+        layout.addWidget(label)
+        layout.addWidget(field)
+        parent_layout.addLayout(layout)
+        
+        self.param_fields[param_name] = field
+        return layout
+        
+    def filter_boards(self):
+        """Filter the boards in the dropdown based on search text"""
+        filter_text = self.filter_edit.text().lower()
+        self.board_type_combo.clear()
+        
+        for name, board_id in self.board_groups:
+            if filter_text in name.lower():
+                self.board_type_combo.addItem(name, board_id)
+                
+        # If no matching boards, show a message
+        if self.board_type_combo.count() == 0:
+            self.board_type_combo.addItem("No matching boards", -1)
+
+    def on_board_type_changed(self):
+        """Handle board type selection changes."""
+        board_id = self.board_type_combo.currentData()
+        if board_id is None:
+            return
+            
+        # Even if board ID is -1 (for no matching boards), continue to show message
+        # but don't treat it as an error case
+        
+        try:
+            # Get requirements for this board
+            requirements = BoardConfiguration.get_board_requirements(board_id)
+            
+            # Show/hide parameters based on requirements
+            for param, required in requirements.items():
+                if param in self.param_fields:
+                    self.param_fields[param].setEnabled(required)
+                    
+                    # Add visual cue for required fields
+                    if required:
+                        if isinstance(self.param_fields[param], QComboBox):
+                            self.param_fields[param].setStyleSheet("border: 1px solid #E0A030;")
+                        else:
+                            self.param_fields[param].setStyleSheet("border: 1px solid #E0A030; background-color: rgba(224, 160, 48, 0.1);")
+                    else:
+                        if isinstance(self.param_fields[param], QComboBox):
+                            self.param_fields[param].setStyleSheet("")
+                        else:
+                            self.param_fields[param].setStyleSheet("background-color: #252526;")
+            
+            # Show board description if available
+            try:
+                preset = self.preset_combo.currentData()
+                if preset is None:
+                    preset = BrainFlowPresets.DEFAULT_PRESET.value
+                    
+                # For synthetic board and special boards, use our overridden get_board_description
+                description = BoardConfiguration.get_board_description(board_id, preset)
+                
+                if isinstance(description, dict):
+                    desc_text = f"<b>Selected Board:</b> {description.get('name', f'Board ID {board_id}')}<br>"
+                    
+                    if "sampling_rate" in description:
+                        desc_text += f"<b>Sampling Rate:</b> {description['sampling_rate']} Hz<br>"
+                        
+                    if "eeg_channels" in description:
+                        if isinstance(description["eeg_channels"], list):
+                            desc_text += f"<b>EEG Channels:</b> {len(description['eeg_channels'])}<br>"
+                        else:
+                            desc_text += f"<b>EEG Channels:</b> {description['eeg_channels']}<br>"
+                        
+                    if "eeg_names" in description:
+                        if isinstance(description["eeg_names"], str):
+                            eeg_names = description["eeg_names"].split(",")
+                        else:
+                            eeg_names = description["eeg_names"]
+                        desc_text += f"<b>Channel Names:</b> {', '.join(eeg_names)}<br>"
+                    
+                    # Add other channel types
+                    for ch_type in ["emg", "ecg", "eog", "eda", "accel", "gyro", "ppg"]:
+                        key = f"{ch_type}_channels"
+                        if key in description and description[key]:
+                            desc_text += f"<b>{ch_type.upper()} Channels:</b> {len(description[key])}<br>"
+                    
+                    self.board_info_label.setText(desc_text)
+                else:
+                    # Fallback for when description is not a dict
+                    if board_id == BoardIds.SYNTHETIC_BOARD.value:
+                        desc_text = "<b>Selected Board:</b> Synthetic Board<br>"
+                        desc_text += "<b>Sampling Rate:</b> 250 Hz<br>"
+                        desc_text += "<b>EEG Channels:</b> 16<br>"
+                        desc_text += "<b>Channel Names:</b> Fp1, Fp2, C3, C4, etc.<br>"
+                        self.board_info_label.setText(desc_text)
+                    else:
+                        self.board_info_label.setText(f"Selected board ID: {board_id}")
+            except Exception as e:
+                # Special handling for synthetic and other special boards
+                if board_id == BoardIds.SYNTHETIC_BOARD.value:
+                    desc_text = "<b>Selected Board:</b> Synthetic Board<br>"
+                    desc_text += "<b>Sampling Rate:</b> 250 Hz<br>" 
+                    desc_text += "<b>EEG Channels:</b> 16<br>"
+                    desc_text += "<b>Channel Names:</b> Fp1, Fp2, C3, C4, etc.<br>"
+                    self.board_info_label.setText(desc_text)
+                elif board_id == BoardIds.PLAYBACK_FILE_BOARD.value:
+                    desc_text = "<b>Selected Board:</b> Playback File Board<br>"
+                    desc_text += "<b>Info:</b> Parameters depend on the file content<br>"
+                    self.board_info_label.setText(desc_text)
+                elif board_id == BoardIds.STREAMING_BOARD.value:
+                    desc_text = "<b>Selected Board:</b> Streaming Board<br>"
+                    desc_text += "<b>Info:</b> Parameters depend on the master board<br>"
+                    self.board_info_label.setText(desc_text)
+                else:
+                    self.board_info_label.setText(f"Selected board ID: {board_id}")
+                logging.debug(f"Error getting board description: {e}")
+                
+        except Exception as e:
+            logging.error(f"Error in board type changed: {e}")
+            self.board_info_label.setText(f"Selected board ID: {board_id}")
 
     def setup_processing_tab(self, tab):
         """Set up the processing tab."""
@@ -1342,63 +1525,39 @@ class EEGProcessorApp(QMainWindow):
             )
             logging.error(f"MNE visualization error: {e}")
 
-    def on_board_type_changed(self):
-        """Handle board type selection changes."""
-        board_id = self.board_type_combo.currentData()
-
-        # Hide all parameter fields initially
-        self.serial_edit.setEnabled(False)
-        self.file_edit.setEnabled(False)
-        self.master_combo.setEnabled(False)
-        self.ip_edit.setEnabled(False)
-        self.ip_port_spin.setEnabled(False)
-
-        # Enable relevant fields based on board type
-        if board_id == BoardIds.UNICORN_BOARD:
-            self.serial_edit.setEnabled(True)
-        elif board_id == BoardIds.PLAYBACK_FILE_BOARD:
-            self.file_edit.setEnabled(True)
-            self.master_combo.setEnabled(True)
-        elif board_id == BoardIds.STREAMING_BOARD:
-            self.ip_edit.setEnabled(True)
-            self.ip_port_spin.setEnabled(True)
-            self.master_combo.setEnabled(True)
-
-    def browse_file(self):
-        """Browse for a file for playback board."""
-        filename, _ = QFileDialog.getOpenFileName(
-            self, "Select Data File", "", "CSV files (*.csv)"
-        )
-        if filename:
-            self.file_edit.setText(filename)
-
-    def browse_record_file(self):
-        """Browse for a file to save recorded data."""
-        filename, _ = QFileDialog.getSaveFileName(
-            self, "Save Recording", "", "CSV files (*.csv)"
-        )
-        if filename:
-            self.record_file_edit.setText(filename)
-
     def connect_board(self):
         """Connect to the selected EEG board."""
         try:
             board_id = self.board_type_combo.currentData()
-            params = BrainFlowInputParams()
+            if board_id is None:
+                QMessageBox.warning(self, "Connection Error", "Please select a valid board")
+                return
+            
+            # Get selected preset
+            preset = self.preset_combo.currentData()
+            if preset is None:
+                preset = BrainFlowPresets.DEFAULT_PRESET
 
-            # Set parameters based on board type
-            if board_id == BoardIds.UNICORN_BOARD:
-                params.serial_port = self.serial_edit.text()
-            elif board_id == BoardIds.PLAYBACK_FILE_BOARD:
-                params.file = self.file_edit.text()
-                params.master_board = self.master_combo.currentData()
-            elif board_id == BoardIds.STREAMING_BOARD:
-                params.ip_address = self.ip_edit.text()
-                params.ip_port = self.ip_port_spin.value()
-                params.master_board = self.master_combo.currentData()
+            # Collect parameters from input fields
+            params_dict = {}
+            for param_name, field in self.param_fields.items():
+                if isinstance(field, QComboBox):
+                    params_dict[param_name] = field.currentData()
+                elif isinstance(field, QSpinBox):
+                    params_dict[param_name] = field.value()
+                else:
+                    params_dict[param_name] = field.text()
 
+            # Create input parameters
+            params = BoardConfiguration.create_input_params(board_id, params_dict)
+
+            # Special handling for synthetic board
+            if board_id == BoardIds.SYNTHETIC_BOARD.value:
+                logging.info("Connecting to synthetic board")
+                # No special parameters needed
+            
             # Create collector
-            self.collector = EEGCollector(board_id, params)
+            self.collector = EEGCollector(board_id, params, preset)
             self.collector.prepare_session()
 
             # Create processor
@@ -1408,17 +1567,35 @@ class EEGProcessorApp(QMainWindow):
             self.connect_btn.setEnabled(False)
             self.disconnect_btn.setEnabled(True)
             self.start_stream_btn.setEnabled(True)
-            self.stop_stream_btn.setEnabled(False)  # Asegurar que está desactivado
+            self.stop_stream_btn.setEnabled(False)
             self.save_data_btn.setEnabled(True)
-            self.show_viz_btn.setEnabled(False)  # Asegurar que está desactivado
+            self.show_viz_btn.setEnabled(False)
 
             # Update board info
             board_info = self.collector.get_board_info()
-            info_text = f"Connected to {board_info['board_name']}\n"
-            info_text += f"Sampling Rate: {board_info['sampling_rate']} Hz\n"
-            info_text += f"EEG Channels: {len(board_info['eeg_channels'])}"
-            self.board_info_label.setText(info_text)
-
+            rich_info = "<b>Connected Board Information:</b><br>"
+            rich_info += f"<b>Name:</b> {board_info['board_name']}<br>"
+            rich_info += f"<b>Board ID:</b> {board_info['board_id']}<br>"
+            rich_info += f"<b>Preset:</b> {preset}<br>"
+            rich_info += f"<b>Sampling Rate:</b> {board_info['sampling_rate']} Hz<br>"
+            rich_info += f"<b>EEG Channels:</b> {len(board_info['eeg_channels'])}<br>"
+            
+            # Add channel names if available
+            if 'eeg_names' in board_info and board_info['eeg_names']:
+                rich_info += f"<b>Channel Names:</b> {', '.join(board_info['eeg_names'])}<br>"
+                
+            # Add info about other available channels
+            channel_types = [
+                ('emg', 'EMG'), ('ecg', 'ECG'), ('eog', 'EOG'), ('eda', 'EDA'),
+                ('ppg', 'PPG'), ('accel', 'Accelerometer'), ('gyro', 'Gyroscope')
+            ]
+            
+            for key, label in channel_types:
+                ch_key = f"{key}_channels"
+                if ch_key in board_info and board_info[ch_key]:
+                    rich_info += f"<b>{label} Channels:</b> {len(board_info[ch_key])}<br>"
+            
+            self.board_info_label.setText(rich_info)
             self.statusBar().showMessage("Board connected successfully")
 
         except Exception as e:
@@ -1733,14 +1910,233 @@ class EEGProcessorApp(QMainWindow):
 
         # Get EEG channels
         eeg_channels = self.collector.get_eeg_channels()
-
-        # Clear and populate wavelet channel combo
+        
+        # Clear wavelet channel combo
         self.wavelet_channel_combo.clear()
-        for i, channel in enumerate(eeg_channels):
-            self.wavelet_channel_combo.addItem(f"Channel {channel}", channel)
+        
+        # Add all channel types to dropdown
+        channel_types = [
+            ('eeg', 'EEG'), ('emg', 'EMG'), ('ecg', 'ECG'), ('eog', 'EOG'), 
+            ('eda', 'EDA'), ('ppg', 'PPG'), ('accel', 'Accel'), ('gyro', 'Gyro')
+        ]
+        
+        for type_key, type_label in channel_types:
+            channels = self.collector.get_channel_by_type(type_key)
+            if channels:
+                for i, channel in enumerate(channels):
+                    label = f"{type_label} {i+1}"
+                    # Use EEG channel names if available
+                    if type_key == 'eeg' and hasattr(self.collector, 'eeg_names') and i < len(self.collector.eeg_names):
+                        label += f" ({self.collector.eeg_names[i]})"
+                    self.wavelet_channel_combo.addItem(f"{label} - Ch{channel}", channel)
 
-        # Clear and populate ICA channel combo (keep "All Channels" as first option)
+        # Clear and populate ICA channel combo
         self.ica_channel_combo.clear()
         self.ica_channel_combo.addItem("All Channels", -1)
-        for i, channel in enumerate(eeg_channels):
-            self.ica_channel_combo.addItem(f"Channel {channel}", channel)
+        
+        # Add all channel types to ICA dropdown similarly
+        for type_key, type_label in channel_types:
+            channels = self.collector.get_channel_by_type(type_key)
+            if channels:
+                for i, channel in enumerate(channels):
+                    label = f"{type_label} {i+1}"
+                    if type_key == 'eeg' and hasattr(self.collector, 'eeg_names') and i < len(self.collector.eeg_names):
+                        label += f" ({self.collector.eeg_names[i]})"
+                    self.ica_channel_combo.addItem(f"{label} - Ch{channel}", channel)
+
+    # Add a method to handle preset changes
+    def change_preset(self):
+        """Handle preset change for the current board."""
+        if not self.collector:
+            return
+            
+        try:
+            new_preset = self.preset_combo.currentData()
+            success = self.collector.set_preset(new_preset)
+            
+            if success:
+                # Update board info display
+                board_info = self.collector.get_board_info()
+                rich_info = "<b>Board Information (Updated):</b><br>"
+                rich_info += f"<b>Name:</b> {board_info['board_name']}<br>"
+                rich_info += f"<b>Board ID:</b> {board_info['board_id']}<br>"
+                rich_info += f"<b>Preset:</b> {new_preset}<br>"
+                rich_info += f"<b>Sampling Rate:</b> {board_info['sampling_rate']} Hz<br>"
+                rich_info += f"<b>EEG Channels:</b> {len(board_info['eeg_channels'])}<br>"
+                
+                # Update channel names if available
+                if 'eeg_names' in board_info and board_info['eeg_names']:
+                    rich_info += f"<b>Channel Names:</b> {', '.join(board_info['eeg_names'])}<br>"
+                    
+                self.board_info_label.setText(rich_info)
+                self.statusBar().showMessage(f"Preset changed to {new_preset}")
+                
+                # Update processor with new sampling rate
+                self.processor = SignalProcessor(self.collector.sampling_rate)
+                
+                # Re-populate channel dropdowns
+                self._populate_channel_dropdowns()
+            else:
+                self.statusBar().showMessage("Failed to change preset")
+        except Exception as e:
+            QMessageBox.warning(
+                self, "Preset Error", f"Error changing preset: {str(e)}"
+            )
+            logging.error(f"Preset change error: {e}")
+            
+    # Add a tab for config and streaming options
+    def setup_streaming_tab(self, tab):
+        """Set up the streaming tab for advanced streaming options."""
+        layout = QVBoxLayout(tab)
+        
+        # Streamer configuration
+        streamer_group = QGroupBox("Streamer Configuration")
+        streamer_layout = QVBoxLayout(streamer_group)
+        
+        # File streamer
+        file_streamer_layout = QHBoxLayout()
+        file_streamer_layout.addWidget(QLabel("File Streamer:"))
+        self.file_streamer_path = QtWidgets.QLineEdit()
+        self.file_streamer_path.setText("file://eeg_stream.csv:w")
+        file_streamer_layout.addWidget(self.file_streamer_path)
+        
+        file_streamer_btn = QPushButton("Add File Streamer")
+        file_streamer_btn.clicked.connect(lambda: self.add_streamer(self.file_streamer_path.text()))
+        file_streamer_layout.addWidget(file_streamer_btn)
+        
+        streamer_layout.addLayout(file_streamer_layout)
+        
+        # Network streamer
+        network_streamer_layout = QHBoxLayout()
+        network_streamer_layout.addWidget(QLabel("Network Streamer:"))
+        self.network_streamer_path = QtWidgets.QLineEdit()
+        self.network_streamer_path.setText("streaming_board://225.1.1.1:6677")
+        network_streamer_layout.addWidget(self.network_streamer_path)
+        
+        network_streamer_btn = QPushButton("Add Network Streamer")
+        network_streamer_btn.clicked.connect(lambda: self.add_streamer(self.network_streamer_path.text()))
+        network_streamer_layout.addWidget(network_streamer_btn)
+        
+        streamer_layout.addLayout(network_streamer_layout)
+        
+        # Custom streamer
+        custom_streamer_layout = QHBoxLayout()
+        custom_streamer_layout.addWidget(QLabel("Custom Streamer:"))
+        self.custom_streamer_path = QtWidgets.QLineEdit()
+        custom_streamer_layout.addWidget(self.custom_streamer_path)
+        
+        custom_streamer_btn = QPushButton("Add Custom Streamer")
+        custom_streamer_btn.clicked.connect(lambda: self.add_streamer(self.custom_streamer_path.text()))
+        custom_streamer_layout.addWidget(custom_streamer_btn)
+        
+        streamer_layout.addLayout(custom_streamer_layout)
+        
+        # Current streamers list
+        streamers_label = QLabel("Active Streamers:")
+        streamer_layout.addWidget(streamers_label)
+        
+        self.streamers_list = QtWidgets.QListWidget()
+        streamer_layout.addWidget(self.streamers_list)
+        
+        # Delete streamer button
+        delete_streamer_btn = QPushButton("Delete Selected Streamer")
+        delete_streamer_btn.clicked.connect(self.delete_selected_streamer)
+        streamer_layout.addWidget(delete_streamer_btn)
+        
+        # Board configuration section
+        config_group = QGroupBox("Board Configuration")
+        config_layout = QVBoxLayout(config_group)
+        
+        # Config command
+        config_cmd_layout = QHBoxLayout()
+        config_cmd_layout.addWidget(QLabel("Config Command:"))
+        self.config_cmd_edit = QtWidgets.QLineEdit()
+        config_cmd_layout.addWidget(self.config_cmd_edit)
+        
+        send_config_btn = QPushButton("Send Config")
+        send_config_btn.clicked.connect(self.send_board_config)
+        config_cmd_layout.addWidget(send_config_btn)
+        
+        config_layout.addLayout(config_cmd_layout)
+        
+        # Config response
+        config_layout.addWidget(QLabel("Response:"))
+        self.config_response_text = QtWidgets.QTextEdit()
+        self.config_response_text.setReadOnly(True)
+        config_layout.addWidget(self.config_response_text)
+        
+        # Add to main layout
+        layout.addWidget(streamer_group)
+        layout.addWidget(config_group)
+        layout.addStretch()
+        
+    # Methods for streaming tab
+    def add_streamer(self, streamer_params):
+        """Add a streamer to the board."""
+        if not self.collector:
+            QMessageBox.warning(self, "Streamer Error", "No board connected")
+            return
+            
+        try:
+            self.collector.add_streamer(streamer_params)
+            # Add to list
+            self.streamers_list.addItem(streamer_params)
+            self.statusBar().showMessage(f"Added streamer: {streamer_params}")
+        except Exception as e:
+            QMessageBox.warning(self, "Streamer Error", f"Error adding streamer: {str(e)}")
+            logging.error(f"Streamer error: {e}")
+            
+    def delete_selected_streamer(self):
+        """Delete the selected streamer."""
+        if not self.collector:
+            return
+            
+        selected = self.streamers_list.currentItem()
+        if not selected:
+            QMessageBox.warning(self, "Streamer Error", "No streamer selected")
+            return
+            
+        streamer_params = selected.text()
+        try:
+            self.collector.delete_streamer(streamer_params)
+            # Remove from list
+            self.streamers_list.takeItem(self.streamers_list.row(selected))
+            self.statusBar().showMessage(f"Deleted streamer: {streamer_params}")
+        except Exception as e:
+            QMessageBox.warning(self, "Streamer Error", f"Error deleting streamer: {str(e)}")
+            logging.error(f"Streamer deletion error: {e}")
+            
+    def send_board_config(self):
+        """Send configuration to the board."""
+        if not self.collector:
+            QMessageBox.warning(self, "Config Error", "No board connected")
+            return
+            
+        config_cmd = self.config_cmd_edit.text()
+        if not config_cmd:
+            QMessageBox.warning(self, "Config Error", "No command specified")
+            return
+            
+        try:
+            response = self.collector.config_board(config_cmd)
+            self.config_response_text.setText(response)
+            self.statusBar().showMessage(f"Config command sent: {config_cmd}")
+        except Exception as e:
+            logging.error(f"Config error: {e}")
+            QMessageBox.warning(self, "Config Error", f"Error sending config: {str(e)}")
+
+    def browse_file(self):
+        """Browse for a file for playback board."""
+        filename, _ = QFileDialog.getOpenFileName(
+            self, "Select Data File", "", "CSV files (*.csv);; All Files (*)"
+        )
+        if filename:
+            self.param_fields["file"].setText(filename)
+
+    def browse_record_file(self):
+        """Browse for a file to save the recording."""
+        filename, _ = QFileDialog.getSaveFileName(
+            self, "Save Recording File", "", "CSV files (*.csv);; All Files (*)"
+        )
+        if filename:
+            self.record_file_edit.setText(filename)
