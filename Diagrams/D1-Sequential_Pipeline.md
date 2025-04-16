@@ -8,6 +8,18 @@
         +getData(): any
     }
 
+    class CollectorInterface {
+        <<interface>>
+        +prepare_session(): void
+        +start_stream(): void
+        +stop_stream(): void
+        +release_session(): void
+        +get_data(num_samples: Optional[int]): Tuple[Any, List[int]]
+        +save_data(filename: str, data_type: str): void
+        +get_board_info(): Dict[str, Any]
+        +insert_marker(marker_value: int): void
+    }
+
     class AbstractInputCollector {
         <<interface>>
         +start_capture(): void
@@ -29,7 +41,7 @@
         +timestamp: number
         +channels: Map<string, number[]>
         +samplingRate: number
-        +metadata: Map<string, any>
+        +metadata: Map[string, any>
     }
 
     class InputData {
@@ -49,7 +61,7 @@
     class SynchronizedData {
         +eegData: EEGData[]
         +inputEvents: InputData[]
-        +synchronizationMarkers: Map<number, number>
+        +synchronizationMarkers: Map[number, number]
     }
 
     class ProcessedData {
@@ -61,15 +73,15 @@
     class FeatureVector {
         +features: number[][]
         +labels: string[]|number[]
-        +metadata: Map<string, any>
+        +metadata: Map[string, any]
     }
 
     class TrainedModel {
         +modelType: string
         +architecture: string
         +weights: any
-        +hyperparameters: Map<string, any>
-        +performanceMetrics: Map<string, number>
+        +hyperparameters: Map[string, any]
+        +performanceMetrics: Map[string, number]
     }
 
     class Action {
@@ -114,22 +126,93 @@
     }
 
     %% Main Modules
-    class EEGDataCollector {
-        -device: string
-        -channels: string[]
-        -samplingRate: number
-        -montageType: string
-        -referenceElectrode: string
-        -isRecording: boolean
-        -buffer: number[][]
-        +constructor(deviceType: string, channelSet: string[])
-        +startAcquisition(): void
-        +stopAcquisition(): void
-        +getData(): EEGData
-        +setChannels(channels: string[]): void
-        +setMontage(type: string, reference: string): void
-        +getAvailableDevices(): string[]
-        +testDeviceConnection(): boolean
+    class EEGCollector {
+        -board: BoardShim
+        -params: BrainFlowInputParams
+        -board_id: int
+        -preset: int
+        -is_streaming: boolean
+        -sampling_rate: float
+        -eeg_channels: List[int] 
+        -channel_types: Dict[str, List[int]]
+        -raw_data: numpy.ndarray
+        -processed_data: numpy.ndarray
+        +__init__(board_id: int, params: BrainFlowInputParams, preset: int)
+        +prepare_session(): void
+        +start_stream(buffer_size: int): void
+        +stop_stream(): void
+        +release_session(): void
+        +get_data(num_samples: Optional[int]): Tuple[numpy.ndarray, List[int]]
+        +save_data(filename: str, data_type: str): void
+        +get_board_info(): Dict[str, Any]
+        +insert_marker(marker_value: float): void
+        +get_eeg_channels(): List[int]
+        +get_channel_by_type(channel_type: str): List[int]
+        +set_processed_data(data: numpy.ndarray): void
+        +add_streamer(streamer_params: str): void
+        +delete_streamer(streamer_params: str): void
+    }
+
+    class SignalProcessor {
+        -sampling_rate: float
+        -processed_data: numpy.ndarray
+        +__init__(sampling_rate: float)
+        +bandpass_filter(data: numpy.ndarray, start_freq: float, stop_freq: float, order: int): numpy.ndarray
+        +bandstop_filter(data: numpy.ndarray, start_freq: float, stop_freq: float, order: int): numpy.ndarray
+        +lowpass_filter(data: numpy.ndarray, cutoff_freq: float, order: int): numpy.ndarray
+        +highpass_filter(data: numpy.ndarray, cutoff_freq: float, order: int): numpy.ndarray
+        +denoise(data: numpy.ndarray): numpy.ndarray
+        +remove_environmental_noise(data: numpy.ndarray): numpy.ndarray
+        +perform_downsampling(data: numpy.ndarray, factor: int): numpy.ndarray
+        +detrend(data: numpy.ndarray): numpy.ndarray
+        +get_psd(data: numpy.ndarray): Tuple[numpy.ndarray, numpy.ndarray]
+        +get_band_power(data: numpy.ndarray, start_freq: float, stop_freq: float): numpy.ndarray
+        +get_eeg_metrics(data: numpy.ndarray, eeg_channels: List[int]): Dict[str, float]
+        +perform_ica(data: numpy.ndarray, num_components: int): Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]
+        +get_signal_quality(data: numpy.ndarray, channel: int): float
+        +get_all_channels_quality(data: numpy.ndarray, channels: List[int]): Dict[int, float]
+    }
+    
+    class EEGVisualizer {
+        -collector: EEGCollector
+        -processor: SignalProcessor
+        -win: GraphicsLayoutWidget
+        -plots: List[PlotItem]
+        -curves: List[PlotDataItem]
+        -timer: QTimer
+        +__init__(collector: EEGCollector, processor: SignalProcessor)
+        +start(): void
+        +stop(): void
+        +update_plots(): void
+        +set_bandpass_filter(enabled: bool, low_freq: float, high_freq: float): void
+        +set_notch_filter(enabled: bool): void
+        +set_detrend(enabled: bool): void
+        +is_visible(): bool
+    }
+    
+    class BrainMapVisualizer {
+        -collector: EEGCollector
+        -processor: SignalProcessor
+        -win: GraphicsLayoutWidget
+        -electrode_positions: Dict[str, Tuple[float, float]]
+        -electrode_quality: Dict[str, float]
+        -timer: QTimer
+        +__init__(collector: EEGCollector, processor: SignalProcessor)
+        +start(): void
+        +stop(): void
+        +update_quality_map(): void
+        +is_visible(): bool
+    }
+    
+    class MultiModalityVisualizer {
+        -collector: EEGCollector
+        -windows: Dict[str, GraphicsLayoutWidget]
+        -channel_types: Dict[str, Dict[str, Any]]
+        +__init__(collector: EEGCollector)
+        +create_visualization(channel_type: str): void
+        +close_all(): void
+        +is_window_open(channel_type: str): bool
+        +get_available_modalities(): List[str]
     }
 
     class DataSynchronizer {
@@ -219,12 +302,12 @@
     }
 
     %% Relationships
-    IDataSource <|.. EEGDataCollector
+    CollectorInterface <|.. EEGCollector
     AbstractInputCollector <|.. KeyboardMouseCollector
     AbstractInputCollector <|.. PS4ControllerCollector
     IEmulator <|.. VirtualDeviceEmulator
 
-    EEGDataCollector "1" --> "1" DataSynchronizer : "provides EEGData"
+    EEGCollector "1" --> "1" DataSynchronizer : "provides EEGData"
     KeyboardMouseCollector "1" --> "1" DataSynchronizer : "provides InputData"
     PS4ControllerCollector "1" --> "1" DataSynchronizer : "provides InputData"
 
@@ -238,7 +321,15 @@
 
     InferenceEngine "1" --> "1" VirtualDeviceEmulator : "generates Action"
 
-    EEGDataCollector -- EEGData : "produces"
+    EEGCollector "1" --> "1" SignalProcessor : "provides data for"
+    EEGCollector "1" --> "1" EEGVisualizer : "provides data to"
+    EEGCollector "1" --> "1" BrainMapVisualizer : "provides data to"
+    EEGCollector "1" --> "1" MultiModalityVisualizer : "provides data to"
+    SignalProcessor "1" --> "1" EEGVisualizer : "processes data for"
+    SignalProcessor "1" --> "1" BrainMapVisualizer : "processes data for"
+    
+    EEGCollector --|> IDataSource
+    EEGCollector -- EEGData : "produces"
     KeyboardMouseCollector -- InputData : "produces"
     PS4ControllerCollector -- InputData : "produces"
     DataSynchronizer -- SynchronizedData : "produces"
