@@ -8,11 +8,15 @@
         +getData(): any
     }
 
-    class IInputCollector {
+    class AbstractInputCollector {
         <<interface>>
-        +startCapture(): void
-        +stopCapture(): void
-        +getEvents(): any[]
+        +start_capture(): void
+        +stop_capture(): void
+        +get_input_event(): InputData
+        +on_event(callback: function): void
+        +set_supported_keys(keys: List[str]): void
+        +get_events_since(timestamp: float): List[InputData]
+        +clear_events(): void
     }
 
     class IEmulator {
@@ -29,12 +33,17 @@
     }
 
     class InputData {
-        +timestamp: number
-        +eventType: string
+        +timestamp: float
+        +event_type: string
         +key: string|null
-        +mouseX: number|null
-        +mouseY: number|null
-        +buttonPressed: string|null
+        +mouse_x: number|null
+        +mouse_y: number|null
+        +button_pressed: string|null
+        +active_keys: List[string]
+        +direction: string|null
+        +rel_x: number|null
+        +rel_y: number|null
+        +is_moving: boolean|null
     }
 
     class SynchronizedData {
@@ -71,6 +80,39 @@
         +confidence: number
     }
 
+    %% Input Collector Implementation
+    class KeyboardMouseCollector {
+        -keyboard_events: List[InputData]
+        -mouse_events: List[InputData]
+        -tracked_keys_set: Set[string]
+        -is_capturing: boolean
+        -event_callbacks: List[function]
+        +start_capture(): void
+        +stop_capture(): void
+        +get_input_event(): InputData
+        +on_event(callback: function): void
+        +set_supported_keys(keys: List[string]): void
+        +get_events_since(timestamp: float): List[InputData]
+        +clear_events(): void
+        +set_mouse_tracking_mode(mode: string): void
+    }
+
+    class PS4ControllerCollector {
+        -events: List[InputData]
+        -button_state: Map[string, boolean]
+        -axis_state: Map[string, number]
+        -is_capturing: boolean
+        -event_callbacks: List[function]
+        +start_capture(): void
+        +stop_capture(): void
+        +get_input_event(): InputData
+        +on_event(callback: function): void
+        +set_supported_keys(keys: List[string]): void
+        +get_events_since(timestamp: float): List[InputData]
+        +clear_events(): void
+        +scan_controllers(): List[object]
+    }
+
     %% Main Modules
     class EEGDataCollector {
         -device: string
@@ -90,21 +132,6 @@
         +testDeviceConnection(): boolean
     }
 
-    class InputDataCollector {
-        -isCapturing: boolean
-        -keyboardEvents: InputData[]
-        -mouseEvents: InputData[]
-        -supportedKeys: string[]
-        -captureMode: string
-        +startCapture(): void
-        +stopCapture(): void
-        +getInputEvent(): InputData
-        +setSupportedKeys(keys: string[]): void
-        +setMouseTracking(enabled: boolean): void
-        +getEventsSince(timestamp: number): InputData[]
-        +clearEvents(): void
-    }
-
     class DataSynchronizer {
         -syncMethod: string
         -windowSize: number
@@ -114,7 +141,7 @@
         +setWindowSize(sizeMs: number): void
         +setTolerance(toleranceMs: number): void
         +verifySyncAccuracy(data: SynchronizedData): number
-        +detectSynchronizationIssues(data: SynchronizedData): Map<string, any>
+        +detectSynchronizationIssues(data: SynchronizedData): Map[string, any]
     }
 
     class DataLogger {
@@ -129,7 +156,7 @@
         +setMetadataFields(fields: string[]): void
         +exportToFormat(data: SynchronizedData, format: string): void
         +importFromFormat(path: string, format: string): SynchronizedData
-        +annotateData(data: SynchronizedData, annotations: Map<string, any>): void
+        +annotateData(data: SynchronizedData, annotations: Map[string, any]): void
     }
 
     class DataPreprocessor {
@@ -143,25 +170,25 @@
         +setFilters(filters: string[]): void
         +setArtifactRejection(method: string): void
         +setFeatureExtractionMethods(methods: string[]): void
-        +calculateSignalQuality(data: EEGData): Map<string, number>
+        +calculateSignalQuality(data: EEGData): Map[string, number]
         +visualizeData(data: ProcessedData): any
     }
 
     class ModelTrainer {
         -modelType: string
-        -architecture: Map<string, any>
-        -optimizerSettings: Map<string, any>
+        -architecture: Map[string, any]
+        -optimizerSettings: Map[string, any]
         -validationMethod: string
         -trainingDevice: string
         +train(features: FeatureVector, labels: any[]): TrainedModel
         +tuneHyperparameters(): void
         +setModelType(type: string): void
-        +setArchitecture(architecture: Map<string, any>): void
-        +setOptimizerSettings(settings: Map<string, any>): void
-        +evaluateModel(model: TrainedModel, testData: FeatureVector): Map<string, number>
+        +setArchitecture(architecture: Map[string, any]): void
+        +setOptimizerSettings(settings: Map[string, any]): void
+        +evaluateModel(model: TrainedModel, testData: FeatureVector): Map[string, number]
         +saveModel(model: TrainedModel, path: string): void
         +loadModel(path: string): TrainedModel
-        +visualizeTraining(metrics: Map<string, any[]>): any
+        +visualizeTraining(metrics: Map[string, any[]>): any
     }
 
     class InferenceEngine {
@@ -175,29 +202,31 @@
         +setInferenceDevice(device: string): void
         +enableRealTimeProcessing(enabled: boolean): void
         +setConfidenceThreshold(threshold: number): void
-        +benchmark(): Map<string, number>
+        +benchmark(): Map[string, number]
         +getLatestPredictions(count: number): Action[]
     }
 
     class VirtualDeviceEmulator {
         -supportedDevices: string[]
         -currentDevice: string
-        -mappingConfiguration: Map<string, any>
+        -mappingConfiguration: Map[string, any]
         +simulateAction(action: Action): void
         +setSupportedDevices(devices: string[]): void
         +setCurrentDevice(device: string): void
-        +configureMappings(mappings: Map<string, any>): void
+        +configureMappings(mappings: Map[string, any]): void
         +testEmulation(): boolean
         +getEmulationStatus(): string
     }
 
     %% Relationships
     IDataSource <|.. EEGDataCollector
-    IInputCollector <|.. InputDataCollector
+    AbstractInputCollector <|.. KeyboardMouseCollector
+    AbstractInputCollector <|.. PS4ControllerCollector
     IEmulator <|.. VirtualDeviceEmulator
 
     EEGDataCollector "1" --> "1" DataSynchronizer : "provides EEGData"
-    InputDataCollector "1" --> "1" DataSynchronizer : "provides InputData"
+    KeyboardMouseCollector "1" --> "1" DataSynchronizer : "provides InputData"
+    PS4ControllerCollector "1" --> "1" DataSynchronizer : "provides InputData"
 
     DataSynchronizer "1" --> "1" DataLogger : "stores SynchronizedData"
 
@@ -210,7 +239,8 @@
     InferenceEngine "1" --> "1" VirtualDeviceEmulator : "generates Action"
 
     EEGDataCollector -- EEGData : "produces"
-    InputDataCollector -- InputData : "produces"
+    KeyboardMouseCollector -- InputData : "produces"
+    PS4ControllerCollector -- InputData : "produces"
     DataSynchronizer -- SynchronizedData : "produces"
     DataPreprocessor -- ProcessedData : "produces"
     DataPreprocessor -- FeatureVector : "produces"
