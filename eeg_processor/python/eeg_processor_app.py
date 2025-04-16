@@ -43,6 +43,9 @@ from .visualizers.eeg_viz import EEGVisualizer
 # Importar la nueva clase BoardConfiguration
 from .collectors.board_configuration import BoardConfiguration
 
+# Importar la nueva clase BrainMapVisualizer
+from .visualizers.brain_map_viz import BrainMapVisualizer
+
 # Check if MNE is available
 try:
     import mne
@@ -648,6 +651,14 @@ class EEGProcessorApp(QMainWindow):
         self.apply_filters_btn.setEnabled(False)
         apply_layout.addWidget(self.apply_filters_btn)
         filter_layout.addLayout(apply_layout)
+
+        # Añadir botón para visualización de mapa cerebral
+        brain_map_layout = QHBoxLayout()
+        self.brain_map_btn = QPushButton("Show Brain Map Visualization")
+        self.brain_map_btn.clicked.connect(self.show_brain_map)
+        self.brain_map_btn.setEnabled(False)  # Habilitado solo cuando haya datos EEG
+        brain_map_layout.addWidget(self.brain_map_btn)
+        filter_layout.addLayout(brain_map_layout)
 
         # EEG Metrics
         metrics_group = QGroupBox("EEG Metrics")
@@ -1628,6 +1639,7 @@ class EEGProcessorApp(QMainWindow):
             self.apply_filters_btn.setEnabled(False)
             self.calculate_metrics_btn.setEnabled(False)
             self.show_viz_btn.setEnabled(False)  # Asegurar que está desactivado
+            self.brain_map_btn.setEnabled(False)  # Deshabilitar botón del mapa cerebral
 
             # Update info
             self.board_info_label.setText("No board connected")
@@ -1659,6 +1671,7 @@ class EEGProcessorApp(QMainWindow):
                 self.add_marker_btn.setEnabled(True)
                 self.apply_filters_btn.setEnabled(True)
                 self.calculate_metrics_btn.setEnabled(True)
+                self.brain_map_btn.setEnabled(True)  # Habilitar el botón del mapa cerebral
 
                 # Update visualization button state - debe estar deshabilitado porque la ventana está visible
                 self.show_viz_btn.setEnabled(False)
@@ -1698,6 +1711,10 @@ class EEGProcessorApp(QMainWindow):
                 if self.visualizer:
                     self.visualizer.stop()
 
+                # Cerrar también el mapa cerebral si está abierto
+                if hasattr(self, 'brain_map_viz') and self.brain_map_viz.is_visible():
+                    self.brain_map_viz.close()
+
                 # Update UI
                 self.start_stream_btn.setEnabled(True)
                 self.stop_stream_btn.setEnabled(False)
@@ -1713,6 +1730,7 @@ class EEGProcessorApp(QMainWindow):
                 self.calculate_metrics_btn.setEnabled(
                     False
                 )  # Deshabilitar cálculo de métricas sin stream
+                self.brain_map_btn.setEnabled(False)  # Deshabilitar botón del mapa cerebral
 
                 # Disable advanced processing buttons
                 self.compute_ica_btn.setEnabled(False)
@@ -2140,3 +2158,24 @@ class EEGProcessorApp(QMainWindow):
         )
         if filename:
             self.record_file_edit.setText(filename)
+
+    def show_brain_map(self):
+        """Mostrar visualización del mapa cerebral."""
+        if not self.collector or not self.processor or not self.is_streaming:
+            QMessageBox.warning(self, "Visualization Error", "No EEG data available. Start streaming first.")
+            return
+
+        try:
+            # Inicializar o mostrar visualizador de mapa cerebral
+            if not hasattr(self, 'brain_map_viz') or not self.brain_map_viz.is_visible():
+                self.brain_map_viz = BrainMapVisualizer(self.collector, self.processor)
+                self.brain_map_viz.start()
+            else:
+                # Si ya existe, traerlo al frente
+                self.brain_map_viz.win.raise_()
+
+            self.statusBar().showMessage("Brain map visualization opened")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Visualization Error", f"Error showing brain map: {e}")
+            logging.error(f"Brain map visualization error: {e}")
