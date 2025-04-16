@@ -88,8 +88,11 @@ class EEGVisualizer:
             else:
                 plot.hideAxis("bottom")
 
-            # Change from "Channel X" to "CHX" for more compact labels
-            ch_name = f"CH {self.eeg_channels[i]}"
+            # Use actual EEG channel names if available
+            if hasattr(self.collector, 'eeg_names') and i < len(self.collector.eeg_names):
+                ch_name = self.collector.eeg_names[i]
+            else:
+                ch_name = f"CH {self.eeg_channels[i]}"
             plot.setLabel("left", ch_name)
 
             # Add curve for the data
@@ -137,8 +140,14 @@ class EEGVisualizer:
             )
             curve = self.fft_plot.plot(pen=color)
             self.fft_curves.append(curve)
-            # Add entry to legend with compact channel name (más compacto para ocupar menos espacio)
-            self.fft_legend.addItem(curve, f"CH{self.eeg_channels[i]}")
+            
+            # Use real channel names in the FFT legend
+            if hasattr(self.collector, 'eeg_names') and i < len(self.collector.eeg_names):
+                legend_name = self.collector.eeg_names[i]
+            else:
+                legend_name = f"CH{self.eeg_channels[i]}"
+                
+            self.fft_legend.addItem(curve, legend_name)
 
         # Add band power indicator
         self.band_plot = self.win.addPlot(
