@@ -614,10 +614,12 @@ class HelpButton(QPushButton):
         # Style the button to look like a help icon
         self.setStyleSheet("""
             QPushButton {
-                border-radius: 10px;
+                border-radius: 5px;
                 background-color: #007ACC;
                 color: white;
                 font-weight: bold;
+                min-height: 10px;
+                max-height: 10px;
             }
             QPushButton:hover {
                 background-color: #009AEE;
