@@ -390,8 +390,14 @@ class EEGCollector(CollectorInterface):
             marker_value: Value of the marker to insert
         """
         if self.is_streaming:
-            self.board.insert_marker(marker_value, self.preset)
-            logging.info(f"Marker {marker_value} inserted")
+            # Insertar el marcador con el valor especificado
+            self.board.insert_marker(marker_value, preset=self.preset)
+            
+            # Añadir un pequeño retraso para asegurar que el marcador se registre
+            # antes de la próxima captura de datos por parte de get_current_board_data
+            time.sleep(0.01)
+            
+            logging.info(f"Marker {marker_value} inserted at channel {self.marker_channel}")
         else:
             logging.warning("Cannot insert marker: stream not running")
 
@@ -657,7 +663,6 @@ class EEGCollector(CollectorInterface):
                         data = self.board.get_current_board_data(new_samples, preset=self.preset)
                     elif self.data_type == "processed" and self.processed_data is not None:
                         # Para datos procesados, tomamos las últimas muestras del buffer procesado
-                        # Este enfoque puede necesitar ajustes dependiendo de cómo se procesen los datos
                         if self.processed_data.shape[1] >= new_samples:
                             data = self.processed_data[:, -new_samples:]
                         else:
@@ -667,9 +672,23 @@ class EEGCollector(CollectorInterface):
                         # Si no hay datos procesados, usar los datos crudos
                         data = self.board.get_current_board_data(new_samples, preset=self.preset)
                     
+                    # Verificar si hay marcadores en los datos
+                    if hasattr(self, 'marker_channel') and self.marker_channel < data.shape[0]:
+                        # Comprobar valores distintos de cero en el canal de marcadores
+                        markers = data[self.marker_channel]
+                        non_zero_markers = markers[markers != 0]
+                        if len(non_zero_markers) > 0:
+                            logging.info(f"Detected markers in current data: {non_zero_markers}")
+                    
                     # Escribir cada muestra como una fila en el CSV
                     for i in range(data.shape[1]):  # Para cada columna (muestra)
                         sample = data[:, i]  # Esta es una muestra con todos los canales
+                        
+                        # Imprimir log si hay un marcador en esta muestra
+                        if hasattr(self, 'marker_channel') and self.marker_channel < len(sample):
+                            if sample[self.marker_channel] != 0:
+                                logging.info(f"Writing marker value {sample[self.marker_channel]} to CSV")
+                        
                         line = ','.join(str(val) for val in sample)
                         self.recording_file.write(line + '\n')
                     
@@ -685,7 +704,7 @@ class EEGCollector(CollectorInterface):
                 
         except Exception as e:
             logging.error(f"Error en el thread de grabación: {e}")
-    
+
     def stop_continuous_recording(self) -> None:
         """
         Detener la grabación continua y cerrar el archivo.
