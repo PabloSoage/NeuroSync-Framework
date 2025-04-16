@@ -272,3 +272,17 @@ class BoardConfiguration:
                 minimal_desc["eeg_names"] = ["CH1", "CH2", "CH3", "CH4"]
                 
             return minimal_desc
+
+    @staticmethod
+    def get_protocol_types() -> Dict[int, str]:
+        """
+        Get information about available IP protocol types.
+        
+        Returns:
+            Dictionary mapping protocol type values to descriptions
+        """
+        return {
+            IpProtocolTypes.NO_IP_PROTOCOL.value: "No Protocol",
+            IpProtocolTypes.UDP.value: "UDP",
+            IpProtocolTypes.TCP.value: "TCP"
+        }

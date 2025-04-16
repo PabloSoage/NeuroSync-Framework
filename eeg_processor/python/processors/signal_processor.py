@@ -459,3 +459,49 @@ class SignalProcessor:
         except Exception as e:
             logging.error(f"Failed to perform ICA: {e}")
             return None, None, None, None
+
+    def detect_peaks(self, data: np.ndarray, lag: int = 5, threshold: float = 3.5, 
+                    influence: float = 0.1) -> np.ndarray:
+        """
+        Detect peaks in signal using z-score algorithm.
+        
+        Args:
+            data: Input data
+            lag: Window size for averaging
+            threshold: Threshold in stddev units
+            influence: Contribution of peaks to mean value (0-1)
+            
+        Returns:
+            Array with detected peaks
+        """
+        peaks = np.zeros((data.shape[0], data.shape[1]))
+        for channel_idx in range(data.shape[0]):
+            peaks[channel_idx] = DataFilter.detect_peaks_z_score(
+                data[channel_idx], lag, threshold, influence
+            )
+            
+        logging.info(f"Detected peaks with threshold {threshold}")
+        return peaks
+
+    def restore_wavelet_coeffs(self, data: np.ndarray, wavelet: int, 
+                               decomp_level: int, level_to_restore: int) -> np.ndarray:
+        """
+        Restore data from wavelet detailed coefficients.
+        
+        Args:
+            data: Input data
+            wavelet: Wavelet type
+            decomp_level: Decomposition level
+            level_to_restore: Level to restore
+            
+        Returns:
+            Restored signal
+        """
+        restored_data = np.zeros((data.shape[0], data.shape[1]))
+        for channel_idx in range(data.shape[0]):
+            restored_data[channel_idx] = DataFilter.restore_data_from_wavelet_detailed_coeffs(
+                data[channel_idx], wavelet, decomp_level, level_to_restore
+            )
+            
+        logging.info(f"Restored data from wavelet coefficients at level {level_to_restore}")
+        return restored_data

@@ -5,6 +5,7 @@ from typing import Dict, List, Any, Optional, Tuple
 import numpy as np
 from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds, BrainFlowPresets
 from brainflow.data_filter import DataFilter
+from brainflow.exit_codes import BrainFlowError, BrainFlowExitCodes
 
 from ..interfaces.collector_interface import CollectorInterface
 
@@ -131,8 +132,17 @@ class EEGCollector(CollectorInterface):
         """
         Prepare the session for data collection.
         """
-        self.board.prepare_session()
-        logging.info("EEG session prepared")
+        try:
+            self.board.prepare_session()
+            logging.info("EEG session prepared")
+        except BrainFlowError as e:
+            if e.exit_code == BrainFlowExitCodes.BOARD_NOT_CREATED_ERROR.value:
+                logging.error("Board was not created. Check your parameters.")
+            elif e.exit_code == BrainFlowExitCodes.ANOTHER_BOARD_IS_CREATED_ERROR.value:
+                logging.error("Another board is already created in the same process.")
+            else:
+                logging.error(f"Error preparing session: {e}")
+            raise
 
     def start_stream(self, buffer_size: int = 450000) -> None:
         """
