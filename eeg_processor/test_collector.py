@@ -24,34 +24,30 @@ def main():
     collector = EEGCollector(board_id=BoardIds.SYNTHETIC_BOARD.value)
     
     try:
-        # Prepare and start stream
         print("Preparing session...")
         collector.prepare_session()
         
         print("Starting data stream...")
         collector.start_stream()
         
-        # Collect data for 5 seconds
+        # Iniciar grabación continua
+        output_file = "eeg_test_data.csv"
+        print(f"Starting continuous recording to {output_file}...")
+        collector.start_continuous_recording(output_file)
+        
         print("Collecting data for 5 seconds...")
         for i in range(5):
             time.sleep(1)
             print(f"  {i+1} seconds elapsed")
-            
-            # Get current data
-            data, timestamps = collector.get_data(250)  # Get 1 second of data at 250Hz
+            data, timestamps = collector.get_data(250)  # 1 segundo ~250 muestras
             print(f"  Data shape: {data.shape}")
-            
-            # Add a marker
             if i == 2:
                 collector.insert_marker(i+1)
                 print("  Marker inserted")
         
-        # Save data
-        output_file = "eeg_test_data.csv"
-        print(f"Saving data to {output_file}...")
-        collector.save_data(output_file)
+        print("Stopping recording...")
+        collector.stop_continuous_recording()
         
-        # Stop and clean up
         print("Stopping stream...")
         collector.stop_stream()
         
@@ -63,7 +59,6 @@ def main():
         
     except Exception as e:
         print(f"Error during test: {e}")
-        # Clean up if error occurs
         if collector.is_streaming:
             collector.stop_stream()
         collector.release_session()

@@ -3,6 +3,8 @@ import time
 from typing import Dict, List, Any, Optional, Tuple
 import os
 import sys
+import threading
+import queue
 
 import numpy as np
 
@@ -58,6 +60,16 @@ class EEGCollector(CollectorInterface):
         self.raw_data = None
         self.processed_data = None
         self.timestamps = []
+
+        # Variables para la grabación continua
+        self.recording = False
+        self.recording_file = None
+        self.recording_thread = None
+        self.recording_queue = queue.Queue()
+        self.total_recorded_samples = 0
+        self.recording_start_time = 0
+        self.last_data_count = 0
+        self.data_type = "raw"
         
         # Get available presets for this board
         try:
@@ -565,3 +577,188 @@ class EEGCollector(CollectorInterface):
         except Exception as e:
             logging.error(f"Error changing preset: {e}")
             return False
+
+    def start_continuous_recording(self, filename: str, data_type: str = "raw") -> None:
+        """
+        Iniciar la grabación continua de datos en un archivo CSV.
+        
+        Args:
+            filename: Ruta del archivo donde guardar los datos
+            data_type: Tipo de datos a guardar ('raw' o 'processed')
+        """
+        if self.recording:
+            logging.warning("La grabación ya está en curso")
+            return
+        
+        try:
+            self.data_type = data_type
+            
+            # Crear el directorio si no existe
+            os.makedirs(os.path.dirname(os.path.abspath(filename)), exist_ok=True)
+            
+            # Abrir el archivo y escribir la cabecera con placeholders
+            self.recording_file = open(filename, 'w', newline='')
+            
+            # Escribir metadatos iniciales
+            header = [
+                f"# EEG Recording - {time.strftime('%Y-%m-%d %H:%M:%S')}",
+                f"# Board: {self.device_name} (ID: {self.board_id})",
+                f"# Preset: {self.preset}",
+                f"# Sampling Rate: {self.sampling_rate} Hz",
+                f"# Data Type: {data_type}",
+                f"# Channels: {self.num_rows}",
+                f"# Samples: 0",  # Placeholder que actualizaremos al final
+                f"# Duration: 0.00 seconds",  # Placeholder que actualizaremos al final
+            ]
+            
+            # Añadir nombres de columnas
+            column_names = []
+            for i in range(self.num_rows):
+                # Intentar usar nombres de canales EEG si están disponibles
+                if i in self.eeg_channels and hasattr(self, 'eeg_names') and i < len(self.eeg_names):
+                    column_names.append(f"CH_{self.eeg_names[i]}")
+                else:
+                    column_names.append(f"CH_{i}")
+            
+            header.append(", ".join(column_names))
+            
+            # Escribir las líneas de cabecera con saltos de línea
+            for line in header:
+                self.recording_file.write(line + '\n')
+            
+            # Inicializar variables de grabación
+            self.recording = True
+            self.total_recorded_samples = 0
+            self.recording_start_time = time.time()
+            self.last_data_count = self.get_board_data_count()
+            
+            # Iniciar thread de grabación
+            self.recording_thread = threading.Thread(
+                target=self._recording_thread_func,
+                daemon=True
+            )
+            self.recording_thread.start()
+            
+            logging.info(f"Grabación continua iniciada en {filename}")
+            
+        except Exception as e:
+            logging.error(f"Error al iniciar la grabación continua: {e}")
+            if self.recording_file is not None:
+                self.recording_file.close()
+                self.recording_file = None
+            raise
+    
+    def _recording_thread_func(self) -> None:
+        """
+        Función ejecutada en un thread separado para la grabación continua.
+        Monitorea nuevos datos y los escribe al archivo.
+        """
+        try:
+            # Mantener un seguimiento del último conteo de datos procesado
+            last_count = self.last_data_count
+            
+            while self.recording:
+                # Obtener conteo actual de datos en el buffer
+                current_count = self.get_board_data_count()
+                
+                # Si hay nuevos datos disponibles
+                if current_count > last_count:
+                    # Calcular cuántas nuevas muestras tenemos
+                    new_samples = current_count - last_count
+                    
+                    # Obtener solo las nuevas muestras
+                    if self.data_type == "raw":
+                        data = self.board.get_current_board_data(new_samples, preset=self.preset)
+                    elif self.data_type == "processed" and self.processed_data is not None:
+                        # Para datos procesados, tomamos las últimas muestras del buffer procesado
+                        # Este enfoque puede necesitar ajustes dependiendo de cómo se procesen los datos
+                        if self.processed_data.shape[1] >= new_samples:
+                            data = self.processed_data[:, -new_samples:]
+                        else:
+                            # Si no hay suficientes datos procesados, usar datos crudos
+                            data = self.board.get_current_board_data(new_samples, preset=self.preset)
+                    else:
+                        # Si no hay datos procesados, usar los datos crudos
+                        data = self.board.get_current_board_data(new_samples, preset=self.preset)
+                    
+                    # Escribir cada muestra como una fila en el CSV
+                    for i in range(data.shape[1]):  # Para cada columna (muestra)
+                        sample = data[:, i]  # Esta es una muestra con todos los canales
+                        line = ','.join(str(val) for val in sample)
+                        self.recording_file.write(line + '\n')
+                    
+                    # Hacer flush para asegurar que los datos se escriban en el disco
+                    self.recording_file.flush()
+                    
+                    # Actualizar el contador de muestras y el último conteo
+                    self.total_recorded_samples += new_samples
+                    last_count = current_count
+                
+                # Pausa breve para no saturar la CPU
+                time.sleep(0.1)
+                
+        except Exception as e:
+            logging.error(f"Error en el thread de grabación: {e}")
+    
+    def stop_continuous_recording(self) -> None:
+        """
+        Detener la grabación continua y cerrar el archivo.
+        """
+        if not self.recording:
+            logging.warning("No hay grabación activa para detener")
+            return
+        
+        try:
+            # Marcar como no grabando para detener el thread
+            self.recording = False
+            
+            # Esperar a que termine el thread
+            if self.recording_thread is not None:
+                self.recording_thread.join(timeout=2.0)  # Esperar máximo 2 segundos
+            
+            # Calcular duración real
+            recording_duration = time.time() - self.recording_start_time
+            
+            if self.recording_file is not None:
+                # Guardar el nombre del archivo para reabrirlo después
+                filename = self.recording_file.name
+                
+                # Cerrar el archivo que está en modo escritura
+                self.recording_file.close()
+                self.recording_file = None
+                
+                # Reabrir el archivo en modo lectura+escritura
+                with open(filename, 'r', encoding='utf-8') as file:
+                    # Leer todo el contenido del archivo
+                    content = file.readlines()
+                
+                # Reabrir el archivo en modo escritura para actualizar los metadatos
+                with open(filename, 'w', encoding='utf-8') as file:
+                    # Actualizar las líneas de metadatos específicas
+                    for i, line in enumerate(content):
+                        if i == 6:  # Línea de samples
+                            file.write(f"# Samples: {self.total_recorded_samples}\n")
+                        elif i == 7:  # Línea de duración
+                            file.write(f"# Duration: {recording_duration:.2f} seconds\n")
+                        else:
+                            file.write(line)
+                
+                logging.info(f"Grabación completada: {self.total_recorded_samples} muestras en {recording_duration:.2f} segundos")
+            
+        except Exception as e:
+            logging.error(f"Error al detener la grabación continua: {e}")
+            # Intentar cerrar el archivo si sigue abierto
+            if self.recording_file is not None:
+                try:
+                    self.recording_file.close()
+                except:
+                    pass
+                self.recording_file = None
+            raise
+        finally:
+            # Reiniciar variables
+            self.recording = False
+            self.recording_file = None
+            self.recording_thread = None
+            self.recording_queue = queue.Queue()
+

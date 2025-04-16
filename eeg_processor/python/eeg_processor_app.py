@@ -2038,15 +2038,23 @@ class EEGProcessorApp(QMainWindow):
             )
             return
 
-        self.is_recording = True
-        self.start_time = int(round(time.time() * 1000))  # Start time in ms
+        try:
+            # Usar el nuevo método de grabación continua
+            data_type = "processed" if self.processed_radio.isChecked() else "raw"
+            self.collector.start_continuous_recording(self.record_filename, data_type)
+            
+            self.is_recording = True
+            self.start_time = int(round(time.time() * 1000))  # Start time in ms
 
-        # Update UI
-        self.start_record_btn.setEnabled(False)
-        self.stop_record_btn.setEnabled(True)
-        self.recording_status_label.setText("Recording...")
+            # Update UI
+            self.start_record_btn.setEnabled(False)
+            self.stop_record_btn.setEnabled(True)
+            self.recording_status_label.setText("Recording...")
 
-        self.statusBar().showMessage(f"Recording to {self.record_filename}")
+            self.statusBar().showMessage(f"Recording to {self.record_filename}")
+        except Exception as e:
+            QMessageBox.critical(self, "Recording Error", f"Failed to start recording: {str(e)}")
+            logging.error(f"Recording error: {e}")
 
     def stop_recording(self):
         """Stop recording and save data to file."""
@@ -2054,9 +2062,8 @@ class EEGProcessorApp(QMainWindow):
             return
 
         try:
-            data_type = "processed" if self.processed_radio.isChecked() else "raw"
-            self.collector.save_data(self.record_filename, data_type)
-
+            # Usar el nuevo método para detener la grabación continua
+            self.collector.stop_continuous_recording()
             self.is_recording = False
 
             # Update UI
@@ -2064,29 +2071,15 @@ class EEGProcessorApp(QMainWindow):
             self.stop_record_btn.setEnabled(False)
             self.recording_status_label.setText("Not recording")
 
-            duration = (
-                int(round(time.time() * 1000)) - self.start_time
-            ) / 1000  # Duration in seconds
+            # Mostrar mensaje con estadísticas reales
+            duration = (int(round(time.time() * 1000)) - self.start_time) / 1000  # Duration in seconds
+            samples = self.collector.total_recorded_samples  # Usar el valor real de muestras grabadas
             
-            # Get additional metrics about the saved data
-            if data_type == "raw" and self.collector.raw_data is not None:
-                channels = self.collector.raw_data.shape[0]
-                samples = self.collector.raw_data.shape[1]
-            elif data_type == "processed" and self.collector.processed_data is not None:
-                channels = self.collector.processed_data.shape[0]
-                samples = self.collector.processed_data.shape[1]
-            else:
-                channels = 0
-                samples = 0
-                
             self.statusBar().showMessage(
-                f"Recording saved: {duration:.1f}s, {channels} channels, {samples} samples ({self.record_filename})"
+                f"Recording saved: {duration:.1f}s, {self.collector.num_rows} channels, {samples} samples ({self.record_filename})"
             )
-
         except Exception as e:
-            QMessageBox.critical(
-                self, "Recording Error", f"Failed to save recording: {str(e)}"
-            )
+            QMessageBox.critical(self, "Recording Error", f"Failed to save recording: {str(e)}")
             logging.error(f"Recording error: {e}")
 
     def add_marker(self):
@@ -2387,3 +2380,4 @@ class EEGProcessorApp(QMainWindow):
         except Exception as e:
             logging.error(f"Config error: {e}")
             QMessageBox.warning(self, "Config Error", f"Error sending config: {str(e)}")
+
