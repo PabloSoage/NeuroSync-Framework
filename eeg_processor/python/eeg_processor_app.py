@@ -2067,7 +2067,21 @@ class EEGProcessorApp(QMainWindow):
             duration = (
                 int(round(time.time() * 1000)) - self.start_time
             ) / 1000  # Duration in seconds
-            self.statusBar().showMessage(f"Recording saved: {duration:.1f}s")
+            
+            # Get additional metrics about the saved data
+            if data_type == "raw" and self.collector.raw_data is not None:
+                channels = self.collector.raw_data.shape[0]
+                samples = self.collector.raw_data.shape[1]
+            elif data_type == "processed" and self.collector.processed_data is not None:
+                channels = self.collector.processed_data.shape[0]
+                samples = self.collector.processed_data.shape[1]
+            else:
+                channels = 0
+                samples = 0
+                
+            self.statusBar().showMessage(
+                f"Recording saved: {duration:.1f}s, {channels} channels, {samples} samples ({self.record_filename})"
+            )
 
         except Exception as e:
             QMessageBox.critical(

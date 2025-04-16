@@ -1,13 +1,25 @@
 import logging
 import time
 from typing import Dict, List, Any, Optional, Tuple
+import os
+import sys
 
 import numpy as np
+
+# Handle direct script execution
+if __name__ == "__main__":
+    # Add parent directory to path so relative imports work
+    module_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+    if module_path not in sys.path:
+        sys.path.insert(0, module_path)
+    from eeg_processor.python.interfaces.collector_interface import CollectorInterface
+else:
+    # Normal import when used as part of the package
+    from ..interfaces.collector_interface import CollectorInterface
+
 from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds, BrainFlowPresets
 from brainflow.data_filter import DataFilter
 from brainflow.exit_codes import BrainFlowError, BrainFlowExitCodes
-
-from ..interfaces.collector_interface import CollectorInterface
 
 
 class EEGCollector(CollectorInterface):
@@ -233,13 +245,160 @@ class EEGCollector(CollectorInterface):
             data_type: Type of data to save ('raw' or 'processed')
         """
         if data_type == "raw" and self.raw_data is not None:
-            DataFilter.write_file(self.raw_data, filename, "w")
+            # Use BrainFlow's default writer for brainflow format
+            if filename.endswith(".csv"):
+                # Use custom CSV writer with headers for more readable format
+                self._write_csv_with_headers(self.raw_data, filename, data_type)
+            else:
+                # Use BrainFlow writer for other formats
+                DataFilter.write_file(self.raw_data, filename, "w")
             logging.info(f"Raw data saved to {filename}")
         elif data_type == "processed" and self.processed_data is not None:
-            DataFilter.write_file(self.processed_data, filename, "w")
+            if filename.endswith(".csv"):
+                # Use custom CSV writer with headers for more readable format
+                self._write_csv_with_headers(self.processed_data, filename, data_type)
+            else:
+                # Use BrainFlow writer for other formats
+                DataFilter.write_file(self.processed_data, filename, "w")
             logging.info(f"Processed data saved to {filename}")
         else:
             logging.warning(f"No {data_type} data available to save")
+
+    def _write_csv_with_headers(self, data: np.ndarray, filename: str, data_type: str) -> None:
+        """
+        Write data to CSV with column headers and timestamps.
+        
+        Args:
+            data: Data to write
+            filename: Output filename
+            data_type: Type of data ('raw' or 'processed')
+        """
+        try:
+            import pandas as pd
+            
+            # Create column names based on channel types
+            columns = []
+            board_description = {}
+            
+            try:
+                board_description = BoardShim.get_board_description(self.board_id, self.preset)
+            except:
+                # If we can't get board description, use what we know
+                pass
+                
+            # First make sure we have timestamps
+            df_data = data.copy()  # Create a copy to avoid modifying original data
+            
+            # If timestamps are available and there's a timestamp channel
+            if self.timestamps and hasattr(self, 'timestamp_channel'):
+                # If timestamps weren't included in the data, add them
+                if self.timestamp_channel >= data.shape[0] or not np.any(data[self.timestamp_channel]):
+                    # Create a new array with an extra row for timestamps
+                    temp_data = np.zeros((data.shape[0] + 1, data.shape[1]))
+                    temp_data[:-1] = data
+                    
+                    # Make sure we have enough timestamps, pad if necessary
+                    if len(self.timestamps) < data.shape[1]:
+                        # Generate timestamps if we don't have enough
+                        current_time = int(round(time.time() * 1000))
+                        interval = int(1000 / self.sampling_rate)
+                        timestamps = list(range(
+                            current_time - interval * data.shape[1],
+                            current_time,
+                            interval
+                        ))[-data.shape[1]:]
+                    else:
+                        timestamps = self.timestamps[-data.shape[1]:]
+                        
+                    # Add timestamps as the last row
+                    temp_data[-1] = timestamps
+                    df_data = temp_data
+                    # Add timestamp column name for the newly added row
+                    self.timestamp_channel = df_data.shape[0] - 1
+            
+            # Generate column names for each row in the data
+            for i in range(df_data.shape[0]):
+                # Try to identify the channel type
+                if hasattr(self, 'timestamp_channel') and i == self.timestamp_channel:
+                    columns.append("Timestamp")
+                elif hasattr(self, 'marker_channel') and i == self.marker_channel:
+                    columns.append("Marker")
+                elif i in self.channel_types.get('eeg', []):
+                    # Try to get the correct EEG name if available
+                    eeg_index = self.channel_types['eeg'].index(i)
+                    if hasattr(self, 'eeg_names') and eeg_index < len(self.eeg_names):
+                        columns.append(f"EEG_{self.eeg_names[eeg_index]}")
+                    else:
+                        columns.append(f"EEG_{eeg_index}")
+                elif i in self.channel_types.get('emg', []):
+                    emg_index = self.channel_types['emg'].index(i)
+                    columns.append(f"EMG_{emg_index}")
+                elif i in self.channel_types.get('ecg', []):
+                    ecg_index = self.channel_types['ecg'].index(i)
+                    columns.append(f"ECG_{ecg_index}")
+                elif i in self.channel_types.get('eog', []):
+                    eog_index = self.channel_types['eog'].index(i)
+                    columns.append(f"EOG_{eog_index}")
+                elif i in self.channel_types.get('eda', []):
+                    eda_index = self.channel_types['eda'].index(i)
+                    columns.append(f"EDA_{eda_index}")
+                elif i in self.channel_types.get('ppg', []):
+                    ppg_index = self.channel_types['ppg'].index(i)
+                    columns.append(f"PPG_{ppg_index}")
+                elif i in self.channel_types.get('accel', []):
+                    accel_index = self.channel_types['accel'].index(i)
+                    accel_names = ['X', 'Y', 'Z']
+                    axis_name = accel_names[accel_index % 3] if accel_index < 3 else accel_index
+                    columns.append(f"ACCEL_{axis_name}")
+                elif i in self.channel_types.get('gyro', []):
+                    gyro_index = self.channel_types['gyro'].index(i)
+                    gyro_names = ['X', 'Y', 'Z']
+                    axis_name = gyro_names[gyro_index % 3] if gyro_index < 3 else gyro_index
+                    columns.append(f"GYRO_{axis_name}")
+                elif i in self.channel_types.get('temperature', []):
+                    temp_index = self.channel_types['temperature'].index(i)
+                    columns.append(f"TEMP_{temp_index}")
+                elif i in self.channel_types.get('resistance', []):
+                    res_index = self.channel_types['resistance'].index(i)
+                    columns.append(f"RES_{res_index}")
+                else:
+                    # Generic channel name
+                    columns.append(f"CH_{i}")
+            
+            # Create metadata for the CSV
+            metadata = [
+                f"# EEG Recording - {time.strftime('%Y-%m-%d %H:%M:%S')}",
+                f"# Board: {self.device_name} (ID: {self.board_id})",
+                f"# Preset: {self.preset}",
+                f"# Sampling Rate: {self.sampling_rate} Hz",
+                f"# Data Type: {data_type}",
+                f"# Channels: {df_data.shape[0]}",
+                f"# Samples: {df_data.shape[1]}",
+                f"# Duration: {df_data.shape[1]/self.sampling_rate:.2f} seconds",
+                "# Column names represent signal types and channel indices"
+            ]
+            
+            # Create a pandas DataFrame with the data and column names
+            df = pd.DataFrame(df_data.T, columns=columns)
+            
+            # Write metadata as comments and then the DataFrame
+            with open(filename, 'w') as f:
+                for line in metadata:
+                    f.write(line + '\n')
+                    
+                # Write the data without the pandas index
+                df.to_csv(f, index=False)
+                
+            logging.info(f"Data saved to {filename} with {len(columns)} channels and timestamps")
+            
+        except ImportError:
+            # Fall back to BrainFlow's writer if pandas is not available
+            logging.warning("Pandas not available, using BrainFlow writer without headers")
+            DataFilter.write_file(data, filename, "w")
+        except Exception as e:
+            logging.error(f"Error writing CSV with headers: {e}")
+            # Fall back to BrainFlow's writer
+            DataFilter.write_file(data, filename, "w")
 
     def get_board_info(self) -> Dict[str, Any]:
         """
