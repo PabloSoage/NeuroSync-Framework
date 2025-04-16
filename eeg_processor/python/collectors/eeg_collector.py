@@ -385,9 +385,8 @@ class EEGCollector(CollectorInterface):
             with open(filename, 'w') as f:
                 for line in metadata:
                     f.write(line + '\n')
-                    
-                # Write the data without the pandas index
-                df.to_csv(f, index=False)
+
+                df.to_csv(f, index=False, lineterminator='\n')
                 
             logging.info(f"Data saved to {filename} with {len(columns)} channels and timestamps")
             
