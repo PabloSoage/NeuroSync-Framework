@@ -40,10 +40,13 @@ from .collectors.eeg_collector import EEGCollector
 from .processors.signal_processor import SignalProcessor
 from .visualizers.eeg_viz import EEGVisualizer
 
-# Importar la nueva clase BoardConfiguration
+# Import the help system
+from .utils.help_system import HelpButton, show_eeg_concepts_help
+
+# Import the BoardConfiguration class
 from .collectors.board_configuration import BoardConfiguration
 
-# Importar la nueva clase BrainMapVisualizer
+# Import the BrainMapVisualizer class
 from .visualizers.brain_map_viz import BrainMapVisualizer
 
 # Check if MNE is available
@@ -236,6 +239,11 @@ class EEGProcessorApp(QMainWindow):
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
 
+        # Add global help button in the toolbar
+        help_toolbar = self.addToolBar("Help")
+        global_help_action = help_toolbar.addAction("Help & EEG Concepts")
+        global_help_action.triggered.connect(lambda: show_eeg_concepts_help(self))
+        
         # Create tabs
         tabs = QTabWidget()
         main_layout.addWidget(tabs)
@@ -281,6 +289,14 @@ class EEGProcessorApp(QMainWindow):
         # Visualization control
         visualization_group = QGroupBox("Visualization Control")
         visualization_layout = QVBoxLayout(visualization_group)
+        
+        # Add help button for visualization
+        viz_header_layout = QHBoxLayout()
+        viz_header_layout.addWidget(QLabel("Real-time Data Visualization"))
+        viz_help_btn = HelpButton("eeg_visualization")
+        viz_header_layout.addWidget(viz_help_btn)
+        viz_header_layout.addStretch()
+        visualization_layout.addLayout(viz_header_layout)
 
         self.show_viz_btn = QPushButton("Show Visualization Window")
         self.show_viz_btn.clicked.connect(self.show_visualization)
@@ -292,6 +308,14 @@ class EEGProcessorApp(QMainWindow):
         board_group = QGroupBox("Board Selection")
         board_layout = QVBoxLayout(board_group)
 
+        # Add help button for board selection
+        board_header_layout = QHBoxLayout()
+        board_header_layout.addWidget(QLabel("Select EEG Device"))
+        board_help_btn = HelpButton("board_selection")
+        board_header_layout.addWidget(board_help_btn)
+        board_header_layout.addStretch()
+        board_layout.addLayout(board_header_layout)
+        
         # Board type organization - new grouped approach
         board_type_layout = QVBoxLayout()
         board_type_label = QLabel("Select Board:")
@@ -325,6 +349,14 @@ class EEGProcessorApp(QMainWindow):
         # Parameters group
         self.param_group = QGroupBox("Board Parameters")
         param_layout = QVBoxLayout(self.param_group)
+        
+        # Add help button for connection parameters
+        param_header_layout = QHBoxLayout()
+        param_header_layout.addWidget(QLabel("Connection Parameters"))
+        param_help_btn = HelpButton("connection_params")
+        param_header_layout.addWidget(param_help_btn)
+        param_header_layout.addStretch()
+        param_layout.addLayout(param_header_layout)
 
         # Create all parameter fields
         self.param_fields = {}
@@ -372,9 +404,15 @@ class EEGProcessorApp(QMainWindow):
         # Timeout
         timeout_layout = self._create_param_field("timeout", "Timeout (ms):", param_layout, is_numeric=True)
         
-        # Preset selection
+        # Preset selection with help button
+        preset_header_layout = QHBoxLayout()
+        preset_header_layout.addWidget(QLabel("Data Preset:"))
+        preset_help_btn = HelpButton("preset_selection")
+        preset_header_layout.addWidget(preset_help_btn)
+        preset_header_layout.addStretch()
+        param_layout.addLayout(preset_header_layout)
+        
         preset_layout = QHBoxLayout()
-        preset_label = QLabel("Data Preset:")
         self.preset_combo = QComboBox()
         
         # Add presets
@@ -382,7 +420,7 @@ class EEGProcessorApp(QMainWindow):
         for preset_val, preset_desc in preset_info.items():
             self.preset_combo.addItem(preset_desc, preset_val)
             
-        preset_layout.addWidget(preset_label)
+        # Remove the reference to preset_label which doesn't exist
         preset_layout.addWidget(self.preset_combo)
         param_layout.addLayout(preset_layout)
 
@@ -400,7 +438,14 @@ class EEGProcessorApp(QMainWindow):
         control_layout.addWidget(self.disconnect_btn)
         board_layout.addLayout(control_layout)
 
-        # Stream control
+        # Stream control with help button
+        stream_header_layout = QHBoxLayout()
+        stream_header_layout.addWidget(QLabel("Data Streaming"))
+        stream_help_btn = HelpButton("streaming")
+        stream_header_layout.addWidget(stream_help_btn)
+        stream_header_layout.addStretch()
+        board_layout.addLayout(stream_header_layout)
+        
         stream_layout = QHBoxLayout()
         self.start_stream_btn = QPushButton("Start Stream")
         self.start_stream_btn.clicked.connect(self.start_stream)
@@ -583,6 +628,14 @@ class EEGProcessorApp(QMainWindow):
         filter_group = QGroupBox("Filtering Options")
         filter_layout = QVBoxLayout(filter_group)
 
+        # Bandpass filter with help button
+        bandpass_header_layout = QHBoxLayout()
+        bandpass_header_layout.addWidget(QLabel("Bandpass Filter"))
+        bandpass_help_btn = HelpButton("bandpass_filter")
+        bandpass_header_layout.addWidget(bandpass_help_btn)
+        bandpass_header_layout.addStretch()
+        filter_layout.addLayout(bandpass_header_layout)
+        
         # Bandpass filter
         bandpass_layout = QHBoxLayout()
         self.bandpass_check = QCheckBox("Bandpass Filter")
@@ -606,6 +659,14 @@ class EEGProcessorApp(QMainWindow):
         bandpass_layout.addWidget(self.bandpass_high_spin)
         filter_layout.addLayout(bandpass_layout)
 
+        # Notch filter with help button
+        notch_header_layout = QHBoxLayout()
+        notch_header_layout.addWidget(QLabel("Notch Filter"))
+        notch_help_btn = HelpButton("notch_filter")
+        notch_header_layout.addWidget(notch_help_btn)
+        notch_header_layout.addStretch()
+        filter_layout.addLayout(notch_header_layout)
+        
         # Notch filter
         notch_layout = QHBoxLayout()
         self.notch_check = QCheckBox("Notch Filter")
@@ -621,6 +682,14 @@ class EEGProcessorApp(QMainWindow):
         notch_layout.addWidget(self.notch_type_combo)
         filter_layout.addLayout(notch_layout)
 
+        # Denoising with help button
+        denoise_header_layout = QHBoxLayout()
+        denoise_header_layout.addWidget(QLabel("Wavelet Denoising"))
+        denoise_help_btn = HelpButton("denoising")
+        denoise_header_layout.addWidget(denoise_help_btn)
+        denoise_header_layout.addStretch()
+        filter_layout.addLayout(denoise_header_layout)
+        
         # Denoising
         denoise_layout = QHBoxLayout()
         self.denoise_check = QCheckBox("Wavelet Denoising")
@@ -637,6 +706,14 @@ class EEGProcessorApp(QMainWindow):
         denoise_layout.addWidget(self.wavelet_combo)
         filter_layout.addLayout(denoise_layout)
 
+        # Detrend with help button
+        detrend_header_layout = QHBoxLayout()
+        detrend_header_layout.addWidget(QLabel("Detrending"))
+        detrend_help_btn = HelpButton("detrend")
+        detrend_header_layout.addWidget(detrend_help_btn)
+        detrend_header_layout.addStretch()
+        filter_layout.addLayout(detrend_header_layout)
+        
         # Detrend
         detrend_layout = QHBoxLayout()
         self.detrend_check = QCheckBox("Detrend")
@@ -652,6 +729,14 @@ class EEGProcessorApp(QMainWindow):
         apply_layout.addWidget(self.apply_filters_btn)
         filter_layout.addLayout(apply_layout)
 
+        # Add brain map visualization button with help button
+        brain_map_header_layout = QHBoxLayout()
+        brain_map_header_layout.addWidget(QLabel("Brain Map Visualization"))
+        brain_map_help_btn = HelpButton("brain_map")
+        brain_map_header_layout.addWidget(brain_map_help_btn)
+        brain_map_header_layout.addStretch()
+        filter_layout.addLayout(brain_map_header_layout)
+        
         # Añadir botón para visualización de mapa cerebral
         brain_map_layout = QHBoxLayout()
         self.brain_map_btn = QPushButton("Show Brain Map Visualization")
@@ -687,6 +772,14 @@ class EEGProcessorApp(QMainWindow):
         # Recording options
         record_group = QGroupBox("Recording Options")
         record_layout = QVBoxLayout(record_group)
+        
+        # Add help button for recording
+        record_header_layout = QHBoxLayout()
+        record_header_layout.addWidget(QLabel("Data Recording"))
+        record_help_btn = HelpButton("recording")
+        record_header_layout.addWidget(record_help_btn)
+        record_header_layout.addStretch()
+        record_layout.addLayout(record_header_layout)
 
         # File selection
         file_layout = QHBoxLayout()
@@ -765,6 +858,14 @@ class EEGProcessorApp(QMainWindow):
         ica_group = QGroupBox("Independent Component Analysis (ICA)")
         ica_layout = QVBoxLayout(ica_group)
 
+        # Add help button for ICA
+        ica_header_layout = QHBoxLayout()
+        ica_header_layout.addWidget(QLabel("Independent Component Analysis"))
+        ica_help_btn = HelpButton("ica")
+        ica_header_layout.addWidget(ica_help_btn)
+        ica_header_layout.addStretch()
+        ica_layout.addLayout(ica_header_layout)
+
         # ICA Parameters
         ica_params_layout = QHBoxLayout()
         ica_params_layout.addWidget(QLabel("Number of Components:"))
@@ -800,6 +901,14 @@ class EEGProcessorApp(QMainWindow):
         # Wavelet Transform Section
         wavelet_group = QGroupBox("Wavelet Transforms")
         wavelet_layout = QVBoxLayout(wavelet_group)
+
+        # Add help button for wavelet
+        wavelet_header_layout = QHBoxLayout()
+        wavelet_header_layout.addWidget(QLabel("Wavelet Analysis"))
+        wavelet_help_btn = HelpButton("wavelet")
+        wavelet_header_layout.addWidget(wavelet_help_btn)
+        wavelet_header_layout.addStretch()
+        wavelet_layout.addLayout(wavelet_header_layout)
 
         # Wavelet Parameters
         wavelet_params_layout = QGridLayout()
@@ -843,6 +952,14 @@ class EEGProcessorApp(QMainWindow):
         # Downsampling Section
         downsample_group = QGroupBox("Downsampling")
         downsample_layout = QVBoxLayout(downsample_group)
+
+        # Add help button for downsampling
+        downsample_header_layout = QHBoxLayout()
+        downsample_header_layout.addWidget(QLabel("Downsampling"))
+        downsample_help_btn = HelpButton("downsampling")
+        downsample_header_layout.addWidget(downsample_help_btn)
+        downsample_header_layout.addStretch()
+        downsample_layout.addLayout(downsample_header_layout)
 
         # Downsampling Parameters
         downsample_params_layout = QHBoxLayout()
@@ -930,6 +1047,14 @@ class EEGProcessorApp(QMainWindow):
         # MNE conversion section
         mne_group = QGroupBox("Convert to MNE Format")
         mne_layout = QVBoxLayout(mne_group)
+
+        # Add help button for MNE
+        mne_header_layout = QHBoxLayout()
+        mne_header_layout.addWidget(QLabel("MNE Integration"))
+        mne_help_btn = HelpButton("mne")
+        mne_header_layout.addWidget(mne_help_btn)
+        mne_header_layout.addStretch()
+        mne_layout.addLayout(mne_header_layout)
 
         # Add description
         mne_layout.addWidget(
@@ -2011,6 +2136,14 @@ class EEGProcessorApp(QMainWindow):
         streamer_group = QGroupBox("Streamer Configuration")
         streamer_layout = QVBoxLayout(streamer_group)
         
+        # Add help button for streamers
+        streamer_header_layout = QHBoxLayout()
+        streamer_header_layout.addWidget(QLabel("Data Streaming Options"))
+        streamer_help_btn = HelpButton("streamers")
+        streamer_header_layout.addWidget(streamer_help_btn)
+        streamer_header_layout.addStretch()
+        streamer_layout.addLayout(streamer_header_layout)
+        
         # File streamer
         file_streamer_layout = QHBoxLayout()
         file_streamer_layout.addWidget(QLabel("File Streamer:"))
@@ -2064,6 +2197,14 @@ class EEGProcessorApp(QMainWindow):
         # Board configuration section
         config_group = QGroupBox("Board Configuration")
         config_layout = QVBoxLayout(config_group)
+        
+        # Add help button for board configuration
+        config_header_layout = QHBoxLayout()
+        config_header_layout.addWidget(QLabel("Device Configuration"))
+        config_help_btn = HelpButton("board_config")
+        config_header_layout.addWidget(config_help_btn)
+        config_header_layout.addStretch()
+        config_layout.addLayout(config_header_layout)
         
         # Config command
         config_cmd_layout = QHBoxLayout()
