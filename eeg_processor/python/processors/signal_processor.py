@@ -349,7 +349,7 @@ class SignalProcessor:
         return np.array(band_powers)
 
     def get_eeg_metrics(
-        self, data: np.ndarray, eeg_channels: List[int]
+            self, data: np.ndarray, eeg_channels: List[int]
     ) -> Dict[str, float]:
         """
         Calculate EEG metrics (mindfulness, restfulness, etc.) from the data.
@@ -368,6 +368,9 @@ class SignalProcessor:
             )
             feature_vector = bands[0]
 
+            # Crear diccionario para almacenar métricas
+            metrics = {}
+
             # Calculate mindfulness
             mindfulness_params = BrainFlowModelParams(
                 BrainFlowMetrics.MINDFULNESS.value,
@@ -375,7 +378,9 @@ class SignalProcessor:
             )
             mindfulness_model = MLModel(mindfulness_params)
             mindfulness_model.prepare()
-            mindfulness = mindfulness_model.predict(feature_vector)
+            metrics["mindfulness"] = mindfulness_model.predict(feature_vector)
+            # Usar el mismo valor para concentration
+            metrics["concentration"] = metrics["mindfulness"]
             mindfulness_model.release()
 
             # Calculate restfulness
@@ -385,35 +390,10 @@ class SignalProcessor:
             )
             restfulness_model = MLModel(restfulness_params)
             restfulness_model.prepare()
-            restfulness = restfulness_model.predict(feature_vector)
+            metrics["restfulness"] = restfulness_model.predict(feature_vector)
+            # Usar el mismo valor para relaxation
+            metrics["relaxation"] = metrics["restfulness"]
             restfulness_model.release()
-
-            # Calculate concentration (identical to mindfulness in current BrainFlow implementation)
-            concentration_params = BrainFlowModelParams(
-                BrainFlowMetrics.CONCENTRATION.value,
-                BrainFlowClassifiers.DEFAULT_CLASSIFIER.value,
-            )
-            concentration_model = MLModel(concentration_params)
-            concentration_model.prepare()
-            concentration = concentration_model.predict(feature_vector)
-            concentration_model.release()
-
-            # Calculate relaxation (identical to restfulness in current BrainFlow implementation)
-            relaxation_params = BrainFlowModelParams(
-                BrainFlowMetrics.RELAXATION.value,
-                BrainFlowClassifiers.DEFAULT_CLASSIFIER.value,
-            )
-            relaxation_model = MLModel(relaxation_params)
-            relaxation_model.prepare()
-            relaxation = relaxation_model.predict(feature_vector)
-            relaxation_model.release()
-
-            metrics = {
-                "mindfulness": mindfulness,
-                "restfulness": restfulness,
-                "concentration": concentration,
-                "relaxation": relaxation,
-            }
 
             logging.info(f"EEG metrics calculated: {metrics}")
             return metrics

@@ -2011,11 +2011,21 @@ class EEGProcessorApp(QMainWindow):
                 data, self.collector.get_eeg_channels()
             )
 
-            # Update display
-            metrics_text = f"Mindfulness: {metrics['mindfulness']:.2f}\n"
-            metrics_text += f"Concentration: {metrics['concentration']:.2f}\n"
-            metrics_text += f"Relaxation: {metrics['relaxation']:.2f}\n"
-            metrics_text += f"Restfulness: {metrics['restfulness']:.2f}"
+            # Extraer valores escalares de los arrays NumPy
+            mindfulness = metrics['mindfulness'][0] if isinstance(metrics['mindfulness'], np.ndarray) else metrics[
+                'mindfulness']
+            concentration = metrics['concentration'][0] if isinstance(metrics['concentration'], np.ndarray) else \
+            metrics['concentration']
+            relaxation = metrics['relaxation'][0] if isinstance(metrics['relaxation'], np.ndarray) else metrics[
+                'relaxation']
+            restfulness = metrics['restfulness'][0] if isinstance(metrics['restfulness'], np.ndarray) else metrics[
+                'restfulness']
+
+            # Update display con valores escalares
+            metrics_text = f"Mindfulness: {mindfulness:.2f}\n"
+            metrics_text += f"Concentration: {concentration:.2f}\n"
+            metrics_text += f"Relaxation: {relaxation:.2f}\n"
+            metrics_text += f"Restfulness: {restfulness:.2f}"
             self.metrics_label.setText(metrics_text)
 
             self.statusBar().showMessage("EEG metrics calculated")
