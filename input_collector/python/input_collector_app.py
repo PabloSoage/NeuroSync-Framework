@@ -8,6 +8,7 @@ logging keyboard and mouse inputs in real-time with a graphical user interface u
 import sys
 import json
 import time
+import os
 from PyQt5.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -29,6 +30,7 @@ from PyQt5.QtWidgets import (
     QSizePolicy,
     QAction,
     QMessageBox,  # Added QMessageBox
+    QFileDialog,  # Added for file selection
 )
 from PyQt5.QtCore import Qt, QTimer, QSize, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QColor, QPalette, QFont, QTextCursor
@@ -91,6 +93,10 @@ class InputCollectorApp(QMainWindow):
         self.log_to_file = False
         self.log_file = None
         self.is_fullscreen = False
+        # Add CSV logging state
+        self.log_to_csv = False
+        self.csv_file = None
+        self.csv_filepath = ""
 
         # Añadir variable para el modo de edición de teclas
         self.edit_keys_mode = False
@@ -323,9 +329,31 @@ class InputCollectorApp(QMainWindow):
         self.record_button.clicked.connect(self._toggle_recording)
         recording_frame.addWidget(self.record_button)
 
-        self.log_checkbox = QCheckBox("Log")
+        # Add logging checkboxes in a vertical layout
+        log_layout = QVBoxLayout()
+        
+        # JSON logging
+        json_layout = QHBoxLayout()
+        self.log_checkbox = QCheckBox("Log JSON")
         self.log_checkbox.toggled.connect(self._toggle_logging)
-        recording_frame.addWidget(self.log_checkbox)
+        json_layout.addWidget(self.log_checkbox)
+        log_layout.addLayout(json_layout)
+        
+        # CSV logging
+        csv_layout = QHBoxLayout()
+        self.csv_checkbox = QCheckBox("Log CSV")
+        self.csv_checkbox.toggled.connect(self._toggle_csv_logging)
+        csv_layout.addWidget(self.csv_checkbox)
+        
+        # CSV path button
+        self.csv_path_button = QPushButton("...")
+        self.csv_path_button.setMaximumWidth(30)
+        self.csv_path_button.clicked.connect(self._select_csv_path)
+        csv_layout.addWidget(self.csv_path_button)
+        
+        log_layout.addLayout(csv_layout)
+        
+        recording_frame.addLayout(log_layout)
 
         self.status_label = QLabel("Not Recording")
         recording_frame.addWidget(self.status_label)
@@ -813,6 +841,12 @@ class InputCollectorApp(QMainWindow):
 
     def _toggle_edit_mode(self) -> None:
         """Toggle key editing mode."""
+        # Don't allow edit mode when recording
+        if self.is_recording:
+            self._log_status("Cannot edit keys while recording", self.warning_color)
+            self.edit_keys_button.setChecked(False)
+            return
+            
         self.edit_keys_mode = not self.edit_keys_mode
 
         if self.edit_keys_mode:
@@ -958,20 +992,49 @@ class InputCollectorApp(QMainWindow):
             self.record_button.setStyleSheet("background-color: #AA3333; color: white;")
             self.status_label.setText("Not Recording")
             self._log_status("Recording stopped", self.warning_color)
+            
+            # Close JSON log file if open
             if self.log_file:
                 self.log_file.write(
                     f'{{\n"event": "recording_stopped",\n"timestamp": {time.time()}\n}}\n'
                 )
                 self.log_file.flush()
+            
+            # Close CSV file if open
+            if self.csv_file:
+                self.csv_file.close()
+                self.csv_file = None
+                self._log_status("CSV logging stopped", self.warning_color)
+            
+            # Re-enable edit keys button and tracking mode controls
+            self.edit_keys_button.setEnabled(True)
+            self.tracking_mode_combo.setEnabled(True)
+            self.direction_only_check.setEnabled(True)
+            
         else:
             # Start recording
             print("Starting recording...")
+            
+            # Disable edit keys button and tracking mode controls
+            self.edit_keys_button.setEnabled(False)
+            self.tracking_mode_combo.setEnabled(False)
+            self.direction_only_check.setEnabled(False)
+            
+            # Initialize CSV file if needed
+            if self.log_to_csv:
+                if not self._initialize_csv_file():
+                    # Failed to initialize CSV file
+                    self._log_status("Failed to create CSV log file", self.error_color)
+                    return
+            
             self.collector.start_capture()
             self.is_recording = True
             self.record_button.setText("Stop")
             self.record_button.setStyleSheet("background-color: #CC3333; color: white;")
             self.status_label.setText("RECORDING")
             self._log_status("Recording started", self.success_color)
+            
+            # Write to JSON log if enabled
             if self.log_file:
                 self.log_file.write(
                     f'{{\n"event": "recording_started",\n"timestamp": {time.time()}\n}}\n'
@@ -981,8 +1044,108 @@ class InputCollectorApp(QMainWindow):
         # Force update the UI
         QApplication.processEvents()
 
+    def _initialize_csv_file(self) -> bool:
+        """Initialize the CSV file with headers based on tracked keys and mouse mode."""
+        try:
+            # If no CSV path is set, ask the user to select one
+            if not self.csv_filepath:
+                csv_path = self._select_csv_path()
+                if not csv_path:
+                    self.csv_checkbox.setChecked(False)
+                    self._log_status("CSV logging disabled: No file selected", self.warning_color)
+                    return False
+                self.csv_filepath = csv_path
+            
+            # Add timestamp to filename if not provided
+            if not self.csv_filepath.lower().endswith('.csv'):
+                self.csv_filepath += '.csv'
+                
+            # Always create a fresh CSV file with timestamp
+            base_path, extension = os.path.splitext(self.csv_filepath)
+            timestamp = time.strftime("%Y%m%d_%H%M%S", time.localtime(time.time()))
+            self.csv_filepath = f"{base_path}_{timestamp}{extension}"
+            
+            # Create directory if it doesn't exist
+            os.makedirs(os.path.dirname(os.path.abspath(self.csv_filepath)), exist_ok=True)
+            
+            # Open the file for writing
+            self.csv_file = open(self.csv_filepath, 'w', newline='')
+            
+            # Create CSV writer and write headers
+            import csv
+            self.csv_writer = csv.writer(self.csv_file)
+            
+            # Create headers based on tracked keys and mouse mode
+            headers = ['timestamp']
+            
+            # Add headers for each tracked key
+            for key in sorted(self.tracked_keys):
+                if key == "Button.left" or key == "Button.right" or key == "Button.scroll":
+                    # These will be handled separately
+                    continue
+                # Use key name as header
+                headers.append(f"key_{key}")
+            
+            # Add mouse button headers
+            if "Button.left" in self.tracked_keys:
+                headers.append('mouse_left')
+            if "Button.right" in self.tracked_keys:
+                headers.append('mouse_right')
+            if self.capture_scroll_check.isChecked():
+                headers.append('mouse_scroll')
+            
+            # Add mouse mode specific headers
+            tracking_mode = self.tracking_mode_combo.currentText()
+            direction_only = self.direction_only_check.isChecked()
+            
+            if tracking_mode == "joystick":
+                headers.extend(['mouse_rel_x', 'mouse_rel_y', 'mouse_speed'])
+            elif tracking_mode == "delta":
+                headers.extend(['mouse_delta_x', 'mouse_delta_y'])
+            elif tracking_mode == "angle":
+                if direction_only:
+                    headers.append('mouse_discrete_angle')
+                else:
+                    headers.extend(['mouse_angle', 'mouse_magnitude'])
+            elif tracking_mode == "axis":
+                headers.extend(['mouse_north', 'mouse_south', 'mouse_east', 'mouse_west'])
+            
+            # Write headers to CSV
+            self.csv_writer.writerow(headers)
+            self.csv_file.flush()
+            
+            # Store the headers for later use when writing data
+            self.csv_headers = headers
+            
+            self._log_status(f"CSV logging to: {self.csv_filepath}", self.success_color)
+            return True
+            
+        except Exception as e:
+            self._log_status(f"Error initializing CSV file: {e}", self.error_color)
+            if self.csv_file:
+                self.csv_file.close()
+                self.csv_file = None
+            return False
+
+    def _select_csv_path(self) -> str:
+        """Open file dialog to select CSV save location."""
+        options = QFileDialog.Options()
+        csv_path, _ = QFileDialog.getSaveFileName(
+            self, 
+            "Save CSV File", 
+            "", 
+            "CSV Files (*.csv);;All Files (*)", 
+            options=options
+        )
+        
+        if csv_path:
+            self.csv_filepath = csv_path
+            self._log_status(f"CSV file path set: {csv_path}")
+            return csv_path
+        return ""
+
     def _toggle_logging(self, checked: bool) -> None:
-        """Toggle logging to file."""
+        """Toggle logging to JSON file."""
         self.log_to_file = checked
         if self.log_to_file:
             # Open log file with timestamp
@@ -1001,6 +1164,23 @@ class InputCollectorApp(QMainWindow):
                 self.log_file.close()
                 self.log_file = None
                 self._log_status("Logging to file stopped")
+    
+    def _toggle_csv_logging(self, checked: bool) -> None:
+        """Toggle logging to CSV file."""
+        self.log_to_csv = checked
+        if self.log_to_csv:
+            # We'll initialize the CSV file when recording starts
+            self._log_status("CSV logging enabled - will create file on recording start")
+            
+            # If there's no path set, ask the user to select one
+            if not self.csv_filepath:
+                self._select_csv_path()
+        else:
+            # Close CSV file if open
+            if self.csv_file:
+                self.csv_file.close()
+                self.csv_file = None
+            self._log_status("CSV logging disabled")
 
     def _update_tracking_modes(self) -> None:
         """Update available tracking modes based on Direction Only checkbox."""
@@ -1035,6 +1215,11 @@ class InputCollectorApp(QMainWindow):
 
     def _set_mouse_tracking_mode(self, mode: str) -> None:
         """Change the mouse tracking mode."""
+        # Don't allow changing mode when recording
+        if self.is_recording:
+            self._log_status("Cannot change tracking mode while recording", self.warning_color)
+            return
+            
         direction_only = self.direction_only_check.isChecked()
         angle_grouping = self.angle_grouping_slider.value()
 
@@ -1103,6 +1288,9 @@ class InputCollectorApp(QMainWindow):
                 # Handle logging for PS4 controller events
                 if self.is_recording and self.log_file and self.log_to_file:
                     self._log_ps4_event_to_file(event)
+                # Log to CSV if enabled
+                if self.is_recording and self.csv_file and self.log_to_csv:
+                    self._log_ps4_event_to_csv(event)
                 # Display event in status area
                 if self.is_recording:
                     event_text = self._format_ps4_event_text(event)
@@ -1218,9 +1406,13 @@ class InputCollectorApp(QMainWindow):
             event_text = self._format_event_text(event)
             self._log_status(event_text)
 
-            # Log to file if enabled
+            # Log to JSON file if enabled
             if self.log_file and self.log_to_file:
                 self._log_event_to_file(event)
+            
+            # Log to CSV file if enabled
+            if self.csv_file and self.log_to_csv:
+                self._log_event_to_csv(event)
 
         # Actualizar el selector de botones del ratón si hay botones presionados
         if hasattr(event, "button_pressed") and event.button_pressed:
@@ -1382,6 +1574,89 @@ class InputCollectorApp(QMainWindow):
         except Exception as e:
             print(f"Error logging to file: {e}")
 
+    def _log_event_to_csv(self, event: InputData) -> None:
+        """Log event data to CSV file."""
+        try:
+            import csv
+            
+            # Create a row with data for each column
+            row_data = {}
+            
+            # Add timestamp
+            row_data['timestamp'] = event.timestamp
+            
+            # Set default values for all columns
+            for header in self.csv_headers:
+                if header != 'timestamp':
+                    row_data[header] = 0
+            
+            # Process keyboard keys
+            for key in event.active_keys:
+                key_header = f"key_{key}"
+                if key_header in self.csv_headers:
+                    row_data[key_header] = 1
+            
+            # Process mouse buttons
+            if hasattr(event, 'button_pressed') and event.button_pressed:
+                if event.button_pressed == "Button.left" and 'mouse_left' in self.csv_headers:
+                    row_data['mouse_left'] = 1
+                elif event.button_pressed == "Button.right" and 'mouse_right' in self.csv_headers:
+                    row_data['mouse_right'] = 1
+            
+            # Process scroll
+            if event.event_type == "mouse_scroll" and 'mouse_scroll' in self.csv_headers:
+                scroll_value = 0
+                if event.direction == "up":
+                    scroll_value = 1
+                elif event.direction == "down":
+                    scroll_value = -1
+                row_data['mouse_scroll'] = scroll_value
+            
+            # Process mouse tracking mode specific data
+            tracking_mode = getattr(event, "mouse_tracking_mode", "joystick")
+            
+            if tracking_mode == "joystick":
+                if 'mouse_rel_x' in self.csv_headers:
+                    row_data['mouse_rel_x'] = event.rel_x if event.rel_x is not None else 0.0
+                if 'mouse_rel_y' in self.csv_headers:
+                    row_data['mouse_rel_y'] = event.rel_y if event.rel_y is not None else 0.0
+                if 'mouse_speed' in self.csv_headers:
+                    row_data['mouse_speed'] = event.speed if event.speed is not None else 0.0
+            elif tracking_mode == "delta":
+                if 'mouse_delta_x' in self.csv_headers:
+                    row_data['mouse_delta_x'] = event.mouse_delta_x if hasattr(event, "mouse_delta_x") else 0.0
+                if 'mouse_delta_y' in self.csv_headers:
+                    row_data['mouse_delta_y'] = event.mouse_delta_y if hasattr(event, "mouse_delta_y") else 0.0
+            elif tracking_mode == "angle":
+                direction_only = getattr(event, "direction_only", False)
+                if direction_only:
+                    if 'mouse_discrete_angle' in self.csv_headers:
+                        row_data['mouse_discrete_angle'] = event.discrete_angle if hasattr(event, "discrete_angle") else 0
+                else:
+                    if 'mouse_angle' in self.csv_headers:
+                        row_data['mouse_angle'] = event.mouse_delta_angle if hasattr(event, "mouse_delta_angle") else 0.0
+                    if 'mouse_magnitude' in self.csv_headers:
+                        row_data['mouse_magnitude'] = event.mouse_delta_magnitude if hasattr(event, "mouse_delta_magnitude") else 0.0
+            elif tracking_mode == "axis":
+                if 'mouse_north' in self.csv_headers:
+                    row_data['mouse_north'] = event.north if hasattr(event, "north") else 0.0
+                if 'mouse_south' in self.csv_headers:
+                    row_data['mouse_south'] = event.south if hasattr(event, "south") else 0.0
+                if 'mouse_east' in self.csv_headers:
+                    row_data['mouse_east'] = event.east if hasattr(event, "east") else 0.0
+                if 'mouse_west' in self.csv_headers:
+                    row_data['mouse_west'] = event.west if hasattr(event, "west") else 0.0
+            
+            # Create row in same order as headers
+            row = [row_data.get(header, '') for header in self.csv_headers]
+            
+            # Write row to CSV
+            self.csv_writer.writerow(row)
+            self.csv_file.flush()
+            
+        except Exception as e:
+            self._log_status(f"Error writing to CSV: {e}", self.error_color)
+
     def _log_status(self, message: str, color: Optional[str] = None) -> None:
         """
         Log a message to the status area.
@@ -1454,12 +1729,15 @@ class InputCollectorApp(QMainWindow):
 
     def closeEvent(self, event) -> None:
         """Handle application close event."""
-        # Stop collectors and close log file
+        # Stop collectors and close log files
         if self.is_recording:
             self.collector.stop_capture()
 
         if self.log_file:
             self.log_file.close()
+            
+        if self.csv_file:
+            self.csv_file.close()
 
         # Accept the close event
         event.accept()
@@ -1584,6 +1862,65 @@ class InputCollectorApp(QMainWindow):
             self.log_file.flush()
         except Exception as e:
             print(f"Error logging PS4 event to file: {e}")
+
+    def _log_ps4_event_to_csv(self, event: InputData) -> None:
+        """Log PS4 controller event to CSV file."""
+        try:
+            import csv
+            
+            # Create a row with data for each column
+            row_data = {}
+            
+            # Add timestamp
+            row_data['timestamp'] = event.timestamp
+            
+            # Set default values for all columns
+            for header in self.csv_headers:
+                if header != 'timestamp':
+                    row_data[header] = 0
+            
+            # Process active buttons
+            if hasattr(event, 'active_keys') and event.active_keys:
+                for key in event.active_keys:
+                    key_header = f"key_{key}"
+                    if key_header in self.csv_headers:
+                        row_data[key_header] = 1
+            
+            # Handle specific PS4 controller event types
+            if event.event_type == "axis_motion":
+                if hasattr(event, 'key') and hasattr(event, 'rel_x') and event.rel_x is not None:
+                    # For joysticks, we store X and Y positions
+                    if "_X" in event.key:
+                        base_name = event.key.replace("_X", "")
+                        header_x = f"controller_{base_name}_x"
+                        header_y = f"controller_{base_name}_y"
+                        
+                        # X value
+                        if header_x in self.csv_headers:
+                            row_data[header_x] = event.rel_x
+                        
+                        # Y value (look up from controller state)
+                        y_value = 0.0
+                        if hasattr(self.collector, "axis_state"):
+                            y_key = f"{base_name}_Y"
+                            y_value = self.collector.axis_state.get(y_key, 0.0)
+                            if header_y in self.csv_headers:
+                                row_data[header_y] = y_value
+                    else:
+                        # For triggers or other single-axis controls
+                        header = f"controller_{event.key}"
+                        if header in self.csv_headers:
+                            row_data[header] = event.rel_x
+            
+            # Create row in same order as headers
+            row = [row_data.get(header, '') for header in self.csv_headers]
+            
+            # Write row to CSV
+            self.csv_writer.writerow(row)
+            self.csv_file.flush()
+            
+        except Exception as e:
+            self._log_status(f"Error writing PS4 event to CSV: {e}", self.error_color)
 
 
 def run_collector_app() -> None:
