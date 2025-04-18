@@ -14,7 +14,7 @@ from typing import Optional, Dict, Any
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
     QTabWidget, QPushButton, QLabel, QGroupBox, QCheckBox,
-    QSplitter, QMessageBox
+    QSplitter, QMessageBox, QScrollArea, QSizePolicy, QFrame
 )
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QColor, QPalette, QIcon
@@ -27,6 +27,8 @@ from eeg_processor.python.eeg_processor_app import EEGProcessorApp
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "input_collector"))
 from input_collector.python.input_collector_app import InputCollectorApp
 
+# Add missing import
+import os.path
 
 class IntegratedBCIApp(QMainWindow):
     """
@@ -82,6 +84,10 @@ class IntegratedBCIApp(QMainWindow):
         
         # Update initial status
         self._update_status()
+        
+        # Create recordings directory if it doesn't exist
+        self.recordings_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "recordings")
+        os.makedirs(self.recordings_dir, exist_ok=True)
         
         logging.info("Integrated BCI application initialized")
     
@@ -172,6 +178,44 @@ class IntegratedBCIApp(QMainWindow):
             }}
             QCheckBox::indicator:checked {{
                 background-color: {self.accent_color};
+            }}
+            QScrollArea {{
+                border: none;
+                background-color: transparent;
+            }}
+            QScrollBar:vertical {{
+                background: {self.dark_frame_bg};
+                width: 12px;
+                margin: 12px 0 12px 0;
+            }}
+            QScrollBar::handle:vertical {{
+                background: #666;
+                min-height: 20px;
+                border-radius: 3px;
+            }}
+            QScrollBar::add-line:vertical {{
+                border: none;
+                background: none;
+                height: 12px;
+                subcontrol-position: bottom;
+                subcontrol-origin: margin;
+            }}
+            QScrollBar::sub-line:vertical {{
+                border: none;
+                background: none;
+                height: 12px;
+                subcontrol-position: top;
+                subcontrol-origin: margin;
+            }}
+            QScrollBar:horizontal {{
+                background: {self.dark_frame_bg};
+                height: 12px;
+                margin: 0 12px 0 12px;
+            }}
+            QScrollBar::handle:horizontal {{
+                background: #666;
+                min-width: 20px;
+                border-radius: 3px;
             }}
         """)
     
@@ -294,27 +338,67 @@ class IntegratedBCIApp(QMainWindow):
         parent_layout.addWidget(control_group)
     
     def _create_eeg_tab(self):
-        """Create the EEG processor tab."""
-        # Embed EEG processor app
+        """Create the EEG processor tab with scrollability."""
+        # Create the EEG processor app instance first
+        self.eeg_processor_app = EEGProcessorApp()
+        
+        # Create a scroll area to contain the EEG processor app
         self.eeg_container = QWidget()
         eeg_layout = QVBoxLayout(self.eeg_container)
         eeg_layout.setContentsMargins(0, 0, 0, 0)
+        eeg_layout.setSpacing(0)
         
-        self.eeg_processor_app = EEGProcessorApp()
-        eeg_layout.addWidget(self.eeg_processor_app)
+        # Create scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.NoFrame)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        
+        # Create container for the EEG processor app
+        scroll_widget = QWidget()
+        scroll_layout = QVBoxLayout(scroll_widget)
+        scroll_layout.setContentsMargins(0, 0, 0, 0)
+        scroll_layout.addWidget(self.eeg_processor_app)
+        
+        # Add widget to scroll area
+        scroll_area.setWidget(scroll_widget)
+        
+        # Add scroll area to the container
+        eeg_layout.addWidget(scroll_area)
         
         # Add to tabs
         self.tabs.addTab(self.eeg_container, "EEG Processing")
     
     def _create_input_tab(self):
-        """Create the input collector tab."""
-        # Embed input collector app
+        """Create the input collector tab with scrollability."""
+        # Create the input collector app instance first
+        self.input_collector_app = InputCollectorApp()
+        
+        # Create a scroll area to contain the Input collector app
         self.input_container = QWidget()
         input_layout = QVBoxLayout(self.input_container)
         input_layout.setContentsMargins(0, 0, 0, 0)
+        input_layout.setSpacing(0)
         
-        self.input_collector_app = InputCollectorApp()
-        input_layout.addWidget(self.input_collector_app)
+        # Create scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.NoFrame)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        
+        # Create container for the input collector app
+        scroll_widget = QWidget()
+        scroll_layout = QVBoxLayout(scroll_widget)
+        scroll_layout.setContentsMargins(0, 0, 0, 0)
+        scroll_layout.addWidget(self.input_collector_app)
+        
+        # Add widget to scroll area
+        scroll_area.setWidget(scroll_widget)
+        
+        # Add scroll area to the container
+        input_layout.addWidget(scroll_area)
         
         # Add to tabs
         self.tabs.addTab(self.input_container, "Input Collection")
@@ -381,17 +465,16 @@ class IntegratedBCIApp(QMainWindow):
         self.recording_stopped.connect(self._stop_eeg_recording)
         self.recording_stopped.connect(self._stop_input_recording)
         
-        # Disable original recording buttons
+        # Hide/disable original recording buttons in EEG app
         if hasattr(self.eeg_processor_app, 'start_record_btn'):
             self.eeg_processor_app.start_record_btn.setVisible(False)
         if hasattr(self.eeg_processor_app, 'stop_record_btn'):
             self.eeg_processor_app.stop_record_btn.setVisible(False)
         
-        # Disable original input collector record button
+        # Hide record button in input collector app
+        # First find the actual record button from the UI
         if hasattr(self.input_collector_app, 'record_button'):
-            original_record_btn = self.input_collector_app.findChild(QPushButton, 'record_button')
-            if original_record_btn:
-                original_record_btn.setVisible(False)
+            self.input_collector_app.record_button.setVisible(False)
     
     def _update_status(self):
         """Update status information."""
@@ -461,6 +544,12 @@ class IntegratedBCIApp(QMainWindow):
                                    "EEG must be connected and streaming before recording can start.")
                 return
                 
+            # Create recordings directory for this session
+            session_timestamp = time.strftime("%Y%m%d_%H%M%S")
+            self.session_dir = os.path.join(self.recordings_dir, f"session_{session_timestamp}")
+            os.makedirs(self.session_dir, exist_ok=True)
+            logging.info(f"Created session directory: {self.session_dir}")
+            
             self.is_recording = True
             self.record_button.setText("Stop Recording")
             self.record_button.setStyleSheet("background-color: #CC3333;")
@@ -472,6 +561,8 @@ class IntegratedBCIApp(QMainWindow):
             
             # Emit signal to start recording in both modules
             self.recording_started.emit()
+            
+            logging.info("Recording started")
             
         else:
             # Stop recording
@@ -485,10 +576,18 @@ class IntegratedBCIApp(QMainWindow):
             
             # Emit signal to stop recording in both modules
             self.recording_stopped.emit()
+            
+            logging.info("Recording stopped")
+            
+            # Show message about where recordings were saved
+            if hasattr(self, 'session_dir') and os.path.exists(self.session_dir):
+                QMessageBox.information(self, "Recording Complete", 
+                                      f"Recordings have been saved to:\n{self.session_dir}")
     
     def _start_eeg_recording(self):
         """Start recording in the EEG processor app."""
         if not self.save_eeg_check.isChecked():
+            logging.info("EEG recording disabled by user")
             return
             
         try:
@@ -501,68 +600,126 @@ class IntegratedBCIApp(QMainWindow):
                 
             # Generate a timestamp for the filename
             timestamp = time.strftime("%Y%m%d_%H%M%S")
-            filename = f"eeg_recording_{timestamp}.csv"
             
-            # Set the filename in the EEG processor app
+            # Save to session directory if available
+            if hasattr(self, 'session_dir') and os.path.exists(self.session_dir):
+                filename = os.path.join(self.session_dir, f"eeg_recording_{timestamp}.csv")
+            else:
+                filename = os.path.join(self.recordings_dir, f"eeg_recording_{timestamp}.csv")
+            
+            # Set the filename in the EEG processor app record_file_edit
             if hasattr(self.eeg_processor_app, 'record_file_edit'):
                 self.eeg_processor_app.record_file_edit.setText(filename)
             
-            # Start recording
-            if hasattr(self.eeg_processor_app, 'start_recording'):
-                self.eeg_processor_app.start_recording()
+            # Start recording using the collector directly
+            if hasattr(self.eeg_processor_app, 'collector'):
+                data_type = "raw"  # Default to raw data
+                self.eeg_processor_app.collector.start_continuous_recording(filename, data_type)
+                logging.info(f"Started EEG recording to {filename}")
             else:
-                # Fallback if direct method access is not available
-                if hasattr(self.eeg_processor_app, 'collector'):
-                    data_type = "raw"  # Default to raw data
-                    self.eeg_processor_app.collector.start_continuous_recording(filename, data_type)
-            
-            logging.info(f"Started EEG recording to {filename}")
+                logging.error("Failed to start EEG recording: No collector available")
             
         except Exception as e:
             logging.error(f"Error starting EEG recording: {e}")
+            import traceback
+            traceback.print_exc()
     
     def _stop_eeg_recording(self):
         """Stop recording in the EEG processor app."""
         try:
-            # Stop recording
-            if hasattr(self.eeg_processor_app, 'stop_recording'):
-                self.eeg_processor_app.stop_recording()
-            else:
-                # Fallback if direct method access is not available
-                if hasattr(self.eeg_processor_app, 'collector'):
+            # Stop recording using the collector directly
+            if hasattr(self.eeg_processor_app, 'collector'):
+                if hasattr(self.eeg_processor_app.collector, 'stop_continuous_recording'):
                     self.eeg_processor_app.collector.stop_continuous_recording()
-            
-            logging.info("Stopped EEG recording")
+                    logging.info("Stopped EEG recording")
+                else:
+                    logging.error("EEG collector does not have stop_continuous_recording method")
+            else:
+                logging.error("Failed to stop EEG recording: No collector available")
             
         except Exception as e:
             logging.error(f"Error stopping EEG recording: {e}")
+            import traceback
+            traceback.print_exc()
     
     def _start_input_recording(self):
         """Start recording in the input collector app."""
         if not self.save_input_check.isChecked():
+            logging.info("Input recording disabled by user")
             return
             
         try:
-            # Start recording in input collector
-            if not self.input_collector_app.is_recording:
-                self.input_collector_app._toggle_recording()
+            # First, ensure logging is enabled in the input collector
+            if hasattr(self.input_collector_app, 'log_checkbox'):
+                # Enable logging by setting checkbox state
+                self.input_collector_app.log_checkbox.setChecked(True)
+                logging.info("Enabled input collector logging")
+                
+                # Wait a moment for the checkbox toggle to take effect
+                QApplication.processEvents()
             
-            logging.info("Started input recording")
+            # Make sure log file is ready in the input collector
+            if not hasattr(self.input_collector_app, 'log_file') or not self.input_collector_app.log_file:
+                # Create log file directly if needed
+                self._ensure_input_log_file()
+                
+            # Start recording in input collector
+            if hasattr(self.input_collector_app, '_toggle_recording') and not self.input_collector_app.is_recording:
+                self.input_collector_app._toggle_recording()
+                logging.info("Started input recording")
+                
+                # Double check that log file is actually open
+                if hasattr(self.input_collector_app, 'log_file') and self.input_collector_app.log_file:
+                    logging.info(f"Input recording log file: {self.input_collector_app.log_file.name}")
+                else:
+                    logging.warning("Input collector log file not properly initialized")
+            else:
+                logging.debug("Input collector already recording or toggle method not found")
             
         except Exception as e:
             logging.error(f"Error starting input recording: {e}")
+            import traceback
+            traceback.print_exc()
     
     def _stop_input_recording(self):
         """Stop recording in the input collector app."""
         try:
             # Stop recording in input collector
-            if self.input_collector_app.is_recording:
+            if hasattr(self.input_collector_app, '_toggle_recording') and self.input_collector_app.is_recording:
                 self.input_collector_app._toggle_recording()
+                logging.info("Stopped input recording")
+            else:
+                logging.debug("Input collector not recording or toggle method not found")
             
-            logging.info("Stopped input recording")
+            # Wait a moment for recording to complete
+            QApplication.processEvents()
+            
+            # Disable logging if it was enabled
+            if hasattr(self.input_collector_app, 'log_checkbox') and self.input_collector_app.log_checkbox.isChecked():
+                self.input_collector_app.log_checkbox.setChecked(False)
+                logging.info("Disabled input collector logging")
             
         except Exception as e:
             logging.error(f"Error stopping input recording: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def _ensure_input_log_file(self):
+        """Ensure that the input collector has a log file open."""
+        try:
+            if not hasattr(self.input_collector_app, 'log_file') or not self.input_collector_app.log_file:
+                # Create timestamp for filename
+                timestamp = time.strftime("%Y%m%d_%H%M%S")
+                filename = os.path.join(self.recordings_dir, f"input_recording_{timestamp}.json")
+                
+                # Force log file creation
+                self.input_collector_app.log_to_file = True
+                self.input_collector_app.log_file = open(filename, "w")
+                logging.info(f"Created input log file: {filename}")
+        except Exception as e:
+            logging.error(f"Error creating input log file: {e}")
+            import traceback
+            traceback.print_exc()
     
     def _update_session_time(self):
         """Update the session timer display."""
