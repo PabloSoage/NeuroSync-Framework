@@ -264,6 +264,22 @@ class InputCollectorApp(QMainWindow):
             }}
             QPushButton:pressed {{ background-color: #005599; }}
             QPushButton:hover {{ background-color: #0066aa; }}
+            QPushButton:disabled {{
+                background-color: #555555;
+                color: #999999;
+            }}
+            QComboBox:disabled {{
+                background-color: #444444;
+                color: #888888;
+                border: 1px solid #333333;
+            }}
+            QCheckBox:disabled {{
+                color: #888888;
+            }}
+            QCheckBox::indicator:disabled {{
+                border: 1px solid #555555;
+                background-color: #444444;
+            }}
             QLineEdit, QTextEdit, QListWidget, QComboBox {{
                 background-color: {self.dark_frame_bg};
                 color: {self.text_color};
@@ -321,40 +337,39 @@ class InputCollectorApp(QMainWindow):
         # Control panel
         control_panel = QHBoxLayout()
 
-        # Recording controls
+        # Recording controls - reorganize into a single horizontal layout
         recording_frame = QHBoxLayout()
 
+        # 1. Record button
         self.record_button = QPushButton("Record")
         self.record_button.setStyleSheet(f"background-color: #AA3333; color: white;")
         self.record_button.clicked.connect(self._toggle_recording)
         recording_frame.addWidget(self.record_button)
-
-        # Add logging checkboxes in a vertical layout
-        log_layout = QVBoxLayout()
         
-        # JSON logging
-        json_layout = QHBoxLayout()
+        # 2. JSON logging checkbox
         self.log_checkbox = QCheckBox("Log JSON")
         self.log_checkbox.toggled.connect(self._toggle_logging)
-        json_layout.addWidget(self.log_checkbox)
-        log_layout.addLayout(json_layout)
+        recording_frame.addWidget(self.log_checkbox)
         
-        # CSV logging
-        csv_layout = QHBoxLayout()
+        # 3. CSV logging checkbox
         self.csv_checkbox = QCheckBox("Log CSV")
         self.csv_checkbox.toggled.connect(self._toggle_csv_logging)
-        csv_layout.addWidget(self.csv_checkbox)
+        recording_frame.addWidget(self.csv_checkbox)
         
-        # CSV path button
-        self.csv_path_button = QPushButton("...")
-        self.csv_path_button.setMaximumWidth(30)
+        # 4. CSV path controls in a horizontal layout
+        csv_path_label = QLabel("Path:")
+        recording_frame.addWidget(csv_path_label)
+        
+        self.csv_path_field = QLineEdit()
+        self.csv_path_field.setPlaceholderText("Select CSV file location...")
+        self.csv_path_field.setReadOnly(True)
+        recording_frame.addWidget(self.csv_path_field, 1)  # Give the path field horizontal stretch
+        
+        self.csv_path_button = QPushButton("Browse...")
         self.csv_path_button.clicked.connect(self._select_csv_path)
-        csv_layout.addWidget(self.csv_path_button)
+        recording_frame.addWidget(self.csv_path_button)
         
-        log_layout.addLayout(csv_layout)
-        
-        recording_frame.addLayout(log_layout)
-
+        # 5. Status label
         self.status_label = QLabel("Not Recording")
         recording_frame.addWidget(self.status_label)
 
@@ -379,13 +394,11 @@ class InputCollectorApp(QMainWindow):
 
         control_panel.addLayout(collector_layout)
 
-        # Edit keys button
+        # Edit keys button - ensure disabled styling will be applied
         self.edit_keys_button = QPushButton("Edit Keys")
         self.edit_keys_button.clicked.connect(self._toggle_edit_mode)
         self.edit_keys_button.setCheckable(True)
-        self.edit_keys_button.setStyleSheet(
-            f"background-color: {self.accent_color}; color: white;"
-        )
+        # Don't set custom style here, let it use the global style including disabled state
         control_panel.addWidget(self.edit_keys_button)
 
         control_panel.addStretch(1)
@@ -863,9 +876,8 @@ class InputCollectorApp(QMainWindow):
             self.mouse_buttons_selector.setEditMode(True)
         else:
             self.edit_keys_button.setText("Edit Keys")
-            self.edit_keys_button.setStyleSheet(
-                f"background-color: {self.accent_color}; color: white;"
-            )
+            # When inactive, use the default style (which will respect disabled state)
+            self.edit_keys_button.setStyleSheet("")
             self._log_status("Key editing finished", self.accent_color)
             # Restaurar cursor normal
             self.keyboard_viz.setCursor(Qt.ArrowCursor)
@@ -1011,6 +1023,12 @@ class InputCollectorApp(QMainWindow):
             self.tracking_mode_combo.setEnabled(True)
             self.direction_only_check.setEnabled(True)
             
+            # Reset Edit Keys button style based on its current state
+            if self.edit_keys_mode:
+                self.edit_keys_button.setStyleSheet("background-color: #5FB878; color: white;")
+            else:
+                self.edit_keys_button.setStyleSheet("")
+            
         else:
             # Start recording
             print("Starting recording...")
@@ -1080,11 +1098,21 @@ class InputCollectorApp(QMainWindow):
             
             # Add headers for each tracked key
             for key in sorted(self.tracked_keys):
-                if key == "Button.left" or key == "Button.right" or key == "Button.scroll":
-                    # These will be handled separately
+                # Skip F9/media_play_pause key as requested
+                if key == "Key.media_play_pause":
                     continue
+                
+                # Skip mouse buttons - they will be handled separately
+                if key in ["Button.left", "Button.right", "Button.scroll"]:
+                    continue
+                
+                # Format the key name - remove "Key." prefix for special keys
+                csv_key_name = key
+                if key.startswith("Key."):
+                    csv_key_name = key[4:]  # Remove "Key." prefix
+                
                 # Use key name as header
-                headers.append(f"key_{key}")
+                headers.append(f"key_{csv_key_name}")
             
             # Add mouse button headers
             if "Button.left" in self.tracked_keys:
@@ -1140,6 +1168,8 @@ class InputCollectorApp(QMainWindow):
         
         if csv_path:
             self.csv_filepath = csv_path
+            # Update the path field in the UI
+            self.csv_path_field.setText(csv_path)
             self._log_status(f"CSV file path set: {csv_path}")
             return csv_path
         return ""
@@ -1592,7 +1622,17 @@ class InputCollectorApp(QMainWindow):
             
             # Process keyboard keys
             for key in event.active_keys:
-                key_header = f"key_{key}"
+                # Skip F9/media_play_pause key
+                if key == "Key.media_play_pause":
+                    continue
+                
+                # Format the key name for CSV column lookup
+                csv_key_name = key
+                if key.startswith("Key."):
+                    csv_key_name = key[4:]  # Remove "Key." prefix
+                
+                key_header = f"key_{csv_key_name}"
+                
                 if key_header in self.csv_headers:
                     row_data[key_header] = 1
             
@@ -1879,10 +1919,20 @@ class InputCollectorApp(QMainWindow):
                 if header != 'timestamp':
                     row_data[header] = 0
             
-            # Process active buttons
+            # Process active buttons - with the same formatting as regular keys
             if hasattr(event, 'active_keys') and event.active_keys:
                 for key in event.active_keys:
-                    key_header = f"key_{key}"
+                    # Skip F9/media_play_pause key
+                    if key == "Key.media_play_pause":
+                        continue
+                    
+                    # Format the key name for CSV column lookup
+                    csv_key_name = key
+                    if key.startswith("Key."):
+                        csv_key_name = key[4:]  # Remove "Key." prefix
+                    
+                    key_header = f"key_{csv_key_name}"
+                    
                     if key_header in self.csv_headers:
                         row_data[key_header] = 1
             
