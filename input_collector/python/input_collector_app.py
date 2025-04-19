@@ -31,6 +31,7 @@ from PyQt5.QtWidgets import (
     QAction,
     QMessageBox,  # Added QMessageBox
     QFileDialog,  # Added for file selection
+    QScrollArea,  # Added for keyboard scrolling
 )
 from PyQt5.QtCore import Qt, QTimer, QSize, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QColor, QPalette, QFont, QTextCursor
@@ -431,13 +432,40 @@ class InputCollectorApp(QMainWindow):
         # Left side: Keyboard visualization + Mouse buttons
         left_viz_layout = QVBoxLayout()
 
-        # Keyboard visualization
+        # Keyboard visualization with scroll area to maintain aspect ratio
         keyboard_group = QGroupBox("Keyboard Input")
         keyboard_layout = QVBoxLayout(keyboard_group)
+        
+        # Create scroll area to contain keyboard visualizer
+        self.keyboard_scroll = QScrollArea()
+        self.keyboard_scroll.setWidgetResizable(True)
+        self.keyboard_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.keyboard_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.keyboard_scroll.setFrameShape(QFrame.NoFrame)  # Remove border
+        
+        # Create container widget for keyboard visualizer
+        keyboard_container = QWidget()
+        keyboard_container_layout = QVBoxLayout(keyboard_container)
+        keyboard_container_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Create keyboard visualizer
         self.keyboard_viz = KeyboardVisualizer()
-        # Conectar señales para la edición de teclas
+        self.keyboard_viz.setMinimumWidth(400)  # Ensure minimum width
+        # Set size policy to maintain aspect ratio
+        self.keyboard_viz.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        
+        # Connect signals for keyboard editing
         self.keyboard_viz.mousePressEvent = self._handle_keyboard_viz_click
-        keyboard_layout.addWidget(self.keyboard_viz)
+        
+        # Add keyboard to container
+        keyboard_container_layout.addWidget(self.keyboard_viz)
+        keyboard_container_layout.addStretch(1)  # Push keyboard to top
+        
+        # Set container as scroll area widget
+        self.keyboard_scroll.setWidget(keyboard_container)
+        
+        # Add scroll area to keyboard layout
+        keyboard_layout.addWidget(self.keyboard_scroll)
 
         # Añadir selector de botones del ratón debajo del teclado
         mouse_buttons_group = QGroupBox("Mouse Buttons")
@@ -449,9 +477,13 @@ class InputCollectorApp(QMainWindow):
         )
         mouse_buttons_layout.addWidget(self.mouse_buttons_selector)
 
+        # Set a fixed height for mouse buttons to ensure proper layout
+        mouse_buttons_group.setFixedHeight(120)
+
         # Añadir ambos al layout izquierdo
         left_viz_layout.addWidget(keyboard_group, 3)  # Peso mayor para el teclado
-        left_viz_layout.addWidget(mouse_buttons_group, 1)  # Peso menor para los botones
+        left_viz_layout.addWidget(mouse_buttons_group, 0)  # No stretch - use fixed height
+        left_viz_layout.addStretch(0)  # Push everything up
 
         # Mouse visualization (derecha)
         mouse_group = QGroupBox("Mouse Input")
@@ -1754,14 +1786,37 @@ class InputCollectorApp(QMainWindow):
 
     def _force_update_visualizers(self) -> None:
         """Force update of visualizers."""
+        # Sync keyboard height with its content
+        self._update_keyboard_height()
         self.keyboard_viz.force_update()
         self.mouse_viz.force_update()
+        
+    def _update_keyboard_height(self) -> None:
+        """Update keyboard visualizer height to maintain aspect ratio."""
+        # Calculate keyboard height based on its natural aspect ratio and current width
+        width = self.keyboard_viz.width()
+        if width > 0:
+            # Get natural aspect ratio from the keyboard visualizer (width:height)
+            # This is an estimation - ideally the KeyboardVisualizer class would provide this
+            aspect_ratio = 3.0  # Approximate keyboard aspect ratio (width:height)
+            natural_height = width / aspect_ratio
+            
+            # Set the keyboard height to maintain aspect ratio
+            self.keyboard_viz.setFixedHeight(int(natural_height))
 
     def resizeEvent(self, event) -> None:
         """Handle resize events."""
         super().resizeEvent(event)
-        # Update visualizers after resize
+        # Update keyboard height to maintain aspect ratio
+        QTimer.singleShot(50, self._update_keyboard_height)
+        # Then update visualizers
         QTimer.singleShot(100, self._force_update_visualizers)
+
+    def showEvent(self, event) -> None:
+        """Handle show events."""
+        super().showEvent(event)
+        # Update keyboard height on initial show
+        QTimer.singleShot(50, self._update_keyboard_height)
 
     def run(self) -> None:
         """Run the application."""
