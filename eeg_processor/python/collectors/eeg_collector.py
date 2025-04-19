@@ -64,12 +64,14 @@ class EEGCollector(CollectorInterface):
         # Variables para la grabación continua
         self.recording = False
         self.recording_file = None
+        self.processed_recording_file = None
         self.recording_thread = None
         self.recording_queue = queue.Queue()
         self.total_recorded_samples = 0
         self.recording_start_time = 0
         self.last_data_count = 0
         self.data_type = "raw"
+        self.is_recording_both = False
         
         # Get available presets for this board
         try:
@@ -534,7 +536,7 @@ class EEGCollector(CollectorInterface):
         
         Args:
             filename: Ruta del archivo donde guardar los datos
-            data_type: Tipo de datos a guardar ('raw' o 'processed')
+            data_type: Tipo de datos a guardar ('raw', 'processed' o 'both')
         """
         if self.recording:
             logging.warning("La grabación ya está en curso")
@@ -542,82 +544,27 @@ class EEGCollector(CollectorInterface):
         
         try:
             self.data_type = data_type
+            self.is_recording_both = (data_type == "both")
             
-            # Crear el directorio si no existe
-            os.makedirs(os.path.dirname(os.path.abspath(filename)), exist_ok=True)
-            
-            # Abrir el archivo y escribir la cabecera con placeholders
-            self.recording_file = open(filename, 'w', newline='')
-            
-            # Escribir metadatos iniciales
-            header = [
-                f"# EEG Recording - {time.strftime('%Y-%m-%d %H:%M:%S')}",
-                f"# Board: {self.device_name} (ID: {self.board_id})",
-                f"# Preset: {self.preset}",
-                f"# Sampling Rate: {self.sampling_rate} Hz",
-                f"# Data Type: {data_type}",
-                f"# Channels: {self.num_rows}",
-                f"# Samples: 0",  # Placeholder que actualizaremos al final
-                f"# Duration: 0.00 seconds",  # Placeholder que actualizaremos al final
-            ]
-            
-            # Añadir nombres de columnas usando la lógica avanzada
-            column_names = []
-            for i in range(self.num_rows):
-                # Identificar tipo de canal y asignar nombre descriptivo
-                if hasattr(self, 'timestamp_channel') and i == self.timestamp_channel:
-                    column_names.append("Timestamp")
-                elif hasattr(self, 'marker_channel') and i == self.marker_channel:
-                    column_names.append("Marker")
-                elif i in self.channel_types.get('eeg', []):
-                    # Intentar usar nombre de canal EEG si está disponible
-                    eeg_index = self.channel_types['eeg'].index(i)
-                    if hasattr(self, 'eeg_names') and eeg_index < len(self.eeg_names):
-                        column_names.append(f"EEG_{self.eeg_names[eeg_index]}")
-                    else:
-                        column_names.append(f"EEG_{eeg_index}")
-                elif i in self.channel_types.get('emg', []):
-                    emg_index = self.channel_types['emg'].index(i)
-                    column_names.append(f"EMG_{emg_index}")
-                elif i in self.channel_types.get('ecg', []):
-                    ecg_index = self.channel_types['ecg'].index(i)
-                    column_names.append(f"ECG_{ecg_index}")
-                elif i in self.channel_types.get('eog', []):
-                    eog_index = self.channel_types['eog'].index(i)
-                    column_names.append(f"EOG_{eog_index}")
-                elif i in self.channel_types.get('eda', []):
-                    eda_index = self.channel_types['eda'].index(i)
-                    column_names.append(f"EDA_{eda_index}")
-                elif i in self.channel_types.get('ppg', []):
-                    ppg_index = self.channel_types['ppg'].index(i)
-                    column_names.append(f"PPG_{ppg_index}")
-                elif i in self.channel_types.get('accel', []):
-                    accel_index = self.channel_types['accel'].index(i)
-                    accel_names = ['X', 'Y', 'Z']
-                    axis_name = accel_names[accel_index % 3] if accel_index < 3 else accel_index
-                    column_names.append(f"ACCEL_{axis_name}")
-                elif i in self.channel_types.get('gyro', []):
-                    gyro_index = self.channel_types['gyro'].index(i)
-                    gyro_names = ['X', 'Y', 'Z']
-                    axis_name = gyro_names[gyro_index % 3] if gyro_index < 3 else gyro_index
-                    column_names.append(f"GYRO_{axis_name}")
-                elif i in self.channel_types.get('temperature', []):
-                    temp_index = self.channel_types['temperature'].index(i)
-                    column_names.append(f"TEMP_{temp_index}")
-                elif i in self.channel_types.get('resistance', []):
-                    res_index = self.channel_types['resistance'].index(i)
-                    column_names.append(f"RES_{res_index}")
-                else:
-                    # Nombre genérico para canales no identificados
-                    column_names.append(f"CH_{i}")
-            
-            # Añadir la línea de nombres de columnas al encabezado
-            header.append(", ".join(column_names))
-            
-            # Escribir las líneas de cabecera con saltos de línea
-            for line in header:
-                self.recording_file.write(line + '\n')
-            
+            # Para el caso de 'both', creamos dos archivos diferentes
+            if data_type == "both":
+                # Crear nombres de archivo para raw y processed
+                base_name, extension = os.path.splitext(filename)
+                self.raw_filename = f"{base_name}_raw{extension}"
+                self.processed_filename = f"{base_name}_processed{extension}"
+                
+                # Iniciar grabación de datos raw
+                self._start_file_recording(self.raw_filename, "raw")
+                
+                # Iniciar grabación de datos processed
+                self._start_file_recording(self.processed_filename, "processed")
+                
+                logging.info(f"Grabación continua dual iniciada en {self.raw_filename} y {self.processed_filename}")
+            else:
+                # Caso estándar: un solo tipo de datos
+                self._start_file_recording(filename, data_type)
+                logging.info(f"Grabación continua iniciada en {filename}")
+                
             # Inicializar variables de grabación
             self.recording = True
             self.total_recorded_samples = 0
@@ -631,15 +578,105 @@ class EEGCollector(CollectorInterface):
             )
             self.recording_thread.start()
             
-            logging.info(f"Grabación continua iniciada en {filename}")
-            
         except Exception as e:
             logging.error(f"Error al iniciar la grabación continua: {e}")
-            if self.recording_file is not None:
+            if hasattr(self, 'recording_file') and self.recording_file is not None:
                 self.recording_file.close()
                 self.recording_file = None
+            if hasattr(self, 'processed_recording_file') and self.processed_recording_file is not None:
+                self.processed_recording_file.close()
+                self.processed_recording_file = None
             raise
-    
+            
+    def _start_file_recording(self, filename: str, data_type: str) -> None:
+        """
+        Inicia la grabación en un archivo específico con los metadatos correctos.
+        
+        Args:
+            filename: Ruta del archivo donde guardar los datos
+            data_type: Tipo de datos ('raw' o 'processed')
+        """
+        # Crear el directorio si no existe
+        os.makedirs(os.path.dirname(os.path.abspath(filename)), exist_ok=True)
+        
+        # Abrir el archivo y escribir la cabecera
+        file_handle = open(filename, 'w', newline='')
+        
+        # Escribir metadatos iniciales
+        header = [
+            f"# EEG Recording - {time.strftime('%Y-%m-%d %H:%M:%S')}",
+            f"# Board: {self.device_name} (ID: {self.board_id})",
+            f"# Preset: {self.preset}",
+            f"# Sampling Rate: {self.sampling_rate} Hz",
+            f"# Data Type: {data_type}",
+            f"# Channels: {self.num_rows}",
+            f"# Samples: 0",  # Placeholder que actualizaremos al final
+            f"# Duration: 0.00 seconds",  # Placeholder que actualizaremos al final
+        ]
+        
+        # Añadir nombres de columnas usando la lógica avanzada
+        column_names = []
+        for i in range(self.num_rows):
+            # Identificar tipo de canal y asignar nombre descriptivo
+            if hasattr(self, 'timestamp_channel') and i == self.timestamp_channel:
+                column_names.append("Timestamp")
+            elif hasattr(self, 'marker_channel') and i == self.marker_channel:
+                column_names.append("Marker")
+            elif i in self.channel_types.get('eeg', []):
+                # Intentar usar nombre de canal EEG si está disponible
+                eeg_index = self.channel_types['eeg'].index(i)
+                if hasattr(self, 'eeg_names') and eeg_index < len(self.eeg_names):
+                    column_names.append(f"EEG_{self.eeg_names[eeg_index]}")
+                else:
+                    column_names.append(f"EEG_{eeg_index}")
+            elif i in self.channel_types.get('emg', []):
+                emg_index = self.channel_types['emg'].index(i)
+                column_names.append(f"EMG_{emg_index}")
+            elif i in self.channel_types.get('ecg', []):
+                ecg_index = self.channel_types['ecg'].index(i)
+                column_names.append(f"ECG_{ecg_index}")
+            elif i in self.channel_types.get('eog', []):
+                eog_index = self.channel_types['eog'].index(i)
+                column_names.append(f"EOG_{eog_index}")
+            elif i in self.channel_types.get('eda', []):
+                eda_index = self.channel_types['eda'].index(i)
+                column_names.append(f"EDA_{eda_index}")
+            elif i in self.channel_types.get('ppg', []):
+                ppg_index = self.channel_types['ppg'].index(i)
+                column_names.append(f"PPG_{ppg_index}")
+            elif i in self.channel_types.get('accel', []):
+                accel_index = self.channel_types['accel'].index(i)
+                accel_names = ['X', 'Y', 'Z']
+                axis_name = accel_names[accel_index % 3] if accel_index < 3 else accel_index
+                column_names.append(f"ACCEL_{axis_name}")
+            elif i in self.channel_types.get('gyro', []):
+                gyro_index = self.channel_types['gyro'].index(i)
+                gyro_names = ['X', 'Y', 'Z']
+                axis_name = gyro_names[gyro_index % 3] if gyro_index < 3 else gyro_index
+                column_names.append(f"GYRO_{axis_name}")
+            elif i in self.channel_types.get('temperature', []):
+                temp_index = self.channel_types['temperature'].index(i)
+                column_names.append(f"TEMP_{temp_index}")
+            elif i in self.channel_types.get('resistance', []):
+                res_index = self.channel_types['resistance'].index(i)
+                column_names.append(f"RES_{res_index}")
+            else:
+                # Nombre genérico para canales no identificados
+                column_names.append(f"CH_{i}")
+        
+        # Añadir la línea de nombres de columnas al encabezado
+        header.append(", ".join(column_names))
+        
+        # Escribir las líneas de cabecera con saltos de línea
+        for line in header:
+            file_handle.write(line + '\n')
+            
+        # Almacenar el manejador de archivo según el tipo de datos
+        if data_type == "raw":
+            self.recording_file = file_handle
+        elif data_type == "processed":
+            self.processed_recording_file = file_handle
+
     def _recording_thread_func(self) -> None:
         """
         Función ejecutada en un thread separado para la grabación continua.
@@ -658,42 +695,23 @@ class EEGCollector(CollectorInterface):
                     # Calcular cuántas nuevas muestras tenemos
                     new_samples = current_count - last_count
                     
-                    # Obtener solo las nuevas muestras
-                    if self.data_type == "raw":
-                        data = self.board.get_current_board_data(new_samples, preset=self.preset)
-                    elif self.data_type == "processed" and self.processed_data is not None:
-                        # Para datos procesados, tomamos las últimas muestras del buffer procesado
-                        if self.processed_data.shape[1] >= new_samples:
-                            data = self.processed_data[:, -new_samples:]
+                    # Obtener datos raw (siempre necesarios para ambos tipos)
+                    raw_data = self.board.get_current_board_data(new_samples, preset=self.preset)
+                    
+                    # Escribir datos raw si corresponde
+                    if self.data_type == "raw" or self.data_type == "both":
+                        self._write_data_to_file(raw_data, "raw")
+                    
+                    # Escribir datos procesados si corresponde
+                    if self.data_type == "processed" or self.data_type == "both":
+                        # Para datos procesados, usar los datos procesados si están disponibles
+                        if self.processed_data is not None and self.processed_data.shape[1] >= new_samples:
+                            processed_data = self.processed_data[:, -new_samples:]
                         else:
-                            # Si no hay suficientes datos procesados, usar datos crudos
-                            data = self.board.get_current_board_data(new_samples, preset=self.preset)
-                    else:
-                        # Si no hay datos procesados, usar los datos crudos
-                        data = self.board.get_current_board_data(new_samples, preset=self.preset)
-                    
-                    # Verificar si hay marcadores en los datos
-                    if hasattr(self, 'marker_channel') and self.marker_channel < data.shape[0]:
-                        # Comprobar valores distintos de cero en el canal de marcadores
-                        markers = data[self.marker_channel]
-                        non_zero_markers = markers[markers != 0]
-                        if len(non_zero_markers) > 0:
-                            logging.info(f"Detected markers in current data: {non_zero_markers}")
-                    
-                    # Escribir cada muestra como una fila en el CSV
-                    for i in range(data.shape[1]):  # Para cada columna (muestra)
-                        sample = data[:, i]  # Esta es una muestra con todos los canales
-                        
-                        # Imprimir log si hay un marcador en esta muestra
-                        if hasattr(self, 'marker_channel') and self.marker_channel < len(sample):
-                            if sample[self.marker_channel] != 0:
-                                logging.info(f"Writing marker value {sample[self.marker_channel]} to CSV")
-                        
-                        line = ','.join(str(val) for val in sample)
-                        self.recording_file.write(line + '\n')
-                    
-                    # Hacer flush para asegurar que los datos se escriban en el disco
-                    self.recording_file.flush()
+                            # Si no hay datos procesados, usar los datos crudos como fallback
+                            processed_data = raw_data
+                            
+                        self._write_data_to_file(processed_data, "processed")
                     
                     # Actualizar el contador de muestras y el último conteo
                     self.total_recorded_samples += new_samples
@@ -704,6 +722,47 @@ class EEGCollector(CollectorInterface):
                 
         except Exception as e:
             logging.error(f"Error en el thread de grabación: {e}")
+    
+    def _write_data_to_file(self, data: np.ndarray, data_type: str) -> None:
+        """
+        Escribe los datos en el archivo correspondiente.
+        
+        Args:
+            data: Datos a escribir
+            data_type: Tipo de datos ('raw' o 'processed')
+        """
+        # Seleccionar el archivo correcto
+        file_handle = None
+        if data_type == "raw":
+            file_handle = self.recording_file
+        elif data_type == "processed":
+            file_handle = self.processed_recording_file
+            
+        if file_handle is None:
+            return
+            
+        # Verificar si hay marcadores en los datos
+        if hasattr(self, 'marker_channel') and self.marker_channel < data.shape[0]:
+            # Comprobar valores distintos de cero en el canal de marcadores
+            markers = data[self.marker_channel]
+            non_zero_markers = markers[markers != 0]
+            if len(non_zero_markers) > 0:
+                logging.info(f"Detected markers in {data_type} data: {non_zero_markers}")
+        
+        # Escribir cada muestra como una fila en el CSV
+        for i in range(data.shape[1]):  # Para cada columna (muestra)
+            sample = data[:, i]  # Esta es una muestra con todos los canales
+            
+            # Imprimir log si hay un marcador en esta muestra
+            if hasattr(self, 'marker_channel') and self.marker_channel < len(sample):
+                if sample[self.marker_channel] != 0:
+                    logging.info(f"Writing marker value {sample[self.marker_channel]} to {data_type} CSV")
+            
+            line = ','.join(str(val) for val in sample)
+            file_handle.write(line + '\n')
+            
+        # Hacer flush para asegurar que los datos se escriban en el disco
+        file_handle.flush()
 
     def stop_continuous_recording(self) -> None:
         """
@@ -724,47 +783,70 @@ class EEGCollector(CollectorInterface):
             # Calcular duración real
             recording_duration = time.time() - self.recording_start_time
             
-            if self.recording_file is not None:
-                # Guardar el nombre del archivo para reabrirlo después
-                filename = self.recording_file.name
-                
-                # Cerrar el archivo que está en modo escritura
-                self.recording_file.close()
+            # Cerrar y actualizar el archivo raw si está activo
+            if hasattr(self, 'recording_file') and self.recording_file is not None:
+                self._finalize_recording_file(self.recording_file, recording_duration)
                 self.recording_file = None
                 
-                # Reabrir el archivo en modo lectura+escritura
-                with open(filename, 'r', encoding='utf-8') as file:
-                    # Leer todo el contenido del archivo
-                    content = file.readlines()
+            # Cerrar y actualizar el archivo processed si está activo
+            if hasattr(self, 'processed_recording_file') and self.processed_recording_file is not None:
+                self._finalize_recording_file(self.processed_recording_file, recording_duration)
+                self.processed_recording_file = None
                 
-                # Reabrir el archivo en modo escritura para actualizar los metadatos
-                with open(filename, 'w', encoding='utf-8') as file:
-                    # Reescribir el archivo con los metadatos actualizados
-                    for i, line in enumerate(content):
-                        if i == 6:  # Línea de samples
-                            file.write(f"# Samples: {self.total_recorded_samples}\n")
-                        elif i == 7:  # Línea de duración
-                            file.write(f"# Duration: {recording_duration:.2f} seconds\n")
-                        else:
-                            file.write(line)
-                
-                logging.info(f"Grabación completada: {self.total_recorded_samples} muestras en {recording_duration:.2f} segundos")
+            logging.info(f"Grabación completada: {self.total_recorded_samples} muestras en {recording_duration:.2f} segundos")
         
         except Exception as e:
             logging.error(f"Error al detener la grabación continua: {e}")
-            # Intentar cerrar el archivo si sigue abierto
-            if self.recording_file is not None:
+            # Intentar cerrar todos los archivos abiertos
+            if hasattr(self, 'recording_file') and self.recording_file is not None:
                 try:
                     self.recording_file.close()
                 except:
                     pass
                 self.recording_file = None
+                
+            if hasattr(self, 'processed_recording_file') and self.processed_recording_file is not None:
+                try:
+                    self.processed_recording_file.close()
+                except:
+                    pass
+                self.processed_recording_file = None
             raise
         
         finally:
             # Reiniciar variables
             self.recording = False
-            self.recording_file = None
+            self.is_recording_both = False
             self.recording_thread = None
             self.recording_queue = queue.Queue()
+            
+    def _finalize_recording_file(self, file_handle, recording_duration):
+        """
+        Finaliza un archivo de grabación actualizando sus metadatos.
+        
+        Args:
+            file_handle: Manejador del archivo a finalizar
+            recording_duration: Duración de la grabación en segundos
+        """
+        # Guardar el nombre del archivo para reabrirlo después
+        filename = file_handle.name
+        
+        # Cerrar el archivo que está en modo escritura
+        file_handle.close()
+        
+        # Reabrir el archivo en modo lectura+escritura
+        with open(filename, 'r', encoding='utf-8') as file:
+            # Leer todo el contenido del archivo
+            content = file.readlines()
+        
+        # Reabrir el archivo en modo escritura para actualizar los metadatos
+        with open(filename, 'w', encoding='utf-8') as file:
+            # Reescribir el archivo con los metadatos actualizados
+            for i, line in enumerate(content):
+                if i == 6:  # Línea de samples
+                    file.write(f"# Samples: {self.total_recorded_samples}\n")
+                elif i == 7:  # Línea de duración
+                    file.write(f"# Duration: {recording_duration:.2f} seconds\n")
+                else:
+                    file.write(line)
 

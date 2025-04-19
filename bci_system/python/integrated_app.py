@@ -14,7 +14,8 @@ from typing import Optional, Dict, Any
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
     QTabWidget, QPushButton, QLabel, QGroupBox, QCheckBox,
-    QSplitter, QMessageBox, QScrollArea, QSizePolicy, QFrame
+    QSplitter, QMessageBox, QScrollArea, QSizePolicy, QFrame,
+    QFileDialog, QLineEdit, QRadioButton  # Added QFileDialog, QLineEdit, QRadioButton
 )
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QColor, QPalette, QIcon
@@ -71,6 +72,10 @@ class IntegratedBCIApp(QMainWindow):
         # Set application style
         self._set_dark_theme()
         
+        # Create recordings directory if it doesn't exist - MOVED UP BEFORE _init_ui()
+        self.recordings_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "recordings")
+        os.makedirs(self.recordings_dir, exist_ok=True)
+        
         # Setup UI components
         self._init_ui()
         
@@ -84,10 +89,6 @@ class IntegratedBCIApp(QMainWindow):
         
         # Update initial status
         self._update_status()
-        
-        # Create recordings directory if it doesn't exist
-        self.recordings_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "recordings")
-        os.makedirs(self.recordings_dir, exist_ok=True)
         
         logging.info("Integrated BCI application initialized")
     
@@ -291,6 +292,23 @@ class IntegratedBCIApp(QMainWindow):
         
         control_layout.addLayout(status_layout)
         
+        # Add file path selection controls
+        file_path_layout = QHBoxLayout()
+        file_path_layout.addWidget(QLabel("Recording Path:"))
+        
+        self.record_file_edit = QLineEdit()
+        self.record_file_edit.setReadOnly(True)
+        # Set a default recording path
+        default_path = os.path.join(self.recordings_dir, "recording.csv")
+        self.record_file_edit.setText(default_path)
+        file_path_layout.addWidget(self.record_file_edit, 1)  # Give it more space
+        
+        self.browse_btn = QPushButton("Browse...")
+        self.browse_btn.clicked.connect(self.browse_record_path)
+        file_path_layout.addWidget(self.browse_btn)
+        
+        control_layout.addLayout(file_path_layout)
+        
         # Add checkboxes for module recording options
         options_layout = QHBoxLayout()
         
@@ -301,6 +319,14 @@ class IntegratedBCIApp(QMainWindow):
         self.save_eeg_check = QCheckBox("Save EEG Data")
         self.save_eeg_check.setChecked(True)
         eeg_options.addWidget(self.save_eeg_check)
+        
+        # Add EEG raw/processed option
+        self.eeg_raw_radio = QRadioButton("Raw Data")
+        self.eeg_raw_radio.setChecked(True)
+        eeg_options.addWidget(self.eeg_raw_radio)
+        
+        self.eeg_processed_radio = QRadioButton("Processed Data")
+        eeg_options.addWidget(self.eeg_processed_radio)
         
         self.visualize_eeg_check = QCheckBox("Show Visualizers")
         self.visualize_eeg_check.setChecked(True) 
@@ -320,6 +346,15 @@ class IntegratedBCIApp(QMainWindow):
         self.save_input_check.setChecked(True)
         input_options.addWidget(self.save_input_check)
         
+        # Add input format options
+        self.input_json_check = QCheckBox("JSON Format")
+        self.input_json_check.setChecked(False)  # Changed from True to False - unchecked by default
+        input_options.addWidget(self.input_json_check)
+        
+        self.input_csv_check = QCheckBox("CSV Format")
+        self.input_csv_check.setChecked(True)
+        input_options.addWidget(self.input_csv_check)
+        
         self.visualize_input_check = QCheckBox("Show Visualizers")
         self.visualize_input_check.setChecked(True)
         input_options.addWidget(self.visualize_input_check)
@@ -336,7 +371,24 @@ class IntegratedBCIApp(QMainWindow):
         self.session_timer.setInterval(1000)  # Update every second
         
         parent_layout.addWidget(control_group)
-    
+
+    def browse_record_path(self):
+        """Browse for a file path to save recordings."""
+        # Get directory for saving session
+        directory = QFileDialog.getExistingDirectory(
+            self, "Select Recording Directory", self.recordings_dir
+        )
+        
+        if directory:
+            # Update the recordings directory
+            self.recordings_dir = directory
+            
+            # Update the text field with the base path
+            default_path = os.path.join(self.recordings_dir, "recording")
+            self.record_file_edit.setText(default_path)
+            
+            logging.info(f"Recording path set to: {default_path}")
+
     def _create_eeg_tab(self):
         """Create the EEG processor tab with scrollability."""
         # Create the EEG processor app instance first
@@ -369,6 +421,17 @@ class IntegratedBCIApp(QMainWindow):
         
         # Add to tabs
         self.tabs.addTab(self.eeg_container, "EEG Processing")
+        
+        # Hide the file selection controls in EEG processor
+        if hasattr(self.eeg_processor_app, 'record_file_edit'):
+            self.eeg_processor_app.record_file_edit.setVisible(False)
+        if hasattr(self.eeg_processor_app, 'record_group'):
+            # Hide the "Save to file:" label and browse button
+            for child in self.eeg_processor_app.record_group.children():
+                if isinstance(child, QLabel) and "Save to file:" in child.text():
+                    child.setVisible(False)
+                elif isinstance(child, QPushButton) and "Browse" in child.text():
+                    child.setVisible(False)
     
     def _create_input_tab(self):
         """Create the input collector tab with scrollability."""
@@ -402,6 +465,23 @@ class IntegratedBCIApp(QMainWindow):
         
         # Add to tabs
         self.tabs.addTab(self.input_container, "Input Collection")
+        
+        # Hide the JSON and CSV logging checkboxes
+        if hasattr(self.input_collector_app, 'log_checkbox'):
+            self.input_collector_app.log_checkbox.setVisible(False)
+        if hasattr(self.input_collector_app, 'csv_checkbox'):
+            self.input_collector_app.csv_checkbox.setVisible(False)
+        
+        # Hide the CSV path field and browse button
+        if hasattr(self.input_collector_app, 'csv_path_field'):
+            self.input_collector_app.csv_path_field.setVisible(False)
+        if hasattr(self.input_collector_app, 'csv_path_button'):
+            self.input_collector_app.csv_path_button.setVisible(False)
+        
+        # Also hide any "Path:" label
+        for child in self.input_collector_app.children():
+            if isinstance(child, QLabel) and "Path:" in child.text():
+                child.setVisible(False)
     
     def _create_integrated_tab(self):
         """Create the integrated view tab."""
@@ -475,6 +555,12 @@ class IntegratedBCIApp(QMainWindow):
         # First find the actual record button from the UI
         if hasattr(self.input_collector_app, 'record_button'):
             self.input_collector_app.record_button.setVisible(False)
+        
+        # Hide raw/processed radio buttons in EEG app since we control them from integrated app
+        if hasattr(self.eeg_processor_app, 'raw_radio'):
+            self.eeg_processor_app.raw_radio.setVisible(False)
+        if hasattr(self.eeg_processor_app, 'processed_radio'):
+            self.eeg_processor_app.processed_radio.setVisible(False)
     
     def _update_status(self):
         """Update status information."""
@@ -603,19 +689,25 @@ class IntegratedBCIApp(QMainWindow):
             
             # Save to session directory if available
             if hasattr(self, 'session_dir') and os.path.exists(self.session_dir):
-                filename = os.path.join(self.session_dir, f"eeg_recording_{timestamp}.csv")
+                # Use the base path from the UI and add timestamp
+                base_path = os.path.splitext(self.record_file_edit.text())[0]
+                filename = os.path.join(self.session_dir, f"{os.path.basename(base_path)}_eeg_{timestamp}.csv")
             else:
-                filename = os.path.join(self.recordings_dir, f"eeg_recording_{timestamp}.csv")
+                # Use the base path from the UI and add timestamp
+                base_path = os.path.splitext(self.record_file_edit.text())[0]
+                filename = f"{base_path}_eeg_{timestamp}.csv"
             
-            # Set the filename in the EEG processor app record_file_edit
+            # Set the filename in the EEG processor app record_file_edit if exists
             if hasattr(self.eeg_processor_app, 'record_file_edit'):
                 self.eeg_processor_app.record_file_edit.setText(filename)
             
+            # Determine data type based on radio buttons
+            data_type = "processed" if self.eeg_processed_radio.isChecked() else "raw"
+            
             # Start recording using the collector directly
             if hasattr(self.eeg_processor_app, 'collector'):
-                data_type = "raw"  # Default to raw data
                 self.eeg_processor_app.collector.start_continuous_recording(filename, data_type)
-                logging.info(f"Started EEG recording to {filename}")
+                logging.info(f"Started EEG recording to {filename} ({data_type} data)")
             else:
                 logging.error("Failed to start EEG recording: No collector available")
             
@@ -649,30 +741,48 @@ class IntegratedBCIApp(QMainWindow):
             return
             
         try:
-            # First, ensure logging is enabled in the input collector
-            if hasattr(self.input_collector_app, 'log_checkbox'):
-                # Enable logging by setting checkbox state
-                self.input_collector_app.log_checkbox.setChecked(True)
-                logging.info("Enabled input collector logging")
-                
-                # Wait a moment for the checkbox toggle to take effect
-                QApplication.processEvents()
+            # Generate a timestamp for the filename
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
             
-            # Make sure log file is ready in the input collector
-            if not hasattr(self.input_collector_app, 'log_file') or not self.input_collector_app.log_file:
-                # Create log file directly if needed
-                self._ensure_input_log_file()
+            # Save to session directory if available
+            if hasattr(self, 'session_dir') and os.path.exists(self.session_dir):
+                base_path = os.path.splitext(self.record_file_edit.text())[0]
+                filename_base = os.path.join(self.session_dir, os.path.basename(base_path))
+            else:
+                base_path = os.path.splitext(self.record_file_edit.text())[0]
+                filename_base = base_path
+            
+            # Set up JSON logging if enabled
+            if self.input_json_check.isChecked():
+                json_filename = f"{filename_base}_input_{timestamp}.json"
                 
+                # Enable JSON logging
+                self.input_collector_app.log_to_file = True
+                self.input_collector_app.log_file = open(json_filename, "w")
+                logging.info(f"Input JSON logging to: {json_filename}")
+            else:
+                # Disable JSON logging
+                self.input_collector_app.log_to_file = False
+                if hasattr(self.input_collector_app, 'log_file') and self.input_collector_app.log_file:
+                    self.input_collector_app.log_file.close()
+                    self.input_collector_app.log_file = None
+            
+            # Set up CSV logging if enabled
+            if self.input_csv_check.isChecked():
+                csv_filename = f"{filename_base}_input_{timestamp}.csv"
+                
+                # Enable CSV logging
+                self.input_collector_app.log_to_csv = True
+                self.input_collector_app.csv_filepath = csv_filename
+                logging.info(f"Input CSV logging to: {csv_filename}")
+            else:
+                # Disable CSV logging
+                self.input_collector_app.log_to_csv = False
+            
             # Start recording in input collector
             if hasattr(self.input_collector_app, '_toggle_recording') and not self.input_collector_app.is_recording:
                 self.input_collector_app._toggle_recording()
                 logging.info("Started input recording")
-                
-                # Double check that log file is actually open
-                if hasattr(self.input_collector_app, 'log_file') and self.input_collector_app.log_file:
-                    logging.info(f"Input recording log file: {self.input_collector_app.log_file.name}")
-                else:
-                    logging.warning("Input collector log file not properly initialized")
             else:
                 logging.debug("Input collector already recording or toggle method not found")
             

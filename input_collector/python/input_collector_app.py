@@ -346,19 +346,19 @@ class InputCollectorApp(QMainWindow):
         self.record_button.clicked.connect(self._toggle_recording)
         recording_frame.addWidget(self.record_button)
         
-        # 2. JSON logging checkbox
+        # 2. JSON logging checkbox - make accessible as attribute for integrated app
         self.log_checkbox = QCheckBox("Log JSON")
         self.log_checkbox.toggled.connect(self._toggle_logging)
         recording_frame.addWidget(self.log_checkbox)
         
-        # 3. CSV logging checkbox
+        # 3. CSV logging checkbox - make accessible as attribute for integrated app
         self.csv_checkbox = QCheckBox("Log CSV")
         self.csv_checkbox.toggled.connect(self._toggle_csv_logging)
         recording_frame.addWidget(self.csv_checkbox)
         
         # 4. CSV path controls in a horizontal layout
-        csv_path_label = QLabel("Path:")
-        recording_frame.addWidget(csv_path_label)
+        self.csv_path_label = QLabel("Path:")
+        recording_frame.addWidget(self.csv_path_label)
         
         self.csv_path_field = QLineEdit()
         self.csv_path_field.setPlaceholderText("Select CSV file location...")

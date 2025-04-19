@@ -731,8 +731,8 @@ class EEGProcessorApp(QMainWindow):
         layout = QVBoxLayout(tab)
 
         # Recording options
-        record_group = QGroupBox("Recording Options")
-        record_layout = QVBoxLayout(record_group)
+        self.record_group = QGroupBox("Recording Options")
+        record_layout = QVBoxLayout(self.record_group)
 
         # Añadir botón de ayuda para grabación
         record_header_layout = QHBoxLayout()
@@ -759,9 +759,11 @@ class EEGProcessorApp(QMainWindow):
         self.raw_radio = QRadioButton("Raw")
         self.raw_radio.setChecked(True)
         self.processed_radio = QRadioButton("Processed")
+        self.both_radio = QRadioButton("Both")  # Nueva opción para guardar ambos tipos de datos
         type_layout.addWidget(type_label)
         type_layout.addWidget(self.raw_radio)
         type_layout.addWidget(self.processed_radio)
+        type_layout.addWidget(self.both_radio)  # Añadimos el nuevo radio button
         record_layout.addLayout(type_layout)
 
         # Record control
@@ -807,8 +809,12 @@ class EEGProcessorApp(QMainWindow):
         record_layout.addLayout(save_layout)
 
         # Add to layout
-        layout.addWidget(record_group)
+        layout.addWidget(self.record_group)
         layout.addStretch()
+
+        # Make these elements public for direct access
+        self.file_label = file_label
+        self.file_browse_btn = file_browse_btn
 
     def setup_advanced_processing_tab(self, tab):
         """Set up the advanced processing tab with additional signal processing features."""
@@ -2049,8 +2055,15 @@ class EEGProcessorApp(QMainWindow):
             return
 
         try:
+            # Determinar el tipo de datos a grabar
+            if self.both_radio.isChecked():
+                data_type = "both"
+            elif self.processed_radio.isChecked():
+                data_type = "processed"
+            else:
+                data_type = "raw"
+                
             # Usar el nuevo método de grabación continua
-            data_type = "processed" if self.processed_radio.isChecked() else "raw"
             self.collector.start_continuous_recording(self.record_filename, data_type)
             
             self.is_recording = True
@@ -2085,9 +2098,15 @@ class EEGProcessorApp(QMainWindow):
             duration = (int(round(time.time() * 1000)) - self.start_time) / 1000  # Duration in seconds
             samples = self.collector.total_recorded_samples  # Usar el valor real de muestras grabadas
             
-            self.statusBar().showMessage(
-                f"Recording saved: {duration:.1f}s, {self.collector.num_rows} channels, {samples} samples ({self.record_filename})"
-            )
+            # Mensaje personalizado para el caso de grabación dual
+            if hasattr(self.collector, 'is_recording_both') and self.collector.is_recording_both:
+                self.statusBar().showMessage(
+                    f"Recording saved: {duration:.1f}s, {samples} samples - Raw and Processed files created"
+                )
+            else:
+                self.statusBar().showMessage(
+                    f"Recording saved: {duration:.1f}s, {self.collector.num_rows} channels, {samples} samples ({self.record_filename})"
+                )
         except Exception as e:
             QMessageBox.critical(self, "Recording Error", f"Failed to save recording: {str(e)}")
             logging.error(f"Recording error: {e}")
