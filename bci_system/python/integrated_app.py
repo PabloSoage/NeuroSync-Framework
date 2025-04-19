@@ -294,13 +294,12 @@ class IntegratedBCIApp(QMainWindow):
         
         # Add file path selection controls
         file_path_layout = QHBoxLayout()
-        file_path_layout.addWidget(QLabel("Recording Path:"))
+        file_path_layout.addWidget(QLabel("Recording Directory:"))
         
         self.record_file_edit = QLineEdit()
         self.record_file_edit.setReadOnly(True)
         # Set a default recording path
-        default_path = os.path.join(self.recordings_dir, "recording.csv")
-        self.record_file_edit.setText(default_path)
+        self.record_file_edit.setText(self.recordings_dir)
         file_path_layout.addWidget(self.record_file_edit, 1)  # Give it more space
         
         self.browse_btn = QPushButton("Browse...")
@@ -308,6 +307,11 @@ class IntegratedBCIApp(QMainWindow):
         file_path_layout.addWidget(self.browse_btn)
         
         control_layout.addLayout(file_path_layout)
+
+        # Helper text to explain session folder creation
+        session_info_label = QLabel("Recordings are saved in session folders within this directory")
+        session_info_label.setStyleSheet("color: #999; font-size: 10px;")
+        control_layout.addWidget(session_info_label)
         
         # Add checkboxes for module recording options
         options_layout = QHBoxLayout()
@@ -377,7 +381,7 @@ class IntegratedBCIApp(QMainWindow):
         parent_layout.addWidget(control_group)
 
     def browse_record_path(self):
-        """Browse for a file path to save recordings."""
+        """Browse for a directory to save recordings."""
         # Get directory for saving session
         directory = QFileDialog.getExistingDirectory(
             self, "Select Recording Directory", self.recordings_dir
@@ -388,10 +392,11 @@ class IntegratedBCIApp(QMainWindow):
             self.recordings_dir = directory
             
             # Update the text field with the base path
-            default_path = os.path.join(self.recordings_dir, "recording")
+            default_path = self.recordings_dir
             self.record_file_edit.setText(default_path)
             
-            logging.info(f"Recording path set to: {default_path}")
+            logging.info(f"Recording directory set to: {directory}")
+            logging.info(f"Recording base filename: {os.path.basename(default_path)}")
 
     def _create_eeg_tab(self):
         """Create the EEG processor tab with scrollability."""
