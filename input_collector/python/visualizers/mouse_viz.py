@@ -5,15 +5,17 @@ This module provides visualization components for mouse input events,
 displaying mouse movement and button states in a joystick-like interface using PyQt5.
 """
 
-import math
 from PyQt5.QtWidgets import QWidget, QSizePolicy, QVBoxLayout, QLabel, QFrame
 from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QFont, QPolygon
 from PyQt5.QtCore import Qt, QPoint, QRect, QSize
+import math
+from typing import List, Dict, Optional, Any
 
 from ..interfaces import InputData
+from .visualizer_base import BaseVisualizer
 
 
-class MouseVisualizer(QWidget):
+class MouseVisualizer(BaseVisualizer):
     """
     Visualizes mouse input events with joystick-like representation.
 
@@ -63,6 +65,9 @@ class MouseVisualizer(QWidget):
         )
         self.button_label.setFrameStyle(QFrame.StyledPanel | QFrame.Sunken)
         layout.addWidget(self.button_label, 0)
+        
+        # Set which collectors this visualizer supports
+        self.supported_collectors = ["keyboard_mouse"]
 
     def update(self, input_data=None) -> None:
         """
@@ -83,50 +88,35 @@ class MouseVisualizer(QWidget):
 
             if tracking_mode == "delta":
                 if is_moving:
-                    if (
-                        hasattr(input_data, "mouse_delta_x")
-                        and input_data.mouse_delta_x is not None
-                    ):
-                        status_text += f" | Δx:{input_data.mouse_delta_x:.1f} Δy:{input_data.mouse_delta_y:.1f}"
-                    if hasattr(input_data, "mouse_delta_magnitude"):
-                        status_text += f" | Mag:{input_data.mouse_delta_magnitude:.1f}"
+                    pass
+                    
                 if input_data.direction:
-                    status_text += f" | Dir:{input_data.direction}"
+                    pass
+                    
                 if (
                     hasattr(input_data, "wheel_direction")
                     and input_data.wheel_direction
                 ):
-                    status_text += f" | Wheel:{input_data.wheel_direction}"
+                    pass
 
             elif tracking_mode == "angle":
                 # Handle direction-only angle mode
                 if hasattr(input_data, "direction_only") and input_data.direction_only:
-                    if is_moving:
-                        if hasattr(input_data, "discrete_angle"):
-                            status_text += f" | Angle:{input_data.discrete_angle}°"
-                    if input_data.direction:
-                        status_text += f" | Dir:{input_data.direction}"
+                    pass
                 else:
-                    # Standard angle mode
-                    if is_moving:
-                        if hasattr(input_data, "mouse_delta_angle"):
-                            status_text += f" | Angle:{input_data.mouse_delta_angle:.1f}° Mag:{input_data.mouse_delta_magnitude:.1f}"
-                    if input_data.direction:
-                        status_text += f" | Dir:{input_data.direction}"
+                    pass
 
             elif tracking_mode == "axis":
                 # Axis mode with membership values
                 if is_moving and hasattr(input_data, "north"):
-                    status_text += (
-                        f" | N:{input_data.north:.1f} S:{input_data.south:.1f}"
-                    )
-                    status_text += f" E:{input_data.east:.1f} W:{input_data.west:.1f}"
+                    pass
 
             else:  # joystick mode
                 if input_data.direction and is_moving:
-                    status_text += f" | Dir:{input_data.direction}"
+                    pass
+                    
                 if is_moving and hasattr(input_data, "speed"):
-                    status_text += f" | Speed:{input_data.speed:.1f}"
+                    pass
 
             if hasattr(input_data, "wheel_direction") and input_data.wheel_direction:
                 status_text += f" | Wheel:{input_data.wheel_direction}"
@@ -166,6 +156,12 @@ class MouseVisualizer(QWidget):
     def sizeHint(self) -> QSize:
         """Suggested size for the widget"""
         return QSize(400, 350)
+    
+    def set_collector_capabilities(self, capabilities: Dict[str, Any]) -> None:
+        """Configure the visualizer based on collector capabilities."""
+        super().set_collector_capabilities(capabilities)
+        # We could adjust the visualization based on capabilities
+        self.setVisible(capabilities.get("supports_mouse_movement", False))
 
 
 class Canvas(QWidget):
@@ -218,24 +214,21 @@ class Canvas(QWidget):
         if input_data.event_type == "mouse_click":
             if input_data.button_pressed:
                 if "left" in input_data.button_pressed.lower():
-                    self.left_button_pressed = True
+                    pass
                 elif "right" in input_data.button_pressed.lower():
-                    self.right_button_pressed = True
+                    pass
                 elif "middle" in input_data.button_pressed.lower():
-                    self.middle_button_pressed = True
+                    pass
             else:
                 # Button release
                 if "left" in str(input_data):
-                    self.left_button_pressed = False
+                    pass
                 elif "right" in str(input_data):
-                    self.right_button_pressed = False
+                    pass
                 elif "middle" in str(input_data):
-                    self.middle_button_pressed = False
+                    pass
                 else:
-                    # If we can't determine, reset all buttons
-                    self.left_button_pressed = False
-                    self.right_button_pressed = False
-                    self.middle_button_pressed = False
+                    pass
 
         # Handle mouse scroll events
         if input_data.event_type == "mouse_scroll":

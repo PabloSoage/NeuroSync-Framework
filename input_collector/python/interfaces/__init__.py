@@ -7,4 +7,5 @@ the application for input collection and event handling.
 
 from .collector_interface import InputData, AbstractInputCollector
 
-__all__ = ["InputData", "AbstractInputCollector"]
+# Don't import AbstractVisualizer here to avoid circular dependencies
+__all__ = ['InputData', 'AbstractInputCollector']

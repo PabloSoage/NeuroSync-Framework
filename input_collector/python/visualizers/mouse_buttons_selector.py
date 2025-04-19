@@ -7,6 +7,9 @@ This module provides a visual component for selecting which mouse buttons to tra
 from PyQt5.QtWidgets import QWidget, QSizePolicy, QHBoxLayout
 from PyQt5.QtGui import QPainter, QColor, QFont, QPen, QBrush
 from PyQt5.QtCore import Qt, QRect, QSize, pyqtSignal
+from typing import List, Dict, Any
+
+from .visualizer_base import BaseVisualizer
 
 
 class MouseButton(QWidget):
@@ -94,7 +97,7 @@ class MouseButton(QWidget):
         return QSize(60, 50)
 
 
-class MouseButtonsSelector(QWidget):
+class MouseButtonsSelector(BaseVisualizer):
     """
     Widget for selecting which mouse buttons to track.
     """
@@ -135,6 +138,9 @@ class MouseButtonsSelector(QWidget):
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         self.setMinimumHeight(60)
         self.setMaximumHeight(70)  # Limitar altura máxima
+        
+        # Set which collectors this visualizer supports
+        self.supported_collectors = ["keyboard_mouse"]
 
     def _on_button_clicked(self, button_id):
         """Handle button clicks."""
@@ -194,3 +200,14 @@ class MouseButtonsSelector(QWidget):
     def sizeHint(self):
         """Suggested size for the widget."""
         return QSize(200, 60)
+    
+    def set_edit_mode(self, enabled: bool) -> None:
+        """Enable or disable edit mode."""
+        super().set_edit_mode(enabled)
+        self.setEditMode(enabled)
+    
+    def set_collector_capabilities(self, capabilities: Dict[str, Any]) -> None:
+        """Configure the visualizer based on collector capabilities."""
+        super().set_collector_capabilities(capabilities)
+        # Hide if the collector doesn't support mouse buttons
+        self.setVisible(capabilities.get("supports_mouse_buttons", False))

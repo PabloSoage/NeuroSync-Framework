@@ -1223,6 +1223,32 @@ class KeyboardMouseCollector(AbstractInputCollector):
 
         return "".join(direction_parts) if direction_parts else None
 
+    def get_collector_type(self) -> str:
+        """
+        Get the type of this collector.
+
+        Returns:
+            str: The collector type identifier
+        """
+        return "keyboard_mouse"
+    
+    def get_capabilities(self) -> Dict[str, Any]:
+        """
+        Get the capabilities of this collector.
+
+        Returns:
+            Dict[str, Any]: Dictionary of collector capabilities
+        """
+        return {
+            "supports_mouse_tracking": True,
+            "supports_keyboard": True,
+            "supports_mouse_buttons": True,
+            "supports_mouse_movement": True,
+            "supports_mouse_scroll": True,
+            "supports_joystick": True,
+            "supported_tracking_modes": ["joystick", "delta", "angle", "axis"],
+        }
+
     def __del__(self) -> None:
         """
         Clean up resources when the object is garbage collected.

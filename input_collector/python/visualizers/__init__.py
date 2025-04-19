@@ -8,5 +8,6 @@ input data in real-time using PyQt5.
 from .keyboard_viz import KeyboardVisualizer
 from .mouse_viz import MouseVisualizer
 from .mouse_buttons_selector import MouseButtonsSelector
+from .visualizer_base import BaseVisualizer
 
-__all__ = ["KeyboardVisualizer", "MouseVisualizer", "MouseButtonsSelector"]
+__all__ = ['KeyboardVisualizer', 'MouseVisualizer', 'MouseButtonsSelector', 'BaseVisualizer']

@@ -783,6 +783,32 @@ class PS4ControllerCollector(AbstractInputCollector):
                 pass
             self.sdl_initialized = False
 
+    def get_collector_type(self) -> str:
+        """
+        Get the type of this collector.
+
+        Returns:
+            str: The collector type identifier
+        """
+        return "ps4_controller"
+    
+    def get_capabilities(self) -> Dict[str, Any]:
+        """
+        Get the capabilities of this collector.
+
+        Returns:
+            Dict[str, Any]: Dictionary of collector capabilities
+        """
+        return {
+            "supports_mouse_tracking": False,
+            "supports_keyboard": False,
+            "supports_mouse_buttons": False,
+            "supports_mouse_movement": False,
+            "supports_mouse_scroll": False,
+            "supports_joystick": True,
+            "supported_tracking_modes": [],
+        }
+
 
 # Simple utility function to check if SDL2 is available
 def is_sdl2_available() -> bool:

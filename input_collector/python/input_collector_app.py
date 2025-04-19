@@ -29,17 +29,19 @@ from PyQt5.QtWidgets import (
     QSpacerItem,
     QSizePolicy,
     QAction,
-    QMessageBox,  # Added QMessageBox
-    QFileDialog,  # Added for file selection
-    QScrollArea,  # Keep this import for potential future use
+    QMessageBox,
+    QFileDialog,
+    QScrollArea,
 )
 from PyQt5.QtCore import Qt, QTimer, QSize, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QColor, QPalette, QFont, QTextCursor
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Callable
 
-from .collectors import KeyboardMouseCollector
 from .interfaces import InputData, AbstractInputCollector
 from .visualizers import KeyboardVisualizer, MouseVisualizer, MouseButtonsSelector
+
+# Import collectors
+from .collectors import KeyboardMouseCollector
 
 # Import PS4 controller collector with fallback
 try:
@@ -57,6 +59,260 @@ except ImportError as e:
     print("To enable PS4 controller support, install required packages with:")
     print("pip install pysdl2 pysdl2-dll")
     HAVE_PS4_SUPPORT = False
+
+
+class CollectorManager:
+    """
+    Manages input collectors and their interactions with visualizers.
+    
+    This class handles the creation, configuration, and management of input collectors,
+    as well as coordinating the flow of input events to the appropriate visualizers.
+    """
+    
+    def __init__(self):
+        """Initialize the collector manager."""
+        self.collectors = {}
+        self.current_collector = None
+        self.current_collector_type = None
+        self.visualizers = []
+        self.tracked_keys = []
+        self.event_callbacks = []
+        
+        # Initialize collectors
+        self._initialize_collectors()
+    
+    def _initialize_collectors(self) -> None:
+        """Initialize available input collectors."""
+        # Always add keyboard/mouse collector
+        self.add_collector("keyboard_mouse", KeyboardMouseCollector())
+        
+        # Add PS4 controller if available
+        if HAVE_PS4_SUPPORT:
+            try:
+                print("Attempting to initialize PS4 controller...")
+                ps4_collector = PS4ControllerCollector()
+                self.add_collector("ps4_controller", ps4_collector)
+                print("PS4 controller collector initialized successfully.")
+            except Exception as e:
+                print(f"Error initializing PS4 controller: {e}")
+                import traceback
+                traceback.print_exc()
+        
+        # Set default collector
+        self.set_current_collector("keyboard_mouse")
+    
+    def add_collector(self, collector_type: str, collector: AbstractInputCollector) -> None:
+        """
+        Add a collector to the manager.
+        
+        Args:
+            collector_type: Type identifier for the collector
+            collector: The collector instance
+        """
+        self.collectors[collector_type] = collector
+        collector.on_event(self._handle_input_event)
+    
+    def set_current_collector(self, collector_type: str) -> bool:
+        """
+        Set the current active collector.
+        
+        Args:
+            collector_type: Type identifier for the collector to activate
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if collector_type not in self.collectors:
+            return False
+        
+        self.current_collector_type = collector_type
+        self.current_collector = self.collectors[collector_type]
+        
+        # Update tracked keys
+        if self.tracked_keys:
+            self.current_collector.set_supported_keys(self.tracked_keys)
+        
+        # Update visualizers for the new collector
+        self._update_visualizers()
+        
+        return True
+    
+    def get_available_collectors(self) -> List[Dict[str, str]]:
+        """
+        Get a list of available collectors.
+        
+        Returns:
+            List[Dict[str, str]]: List of collector information dictionaries
+        """
+        return [
+            {"type": collector_type, "name": self._get_collector_display_name(collector_type)}
+            for collector_type in self.collectors
+        ]
+    
+    def _get_collector_display_name(self, collector_type: str) -> str:
+        """Get a user-friendly display name for a collector type."""
+        display_names = {
+            "keyboard_mouse": "Keyboard & Mouse",
+            "ps4_controller": "PS4 Controller"
+        }
+        return display_names.get(collector_type, collector_type)
+    
+    def start_capture(self) -> None:
+        """Start capturing with the current collector."""
+        if self.current_collector:
+            self.current_collector.start_capture()
+    
+    def stop_capture(self) -> None:
+        """Stop capturing with the current collector."""
+        if self.current_collector:
+            self.current_collector.stop_capture()
+    
+    def register_visualizer(self, visualizer) -> None:
+        """
+        Register a visualizer to receive updates from the collectors.
+        
+        Args:
+            visualizer: The visualizer to register
+        """
+        if visualizer not in self.visualizers:
+            self.visualizers.append(visualizer)
+            
+        # Update the visualizer with the current collector's capabilities
+        self._update_visualizer(visualizer)
+    
+    def unregister_visualizer(self, visualizer) -> None:
+        """
+        Unregister a visualizer.
+        
+        Args:
+            visualizer: The visualizer to unregister
+        """
+        if visualizer in self.visualizers:
+            self.visualizers.remove(visualizer)
+    
+    def _update_visualizers(self) -> None:
+        """Update all registered visualizers with the current collector."""
+        for visualizer in self.visualizers:
+            self._update_visualizer(visualizer)
+    
+    def _update_visualizer(self, visualizer) -> None:
+        """
+        Update a single visualizer with the current collector's information.
+        
+        Args:
+            visualizer: The visualizer to update
+        """
+        if not self.current_collector:
+            return
+        
+        # Set capabilities
+        capabilities = self.current_collector.get_capabilities()
+        if hasattr(visualizer, "set_collector_capabilities"):
+            visualizer.set_collector_capabilities(capabilities)
+    
+    def set_tracked_keys(self, keys: List[str]) -> None:
+        """
+        Set the keys to be tracked by collectors.
+        
+        Args:
+            keys: List of keys to track
+        """
+        self.tracked_keys = keys
+        if self.current_collector:
+            self.current_collector.set_supported_keys(keys)
+    
+    def get_active_keys(self) -> List[str]:
+        """
+        Get the currently active keys from the current collector.
+        
+        Returns:
+            List[str]: List of active keys
+        """
+        if self.current_collector:
+            return self.current_collector.get_active_keys()
+        return []
+    
+    def _handle_input_event(self, event: InputData) -> None:
+        """
+        Handle input events from collectors.
+        
+        Args:
+            event: The input event to process
+        """
+        # Update visualizers
+        for visualizer in self.visualizers:
+            # Only update visualizers that support the current collector type
+            if (hasattr(visualizer, "supports_collector") and 
+                visualizer.supports_collector(self.current_collector_type)):
+                visualizer.update(event)
+        
+        # Notify callbacks
+        for callback in self.event_callbacks:
+            try:
+                callback(event)
+            except Exception as e:
+                print(f"Error in event callback: {e}")
+    
+    def on_event(self, callback: Callable[[InputData], None]) -> None:
+        """
+        Register a callback for input events.
+        
+        Args:
+            callback: Function to call when an input event occurs
+        """
+        if callback not in self.event_callbacks:
+            self.event_callbacks.append(callback)
+    
+    def remove_event_handler(self, callback: Callable[[InputData], None]) -> None:
+        """
+        Remove an event callback.
+        
+        Args:
+            callback: The callback to remove
+        """
+        if callback in self.event_callbacks:
+            self.event_callbacks.remove(callback)
+    
+    def get_current_collector_capabilities(self) -> Dict[str, Any]:
+        """
+        Get the capabilities of the current collector.
+        
+        Returns:
+            Dict[str, Any]: Dictionary of capabilities
+        """
+        if self.current_collector:
+            return self.current_collector.get_capabilities()
+        return {}
+    
+    def get_current_collector_type(self) -> str:
+        """
+        Get the type of the current collector.
+        
+        Returns:
+            str: Collector type identifier
+        """
+        return self.current_collector_type if self.current_collector_type else ""
+    
+    def get_collector(self, collector_type: str) -> Optional[AbstractInputCollector]:
+        """
+        Get a specific collector by type.
+        
+        Args:
+            collector_type: The type of collector to get
+            
+        Returns:
+            Optional[AbstractInputCollector]: The collector instance or None if not found
+        """
+        return self.collectors.get(collector_type)
+    
+    def get_current_collector(self) -> Optional[AbstractInputCollector]:
+        """
+        Get the current collector.
+        
+        Returns:
+            Optional[AbstractInputCollector]: The current collector instance
+        """
+        return self.current_collector
 
 
 class InputCollectorApp(QMainWindow):
@@ -94,19 +350,21 @@ class InputCollectorApp(QMainWindow):
         self.log_to_file = False
         self.log_file = None
         self.is_fullscreen = False
-        # Add CSV logging state
         self.log_to_csv = False
         self.csv_file = None
         self.csv_filepath = ""
-
-        # Añadir variable para el modo de edición de teclas
         self.edit_keys_mode = False
+
+        # Initialize the collector manager
+        self.collector_manager = CollectorManager()
+        
+        # Connect to event signal
+        self.event_received.connect(self._process_event)
+        self.collector_manager.on_event(self._handle_input_event)
 
         # Setup UI
         self.setWindowTitle("Input Collector")
-        # Increase window width from 800 to 1200 to fit keyboard without horizontal scrolling
         self.setGeometry(100, 100, 1200, 700)
-        # Adjust minimum size to ensure components are visible
         self.setMinimumSize(1050, 650)
 
         # Set application style
@@ -114,87 +372,43 @@ class InputCollectorApp(QMainWindow):
 
         # Create UI components
         self._create_ui()
-
-        # Collection mode state
-        self.current_collector_type = "keyboard_mouse"
-        self.collectors = {}
-
-        # Initialize the keyboard/mouse collector
-        self.collectors["keyboard_mouse"] = KeyboardMouseCollector()
-
-        # Initialize PS4 controller if available
-        if HAVE_PS4_SUPPORT:
-            try:
-                print("Attempting to initialize PS4 controller...")
-                self.collectors["ps4_controller"] = PS4ControllerCollector()
-                print("PS4 controller collector initialized successfully.")
-            except Exception as e:
-                print(f"Error initializing PS4 controller: {e}")
-                import traceback
-
-                traceback.print_exc()
-                # Don't show PS4 option if initialization fails
-                self.collector_selector.removeItem(
-                    self.collector_selector.findText("PS4 Controller")
-                )
-        elif self.collector_selector.findText("PS4 Controller") >= 0:
-            # Remove PS4 option if not available
-            print(
-                "Removing PS4 Controller option from selector as PySDL2 is not available"
-            )
-            self.collector_selector.removeItem(
-                self.collector_selector.findText("PS4 Controller")
-            )
-
-        # Get the active collector
-        self.collector = self.collectors[self.current_collector_type]
-
-        # Connect collector callbacks
-        self.collector.on_event(self._handle_input_event)
-
-        # Connect event signal to slot
-        self.event_received.connect(self._process_event)
+        
+        # Initialize visualizers
+        self._initialize_visualizers()
 
         # Set tracked keys
         self.tracked_keys = [
-            "w",
-            "a",
-            "s",
-            "d",
-            "q",
-            "e",
-            "f",
-            "m",
-            "c",
-            "b",
-            "1",
-            "2",
-            "3",
-            "4",
-            "Key.space",
-            "Key.shift",
-            "Key.media_play_pause",
-            "Button.left",
-            "Button.right",  # Añadir botones del ratón por defecto
+            "w", "a", "s", "d",
+            "q", "e", "f", "m", "c", "b",
+            "1", "2", "3", "4",
+            "Key.space", "Key.shift", "Key.media_play_pause",
+            "Button.left", "Button.right",
         ]
-        self.collector.set_supported_keys(self.tracked_keys)
+        self.collector_manager.set_tracked_keys(self.tracked_keys)
 
         # Set the tracked keys in the keyboard visualizer for highlighting
         self.keyboard_viz.set_tracked_keys(self.tracked_keys)
+        
+        # Update mouse buttons selector
+        self.mouse_buttons_selector.setTrackedButtons(self.tracked_keys)
+        self.mouse_buttons_selector.setScrollTracking(self.capture_scroll_check.isChecked())
 
         # Set screen dimensions for velocity-based joystick control
         screen_rect = QApplication.desktop().screenGeometry()
         screen_width = screen_rect.width()
         screen_height = screen_rect.height()
-        if hasattr(self.collector, "set_screen_dimensions"):
-            self.collector.set_screen_dimensions(screen_width, screen_height)
+        
+        # Get current collector to set screen dimensions if supported
+        keyboard_mouse_collector = self.collector_manager.get_collector("keyboard_mouse")
+        if keyboard_mouse_collector and hasattr(keyboard_mouse_collector, "set_screen_dimensions"):
+            keyboard_mouse_collector.set_screen_dimensions(screen_width, screen_height)
 
         # Set joystick sensitivity if supported
-        if hasattr(self.collector, "set_joystick_sensitivity"):
-            self.collector.set_joystick_sensitivity(0.1)
+        if keyboard_mouse_collector and hasattr(keyboard_mouse_collector, "set_joystick_sensitivity"):
+            keyboard_mouse_collector.set_joystick_sensitivity(0.1)
 
         # Initialize mouse tracking mode to match UI defaults
-        if hasattr(self.collector, "set_mouse_tracking_mode"):
+        if keyboard_mouse_collector and hasattr(keyboard_mouse_collector, "set_mouse_tracking_mode"):
             self._set_mouse_tracking_mode(self.tracking_mode_combo.currentText())
 
         # Start timer for periodic UI updates
@@ -208,17 +422,26 @@ class InputCollectorApp(QMainWindow):
         # Connect scroll checkbox to mouse buttons selector
         self.capture_scroll_check.toggled.connect(self._on_capture_scroll_changed)
 
-        # Initialize mouse buttons selector
-        self.mouse_buttons_selector.setTrackedButtons(self.tracked_keys)
-        self.mouse_buttons_selector.setScrollTracking(
-            self.capture_scroll_check.isChecked()
-        )
-
         # Connect collector selector
         self.collector_selector.currentTextChanged.connect(self._switch_collector)
 
+        # Initialize state tracking
         self.last_toggle_time = None
         self.f9_key_down = False
+        
+        # Update UI visibility based on current collector
+        self._update_ui_for_collector()
+
+    def _initialize_visualizers(self) -> None:
+        """Initialize and register all visualizers."""
+        # Register keyboard visualizer
+        self.collector_manager.register_visualizer(self.keyboard_viz)
+        
+        # Register mouse visualizer
+        self.collector_manager.register_visualizer(self.mouse_viz)
+        
+        # Register mouse buttons selector
+        self.collector_manager.register_visualizer(self.mouse_buttons_selector)
 
     def _set_dark_theme(self) -> None:
         """Set the application to use a dark theme."""
@@ -390,7 +613,6 @@ class InputCollectorApp(QMainWindow):
         collector_layout.addWidget(QLabel("Input:"))
 
         self.collector_selector = QComboBox()
-        self.collector_selector.addItems(["Keyboard & Mouse", "PS4 Controller"])
         self.collector_selector.setMinimumWidth(120)
         collector_layout.addWidget(self.collector_selector)
 
@@ -576,19 +798,22 @@ class InputCollectorApp(QMainWindow):
         settings_layout.addLayout(settings_row2)
 
         self.main_layout.addWidget(settings_group)
+        
+        # In collector selector setup, populate from available collectors
+        self.collector_selector.clear()
+        for collector_info in self.collector_manager.get_available_collectors():
+            self.collector_selector.addItem(collector_info["name"], collector_info["type"])
 
     def _scan_controllers(self) -> None:
         """Scan for SDL controllers and show a selection dialog."""
-        if "ps4_controller" not in self.collectors:
+        ps4_collector = self.collector_manager.get_collector("ps4_controller")
+        if not ps4_collector:
             QMessageBox.warning(
                 self,
                 "SDL Not Available",
                 "SDL2 is not available. Make sure pysdl2 and pysdl2-dll are installed.",
             )
             return
-
-        # Get PS4 controller collector
-        ps4_collector = self.collectors["ps4_controller"]
 
         # Show scanning message
         self._log_status("Scanning for controllers...", self.warning_color)
@@ -608,7 +833,7 @@ class InputCollectorApp(QMainWindow):
                 self._log_status("No controllers found", self.error_color)
 
                 # Fall back to keyboard/mouse mode
-                if self.collector_selector.currentText() == "PS4 Controller":
+                if self.collector_selector.currentData() == "ps4_controller":
                     self._log_status(
                         "Falling back to Keyboard & Mouse mode", self.warning_color
                     )
@@ -624,14 +849,13 @@ class InputCollectorApp(QMainWindow):
                         f"Connected to: {controller['name']}", self.success_color
                     )
                     # Switch to PS4 controller mode if not already there
-                    if self.collector_selector.currentText() != "PS4 Controller":
-                        self.collector_selector.setCurrentText("PS4 Controller")
+                    self._select_collector_by_type("ps4_controller")
                 else:
                     self._log_status(
                         f"Failed to connect to: {controller['name']}", self.error_color
                     )
                     # Fall back to keyboard/mouse mode if connection failed
-                    if self.collector_selector.currentText() == "PS4 Controller":
+                    if self.collector_selector.currentData() == "ps4_controller":
                         self._log_status(
                             "Falling back to Keyboard & Mouse mode", self.warning_color
                         )
@@ -687,15 +911,14 @@ class InputCollectorApp(QMainWindow):
                         f"Connected to: {controller_name}", self.success_color
                     )
 
-                    # Switch to PS4 controller mode if not already there
-                    if self.collector_selector.currentText() != "PS4 Controller":
-                        self.collector_selector.setCurrentText("PS4 Controller")
+                    # Switch to PS4 controller mode
+                    self._select_collector_by_type("ps4_controller")
                 else:
                     self._log_status(
                         "Failed to connect to controller", self.error_color
                     )
                     # Fall back to keyboard/mouse mode if connection failed
-                    if self.collector_selector.currentText() == "PS4 Controller":
+                    if self.collector_selector.currentData() == "ps4_controller":
                         self._log_status(
                             "Falling back to Keyboard & Mouse mode", self.warning_color
                         )
@@ -703,7 +926,6 @@ class InputCollectorApp(QMainWindow):
 
         except Exception as e:
             import traceback
-
             traceback.print_exc()
             QMessageBox.critical(
                 self,
@@ -713,43 +935,39 @@ class InputCollectorApp(QMainWindow):
             self._log_status(f"Controller scan error: {str(e)}", self.error_color)
 
             # Fall back to keyboard/mouse mode on error
-            if self.collector_selector.currentText() == "PS4 Controller":
+            if self.collector_selector.currentData() == "ps4_controller":
                 self._log_status(
                     "Falling back to Keyboard & Mouse mode", self.warning_color
                 )
                 self._force_keyboard_mouse_mode()
 
+    def _select_collector_by_type(self, collector_type: str) -> None:
+        """Select a collector in the UI by its type."""
+        # Find the index of the collector in the dropdown
+        for i in range(self.collector_selector.count()):
+            if self.collector_selector.itemData(i) == collector_type:
+                self.collector_selector.setCurrentIndex(i)
+                return
+    
     def _force_keyboard_mouse_mode(self) -> None:
         """Force switch to keyboard/mouse mode safely."""
-        # Set current collector type directly
-        self.current_collector_type = "keyboard_mouse"
-        self.collector = self.collectors["keyboard_mouse"]
-
-        # Update UI state
-        self.collector_selector.blockSignals(True)  # Prevent recursion
-        self.collector_selector.setCurrentText("Keyboard & Mouse")
-        self.collector_selector.blockSignals(False)
-
-        # Connect handler to collector
-        for collector in self.collectors.values():
-            try:
-                if hasattr(collector, "remove_event_handler"):
-                    collector.remove_event_handler(self._handle_input_event)
-            except:
-                pass
-
-        # Add handler to keyboard/mouse collector
-        self.collector.on_event(self._handle_input_event)
-
-        # Set tracked keys
-        self.collector.set_supported_keys(self.tracked_keys)
-
-        # Update UI based on collector capabilities
-        self._update_ui_for_collector()
-
-        # Log the change
-        self._log_status("Forced switch to Keyboard & Mouse mode", self.warning_color)
-
+        # Use collector manager to switch collectors
+        success = self.collector_manager.set_current_collector("keyboard_mouse")
+        
+        if success:
+            # Update UI state
+            self.collector_selector.blockSignals(True)  # Prevent recursion
+            self._select_collector_by_type("keyboard_mouse")
+            self.collector_selector.blockSignals(False)
+            
+            # Update UI based on collector capabilities
+            self._update_ui_for_collector()
+            
+            # Log the change
+            self._log_status("Forced switch to Keyboard & Mouse mode", self.warning_color)
+        else:
+            self._log_status("Failed to switch to keyboard/mouse mode", self.error_color)
+        
         # Process pending events to ensure UI updates
         QApplication.processEvents()
 
@@ -758,31 +976,21 @@ class InputCollectorApp(QMainWindow):
         Switch between input collectors.
 
         Args:
-            collector_name: Name of the collector to switch to
+            collector_name: Display name of the collector to switch to
         """
-        # Stop current collector
+        # Stop current collector if recording
         if self.is_recording:
             self._toggle_recording()
 
-        # Map display name to internal collector type
-        collector_map = {
-            "Keyboard & Mouse": "keyboard_mouse",
-            "PS4 Controller": "ps4_controller",
-        }
-
-        new_collector_type = collector_map.get(collector_name)
-        if not new_collector_type or new_collector_type not in self.collectors:
-            # Invalid collector or not available
-            self._log_status(
-                f"Collector '{collector_name}' not available", self.error_color
-            )
-
-            # Revert to previous selection - use our safe method
-            self._force_keyboard_mouse_mode()
+        # Find collector type from current selection
+        collector_type = self.collector_selector.currentData()
+        if not collector_type:
+            # Invalid collector
+            self._log_status(f"Collector '{collector_name}' not found", self.error_color)
             return
-
+            
         # Check if PS4 controller is available if trying to switch to it
-        if new_collector_type == "ps4_controller":
+        if collector_type == "ps4_controller":
             if not HAVE_PS4_SUPPORT:
                 QMessageBox.warning(
                     self,
@@ -797,7 +1005,7 @@ class InputCollectorApp(QMainWindow):
 
             # If we're switching to PS4 controller and we don't have an active controller connection,
             # ask the user if they want to scan
-            ps4_collector = self.collectors["ps4_controller"]
+            ps4_collector = self.collector_manager.get_collector("ps4_controller")
             if not ps4_collector.controller:
                 response = QMessageBox.question(
                     self,
@@ -822,61 +1030,52 @@ class InputCollectorApp(QMainWindow):
                     self._force_keyboard_mouse_mode()
                     return
 
-        # Switch collector
-        self.current_collector_type = new_collector_type
-        self.collector = self.collectors[new_collector_type]
-
-        # Connect event handler to new collector
-        for collector in self.collectors.values():
-            # Remove old handler from all collectors to avoid duplicates
-            try:
-                # This is not a standard method in the interface, but attempt it
-                # for collectors that might support it
-                if hasattr(collector, "remove_event_handler"):
-                    collector.remove_event_handler(self._handle_input_event)
-            except:
-                pass
-
-        # Add handler to current collector
-        self.collector.on_event(self._handle_input_event)
-
-        # Set tracked keys for new collector
-        self.collector.set_supported_keys(self.tracked_keys)
-
-        # Update UI based on collector capabilities
-        self._update_ui_for_collector()
-
-        # Log the change
-        self._log_status(f"Switched to {collector_name} collector", self.accent_color)
+        # Switch collector using manager
+        success = self.collector_manager.set_current_collector(collector_type)
+        
+        if success:
+            # Update UI based on collector capabilities
+            self._update_ui_for_collector()
+            
+            # Log the change
+            self._log_status(f"Switched to {collector_name} collector", self.accent_color)
+        else:
+            self._log_status(f"Failed to switch to {collector_name} collector", self.error_color)
+            # Revert to keyboard/mouse
+            self._force_keyboard_mouse_mode()
 
     def _update_ui_for_collector(self) -> None:
         """Update UI elements based on current collector capabilities."""
-        is_keyboard_mouse = self.current_collector_type == "keyboard_mouse"
+        collector_type = self.collector_manager.get_current_collector_type()
+        is_keyboard_mouse = collector_type == "keyboard_mouse"
+        capabilities = self.collector_manager.get_current_collector_capabilities()
 
         # Show/hide scan button based on selected collector
         self.scan_button.setVisible(not is_keyboard_mouse)
 
         # Show/hide mouse-specific UI elements
-        self.tracking_mode_combo.setVisible(is_keyboard_mouse)
-        self.direction_only_check.setVisible(is_keyboard_mouse)
+        mouse_tracking_supported = capabilities.get("supports_mouse_tracking", False)
+        self.tracking_mode_combo.setVisible(mouse_tracking_supported)
+        self.direction_only_check.setVisible(mouse_tracking_supported)
 
         # Update mouse settings group visibility
         for i in range(self.main_layout.count()):
             item = self.main_layout.itemAt(i)
             if item and item.widget() and isinstance(item.widget(), QGroupBox):
                 if "Mouse Settings" in item.widget().title():
-                    item.widget().setVisible(is_keyboard_mouse)
+                    item.widget().setVisible(mouse_tracking_supported)
 
-        # Update keyboard visualization
-        if is_keyboard_mouse:
-            self.keyboard_viz.set_tracked_keys(self.tracked_keys)
-            self.keyboard_viz.setVisible(True)
-            self.mouse_buttons_selector.setVisible(True)
-        else:
-            # For PS4 controller, maybe hide keyboard visualizer or adapt it
-            # to show controller buttons instead
-            self.keyboard_viz.setVisible(False)
-            self.mouse_buttons_selector.setVisible(False)
+        # Update visualizer visibility based on collector support
+        self.keyboard_viz.setVisible(
+            self.keyboard_viz.supports_collector(collector_type)
+        )
+        self.mouse_viz.setVisible(
+            self.mouse_viz.supports_collector(collector_type)
+        )
+        self.mouse_buttons_selector.setVisible(
+            self.mouse_buttons_selector.supports_collector(collector_type) and
+            capabilities.get("supports_mouse_buttons", False)
+        )
 
         # Reset active keys display
         self.active_keys_label.setText("None")
@@ -900,32 +1099,34 @@ class InputCollectorApp(QMainWindow):
                 "Click on keys or mouse buttons to add/remove them from tracking",
                 self.success_color,
             )
-            # Cambiar el cursor para indicar modo de edición
+            # Change cursor to indicate edit mode
             self.keyboard_viz.setCursor(Qt.PointingHandCursor)
-            self.mouse_buttons_selector.setEditMode(True)
+            self.keyboard_viz.set_edit_mode(True)
+            self.mouse_buttons_selector.set_edit_mode(True)
         else:
             self.edit_keys_button.setText("Edit Keys")
             # When inactive, use the default style (which will respect disabled state)
             self.edit_keys_button.setStyleSheet("")
             self._log_status("Key editing finished", self.accent_color)
-            # Restaurar cursor normal
+            # Restore normal cursor
             self.keyboard_viz.setCursor(Qt.ArrowCursor)
-            self.mouse_buttons_selector.setEditMode(False)
+            self.keyboard_viz.set_edit_mode(False)
+            self.mouse_buttons_selector.set_edit_mode(False)
 
     def _handle_keyboard_viz_click(self, event) -> None:
         """Handle clicks on the keyboard visualizer."""
-        # Si no estamos en modo edición, usar el comportamiento predeterminado
+        # If not in edit mode, use default behavior
         if not self.edit_keys_mode:
             QWidget.mousePressEvent(self.keyboard_viz, event)
             return
 
-        # Obtener la tecla en la posición del clic
+        # Get the key at click position
         key = self.keyboard_viz.get_key_at_position(event.x(), event.y())
 
         if key:
             key_lower = key.lower()
 
-            # Manejar casos especiales
+            # Handle special cases
             if key_lower == "space":
                 key = "Key.space"
             elif key_lower == "shift":
@@ -933,41 +1134,41 @@ class InputCollectorApp(QMainWindow):
             elif key_lower == "f9":
                 key = "Key.media_play_pause"
 
-            # Verificar si la tecla está en la lista de tracked_keys (ignorar mayúsculas/minúsculas)
+            # Check if key is in tracked_keys list (case insensitive)
             key_in_tracked = any(
                 tracked.lower() == key.lower() for tracked in self.tracked_keys
             )
 
-            # Alternar la tecla en la lista de tracked_keys
+            # Toggle key in tracked_keys list
             if key_in_tracked:
-                # No permitir eliminar F9/media_play_pause
+                # Don't allow removing F9/media_play_pause
                 if key.lower() == "key.media_play_pause".lower():
                     self._log_status(
                         "Cannot remove F9/media_play_pause key", self.warning_color
                     )
                     return
-                # Eliminar la tecla (necesitamos encontrar la versión exacta en la lista)
+                # Remove key (need to find exact version in list)
                 for tracked in self.tracked_keys.copy():
                     if tracked.lower() == key.lower():
                         self.tracked_keys.remove(tracked)
                         break
                 self._log_status(f"Removed key: {key}")
             else:
-                # Añadir la tecla
+                # Add key
                 self.tracked_keys.append(key)
                 self._log_status(f"Added key: {key}")
 
-            # Actualizar la lista de teclas y la visualización
-            self.collector.set_supported_keys(self.tracked_keys)
+            # Update key list and visualization
+            self.collector_manager.set_tracked_keys(self.tracked_keys)
             self.keyboard_viz.set_tracked_keys(self.tracked_keys)
 
     def _handle_mouse_button_toggled(self, button_id: str, is_tracked: bool) -> None:
         """Handle toggling of mouse buttons in the selector."""
         if not self.edit_keys_mode:
-            # Solo responder en modo de edición
+            # Only respond in edit mode
             return
 
-        # Manejar el caso especial del scroll
+        # Handle special case for scroll
         if button_id == "Button.scroll":
             self.capture_scroll_check.setChecked(is_tracked)
             self._log_status(
@@ -976,24 +1177,86 @@ class InputCollectorApp(QMainWindow):
             )
             return
 
-        # Para los demás botones, actualizar la lista de teclas trackeadas
+        # For other buttons, update tracked keys list
         if is_tracked:
-            # Añadir el botón si no está ya en la lista
+            # Add button if not already in list
             if button_id not in self.tracked_keys:
                 self.tracked_keys.append(button_id)
                 self._log_status(f"Added tracking for {button_id}", self.success_color)
         else:
-            # Eliminar el botón si está en la lista
+            # Remove button if in list
             if button_id in self.tracked_keys:
                 self.tracked_keys.remove(button_id)
                 self._log_status(
                     f"Removed tracking for {button_id}", self.warning_color
                 )
 
-        # Actualizar el colector y la visualización
-        self.collector.set_supported_keys(self.tracked_keys)
+        # Update collector and visualization
+        self.collector_manager.set_tracked_keys(self.tracked_keys)
         self.keyboard_viz.set_tracked_keys(self.tracked_keys)
         self.mouse_buttons_selector.setTrackedButtons(self.tracked_keys)
+
+    def _handle_input_event(self, event: InputData) -> None:
+        """Handle events from the collector manager."""
+        # Use signal to safely handle events from collector thread
+        self.event_received.emit(event)
+
+    @pyqtSlot(object)
+    def _process_event(self, event: InputData) -> None:
+        """Process input events in the main thread."""
+        # Update active keys display
+        self._update_active_keys_display()
+        
+        # Get current collector type
+        collector_type = self.collector_manager.get_current_collector_type()
+        
+        # Check for special toggle_recording event
+        if event.event_type == "toggle_recording":
+            if not self.f9_key_down:
+                self._toggle_recording()
+                self.f9_key_down = True
+            return
+            
+        # Handle F9 key release
+        if event.event_type == "key_release" and event.key == "Key.media_play_pause":
+            self.f9_key_down = False
+            return
+            
+        # Don't log events if we're not recording
+        if not self.is_recording:
+            return
+            
+        # Determine if we should log the event
+        should_log = (
+            (event.event_type == "key_press")
+            or (event.event_type == "mouse_move" and event.is_moving)
+            or (event.event_type == "mouse_click" and event.button_pressed is not None)
+            or (event.event_type == "mouse_scroll" and event.direction is not None)
+            or (event.event_type in ["button_press", "axis_motion"])
+        )
+
+        if should_log:
+            # Format event text based on collector type
+            if collector_type == "ps4_controller":
+                event_text = self._format_ps4_event_text(event)
+            else:
+                event_text = self._format_event_text(event)
+                
+            self._log_status(event_text)
+
+            # Log to file if enabled
+            if self.log_file and self.log_to_file:
+                if collector_type == "ps4_controller":
+                    self._log_ps4_event_to_file(event)
+                else:
+                    self._log_event_to_file(event)
+                    
+            # Log to CSV file if enabled
+            if self.csv_file and self.log_to_csv:
+                if collector_type == "ps4_controller":
+                    self._log_ps4_event_to_csv(event)
+                else:
+                    self._log_event_to_csv(event)
 
     def _setup_shortcuts(self) -> None:
         """Set up keyboard shortcuts for the application."""
@@ -1027,7 +1290,7 @@ class InputCollectorApp(QMainWindow):
         if self.is_recording:
             # Stop recording
             print("Stopping recording...")
-            self.collector.stop_capture()
+            self.collector_manager.stop_capture()
             self.is_recording = False
             self.record_button.setText("Record")
             self.record_button.setStyleSheet("background-color: #AA3333; color: white;")
@@ -1074,7 +1337,7 @@ class InputCollectorApp(QMainWindow):
                     self._log_status("Failed to create CSV log file", self.error_color)
                     return
             
-            self.collector.start_capture()
+            self.collector_manager.start_capture()
             self.is_recording = True
             self.record_button.setText("Stop")
             self.record_button.setStyleSheet("background-color: #CC3333; color: white;")
@@ -1282,7 +1545,7 @@ class InputCollectorApp(QMainWindow):
         direction_only = self.direction_only_check.isChecked()
         angle_grouping = self.angle_grouping_slider.value()
 
-        self.collector.set_mouse_tracking_mode(mode, direction_only, angle_grouping)
+        self.collector_manager.get_current_collector().set_mouse_tracking_mode(mode, direction_only, angle_grouping)
         self._log_status(f"Mouse tracking mode set to: {mode}", self.accent_color)
 
         # Update display properties based on mode
@@ -1306,17 +1569,17 @@ class InputCollectorApp(QMainWindow):
         """Apply mouse settings."""
         # Apply delta smoothing
         smoothing = self.delta_smoothing_slider.value() / 100.0
-        self.collector.set_delta_smoothing(smoothing)
+        self.collector_manager.get_current_collector().set_delta_smoothing(smoothing)
         self._log_status(f"Delta smoothing set to: {smoothing:.2f}")
 
         # Apply joystick sensitivity
         sensitivity = self.sensitivity_slider.value() / 100.0
-        self.collector.set_joystick_sensitivity(sensitivity)
+        self.collector_manager.get_current_collector().set_joystick_sensitivity(sensitivity)
         self._log_status(f"Joystick sensitivity set to: {sensitivity:.2f}")
 
         # Apply angle grouping
         angle_grouping = self.angle_grouping_slider.value()
-        self.collector.set_angle_grouping(angle_grouping)
+        self.collector_manager.get_current_collector().set_angle_grouping(angle_grouping)
         self._log_status(
             f"Angle grouping set to: {angle_grouping}° ({360 // angle_grouping} values)"
         )
@@ -1328,161 +1591,6 @@ class InputCollectorApp(QMainWindow):
 
         # Re-apply current tracking mode to ensure all settings are updated
         self._set_mouse_tracking_mode(self.tracking_mode_combo.currentText())
-
-    def _handle_input_event(self, event: InputData) -> None:
-        """Handle events from the input collector."""
-        # Use signal to safely handle events from collector thread
-        self.event_received.emit(event)
-
-    @pyqtSlot(object)
-    def _process_event(self, event: InputData) -> None:
-        """Process input events in the main thread."""
-        # Handle PS4 controller events differently
-        if self.current_collector_type == "ps4_controller":
-            # Process PS4 controller events
-            if event.event_type in ["button_press", "axis_motion"]:
-                # Update visualizers - adapt for PS4 controller visualization
-                # For now, just show in active keys display
-                self._update_active_keys_display()
-                # Handle logging for PS4 controller events
-                if self.is_recording and self.log_file and self.log_to_file:
-                    self._log_ps4_event_to_file(event)
-                # Log to CSV if enabled
-                if self.is_recording and self.csv_file and self.log_to_csv:
-                    self._log_ps4_event_to_csv(event)
-                # Display event in status area
-                if self.is_recording:
-                    event_text = self._format_ps4_event_text(event)
-                    self._log_status(event_text)
-            return
-
-        # Existing keyboard/mouse event processing
-        # Check for special toggle_recording event type first (for F9 key)
-        if event.event_type == "toggle_recording":
-            if not self.f9_key_down:
-                self._toggle_recording()
-                self.f9_key_down = True
-
-            # Highlight the F9 key in the keyboard visualizer
-            temp_press_event = InputData(
-                timestamp=event.timestamp,
-                event_type="key_press",
-                key="Key.media_play_pause",
-                active_keys=event.active_keys or [],
-            )
-            self.keyboard_viz.update(temp_press_event)
-            return
-
-        # FILTER: Ignore mouse button release events for logging (when button_pressed is None)
-        if event.event_type == "mouse_click" and event.button_pressed is None:
-            # Only update visualizers but don't log anything
-            self.mouse_viz.update(event)
-            self._update_active_keys_display()
-
-            # Update mouse buttons selector to remove any highlighted buttons
-            self.mouse_buttons_selector.setActiveButtons([])
-            return
-
-        # Don't log events if we're not recording
-        if not self.is_recording:
-            # Still update visualizers, but don't log anything
-            if event.event_type in ["key_press", "key_release"]:
-                self.keyboard_viz.update(event)
-            elif event.event_type in ["mouse_move", "mouse_click", "mouse_scroll"]:
-                self.mouse_viz.update(event)
-
-            # Update active keys display
-            self._update_active_keys_display()
-            return
-
-        # Don't process key_release events for logging
-        if event.event_type == "key_release":
-            if event.key == "Key.media_play_pause":
-                self.f9_key_down = False
-            # Only update the visualizer
-            self.keyboard_viz.update(event)
-            self._update_active_keys_display()
-            return
-
-        # FIX: Problema con media_play_pause - evitar que eventos de key_press con media_play_pause
-        # activen un nuevo toggle de grabación (porque ya fue manejado por toggle_recording)
-        # Solo responder a media_play_pause si viene directo del keyboard_listener, no de eventos internos
-        if event.event_type == "key_press" and event.key == "Key.media_play_pause":
-            # Ya no llamamos a toggle_recording aquí - este evento es solo para actualizar la visualización
-            self.keyboard_viz.update(event)
-            return
-
-        # Verificar si los botones del ratón están siendo trackeados antes de procesarlos
-        if event.event_type == "mouse_click" and event.button_pressed:
-            # Solo procesar botones que estén en la lista de trackeados
-            if not any(
-                btn.lower() == event.button_pressed.lower() for btn in self.tracked_keys
-            ):
-                # Si el botón no está en la lista de trackeados, no lo procesamos
-                return
-
-        # FIX: Limpiar el button_pressed si no está en la lista de botones trackeados
-        # Esto evita que los botones no trackeados aparezcan en los logs durante el movimiento del ratón
-        if hasattr(event, "button_pressed") and event.button_pressed:
-            if not any(
-                btn.lower() == event.button_pressed.lower() for btn in self.tracked_keys
-            ):
-                event.button_pressed = (
-                    None  # Eliminar la referencia al botón no trackeado
-                )
-
-        # Similar para scroll - solo procesar si está habilitado
-        if (
-            event.event_type == "mouse_scroll"
-            and not self.capture_scroll_check.isChecked()
-        ):
-            # No procesar eventos de scroll si no está habilitado
-            return
-
-        # Update visualizers immediately
-        if event.event_type in ["key_press", "key_release"]:
-            self.keyboard_viz.update(event)
-        elif event.event_type in ["mouse_move", "mouse_click", "mouse_scroll"]:
-            self.mouse_viz.update(event)
-
-        # Update active keys display
-        self._update_active_keys_display()
-
-        # Determine if we should log the event
-        should_log = (
-            (event.event_type == "key_press")
-            or (event.event_type == "mouse_move" and event.is_moving)
-            or (
-                event.event_type == "mouse_click" and event.button_pressed is not None
-            )  # Only log press, not release
-            or (
-                event.event_type == "mouse_scroll" and event.direction is not None
-            )  # Only log actual scroll, not reset
-            or (event.button_pressed is not None)
-        )
-
-        if self.is_recording and should_log:
-            event_text = self._format_event_text(event)
-            self._log_status(event_text)
-
-            # Log to JSON file if enabled
-            if self.log_file and self.log_to_file:
-                self._log_event_to_file(event)
-            
-            # Log to CSV file if enabled
-            if self.csv_file and self.log_to_csv:
-                self._log_event_to_csv(event)
-
-        # Actualizar el selector de botones del ratón si hay botones presionados
-        if hasattr(event, "button_pressed") and event.button_pressed:
-            # Solo destacar botones que estén en la lista de trackeados
-            if any(
-                btn.lower() == event.button_pressed.lower() for btn in self.tracked_keys
-            ):
-                active_buttons = [event.button_pressed]
-                self.mouse_buttons_selector.setActiveButtons(active_buttons)
-        else:
-            self.mouse_buttons_selector.setActiveButtons([])
 
     def _format_event_text(self, event: InputData) -> str:
         """Format event text for UI display based on tracking mode."""
@@ -1756,7 +1864,7 @@ class InputCollectorApp(QMainWindow):
 
     def _update_active_keys_display(self) -> None:
         """Update the active keys display."""
-        active = self.collector.get_active_keys()
+        active = self.collector_manager.get_active_keys()
         if active:
             self.active_keys_label.setText(", ".join(active))
         else:
@@ -1858,7 +1966,7 @@ class InputCollectorApp(QMainWindow):
         """Handle application close event."""
         # Stop collectors and close log files
         if self.is_recording:
-            self.collector.stop_capture()
+            self.collector_manager.stop_capture()
 
         if self.log_file:
             self.log_file.close()
@@ -1886,11 +1994,11 @@ class InputCollectorApp(QMainWindow):
         if checked and not is_tracked:
             # Add to tracked keys
             self.tracked_keys.append(button_id)
-            self.collector.set_supported_keys(self.tracked_keys)
+            self.collector_manager.set_tracked_keys(self.tracked_keys)
         elif not checked and is_tracked:
             # Remove from tracked keys
             self.tracked_keys.remove(button_id)
-            self.collector.set_supported_keys(self.tracked_keys)
+            self.collector_manager.set_tracked_keys(self.tracked_keys)
 
         # Update the mouse buttons display
         self.mouse_buttons_selector.setTrackedButtons(self.tracked_keys)
@@ -1919,8 +2027,8 @@ class InputCollectorApp(QMainWindow):
                         y_key = event.key.replace("_X", "_Y")
                         y_value = 0.0
                         # Find the Y value in active collector
-                        if hasattr(self.collector, "axis_state"):
-                            y_value = self.collector.axis_state.get(y_key, 0.0)
+                        if hasattr(self.collector_manager.get_current_collector(), "axis_state"):
+                            y_value = self.collector_manager.get_current_collector().axis_state.get(y_key, 0.0)
                         direction = ""
                         if abs(value) > 0.1 or abs(y_value) > 0.1:
                             if abs(value) > 0.1:
@@ -1966,9 +2074,9 @@ class InputCollectorApp(QMainWindow):
 
                         # Find Y value from collector state
                         y_value = 0.0
-                        if hasattr(self.collector, "axis_state"):
+                        if hasattr(self.collector_manager.get_current_collector(), "axis_state"):
                             y_key = f"{base_name}_Y"
-                            y_value = self.collector.axis_state.get(y_key, 0.0)
+                            y_value = self.collector_manager.get_current_collector().axis_state.get(y_key, 0.0)
 
                         # Store as position
                         clean_log["position"] = {"x": x_value, "y": y_value}
@@ -2038,9 +2146,9 @@ class InputCollectorApp(QMainWindow):
                         
                         # Y value (look up from controller state)
                         y_value = 0.0
-                        if hasattr(self.collector, "axis_state"):
+                        if hasattr(self.collector_manager.get_current_collector(), "axis_state"):
                             y_key = f"{base_name}_Y"
-                            y_value = self.collector.axis_state.get(y_key, 0.0)
+                            y_value = self.collector_manager.get_current_collector().axis_state.get(y_key, 0.0)
                             if header_y in self.csv_headers:
                                 row_data[header_y] = y_value
                     else:

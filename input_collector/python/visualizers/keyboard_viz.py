@@ -10,9 +10,10 @@ from PyQt5.QtGui import QPainter, QColor, QFont, QPen, QBrush
 from PyQt5.QtCore import Qt, QRect, QSize
 
 from ..interfaces import InputData
+from .visualizer_base import BaseVisualizer
 
 
-class KeyboardVisualizer(QWidget):
+class KeyboardVisualizer(BaseVisualizer):
     """
     Visualizes keyboard input events with a virtual keyboard display.
 
@@ -74,6 +75,9 @@ class KeyboardVisualizer(QWidget):
         # Set size policy and minimum size
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.setMinimumSize(400, 200)  # Aumentado desde 180 a 200 para más altura
+        
+        # Set which collectors we support
+        self.supported_collectors = ["keyboard_mouse"]
 
     def _create_key_mappings(self) -> None:
         """Create mappings for special keys"""
@@ -367,3 +371,15 @@ class KeyboardVisualizer(QWidget):
     def force_update(self) -> None:
         """Force a redraw of the keyboard"""
         self.update()
+
+    def supports_collector(self, collector_type: str) -> bool:
+        """
+        Check if this visualizer supports a specific collector type.
+        
+        Args:
+            collector_type: The type of collector to check
+            
+        Returns:
+            bool: True if supported, False otherwise
+        """
+        return collector_type in self.supported_collectors

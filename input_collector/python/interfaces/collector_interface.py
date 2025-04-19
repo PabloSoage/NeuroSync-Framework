@@ -7,7 +7,7 @@ event representation and processing throughout the application.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Optional, Callable
+from typing import List, Optional, Callable, Dict, Any
 
 
 @dataclass
@@ -168,3 +168,38 @@ class AbstractInputCollector(ABC):
         Removes all events from the collector's history, keeping the current state.
         """
         pass
+    
+    def get_active_keys(self) -> List[str]:
+        """
+        Get a list of currently active keys or buttons.
+
+        Returns:
+            List[str]: List of active keys/buttons
+        """
+        return []
+    
+    def get_collector_type(self) -> str:
+        """
+        Get the type of this collector.
+
+        Returns:
+            str: The collector type identifier (e.g., "keyboard_mouse", "ps4_controller")
+        """
+        return "abstract"
+    
+    def get_capabilities(self) -> Dict[str, Any]:
+        """
+        Get the capabilities of this collector.
+
+        Returns:
+            Dict[str, Any]: Dictionary of collector capabilities
+        """
+        return {
+            "supports_mouse_tracking": False,
+            "supports_keyboard": False,
+            "supports_mouse_buttons": False,
+            "supports_mouse_movement": False,
+            "supports_mouse_scroll": False,
+            "supports_joystick": False,
+            "supported_tracking_modes": [],
+        }
