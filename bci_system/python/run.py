@@ -13,8 +13,8 @@ from PyQt5.QtWidgets import QApplication
 # Add parent directory to path to make the imports work
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import the integrated app
-from integrated_app import IntegratedBCIApp
+# Import the integrated app with absolute import
+from bci_system.python.integrated_app import IntegratedBCIApp
 
 if __name__ == "__main__":
     # Setup logging

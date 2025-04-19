@@ -13,12 +13,11 @@ from typing import Optional, Dict, Any
 
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
-    QTabWidget, QPushButton, QLabel, QGroupBox, QCheckBox,
-    QSplitter, QMessageBox, QScrollArea, QSizePolicy, QFrame,
-    QFileDialog, QLineEdit, QRadioButton  # Added QFileDialog, QLineEdit, QRadioButton
+    QTabWidget, QPushButton, QLabel, QGroupBox, QCheckBox, QSplitter, 
+    QMessageBox, QFileDialog, QRadioButton
 )
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
-from PyQt5.QtGui import QColor, QPalette, QIcon
+from PyQt5.QtGui import QColor, QPalette
 
 # Import from EEG processor module
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "eeg_processor"))
@@ -28,19 +27,26 @@ from eeg_processor.python.eeg_processor_app import EEGProcessorApp
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "input_collector"))
 from input_collector.python.input_collector_app import InputCollectorApp
 
-# Add missing import
-import os.path
+# Import our modules using absolute imports
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))  # Add parent directory to path
+from bci_system.python.interfaces import IEEGModule, IInputModule
+from bci_system.python.adapters import EEGModuleAdapter, InputModuleAdapter
+from bci_system.python.managers import RecordingManager
+from bci_system.python.events import EventSystem, EventTypes
+from bci_system.python.ui import UIFactory
+
 
 class IntegratedBCIApp(QMainWindow):
     """
     Integrated Brain-Computer Interface application.
     
-    This class combines EEG processing and input collection into a single
-    synchronized application interface with shared controls for recording.
+    This class follows SOLID principles by:
+    - Single Responsibility: Coordinates modules but delegates specific tasks
+    - Open/Closed: Uses interfaces for extension without modification
+    - Liskov Substitution: Works with any class implementing the module interfaces
+    - Interface Segregation: Uses specific interfaces for different module types
+    - Dependency Inversion: Depends on abstractions, not concrete implementations
     """
-    
-    recording_started = pyqtSignal()
-    recording_stopped = pyqtSignal()
     
     def __init__(self):
         """Initialize the integrated application."""
@@ -53,28 +59,21 @@ class IntegratedBCIApp(QMainWindow):
         self.setWindowTitle("BCI System")
         self.setGeometry(50, 50, 1400, 900)
         
-        # State variables
-        self.is_recording = False
-        self.is_eeg_connected = False
-        self.is_eeg_streaming = False
-        self.eeg_ready = False
-        self.input_ready = True  # Input is always ready initially
+        # Create event system
+        self.events = EventSystem()
         
-        # Define app theme colors
-        self.dark_bg = "#2D2D30"
-        self.dark_frame_bg = "#252526" 
-        self.text_color = "#E0E0E0"
-        self.accent_color = "#007ACC"
-        self.success_color = "#5FB878"
-        self.warning_color = "#FFAA33"
-        self.error_color = "#FF5555"
+        # Create recordings directory
+        self.recordings_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "recordings")
+        os.makedirs(self.recordings_dir, exist_ok=True)
+        
+        # Create recording manager
+        self.recording_manager = RecordingManager(self.recordings_dir)
         
         # Set application style
         self._set_dark_theme()
         
-        # Create recordings directory if it doesn't exist - MOVED UP BEFORE _init_ui()
-        self.recordings_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "recordings")
-        os.makedirs(self.recordings_dir, exist_ok=True)
+        # Create and initialize modules
+        self._init_modules()
         
         # Setup UI components
         self._init_ui()
@@ -87,6 +86,11 @@ class IntegratedBCIApp(QMainWindow):
         self.status_timer.timeout.connect(self._update_status)
         self.status_timer.start(500)  # Update every 500ms
         
+        # Session timer
+        self.session_timer = QTimer(self)
+        self.session_timer.timeout.connect(self._update_session_time)
+        self.session_timer.setInterval(1000)  # Update every second
+        
         # Update initial status
         self._update_status()
         
@@ -97,25 +101,25 @@ class IntegratedBCIApp(QMainWindow):
         palette = QPalette()
         
         # Set colors
-        palette.setColor(QPalette.Window, QColor(self.dark_bg))
-        palette.setColor(QPalette.WindowText, QColor(self.text_color))
-        palette.setColor(QPalette.Base, QColor(self.dark_frame_bg))
-        palette.setColor(QPalette.AlternateBase, QColor(self.dark_bg))
-        palette.setColor(QPalette.ToolTipBase, QColor(self.dark_bg))
-        palette.setColor(QPalette.ToolTipText, QColor(self.text_color))
-        palette.setColor(QPalette.Text, QColor(self.text_color))
-        palette.setColor(QPalette.Button, QColor(self.dark_bg))
-        palette.setColor(QPalette.ButtonText, QColor(self.text_color))
+        palette.setColor(QPalette.Window, QColor(UIFactory.DARK_BG))
+        palette.setColor(QPalette.WindowText, QColor(UIFactory.TEXT_COLOR))
+        palette.setColor(QPalette.Base, QColor(UIFactory.DARK_FRAME_BG))
+        palette.setColor(QPalette.AlternateBase, QColor(UIFactory.DARK_BG))
+        palette.setColor(QPalette.ToolTipBase, QColor(UIFactory.DARK_BG))
+        palette.setColor(QPalette.ToolTipText, QColor(UIFactory.TEXT_COLOR))
+        palette.setColor(QPalette.Text, QColor(UIFactory.TEXT_COLOR))
+        palette.setColor(QPalette.Button, QColor(UIFactory.DARK_BG))
+        palette.setColor(QPalette.ButtonText, QColor(UIFactory.TEXT_COLOR))
         palette.setColor(QPalette.BrightText, QColor(255, 0, 0))
-        palette.setColor(QPalette.Link, QColor(self.accent_color))
-        palette.setColor(QPalette.Highlight, QColor(self.accent_color))
+        palette.setColor(QPalette.Link, QColor(UIFactory.ACCENT_COLOR))
+        palette.setColor(QPalette.Highlight, QColor(UIFactory.ACCENT_COLOR))
         palette.setColor(QPalette.HighlightedText, QColor(255, 255, 255))
         
         QApplication.setPalette(palette)
         
         # Set stylesheet for detailed control
         self.setStyleSheet(f"""
-            QMainWindow, QWidget {{ background-color: {self.dark_bg}; color: {self.text_color}; }}
+            QMainWindow, QWidget {{ background-color: {UIFactory.DARK_BG}; color: {UIFactory.TEXT_COLOR}; }}
             QGroupBox {{
                 border: 1px solid #444;
                 margin-top: 0.5em;
@@ -126,10 +130,10 @@ class IntegratedBCIApp(QMainWindow):
                 subcontrol-origin: margin;
                 subcontrol-position: top left;
                 padding: 0 5px;
-                color: {self.text_color};
+                color: {UIFactory.TEXT_COLOR};
             }}
             QPushButton {{
-                background-color: {self.accent_color};
+                background-color: {UIFactory.ACCENT_COLOR};
                 color: white;
                 border: none;
                 padding: 4px 8px;
@@ -143,8 +147,8 @@ class IntegratedBCIApp(QMainWindow):
                 color: #999999;
             }}
             QLineEdit, QTextEdit, QListWidget, QComboBox {{
-                background-color: {self.dark_frame_bg};
-                color: {self.text_color};
+                background-color: {UIFactory.DARK_FRAME_BG};
+                color: {UIFactory.TEXT_COLOR};
                 border: 1px solid #444;
                 padding: 2px;
                 border-radius: 2px;
@@ -152,24 +156,24 @@ class IntegratedBCIApp(QMainWindow):
             QTextEdit {{ font-family: 'Consolas', monospace; }}
             QTabWidget::pane {{ 
                 border: 1px solid #444;
-                background: {self.dark_bg};
+                background: {UIFactory.DARK_BG};
                 top: -1px;
             }}
             QTabBar::tab {{
-                background: {self.dark_frame_bg};
-                color: {self.text_color};
+                background: {UIFactory.DARK_FRAME_BG};
+                color: {UIFactory.TEXT_COLOR};
                 border: 1px solid #444;
-                border-bottom-color: {self.dark_bg}; 
+                border-bottom-color: {UIFactory.DARK_BG}; 
                 border-top-left-radius: 4px;
                 border-top-right-radius: 4px;
                 min-width: 120px;
                 padding: 5px;
             }}
             QTabBar::tab:selected, QTabBar::tab:hover {{
-                background: {self.accent_color};
+                background: {UIFactory.ACCENT_COLOR};
             }}
             QTabBar::tab:selected {{
-                border-bottom-color: {self.accent_color};
+                border-bottom-color: {UIFactory.ACCENT_COLOR};
             }}
             QCheckBox::indicator {{
                 width: 13px;
@@ -178,14 +182,14 @@ class IntegratedBCIApp(QMainWindow):
                 border-radius: 2px;
             }}
             QCheckBox::indicator:checked {{
-                background-color: {self.accent_color};
+                background-color: {UIFactory.ACCENT_COLOR};
             }}
             QScrollArea {{
                 border: none;
                 background-color: transparent;
             }}
             QScrollBar:vertical {{
-                background: {self.dark_frame_bg};
+                background: {UIFactory.DARK_FRAME_BG};
                 width: 12px;
                 margin: 12px 0 12px 0;
             }}
@@ -209,7 +213,7 @@ class IntegratedBCIApp(QMainWindow):
                 subcontrol-origin: margin;
             }}
             QScrollBar:horizontal {{
-                background: {self.dark_frame_bg};
+                background: {UIFactory.DARK_FRAME_BG};
                 height: 12px;
                 margin: 0 12px 0 12px;
             }}
@@ -219,6 +223,52 @@ class IntegratedBCIApp(QMainWindow):
                 border-radius: 3px;
             }}
         """)
+    
+    def _init_modules(self):
+        """Initialize application modules."""
+        # Create module instances
+        self.eeg_processor = EEGProcessorApp()
+        self.input_collector = InputCollectorApp()
+        
+        # Create adapters
+        self.eeg_module = EEGModuleAdapter(self.eeg_processor)
+        self.input_module = InputModuleAdapter(self.input_collector)
+        
+        # Register modules with the recording manager
+        self.recording_manager.register_module(self.eeg_module, {"enabled": True, "data_type": "raw"})
+        self.recording_manager.register_module(self.input_module, {"enabled": True, "json": False, "csv": True})
+        
+        # Hide original recording buttons in EEG app
+        if hasattr(self.eeg_processor, 'start_record_btn'):
+            self.eeg_processor.start_record_btn.setVisible(False)
+        if hasattr(self.eeg_processor, 'stop_record_btn'):
+            self.eeg_processor.stop_record_btn.setVisible(False)
+        
+        # Hide raw/processed radio buttons in EEG app
+        if hasattr(self.eeg_processor, 'raw_radio'):
+            self.eeg_processor.raw_radio.setVisible(False)
+        if hasattr(self.eeg_processor, 'processed_radio'):
+            self.eeg_processor.processed_radio.setVisible(False)
+        if hasattr(self.eeg_processor, 'both_radio'):
+            self.eeg_processor.both_radio.setVisible(False)
+        
+        # Hide record button in input collector
+        if hasattr(self.input_collector, 'record_button'):
+            self.input_collector.record_button.setVisible(False)
+            
+        # Hide JSON and CSV checkboxes in input collector
+        if hasattr(self.input_collector, 'log_checkbox'):
+            self.input_collector.log_checkbox.setVisible(False)
+        if hasattr(self.input_collector, 'csv_checkbox'):
+            self.input_collector.csv_checkbox.setVisible(False)
+        
+        # Hide path field and browse button in input collector
+        if hasattr(self.input_collector, 'csv_path_field'):
+            self.input_collector.csv_path_field.setVisible(False)
+        if hasattr(self.input_collector, 'csv_path_button'):
+            self.input_collector.csv_path_button.setVisible(False)
+        if hasattr(self.input_collector, 'csv_path_label'):
+            self.input_collector.csv_path_label.setVisible(False)
     
     def _init_ui(self):
         """Initialize user interface components."""
@@ -231,7 +281,7 @@ class IntegratedBCIApp(QMainWindow):
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
         
-        # Shared controls
+        # Create shared controls section
         self._create_shared_controls(main_layout)
         
         # Tab widget
@@ -248,256 +298,129 @@ class IntegratedBCIApp(QMainWindow):
     
     def _create_shared_controls(self, parent_layout):
         """Create shared controls that affect both modules."""
-        control_group = QGroupBox("BCI System Controls")
-        control_layout = QVBoxLayout(control_group)
+        # Use UI factory to create control panel
+        control_group, control_layout = UIFactory.create_control_panel("BCI System Controls")
         
         # Status and controls layout
         status_layout = QHBoxLayout()
         
         # Connection status
-        connection_layout = QHBoxLayout()
-        connection_layout.addWidget(QLabel("EEG:"))
-        self.eeg_status_label = QLabel("Not connected")
-        self.eeg_status_label.setStyleSheet(f"color: {self.warning_color};")
-        connection_layout.addWidget(self.eeg_status_label)
-        
-        connection_layout.addSpacing(20)
-        
-        connection_layout.addWidget(QLabel("Input:"))
-        self.input_status_label = QLabel("Ready")
-        self.input_status_label.setStyleSheet(f"color: {self.success_color};")
-        connection_layout.addWidget(self.input_status_label)
-        
-        status_layout.addLayout(connection_layout)
+        status_widget, _, self.status_labels = UIFactory.create_status_display({
+            "EEG": "Not Connected",
+            "Input": "Ready"
+        })
+        status_layout.addWidget(status_widget)
         status_layout.addStretch(1)
         
+        # Set initial colors
+        self.status_labels["EEG"].setStyleSheet(f"color: {UIFactory.WARNING_COLOR};")
+        self.status_labels["Input"].setStyleSheet(f"color: {UIFactory.SUCCESS_COLOR};")
+        
         # Recording controls
-        record_layout = QHBoxLayout()
-        self.record_button = QPushButton("Start Recording")
-        self.record_button.setMinimumWidth(150)
-        self.record_button.setStyleSheet(f"background-color: #228822;")
+        record_widget, _, self.record_button, self.record_status_label = UIFactory.create_recording_controls()
+        status_layout.addWidget(record_widget)
+        
+        # Connect record button
         self.record_button.clicked.connect(self.toggle_recording)
-        record_layout.addWidget(self.record_button)
         
-        self.record_status_label = QLabel("Not Recording")
-        record_layout.addWidget(self.record_status_label)
-        
-        # Session timer
-        record_layout.addSpacing(20)
-        record_layout.addWidget(QLabel("Session:"))
+        # Session timer display
+        timer_layout = QHBoxLayout()
+        timer_layout.addWidget(QLabel("Session:"))
         self.session_timer_label = QLabel("00:00:00")
-        record_layout.addWidget(self.session_timer_label)
-        
-        status_layout.addLayout(record_layout)
+        timer_layout.addWidget(self.session_timer_label)
+        status_layout.addLayout(timer_layout)
         
         control_layout.addLayout(status_layout)
         
         # Add file path selection controls
-        file_path_layout = QHBoxLayout()
-        file_path_layout.addWidget(QLabel("Recording Directory:"))
-        
-        self.record_file_edit = QLineEdit()
-        self.record_file_edit.setReadOnly(True)
-        # Set a default recording path
+        _, file_layout, self.record_file_edit, self.browse_btn = UIFactory.create_file_selector(
+            "Recording Directory:"
+        )
         self.record_file_edit.setText(self.recordings_dir)
-        file_path_layout.addWidget(self.record_file_edit, 1)  # Give it more space
-        
-        self.browse_btn = QPushButton("Browse...")
         self.browse_btn.clicked.connect(self.browse_record_path)
-        file_path_layout.addWidget(self.browse_btn)
-        
-        control_layout.addLayout(file_path_layout)
+        control_layout.addLayout(file_layout)
 
         # Helper text to explain session folder creation
         session_info_label = QLabel("Recordings are saved in session folders within this directory")
         session_info_label.setStyleSheet("color: #999; font-size: 10px;")
         control_layout.addWidget(session_info_label)
         
-        # Add checkboxes for module recording options
+        # Create options layout
         options_layout = QHBoxLayout()
         
         # EEG options
-        eeg_options = QHBoxLayout()
-        eeg_options.addWidget(QLabel("EEG Options:"))
+        eeg_options_group, eeg_options_layout, self.eeg_checkboxes = UIFactory.create_option_group(
+            "EEG Options:", 
+            {"save": "Save EEG Data", "visualize": "Show Visualizers"}
+        )
         
-        self.save_eeg_check = QCheckBox("Save EEG Data")
-        self.save_eeg_check.setChecked(True)
-        eeg_options.addWidget(self.save_eeg_check)
+        # Default checkboxes to checked
+        for checkbox in self.eeg_checkboxes.values():
+            checkbox.setChecked(True)
+            checkbox.toggled.connect(self._on_eeg_options_changed)
+            
+        # Add EEG data type radio buttons
+        eeg_type_group, _, self.eeg_type_radios = UIFactory.create_radio_group(
+            "Data Type:",
+            {"raw": "Raw Data", "processed": "Processed Data", "both": "Both"}
+        )
+        self.eeg_type_radios["raw"].setChecked(True)
         
-        # Add EEG raw/processed option
-        self.eeg_raw_radio = QRadioButton("Raw Data")
-        self.eeg_raw_radio.setChecked(True)
-        eeg_options.addWidget(self.eeg_raw_radio)
-        
-        self.eeg_processed_radio = QRadioButton("Processed Data")
-        eeg_options.addWidget(self.eeg_processed_radio)
-        
-        # Add Both option for recording both raw and processed data
-        self.eeg_both_radio = QRadioButton("Both")
-        eeg_options.addWidget(self.eeg_both_radio)
-        
-        self.visualize_eeg_check = QCheckBox("Show Visualizers")
-        self.visualize_eeg_check.setChecked(True) 
-        eeg_options.addWidget(self.visualize_eeg_check)
-        
-        eeg_options.addStretch(1)
-        options_layout.addLayout(eeg_options)
+        # Connect radio button signals
+        for radio in self.eeg_type_radios.values():
+            radio.toggled.connect(self._on_eeg_data_type_changed)
+            
+        eeg_options_layout.addWidget(eeg_type_group)
+        options_layout.addWidget(eeg_options_group)
         
         # Spacer
-        options_layout.addSpacing(40)
+        options_layout.addSpacing(20)
         
         # Input options
-        input_options = QHBoxLayout()
-        input_options.addWidget(QLabel("Input Options:"))
+        input_options_group, input_options_layout, self.input_checkboxes = UIFactory.create_option_group(
+            "Input Options:", 
+            {"save": "Save Input Data", "visualize": "Show Visualizers"}
+        )
         
-        self.save_input_check = QCheckBox("Save Input Data") 
-        self.save_input_check.setChecked(True)
-        input_options.addWidget(self.save_input_check)
+        # Default checkboxes to checked
+        for checkbox in self.input_checkboxes.values():
+            checkbox.setChecked(True)
+            checkbox.toggled.connect(self._on_input_options_changed)
         
         # Add input format options
-        self.input_json_check = QCheckBox("JSON Format")
-        self.input_json_check.setChecked(False)  # Changed from True to False - unchecked by default
-        input_options.addWidget(self.input_json_check)
+        input_format_group, _, self.input_format_checkboxes = UIFactory.create_option_group(
+            "Format:",
+            {"json": "JSON", "csv": "CSV"}
+        )
+        self.input_format_checkboxes["csv"].setChecked(True)
         
-        self.input_csv_check = QCheckBox("CSV Format")
-        self.input_csv_check.setChecked(True)
-        input_options.addWidget(self.input_csv_check)
+        # Connect format checkbox signals
+        for checkbox in self.input_format_checkboxes.values():
+            checkbox.toggled.connect(self._on_input_format_changed)
         
-        self.visualize_input_check = QCheckBox("Show Visualizers")
-        self.visualize_input_check.setChecked(True)
-        input_options.addWidget(self.visualize_input_check)
-        
-        input_options.addStretch(1)
-        options_layout.addLayout(input_options)
+        input_options_layout.addWidget(input_format_group)
+        options_layout.addWidget(input_options_group)
         
         control_layout.addLayout(options_layout)
         
-        # Session timer
-        self.session_start_time = 0
-        self.session_timer = QTimer(self)
-        self.session_timer.timeout.connect(self._update_session_time)
-        self.session_timer.setInterval(1000)  # Update every second
-        
+        # Add to parent layout
         parent_layout.addWidget(control_group)
-
-    def browse_record_path(self):
-        """Browse for a directory to save recordings."""
-        # Get directory for saving session
-        directory = QFileDialog.getExistingDirectory(
-            self, "Select Recording Directory", self.recordings_dir
-        )
-        
-        if directory:
-            # Update the recordings directory
-            self.recordings_dir = directory
-            
-            # Update the text field with the base path
-            default_path = self.recordings_dir
-            self.record_file_edit.setText(default_path)
-            
-            logging.info(f"Recording directory set to: {directory}")
-            logging.info(f"Recording base filename: {os.path.basename(default_path)}")
-
+    
     def _create_eeg_tab(self):
         """Create the EEG processor tab with scrollability."""
-        # Create the EEG processor app instance first
-        self.eeg_processor_app = EEGProcessorApp()
-        
-        # Create a scroll area to contain the EEG processor app
-        self.eeg_container = QWidget()
-        eeg_layout = QVBoxLayout(self.eeg_container)
-        eeg_layout.setContentsMargins(0, 0, 0, 0)
-        eeg_layout.setSpacing(0)
-        
-        # Create scroll area
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setFrameShape(QFrame.NoFrame)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        
-        # Create container for the EEG processor app
-        scroll_widget = QWidget()
-        scroll_layout = QVBoxLayout(scroll_widget)
-        scroll_layout.setContentsMargins(0, 0, 0, 0)
-        scroll_layout.addWidget(self.eeg_processor_app)
-        
-        # Add widget to scroll area
-        scroll_area.setWidget(scroll_widget)
-        
-        # Add scroll area to the container
-        eeg_layout.addWidget(scroll_area)
+        # Create scrollable container for the EEG processor app
+        eeg_scroll = UIFactory.create_scrollable_container(self.eeg_processor)
         
         # Add to tabs
-        self.tabs.addTab(self.eeg_container, "EEG Processing")
-        
-        # Hide the file selection controls in EEG processor
-        if hasattr(self.eeg_processor_app, 'record_file_edit'):
-            self.eeg_processor_app.record_file_edit.setVisible(False)
-        if hasattr(self.eeg_processor_app, 'record_group'):
-            # Hide the "Save to file:" label and browse button
-            for child in self.eeg_processor_app.record_group.children():
-                if isinstance(child, QLabel) and "Save to file:" in child.text():
-                    child.setVisible(False)
-                elif isinstance(child, QPushButton) and "Browse" in child.text():
-                    child.setVisible(False)
-                
-            # Hide the "Data type:" label and all radio buttons
-            for child in self.eeg_processor_app.record_group.children():
-                if isinstance(child, QLabel) and "Data type:" in child.text():
-                    child.setVisible(False)
-                elif isinstance(child, QRadioButton):
-                    child.setVisible(False)
+        self.tabs.addTab(eeg_scroll, "EEG Processing")
     
     def _create_input_tab(self):
         """Create the input collector tab with scrollability."""
-        # Create the input collector app instance first
-        self.input_collector_app = InputCollectorApp()
-        
-        # Create a scroll area to contain the Input collector app
-        self.input_container = QWidget()
-        input_layout = QVBoxLayout(self.input_container)
-        input_layout.setContentsMargins(0, 0, 0, 0)
-        input_layout.setSpacing(0)
-        
-        # Create scroll area
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setFrameShape(QFrame.NoFrame)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        
-        # Create container for the input collector app
-        scroll_widget = QWidget()
-        scroll_layout = QVBoxLayout(scroll_widget)
-        scroll_layout.setContentsMargins(0, 0, 0, 0)
-        scroll_layout.addWidget(self.input_collector_app)
-        
-        # Add widget to scroll area
-        scroll_area.setWidget(scroll_widget)
-        
-        # Add scroll area to the container
-        input_layout.addWidget(scroll_area)
+        # Create scrollable container for the input collector app
+        input_scroll = UIFactory.create_scrollable_container(self.input_collector)
         
         # Add to tabs
-        self.tabs.addTab(self.input_container, "Input Collection")
-        
-        # Hide the JSON and CSV logging checkboxes
-        if hasattr(self.input_collector_app, 'log_checkbox'):
-            self.input_collector_app.log_checkbox.setVisible(False)
-        if hasattr(self.input_collector_app, 'csv_checkbox'):
-            self.input_collector_app.csv_checkbox.setVisible(False)
-        
-        # Hide the CSV path field and browse button
-        if hasattr(self.input_collector_app, 'csv_path_field'):
-            self.input_collector_app.csv_path_field.setVisible(False)
-        if hasattr(self.input_collector_app, 'csv_path_button'):
-            self.input_collector_app.csv_path_button.setVisible(False)
-        
-        # Also hide any "Path:" label
-        for child in self.input_collector_app.children():
-            if isinstance(child, QLabel) and "Path:" in child.text():
-                child.setVisible(False)
+        self.tabs.addTab(input_scroll, "Input Collection")
     
     def _create_integrated_tab(self):
         """Create the integrated view tab."""
@@ -512,11 +435,10 @@ class IntegratedBCIApp(QMainWindow):
         eeg_section_layout = QVBoxLayout(eeg_section)
         eeg_section_layout.addWidget(QLabel("EEG Visualization:"))
         
-        # Here you would add minimized EEG visualizations
-        # For now, just add a placeholder
+        # Placeholder for EEG visualization
         eeg_viz_placeholder = QLabel("EEG visualization will appear here when recording starts")
         eeg_viz_placeholder.setAlignment(Qt.AlignCenter)
-        eeg_viz_placeholder.setStyleSheet(f"background-color: {self.dark_frame_bg}; padding: 40px;")
+        eeg_viz_placeholder.setStyleSheet(f"background-color: {UIFactory.DARK_FRAME_BG}; padding: 40px;")
         eeg_section_layout.addWidget(eeg_viz_placeholder)
         
         splitter.addWidget(eeg_section)
@@ -526,11 +448,10 @@ class IntegratedBCIApp(QMainWindow):
         input_section_layout = QVBoxLayout(input_section)
         input_section_layout.addWidget(QLabel("Input Visualization:"))
         
-        # Here you would add minimized input visualizations
-        # For now, just add a placeholder
+        # Placeholder for input visualization
         input_viz_placeholder = QLabel("Input visualization will appear here when recording starts")
         input_viz_placeholder.setAlignment(Qt.AlignCenter)
-        input_viz_placeholder.setStyleSheet(f"background-color: {self.dark_frame_bg}; padding: 40px;")
+        input_viz_placeholder.setStyleSheet(f"background-color: {UIFactory.DARK_FRAME_BG}; padding: 40px;")
         input_section_layout.addWidget(input_viz_placeholder)
         
         splitter.addWidget(input_section)
@@ -546,350 +467,255 @@ class IntegratedBCIApp(QMainWindow):
     def _connect_signals(self):
         """Connect signals between components."""
         # Connect signals from the EEG processor app
-        if hasattr(self.eeg_processor_app, 'connect_btn'):
-            self.eeg_processor_app.connect_btn.clicked.connect(self._on_eeg_connection_change)
-        if hasattr(self.eeg_processor_app, 'disconnect_btn'):
-            self.eeg_processor_app.disconnect_btn.clicked.connect(self._on_eeg_connection_change)
-        if hasattr(self.eeg_processor_app, 'start_stream_btn'):
-            self.eeg_processor_app.start_stream_btn.clicked.connect(self._on_eeg_stream_change)
-        if hasattr(self.eeg_processor_app, 'stop_stream_btn'):
-            self.eeg_processor_app.stop_stream_btn.clicked.connect(self._on_eeg_stream_change)
+        if hasattr(self.eeg_processor, 'connect_btn'):
+            self.eeg_processor.connect_btn.clicked.connect(self._on_eeg_connection_change)
+        if hasattr(self.eeg_processor, 'disconnect_btn'):
+            self.eeg_processor.disconnect_btn.clicked.connect(self._on_eeg_connection_change)
+        if hasattr(self.eeg_processor, 'start_stream_btn'):
+            self.eeg_processor.start_stream_btn.clicked.connect(self._on_eeg_stream_change)
+        if hasattr(self.eeg_processor, 'stop_stream_btn'):
+            self.eeg_processor.stop_stream_btn.clicked.connect(self._on_eeg_stream_change)
+
+        # Subscribe to events
+        self.events.subscribe(EventTypes.RECORDING_STARTED, self._on_recording_started)
+        self.events.subscribe(EventTypes.RECORDING_STOPPED, self._on_recording_stopped)
+        self.events.subscribe(EventTypes.EEG_CONNECTED, self._update_status)
+        self.events.subscribe(EventTypes.EEG_DISCONNECTED, self._update_status)
+        self.events.subscribe(EventTypes.EEG_STREAM_STARTED, self._update_status)
+        self.events.subscribe(EventTypes.EEG_STREAM_STOPPED, self._update_status)
+    
+    def _on_eeg_options_changed(self, checked):
+        """Handle changes to EEG options."""
+        # Update recording manager options for EEG module
+        eeg_options = self.recording_manager.module_options.get(self.eeg_module, {})
+        eeg_options["enabled"] = self.eeg_checkboxes["save"].isChecked()
+        self.recording_manager.set_module_options(self.eeg_module, eeg_options)
         
-        # Connect recording signals to both apps
-        self.recording_started.connect(self._start_eeg_recording)
-        self.recording_started.connect(self._start_input_recording)
-        self.recording_stopped.connect(self._stop_eeg_recording)
-        self.recording_stopped.connect(self._stop_input_recording)
+        # Toggle EEG visualizations if needed
+        if self.eeg_checkboxes["visualize"].isChecked() != checked:
+            self.eeg_module.show_visualization(self.eeg_checkboxes["visualize"].isChecked())
+            
+        # Emit event to notify other components
+        self.events.emit(EventTypes.UI_SETTINGS_CHANGED)
+    
+    def _on_eeg_data_type_changed(self, checked):
+        """Handle changes to EEG data type."""
+        if not checked:
+            # Only process when a radio button is checked
+            return
+            
+        # Determine selected data type
+        data_type = "raw"  # Default
+        for key, radio in self.eeg_type_radios.items():
+            if radio.isChecked():
+                data_type = key
+                break
+                
+        # Update recording manager options for EEG module
+        eeg_options = self.recording_manager.module_options.get(self.eeg_module, {})
+        eeg_options["data_type"] = data_type
+        self.recording_manager.set_module_options(self.eeg_module, eeg_options)
         
-        # Hide/disable original recording buttons in EEG app
-        if hasattr(self.eeg_processor_app, 'start_record_btn'):
-            self.eeg_processor_app.start_record_btn.setVisible(False)
-        if hasattr(self.eeg_processor_app, 'stop_record_btn'):
-            self.eeg_processor_app.stop_record_btn.setVisible(False)
+        # Emit event to notify other components
+        self.events.emit(EventTypes.UI_SETTINGS_CHANGED)
+    
+    def _on_input_options_changed(self, checked):
+        """Handle changes to input options."""
+        # Update recording manager options for input module
+        input_options = self.recording_manager.module_options.get(self.input_module, {})
+        input_options["enabled"] = self.input_checkboxes["save"].isChecked()
+        self.recording_manager.set_module_options(self.input_module, input_options)
         
-        # Hide record button in input collector app
-        # First find the actual record button from the UI
-        if hasattr(self.input_collector_app, 'record_button'):
-            self.input_collector_app.record_button.setVisible(False)
+        # Toggle input visualizations if needed
+        if self.input_checkboxes["visualize"].isChecked() != checked:
+            self.input_module.show_visualization(self.input_checkboxes["visualize"].isChecked())
+            
+        # Emit event to notify other components
+        self.events.emit(EventTypes.UI_SETTINGS_CHANGED)
+    
+    def _on_input_format_changed(self, checked):
+        """Handle changes to input format options."""
+        # Update recording manager options for input module
+        input_options = self.recording_manager.module_options.get(self.input_module, {})
+        input_options["json"] = self.input_format_checkboxes["json"].isChecked()
+        input_options["csv"] = self.input_format_checkboxes["csv"].isChecked()
+        self.recording_manager.set_module_options(self.input_module, input_options)
         
-        # Hide raw/processed radio buttons in EEG app since we control them from integrated app
-        if hasattr(self.eeg_processor_app, 'raw_radio'):
-            self.eeg_processor_app.raw_radio.setVisible(False)
-        if hasattr(self.eeg_processor_app, 'processed_radio'):
-            self.eeg_processor_app.processed_radio.setVisible(False)
-        if hasattr(self.eeg_processor_app, 'both_radio'):
-            self.eeg_processor_app.both_radio.setVisible(False)
+        # Emit event to notify other components
+        self.events.emit(EventTypes.UI_SETTINGS_CHANGED)
+    
+    def browse_record_path(self):
+        """Browse for a directory to save recordings."""
+        directory = QFileDialog.getExistingDirectory(
+            self, "Select Recording Directory", self.recordings_dir
+        )
+        
+        if directory:
+            # Update recording manager with new directory
+            self.recording_manager.update_base_directory(directory)
+            
+            # Update UI
+            self.recordings_dir = directory
+            self.record_file_edit.setText(directory)
+            
+            logging.info(f"Recording directory set to: {directory}")
     
     def _update_status(self):
         """Update status information."""
         # Update EEG status
-        is_eeg_connected = False
-        is_eeg_streaming = False
+        eeg_status = "Not Connected"
+        eeg_status_color = UIFactory.WARNING_COLOR
         
-        # Check EEG collector connection status
-        if hasattr(self.eeg_processor_app, 'collector') and self.eeg_processor_app.collector:
-            is_eeg_connected = True
-            
-            # Check streaming status
-            if hasattr(self.eeg_processor_app, 'is_streaming'):
-                is_eeg_streaming = self.eeg_processor_app.is_streaming
-        
-        # Update status indicators
-        if is_eeg_connected:
-            if is_eeg_streaming:
-                self.eeg_status_label.setText("Streaming")
-                self.eeg_status_label.setStyleSheet(f"color: {self.success_color};")
-                self.eeg_ready = True
+        if self.eeg_module.is_connected():
+            if self.eeg_module.is_streaming():
+                eeg_status = "Streaming"
+                eeg_status_color = UIFactory.SUCCESS_COLOR
             else:
-                self.eeg_status_label.setText("Connected")
-                self.eeg_status_label.setStyleSheet(f"color: {self.accent_color};")
-                self.eeg_ready = False
-        else:
-            self.eeg_status_label.setText("Not Connected")
-            self.eeg_status_label.setStyleSheet(f"color: {self.warning_color};")
-            self.eeg_ready = False
-        
-        # Store state
-        self.is_eeg_connected = is_eeg_connected
-        self.is_eeg_streaming = is_eeg_streaming
-        
-        # Update input collector status
-        is_input_ready = True  # Input collector is always ready for recording
-        
-        # Check if input collector is in recording state
-        is_input_recording = False
-        if hasattr(self.input_collector_app, 'is_recording'):
-            is_input_recording = self.input_collector_app.is_recording
-        
-        if is_input_recording:
-            self.input_status_label.setText("Recording")
-            self.input_status_label.setStyleSheet(f"color: {self.success_color};")
-        else:
-            self.input_status_label.setText("Ready")
-            self.input_status_label.setStyleSheet(f"color: {self.success_color};")
-        
-        self.input_ready = is_input_ready
-        
-        # Update recording button state
-        self.record_button.setEnabled(self.eeg_ready and self.input_ready)
-        
-        # If we're in recording state but one of the systems isn't ready anymore, stop recording
-        if self.is_recording and not (self.eeg_ready and self.input_ready):
-            self.toggle_recording()
-            QMessageBox.warning(self, "Recording Stopped", 
-                               "Recording has been stopped because EEG stream was disconnected.")
-    
-    def toggle_recording(self):
-        """Toggle recording state for both EEG and input collection."""
-        if not self.is_recording:
-            # Start recording
-            if not self.eeg_ready:
-                QMessageBox.warning(self, "Cannot Start Recording",
-                                   "EEG must be connected and streaming before recording can start.")
-                return
+                eeg_status = "Connected"
+                eeg_status_color = UIFactory.ACCENT_COLOR
                 
-            # Create recordings directory for this session
-            session_timestamp = time.strftime("%Y%m%d_%H%M%S")
-            self.session_dir = os.path.join(self.recordings_dir, f"session_{session_timestamp}")
-            os.makedirs(self.session_dir, exist_ok=True)
-            logging.info(f"Created session directory: {self.session_dir}")
+        self.status_labels["EEG"].setText(eeg_status)
+        self.status_labels["EEG"].setStyleSheet(f"color: {eeg_status_color};")
+        
+        # Update Input status
+        input_status = "Ready"
+        input_status_color = UIFactory.SUCCESS_COLOR
+        
+        if self.input_module.is_recording_active():
+            input_status = "Recording"
             
-            self.is_recording = True
-            self.record_button.setText("Stop Recording")
-            self.record_button.setStyleSheet("background-color: #CC3333;")
+        self.status_labels["Input"].setText(input_status)
+        self.status_labels["Input"].setStyleSheet(f"color: {input_status_color};")
+        
+        # Update recording button
+        self.record_button.setEnabled(self.eeg_module.is_streaming())
+        
+        # If recording is active, update session info and recording status
+        if self.recording_manager.is_recording:
+            session_info = self.recording_manager.get_session_info()
             self.record_status_label.setText("RECORDING")
             
-            # Start session timer
-            self.session_start_time = time.time()
-            self.session_timer.start()
-            
-            # Emit signal to start recording in both modules
-            self.recording_started.emit()
-            
-            logging.info("Recording started")
-            
-        else:
-            # Stop recording
-            self.is_recording = False
-            self.record_button.setText("Start Recording")
-            self.record_button.setStyleSheet("background-color: #228822;")
-            self.record_status_label.setText("Not Recording")
-            
-            # Stop session timer
-            self.session_timer.stop()
-            
-            # Emit signal to stop recording in both modules
-            self.recording_stopped.emit()
-            
-            logging.info("Recording stopped")
-            
-            # Show message about where recordings were saved
-            if hasattr(self, 'session_dir') and os.path.exists(self.session_dir):
-                QMessageBox.information(self, "Recording Complete", 
-                                      f"Recordings have been saved to:\n{self.session_dir}")
-    
-    def _start_eeg_recording(self):
-        """Start recording in the EEG processor app."""
-        if not self.save_eeg_check.isChecked():
-            logging.info("EEG recording disabled by user")
-            return
-            
-        try:
-            # Check if EEG processor app has a collector and is streaming
-            if not (hasattr(self.eeg_processor_app, 'collector') and 
-                    self.eeg_processor_app.collector and 
-                    self.eeg_processor_app.is_streaming):
-                logging.warning("EEG processor not ready for recording")
-                return
-                
-            # Generate a timestamp for the filename
-            timestamp = time.strftime("%Y%m%d_%H%M%S")
-            
-            # Save to session directory if available
-            if hasattr(self, 'session_dir') and os.path.exists(self.session_dir):
-                # Use the base path from the UI and add timestamp
-                base_path = os.path.splitext(self.record_file_edit.text())[0]
-                filename = os.path.join(self.session_dir, f"{os.path.basename(base_path)}_eeg_{timestamp}.csv")
-            else:
-                # Use the base path from the UI and add timestamp
-                base_path = os.path.splitext(self.record_file_edit.text())[0]
-                filename = f"{base_path}_eeg_{timestamp}.csv"
-            
-            # Set the filename in the EEG processor app record_file_edit if exists
-            if hasattr(self.eeg_processor_app, 'record_file_edit'):
-                self.eeg_processor_app.record_file_edit.setText(filename)
-            
-            # Determine data type based on radio buttons
-            data_type = "raw"
-            if self.eeg_processed_radio.isChecked():
-                data_type = "processed"
-            elif self.eeg_both_radio.isChecked():
-                data_type = "both"
-            
-            # Start recording using the collector directly
-            if hasattr(self.eeg_processor_app, 'collector'):
-                self.eeg_processor_app.collector.start_continuous_recording(filename, data_type)
-                
-                # Log appropriate message based on data type
-                if data_type == "both":
-                    logging.info(f"Started EEG recording to {filename} (both raw and processed data)")
-                else:
-                    logging.info(f"Started EEG recording to {filename} ({data_type} data)")
-            else:
-                logging.error("Failed to start EEG recording: No collector available")
-            
-        except Exception as e:
-            logging.error(f"Error starting EEG recording: {e}")
-            import traceback
-            traceback.print_exc()
-    
-    def _stop_eeg_recording(self):
-        """Stop recording in the EEG processor app."""
-        try:
-            # Stop recording using the collector directly
-            if hasattr(self.eeg_processor_app, 'collector'):
-                if hasattr(self.eeg_processor_app.collector, 'stop_continuous_recording'):
-                    self.eeg_processor_app.collector.stop_continuous_recording()
-                    logging.info("Stopped EEG recording")
-                else:
-                    logging.error("EEG collector does not have stop_continuous_recording method")
-            else:
-                logging.error("Failed to stop EEG recording: No collector available")
-            
-        except Exception as e:
-            logging.error(f"Error stopping EEG recording: {e}")
-            import traceback
-            traceback.print_exc()
-    
-    def _start_input_recording(self):
-        """Start recording in the input collector app."""
-        if not self.save_input_check.isChecked():
-            logging.info("Input recording disabled by user")
-            return
-            
-        try:
-            # Generate a timestamp for the filename
-            timestamp = time.strftime("%Y%m%d_%H%M%S")
-            
-            # Save to session directory if available
-            if hasattr(self, 'session_dir') and os.path.exists(self.session_dir):
-                base_path = os.path.splitext(self.record_file_edit.text())[0]
-                filename_base = os.path.join(self.session_dir, os.path.basename(base_path))
-            else:
-                base_path = os.path.splitext(self.record_file_edit.text())[0]
-                filename_base = base_path
-            
-            # Set up JSON logging if enabled
-            if self.input_json_check.isChecked():
-                json_filename = f"{filename_base}_input_{timestamp}.json"
-                
-                # Enable JSON logging
-                self.input_collector_app.log_to_file = True
-                self.input_collector_app.log_file = open(json_filename, "w")
-                logging.info(f"Input JSON logging to: {json_filename}")
-            else:
-                # Disable JSON logging
-                self.input_collector_app.log_to_file = False
-                if hasattr(self.input_collector_app, 'log_file') and self.input_collector_app.log_file:
-                    self.input_collector_app.log_file.close()
-                    self.input_collector_app.log_file = None
-            
-            # Set up CSV logging if enabled
-            if self.input_csv_check.isChecked():
-                csv_filename = f"{filename_base}_input_{timestamp}.csv"
-                
-                # Enable CSV logging
-                self.input_collector_app.log_to_csv = True
-                self.input_collector_app.csv_filepath = csv_filename
-                logging.info(f"Input CSV logging to: {csv_filename}")
-            else:
-                # Disable CSV logging
-                self.input_collector_app.log_to_csv = False
-            
-            # Start recording in input collector
-            if hasattr(self.input_collector_app, '_toggle_recording') and not self.input_collector_app.is_recording:
-                self.input_collector_app._toggle_recording()
-                logging.info("Started input recording")
-            else:
-                logging.debug("Input collector already recording or toggle method not found")
-            
-        except Exception as e:
-            logging.error(f"Error starting input recording: {e}")
-            import traceback
-            traceback.print_exc()
-    
-    def _stop_input_recording(self):
-        """Stop recording in the input collector app."""
-        try:
-            # Stop recording in input collector
-            if hasattr(self.input_collector_app, '_toggle_recording') and self.input_collector_app.is_recording:
-                self.input_collector_app._toggle_recording()
-                logging.info("Stopped input recording")
-            else:
-                logging.debug("Input collector not recording or toggle method not found")
-            
-            # Wait a moment for recording to complete
-            QApplication.processEvents()
-            
-            # Disable logging if it was enabled
-            if hasattr(self.input_collector_app, 'log_checkbox') and self.input_collector_app.log_checkbox.isChecked():
-                self.input_collector_app.log_checkbox.setChecked(False)
-                logging.info("Disabled input collector logging")
-            
-        except Exception as e:
-            logging.error(f"Error stopping input recording: {e}")
-            import traceback
-            traceback.print_exc()
-    
-    def _ensure_input_log_file(self):
-        """Ensure that the input collector has a log file open."""
-        try:
-            if not hasattr(self.input_collector_app, 'log_file') or not self.input_collector_app.log_file:
-                # Create timestamp for filename
-                timestamp = time.strftime("%Y%m%d_%H%M%S")
-                filename = os.path.join(self.recordings_dir, f"input_recording_{timestamp}.json")
-                
-                # Force log file creation
-                self.input_collector_app.log_to_file = True
-                self.input_collector_app.log_file = open(filename, "w")
-                logging.info(f"Created input log file: {filename}")
-        except Exception as e:
-            logging.error(f"Error creating input log file: {e}")
-            import traceback
-            traceback.print_exc()
+            # If EEG stream stopped during recording, stop recording
+            if not self.eeg_module.is_streaming() and self.eeg_module.is_connected():
+                self.toggle_recording()
+                QMessageBox.warning(
+                    self, 
+                    "Recording Stopped", 
+                    "Recording has been stopped because EEG stream was disconnected."
+                )
     
     def _update_session_time(self):
         """Update the session timer display."""
-        if self.is_recording and self.session_start_time > 0:
-            elapsed = int(time.time() - self.session_start_time)
+        if self.recording_manager.is_recording:
+            session_info = self.recording_manager.get_session_info()
+            elapsed = int(session_info["duration"])
             hours = elapsed // 3600
             minutes = (elapsed % 3600) // 60
             seconds = elapsed % 60
             self.session_timer_label.setText(f"{hours:02d}:{minutes:02d}:{seconds:02d}")
     
+    def toggle_recording(self):
+        """Toggle recording state."""
+        if not self.recording_manager.is_recording:
+            # Start recording
+            if not self.eeg_module.is_streaming():
+                QMessageBox.warning(
+                    self, 
+                    "Cannot Start Recording",
+                    "EEG must be connected and streaming before recording can start."
+                )
+                return
+                
+            # Start recording
+            if self.recording_manager.start_recording():
+                self.record_button.setText("Stop Recording")
+                self.record_button.setStyleSheet("background-color: #CC3333;")
+                self.record_status_label.setText("RECORDING")
+                
+                # Start session timer
+                self.session_timer.start()
+                
+                # Emit event
+                self.events.emit(EventTypes.RECORDING_STARTED)
+                
+                logging.info("Recording started")
+            else:
+                QMessageBox.critical(
+                    self, 
+                    "Recording Error",
+                    "Failed to start recording. Check the logs for details."
+                )
+                
+        else:
+            # Stop recording
+            if self.recording_manager.stop_recording():
+                self.record_button.setText("Start Recording")
+                self.record_button.setStyleSheet("background-color: #228822;")
+                self.record_status_label.setText("Not Recording")
+                
+                # Stop session timer
+                self.session_timer.stop()
+                self.session_timer_label.setText("00:00:00")
+                
+                # Emit event
+                self.events.emit(EventTypes.RECORDING_STOPPED)
+                
+                # Show success message with session directory
+                QMessageBox.information(
+                    self, 
+                    "Recording Complete", 
+                    f"Recordings have been saved to:\n{self.recording_manager.session_directory}"
+                )
+                
+                logging.info("Recording stopped")
+            else:
+                QMessageBox.warning(
+                    self, 
+                    "Recording Warning",
+                    "Some errors occurred while stopping the recording. Check the logs for details."
+                )
+    
+    def _on_recording_started(self):
+        """Handle recording started event."""
+        # Additional actions when recording starts
+        pass
+    
+    def _on_recording_stopped(self):
+        """Handle recording stopped event."""
+        # Additional actions when recording stops
+        pass
+    
     def _on_eeg_connection_change(self):
-        """Handle changes in the EEG connection state."""
-        # Just trigger a status update
-        QTimer.singleShot(100, self._update_status)
+        """Handle EEG connection state change."""
+        # Check connection status and emit appropriate events
+        if self.eeg_module.is_connected():
+            self.events.emit(EventTypes.EEG_CONNECTED)
+        else:
+            self.events.emit(EventTypes.EEG_DISCONNECTED)
+            
+        # Update status
+        self._update_status()
     
     def _on_eeg_stream_change(self):
-        """Handle changes in the EEG streaming state."""
-        # Just trigger a status update
-        QTimer.singleShot(100, self._update_status)
+        """Handle EEG streaming state change."""
+        # Check streaming status and emit appropriate events
+        if self.eeg_module.is_streaming():
+            self.events.emit(EventTypes.EEG_STREAM_STARTED)
+        else:
+            self.events.emit(EventTypes.EEG_STREAM_STOPPED)
+            
+        # Update status
+        self._update_status()
     
     def closeEvent(self, event):
         """Handle application close event."""
         # Stop recording if active
-        if self.is_recording:
-            self.toggle_recording()
+        if self.recording_manager.is_recording:
+            self.recording_manager.stop_recording()
         
-        # Close EEG connection if active
-        if self.is_eeg_connected:
-            try:
-                if hasattr(self.eeg_processor_app, 'disconnect_board'):
-                    self.eeg_processor_app.disconnect_board()
-            except Exception as e:
-                logging.error(f"Error disconnecting EEG board: {e}")
+        # Disconnect from EEG device if connected
+        if self.eeg_module.is_connected():
+            self.eeg_module.disconnect_from_device()
         
         # Accept the close event
         event.accept()
