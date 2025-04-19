@@ -29,6 +29,7 @@ def main():
 
     # Create and start the application
     app = QApplication(sys.argv)
+    app.setStyle("Fusion")
     ex = EEGProcessorApp()
     ex.show()
     sys.exit(app.exec_())

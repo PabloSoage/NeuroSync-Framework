@@ -328,6 +328,10 @@ class IntegratedBCIApp(QMainWindow):
         self.eeg_processed_radio = QRadioButton("Processed Data")
         eeg_options.addWidget(self.eeg_processed_radio)
         
+        # Add Both option for recording both raw and processed data
+        self.eeg_both_radio = QRadioButton("Both")
+        eeg_options.addWidget(self.eeg_both_radio)
+        
         self.visualize_eeg_check = QCheckBox("Show Visualizers")
         self.visualize_eeg_check.setChecked(True) 
         eeg_options.addWidget(self.visualize_eeg_check)
@@ -431,6 +435,13 @@ class IntegratedBCIApp(QMainWindow):
                 if isinstance(child, QLabel) and "Save to file:" in child.text():
                     child.setVisible(False)
                 elif isinstance(child, QPushButton) and "Browse" in child.text():
+                    child.setVisible(False)
+                
+            # Hide the "Data type:" label and all radio buttons
+            for child in self.eeg_processor_app.record_group.children():
+                if isinstance(child, QLabel) and "Data type:" in child.text():
+                    child.setVisible(False)
+                elif isinstance(child, QRadioButton):
                     child.setVisible(False)
     
     def _create_input_tab(self):
@@ -561,6 +572,8 @@ class IntegratedBCIApp(QMainWindow):
             self.eeg_processor_app.raw_radio.setVisible(False)
         if hasattr(self.eeg_processor_app, 'processed_radio'):
             self.eeg_processor_app.processed_radio.setVisible(False)
+        if hasattr(self.eeg_processor_app, 'both_radio'):
+            self.eeg_processor_app.both_radio.setVisible(False)
     
     def _update_status(self):
         """Update status information."""
@@ -702,12 +715,21 @@ class IntegratedBCIApp(QMainWindow):
                 self.eeg_processor_app.record_file_edit.setText(filename)
             
             # Determine data type based on radio buttons
-            data_type = "processed" if self.eeg_processed_radio.isChecked() else "raw"
+            data_type = "raw"
+            if self.eeg_processed_radio.isChecked():
+                data_type = "processed"
+            elif self.eeg_both_radio.isChecked():
+                data_type = "both"
             
             # Start recording using the collector directly
             if hasattr(self.eeg_processor_app, 'collector'):
                 self.eeg_processor_app.collector.start_continuous_recording(filename, data_type)
-                logging.info(f"Started EEG recording to {filename} ({data_type} data)")
+                
+                # Log appropriate message based on data type
+                if data_type == "both":
+                    logging.info(f"Started EEG recording to {filename} (both raw and processed data)")
+                else:
+                    logging.info(f"Started EEG recording to {filename} ({data_type} data)")
             else:
                 logging.error("Failed to start EEG recording: No collector available")
             

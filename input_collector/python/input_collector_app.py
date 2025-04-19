@@ -1980,6 +1980,7 @@ def run_collector_app() -> None:
     Creates and runs the input collector application as a standalone program.
     """
     app = QApplication(sys.argv)
+    app.setStyle("Fusion")
     collector_app = InputCollectorApp()
     collector_app.run()
     sys.exit(app.exec_())
