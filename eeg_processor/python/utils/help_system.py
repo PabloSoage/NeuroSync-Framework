@@ -304,6 +304,7 @@ HELP_CONTENT = {
         <ul>
             <li><b>Raw Data</b>: Saves the unprocessed signal directly from the device</li>
             <li><b>Processed Data</b>: Saves the data after applying filters and processing</li>
+            <li><b>Both</b>: Simultaneously saves both raw and processed data to separate files with "_raw" and "_processed" suffixes</li>
         </ul>
         
         <p>The recorded data is saved in CSV format, which can be loaded back using the Playback File Board
