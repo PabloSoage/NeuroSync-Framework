@@ -1,17 +1,35 @@
 import logging
 import os
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
+
+# Import the interface
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from interfaces.board_interface import BoardInterface
 
 from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds, BrainFlowPresets
 
 
-class BoardConfiguration:
+class BrainFlowBoardConfiguration(BoardInterface):
     """
-    Helper class to manage board configurations and provide information about available boards.
+    BrainFlow implementation of board configuration management.
     """
     
-    @staticmethod
-    def get_all_boards() -> List[Tuple[str, int]]:
+    def __init__(self):
+        """
+        Initialize the BrainFlow board configuration manager.
+        """
+        # Initialize brainflow logger if needed
+        BoardShim.enable_dev_board_logger()
+        
+        # Store presets for easier access
+        self.presets = {
+            "DEFAULT": BrainFlowPresets.DEFAULT_PRESET.value,
+            "AUXILIARY": BrainFlowPresets.AUXILIARY_PRESET.value,
+            "ANCILLARY": BrainFlowPresets.ANCILLARY_PRESET.value
+        }
+    
+    def get_all_boards(self) -> List[Tuple[str, int]]:
         """
         Get a list of all available boards.
         
@@ -50,15 +68,14 @@ class BoardConfiguration:
                 
         return boards
 
-    @staticmethod
-    def get_board_groups() -> Dict[str, List[Tuple[str, int]]]:
+    def get_board_groups(self) -> Dict[str, List[Tuple[str, int]]]:
         """
         Get boards grouped by type.
         
         Returns:
             Dictionary with board types as keys and lists of (board_name, board_id) as values
         """
-        all_boards = BoardConfiguration.get_all_boards()
+        all_boards = self.get_all_boards()
         
         # Define groups
         groups = {
@@ -94,8 +111,7 @@ class BoardConfiguration:
                 
         return groups
         
-    @staticmethod
-    def get_board_requirements(board_id: int) -> Dict[str, bool]:
+    def get_board_requirements(self, board_id: int) -> Dict[str, bool]:
         """
         Get the parameters required for a specific board.
         
@@ -157,8 +173,7 @@ class BoardConfiguration:
             
         return requirements
             
-    @staticmethod
-    def create_input_params(board_id: int, params_dict: Dict[str, str]) -> BrainFlowInputParams:
+    def create_board_params(self, board_id: int, params_dict: Dict[str, str]) -> BrainFlowInputParams:
         """
         Create BrainFlowInputParams from a dictionary of parameters.
         
@@ -208,8 +223,7 @@ class BoardConfiguration:
                 
         return input_params
         
-    @staticmethod
-    def get_preset_info() -> Dict[int, str]:
+    def get_preset_info(self) -> Dict[int, str]:
         """
         Get information about available presets.
         
@@ -222,8 +236,7 @@ class BoardConfiguration:
             BrainFlowPresets.ANCILLARY_PRESET.value: "Ancillary data (PPG, temperature, etc.)"
         }
         
-    @staticmethod
-    def get_board_description(board_id: int, preset: int = BrainFlowPresets.DEFAULT_PRESET.value) -> Dict:
+    def get_board_description(self, board_id: int, preset: int = None) -> Dict:
         """
         Get detailed description of a board.
         
@@ -234,6 +247,9 @@ class BoardConfiguration:
         Returns:
             Dictionary with board description
         """
+        if preset is None:
+            preset = BrainFlowPresets.DEFAULT_PRESET.value
+            
         try:
             # Use get_board_descr as recommended in the error message
             description = BoardShim.get_board_descr(board_id, preset)
@@ -273,16 +289,73 @@ class BoardConfiguration:
                 
             return minimal_desc
 
-    @staticmethod
-    def get_protocol_types() -> Dict[int, str]:
+    def get_protocol_types(self) -> Dict[int, str]:
         """
         Get information about available IP protocol types.
         
         Returns:
             Dictionary mapping protocol type values to descriptions
         """
-        return {
-            IpProtocolTypes.NO_IP_PROTOCOL.value: "No Protocol",
-            IpProtocolTypes.UDP.value: "UDP",
-            IpProtocolTypes.TCP.value: "TCP"
-        }
+        # Import IpProtocolTypes here to avoid circular imports
+        try:
+            from brainflow.board_shim import IpProtocolTypes
+            return {
+                IpProtocolTypes.NO_IP_PROTOCOL.value: "No Protocol",
+                IpProtocolTypes.UDP.value: "UDP",
+                IpProtocolTypes.TCP.value: "TCP"
+            }
+        except:
+            # If IpProtocolTypes is not available in this version
+            return {
+                0: "No Protocol",
+                1: "UDP",
+                2: "TCP"
+            }
+
+# Add static method wrappers for backward compatibility
+class BoardConfiguration:
+    """
+    Static wrapper for BrainFlowBoardConfiguration for backward compatibility.
+    """
+    
+    @staticmethod
+    def get_all_boards() -> List[Tuple[str, int]]:
+        """Static wrapper for backward compatibility."""
+        instance = BrainFlowBoardConfiguration()
+        return instance.get_all_boards()
+        
+    @staticmethod
+    def get_board_groups() -> Dict[str, List[Tuple[str, int]]]:
+        """Static wrapper for backward compatibility."""
+        instance = BrainFlowBoardConfiguration()
+        return instance.get_board_groups()
+        
+    @staticmethod
+    def get_board_requirements(board_id: int) -> Dict[str, bool]:
+        """Static wrapper for backward compatibility."""
+        instance = BrainFlowBoardConfiguration()
+        return instance.get_board_requirements(board_id)
+        
+    @staticmethod
+    def create_input_params(board_id: int, params_dict: Dict[str, str]) -> BrainFlowInputParams:
+        """Static wrapper for backward compatibility."""
+        instance = BrainFlowBoardConfiguration()
+        return instance.create_board_params(board_id, params_dict)
+        
+    @staticmethod
+    def get_preset_info() -> Dict[int, str]:
+        """Static wrapper for backward compatibility."""
+        instance = BrainFlowBoardConfiguration()
+        return instance.get_preset_info()
+        
+    @staticmethod
+    def get_board_description(board_id: int, preset: int = BrainFlowPresets.DEFAULT_PRESET.value) -> Dict:
+        """Static wrapper for backward compatibility."""
+        instance = BrainFlowBoardConfiguration()
+        return instance.get_board_description(board_id, preset)
+        
+    @staticmethod
+    def get_protocol_types() -> Dict[int, str]:
+        """Static wrapper for backward compatibility."""
+        instance = BrainFlowBoardConfiguration()
+        return instance.get_protocol_types()
