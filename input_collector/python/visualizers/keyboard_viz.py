@@ -4,6 +4,7 @@ Keyboard visualization module.
 This module provides visualization components for keyboard input events,
 displaying a virtual keyboard with key highlight states using PyQt5.
 """
+from typing import Optional
 
 from PyQt5.QtWidgets import QWidget, QSizePolicy
 from PyQt5.QtGui import QPainter, QColor, QFont, QPen, QBrush
@@ -146,7 +147,7 @@ class KeyboardVisualizer(BaseVisualizer):
         # Call the base class update method to request a repaint
         super().update()
 
-    def get_key_at_position(self, x, y) -> str:
+    def get_key_at_position(self, x: int, y: int) -> Optional[str]:
         """
         Get the key at the specified position.
 
@@ -155,11 +156,20 @@ class KeyboardVisualizer(BaseVisualizer):
             y: Y coordinate
 
         Returns:
-            The key name at the position, or None if no key is at that position
+            str or None: The key name at the position, or None if no key is at that position
         """
-        for key, rect in self.key_rects.items():
-            if rect.contains(x, y):
-                return key
+        # Verificar que key_rects está inicializado
+        if not hasattr(self, 'key_rects') or not self.key_rects:
+            return None
+            
+        try:
+            # Verificar cada rectángulo de tecla
+            for key, rect in self.key_rects.items():
+                if rect.contains(x, y):
+                    return key
+        except Exception as e:
+            print(f"Error getting key at position ({x}, {y}): {e}")
+            
         return None
 
     def paintEvent(self, event) -> None:
