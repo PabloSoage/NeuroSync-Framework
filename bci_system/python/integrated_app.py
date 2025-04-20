@@ -454,6 +454,22 @@ class IntegratedBCIApp(QMainWindow):
         # Create the input collector app instance first
         self.input_collector_app = InputCollectorApp()
         
+        # Explicitly remove Button.scroll from tracked keys by default
+        if hasattr(self.input_collector_app, 'tracked_keys'):
+            # Filter out Button.scroll from tracked keys
+            self.input_collector_app.tracked_keys = [
+                key for key in self.input_collector_app.tracked_keys 
+                if key.lower() != "button.scroll" and key.lower() != "scrollwheel"
+            ]
+            
+            # Update collector's tracked keys
+            if hasattr(self.input_collector_app, 'collector_manager'):
+                self.input_collector_app.collector_manager.set_tracked_keys(self.input_collector_app.tracked_keys)
+                
+            # Update visualizers with the new key set
+            if hasattr(self.input_collector_app, 'visualizer_manager'):
+                self.input_collector_app.visualizer_manager.set_tracked_keys(self.input_collector_app.tracked_keys)
+        
         # Create a scroll area to contain the Input collector app
         self.input_container = QWidget()
         input_layout = QVBoxLayout(self.input_container)
