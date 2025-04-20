@@ -790,6 +790,13 @@ class KeyboardMouseCollector(AbstractInputCollector):
             dy: The vertical scroll amount (positive for scroll up, negative for scroll down)
         """
         try:
+            # Check if scroll wheel tracking is enabled
+            is_scroll_tracked = "button.scroll" in self.tracked_keys_set or "Button.scroll" in self.tracked_keys_set
+            
+            # If scroll is not being tracked, completely ignore the event
+            if not is_scroll_tracked:
+                return
+                
             # Determine scroll direction
             scroll_direction = None
             if dy > 0:
@@ -803,9 +810,12 @@ class KeyboardMouseCollector(AbstractInputCollector):
 
             # Get currently active keys
             active_keys = self.get_active_keys()
+            
+            # Add Button.scroll to active keys
+            if "Button.scroll" not in active_keys:
+                active_keys.append("Button.scroll")
 
             # Create a unified event that includes mouse movement information
-            # This ensures scroll events have complete mouse state
             event = InputData(
                 timestamp=time.time(),
                 event_type="mouse_scroll",
@@ -836,6 +846,8 @@ class KeyboardMouseCollector(AbstractInputCollector):
 
         except Exception as e:
             print(f"Mouse scroll error: {e}")
+            import traceback
+            traceback.print_exc()
 
     def _reset_wheel(self, x: int, y: int) -> None:
         """
@@ -849,27 +861,41 @@ class KeyboardMouseCollector(AbstractInputCollector):
             y: The y-coordinate where the scroll occurred
         """
         try:
+            # Only process reset if wheel was previously active
             if self.mouse_state["wheel_up"] or self.mouse_state["wheel_down"]:
+                # Reset state
                 self.mouse_state["wheel_up"] = False
                 self.mouse_state["wheel_down"] = False
 
-                # Create a reset event specifically for visual feedback
-                reset_event = InputData(
-                    timestamp=time.time(),
-                    event_type="mouse_scroll",
-                    mouse_x=x,
-                    mouse_y=y,
-                    direction=None,
-                    rel_x=self.mouse_state["rel_x"],
-                    rel_y=self.mouse_state["rel_y"],
-                    active_keys=self.get_active_keys(),
-                )
-                # Only notify callbacks, don't store this event
-                for callback in self.event_callbacks:
-                    try:
-                        callback(reset_event)
-                    except Exception as e:
-                        print(f"Reset callback error: {e}")
+                # Check if scroll is tracked
+                is_scroll_tracked = "button.scroll" in self.tracked_keys_set or "Button.scroll" in self.tracked_keys_set
+                
+                # Only create reset event if scroll is tracked
+                if is_scroll_tracked:
+                    # Get currently active keys
+                    active_keys = self.get_active_keys()
+                    
+                    # Add Button.scroll to active keys to ensure the visualizer knows it's still tracked
+                    if "Button.scroll" not in active_keys:
+                        active_keys.append("Button.scroll")
+                        
+                    # Create a reset event specifically for visual feedback
+                    reset_event = InputData(
+                        timestamp=time.time(),
+                        event_type="mouse_scroll",
+                        mouse_x=x,
+                        mouse_y=y,
+                        direction=None,
+                        rel_x=self.mouse_state["rel_x"],
+                        rel_y=self.mouse_state["rel_y"],
+                        active_keys=active_keys,  # Use modified active_keys with Button.scroll
+                    )
+                    # Only notify callbacks, don't store this event
+                    for callback in self.event_callbacks:
+                        try:
+                            callback(reset_event)
+                        except Exception as e:
+                            print(f"Reset callback error: {e}")
 
                 self.wheel_reset_timer = None
         except Exception as e:

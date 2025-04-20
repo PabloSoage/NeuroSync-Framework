@@ -1,11 +1,18 @@
 """
-Interfaces module providing abstract classes and data structures.
+Interfaces package for input collector.
 
-This module defines abstract interfaces and data structures used throughout
-the application for input collection and event handling.
+Provides the core interfaces used throughout the application to ensure
+proper abstraction, loose coupling and maintainability.
 """
 
 from .collector_interface import InputData, AbstractInputCollector
+from .visualizer_interface import AbstractVisualizer
+from .ui_visualizer_interface import AbstractVisualizerProvider, AbstractVisualizerController
 
-# Don't import AbstractVisualizer here to avoid circular dependencies
-__all__ = ['InputData', 'AbstractInputCollector']
+__all__ = [
+    'InputData', 
+    'AbstractInputCollector',
+    'AbstractVisualizer',
+    'AbstractVisualizerProvider',
+    'AbstractVisualizerController'
+]

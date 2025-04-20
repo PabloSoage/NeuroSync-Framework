@@ -5,22 +5,28 @@ Manages visualization components for input events.
 """
 
 from typing import Dict, List, Any, Optional
-from PyQt5.QtCore import QObject, pyqtSignal, Qt
+from PyQt5.QtCore import QObject, pyqtSignal, Qt, QEvent
 from PyQt5.QtWidgets import QWidget
 
 from ..visualizers import KeyboardVisualizer, MouseVisualizer, MouseButtonsSelector
 from ..interfaces import InputData
+# Note: We don't import the interfaces for inheritance to avoid metaclass conflicts
 
-
-class VisualizerManager(QObject):
+class VisualizerManager(QObject):  # Only inherit from QObject
     """
     Manages visualization components for input events.
     
     This class is responsible for creating, configuring, and updating
     the visualization components used to display input events.
+    
+    This class implements AbstractVisualizerProvider and AbstractVisualizerController
+    interfaces implicitly to avoid metaclass conflicts with Qt.
     """
     
+    # Signal emitted when a key is clicked in edit mode
     key_clicked = pyqtSignal(str)
+    
+    # Signal emitted when a button tracking state is toggled
     button_toggled = pyqtSignal(str, bool)
     
     def __init__(self, parent: Optional[QWidget] = None) -> None:
@@ -32,6 +38,9 @@ class VisualizerManager(QObject):
         """
         super().__init__()
         
+        # Default edit mode to False (disabled) - MOVED BEFORE setup_keyboard_connections
+        self.edit_mode_enabled = False
+        
         # Create visualizers with the same parent
         self.keyboard_viz = KeyboardVisualizer(parent)
         self.mouse_viz = MouseVisualizer(parent)
@@ -40,49 +49,43 @@ class VisualizerManager(QObject):
         # Connect signals
         self._setup_keyboard_connections()
         self.mouse_buttons_selector.button_toggled.connect(self.button_toggled)
-        
-        # Default edit mode to False (disabled)
-        self.edit_mode_enabled = False
     
     def _setup_keyboard_connections(self) -> None:
         """Set up keyboard mouse press event handling."""
-        # Save the original mouse press event method
-        self.original_mouse_press = self.keyboard_viz.mousePressEvent
-        
-        # Create our custom handler
-        def new_mouse_press(event):
-            # First call the original method to preserve the base behavior
-            if self.original_mouse_press:
-                self.original_mouse_press(event)
+        try:
+            # Create a better keyboard event filter that keeps a reference to self
+            # instead of just edit_mode_enabled which may not update
+            self.keyboard_event_filter = KeyboardEventFilter(self)
             
-            # Then handle our custom event - only emit key_clicked when in edit mode
-            if self.edit_mode_enabled:
-                try:
-                    x, y = event.x(), event.y()
-                    key = self.keyboard_viz.get_key_at_position(x, y)
-                    if key:
-                        self.key_clicked.emit(key)
-                        print(f"Key clicked in edit mode: {key}")
-                except Exception as e:
-                    print(f"Error processing keyboard click: {e}")
+            # Install the event filter on the keyboard visualizer
+            if self.keyboard_viz:
+                self.keyboard_viz.installEventFilter(self.keyboard_event_filter)
+                # Enable mouse tracking for hover effects
+                self.keyboard_viz.setMouseTracking(True)
+                print("Keyboard event filter installed successfully")
+            else:
+                print("Cannot install event filter: keyboard_viz is None")
         
-        # Store the new method as an instance attribute so it won't be garbage collected
-        self.new_mouse_press = new_mouse_press
-        
-        # Always install our custom handler - we'll use the edit_mode_enabled flag to control its behavior
-        self.keyboard_viz.mousePressEvent = self.new_mouse_press
+        except Exception as e:
+            print(f"Major error setting up keyboard connections: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    # Implementation of AbstractVisualizerProvider methods
     
     def get_keyboard_visualizer(self) -> KeyboardVisualizer:
-        """Get the keyboard visualizer."""
+        """Get the keyboard visualizer component."""
         return self.keyboard_viz
         
     def get_mouse_visualizer(self) -> MouseVisualizer:
-        """Get the mouse visualizer."""
+        """Get the mouse visualizer component."""
         return self.mouse_viz
         
     def get_mouse_buttons_selector(self) -> MouseButtonsSelector:
-        """Get the mouse buttons selector."""
+        """Get the mouse buttons selector component."""
         return self.mouse_buttons_selector
+    
+    # Implementation of AbstractVisualizerController methods
     
     def update_for_collector(self, collector_type: str, capabilities: Dict[str, Any]) -> None:
         """
@@ -123,7 +126,6 @@ class VisualizerManager(QObject):
         Args:
             keys: List of keys to track
         """
-        # Añadir manejo de errores para evitar crashes
         try:
             if hasattr(self.keyboard_viz, 'set_tracked_keys'):
                 self.keyboard_viz.set_tracked_keys(keys)
@@ -152,16 +154,27 @@ class VisualizerManager(QObject):
         try:
             # Store the edit mode state
             self.edit_mode_enabled = enabled
+            print(f"VisualizerManager.set_edit_mode({enabled}) - Flag updated")
             
-            # Update cursors based on edit mode
-            self.keyboard_viz.setCursor(Qt.PointingHandCursor if enabled else Qt.ArrowCursor)
-            
-            # Update the mode in mouse buttons selector
-            if hasattr(self.mouse_buttons_selector, 'setEditMode'):
-                self.mouse_buttons_selector.setEditMode(enabled)
+            # Update the cursor according to mode
+            if self.keyboard_viz:
+                self.keyboard_viz.setCursor(
+                    Qt.PointingHandCursor if enabled else Qt.ArrowCursor
+                )
                 
-            # Debug message
-            print(f"Visualizer edit mode set to: {enabled}")
+                # Propagate edit mode state if supported
+                if hasattr(self.keyboard_viz, 'set_edit_mode'):
+                    self.keyboard_viz.set_edit_mode(enabled)
+            
+            # Update mouse buttons selector
+            if self.mouse_buttons_selector:
+                if hasattr(self.mouse_buttons_selector, 'setEditMode'):
+                    self.mouse_buttons_selector.setEditMode(enabled)
+            
+            # Force an update to reflect visual changes
+            self.force_update()
+            
+            print(f"Edit mode set to {enabled} (using event filter approach)")
             
         except Exception as e:
             print(f"Error setting edit mode: {e}")
@@ -170,12 +183,65 @@ class VisualizerManager(QObject):
     
     def force_update(self) -> None:
         """Force update all visualizers."""
-        # Añadir manejo de errores para prevenir crashes
         try:
             if hasattr(self.keyboard_viz, 'force_update'):
                 self.keyboard_viz.force_update()
             
             if hasattr(self.mouse_viz, 'force_update'):
                 self.mouse_viz.force_update()
+                
+            if hasattr(self.mouse_buttons_selector, 'update'):
+                self.mouse_buttons_selector.update()
+                
         except Exception as e:
-            print(f"Error forcing update: {e}")
+            print(f"Error forcing visualizer updates: {e}")
+
+
+# Define KeyboardEventFilter as a separate class for clarity
+class KeyboardEventFilter(QObject):
+    """Event filter for keyboard visualizer click handling."""
+    
+    def __init__(self, visualizer_manager):
+        """
+        Initialize the keyboard event filter.
+        
+        Args:
+            visualizer_manager: Reference to the visualizer manager
+        """
+        super().__init__()
+        self.visualizer_manager = visualizer_manager
+    
+    def eventFilter(self, obj, event):
+        """
+        Filter keyboard mouse events.
+        
+        Args:
+            obj: Object that the event was sent to
+            event: The event
+            
+        Returns:
+            bool: True if event was handled, False otherwise
+        """
+        # Only process mouse press events when in edit mode
+        if event.type() == QEvent.MouseButtonPress:
+            # Check edit mode from visualizer_manager, not a stored variable
+            if self.visualizer_manager.edit_mode_enabled:
+                try:
+                    # Get the keyboard visualizer from manager
+                    keyboard_viz = self.visualizer_manager.keyboard_viz
+                    
+                    if keyboard_viz:
+                        # Get key at click position
+                        key = keyboard_viz.get_key_at_position(event.x(), event.y())
+                        if key:
+                            print(f"Key clicked in event filter: {key}, emitting signal")
+                            # Emit the key_clicked signal
+                            self.visualizer_manager.key_clicked.emit(key)
+                            return True  # Event handled
+                except Exception as e:
+                    print(f"Error in keyboard event filter: {e}")
+                    import traceback
+                    traceback.print_exc()
+        
+        # Pass event to standard event processing
+        return False  # Let the event continue

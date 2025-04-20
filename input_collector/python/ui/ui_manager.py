@@ -38,7 +38,7 @@ class UIManager(QObject):
     apply_mouse_settings = pyqtSignal()
     toggle_fullscreen = pyqtSignal()
     mouse_button_toggled = pyqtSignal(str, bool)
-    capture_scroll_changed = pyqtSignal(bool)
+    # Remove capture_scroll_changed signal
     
     def __init__(self, main_window: QMainWindow) -> None:
         """
@@ -404,23 +404,16 @@ class UIManager(QObject):
         angle_layout.addWidget(self.components['angle_grouping_label'])
         settings_row2.addLayout(angle_layout)
         
-        # Scroll capture checkbox
-        scroll_layout = QHBoxLayout()
-        self.components['capture_scroll_check'] = QCheckBox("Capture Scroll Data")
-        self.components['capture_scroll_check'].toggled.connect(
-            lambda checked: self.capture_scroll_changed.emit(checked)
-        )
-        scroll_layout.addWidget(self.components['capture_scroll_check'])
-        scroll_layout.addStretch(1)
+        # Add spacer to replace the checkbox
+        settings_row2.addStretch(1)
         
         # Apply button
         self.components['apply_button'] = QPushButton("Apply Settings")
         self.components['apply_button'].clicked.connect(
             lambda: self.apply_mouse_settings.emit()
         )
-        scroll_layout.addWidget(self.components['apply_button'])
+        settings_row2.addWidget(self.components['apply_button'])
         
-        settings_row2.addLayout(scroll_layout)
         settings_layout.addLayout(settings_row2)
         
         # Add settings to main layout
@@ -721,18 +714,6 @@ class UIManager(QObject):
             return sensitivity_slider.value()
         return 10  # Default to 0.1 (10%)
     
-    def is_scroll_tracking_enabled(self) -> bool:
-        """
-        Check if scroll tracking is enabled.
-        
-        Returns:
-            bool: True if scroll tracking is enabled
-        """
-        capture_scroll_check = self.components.get('capture_scroll_check')
-        if capture_scroll_check:
-            return capture_scroll_check.isChecked()
-        return False
-    
     def update_tracking_modes(self, valid_modes: List[str], current_mode: str, default_mode: str) -> None:
         """
         Update the available tracking modes in the UI.
@@ -755,17 +736,6 @@ class UIManager(QObject):
                 tracking_mode_combo.setCurrentText(default_mode)
             
             tracking_mode_combo.blockSignals(False)
-    
-    def set_scroll_tracking(self, enabled: bool) -> None:
-        """
-        Set whether scroll tracking is enabled.
-        
-        Args:
-            enabled: Whether to enable scroll tracking
-        """
-        capture_scroll_check = self.components.get('capture_scroll_check')
-        if capture_scroll_check:
-            capture_scroll_check.setChecked(enabled)
     
     def get_current_collector_data(self) -> Optional[str]:
         """
@@ -792,3 +762,27 @@ class UIManager(QObject):
                 if collector_selector.itemData(i) == collector_type:
                     collector_selector.setCurrentIndex(i)
                     break
+
+    def update_edit_mode(self, enabled: bool) -> None:
+        """
+        Update the UI components based on edit mode state.
+        
+        Args:
+            enabled: Whether edit mode is enabled
+        """
+        # Update edit keys button if it exists
+        edit_keys_button = self.components.get('edit_keys_button')
+        if edit_keys_button:
+            edit_keys_button.setChecked(enabled)
+            
+            # Update button text and style based on state
+            if enabled:
+                edit_keys_button.setText("Finish Editing")
+                edit_keys_button.setStyleSheet("background-color: #5FB878; color: white;")
+            else:
+                edit_keys_button.setText("Edit Keys")
+                edit_keys_button.setStyleSheet("background-color: #007ACC; color: white;")
+        
+        # Log the edit mode state change
+        self.log_status(f"Edit mode {'enabled' if enabled else 'disabled'}", 
+                       "success" if enabled else "accent")

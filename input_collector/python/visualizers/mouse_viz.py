@@ -214,25 +214,36 @@ class Canvas(QWidget):
         if input_data.event_type == "mouse_click":
             if input_data.button_pressed:
                 if "left" in input_data.button_pressed.lower():
-                    pass
+                    self.left_button_pressed = True
                 elif "right" in input_data.button_pressed.lower():
-                    pass
+                    self.right_button_pressed = True
                 elif "middle" in input_data.button_pressed.lower():
-                    pass
+                    self.middle_button_pressed = True
             else:
                 # Button release
                 if "left" in str(input_data):
-                    pass
+                    self.left_button_pressed = False
                 elif "right" in str(input_data):
-                    pass
+                    self.right_button_pressed = False
                 elif "middle" in str(input_data):
-                    pass
+                    self.middle_button_pressed = False
                 else:
-                    pass
+                    self.left_button_pressed = False
+                    self.right_button_pressed = False
+                    self.middle_button_pressed = False
 
-        # Handle mouse scroll events
+        # Handle mouse scroll events - SIMPLIFIED LOGIC FOR WHEEL VISUALIZATION
         if input_data.event_type == "mouse_scroll":
-            self.wheel_direction = input_data.direction  # Will be None when reset
+            # Always update wheel direction based on event direction
+            # If the scroll is being tracked, we'll receive events with non-None directions
+            # If the scroll event is a reset event, direction will be None
+            self.wheel_direction = input_data.direction
+            
+            # Debug print to verify we're setting wheel direction correctly
+            if input_data.direction:
+                print(f"Setting wheel direction to: {input_data.direction}")
+            elif input_data.direction is None:
+                print("Resetting wheel direction to None")
 
         # Handle actual coordinates and movement state
         if input_data.rel_x is not None and input_data.rel_y is not None:
@@ -367,17 +378,17 @@ class Canvas(QWidget):
             handle_outline_width = 1
             handle_outline_color = QColor(255, 255, 255)
 
-        # Update handle color based on button state
+        # Update handle color based on button state - improve right click contrast with green
         handle_fill = (
-            QColor(255, 85, 85)
+            QColor(255, 85, 85)  # Red for left button
             if self.left_button_pressed
             else (
-                QColor(85, 85, 255)
+                QColor(95, 184, 120)  # Change from blue-ish to green for right button
                 if self.right_button_pressed
                 else (
-                    QColor(170, 85, 170)
+                    QColor(170, 85, 170)  # Keep purple for middle button
                     if self.middle_button_pressed
-                    else self.accent_color
+                    else self.accent_color  # Default blue
                 )
             )
         )
