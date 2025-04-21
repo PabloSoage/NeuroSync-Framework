@@ -134,15 +134,15 @@ class BrainMapVisualizer:
         
     def add_quality_legend(self):
         """Add a legend for signal quality."""
-        # Create legend in top right corner
-        legend_rect = pg.QtWidgets.QGraphicsRectItem(0.6, -1.2, 0.7, 0.5)
+        # Move legend to the bottom at y=-1.4
+        legend_rect = pg.QtWidgets.QGraphicsRectItem(0.6, -1.4, 0.7, 0.45)
         legend_rect.setBrush(pg.mkBrush(30, 30, 30, 180))  # Semi-transparent dark background
         legend_rect.setPen(pg.mkPen(200, 200, 200, 150))   # Light border
         self.view.addItem(legend_rect)
         
-        # Add title
+        # Move title position to match the new rectangle position
         legend_title = pg.TextItem("Signal Quality", anchor=(0, 0))
-        legend_title.setPos(0.7, -1.1)
+        legend_title.setPos(0.7, -1.4)
         legend_title.setColor(QColor(255, 255, 255))
         font = QFont()
         font.setBold(True)
@@ -158,15 +158,15 @@ class BrainMapVisualizer:
             {"label": "Bad", "color": (255, 0, 0)}             # Red
         ]
         
-        # Add dots and labels
+        # Add dots and labels with reduced spacing - updated to match new legend position
         for i, indicator in enumerate(quality_indicators):
-            # Add color dot
+            # Add color dot - reduced vertical spacing with -1.35 base position
             dot = pg.ScatterPlotItem()
-            dot_y = -1.1 + (i * 0.15)  # Adjusted spacing
+            dot_y = -1.35 + (i * 0.08) + 0.03  # Starting position matches the new legend position
             dot.addPoints([{'pos': (0.75, dot_y), 'size': 12, 'brush': pg.mkBrush(indicator["color"])}])
             self.view.addItem(dot)
             
-            # Add label
+            # Add label - matched to new dot positions
             text = pg.TextItem(indicator["label"], anchor=(0, 0.5))
             text.setPos(0.85, dot_y)
             text.setColor(QColor(255, 255, 255))
