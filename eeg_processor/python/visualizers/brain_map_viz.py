@@ -1,13 +1,23 @@
 import logging
-from typing import Dict, List, Optional, Tuple
-
 import numpy as np
+from typing import Dict, List, Optional, Tuple
+import sys
+import os
+
+# Fix imports to work both when imported and when run directly
+try:
+    # When imported as part of the package
+    from ..collectors.eeg_collector import EEGCollector
+    from ..processors.signal_processor import SignalProcessor
+except ImportError:
+    # When run directly, use absolute imports
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from collectors.eeg_collector import EEGCollector
+    from processors.signal_processor import SignalProcessor
+
 import pyqtgraph as pg
 from PyQt5.QtCore import Qt, QTimer, QPointF
 from PyQt5.QtGui import QFont, QColor, QPainter, QPainterPath, QPen, QBrush
-
-from ..collectors.eeg_collector import EEGCollector
-from ..processors.signal_processor import SignalProcessor
 
 
 class BrainMapVisualizer:
@@ -28,8 +38,46 @@ class BrainMapVisualizer:
         """
         self.collector = collector
         self.processor = processor
-        self.update_speed_ms = 200  # Slower than main EEG visualizer
+        
+        # Debug checks for collector and processor
+        if self.collector is None:
+            logging.error("Collector is None!")
+        else:
+            logging.info(f"Collector methods: {dir(self.collector)}")
+        
+        if self.processor is None:
+            logging.error("Processor is None!")
+        else:
+            logging.info(f"Processor methods: {dir(self.processor)}")
+        
+        # Check specifically for the required methods
+        has_get_data = hasattr(self.collector, 'get_data')
+        has_quality_method = hasattr(self.processor, 'get_all_channels_quality')
+        logging.info(f"Collector has get_data: {has_get_data}")
+        logging.info(f"Processor has get_all_channels_quality: {has_quality_method}")
+        
+        # Aumentar la frecuencia de actualización para que sea más rápido que el EEGVisualizer
+        self.update_speed_ms = 100  # Más rápido que antes (200ms)
+        
+        # Indicadores para depuración
+        self.update_count = 0
+        self.last_quality_values = {}
+        
         self.timer = None
+        
+        # Add window size to match EEGVisualizer
+        self.window_size = 4  # Display 4 seconds of data like EEGVisualizer
+        self.num_points = int(self.window_size * self.collector.sampling_rate)
+        
+        # Store EEG channels directly like EEGVisualizer does
+        self.eeg_channels = collector.get_eeg_channels()
+        
+        # Processing options - MAKE EXACTLY THE SAME as EEGVisualizer
+        self.apply_bandpass = False  # Changed from True to False to match EEGVisualizer
+        self.bandpass_low = 1.0
+        self.bandpass_high = 30.0
+        self.apply_notch = True
+        self.apply_detrend = True
         
         # Create visualization window
         self.setup_ui()
@@ -91,18 +139,20 @@ class BrainMapVisualizer:
         legend_title.setFont(font)
         self.view.addItem(legend_title)
         
-        # Add color indicators
+        # Match EEGVisualizer colors exactly (with five levels)
         quality_indicators = [
-            {"label": "Good", "color": QColor(0, 170, 0)},
-            {"label": "Fair", "color": QColor(255, 170, 0)},
-            {"label": "Poor", "color": QColor(255, 0, 0)}
+            {"label": "Excellent", "color": (0, 128, 0)},      # Dark green
+            {"label": "Good", "color": (144, 238, 144)},       # Light green
+            {"label": "Fair", "color": (255, 255, 0)},         # Yellow
+            {"label": "Poor", "color": (255, 165, 0)},         # Orange
+            {"label": "Bad", "color": (255, 0, 0)}             # Red
         ]
         
         # Add dots and labels
         for i, indicator in enumerate(quality_indicators):
             # Add color dot
             dot = pg.ScatterPlotItem()
-            dot_y = -0.95 + (i * 0.15)
+            dot_y = -1.1 + (i * 0.15)  # Adjusted spacing
             dot.addPoints([{'pos': (0.75, dot_y), 'size': 12, 'brush': pg.mkBrush(indicator["color"])}])
             self.view.addItem(dot)
             
@@ -232,20 +282,33 @@ class BrainMapVisualizer:
             "occipital": lambda x, y: y <= -0.6,  # Bottom (pink/purple)
         }
         
-        # Get electrode names from the collector
         try:
-            if hasattr(self.collector, 'eeg_names'):
-                eeg_names = self.collector.eeg_names
-                
-                # Match each electrode name to a standard position
-                for name in eeg_names:
+            # Debug logging to trace the execution flow
+            logging.info("Starting electrode position identification...")
+            
+            # Check if the collector has EEG channel info
+            has_eeg_names = hasattr(self.collector, 'eeg_names') and self.collector.eeg_names
+            has_eeg_channels = hasattr(self.collector, 'eeg_channels') and self.collector.eeg_channels
+            
+            logging.info(f"Collector has eeg_names: {has_eeg_names}, has_eeg_channels: {has_eeg_channels}")
+            
+            # Get channel names if available
+            if has_eeg_names:
+                logging.info(f"EEG names from collector: {self.collector.eeg_names}")
+                # Create positions for each named electrode
+                for i, name in enumerate(self.collector.eeg_names):
+                    if not name or not isinstance(name, str):
+                        continue
+                        
                     name = name.strip().upper()  # Normalize name
+                    logging.info(f"Processing electrode: {name}")
                     
-                    # Try exact match
+                    # Try exact match with standard positions
                     if name in self.standard_positions:
                         pos = self.standard_positions[name]
                         self.electrode_positions[name] = pos
-                        self.electrode_quality[name] = 0.0  # Initial quality
+                        self.electrode_quality[name] = 0.0  # CAMBIO: Changed from 0.5 to 0.0 (worst quality) to match EEGVisualizer
+                        logging.info(f"Found standard position for {name}: {pos}")
                         
                         # Determine region based on y-coordinate
                         for region, check_func in region_ranges.items():
@@ -254,14 +317,15 @@ class BrainMapVisualizer:
                                 break
                         else:
                             self.electrode_regions[name] = "other"
-                            
                     else:
-                        # Try to find closest match
+                        # Try to find closest match if exact match fails
+                        logging.debug(f"No exact position match for {name}, trying approximate matching...")
                         matched_name = self._find_best_electrode_match(name)
                         if matched_name:
                             pos = self.standard_positions[matched_name]
                             self.electrode_positions[name] = pos
-                            self.electrode_quality[name] = 0.0
+                            self.electrode_quality[name] = 0.0  # CAMBIO: Changed from 0.5 to 0.0
+                            logging.info(f"Found approximate match {matched_name} for {name}: {pos}")
                             
                             # Determine region based on y-coordinate
                             for region, check_func in region_ranges.items():
@@ -271,21 +335,34 @@ class BrainMapVisualizer:
                             else:
                                 self.electrode_regions[name] = "other"
                         else:
-                            # Place unknown electrodes in a circular arrangement
-                            logging.debug(f"No position found for electrode: {name}")
-                            
-                            # Use a default position for unknown electrodes
-                            idx = len(self.electrode_positions)
-                            angle = 2 * np.pi * idx / max(len(eeg_names), 1)
+                            # No match found - use circular arrangement
+                            angle = 2 * np.pi * i / max(len(self.collector.eeg_names), 1)
                             x = 0.7 * np.cos(angle)
                             y = 0.7 * np.sin(angle)
                             self.electrode_positions[name] = (x, y)
-                            self.electrode_quality[name] = 0.0
-                            self.electrode_regions[name] = "other"
-                            
-                logging.info(f"Identified positions for {len(self.electrode_positions)} electrodes")
+                            self.electrode_quality[name] = 0.0  # CAMBIO: Changed from 0.5 to 0.0
+                            logging.info(f"Using circular position for {name}: ({x:.2f}, {y:.2f})")
+            else:
+                # No named channels - create default positions
+                logging.info("No channel names available, creating default positions")
+                self._create_default_positions()
+                
+            # If we didn't identify any positions, use defaults
+            if not self.electrode_positions:
+                logging.warning("No electrode positions were identified, using defaults")
+                self._create_default_positions()
+                
+            # Final logging of the results
+            logging.info(f"Identified {len(self.electrode_positions)} electrode positions")
+            logging.info(f"Electrode positions: {self.electrode_positions}")
+            
+            # Force an initial update of the display after position identification
+            self.update_electrode_display()
+            
         except Exception as e:
-            logging.error(f"Error identifying electrode positions: {e}")
+            logging.error(f"Error identifying electrode positions: {e}", exc_info=True)
+            # Create default positions as a fallback
+            self._create_default_positions()
     
     def create_standard_positions(self):
         """Create standardized electrode positions based on the 10-20/10-10 systems."""
@@ -408,14 +485,30 @@ class BrainMapVisualizer:
         
     def start(self):
         """Start the visualizer."""
-        self.win.show()
-        
-        # Start the update timer
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_quality_map)
-        self.timer.start(self.update_speed_ms)
-        
-        logging.info("Brain map visualizer started")
+        try:
+            # Make sure we have at least some electrode positions
+            if not self.electrode_positions:
+                logging.warning("No electrode positions detected, creating defaults")
+                self._create_default_positions()
+            
+            # Show the window
+            self.win.show()
+            
+            # Force an initial update
+            self.update_electrode_display()
+            
+            # Start the update timer with explicit 
+            self.timer = QTimer()
+            self.timer.timeout.connect(self.update_quality_map)
+            self.timer.start(self.update_speed_ms)
+            
+            # Forzar una actualización inmediata
+            # Important: Call this manually to ensure first update works
+            QTimer.singleShot(500, self.update_quality_map)
+            
+            logging.info("Brain map visualizer started with update timer")
+        except Exception as e:
+            logging.error(f"Error starting brain map visualizer: {e}", exc_info=True)
         
     def stop(self):
         """Stop the visualizer."""
@@ -434,85 +527,251 @@ class BrainMapVisualizer:
         
     def update_quality_map(self):
         """Update the signal quality map."""
-        if not self.collector or not self.processor or not self.collector.is_streaming:
-            return
-            
         try:
-            # Get data and calculate quality
-            data, _ = self.collector.get_data(int(self.collector.sampling_rate * 1))
-            if data.size == 0:
+            # Incrementar contador para debug
+            self.update_count += 1
+            logging.info(f"Brain Map update #{self.update_count} started")
+            
+            # More detailed diagnostics for missing methods
+            if not hasattr(self.collector, 'get_data'):
+                logging.error("Collector missing get_data method")
                 return
                 
-            quality_dict = self.processor.get_all_channels_quality(data, self.collector.get_eeg_channels())
+            if not hasattr(self.processor, 'get_all_channels_quality'):
+                logging.error("Processor missing get_all_channels_quality method")
+                # Create a fallback if method is missing
+                if hasattr(self.processor, 'get_signal_quality'):
+                    logging.info("Using fallback quality calculation with get_signal_quality")
+                    # Get the data anyway
+                    data, _ = self.collector.get_data(self.num_points)
+                    
+                    if data.size == 0:
+                        logging.warning("No data available for quality calculation")
+                        return
+                        
+                    # Apply filters as normal
+                    data_copy = data.copy()
+                    if self.apply_bandpass:
+                        data_copy = self.processor.bandpass_filter(data_copy, self.bandpass_low, self.bandpass_high, 4)
+                    if self.apply_notch:
+                        data_copy = self.processor.remove_environmental_noise(data_copy)
+                    if self.apply_detrend:
+                        data_copy = self.processor.detrend(data_copy)
+                    
+                    # Calculate qualities manually using get_signal_quality for each channel
+                    quality_dict = {}
+                    for ch_idx in self.eeg_channels:
+                        try:
+                            quality = self.processor.get_signal_quality(data_copy, ch_idx)
+                            quality_dict[ch_idx] = quality
+                        except Exception as channel_error:
+                            logging.error(f"Error calculating quality for channel {ch_idx}: {channel_error}")
+                            quality_dict[ch_idx] = 0.0
+                    
+                    # Log calculated values
+                    logging.info(f"BrainMap - Manual quality calculation: {quality_dict}")
+                    
+                    # Update electrode qualities
+                    for i, ch_idx in enumerate(self.eeg_channels):
+                        if i < len(self.collector.eeg_names):
+                            ch_name = self.collector.eeg_names[i].upper()
+                            if ch_name in self.electrode_positions:
+                                quality = quality_dict.get(ch_idx, 0.0)
+                                # Update directly
+                                self.electrode_quality[ch_name] = quality
+                                logging.info(f"Updated electrode {ch_name} quality to {quality}")
+                    
+                    # Update display
+                    self.update_electrode_display()
+                    return
+                else:
+                    logging.error("No fallback quality calculation method available")
+                    return
             
-            # Map quality values to electrode names
-            for i, ch_idx in enumerate(self.collector.eeg_channels):
+            # Original method if both methods exist
+            # Verificar precondiciones
+            if not hasattr(self.collector, 'get_data') or not hasattr(self.processor, 'get_all_channels_quality'):
+                logging.warning("Collector or processor missing required methods")
+                return
+                
+            # Obtener datos
+            data, _ = self.collector.get_data(self.num_points)
+            
+            if data.size == 0:
+                logging.warning("No data available for brain map update")
+                return
+                
+            # Procesar datos exactamente como en EEGVisualizer
+            data_copy = data.copy()
+            
+            if self.apply_bandpass:
+                data_copy = self.processor.bandpass_filter(
+                    data_copy, self.bandpass_low, self.bandpass_high, 4
+                )
+            if self.apply_notch:
+                data_copy = self.processor.remove_environmental_noise(data_copy)
+            if self.apply_detrend:
+                data_copy = self.processor.detrend(data_copy)
+                
+            # Calcular calidad directamente como lo hace EEGVisualizer
+            quality_dict = self.processor.get_all_channels_quality(data_copy, self.eeg_channels)
+            
+            # Mostrar los valores de calidad calculados
+            logging.info(f"BrainMap - Calculated quality values: {quality_dict}")
+            
+            # Actualizar calidades de electrodos directamente
+            for i, ch_idx in enumerate(self.eeg_channels):
                 if i < len(self.collector.eeg_names):
                     ch_name = self.collector.eeg_names[i].upper()
                     if ch_name in self.electrode_positions:
-                        self.electrode_quality[ch_name] = quality_dict.get(ch_idx, 0)
+                        quality = quality_dict.get(ch_idx, 0.0)
+                        # Actualizar directamente
+                        self.electrode_quality[ch_name] = quality
+                        logging.info(f"Updated electrode {ch_name} quality to {quality}")
             
-            # Update visualization
+            # Actualizar visualización
             self.update_electrode_display()
             
-        except Exception as e:
-            logging.error(f"Error updating quality map: {e}")
+            # Forzar repintado
+            self.plot.update()
             
+        except Exception as e:
+            logging.error(f"Error in update_quality_map: {e}", exc_info=True)
+
     def update_electrode_display(self):
         """Update the electrode visualization with quality indicators."""
-        # Clear previous labels
-        for label in self.labels:
-            self.plot.removeItem(label)
-        self.labels = []
+        try:
+            # Clear previous labels
+            for label in self.labels:
+                self.plot.removeItem(label)
+            self.labels = []
+            
+            # Log current quality values for debugging
+            logging.info(f"Current quality values: {self.electrode_quality}")
+            
+            if not self.electrode_positions:
+                logging.warning("No electrode positions to display")
+                return
+                
+            # Define quality colors
+            quality_colors = [
+                (255, 0, 0),      # Red (bad quality)
+                (255, 165, 0),    # Orange (poor quality)
+                (255, 255, 0),    # Yellow (fair quality)
+                (144, 238, 144),  # Light green (good quality)
+                (0, 128, 0)       # Dark green (excellent quality)
+            ]
+            
+            # Prepare data for scatter plot
+            positions = []
+            brushes = []
+            sizes = []
+            
+            # Process each electrode
+            for name, pos in self.electrode_positions.items():
+                # Check for valid position
+                if not isinstance(pos, tuple) or len(pos) != 2:
+                    continue
+                    
+                positions.append(pos)
+                
+                # Get quality value directly from electrode_quality
+                quality = self.electrode_quality.get(name, 0.0)
+                
+                # Map quality to color index - exactly like in EEGVisualizer
+                color_idx = min(int(quality * len(quality_colors)), len(quality_colors) - 1)
+                
+                # Log quality and color assignment
+                logging.info(f"Electrode {name} quality={quality:.2f}, color_idx={color_idx}")
+                
+                # Assign size and color
+                sizes.append(15)
+                brushes.append(pg.mkBrush(quality_colors[color_idx]))
+                
+                # Create label
+                label = pg.TextItem(name, anchor=(0.5, 0.5))
+                label.setPos(pos[0], pos[1])
+                label.setColor(QColor('white'))
+                font = QFont()
+                font.setBold(True)
+                font.setPointSize(8)
+                label.setFont(font)
+                self.plot.addItem(label)
+                self.labels.append(label)
+            
+            # Update scatter plot
+            if positions:
+                scatter_points = []
+                for i, pos in enumerate(positions):
+                    scatter_points.append({
+                        'pos': pos,
+                        'size': sizes[i] if i < len(sizes) else 15,
+                        'brush': brushes[i] if i < len(brushes) else pg.mkBrush(255, 0, 0)
+                    })
+                    
+                # Clear and add points
+                self.scatter.clear()
+                self.scatter.addPoints(scatter_points)
+                logging.info(f"Updated scatter plot with {len(scatter_points)} points")
+            
+        except Exception as e:
+            logging.error(f"Error in update_electrode_display: {e}", exc_info=True)
+    
+    def _create_default_positions(self):
+        """Create default electrode positions when detection fails."""
+        logging.info("Creating default electrode positions")
+        # Standard 10-20 positions for common setups
+        default_names = ["Fp1", "Fp2", "F7", "F3", "Fz", "F4", "F8", 
+                         "T3", "C3", "Cz", "C4", "T4", 
+                         "T5", "P3", "Pz", "P4", "T6", 
+                         "O1", "Oz", "O2"]
         
-        # Prepare scatter plot data
-        positions = []
-        brushes = []
-        sizes = []
+        # Only use first 8 positions if we don't have many channels
+        if hasattr(self.collector, 'eeg_channels') and len(self.collector.eeg_channels) <= 8:
+            default_names = default_names[:8]
         
-        # Define quality colors with better contrast
-        quality_colors = [
-            QColor(255, 0, 0),      # Red (poor)
-            QColor(255, 100, 0),    # Orange-red
-            QColor(255, 165, 0),    # Orange (fair)
-            QColor(150, 200, 100),  # Light green
-            QColor(0, 170, 0)       # Green (good)
-        ]
-        
-        # Add each electrode to the map
-        for name, pos in self.electrode_positions.items():
-            positions.append(pos)
-            
-            # Get quality and determine color
-            quality = self.electrode_quality.get(name, 0)
-            color_idx = min(int(quality * len(quality_colors)), len(quality_colors) - 1)
-            
-            # Size is consistent
-            sizes.append(15)
-            
-            # Create brush with the quality color
-            brushes.append(pg.mkBrush(quality_colors[color_idx]))
-            
-            # Add label with electrode name
-            label = pg.TextItem(name, anchor=(0.5, 0.5))
-            label.setPos(pos[0], pos[1])
-            label.setColor(QColor('white'))
-            
-            # Make text stand out better
-            font = QFont()
-            font.setBold(True)
-            font.setPointSize(8)
-            label.setFont(font)
-            
-            self.plot.addItem(label)
-            self.labels.append(label)
-            
-        # Update scatter plot with new data
-        if positions:
-            self.scatter.setData(
-                pos=np.array(positions),
-                brush=brushes,
-                size=sizes,
-                pxMode=True,
-                pen=pg.mkPen('w', width=1)  # White border for better visibility
-            )
+        for i, name in enumerate(default_names):
+            if name in self.standard_positions:
+                pos = self.standard_positions[name]
+                logging.debug(f"Added default position for {name}: {pos}")
+            else:
+                # Create a circular arrangement if standard position not found
+                angle = 2 * np.pi * i / len(default_names)
+                pos = (0.7 * np.cos(angle), 0.7 * np.sin(angle))
+                logging.debug(f"Created circular position for {name}: {pos}")
+                
+            self.electrode_positions[name] = pos
+            self.electrode_quality[name] = 0.0  # CAMBIO: Changed from 0.5 to 0.0 to match EEGVisualizer
+            self.electrode_regions[name] = "other"
+    
+    # Add methods to configure filters similar to EEGVisualizer
+    def set_bandpass_filter(self, enabled: bool, low_freq: float = 1.0, high_freq: float = 30.0):
+        """
+        Set bandpass filter parameters.
+
+        Args:
+            enabled: Whether to enable the bandpass filter
+            low_freq: Lower cutoff frequency
+            high_freq: Higher cutoff frequency
+        """
+        self.apply_bandpass = enabled
+        self.bandpass_low = low_freq
+        self.bandpass_high = high_freq
+
+    def set_notch_filter(self, enabled: bool):
+        """
+        Set notch filter for power line noise.
+
+        Args:
+            enabled: Whether to enable the notch filter
+        """
+        self.apply_notch = enabled
+
+    def set_detrend(self, enabled: bool):
+        """
+        Set detrending option.
+
+        Args:
+            enabled: Whether to enable detrending
+        """
+        self.apply_detrend = enabled
