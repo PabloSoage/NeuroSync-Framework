@@ -6,7 +6,13 @@
   Interface defining the core methods required for any data acquisition source, allowing for system extensibility and component swapping.
 
 - **CollectorInterface (Interface):**
-  Interface for EEG data collection that standardizes methods for board connection, streaming control, data acquisition, and marker insertion.
+  Interface for EEG data collection that standardizes methods for board connection, streaming control, data acquisition, and device information retrieval.
+
+- **DataStorageInterface, ContinuousRecordingInterface, MarkerInterface, ConfigurableCollectorInterface (Interfaces):**
+  Specialized interfaces that define specific responsibilities for data collection components, following the Interface Segregation Principle from SOLID.
+
+- **BoardInterface (Interface):**
+  Interface for board configuration management, providing methods for board discovery, parameter requirements, and description retrieval.
 
 - **AbstractInputCollector (Interface):**
   Abstract interface for input collection mechanisms standardizing the capture of various input sources (keyboard, mouse, game controllers). Defines methods for starting/stopping capture, retrieving events, setting callbacks, and managing event history.
@@ -15,10 +21,28 @@
   Interface for device emulation implementation, providing abstraction for different output mechanisms.
 
 - **EEGCollector:**
-  Implementation of CollectorInterface based on BrainFlow. Manages board connections, data streaming, and acquisition from various EEG devices. Provides functions for retrieving channel information by type, adding data streamers, marker insertion, and managing processed data. Offers access to comprehensive board information and configuration options.
+  Implementation of multiple collector interfaces based on BrainFlow. Manages board connections, data streaming, recording, and acquisition from various EEG devices. Uses composition with BrainFlowDataManager to handle continuous recording operations, adhering to the Single Responsibility Principle.
+
+- **BrainFlowDataManager:**
+  Specialized class for handling continuous data recording operations, including file management, threading, and sample synchronization.
+
+- **BoardConfiguration:**
+  Provides board discovery and configuration capabilities, implementing the BoardInterface. Helps with creating appropriate parameters for different board types.
+
+- **CollectorService:**
+  Service layer component that orchestrates EEG collector operations, providing a higher-level API for the application. Manages the lifecycle of the EEGCollector and handles error states.
 
 - **SignalProcessor:**
-  Handles signal processing operations on EEG data. Implements filtering (bandpass, bandstop, lowpass, highpass), denoising, noise removal, downsampling, detrending, and feature extraction. Provides methods for calculating metrics like signal quality, power spectral density, and band power. Supports more advanced algorithms like ICA.
+  Handles signal processing operations on EEG data. Implements various filtering methods, signal transformations, and analysis functions. Maintains a clear single responsibility for signal processing algorithms.
+
+- **ProcessorService:**
+  Service layer component that manages signal processor operations and provides a simplified API for common processing tasks. Handles initialization and safe execution of processing operations.
+
+- **RecordingService:**
+  Service for managing data recording operations, handling file naming, recording status tracking, and marker insertion during recording.
+
+- **VisualizationService:**
+  Service for managing visualization components, providing creation, lifecycle management, and configuration of different visualizers.
 
 - **EEGVisualizer:**
   Real-time visualization for EEG signals. Displays time series data, power spectra, and band powers. Integrates with SignalProcessor to apply filters and with EEGCollector to retrieve data continuously.
@@ -64,6 +88,12 @@
 - **CollectorInterface (Interface):**
   Interface for EEG data collection with standardized methods for streaming control and data acquisition that can be integrated into both sequential and real-time processing pipelines.
 
+- **CollectorInterface, DataStorageInterface, ContinuousRecordingInterface, MarkerInterface, ConfigurableCollectorInterface (Interfaces):**
+  The same interfaces from the sequential pipeline, ensuring a consistent design across both pipelines.
+
+- **BoardInterface (Interface):**
+  Interface for board configuration management that provides consistent board management capabilities.
+
 - **AbstractInputCollector (Interface):**
   Enhanced with event notification capabilities for real-time input monitoring through the on_event callback mechanism. Both implementations (KeyboardMouseCollector and PS4ControllerCollector) provide immediate event notifications when inputs are detected.
 
@@ -71,10 +101,22 @@
   Comprehensive data structure for representing input events with additional fields for real-time tracking modes, directional information, and device-specific metrics. Serves as a unified data structure for all input types.
 
 - **EEGCollector:**
-  Maintains its role as responsible for capturing EEG signals but adds the onData function to notify other modules (such as InferenceEngine) whenever new data is available in real-time. Extends BrainFlow capabilities with data streaming options, multiple modality support, and callback management for data subscribers.
+  Enhanced implementation of collector interfaces with callback mechanism for real-time data notifications. Works with BrainFlowDataManager for continuous recording while maintaining real-time responsiveness.
+
+- **BrainFlowDataManager:**
+  Handles continuous recording in a way that doesn't interfere with real-time data access, using a separate thread for file operations.
+
+- **BoardConfiguration:**
+  Provides the same board discovery and configuration capabilities as in the sequential pipeline.
+
+- **CollectorService:**
+  Service layer component that maintains the same API as in the sequential pipeline but optimized for real-time operation.
 
 - **SignalProcessor:**
-  Enhanced with real-time signal processing capabilities. Performs filtering, denoising, and feature extraction operations optimized for low-latency processing. Provides signal quality assessment for real-time monitoring and feedback.
+  Enhanced with real-time processing capabilities. Performs filtering, denoising, and feature extraction operations optimized for low-latency processing. Provides signal quality assessment for real-time monitoring and feedback.
+
+- **ProcessorService:**
+  Service layer component that provides the same API as in the sequential pipeline but ensures minimal processing latency for real-time applications.
 
 - **EEGVisualizer, BrainMapVisualizer, MultiModalityVisualizer:**
   Real-time visualization components that continuously update as new data arrives. Each provides specialized views for different aspects of the EEG data: time series, topographic quality mapping, and multi-modal signal visualization.
