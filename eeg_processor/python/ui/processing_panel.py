@@ -18,6 +18,9 @@ class ProcessingPanel(BasePanel):
         self.processor_service = processor_service
         self.visualization_service = visualization_service
         
+        # Add state tracking for filters
+        self.filters_applied = False
+        
         # Setup UI components
         self.setup_filter_options()
         self.setup_metrics_section()
@@ -35,18 +38,24 @@ class ProcessingPanel(BasePanel):
         bandpass_layout = QHBoxLayout()
         self.bandpass_check = QCheckBox("Bandpass Filter")
         self.bandpass_check.setChecked(True)
+        # Conectar cambios a la función de actualización dinámica
+        self.bandpass_check.toggled.connect(self.on_filter_option_changed)
         
         bandpass_low_label = QLabel("Low Cut:")
         self.bandpass_low_spin = QDoubleSpinBox()
         self.bandpass_low_spin.setRange(0.1, 100.0)
         self.bandpass_low_spin.setValue(1.0)
         self.bandpass_low_spin.setSuffix(" Hz")
+        # Conectar cambios a la función de actualización dinámica
+        self.bandpass_low_spin.valueChanged.connect(self.on_filter_option_changed)
 
         bandpass_high_label = QLabel("High Cut:")
         self.bandpass_high_spin = QDoubleSpinBox()
         self.bandpass_high_spin.setRange(0.1, 200.0)
         self.bandpass_high_spin.setValue(50.0)
         self.bandpass_high_spin.setSuffix(" Hz")
+        # Conectar cambios a la función de actualización dinámica
+        self.bandpass_high_spin.valueChanged.connect(self.on_filter_option_changed)
 
         bandpass_layout.addWidget(self.bandpass_check)
         bandpass_layout.addWidget(bandpass_low_label)
@@ -60,11 +69,15 @@ class ProcessingPanel(BasePanel):
         notch_layout = QHBoxLayout()
         self.notch_check = QCheckBox("Notch Filter")
         self.notch_check.setChecked(True)
+        # Conectar cambios a la función de actualización dinámica
+        self.notch_check.toggled.connect(self.on_filter_option_changed)
 
         notch_type_label = QLabel("Type:")
         self.notch_type_combo = QComboBox()
         self.notch_type_combo.addItem("50 Hz", "50")
         self.notch_type_combo.addItem("60 Hz", "60")
+        # Conectar cambios a la función de actualización dinámica
+        self.notch_type_combo.currentIndexChanged.connect(self.on_filter_option_changed)
 
         notch_layout.addWidget(self.notch_check)
         notch_layout.addWidget(notch_type_label)
@@ -76,6 +89,8 @@ class ProcessingPanel(BasePanel):
         detrend_layout = QHBoxLayout()
         self.detrend_check = QCheckBox("Detrend")
         self.detrend_check.setChecked(True)
+        # Conectar cambios a la función de actualización dinámica
+        self.detrend_check.toggled.connect(self.on_filter_option_changed)
         detrend_layout.addWidget(self.detrend_check)
         detrend_layout.addWidget(HelpButton("detrend", self))
         filter_layout.addLayout(detrend_layout)
@@ -145,24 +160,65 @@ class ProcessingPanel(BasePanel):
             self.brain_map_btn.setEnabled(True)
     
     def apply_filters(self):
-        """Apply the selected filters to visualization."""
+        """Apply or remove the selected filters to visualization."""
         try:
-            self.visualization_service.set_bandpass_filter(
-                self.bandpass_check.isChecked(),
-                self.bandpass_low_spin.value(),
-                self.bandpass_high_spin.value()
-            )
-            
-            self.visualization_service.set_notch_filter(
-                self.notch_check.isChecked(),
-                float(self.notch_type_combo.currentData())
-            )
-            
-            self.visualization_service.set_detrend(self.detrend_check.isChecked())
-            
-            self.show_status("Filters applied to visualization")
+            if not self.filters_applied:
+                # Apply filters
+                self.visualization_service.set_bandpass_filter(
+                    self.bandpass_check.isChecked(),
+                    self.bandpass_low_spin.value(),
+                    self.bandpass_high_spin.value()
+                )
+                
+                self.visualization_service.set_notch_filter(
+                    self.notch_check.isChecked(),
+                    float(self.notch_type_combo.currentData())
+                )
+                
+                self.visualization_service.set_detrend(self.detrend_check.isChecked())
+                
+                # Update button state
+                self.filters_applied = True
+                self.apply_filters_btn.setText("Remove Filters from Visualization")
+                self.apply_filters_btn.setStyleSheet("background-color: #AA3333; color: white;")
+                self.show_status("Filters applied to visualization")
+            else:
+                # Remove filters
+                self.visualization_service.set_bandpass_filter(False, 1.0, 50.0)
+                self.visualization_service.set_notch_filter(False)
+                self.visualization_service.set_detrend(False)
+                
+                # Update button state
+                self.filters_applied = False
+                self.apply_filters_btn.setText("Apply Filters to Visualization")
+                self.apply_filters_btn.setStyleSheet("")
+                self.show_status("Filters removed from visualization")
+                
         except Exception as e:
             self.show_error("Filter Error", f"Error applying filters: {str(e)}")
+    
+    def on_filter_option_changed(self):
+        """Actualizar los filtros dinámicamente cuando se cambian las opciones y los filtros están aplicados."""
+        # Solo actualizar si los filtros ya están aplicados
+        if hasattr(self, 'filters_applied') and self.filters_applied:
+            try:
+                # Aplicar los mismos filtros que en apply_filters, pero sin cambiar estado del botón
+                self.visualization_service.set_bandpass_filter(
+                    self.bandpass_check.isChecked(),
+                    self.bandpass_low_spin.value(),
+                    self.bandpass_high_spin.value()
+                )
+                
+                self.visualization_service.set_notch_filter(
+                    self.notch_check.isChecked(),
+                    float(self.notch_type_combo.currentData())
+                )
+                
+                self.visualization_service.set_detrend(self.detrend_check.isChecked())
+                
+                self.show_status("Filters updated dynamically")
+            except Exception as e:
+                self.show_error("Filter Error", f"Error updating filters: {str(e)}")
     
     def calculate_metrics(self):
         """Calculate EEG metrics from current data."""
@@ -238,6 +294,13 @@ class ProcessingPanel(BasePanel):
         """Enable or disable processing controls."""
         self.processing_enabled = enabled  # Store the state for brain map checks
         self.apply_filters_btn.setEnabled(enabled)
+        
+        # Reset filters state when processing is disabled
+        if not enabled and self.filters_applied:
+            self.filters_applied = False
+            self.apply_filters_btn.setText("Apply Filters to Visualization")
+            self.apply_filters_btn.setStyleSheet("")
+            
         self.calculate_metrics_btn.setEnabled(enabled)
         
         # Only enable brain map button if we're not already showing it

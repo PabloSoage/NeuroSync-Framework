@@ -72,12 +72,12 @@ class BrainMapVisualizer:
         # Store EEG channels directly like EEGVisualizer does
         self.eeg_channels = collector.get_eeg_channels()
         
-        # Processing options - MAKE EXACTLY THE SAME as EEGVisualizer
-        self.apply_bandpass = False  # Changed from True to False to match EEGVisualizer
+        # Processing options - all disabled by default to match EEGVisualizer
+        self.apply_bandpass = False
         self.bandpass_low = 1.0
         self.bandpass_high = 30.0
-        self.apply_notch = True
-        self.apply_detrend = True
+        self.apply_notch = False  # Changed from True to False
+        self.apply_detrend = False  # Changed from True to False
         
         # Create visualization window
         self.setup_ui()

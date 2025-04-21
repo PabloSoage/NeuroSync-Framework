@@ -36,12 +36,12 @@ class EEGVisualizer:
         # Data for plotting
         self.time_vector = np.linspace(0, self.window_size, self.num_points)
 
-        # Processing options
+        # Processing options - disable all filters by default
         self.apply_bandpass = False
         self.bandpass_low = 1.0
         self.bandpass_high = 30.0
-        self.apply_notch = True
-        self.apply_detrend = True
+        self.apply_notch = False  # Changed from True to False
+        self.apply_detrend = False  # Changed from True to False
 
         # Setup UI elements
         self.setup_ui()
