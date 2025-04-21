@@ -132,6 +132,23 @@ class VisualizationService:
             logging.error(f"Brain map visualization start error: {e}")
             return False
     
+    def stop_brain_map_visualization(self) -> bool:
+        """
+        Stop the brain map visualization.
+        
+        Returns:
+            True if visualization stopped successfully, False otherwise
+        """
+        if not self.brain_map_visualizer:
+            return False
+            
+        try:
+            self.brain_map_visualizer.stop()
+            return True
+        except Exception as e:
+            logging.error(f"Brain map visualization stop error: {e}")
+            return False
+    
     def visualization_visible(self) -> bool:
         """
         Check if EEG visualization is currently visible.
@@ -150,6 +167,26 @@ class VisualizationService:
         """
         return self.eeg_visualizer is not None and not self.eeg_visualizer.is_visible()
     
+    def brain_map_visible(self) -> bool:
+        """
+        Check if brain map visualization is currently visible.
+        
+        Returns:
+            True if visualization is visible, False otherwise
+        """
+        return self.brain_map_visualizer is not None and self.brain_map_visualizer.is_visible()
+
+    def brain_map_closed(self) -> bool:
+        """
+        Check if brain map visualization was closed by user.
+        
+        Returns:
+            True if visualization was closed, False otherwise
+        """
+        return (self.brain_map_visualizer is not None and 
+                hasattr(self.brain_map_visualizer, 'visualization_closed') and 
+                self.brain_map_visualizer.visualization_closed())
+
     def set_bandpass_filter(self, enabled: bool, low_cutoff: float, high_cutoff: float) -> bool:
         """
         Configure bandpass filter settings for visualization.

@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import (
     QLabel, QPushButton, QComboBox,
     QCheckBox, QDoubleSpinBox
 )
+from PyQt5.QtCore import QTimer
 
 from .base_panel import BasePanel
 from ..utils.help_system import HelpButton
@@ -126,6 +127,22 @@ class ProcessingPanel(BasePanel):
         brain_map_layout.addWidget(HelpButton("brain_map", self))
         
         self.layout.addLayout(brain_map_layout)
+        
+        # Setup timer to check brain map status
+        self.brain_map_timer = QTimer(self)
+        self.brain_map_timer.timeout.connect(self.check_brain_map_status)
+        self.brain_map_timer.start(1000)  # Check every second
+
+    def check_brain_map_status(self):
+        """Check if brain map visualizer needs to be restarted."""
+        # Only enable the button when streaming and brain map was closed
+        if hasattr(self.visualization_service, 'brain_map_closed') and self.visualization_service.brain_map_closed():
+            self.brain_map_btn.setText("Reopen Brain Map Visualization")
+            self.brain_map_btn.setEnabled(True)
+        elif not self.visualization_service.brain_map_visible() and hasattr(self, 'processing_enabled') and self.processing_enabled:
+            # Processing is enabled but brain map is not visible and wasn't explicitly closed
+            self.brain_map_btn.setText("Show Brain Map Visualization")
+            self.brain_map_btn.setEnabled(True)
     
     def apply_filters(self):
         """Apply the selected filters to visualization."""
@@ -219,6 +236,10 @@ class ProcessingPanel(BasePanel):
     
     def enable_processing(self, enabled):
         """Enable or disable processing controls."""
+        self.processing_enabled = enabled  # Store the state for brain map checks
         self.apply_filters_btn.setEnabled(enabled)
         self.calculate_metrics_btn.setEnabled(enabled)
-        self.brain_map_btn.setEnabled(enabled)
+        
+        # Only enable brain map button if we're not already showing it
+        if not hasattr(self.visualization_service, 'brain_map_visible') or not self.visualization_service.brain_map_visible():
+            self.brain_map_btn.setEnabled(enabled)

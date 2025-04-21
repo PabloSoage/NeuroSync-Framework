@@ -94,6 +94,9 @@ class BrainMapVisualizer:
         self.win.setWindowTitle("EEG Signal Quality Map")
         self.win.resize(800, 800)
         
+        # Set up close event handler to detect when window is closed
+        self.win.closeEvent = self.handle_close_event
+        
         # Create a single plot item
         self.plot = pg.PlotItem()
         self.win.addItem(self.plot)
@@ -121,6 +124,13 @@ class BrainMapVisualizer:
         
         # Draw quality legend
         self.add_quality_legend()
+        
+    def handle_close_event(self, event):
+        """Handle window close event to properly stop updates when closed."""
+        self.stop()  # Stop the timer
+        self.was_closed = True  # Flag to track if window was closed by user
+        logging.info("Brain map visualization window closed by user")
+        event.accept()
         
     def add_quality_legend(self):
         """Add a legend for signal quality."""
@@ -491,6 +501,9 @@ class BrainMapVisualizer:
                 logging.warning("No electrode positions detected, creating defaults")
                 self._create_default_positions()
             
+            # Reset closed flag when starting
+            self.was_closed = False
+            
             # Show the window
             self.win.show()
             
@@ -528,6 +541,10 @@ class BrainMapVisualizer:
     def update_quality_map(self):
         """Update the signal quality map."""
         try:
+            # Only update if window is visible
+            if not self.is_visible():
+                return
+                
             # Incrementar contador para debug
             self.update_count += 1
             logging.info(f"Brain Map update #{self.update_count} started")
