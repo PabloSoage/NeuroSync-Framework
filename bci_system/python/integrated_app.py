@@ -13,7 +13,7 @@ from typing import Optional, Dict, Any
 
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
-    QTabWidget, QPushButton, QLabel, QGroupBox, QCheckBox,
+    QTabWidget, QPushButton, QLabel, QGroupBox, QCheckBox, QComboBox,
     QSplitter, QMessageBox, QScrollArea, QSizePolicy, QFrame,
     QFileDialog, QLineEdit, QRadioButton  # Added QFileDialog, QLineEdit, QRadioButton
 )
@@ -27,6 +27,12 @@ from eeg_processor.python.eeg_processor_app import EEGProcessorApp
 # Import from input collector module
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "input_collector"))
 from input_collector.python.input_collector_app import InputCollectorApp
+
+# Import the LSL synchronization module
+from lsl_synchronizer import (
+    LSLEEGPublisher, LSLInputPublisher, LSLMarkerPublisher, 
+    LSLDataReceiver, DatasetExporter, LSLSynchronizerWidget
+)
 
 # Add missing import
 import os.path
@@ -59,6 +65,7 @@ class IntegratedBCIApp(QMainWindow):
         self.is_eeg_streaming = False
         self.eeg_ready = False
         self.input_ready = True  # Input is always ready initially
+        self.is_synchronized = False
         
         # Define app theme colors
         self.dark_bg = "#2D2D30"
@@ -75,6 +82,13 @@ class IntegratedBCIApp(QMainWindow):
         # Create recordings directory if it doesn't exist - MOVED UP BEFORE _init_ui()
         self.recordings_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "recordings")
         os.makedirs(self.recordings_dir, exist_ok=True)
+        
+        # LSL synchronization components
+        self.eeg_publisher = None
+        self.input_publisher = LSLInputPublisher()
+        self.marker_publisher = LSLMarkerPublisher()
+        self.lsl_receiver = LSLDataReceiver()
+        self.dataset_exporter = DatasetExporter(self.lsl_receiver)
         
         # Setup UI components
         self._init_ui()
@@ -242,6 +256,7 @@ class IntegratedBCIApp(QMainWindow):
         self._create_eeg_tab()
         self._create_input_tab()
         self._create_integrated_tab()
+        self._create_synchronization_tab()  # New tab for LSL synchronization
         
         # Status bar
         self.statusBar().showMessage("Ready")
@@ -387,7 +402,7 @@ class IntegratedBCIApp(QMainWindow):
             self, "Select Recording Directory", self.recordings_dir
         )
         
-        if directory:
+        if (directory):
             # Update the recordings directory
             self.recordings_dir = directory
             
@@ -559,6 +574,77 @@ class IntegratedBCIApp(QMainWindow):
         # Add to tabs
         self.tabs.addTab(self.integrated_container, "Integrated View")
     
+    def _create_synchronization_tab(self):
+        """Create the LSL synchronization tab."""
+        self.sync_container = QWidget()
+        sync_layout = QVBoxLayout(self.sync_container)
+        
+        # Add synchronization settings
+        settings_group = QGroupBox("LSL Synchronization Settings")
+        settings_layout = QVBoxLayout(settings_group)
+        
+        # Add sync mode options
+        sync_mode_layout = QHBoxLayout()
+        sync_mode_layout.addWidget(QLabel("Synchronization Mode:"))
+        
+        self.realtime_sync_radio = QRadioButton("Real-time")
+        self.realtime_sync_radio.setChecked(True)
+        self.realtime_sync_radio.toggled.connect(self._update_sync_mode)
+        sync_mode_layout.addWidget(self.realtime_sync_radio)
+        
+        self.offline_sync_radio = QRadioButton("Offline (Post-processing)")
+        self.offline_sync_radio.toggled.connect(self._update_sync_mode)
+        sync_mode_layout.addWidget(self.offline_sync_radio)
+        
+        sync_mode_layout.addStretch(1)
+        settings_layout.addLayout(sync_mode_layout)
+        
+        # Add sync precision option
+        precision_layout = QHBoxLayout()
+        precision_layout.addWidget(QLabel("Synchronization Precision (ms):"))
+        
+        self.sync_precision_combo = QComboBox()
+        self.sync_precision_combo.addItems(["1", "5", "10", "25", "50", "100"])
+        self.sync_precision_combo.setCurrentIndex(2)  # Default to 10ms
+        precision_layout.addWidget(self.sync_precision_combo)
+        
+        precision_layout.addStretch(1)
+        settings_layout.addLayout(precision_layout)
+        
+        # Add dataset format options
+        format_layout = QHBoxLayout()
+        format_layout.addWidget(QLabel("Dataset Format:"))
+        
+        self.dataset_format_combo = QComboBox()
+        self.dataset_format_combo.addItems(["HDF5", "EDF+", "CSV", "BIDS"])
+        format_layout.addWidget(self.dataset_format_combo)
+        
+        format_layout.addStretch(1)
+        settings_layout.addLayout(format_layout)
+        
+        sync_layout.addWidget(settings_group)
+        
+        # Create LSL synchronizer widget
+        self.lsl_sync_widget = LSLSynchronizerWidget()
+        self.lsl_sync_widget.status_message.connect(self.show_status_message)
+        sync_layout.addWidget(self.lsl_sync_widget)
+        
+        # Add to tabs
+        self.tabs.addTab(self.sync_container, "LSL Synchronization")
+    
+    def _update_sync_mode(self):
+        """Update synchronization mode based on radio button selection."""
+        if self.realtime_sync_radio.isChecked():
+            logging.info("Switching to real-time synchronization mode")
+            # Update UI components for real-time mode
+            if hasattr(self.lsl_sync_widget, 'set_realtime_mode'):
+                self.lsl_sync_widget.set_realtime_mode(True)
+        else:
+            logging.info("Switching to offline synchronization mode")
+            # Update UI components for offline mode
+            if hasattr(self.lsl_sync_widget, 'set_realtime_mode'):
+                self.lsl_sync_widget.set_realtime_mode(False)
+    
     def _connect_signals(self):
         """Connect signals between components."""
         # Connect signals from the EEG processor app
@@ -574,8 +660,10 @@ class IntegratedBCIApp(QMainWindow):
         # Connect recording signals to both apps
         self.recording_started.connect(self._start_eeg_recording)
         self.recording_started.connect(self._start_input_recording)
+        self.recording_started.connect(self._start_lsl_synchronization)
         self.recording_stopped.connect(self._stop_eeg_recording)
         self.recording_stopped.connect(self._stop_input_recording)
+        self.recording_stopped.connect(self._stop_lsl_synchronization)
         
         # Hide/disable original recording buttons in EEG app
         if hasattr(self.eeg_processor_app, 'start_record_btn'):
@@ -595,6 +683,53 @@ class IntegratedBCIApp(QMainWindow):
             self.eeg_processor_app.processed_radio.setVisible(False)
         if hasattr(self.eeg_processor_app, 'both_radio'):
             self.eeg_processor_app.both_radio.setVisible(False)
+            
+        # Connect to input events to send to LSL in real-time
+        if hasattr(self.input_collector_app, 'collector_manager'):
+            # Hook directly into the collector's event system
+            for collector_name, collector in self.input_collector_app.collector_manager.collectors.items():
+                if hasattr(collector, 'on_event'):
+                    collector.on_event(self._on_input_event)
+                    logging.info(f"Connected LSL publisher to {collector_name} input events")
+            
+            # Also connect to the collector manager's active collector
+            active_collector = self.input_collector_app.collector_manager.get_current_collector()
+            if active_collector and hasattr(active_collector, 'on_event'):
+                active_collector.on_event(self._on_input_event)
+                logging.info(f"Connected LSL publisher to active collector input events")
+    
+    def _on_input_event(self, input_data):
+        """Handle input events from collectors and send to LSL stream."""
+        if self.input_publisher and self.is_synchronized:
+            try:
+                # Extract essential data from the input event
+                event_data = {
+                    'timestamp': input_data.timestamp,
+                    'event_type': input_data.event_type,
+                    'key': input_data.key if hasattr(input_data, 'key') else None,
+                    'mouse_x': input_data.mouse_x if hasattr(input_data, 'mouse_x') else None,
+                    'mouse_y': input_data.mouse_y if hasattr(input_data, 'mouse_y') else None,
+                    'button_pressed': input_data.button_pressed if hasattr(input_data, 'button_pressed') else None,
+                    'direction': input_data.direction if hasattr(input_data, 'direction') else None,
+                    'active_keys': input_data.active_keys if hasattr(input_data, 'active_keys') else []
+                }
+                
+                # Send to LSL stream
+                if event_data['event_type'] != 'none':  # Skip empty/none events
+                    self.input_publisher.send_event(event_data)
+                    
+                    # Create markers for special events (key presses, mouse clicks)
+                    if self.marker_publisher:
+                        if event_data['event_type'] == 'key_press':
+                            self.marker_publisher.send_marker('key', event_data['key'])
+                        elif event_data['event_type'] == 'mouse_click':
+                            self.marker_publisher.send_marker('mouse', event_data['button_pressed'])
+                
+            except Exception as e:
+                # Log error but don't crash
+                logging.error(f"Error sending input event to LSL: {e}")
+                import traceback
+                traceback.print_exc()
     
     def _update_status(self):
         """Update status information."""
@@ -603,12 +738,17 @@ class IntegratedBCIApp(QMainWindow):
         is_eeg_streaming = False
         
         # Check EEG collector connection status
-        if hasattr(self.eeg_processor_app, 'collector') and self.eeg_processor_app.collector:
-            is_eeg_connected = True
+        if hasattr(self.eeg_processor_app, 'collector_service') and self.eeg_processor_app.collector_service:
+            has_collector = hasattr(self.eeg_processor_app.collector_service, 'collector') and self.eeg_processor_app.collector_service.collector is not None
+            is_eeg_connected = has_collector
             
             # Check streaming status
-            if hasattr(self.eeg_processor_app, 'is_streaming'):
+            if has_collector and hasattr(self.eeg_processor_app, 'is_streaming'):
                 is_eeg_streaming = self.eeg_processor_app.is_streaming
+                
+                # Initialize or update EEG publisher if streaming started
+                if is_eeg_streaming and not self.eeg_publisher:
+                    self._initialize_eeg_publisher()
         
         # Update status indicators
         if is_eeg_connected:
@@ -654,6 +794,210 @@ class IntegratedBCIApp(QMainWindow):
             self.toggle_recording()
             QMessageBox.warning(self, "Recording Stopped", 
                                "Recording has been stopped because EEG stream was disconnected.")
+    
+    def _initialize_eeg_publisher(self):
+        """Initialize the EEG publisher for LSL synchronization."""
+        try:
+            if hasattr(self.eeg_processor_app, 'collector_service') and self.eeg_processor_app.collector_service:
+                collector = self.eeg_processor_app.collector_service.collector
+                
+                if collector:
+                    # Get EEG board information
+                    board_id = collector.get_board_id() if hasattr(collector, 'get_board_id') else 0
+                    # Get a more descriptive device name and avoid "UnknownEEG"
+                    device_name = "BrainFlow"
+                    if hasattr(collector, 'get_device_name') and collector.get_device_name():
+                        device_name = collector.get_device_name()
+                    elif hasattr(collector, 'board_id'):
+                        # Try to get a better name based on board_id
+                        from brainflow.board_shim import BoardShim
+                        try:
+                            board_descr = BoardShim.get_board_descr(collector.board_id)
+                            if board_descr and 'name' in board_descr:
+                                device_name = board_descr['name']
+                        except:
+                            pass
+                    
+                    # Get actual sampling rate from the headset
+                    sampling_rate = collector.get_sampling_rate() if hasattr(collector, 'get_sampling_rate') else 250.0
+                    num_channels = collector.get_eeg_channel_count() if hasattr(collector, 'get_eeg_channel_count') else 8
+                    
+                    # Log the actual sampling rate
+                    logging.info(f"EEG device sampling rate: {sampling_rate} Hz")
+                    
+                    # Create better channel names if available
+                    channel_names = None
+                    if hasattr(collector, 'get_eeg_names'):
+                        channel_names = collector.get_eeg_names()
+                        
+                    # Create EEG publisher with improved naming
+                    from lsl_synchronizer import create_eeg_publisher
+                    self.eeg_publisher = create_eeg_publisher(
+                        device_name=device_name,
+                        board_id=board_id,
+                        num_channels=num_channels,
+                        sampling_rate=sampling_rate
+                    )
+                    
+                    logging.info(f"Initialized EEG LSL publisher for {device_name} with {num_channels} channels at {sampling_rate}Hz")
+                    
+                    # Register a data callback on the collector to receive EEG data
+                    if hasattr(collector, 'register_data_callback'):
+                        collector.register_data_callback(self._on_eeg_data)
+                        logging.info("Registered EEG data callback")
+                    
+                    # Register a processing callback on the processor service if available
+                    if hasattr(self.eeg_processor_app, 'processor_service') and self.eeg_processor_app.processor_service:
+                        # This is a hack to intercept processed data - normally would use a proper event system
+                        original_apply_all_filters = self.eeg_processor_app.processor_service.apply_all_filters
+                        
+                        def intercepted_apply_filters(data, filters_config):
+                            result = original_apply_all_filters(data, filters_config)
+                            # Send processed data to LSL
+                            try:
+                                if self.is_synchronized and self.eeg_publisher:
+                                    # Only send when synchronized and publisher exists
+                                    if isinstance(result, tuple) and len(result) > 0:
+                                        self.eeg_publisher.send_eeg_data(result[0])
+                                        logging.debug(f"Sent processed EEG data to LSL")
+                                    elif hasattr(result, 'shape'):
+                                        self.eeg_publisher.send_eeg_data(result)
+                                        logging.debug(f"Sent processed EEG data to LSL")
+                            except Exception as e:
+                                logging.error(f"Error sending processed EEG data to LSL: {e}")
+                            return result
+                        
+                        # Replace the original method with our interceptor
+                        self.eeg_processor_app.processor_service.apply_all_filters = intercepted_apply_filters
+                        logging.info("Intercepted filter application for LSL publishing")
+                        
+                    # Set up a timer to periodically fetch and send data to ensure continuous flow
+                    # Calculate optimal timer interval based on the headset's sampling rate
+                    # We'll use a timer interval that gives us about 10 samples per batch
+                    # to balance between latency and efficiency
+                    samples_per_batch = 10
+                    timer_interval_ms = max(4, int(1000 / (sampling_rate / samples_per_batch)))
+                    
+                    # Create and start the timer
+                    self.eeg_data_timer = QTimer(self)
+                    self.eeg_data_timer.timeout.connect(self._fetch_and_send_eeg_data)
+                    self.eeg_data_timer.start(timer_interval_ms)
+                    
+                    logging.info(f"Established EEG data timer for LSL streaming at {1000/timer_interval_ms:.1f} Hz")
+                    logging.info(f"Expected samples per batch: ~{samples_per_batch}")
+                else:
+                    logging.warning("Cannot initialize EEG publisher: No collector available")
+        
+        except Exception as e:
+            logging.error(f"Error initializing EEG publisher: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def _fetch_and_send_eeg_data(self):
+        """Periodically fetch and send EEG data to the LSL stream."""
+        if not self.is_synchronized or not self.eeg_publisher:
+            return
+            
+        try:
+            # Only proceed if we have the required services and they're accessible
+            if (hasattr(self.eeg_processor_app, 'collector_service') and 
+                    self.eeg_processor_app.collector_service and 
+                    self.eeg_processor_app.collector_service.collector):
+                
+                collector = self.eeg_processor_app.collector_service.collector
+                
+                # Get the most recent EEG data (about 250ms worth)
+                sampling_rate = collector.get_sampling_rate() if hasattr(collector, 'get_sampling_rate') else 250
+                samples_to_get = int(sampling_rate * 0.25)  # 250ms worth of data
+                
+                # Ensure we get at least one sample
+                if samples_to_get < 1:
+                    samples_to_get = 1
+                
+                data = None
+                timestamps = None
+                
+                if hasattr(collector, 'get_current_board_data'):
+                    # Try get_current_board_data method first
+                    data = collector.get_current_board_data(samples_to_get)
+                elif hasattr(collector, 'get_board_data'):
+                    # Fall back to get_board_data
+                    data = collector.get_board_data(samples_to_get)
+                else:
+                    # Try get_data which returns (data, timestamps)
+                    try:
+                        data, timestamps = collector.get_data(samples_to_get)
+                    except Exception as e:
+                        logging.debug(f"Error getting data: {e}")
+                
+                if data is not None and hasattr(data, 'size') and data.size > 0:
+                    # Make sure data is 2D
+                    if len(data.shape) == 1:
+                        # Single sample, reshape to 2D
+                        data = data.reshape(-1, 1)  # Channels x 1 sample
+                    
+                    # Get EEG channels if possible
+                    eeg_channels = None
+                    if hasattr(collector, 'get_eeg_channels'):
+                        try:
+                            eeg_channels = collector.get_eeg_channels()
+                        except:
+                            pass
+                    
+                    # If we have EEG channels, extract only those channels
+                    if eeg_channels is not None:
+                        # Check if we need to extract specific channels
+                        if len(eeg_channels) < data.shape[0]:
+                            # Extract only EEG channels
+                            data = data[eeg_channels, :]
+                    
+                    # Send each sample to LSL
+                    if len(data.shape) == 2:
+                        # For multiple samples (channels x samples), send each sample
+                        num_samples = data.shape[1]
+                        
+                        if num_samples > 0:
+                            if num_samples == 1:
+                                # Single sample case
+                                sample = data[:, 0]
+                                self.eeg_publisher.send_eeg_data(sample)
+                                logging.debug(f"Sent single EEG sample: shape {sample.shape}")
+                            else:
+                                # More efficient to send as chunk for multiple samples
+                                # Note: LSL expects (samples x channels) but BrainFlow gives (channels x samples)
+                                # So we need to transpose
+                                chunk_data = data.T  # Transpose to (samples x channels)
+                                self.eeg_publisher.send_eeg_chunk(chunk_data)
+                                logging.debug(f"Sent EEG data chunk: shape {chunk_data.shape}")
+                                
+                        # Log occasionally to indicate data is flowing
+                        if hasattr(self, '_last_eeg_log_time'):
+                            if time.time() - self._last_eeg_log_time > 5.0:  # Log every 5 seconds
+                                logging.info(f"Streaming EEG data to LSL: {data.shape[0]} channels, {num_samples} samples")
+                                self._last_eeg_log_time = time.time()
+                        else:
+                            self._last_eeg_log_time = time.time()
+                            logging.info(f"Started streaming EEG data to LSL")
+        
+        except Exception as e:
+            # Log errors but don't crash
+            logging.error(f"Error in EEG data timer: {e}")
+    
+    def _on_eeg_data(self, data, timestamp=None):
+        """Callback for EEG data to send to LSL."""
+        if self.eeg_publisher and self.is_synchronized:
+            try:
+                # Log that the callback was triggered
+                logging.debug(f"EEG data callback triggered with data shape: {data.shape if hasattr(data, 'shape') else 'unknown'}")
+                
+                # Send data to LSL stream - make sure data is not empty
+                if data is not None and hasattr(data, 'size') and data.size > 0:
+                    self.eeg_publisher.send_eeg_data(data, timestamp)
+            except Exception as e:
+                # Log error but don't raise to avoid disrupting the EEG processor
+                logging.error(f"Error sending EEG data to LSL: {e}")
+                import traceback
+                traceback.print_exc()
     
     def toggle_recording(self):
         """Toggle recording state for both EEG and input collection."""
@@ -799,35 +1143,49 @@ class IntegratedBCIApp(QMainWindow):
             if self.input_json_check.isChecked():
                 json_filename = f"{filename_base}_input_{timestamp}.json"
                 
-                # Enable JSON logging
-                self.input_collector_app.log_to_file = True
-                self.input_collector_app.log_file = open(json_filename, "w")
+                # Enable JSON logging with LSL integration
+                if hasattr(self.input_collector_app, 'logging_manager'):
+                    self.input_collector_app.logging_manager.set_json_logging(True)
+                    self.input_collector_app.logging_manager.json_logger.set_filepath(json_filename)
+                    
+                    # Register LSL callback with JSON logger
+                    self.input_collector_app.logging_manager.json_logger.set_lsl_publisher(self.input_publisher)
+                
                 logging.info(f"Input JSON logging to: {json_filename}")
             else:
                 # Disable JSON logging
-                self.input_collector_app.log_to_file = False
-                if hasattr(self.input_collector_app, 'log_file') and self.input_collector_app.log_file:
-                    self.input_collector_app.log_file.close()
-                    self.input_collector_app.log_file = None
+                if hasattr(self.input_collector_app, 'logging_manager'):
+                    self.input_collector_app.logging_manager.set_json_logging(False)
             
             # Set up CSV logging if enabled
             if self.input_csv_check.isChecked():
                 csv_filename = f"{filename_base}_input_{timestamp}.csv"
                 
-                # Enable CSV logging
-                self.input_collector_app.log_to_csv = True
-                self.input_collector_app.csv_filepath = csv_filename
+                # Enable CSV logging with LSL integration
+                if hasattr(self.input_collector_app, 'logging_manager'):
+                    self.input_collector_app.logging_manager.set_csv_logging(True)
+                    self.input_collector_app.logging_manager.csv_logger.set_filepath(csv_filename)
+                    
+                    # Register LSL callback with CSV logger
+                    self.input_collector_app.logging_manager.csv_logger.set_lsl_publisher(self.input_publisher)
+                
                 logging.info(f"Input CSV logging to: {csv_filename}")
             else:
                 # Disable CSV logging
-                self.input_collector_app.log_to_csv = False
+                if hasattr(self.input_collector_app, 'logging_manager'):
+                    self.input_collector_app.logging_manager.set_csv_logging(False)
             
             # Start recording in input collector
-            if hasattr(self.input_collector_app, '_toggle_recording') and not self.input_collector_app.is_recording:
-                self.input_collector_app._toggle_recording()
-                logging.info("Started input recording")
+            if hasattr(self.input_collector_app, 'app_coordinator'):
+                # Use app coordinator to start recording
+                self.input_collector_app.app_coordinator.start_recording()
+                logging.info("Started input recording via coordinator")
+            elif hasattr(self.input_collector_app, 'toggle_recording'):
+                # Direct method call if available
+                self.input_collector_app.toggle_recording()
+                logging.info("Started input recording via direct method")
             else:
-                logging.debug("Input collector already recording or toggle method not found")
+                logging.debug("Could not find recording method in input collector")
             
         except Exception as e:
             logging.error(f"Error starting input recording: {e}")
@@ -838,22 +1196,133 @@ class IntegratedBCIApp(QMainWindow):
         """Stop recording in the input collector app."""
         try:
             # Stop recording in input collector
-            if hasattr(self.input_collector_app, '_toggle_recording') and self.input_collector_app.is_recording:
-                self.input_collector_app._toggle_recording()
-                logging.info("Stopped input recording")
+            if hasattr(self.input_collector_app, 'app_coordinator'):
+                # Use app coordinator to stop recording
+                self.input_collector_app.app_coordinator.stop_recording()
+                logging.info("Stopped input recording via coordinator")
+            elif hasattr(self.input_collector_app, 'toggle_recording') and self.input_collector_app.is_recording:
+                # Direct method call if available and currently recording
+                self.input_collector_app.toggle_recording()
+                logging.info("Stopped input recording via direct method")
             else:
-                logging.debug("Input collector not recording or toggle method not found")
+                logging.debug("Could not find recording stop method in input collector")
             
             # Wait a moment for recording to complete
             QApplication.processEvents()
             
             # Disable logging if it was enabled
-            if hasattr(self.input_collector_app, 'log_checkbox') and self.input_collector_app.log_checkbox.isChecked():
-                self.input_collector_app.log_checkbox.setChecked(False)
-                logging.info("Disabled input collector logging")
+            if hasattr(self.input_collector_app, 'logging_manager'):
+                # Unregister LSL callbacks
+                if hasattr(self.input_collector_app.logging_manager, 'json_logger'):
+                    self.input_collector_app.logging_manager.json_logger.set_lsl_publisher(None)
+                if hasattr(self.input_collector_app.logging_manager, 'csv_logger'):
+                    self.input_collector_app.logging_manager.csv_logger.set_lsl_publisher(None)
             
         except Exception as e:
             logging.error(f"Error stopping input recording: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def _start_lsl_synchronization(self):
+        """Start LSL synchronization for recording."""
+        try:
+            # Set synchronization flag
+            self.is_synchronized = True
+            
+            # Start data collection in LSL receiver
+            sync_window_ms = int(self.sync_precision_combo.currentText())
+            sync_window_sec = sync_window_ms / 1000.0
+            
+            self.lsl_receiver.start_collection(buffer_duration=60.0)  # Keep 1 minute of data in buffer
+            
+            # If using the LSL sync widget, update its state
+            if hasattr(self, 'lsl_sync_widget'):
+                self.lsl_sync_widget.start_synchronization()
+            
+            # Create a marker indicating recording start
+            if self.marker_publisher:
+                self.marker_publisher.send_marker("recording", "start")
+            
+            logging.info(f"LSL synchronization started with {sync_window_ms}ms precision window")
+            
+        except Exception as e:
+            logging.error(f"Error starting LSL synchronization: {e}")
+            self.is_synchronized = False
+    
+    def _stop_lsl_synchronization(self):
+        """Stop LSL synchronization and export synchronized dataset."""
+        try:
+            # Create a marker indicating recording stop
+            if self.marker_publisher:
+                self.marker_publisher.send_marker("recording", "stop")
+            
+            # Clear synchronization flag
+            self.is_synchronized = False
+            
+            # Get format for dataset export
+            export_format = self.dataset_format_combo.currentText()
+            
+            # Generate timestamp for filename
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            
+            # Export synchronized data
+            if hasattr(self, 'session_dir'):
+                if export_format == "HDF5":
+                    filename = os.path.join(self.session_dir, f"synchronized_data_{timestamp}.h5")
+                    
+                    # Add metadata about the recording
+                    metadata = {
+                        'timestamp': timestamp,
+                        'eeg_device': self.eeg_publisher.device_name if self.eeg_publisher else "Unknown",
+                        'sync_precision_ms': self.sync_precision_combo.currentText()
+                    }
+                    
+                    success = self.dataset_exporter.export_to_hdf5(filename, metadata)
+                    if success:
+                        logging.info(f"Exported synchronized data to HDF5: {filename}")
+                    else:
+                        logging.error("Failed to export synchronized data to HDF5")
+                
+                elif export_format == "CSV":
+                    eeg_filename = os.path.join(self.session_dir, f"synchronized_eeg_{timestamp}.csv")
+                    events_filename = os.path.join(self.session_dir, f"synchronized_events_{timestamp}.csv")
+                    
+                    success = self.dataset_exporter.export_to_csv(eeg_filename, events_filename)
+                    if success:
+                        logging.info(f"Exported synchronized data to CSV: {eeg_filename} and {events_filename}")
+                    else:
+                        logging.error("Failed to export synchronized data to CSV")
+                
+                elif export_format == "EDF+":
+                    filename = os.path.join(self.session_dir, f"synchronized_eeg_{timestamp}.edf")
+                    
+                    success = self.dataset_exporter.export_to_edf(filename)
+                    if success:
+                        logging.info(f"Exported synchronized data to EDF+: {filename}")
+                    else:
+                        logging.error("Failed to export synchronized data to EDF+")
+                
+                elif export_format == "BIDS":
+                    logging.warning("BIDS export not fully implemented yet, falling back to HDF5")
+                    filename = os.path.join(self.session_dir, f"synchronized_data_{timestamp}.h5")
+                    
+                    success = self.dataset_exporter.export_to_hdf5(filename)
+                    if success:
+                        logging.info(f"Exported synchronized data to HDF5: {filename}")
+                    else:
+                        logging.error("Failed to export synchronized data to HDF5")
+            
+            # Stop the LSL receiver
+            self.lsl_receiver.stop_collection()
+            
+            # If using the LSL sync widget, update its state
+            if hasattr(self, 'lsl_sync_widget'):
+                self.lsl_sync_widget.stop_synchronization()
+            
+            logging.info("LSL synchronization stopped and data exported")
+            
+        except Exception as e:
+            logging.error(f"Error stopping LSL synchronization: {e}")
             import traceback
             traceback.print_exc()
     
@@ -893,12 +1362,20 @@ class IntegratedBCIApp(QMainWindow):
         # Just trigger a status update
         QTimer.singleShot(100, self._update_status)
     
+    def show_status_message(self, message):
+        """Show a status message in the status bar."""
+        self.statusBar().showMessage(message)
+    
     def closeEvent(self, event):
         """Handle application close event."""
         # Stop recording if active
         if self.is_recording:
             self.toggle_recording()
         
+        # Stop LSL synchronization if active
+        if self.is_synchronized:
+            self._stop_lsl_synchronization()
+            
         # Close EEG connection if active
         if self.is_eeg_connected:
             try:

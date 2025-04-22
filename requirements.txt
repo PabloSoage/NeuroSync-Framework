@@ -7,6 +7,9 @@ matplotlib
 pandas
 pysdl2
 pysdl2-dll
+pylsl
+h5py
 
 # Optional dependencies for advanced features
 mne
+scipy
