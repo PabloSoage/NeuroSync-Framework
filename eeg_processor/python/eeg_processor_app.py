@@ -120,6 +120,8 @@ class EEGProcessorApp(QMainWindow):
 
         # Create tabs
         self.tabs = QTabWidget()
+        # Ensure proper sizing policy for tab widget
+        self.tabs.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         main_layout.addWidget(self.tabs)
 
         # Create UI components and connect them to services
