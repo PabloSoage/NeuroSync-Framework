@@ -226,6 +226,13 @@ class UIManager(QObject):
         self.components['mouse_group'] = self.mouse_group
         self.components['mouse_layout'] = self.mouse_layout
         
+        # Placeholder for PS4 controller visualization
+        self.ps4_controller_group = QGroupBox("PS4 Controller")
+        self.ps4_controller_layout = QVBoxLayout(self.ps4_controller_group)
+        self.components['ps4_controller_group'] = self.ps4_controller_group
+        self.components['ps4_controller_layout'] = self.ps4_controller_layout
+        self.ps4_controller_group.setVisible(False)  # Hide by default
+        
         # Add left and right sides to visualization layout
         viz_layout.addLayout(self.left_viz_layout, 55)
         viz_layout.addWidget(self.mouse_group, 45)
@@ -427,7 +434,8 @@ class UIManager(QObject):
     
     def set_visualizers(self, keyboard_viz: KeyboardVisualizer, 
                        mouse_viz: MouseVisualizer, 
-                       mouse_buttons: MouseButtonsSelector) -> None:
+                       mouse_buttons: MouseButtonsSelector,
+                       ps4_controller_viz=None) -> None:
         """
         Add visualizers to the UI layout.
         
@@ -435,6 +443,7 @@ class UIManager(QObject):
             keyboard_viz: The keyboard visualizer component
             mouse_viz: The mouse visualizer component
             mouse_buttons: The mouse buttons selector component
+            ps4_controller_viz: The PS4 controller visualizer component (optional)
         """
         # Add keyboard visualizer to its group
         self.components['keyboard_layout'].addWidget(keyboard_viz)
@@ -444,6 +453,10 @@ class UIManager(QObject):
         
         # Add mouse visualizer to its group
         self.components['mouse_layout'].addWidget(mouse_viz)
+        
+        # Add PS4 controller visualizer if provided
+        if ps4_controller_viz is not None:
+            self.components['ps4_controller_layout'].addWidget(ps4_controller_viz)
 
     def _on_record_button_clicked(self) -> None:
         """Handle record button clicks."""
@@ -569,6 +582,7 @@ class UIManager(QObject):
             capabilities: Dictionary of collector capabilities
         """
         is_keyboard_mouse = collector_type == "keyboard_mouse"
+        is_ps4_controller = collector_type == "ps4_controller"
         
         # Update scan button visibility and style
         scan_button = self.components.get('scan_button')
@@ -588,15 +602,41 @@ class UIManager(QObject):
         direction_only_check = self.components.get('direction_only_check')
         
         if tracking_mode_combo:
-            tracking_mode_combo.setVisible(mouse_tracking_supported)
+            tracking_mode_combo.setVisible(mouse_tracking_supported and is_keyboard_mouse)
         
         if direction_only_check:
-            direction_only_check.setVisible(mouse_tracking_supported)
+            direction_only_check.setVisible(mouse_tracking_supported and is_keyboard_mouse)
         
         # Update mouse settings group visibility
         mouse_settings_group = self.components.get('mouse_settings_group')
         if mouse_settings_group:
-            mouse_settings_group.setVisible(mouse_tracking_supported)
+            mouse_settings_group.setVisible(mouse_tracking_supported and is_keyboard_mouse)
+            
+        # Update PS4 controller group visibility
+        ps4_controller_group = self.components.get('ps4_controller_group')
+        if ps4_controller_group:
+            # Show PS4 controller visualizer when using PS4 controller
+            ps4_controller_group.setVisible(is_ps4_controller)
+            
+        # Update mouse group visibility
+        mouse_group = self.components.get('mouse_group')
+        if mouse_group:
+            mouse_group.setVisible(is_keyboard_mouse)
+            
+        # Update viz_layout to show the right visualizer
+        viz_layout = self.components.get('viz_layout')
+        if viz_layout and is_ps4_controller and ps4_controller_group and mouse_group:
+            # Remove mouse group and add PS4 controller group
+            viz_layout.removeWidget(mouse_group)
+            mouse_group.setVisible(False)
+            viz_layout.addWidget(ps4_controller_group, 45)
+            ps4_controller_group.setVisible(True)
+        elif viz_layout and not is_ps4_controller and ps4_controller_group and mouse_group:
+            # Remove PS4 controller group and add mouse group
+            viz_layout.removeWidget(ps4_controller_group)
+            ps4_controller_group.setVisible(False)
+            viz_layout.addWidget(mouse_group, 45)
+            mouse_group.setVisible(True)
     
     def set_csv_path(self, path: str) -> None:
         """

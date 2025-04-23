@@ -268,35 +268,30 @@ class CSVLogger(QObject):
                     continue
                 
                 # Format the key name for CSV column lookup
-                csv_key_name = key
-                if key.startswith("Key."):
-                    csv_key_name = key[4:]  # Remove "Key." prefix
+                ps4_key_header = f"ps4_{key}"
                 
-                key_header = f"key_{csv_key_name}"
-                
-                if key_header in self.csv_headers:
-                    row_data[key_header] = 1
+                if ps4_key_header in self.csv_headers:
+                    row_data[ps4_key_header] = 1
         
         # Handle specific PS4 controller event types
         if event.event_type == "axis_motion":
             if hasattr(event, 'key') and hasattr(event, 'rel_x') and event.rel_x is not None:
-                # For joysticks, we store X and Y positions
-                if "_X" in event.key:
-                    base_name = event.key.replace("_X", "")
-                    header_x = f"controller_{base_name}_x"
-                    header_y = f"controller_{base_name}_y"
-                    
-                    # X value
-                    if header_x in self.csv_headers:
-                        row_data[header_x] = event.rel_x
-                    
-                    # Y value (from event if available)
-                    if header_y in self.csv_headers:
-                        if hasattr(event, 'rel_y') and event.rel_y is not None:
-                            row_data[header_y] = event.rel_y
-                else:
-                    # For triggers or other single-axis controls
-                    header = f"controller_{event.key}"
+                # Handle joystick axes
+                if "Stick" in event.key:
+                    if "_X" in event.key:
+                        axis_name = event.key.replace("_X", "")
+                        header = f"ps4_{axis_name}_x"
+                        if header in self.csv_headers:
+                            row_data[header] = event.rel_x
+                    elif "_Y" in event.key:
+                        axis_name = event.key.replace("_Y", "")
+                        header = f"ps4_{axis_name}_y"
+                        if header in self.csv_headers:
+                            row_data[header] = event.rel_y
+                
+                # Handle trigger axes (L2/R2)
+                elif "Trigger" in event.key:
+                    header = f"ps4_{event.key}"
                     if header in self.csv_headers:
                         row_data[header] = event.rel_x
         

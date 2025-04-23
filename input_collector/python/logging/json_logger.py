@@ -184,53 +184,49 @@ class JSONLogger(QObject):
     
     def _log_ps4_event(self, event: InputData) -> None:
         """Log a PS4 controller event to JSON."""
-        # Create a simplified log structure for PS4 controller
-        clean_log = {
-            "timestamp": event.timestamp,
-            "device": "ps4_controller",
-            "inputs": {"buttons": event.active_keys or []},
-        }
-
-        # Add event-specific data
-        if event.event_type == "button_press":
-            clean_log["event_type"] = "button_press"
-            clean_log["button"] = event.key
-        elif event.event_type == "axis_motion":
-            clean_log["event_type"] = "axis_motion"
-            clean_log["axis"] = event.key
-            if "Trigger" in event.key:
-                # Trigger value (0 to 1)
-                value = event.rel_x if event.rel_x is not None else 0.0
-                clean_log["value"] = value
-            elif "Stick" in event.key:
-                # Get joystick X/Y values
-                if "_X" in event.key:
-                    base_name = event.key.replace("_X", "")
-                    clean_log["axis"] = base_name
-
-                    # X value
-                    x_value = event.rel_x if event.rel_x is not None else 0.0
-
-                    # Y value would be in controller state, but we might not have access
-                    # Just use what we have
-                    y_value = 0.0
-                    if hasattr(event, "rel_y") and event.rel_y is not None:
-                        y_value = event.rel_y
-
-                    # Store as position
-                    clean_log["position"] = {"x": x_value, "y": y_value}
-
-                    # Calculate magnitude and direction
-                    magnitude = math.sqrt(x_value**2 + y_value**2)
-                    clean_log["magnitude"] = magnitude
-
-                    # Only include direction if significant movement
-                    if magnitude > 0.1:
-                        # Calculate angle in degrees (0 = right, 90 = down)
-                        angle = math.degrees(math.atan2(y_value, x_value))
-                        angle = (angle + 360) % 360
-                        clean_log["angle"] = angle
-
-        # Write to file and flush
-        self.log_file.write(json.dumps(clean_log) + "\n")
-        self.log_file.flush()
+        if not self.log_file:
+            return
+        
+        try:
+            import json
+            import time
+            
+            # Create a dictionary with relevant event data
+            event_data = {
+                'timestamp': event.timestamp,
+                'event_type': event.event_type,
+                'active_keys': event.active_keys if hasattr(event, 'active_keys') else [],
+            }
+            
+            # Add event-specific data
+            if event.event_type == "button_press" or event.event_type == "button_release":
+                event_data['button'] = event.key
+                event_data['pressed'] = (event.event_type == "button_press")
+            
+            elif event.event_type == "axis_motion":
+                event_data['axis'] = event.key
+                
+                if hasattr(event, 'key') and "Stick" in event.key:
+                    if "_X" in event.key:
+                        event_data['x_value'] = event.rel_x
+                    elif "_Y" in event.key:
+                        event_data['y_value'] = event.rel_y
+                    
+                    # Include direction and magnitude if available
+                    if hasattr(event, 'direction') and event.direction:
+                        event_data['direction'] = event.direction
+                    if hasattr(event, 'speed') and event.speed is not None:
+                        event_data['magnitude'] = event.speed
+                
+                elif hasattr(event, 'key') and "Trigger" in event.key:
+                    event_data['value'] = event.rel_x
+            
+            # Write the event data as a JSON line
+            json_line = json.dumps(event_data)
+            self.log_file.write(json_line + '\n')
+            self.log_file.flush()
+            
+        except Exception as e:
+            self.status_message.emit(f"Error logging PS4 event: {e}", "#FF5555")
+            import traceback
+            traceback.print_exc()

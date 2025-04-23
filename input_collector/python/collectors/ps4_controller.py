@@ -647,21 +647,29 @@ class PS4ControllerCollector(AbstractInputCollector):
         Args:
             event: The input event to process
         """
-        # Store event
-        self.events.append(event)
-        if len(self.events) > self.max_events:
-            self.events = self.events[-self.max_events :]
+        try:
+            # Store event
+            self.events.append(event)
+            if len(self.events) > self.max_events:
+                self.events = self.events[-self.max_events:]
 
-        # Also store in keyboard_events and mouse_events for compatibility
-        self.keyboard_events = self.events.copy()
-        self.mouse_events = self.events.copy()
+            # Also store in keyboard_events and mouse_events for compatibility
+            self.keyboard_events = self.events.copy()
+            self.mouse_events = self.events.copy()
 
-        # Notify callbacks
-        for callback in self.event_callbacks:
-            try:
-                callback(event)
-            except Exception as e:
-                print(f"Error in controller event callback: {e}")
+            # Notify callbacks
+            for callback in self.event_callbacks:
+                try:
+                    callback(event)
+                except Exception as e:
+                    print(f"Error in controller event callback: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    
+        except Exception as e:
+            print(f"Error processing PS4 controller event: {e}")
+            import traceback
+            traceback.print_exc()
 
     def get_input_event(self) -> InputData:
         """

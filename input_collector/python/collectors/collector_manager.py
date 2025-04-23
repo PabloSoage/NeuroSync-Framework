@@ -82,17 +82,39 @@ class CollectorManager:
         if collector_type not in self.collectors:
             return False
         
-        self.current_collector_type = collector_type
-        self.current_collector = self.collectors[collector_type]
+        try:
+            # Save previous collector type for rollback
+            previous_collector_type = self.current_collector_type
+            previous_collector = self.current_collector
+            
+            # Attempt to switch collector
+            self.current_collector_type = collector_type
+            self.current_collector = self.collectors[collector_type]
+            
+            # Update tracked keys
+            if self.tracked_keys:
+                self.current_collector.set_supported_keys(self.tracked_keys)
+            
+            # Update visualizers for the new collector
+            self._update_visualizers()
+            
+            return True
         
-        # Update tracked keys
-        if self.tracked_keys:
-            self.current_collector.set_supported_keys(self.tracked_keys)
-        
-        # Update visualizers for the new collector
-        self._update_visualizers()
-        
-        return True
+        except Exception as e:
+            print(f"Error switching to collector {collector_type}: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            # Rollback to previous collector if we had one
+            if hasattr(self, 'previous_collector_type') and previous_collector_type:
+                print(f"Rolling back to previous collector: {previous_collector_type}")
+                self.current_collector_type = previous_collector_type
+                self.current_collector = previous_collector
+                
+                # Update visualizers to reflect the rollback
+                self._update_visualizers()
+            
+            return False
     
     def get_available_collectors(self) -> List[Dict[str, str]]:
         """

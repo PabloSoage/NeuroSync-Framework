@@ -143,18 +143,20 @@ class InputCollectorApp(QMainWindow):
         # Create visualizer manager
         visualizer_manager = VisualizerManager(self)
         
-        # Register visualizers with collector manager
+        # Get visualizer components
         keyboard_viz = visualizer_manager.get_keyboard_visualizer()
         mouse_viz = visualizer_manager.get_mouse_visualizer()
         mouse_buttons = visualizer_manager.get_mouse_buttons_selector()
+        ps4_controller_viz = visualizer_manager.get_ps4_controller_visualizer()
         
         # Add visualizers to UI layout
-        self.ui_manager.set_visualizers(keyboard_viz, mouse_viz, mouse_buttons)
+        self.ui_manager.set_visualizers(keyboard_viz, mouse_viz, mouse_buttons, ps4_controller_viz)
         
         # Register visualizers with collector manager
         self.collector_manager.register_visualizer(keyboard_viz)
         self.collector_manager.register_visualizer(mouse_viz)
         self.collector_manager.register_visualizer(mouse_buttons)
+        self.collector_manager.register_visualizer(ps4_controller_viz)
         
         return visualizer_manager
 
@@ -398,36 +400,46 @@ class InputCollectorApp(QMainWindow):
             self._force_keyboard_mouse_mode()
             return False
             
-        # Check if we have an active controller connection
-        ps4_collector = self.collector_manager.get_collector("ps4_controller")
-        if ps4_collector and not ps4_collector.controller:
-            response = QMessageBox.question(
-                self,
-                "No Controller Connected",
-                "No controller is currently connected. Would you like to scan for controllers now?",
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.Yes,
-            )
-            
-            if response == QMessageBox.Yes:
-                # Explicitly scan for controllers
-                self._scan_controllers()
-                # If we still don't have a controller after scanning, revert to keyboard/mouse
-                if not ps4_collector.controller:
+        try:
+            # Check if we have an active controller connection
+            ps4_collector = self.collector_manager.get_collector("ps4_controller")
+            if ps4_collector and not ps4_collector.controller:
+                response = QMessageBox.question(
+                    self,
+                    "No Controller Connected",
+                    "No controller is currently connected. Would you like to scan for controllers now?",
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.Yes,
+                )
+                
+                if response == QMessageBox.Yes:
+                    # Explicitly scan for controllers
+                    self._scan_controllers()
+                    # If we still don't have a controller after scanning, revert to keyboard/mouse
+                    if not ps4_collector.controller:
+                        self.ui_manager.log_status(
+                            "No controller found, reverting to Keyboard & Mouse", 
+                            self.warning_color
+                        )
+                        self._force_keyboard_mouse_mode()
+                        return False
+                else:
+                    # User declined to scan, revert to keyboard/mouse
                     self.ui_manager.log_status(
-                        "No controller found, reverting to Keyboard & Mouse", 
-                        self.warning_color
+                        "Controller scan declined, staying with Keyboard & Mouse",
+                        self.warning_color,
                     )
                     self._force_keyboard_mouse_mode()
                     return False
-            else:
-                # User declined to scan, revert to keyboard/mouse
-                self.ui_manager.log_status(
-                    "Controller scan declined, staying with Keyboard & Mouse",
-                    self.warning_color,
-                )
-                self._force_keyboard_mouse_mode()
-                return False
+        except Exception as e:
+            self.ui_manager.log_status(
+                f"Error checking PS4 controller: {e}",
+                self.error_color
+            )
+            import traceback
+            traceback.print_exc()
+            self._force_keyboard_mouse_mode()
+            return False
                 
         return True
 

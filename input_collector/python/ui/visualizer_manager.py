@@ -8,7 +8,7 @@ from typing import Dict, List, Any, Optional
 from PyQt5.QtCore import QObject, pyqtSignal, Qt, QEvent
 from PyQt5.QtWidgets import QWidget
 
-from ..visualizers import KeyboardVisualizer, MouseVisualizer, MouseButtonsSelector
+from ..visualizers import KeyboardVisualizer, MouseVisualizer, MouseButtonsSelector, PS4ControllerVisualizer
 from ..interfaces import InputData
 # Note: We don't import the interfaces for inheritance to avoid metaclass conflicts
 
@@ -45,6 +45,7 @@ class VisualizerManager(QObject):  # Only inherit from QObject
         self.keyboard_viz = KeyboardVisualizer(parent)
         self.mouse_viz = MouseVisualizer(parent)
         self.mouse_buttons_selector = MouseButtonsSelector(parent)
+        self.ps4_controller_viz = PS4ControllerVisualizer(parent)
         
         # Connect signals
         self._setup_keyboard_connections()
@@ -85,6 +86,10 @@ class VisualizerManager(QObject):  # Only inherit from QObject
         """Get the mouse buttons selector component."""
         return self.mouse_buttons_selector
     
+    def get_ps4_controller_visualizer(self) -> PS4ControllerVisualizer:
+        """Get the PS4 controller visualizer component."""
+        return self.ps4_controller_viz
+    
     # Implementation of AbstractVisualizerController methods
     
     def update_for_collector(self, collector_type: str, capabilities: Dict[str, Any]) -> None:
@@ -97,17 +102,23 @@ class VisualizerManager(QObject):  # Only inherit from QObject
         """
         # Update visualizer visibility
         self.keyboard_viz.setVisible(
-            self.keyboard_viz.supports_collector(collector_type)
+            self.keyboard_viz.supports_collector(collector_type) and 
+            collector_type != "ps4_controller"  # Hide keyboard when using PS4 controller
         )
         
         self.mouse_viz.setVisible(
-            self.mouse_viz.supports_collector(collector_type)
+            self.mouse_viz.supports_collector(collector_type) and
+            collector_type != "ps4_controller"  # Hide mouse when using PS4 controller
         )
         
         self.mouse_buttons_selector.setVisible(
             self.mouse_buttons_selector.supports_collector(collector_type) and
-            capabilities.get("supports_mouse_buttons", False)
+            capabilities.get("supports_mouse_buttons", False) and
+            collector_type != "ps4_controller"  # Hide mouse buttons when using PS4 controller
         )
+        
+        # Show PS4 controller visualizer only when using PS4 controller
+        self.ps4_controller_viz.setVisible(collector_type == "ps4_controller")
         
         # Update capabilities
         if hasattr(self.keyboard_viz, "set_collector_capabilities"):
@@ -118,6 +129,9 @@ class VisualizerManager(QObject):  # Only inherit from QObject
             
         if hasattr(self.mouse_buttons_selector, "set_collector_capabilities"):
             self.mouse_buttons_selector.set_collector_capabilities(capabilities)
+            
+        if hasattr(self.ps4_controller_viz, "set_collector_capabilities"):
+            self.ps4_controller_viz.set_collector_capabilities(capabilities)
     
     def set_tracked_keys(self, keys: List[str]) -> None:
         """
@@ -132,6 +146,9 @@ class VisualizerManager(QObject):  # Only inherit from QObject
             
             if hasattr(self.mouse_buttons_selector, 'setTrackedButtons'):
                 self.mouse_buttons_selector.setTrackedButtons(keys)
+                
+            if hasattr(self.ps4_controller_viz, 'set_tracked_keys'):
+                self.ps4_controller_viz.set_tracked_keys(keys)
         except Exception as e:
             print(f"Error setting tracked keys: {e}")
     
@@ -170,6 +187,14 @@ class VisualizerManager(QObject):  # Only inherit from QObject
             if self.mouse_buttons_selector:
                 if hasattr(self.mouse_buttons_selector, 'setEditMode'):
                     self.mouse_buttons_selector.setEditMode(enabled)
+                    
+            # Update PS4 controller visualizer
+            if self.ps4_controller_viz:
+                self.ps4_controller_viz.setCursor(
+                    Qt.PointingHandCursor if enabled else Qt.ArrowCursor
+                )
+                if hasattr(self.ps4_controller_viz, 'set_edit_mode'):
+                    self.ps4_controller_viz.set_edit_mode(enabled)
             
             # Force an update to reflect visual changes
             self.force_update()
@@ -192,6 +217,9 @@ class VisualizerManager(QObject):  # Only inherit from QObject
                 
             if hasattr(self.mouse_buttons_selector, 'update'):
                 self.mouse_buttons_selector.update()
+                
+            if hasattr(self.ps4_controller_viz, 'force_update'):
+                self.ps4_controller_viz.force_update()
                 
         except Exception as e:
             print(f"Error forcing visualizer updates: {e}")

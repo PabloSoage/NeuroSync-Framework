@@ -1,13 +1,19 @@
 """
-Visualization components for the input collector.
+Input event visualizers package.
 
-This module provides visual components for displaying and interacting with
-input data in real-time using PyQt5.
+This package provides visualization components for different types of input events.
 """
 
+from .visualizer_base import BaseVisualizer
 from .keyboard_viz import KeyboardVisualizer
 from .mouse_viz import MouseVisualizer
 from .mouse_buttons_selector import MouseButtonsSelector
-from .visualizer_base import BaseVisualizer
+from .ps4_controller_viz import PS4ControllerVisualizer
 
-__all__ = ['KeyboardVisualizer', 'MouseVisualizer', 'MouseButtonsSelector', 'BaseVisualizer']
+__all__ = [
+    'BaseVisualizer',
+    'KeyboardVisualizer',
+    'MouseVisualizer',
+    'MouseButtonsSelector',
+    'PS4ControllerVisualizer'
+]
