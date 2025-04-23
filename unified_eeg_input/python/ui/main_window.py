@@ -48,6 +48,9 @@ class UnifiedMainWindow(QMainWindow):
         # Create UI
         self._create_ui()
         
+        # Hide recording controls in original modules
+        self._hide_original_recording_controls()
+        
         # Connect signals
         self._connect_signals()
         
@@ -58,6 +61,39 @@ class UnifiedMainWindow(QMainWindow):
         
         # Initial UI update
         self.update_ui_state()
+
+    def _hide_original_recording_controls(self):
+        """Hide recording controls in original modules."""
+        # Hide Input Collector recording controls
+        if hasattr(self.input_app, 'ui_manager') and hasattr(self.input_app.ui_manager, 'hide_recording_controls'):
+            self.input_app.ui_manager.hide_recording_controls()
+        
+        # For EEG processor, we need to remove the recording tab
+        self._hide_eeg_processor_recording_tab()
+        
+        # Get help button from recording panel and add to our unified recording panel
+        self._move_help_button_to_unified_panel()
+    
+    def _hide_eeg_processor_recording_tab(self):
+        """Hide the recording tab from EEG processor."""
+        if hasattr(self.eeg_app, 'tabs'):
+            # Find the "Recording" tab
+            for i in range(self.eeg_app.tabs.count()):
+                if self.eeg_app.tabs.tabText(i) == "Recording":
+                    # Hide the tab by removing it
+                    self.eeg_app.tabs.removeTab(i)
+                    break
+    
+    def _move_help_button_to_unified_panel(self):
+        """Move help button from EEG processor's recording panel to unified panel."""
+        if (hasattr(self.eeg_app, 'recording_panel') and 
+            hasattr(self.eeg_app.recording_panel, 'help_button')):
+            help_button = self.eeg_app.recording_panel.help_button
+            if help_button:
+                # Remove it from its original location
+                help_button.setParent(None)
+                # Add it to our recording panel's info section
+                self.recording_panel.add_help_button(help_button)
     
     def _create_ui(self):
         """Create the user interface."""

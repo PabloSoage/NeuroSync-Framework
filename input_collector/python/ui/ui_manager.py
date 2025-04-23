@@ -786,3 +786,30 @@ class UIManager(QObject):
         # Log the edit mode state change
         self.log_status(f"Edit mode {'enabled' if enabled else 'disabled'}", 
                        "success" if enabled else "accent")
+    
+    def hide_recording_controls(self) -> None:
+        """Hide recording controls when running in unified app."""
+        # Flag to indicate we're running in unified mode
+        self.in_unified_mode = True
+        
+        # Find and hide all recording-related controls with their actual keys
+        recording_controls = [
+            'record_button',      # Record button
+            'log_checkbox',       # JSON logging checkbox
+            'csv_checkbox',       # CSV logging checkbox
+            'csv_path_field',     # CSV path edit field
+            'csv_path_button',    # Browse button for CSV path
+            'csv_path_label',     # "Path:" label
+            'status_label'        # Recording status label
+        ]
+        
+        # Hide components by their keys in the components dictionary
+        for control_key in recording_controls:
+            if control_key in self.components:
+                self.components[control_key].hide()
+                print(f"Hiding control: {control_key}")
+            else:
+                print(f"Warning: Control '{control_key}' not found in components")
+        
+        # Remove the direct attribute access section since these don't exist as attributes
+

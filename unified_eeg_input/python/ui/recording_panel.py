@@ -8,7 +8,7 @@ import os
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox,
     QPushButton, QLabel, QFileDialog, QCheckBox,
-    QComboBox, QSpinBox, QLineEdit
+    QComboBox, QSpinBox, QLineEdit, QMessageBox
 )
 from PyQt5.QtCore import Qt, QTimer
 
@@ -54,9 +54,10 @@ class UnifiedRecordingPanel(QWidget):
         # EEG enable checkbox
         self.record_eeg_check = QCheckBox("Record EEG Data")
         self.record_eeg_check.setChecked(True)
+        self.record_eeg_check.toggled.connect(self.check_ready_state)  # Connect to validation function
         eeg_layout.addWidget(self.record_eeg_check)
         
-        # EEG data type
+        # EEG data type with help button
         eeg_type_layout = QHBoxLayout()
         eeg_type_layout.addWidget(QLabel("Data Type:"))
         self.eeg_data_type_combo = QComboBox()
@@ -64,6 +65,26 @@ class UnifiedRecordingPanel(QWidget):
         self.eeg_data_type_combo.addItem("Processed", "processed")
         self.eeg_data_type_combo.addItem("Both", "both")
         eeg_type_layout.addWidget(self.eeg_data_type_combo)
+        
+        # Add help button for data type
+        try:
+            from eeg_processor.python.utils.help_system import HelpButton
+            help_button = HelpButton("recording", self)
+            eeg_type_layout.addWidget(help_button)
+            self.help_button = help_button  # Store reference
+        except ImportError:
+            # Create a simple help button if import fails
+            help_button = QPushButton("?")
+            help_button.setMaximumWidth(25)
+            help_button.clicked.connect(lambda: QMessageBox.information(
+                self, 
+                "Data Types", 
+                "Raw: Original EEG data without processing\n\n"
+                "Processed: Data after filters are applied\n\n"
+                "Both: Two files will be created, one with raw data and one with processed data"
+            ))
+            eeg_type_layout.addWidget(help_button)
+        
         eeg_layout.addLayout(eeg_type_layout)
         
         # Add EEG status indicator
@@ -84,6 +105,7 @@ class UnifiedRecordingPanel(QWidget):
         # Input enable checkbox
         self.record_input_check = QCheckBox("Record Input Data")
         self.record_input_check.setChecked(True)
+        self.record_input_check.toggled.connect(self.check_ready_state)  # Connect to validation function
         input_layout.addWidget(self.record_input_check)
         
         # Input format options
@@ -205,20 +227,84 @@ class UnifiedRecordingPanel(QWidget):
         
         # Check if at least one recording type is enabled
         if not config['record_eeg'] and not config['record_input']:
-            self.coordinator.status_message.emit("Please enable at least one recording type", "warning")
+            QMessageBox.warning(
+                self,
+                "Recording Error",
+                "Please enable at least one recording type (EEG or Input).",
+                QMessageBox.Ok
+            )
             return
         
         # Check if input format is selected when input recording is enabled
         if config['record_input'] and not (config['input_csv'] or config['input_json']):
-            self.coordinator.status_message.emit("Please select at least one input format (CSV or JSON)", "warning")
+            QMessageBox.warning(
+                self,
+                "Recording Error",
+                "Please select at least one input format (CSV or JSON) when recording input data.",
+                QMessageBox.Ok
+            )
+            return
+        
+        # Double-check readiness for selected sources
+        eeg_ready = self.coordinator.integration_service.get_eeg_ready_state()
+        input_ready = self.coordinator.integration_service.get_input_ready_state()
+        
+        if config['record_eeg'] and not eeg_ready:
+            QMessageBox.warning(
+                self, 
+                "Recording Error",
+                "EEG system is not ready for recording. Please make sure it's connected and streaming.",
+                QMessageBox.Ok
+            )
+            return
+        
+        if config['record_input'] and not input_ready:
+            QMessageBox.warning(
+                self, 
+                "Recording Error",
+                "Input system is not ready for recording.",
+                QMessageBox.Ok
+            )
             return
         
         # Start recording through coordinator
-        self.coordinator.start_recording(config)
+        try:
+            success = self.coordinator.start_recording(config)
+            if not success:
+                QMessageBox.critical(
+                    self, 
+                    "Recording Failed",
+                    "Failed to start recording. Check that all systems are ready.",
+                    QMessageBox.Ok
+                )
+        except Exception as e:
+            QMessageBox.critical(
+                self, 
+                "Recording Error",
+                f"An error occurred while starting recording: {str(e)}",
+                QMessageBox.Ok
+            )
     
     def stop_recording(self):
         """Stop current recording."""
-        self.coordinator.stop_recording()
+        try:
+            success = self.coordinator.stop_recording()
+            if not success:
+                QMessageBox.warning(
+                    self, 
+                    "Error Stopping Recording",
+                    "There was a problem stopping the recording. Some data may not have been saved correctly.",
+                    QMessageBox.Ok
+                )
+        except Exception as e:
+            QMessageBox.critical(
+                self, 
+                "Recording Error",
+                f"An error occurred while stopping recording: {str(e)}",
+                QMessageBox.Ok
+            )
+            # Reset the UI state in case of error
+            self.update_recording_state(False)
     
     def add_marker(self):
         """Add a marker to the recording."""
@@ -312,16 +398,42 @@ class UnifiedRecordingPanel(QWidget):
         else:
             self.input_ready_indicator.setStyleSheet("color: #FF5555; font-size: 16px;")  # Red
         
-        # Enable or disable record button based on at least one system ready
-        # and appropriate recording options checked
-        enable_record = False
+        # Enable or disable record button based on selected recording sources being ready
+        enable_record = True
         
-        if eeg_ready and self.record_eeg_check.isChecked():
-            enable_record = True
+        # Check if EEG is selected but not ready
+        if self.record_eeg_check.isChecked() and not eeg_ready:
+            enable_record = False
         
-        if input_ready and self.record_input_check.isChecked():
-            enable_record = True
+        # Check if Input is selected but not ready
+        if self.record_input_check.isChecked() and not input_ready:
+            enable_record = False
+        
+        # Check if at least one source is selected
+        if not (self.record_eeg_check.isChecked() or self.record_input_check.isChecked()):
+            enable_record = False
         
         # Don't disable the button during recording
         if not self.recording:
             self.record_btn.setEnabled(enable_record)
+            # Update button style for better visual feedback
+            if enable_record:
+                self.record_btn.setStyleSheet("font-weight: bold; font-size: 16px; background-color: #007ACC; color: white; min-height: 40px;")
+            else:
+                self.record_btn.setStyleSheet("font-weight: bold; font-size: 16px; background-color: #666666; color: #AAAAAA; min-height: 40px;")
+
+    def check_ready_state(self):
+        """Check ready state when checkboxes change."""
+        # Get current ready states from coordinator/integration service
+        eeg_ready = self.coordinator.integration_service.get_eeg_ready_state() if self.coordinator else False
+        input_ready = self.coordinator.integration_service.get_input_ready_state() if self.coordinator else True
+        
+        # Update UI with current state
+        self.update_ready_state(eeg_ready, input_ready)
+
+    def add_help_button(self, help_button):
+        """Add help button from EEG processor to the data type selection."""
+        if help_button and self.eeg_help_layout:
+            self.eeg_help_layout.addWidget(help_button)
+            # Add a stretch to push the help button to the right side
+            self.eeg_help_layout.addStretch()
