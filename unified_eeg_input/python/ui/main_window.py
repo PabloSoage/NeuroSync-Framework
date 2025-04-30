@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QTimer, pyqtSlot
 
 from .recording_panel import UnifiedRecordingPanel
+from .sync_visualization_panel import SynchronizedDataVisualization
 from ..utils.theme_manager import UnifiedThemeManager
 
 
@@ -165,9 +166,13 @@ class UnifiedMainWindow(QMainWindow):
             # Fallback if the structure is different
             input_layout.addWidget(QLabel("Input Collector interface not available"))
         
+        # Create synchronized visualization tab
+        self.sync_viz_panel = SynchronizedDataVisualization(self.integration_service)
+        
         # Add tabs
         self.tabs.addTab(eeg_container, "EEG Processing")
         self.tabs.addTab(input_container, "Input Collection")
+        self.tabs.addTab(self.sync_viz_panel, "Synchronized View")
         
         # Add tabs to main layout
         main_layout.addWidget(self.tabs)
@@ -265,6 +270,10 @@ class UnifiedMainWindow(QMainWindow):
         
         # Cleanup resources
         self.update_timer.stop()
+        
+        # Clean up synchronization resources
+        if hasattr(self.integration_service, 'cleanup'):
+            self.integration_service.cleanup()
         
         # Accept the event to close the window
         event.accept()

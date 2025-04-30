@@ -7,7 +7,10 @@ input collector applications.
 
 import os
 import time
+import numpy as np
 from PyQt5.QtCore import QObject, pyqtSignal, QTimer
+
+from .lsl_sync_service import LSLSyncService
 
 
 class IntegrationService(QObject):
@@ -31,20 +34,181 @@ class IntegrationService(QObject):
         self.recording_start_time = 0
         self.recording_directory = ""
         
+        # Create LSL synchronization service
+        self.lsl_sync = LSLSyncService()
+        
+        # Connect LSL sync signals
+        self.lsl_sync.status_message.connect(self.status_message)
+        
+        # Initialize LSL streams
+        self._initialize_lsl()
+        
         # Setup Timer for periodic checks
         self.check_timer = QTimer(self)
         self.check_timer.timeout.connect(self.check_components_status)
         self.check_timer.start(1000)  # Check every second
+        
+        # Data forwarding setup
+        self.setup_data_forwarding()
+    
+    def _initialize_lsl(self):
+        """Initialize LSL streams."""
+        # Get EEG device info for stream configuration
+        collector_service = self.eeg_processor['collector_service']
+        eeg_channels = 8  # Default
+        eeg_sample_rate = 250  # Default
+        
+        if collector_service.is_connected():
+            # Get actual values from the connected board
+            board_desc = collector_service.get_board_description()
+            if board_desc:
+                eeg_channels = board_desc.get('eeg_channels', 8)
+                eeg_sample_rate = board_desc.get('sampling_rate', 250)
+        
+        # Initialize LSL streams
+        self.lsl_sync.initialize_streams(
+            eeg_channels=eeg_channels,
+            eeg_sample_rate=eeg_sample_rate,
+            input_channels=20,  # Enough for keyboard, mouse, and controller inputs
+            input_sample_rate=60  # Input events typically happen at lower rates
+        )
+        
+        # Start LSL synchronization
+        self.lsl_sync.start_sync()
+    
+    def setup_data_forwarding(self):
+        """Set up data forwarding from EEG and input collector to LSL."""
+        # Connect to EEG data stream
+        try:
+            processor_service = self.eeg_processor['processor_service']
+            processor_service.register_data_callback(self._forward_eeg_data)
+            self.status_message.emit("Connected to EEG data stream", "success")
+        except Exception as e:
+            self.status_message.emit(f"Error connecting to EEG data stream: {str(e)}", "warning")
+        
+        # Connect to input events
+        try:
+            event_processor = self.input_collector['event_processor']
+            event_processor.register_event_callback(self._forward_input_event)
+            self.status_message.emit("Connected to input event stream", "success")
+        except Exception as e:
+            self.status_message.emit(f"Error connecting to input event stream: {str(e)}", "warning")
+    
+    def _forward_eeg_data(self, eeg_data):
+        """
+        Forward EEG data to LSL stream.
+        
+        Args:
+            eeg_data: EEG data sample
+        """
+        # Convert data to the format expected by LSL
+        # For example, extract the EEG channel data as a list
+        if isinstance(eeg_data, np.ndarray):
+            # Use as is if it's already a numpy array
+            sample = eeg_data.tolist()
+        elif hasattr(eeg_data, 'channels_data'):
+            # Extract channels data if it's an EEG data object
+            sample = eeg_data.channels_data
+        else:
+            # Try to convert to a list
+            sample = list(eeg_data)
+        
+        # Push to LSL
+        self.lsl_sync.push_eeg_data(sample)
+    
+    def _forward_input_event(self, input_event):
+        """
+        Forward input event to LSL stream.
+        
+        Args:
+            input_event: Input event data
+        """
+        # Convert input event to a numeric representation
+        # Create a fixed-size vector representing the event
+        # For example: [timestamp, event_type_code, key_code, x, y, button, ...]
+        
+        # Initialize with zeros
+        input_data = [0.0] * 20  # Match the channel count in initialize_streams
+        
+        # Set common fields
+        input_data[0] = input_event.timestamp
+        
+        # Set event type code
+        event_types = {
+            'key_press': 1,
+            'key_release': 2,
+            'mouse_move': 3,
+            'mouse_click': 4,
+            'mouse_scroll': 5,
+            'none': 0
+        }
+        input_data[1] = event_types.get(input_event.event_type, 0)
+        
+        # Set key code if relevant
+        if input_event.key:
+            # Simplified encoding of key values
+            # In a real implementation, you'd want a more sophisticated mapping
+            try:
+                # Remove 'Key.' prefix if present and encode first character
+                key_str = input_event.key.replace('Key.', '')
+                input_data[2] = ord(key_str[0]) if key_str else 0
+            except:
+                input_data[2] = 0
+        
+        # Set mouse position and button if relevant
+        if input_event.mouse_x is not None:
+            input_data[3] = input_event.mouse_x
+        if input_event.mouse_y is not None:
+            input_data[4] = input_event.mouse_y
+        
+        if input_event.button_pressed:
+            # Encode button press
+            button_types = {
+                'Button.left': 1,
+                'Button.right': 2,
+                'Button.middle': 3
+            }
+            input_data[5] = button_types.get(input_event.button_pressed, 0)
+        
+        # Set mouse movement attributes if relevant
+        if input_event.speed is not None:
+            input_data[6] = input_event.speed
+        if input_event.speed_x is not None:
+            input_data[7] = input_event.speed_x
+        if input_event.speed_y is not None:
+            input_data[8] = input_event.speed_y
+        
+        # Additional mouse movement data
+        if input_event.mouse_delta_x is not None:
+            input_data[9] = input_event.mouse_delta_x
+        if input_event.mouse_delta_y is not None:
+            input_data[10] = input_event.mouse_delta_y
+        
+        # Active keys bitmap (simplified - in real implementation you'd want a better encoding)
+        if input_event.active_keys:
+            for i, key in enumerate(input_event.active_keys[:8]):  # Store up to 8 active keys
+                try:
+                    # Simple encoding - just first character ASCII value
+                    key_str = key.replace('Key.', '')
+                    input_data[11 + i] = ord(key_str[0]) if key_str else 0
+                except:
+                    input_data[11 + i] = 0
+        
+        # Push to LSL
+        self.lsl_sync.push_input_data(input_data)
     
     def check_components_status(self):
         """Periodically check the status of both components."""
-        # Check if EEG board is connected
+        # Check if EEG board is connected and update LSL if needed
         eeg_connected = self.eeg_processor['collector_service'].is_connected()
+        eeg_streaming = self.eeg_processor['collector_service'].is_streaming_active() if eeg_connected else False
         
         # Check if input collection is active
         input_active = True  # Input collection is always available
         
-        # Additional checks can be implemented here
+        # Re-initialize LSL if EEG configuration has changed
+        if eeg_connected and not self.lsl_sync.eeg_outlet:
+            self._initialize_lsl()
     
     def start_recording(self, config):
         """
@@ -69,6 +233,10 @@ class IntegrationService(QObject):
             os.makedirs(directory, exist_ok=True)
             
         self.recording_directory = directory
+        
+        # Start LSL recording for synchronized data
+        lsl_recording_success = self.lsl_sync.start_recording()
+        success = success and lsl_recording_success
         
         # Start input collector recording if enabled
         if config['record_input']:
@@ -199,6 +367,10 @@ class IntegrationService(QObject):
         """
         success = True
         
+        # Stop LSL recording
+        lsl_success = self.lsl_sync.stop_recording()
+        success = success and lsl_success
+        
         # Stop input collector recording
         input_success = self._stop_input_recording()
         success = success and input_success
@@ -206,6 +378,19 @@ class IntegrationService(QObject):
         # Stop EEG recording
         eeg_success = self._stop_eeg_recording()
         success = success and eeg_success
+        
+        # Export synchronized dataset
+        if lsl_success and self.recording_directory:
+            # Export CSV by default
+            dataset_path = os.path.join(self.recording_directory, "synchronized_dataset")
+            self.lsl_sync.export_dataset('csv', dataset_path)
+            
+            # Export HDF5 if available
+            try:
+                import h5py
+                self.lsl_sync.export_dataset('hdf5', dataset_path)
+            except ImportError:
+                pass
         
         # Reset recording state
         self.recording_start_time = 0
@@ -281,6 +466,10 @@ class IntegrationService(QObject):
         """
         success = True
         
+        # Add marker to LSL stream
+        lsl_success = self.lsl_sync.push_marker(marker_value)
+        success = success and lsl_success
+        
         # Add marker to EEG recording if active
         recording_service = self.eeg_processor['recording_service']
         collector_service = self.eeg_processor['collector_service']
@@ -341,3 +530,21 @@ class IntegrationService(QObject):
         """
         # Input collector is always ready for recording
         return True
+    
+    def get_synchronized_data(self, max_samples=100):
+        """
+        Get synchronized data for visualization.
+        
+        Args:
+            max_samples: Maximum number of samples to return
+            
+        Returns:
+            dict: Dictionary with synchronized data
+        """
+        # Get dataset preview from LSL sync service
+        return self.lsl_sync.get_dataset_preview(max_samples)
+    
+    def cleanup(self):
+        """Clean up resources."""
+        # Clean up LSL sync service
+        self.lsl_sync.cleanup()
