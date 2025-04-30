@@ -9,13 +9,175 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox,
     QPushButton, QLabel, QComboBox, QSpinBox,
     QCheckBox, QSlider, QSplitter, QGridLayout,
-    QScrollArea, QFrame, QDoubleSpinBox, QToolTip
+    QScrollArea, QFrame, QDoubleSpinBox, QToolTip,
+    QDialog, QTextBrowser
 )
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QColor
+from PyQt5.QtCore import Qt, QTimer, QSize
+from PyQt5.QtGui import QColor, QIcon
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
+
+# Use a consistent help button style similar to the one in UnifiedRecordingPanel
+class HelpButton(QPushButton):
+    """Custom button for showing help tooltips."""
+    
+    def __init__(self, help_topic, parent=None):
+        """
+        Initialize help button.
+        
+        Args:
+            help_topic: Topic identifier or help text content
+            parent: Parent widget
+        """
+        super().__init__(parent)
+        self.help_topic = help_topic
+        self.setText("?")
+        self.setFixedSize(20, 20)
+        self.setToolTip("Click for help")
+        
+        # Style the button to make it look like a help icon (same as in recording_panel)
+        self.setStyleSheet("""
+            QPushButton {
+                border-radius: 10px;
+                background-color: #007ACC;
+                color: white;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #009AEE;
+            }
+        """)
+        
+        # Connect the clicked signal to show help
+        self.clicked.connect(self.show_help)
+        
+    def show_help(self):
+        """Show help dialog with help text."""
+        # Create a non-modal dialog to avoid alert sound
+        dialog = QDialog(self.parent())
+        dialog.setWindowTitle("Help")
+        dialog.setMinimumSize(400, 300)
+        
+        # Use a text browser for rich text support
+        text_browser = QTextBrowser(dialog)
+        text_browser.setOpenExternalLinks(True)
+        
+        # Get help content based on topic
+        content = self._get_help_content(self.help_topic)
+        text_browser.setHtml(content)
+        
+        # Set up layout
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(text_browser)
+        
+        # Add close button 
+        close_button = QPushButton("Close", dialog)
+        close_button.clicked.connect(dialog.accept)
+        close_button.setMaximumWidth(100)
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        button_layout.addWidget(close_button)
+        layout.addLayout(button_layout)
+        
+        # Show as non-modal dialog to avoid alert sound
+        dialog.setModal(False)
+        dialog.show()
+    
+    def _get_help_content(self, topic):
+        """
+        Get help content based on topic.
+        
+        Args:
+            topic: Help topic identifier
+            
+        Returns:
+            str: HTML content for help
+        """
+        help_contents = {
+            "eeg_display": """
+                <h3>EEG Display Settings</h3>
+                <p>This section allows you to configure how EEG data is displayed:</p>
+                <ul>
+                    <li><b>Time Window:</b> Sets the time range shown in the plot (in seconds). 
+                    Larger values show more data but with less detail.</li>
+                    <li><b>Scale:</b> Adjusts the amplitude scaling of EEG signals. 
+                    Increase for small signals, decrease for large signals.</li>
+                    <li><b>Channel Mode:</b> 
+                        <ul>
+                            <li><i>Stacked:</i> Shows each channel separated vertically</li>
+                            <li><i>Overlaid:</i> Shows all channels on the same axis for easier comparison</li>
+                        </ul>
+                    </li>
+                    <li><b>Show EEG/Input/Markers:</b> Toggle visibility of different data types</li>
+                    <li><b>Basic Filtering:</b> Applies a simple moving average filter to reduce noise</li>
+                </ul>
+                <p>Use the <b>Channel Selection</b> button to choose which EEG channels to display.</p>
+            """,
+            "time_window": """
+                <h3>Time Window</h3>
+                <p>Sets the time range shown in the EEG plot (in seconds).</p>
+                <p>Larger values show more data history but with less detail. Smaller values show more detailed 
+                waveforms but less context.</p>
+            """,
+            "scale": """
+                <h3>Scale Factor</h3>
+                <p>Adjusts the amplitude scaling of EEG signals.</p>
+                <p>Increase the scale for small signals that are hard to see. Decrease for large signals that go off the screen.</p>
+            """,
+            "channel_mode": """
+                <h3>Channel Display Mode</h3>
+                <ul>
+                    <li><b>Stacked:</b> Shows each channel separated vertically with space between them. 
+                    Better for seeing individual channel activity.</li>
+                    <li><b>Overlaid:</b> Shows all channels on the same axis. Better for comparing relative amplitudes 
+                    and timing between channels.</li>
+                </ul>
+            """,
+            "filtering": """
+                <h3>Basic Filtering</h3>
+                <p>Applies a simple moving average filter to reduce high-frequency noise in the EEG signal.</p>
+                <p>This is a basic filter suitable for visualization purposes. For more advanced signal processing, 
+                use the dedicated processing tools in the EEG Processing tab.</p>
+            """,
+            "sync_tolerance": """
+                <h3>Synchronization Tolerance</h3>
+                <p>Sets the maximum allowed time difference between EEG and input signals.</p>
+                <p><b>Recommended tolerance values:</b></p>
+                <ul>
+                    <li><b>1ms or lower:</b> Ultra-precise synchronization for specialized research. May cause data loss as time alignment becomes extremely strict.</li>
+                    <li><b>10ms:</b> Standard research-grade synchronization, balancing precision with practicality.</li>
+                    <li><b>50ms:</b> Good for most BCI applications and general research.</li>
+                    <li><b>100ms:</b> Minimum for reaction time studies and reliable correlation between signals.</li>
+                </ul>
+                <p>Lower values ensure tighter synchronization but may result in data loss if streams can't maintain precise timing.</p>
+                <p>Higher values are more forgiving but may include misaligned data.</p>
+            """,
+            "export_formats": """
+                <h3>Export Formats</h3>
+                <p>Select a format for exporting synchronized data:</p>
+                <ul>
+                    <li><b>CSV:</b> Simple spreadsheet format. Good for basic analysis and compatibility.
+                    Creates separate files for EEG, input, and merged data.</li>
+                    <li><b>HDF5:</b> Hierarchical data format. Best for large datasets and preserving
+                    structure. Requires h5py package.</li>
+                    <li><b>EDF:</b> European Data Format. Standard for clinical EEG. Good for
+                    EEG-specific analysis tools. Requires MNE package.</li>
+                    <li><b>BIDS:</b> Brain Imaging Data Structure. Best for sharing data and collaborative
+                    research. Creates standardized directory structure. Requires MNE and MNE-BIDS packages.</li>
+                </ul>
+            """,
+            "channel_selection": """
+                <h3>Channel Selection</h3>
+                <p>Select which EEG channels to display in the visualization.</p>
+                <p>The available channels depend on your connected EEG device.</p>
+                <p>Selecting fewer channels can make the visualization clearer and more focused on regions of interest.</p>
+                <p>Use the <b>Select All</b> and <b>Clear All</b> buttons to quickly manage your channel selection.</p>
+            """
+        }
+        
+        return help_contents.get(topic, "<h3>Help</h3><p>No specific help available for this topic.</p>")
+
 
 class SynchronizedDataVisualization(QWidget):
     """
@@ -117,22 +279,11 @@ class SynchronizedDataVisualization(QWidget):
         self.channel_mode_combo.currentTextChanged.connect(self.update_channel_mode)
         eeg_controls_layout.addWidget(self.channel_mode_combo, 2, 1)
         
-        # Channel selection dropdown (will be populated later)
-        eeg_controls_layout.addWidget(QLabel("Channels:"), 0, 2)
-        self.channel_select_combo = QComboBox()
-        self.channel_select_combo.addItem("All Channels")
-        self.channel_select_combo.addItem("Frontal")
-        self.channel_select_combo.addItem("Central")
-        self.channel_select_combo.addItem("Parietal")
-        self.channel_select_combo.addItem("Occipital")
-        self.channel_select_combo.currentTextChanged.connect(self.update_channel_selection)
-        eeg_controls_layout.addWidget(self.channel_select_combo, 0, 3)
-        
         # View options
         self.show_eeg_check = QCheckBox("Show EEG")
         self.show_eeg_check.setChecked(True)
         self.show_eeg_check.toggled.connect(self.update_plots)
-        eeg_controls_layout.addWidget(self.show_eeg_check, 1, 2)
+        eeg_controls_layout.addWidget(self.show_eeg_check, 0, 3)
         
         self.show_input_check = QCheckBox("Show Input")
         self.show_input_check.setChecked(True)
@@ -142,13 +293,22 @@ class SynchronizedDataVisualization(QWidget):
         self.show_markers_check = QCheckBox("Show Markers")
         self.show_markers_check.setChecked(True)
         self.show_markers_check.toggled.connect(self.update_plots)
-        eeg_controls_layout.addWidget(self.show_markers_check, 2, 2)
+        eeg_controls_layout.addWidget(self.show_markers_check, 2, 3)
         
         # Filter option
         self.filter_noise_check = QCheckBox("Basic Filtering")
         self.filter_noise_check.setChecked(False)
         self.filter_noise_check.toggled.connect(self.update_plots)
-        eeg_controls_layout.addWidget(self.filter_noise_check, 2, 3)
+        eeg_controls_layout.addWidget(self.filter_noise_check, 0, 4)
+        
+        # Add single help button for all EEG display settings
+        eeg_help_btn = HelpButton("eeg_display", self)
+        eeg_controls_layout.addWidget(eeg_help_btn, 0, 5)
+        
+        # Toggle channel selection button
+        self.toggle_channel_selection_btn = QPushButton("Channel Selection")
+        self.toggle_channel_selection_btn.clicked.connect(self.toggle_channel_selection_panel)
+        eeg_controls_layout.addWidget(self.toggle_channel_selection_btn, 1, 4)
         
         eeg_controls_group.setLayout(eeg_controls_layout)
         
@@ -168,6 +328,20 @@ class SynchronizedDataVisualization(QWidget):
         self.sync_tolerance_spin.setToolTip("Maximum allowed time offset between EEG and input data")
         self.sync_tolerance_spin.valueChanged.connect(self.update_sync_tolerance)
         sync_controls_layout.addWidget(self.sync_tolerance_spin, 0, 1)
+        
+        # Add help button for sync tolerance
+        sync_tolerance_help = HelpButton("sync_tolerance", self)
+        sync_controls_layout.addWidget(sync_tolerance_help, 0, 2)
+        
+        # Dataset format selector
+        sync_controls_layout.addWidget(QLabel("Export Format:"), 1, 0)
+        self.export_format_combo = QComboBox()
+        self.export_format_combo.addItems(["CSV", "HDF5", "EDF", "BIDS"])
+        sync_controls_layout.addWidget(self.export_format_combo, 1, 1)
+        
+        # Add help button for export formats
+        export_format_help = HelpButton("export_formats", self)
+        sync_controls_layout.addWidget(export_format_help, 1, 2)
         
         sync_controls_group.setLayout(sync_controls_layout)
         header_layout.addWidget(sync_controls_group)
@@ -229,31 +403,18 @@ class SynchronizedDataVisualization(QWidget):
         # Setup channel selection group box that appears below the plot
         self.setup_channel_selection()
         layout.addWidget(self.channel_selection_group)
+        self.channel_selection_group.setVisible(False)  # Start collapsed
     
-    def update_sync_tolerance(self, value):
-        """Update the synchronization tolerance value."""
-        self.sync_tolerance = value
+    def toggle_channel_selection_panel(self):
+        """Toggle visibility of the channel selection panel."""
+        self.channel_selection_group.setVisible(not self.channel_selection_group.isVisible())
         
-        # Update LSL sync service if available
-        if hasattr(self.integration_service, 'lsl_sync') and hasattr(self.integration_service.lsl_sync, 'set_sync_tolerance'):
-            self.integration_service.lsl_sync.set_sync_tolerance(value)
+        # Update button text
+        if self.channel_selection_group.isVisible():
+            self.toggle_channel_selection_btn.setText("Hide Channel Selection")
+        else:
+            self.toggle_channel_selection_btn.setText("Channel Selection")
     
-    def on_sync_tolerance_exceeded(self, delay_ms):
-        """Handle event when sync tolerance is exceeded."""
-        # Update delay value
-        self.sync_delay = delay_ms
-        
-        # Update status label with warning style
-        self.sync_status_label.setText(f"{delay_ms:.2f} ms")
-        self.sync_status_label.setStyleSheet("color: #FF5555; font-weight: bold;")  # Red text
-        
-        # Show tooltip with detailed info
-        QToolTip.showText(
-            self.sync_status_label.mapToGlobal(self.sync_status_label.rect().center()),
-            f"Synchronization delay ({delay_ms:.2f} ms) exceeds tolerance ({self.sync_tolerance:.2f} ms)",
-            self.sync_status_label
-        )
-
     def setup_channel_selection(self):
         """Set up channel selection UI elements."""
         self.channel_selection_group = QGroupBox("Channel Selection")
@@ -268,6 +429,16 @@ class SynchronizedDataVisualization(QWidget):
         scroll_area.setWidget(scroll_widget)
         
         channel_selection_main_layout = QVBoxLayout()
+        
+        # Add help button for channel selection
+        channel_help_layout = QHBoxLayout()
+        channel_help_layout.addWidget(QLabel("Select channels to display:"))
+        
+        channel_selection_help = HelpButton("channel_selection", self)
+        channel_help_layout.addWidget(channel_selection_help)
+        channel_help_layout.addStretch()
+        
+        channel_selection_main_layout.addLayout(channel_help_layout)
         channel_selection_main_layout.addWidget(scroll_area)
         
         # Control buttons
@@ -283,9 +454,6 @@ class SynchronizedDataVisualization(QWidget):
         
         channel_selection_main_layout.addLayout(channel_button_layout)
         self.channel_selection_group.setLayout(channel_selection_main_layout)
-        
-        # Start collapsed
-        self.channel_selection_group.setVisible(False)
     
     def select_all_channels(self):
         """Select all channels."""
@@ -313,6 +481,30 @@ class SynchronizedDataVisualization(QWidget):
         
         self.update_plots()
     
+    def update_sync_tolerance(self, value):
+        """Update the synchronization tolerance value."""
+        self.sync_tolerance = value
+        
+        # Update LSL sync service if available
+        if hasattr(self.integration_service, 'lsl_sync') and hasattr(self.integration_service.lsl_sync, 'set_sync_tolerance'):
+            self.integration_service.lsl_sync.set_sync_tolerance(value)
+    
+    def on_sync_tolerance_exceeded(self, delay_ms):
+        """Handle event when sync tolerance is exceeded."""
+        # Update delay value
+        self.sync_delay = delay_ms
+        
+        # Update status label with warning style
+        self.sync_status_label.setText(f"{delay_ms:.2f} ms")
+        self.sync_status_label.setStyleSheet("color: #FF5555; font-weight: bold;")  # Red text
+        
+        # Show tooltip with detailed info
+        QToolTip.showText(
+            self.sync_status_label.mapToGlobal(self.sync_status_label.rect().center()),
+            f"Synchronization delay ({delay_ms:.2f} ms) exceeds tolerance ({self.sync_tolerance:.2f} ms)",
+            self.sync_status_label
+        )
+    
     def setup_plots(self):
         """Set up the matplotlib plots."""
         # Clear any existing plots
@@ -339,21 +531,22 @@ class SynchronizedDataVisualization(QWidget):
         self.input_lines = []
         self.marker_lines = []
         
-        # Create initial empty lines for EEG channels (8 by default)
-        # The actual number will be updated when data is received
-        for i in range(8):
-            line, = self.ax1.plot([], [], label=f"Ch{i+1}")
+        # Create initial empty lines
+        # These will be replaced when actual data is available
+        default_channel_names = ["Ch1", "Ch2", "Ch3", "Ch4", "Ch5", "Ch6", "Ch7", "Ch8"]
+        for name in default_channel_names:
+            line, = self.ax1.plot([], [], label=name)
             self.eeg_lines.append(line)
         
         # Create initial empty lines for input channels
         input_channel_names = ["Timestamp", "Event Type", "Key Code", "Mouse X", "Mouse Y"]
         self.input_lines = []
         
-        for i, name in enumerate(input_channel_names):
+        for name in input_channel_names:
             line, = self.ax2.plot([], [], label=name)
             self.input_lines.append(line)
         
-        # Create legend with a reasonable number of items (prevent overcrowding)
+        # Create legend with a reasonable number of items
         self.ax1.legend(loc='upper right', ncol=2, fontsize='small')
         self.ax2.legend(loc='upper right', fontsize='small')
         
@@ -389,66 +582,8 @@ class SynchronizedDataVisualization(QWidget):
     
     def update_channel_selection(self, selection):
         """Update channel selection based on dropdown."""
-        if selection == "All Channels":
-            # Show all channel checkboxes
-            self.channel_selection_group.setVisible(True)
-        elif selection == "Frontal" and self.eeg_channel_names:
-            # Select frontal channels (Fp1, Fp2, F3, F4, F7, F8, Fz)
-            frontal_patterns = ["fp1", "fp2", "f3", "f4", "f7", "f8", "fz"]
-            self._select_channels_by_pattern(frontal_patterns)
-        elif selection == "Central" and self.eeg_channel_names:
-            # Select central channels (C3, C4, Cz, T3, T4)
-            central_patterns = ["c3", "c4", "cz", "t3", "t4"]
-            self._select_channels_by_pattern(central_patterns)
-        elif selection == "Parietal" and self.eeg_channel_names:
-            # Select parietal channels (P3, P4, Pz)
-            parietal_patterns = ["p3", "p4", "pz"]
-            self._select_channels_by_pattern(parietal_patterns)
-        elif selection == "Occipital" and self.eeg_channel_names:
-            # Select occipital channels (O1, O2)
-            occipital_patterns = ["o1", "o2"]
-            self._select_channels_by_pattern(occipital_patterns)
-        
+        # This method now only handles updating visible channels from checkboxes
         self.update_visible_channels()
-    
-    def _select_channels_by_pattern(self, patterns):
-        """Select channels that match given patterns."""
-        for i, name in enumerate(self.eeg_channel_names):
-            name_lower = name.lower()
-            checkbox = self.channel_checkboxes[i]
-            checkbox.setChecked(any(pattern in name_lower for pattern in patterns))
-    
-    def _update_channel_selection_ui(self):
-        """Update the channel selection UI based on available data."""
-        # Clear existing checkboxes
-        for i in reversed(range(self.channel_selection_layout.count())): 
-            self.channel_selection_layout.itemAt(i).widget().setParent(None)
-        
-        self.channel_checkboxes = []
-        
-        # Get updated channel selection options based on channel names
-        if self.eeg_channel_names:
-            # Add standard groupings based on 10-20 system
-            self.channel_select_combo.clear()
-            self.channel_select_combo.addItem("All Channels")
-            self.channel_select_combo.addItem("Frontal")
-            self.channel_select_combo.addItem("Central")
-            self.channel_select_combo.addItem("Parietal")
-            self.channel_select_combo.addItem("Occipital")
-            
-            # Create channel checkboxes in a grid layout
-            # We'll create a 4-column grid
-            cols = 4
-            for i, name in enumerate(self.eeg_channel_names):
-                row, col = divmod(i, cols)
-                checkbox = QCheckBox(name)
-                checkbox.setChecked(True)  # Default to all checked
-                checkbox.toggled.connect(self.update_visible_channels)
-                self.channel_checkboxes.append(checkbox)
-                self.channel_selection_layout.addWidget(checkbox, row, col)
-            
-            # Set all channels as visible initially
-            self.visible_channels = list(range(len(self.eeg_channel_names)))
     
     def update_visualization_data(self, data):
         """
@@ -494,49 +629,7 @@ class SynchronizedDataVisualization(QWidget):
             
             # Update EEG channel names if needed
             if self.eeg_data_buffer and not self.eeg_channel_names:
-                # Get the first sample to determine channel count
-                first_sample = self.eeg_data_buffer[0][0]
-                num_channels = len(first_sample)
-                
-                # Try to get channel names from LSL stream info
-                try:
-                    # Get EEG inlet info from LSL sync service
-                    if hasattr(self.integration_service.lsl_sync, 'eeg_inlet'):
-                        inlet = self.integration_service.lsl_sync.eeg_inlet
-                        if inlet:
-                            info = inlet.info()
-                            ch_info = info.desc().child("channels")
-                            
-                            if ch_info.empty():
-                                # No channel info, use default names
-                                self.eeg_channel_names = [f"EEG{i+1}" for i in range(num_channels)]
-                            else:
-                                # Extract channel names from info
-                                self.eeg_channel_names = []
-                                for i in range(ch_info.children_count()):
-                                    ch = ch_info.child(i)
-                                    ch_name = ch.child_value("label")
-                                    if ch_name:
-                                        self.eeg_channel_names.append(ch_name)
-                                    else:
-                                        self.eeg_channel_names.append(f"EEG{i+1}")
-                        else:
-                            # No inlet, use default names
-                            self.eeg_channel_names = [f"EEG{i+1}" for i in range(num_channels)]
-                    else:
-                        # No inlet in LSL sync service, use default names
-                        self.eeg_channel_names = [f"EEG{i+1}" for i in range(num_channels)]
-                    
-                except Exception as e:
-                    # If anything goes wrong, fall back to default names
-                    print(f"Error getting channel names: {e}")
-                    self.eeg_channel_names = [f"EEG{i+1}" for i in range(num_channels)]
-                
-                # Update the channel selection UI
-                self._update_channel_selection_ui()
-                
-                # Update plot lines for the correct number of channels
-                self._update_plot_lines()
+                self._update_eeg_channel_names()
         
         if input_data:
             self.input_status_label.setText(f"Receiving ({len(input_data)} samples)")
@@ -565,6 +658,116 @@ class SynchronizedDataVisualization(QWidget):
         if markers:
             marker_text = "Recent markers: " + ", ".join(f"Marker {m[0]}" for m in markers[-5:])
             self.marker_legend_label.setText(marker_text)
+    
+    def _update_eeg_channel_names(self):
+        """Update EEG channel names from multiple possible sources."""
+        # First try to directly get channel names from LSL stream info
+        if hasattr(self.integration_service, 'lsl_sync') and hasattr(self.integration_service.lsl_sync, 'eeg_inlet'):
+            try:
+                inlet = self.integration_service.lsl_sync.eeg_inlet
+                if inlet:
+                    info = inlet.info()
+                    ch_info = info.desc().child("channels")
+                    
+                    if not ch_info.empty():
+                        channel_names = []
+                        for i in range(ch_info.child_count()):
+                            ch = ch_info.child(i)
+                            ch_name = ch.child_value("label")
+                            if ch_name:
+                                channel_names.append(ch_name)
+                        
+                        if channel_names:
+                            self.eeg_channel_names = channel_names
+                            self._update_channel_selection_ui()
+                            self._update_plot_lines()
+                            return
+            except Exception as e:
+                print(f"Error getting channel names from LSL: {e}")
+        
+        # Try to get from EEG collector service
+        try:
+            collector_service = self.integration_service.eeg_processor.get('collector_service')
+            if collector_service and hasattr(collector_service, 'collector'):
+                collector = collector_service.collector
+                
+                # Try different methods to get channel names
+                if hasattr(collector, 'eeg_names') and collector.eeg_names:
+                    # Most direct method - collector already has eeg_names property
+                    self.eeg_channel_names = collector.eeg_names
+                elif hasattr(collector, 'get_device_info'):
+                    # Try to get from device info
+                    device_info = collector.get_device_info()
+                    if 'eeg_names' in device_info and device_info['eeg_names']:
+                        self.eeg_channel_names = device_info['eeg_names']
+                elif hasattr(collector, 'get_board_info'):
+                    # Legacy method - try board info
+                    board_info = collector.get_board_info()
+                    if 'eeg_names' in board_info and board_info['eeg_names']:
+                        self.eeg_channel_names = board_info['eeg_names']
+                elif hasattr(collector_service, 'get_board_description'):
+                    # Try to get from board description
+                    board_desc = collector_service.get_board_description()
+                    if 'eeg_names' in board_desc and board_desc['eeg_names']:
+                        self.eeg_channel_names = board_desc['eeg_names']
+                
+                # If we found channel names through any method
+                if self.eeg_channel_names:
+                    self._update_channel_selection_ui()
+                    self._update_plot_lines()
+                    return
+        except Exception as e:
+            print(f"Error getting channel names from collector: {e}")
+        
+        # If we got here, we haven't been able to find channel names yet
+        
+        # Fall back to using data dimensions
+        if self.eeg_data_buffer:
+            try:
+                first_sample = self.eeg_data_buffer[0][0]
+                num_channels = len(first_sample)
+                self.eeg_channel_names = [f"EEG{i+1}" for i in range(num_channels)]
+                self._update_channel_selection_ui()
+                self._update_plot_lines()
+                return
+            except Exception as e:
+                print(f"Error getting channel count from data: {e}")
+        
+        # Ultimate fallback - if nothing else worked, use default names
+        self.eeg_channel_names = [f"Ch{i+1}" for i in range(8)]  # Assume 8 channels
+        self._update_channel_selection_ui()
+        self._update_plot_lines()
+    
+    def _update_channel_selection_ui(self):
+        """Update the channel selection UI based on available data."""
+        # Clear existing checkboxes
+        for i in reversed(range(self.channel_selection_layout.count())): 
+            widget = self.channel_selection_layout.itemAt(i).widget()
+            if widget:
+                widget.setParent(None)
+        
+        self.channel_checkboxes = []
+        
+        # Get updated channel selection options based on channel names
+        if self.eeg_channel_names:
+            # Create channel checkboxes in a grid layout
+            # We'll create a 4-column grid
+            cols = 4
+            for i, name in enumerate(self.eeg_channel_names):
+                row, col = divmod(i, cols)
+                checkbox = QCheckBox(name)
+                checkbox.setChecked(True)  # Default to all checked
+                checkbox.toggled.connect(self.update_visible_channels)
+                self.channel_checkboxes.append(checkbox)
+                self.channel_selection_layout.addWidget(checkbox, row, col)
+            
+            # Set all channels as visible initially
+            self.visible_channels = list(range(len(self.eeg_channel_names)))
+            
+            # Make sure the channel selection group is visible if we have channels
+            if not self.channel_selection_group.isVisible() and len(self.eeg_channel_names) > 0:
+                self.channel_selection_group.setVisible(True)
+                self.toggle_channel_selection_btn.setText("Hide Channel Selection")
     
     def _update_plot_lines(self):
         """Update plot lines based on current channel names."""
@@ -610,8 +813,9 @@ class SynchronizedDataVisualization(QWidget):
         if len(self.eeg_channel_names) > 8:
             # Create a legend with just a subset of channels to avoid overcrowding
             subset_indices = list(range(0, len(self.eeg_channel_names), len(self.eeg_channel_names) // 4))
-            subset_lines = [self.eeg_lines[i] for i in subset_indices]
-            self.ax1.legend(handles=subset_lines, loc='upper right', ncol=2, fontsize='small')
+            subset_lines = [self.eeg_lines[i] for i in subset_indices if i < len(self.eeg_lines)]
+            subset_labels = [self.eeg_channel_names[i] for i in subset_indices if i < len(self.eeg_channel_names)]
+            self.ax1.legend(subset_lines, subset_labels, loc='upper right', ncol=2, fontsize='small')
         else:
             self.ax1.legend(loc='upper right', ncol=2, fontsize='small')
         
@@ -704,7 +908,7 @@ class SynchronizedDataVisualization(QWidget):
             labels = []
             
             for i in visible_channels:
-                if i < len(channels_data):
+                if i < len(channels_data) and len(channels_data[i]) > 0:
                     # Scale the data and apply offset
                     offset = i * self.channel_offset
                     # Use the scale factor to multiply the amplitude
@@ -727,15 +931,26 @@ class SynchronizedDataVisualization(QWidget):
                 max_channels = len(visible_channels)
                 self.ax1.set_ylim(-50, self.channel_offset * max_channels + 50)
             else:  # Overlaid mode
-                max_val = max([max(ch_data) * self.eeg_scale_factor for ch_data in channels_data]) + 20
-                min_val = min([min(ch_data) * self.eeg_scale_factor for ch_data in channels_data]) - 20
-                self.ax1.set_ylim(min_val, max_val)
+                # Find max and min of visible channels
+                if channels_data and any(len(ch) > 0 for ch in channels_data):
+                    all_values = []
+                    for i in visible_channels:
+                        if i < len(channels_data) and channels_data[i]:
+                            all_values.extend([val * self.eeg_scale_factor for val in channels_data[i]])
+                    
+                    if all_values:
+                        margin = (max(all_values) - min(all_values)) * 0.1  # 10% margin
+                        self.ax1.set_ylim(
+                            min(all_values) - margin,
+                            max(all_values) + margin
+                        )
             
-            # Create a proper legend
+            # Create a proper legend using visible channels
             if len(lines) > 8:
                 # For many channels, create a reduced legend
-                subset_lines = lines[::len(lines)//4]
-                subset_labels = labels[::len(labels)//4]
+                subset_indices = list(range(0, len(lines), max(1, len(lines)//4)))
+                subset_lines = [lines[i] for i in subset_indices if i < len(lines)]
+                subset_labels = [labels[i] for i in subset_indices if i < len(labels)]
                 self.ax1.legend(subset_lines, subset_labels, loc='upper right', 
                                ncol=2, fontsize='small')
             else:
