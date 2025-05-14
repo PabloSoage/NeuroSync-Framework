@@ -10,6 +10,9 @@ import time
 from ..interfaces import InputData, AbstractInputCollector
 from .keyboard_mouse import KeyboardMouseCollector
 
+# Import services (add this new import)
+from ..services.data_access_service import DataAccessService
+
 # Import PS4 controller with fallback
 try:
     from .ps4_controller import PS4ControllerCollector, is_sdl2_available
@@ -34,6 +37,9 @@ class CollectorManager:
         self.visualizers = []
         self.tracked_keys = []
         self.event_callbacks = []
+        
+        # Get data access service instance
+        self.data_access_service = DataAccessService.get_instance()
         
         # Initialize collectors
         self._initialize_collectors()
@@ -97,6 +103,15 @@ class CollectorManager:
             
             # Update visualizers for the new collector
             self._update_visualizers()
+            
+            # Update data access service metadata
+            self.data_access_service.update_metadata({
+                "collector_type": collector_type,
+                "controller_connected": collector_type == "ps4_controller" and 
+                                        hasattr(self.current_collector, "controller") and 
+                                        self.current_collector.controller is not None,
+                "controller_name": self._get_controller_name() if collector_type == "ps4_controller" else ""
+            })
             
             return True
         
@@ -218,6 +233,9 @@ class CollectorManager:
         Args:
             event: The input event to process
         """
+        # Update the data access service with the new event
+        self.data_access_service.update_data(event)
+        
         # Update visualizers
         for visualizer in self.visualizers:
             # Only update visualizers that support the current collector type
@@ -292,3 +310,11 @@ class CollectorManager:
             Optional[AbstractInputCollector]: The current collector instance
         """
         return self.current_collector
+    
+    def _get_controller_name(self) -> str:
+        """Get the name of the current controller if any."""
+        if (self.current_collector and 
+            self.current_collector_type == "ps4_controller" and 
+            hasattr(self.current_collector, "controller_name")):
+            return self.current_collector.controller_name
+        return ""
