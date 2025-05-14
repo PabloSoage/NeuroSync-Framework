@@ -5,6 +5,7 @@ from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds, Brai
 
 from ..collectors.eeg_collector import EEGCollector
 from ..collectors.board_configuration import BoardConfiguration
+from .data_access_service import DataAccessService
 
 class CollectorService:
     """
@@ -39,6 +40,25 @@ class CollectorService:
             self.collector = EEGCollector(board_id, board_params, preset)
             self.collector.prepare_session()
             logging.info(f"Connected to board {board_id}")
+            
+            # Add this code after successful connection
+            if self.collector:
+                # Update metadata in DataAccessService
+                data_access = DataAccessService.get_instance()
+                
+                # Update metadata with board info
+                device_info = self.collector.get_device_info()
+                metadata = {
+                    "sampling_rate": device_info.get("sampling_rate", 0),
+                    "eeg_channels": device_info.get("eeg_channels", []),
+                    "channel_names": device_info.get("eeg_names", []),
+                    "num_channels": len(device_info.get("eeg_channels", [])),
+                    "board_id": device_info.get("board_id", -1),
+                    "board_name": device_info.get("board_name", ""),
+                    "streaming": False
+                }
+                data_access.update_metadata(metadata)
+            
             return True
         except Exception as e:
             logging.error(f"Connection error: {e}")
@@ -83,6 +103,11 @@ class CollectorService:
         try:
             self.collector.start_stream(buffer_size)
             self.is_streaming = True
+            
+            # Update streaming status in DataAccessService
+            data_access = DataAccessService.get_instance()
+            data_access.update_metadata({"streaming": True})
+            
             logging.info("Stream started")
             return True
         except Exception as e:
@@ -102,6 +127,11 @@ class CollectorService:
         try:
             self.collector.stop_stream()
             self.is_streaming = False
+            
+            # Update streaming status in DataAccessService
+            data_access = DataAccessService.get_instance()
+            data_access.update_metadata({"streaming": False})
+            
             logging.info("Stream stopped")
             return True
         except Exception as e:
@@ -122,7 +152,13 @@ class CollectorService:
             return np.array([]), []
             
         try:
-            return self.collector.get_data(num_samples)
+            data, timestamps = self.collector.get_data(num_samples)
+            
+            # Update the DataAccessService with the new data
+            data_access = DataAccessService.get_instance()
+            data_access.update_data(data, timestamps)
+            
+            return data, timestamps
         except Exception as e:
             logging.error(f"Data retrieval error: {e}")
             return np.array([]), []

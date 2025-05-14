@@ -7,6 +7,7 @@ from pyqtgraph.Qt import QtCore
 
 from ..collectors.eeg_collector import EEGCollector
 from ..processors.signal_processor import SignalProcessor
+from ..services.data_access_service import DataAccessService
 
 
 class EEGVisualizer:
@@ -222,6 +223,10 @@ class EEGVisualizer:
 
             # Calculate signal quality for each channel
             quality_scores = self.processor.get_all_channels_quality(data_to_plot, self.eeg_channels)
+
+            # Update DataAccessService with the latest data
+            data_access = DataAccessService.get_instance()
+            data_access.update_data(data, timestamps)
 
             # Update time series plots
             for i, channel in enumerate(self.eeg_channels):
