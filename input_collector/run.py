@@ -48,7 +48,7 @@ def main():
     # Initialize the web API if enabled
     if config.get("enable_web_api", False):
         # Import the API integration
-        from python.api_integration import initialize_api
+        from python.api_integration import initialize_api, get_api_integration
         
         # Initialize the API
         api_initialized = initialize_api(
@@ -58,7 +58,10 @@ def main():
         )
         
         if api_initialized:
-            print(f"Web API initialized at http://{config['api_host']}:{config['api_port']}")
+            # Obtener puerto real usado
+            integration = get_api_integration()
+            actual_port = integration.explorer.server_port or config['api_port']
+            print(f"Web API initialized at http://{config['api_host']}:{actual_port}")
         else:
             print("Failed to initialize Web API")
     

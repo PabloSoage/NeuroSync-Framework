@@ -825,9 +825,4 @@ def initialize_api(enable_web_api: bool = True, host: str = "127.0.0.1", port: i
     integration = get_api_integration()
     success = integration.register_api(start_server=True, host=host, port=port)
     
-    # Update the log message to show the actual port being used
-    if success and integration.explorer and integration.explorer.server_port:
-        actual_port = integration.explorer.server_port
-        print(f"Web API initialized at http://{host}:{actual_port}")
-    
     return success

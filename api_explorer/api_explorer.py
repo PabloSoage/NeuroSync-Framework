@@ -676,77 +676,6 @@ class ApiExplorer:
         
         return html_content
     
-    def _generate_server_info_html(self) -> str:
-        """Generate HTML with information about API Explorer servers."""
-        # Try to detect other API Explorer servers
-        other_servers = self._detect_other_servers()
-        
-        if not self.server_port:
-            current_server = "Not yet started"
-        else:
-            current_server = f"http://{self.server_host}:{self.server_port}"
-        
-        html = f"""
-        <div class="server-info mb-4">
-            <h4>API Explorer Servers</h4>
-            <p>Current server: <strong>{current_server}</strong></p>
-        """
-        
-        if other_servers:
-            html += """
-            <p>Other API Explorer servers found:</p>
-            <ul>
-            """
-            
-            for server in other_servers:
-                html += f"""
-                <li><a href="{server}" target="_blank">{server}</a></li>
-                """
-            
-            html += """
-            </ul>
-            """
-        else:
-            html += """
-            <p>No other API Explorer servers detected.</p>
-            """
-        
-        html += """
-        </div>
-        """
-        return html
-    
-    def _detect_other_servers(self) -> List[str]:
-        """
-        Try to detect other API Explorer servers running on different ports.
-        
-        Returns:
-            List[str]: List of server URLs
-        """
-        other_servers = []
-        base_port = 8000
-        max_port = 8010
-        
-        for port in range(base_port, max_port + 1):
-            # Skip current server port
-            if port == self.server_port:
-                continue
-                
-            # Try to connect to potential server
-            try:
-                import socket
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.settimeout(0.1)
-                result = sock.connect_ex(('127.0.0.1', port))
-                sock.close()
-                
-                if result == 0:  # Port is open
-                    other_servers.append(f"http://127.0.0.1:{port}")
-            except:
-                pass
-                
-        return other_servers
-    
     def start_server(self, host: str = "127.0.0.1", port: int = 8000, 
                     block: bool = False) -> None:
         """
@@ -952,6 +881,18 @@ class ApiExplorer:
                 data_dict = {k: v for k, v in request_data.__dict__.items() if v is not None}
                 return await handler_function(**data_dict)
     
+    def register_module(self, module_id: str, name: str, description: str) -> None:
+        """Register a new module with its own router."""
+        if module_id in self.modules:
+            raise ValueError(f"Module '{module_id}' already registered.")
+        router = APIRouter(prefix=f"/api/{module_id}", tags=[name])
+        self.modules[module_id] = {
+            'name': name,
+            'description': description,
+            'method_groups': {},
+            'router': router
+        }
+
     def _generate_method_links(self, module_id: str, module_info: Dict) -> str:
         """Generate HTML for the method links sidebar."""
         method_groups = module_info.get('method_groups', {})
@@ -987,7 +928,7 @@ class ApiExplorer:
                 for param_id, param_info in method_info.get('params', {}).items():
                     param_type = param_info.get('type', 'text')
                     param_desc = param_info.get('description', '')
-                    param_required = param_info.get('required', False)
+                    param_required = param_info.get('required', False);
                     
                     if param_type == 'select':
                         # For dropdown parameters
