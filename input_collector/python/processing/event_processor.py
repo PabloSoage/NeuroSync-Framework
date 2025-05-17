@@ -4,7 +4,8 @@ Event processor module.
 Provides processing of input events for display, logging, and visualization.
 """
 
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, List
+
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from ..interfaces import InputData

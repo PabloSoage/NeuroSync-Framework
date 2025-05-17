@@ -8,6 +8,7 @@ from brainflow.data_filter import FilterTypes, AggOperations, WindowOperations, 
 from .base_panel import BasePanel
 from ..utils.help_system import HelpButton
 
+
 class AdvancedProcessingPanel(BasePanel):
     """Panel for advanced signal processing operations."""
     

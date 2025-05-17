@@ -1,9 +1,9 @@
 import logging
 import os
-from typing import Dict, List, Optional, Tuple, Any
-
 # Import the interface
 import sys
+from typing import Dict, List, Tuple
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from interfaces.board_interface import BoardInterface
 

@@ -5,7 +5,7 @@ This module defines interfaces for visualizing input data from different collect
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Any, Dict
+from typing import Optional, Any, Dict
 
 from .collector_interface import InputData
 

@@ -5,10 +5,12 @@ This module provides a base implementation for input visualizers,
 implementing the common functionality required by the AbstractVisualizer interface.
 """
 
-from typing import List, Optional, Any, Dict
+from typing import Optional, Any, Dict
+
 from PyQt5.QtWidgets import QWidget
 
 from ..interfaces.collector_interface import InputData
+
 
 # Note: We don't inherit from AbstractVisualizer to avoid metaclass conflicts
 class BaseVisualizer(QWidget):

@@ -1,7 +1,7 @@
 import logging
-import time
 import os
-from typing import Optional
+import time
+
 
 class RecordingService:
     """

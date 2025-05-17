@@ -5,16 +5,13 @@ This module provides contextual help information about various aspects
 of EEG data collection, processing, and visualization.
 """
 
-import os
-from typing import Dict, Optional
-
+from PyQt5.QtCore import QSize
+from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
-    QLabel, QScrollArea, QWidget, QTextBrowser,
-    QSizePolicy, QTabWidget
+    QScrollArea, QWidget, QTextBrowser,
+    QTabWidget
 )
-from PyQt5.QtGui import QFont, QPixmap, QIcon
-from PyQt5.QtCore import Qt, QSize
 
 # Dictionary of help content for different topics
 HELP_CONTENT = {

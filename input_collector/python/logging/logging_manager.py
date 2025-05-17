@@ -5,13 +5,13 @@ Manages all logging functionality for the input collector application,
 including JSON and CSV logging facilities.
 """
 
-import time
-from typing import Optional, Callable, List, Dict, Any
+from typing import Optional, List
+
 from PyQt5.QtCore import QObject, pyqtSignal
 
-from ..interfaces import InputData
-from .json_logger import JSONLogger
 from .csv_logger import CSVLogger
+from .json_logger import JSONLogger
+from ..interfaces import InputData
 
 
 class LoggingManager(QObject):

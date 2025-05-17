@@ -4,7 +4,7 @@ Unified application coordinator.
 This module coordinates between the EEG processor and input collector applications.
 """
 
-from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer
+from PyQt5.QtCore import QObject, pyqtSignal
 
 
 class UnifiedAppCoordinator(QObject):

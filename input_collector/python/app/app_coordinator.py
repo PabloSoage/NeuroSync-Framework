@@ -5,14 +5,14 @@ Acts as the central coordinator between different components of the application,
 handling high-level business logic while delegating specific responsibilities.
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List
+
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 
 from ..interfaces import InputData
-from ..collectors import KeyboardMouseCollector
-from ..ui import UIManager
 from ..logging import LoggingManager
 from ..processing import EventProcessor
+from ..ui import UIManager
 
 
 class AppCoordinator(QObject):
@@ -448,3 +448,15 @@ class AppCoordinator(QObject):
             List[str]: The list of tracked keys and buttons
         """
         return self.tracked_keys
+    
+    def __del__(self) -> None:
+        """Cleanup resources when the coordinator is destroyed."""
+        try:
+            # Unregister from API explorer if we're using it
+            if hasattr(self, '_api_integration') and self._api_integration:
+                from ..api_integration import get_api_integration
+                api_integration = get_api_integration()
+                if api_integration and api_integration.is_registered:
+                    api_integration.shutdown()
+        except:
+            pass

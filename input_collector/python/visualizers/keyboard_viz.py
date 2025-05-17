@@ -6,11 +6,10 @@ displaying a virtual keyboard with key highlight states using PyQt5.
 """
 from typing import Optional
 
-from PyQt5.QtWidgets import QWidget, QSizePolicy
-from PyQt5.QtGui import QPainter, QColor, QFont, QPen, QBrush
 from PyQt5.QtCore import Qt, QRect, QSize
+from PyQt5.QtGui import QPainter, QColor, QFont, QPen, QBrush
+from PyQt5.QtWidgets import QSizePolicy
 
-from ..interfaces import InputData
 from .visualizer_base import BaseVisualizer
 
 

@@ -4,10 +4,11 @@ Mouse buttons selector module.
 This module provides a visual component for selecting which mouse buttons to track.
 """
 
-from PyQt5.QtWidgets import QWidget, QSizePolicy, QHBoxLayout
-from PyQt5.QtGui import QPainter, QColor, QFont, QPen, QBrush
+from typing import Dict, Any
+
 from PyQt5.QtCore import Qt, QRect, QSize, pyqtSignal
-from typing import List, Dict, Any
+from PyQt5.QtGui import QPainter, QColor, QFont, QPen, QBrush
+from PyQt5.QtWidgets import QWidget, QSizePolicy, QHBoxLayout
 
 from .visualizer_base import BaseVisualizer
 

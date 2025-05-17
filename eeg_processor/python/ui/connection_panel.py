@@ -1,13 +1,14 @@
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QGroupBox, QLabel,
     QPushButton, QComboBox, QSpinBox, QLineEdit,
     QFileDialog, QScrollArea, QWidget
 )
-from PyQt5.QtCore import pyqtSignal
 
 from .base_panel import BasePanel
 from ..collectors.board_configuration import BoardConfiguration
 from ..utils.help_system import HelpButton
+
 
 class ConnectionPanel(BasePanel):
     """Panel for managing board connections and streaming."""

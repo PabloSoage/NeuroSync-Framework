@@ -1,8 +1,5 @@
 import logging
-import os
-import time
 
-import numpy as np
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import (
@@ -10,48 +7,27 @@ from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
-    QComboBox,
     QPushButton,
     QLabel,
-    QGroupBox,
-    QCheckBox,
-    QSpinBox,
-    QDoubleSpinBox,
-    QFileDialog,
     QTabWidget,
-    QRadioButton,
     QMessageBox,
-    QGridLayout,
-    QScrollArea,
 )
-from PyQt5.QtGui import QColor, QPalette, QFont
-from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds
-from brainflow.data_filter import (
-    DataFilter,
-    FilterTypes,
-    AggOperations,
-    WindowOperations,
-    WaveletTypes,
-)
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
+from brainflow.board_shim import BoardShim
 
 # Import services
 from .services.collector_service import CollectorService
 from .services.processor_service import ProcessorService
-from .services.visualization_service import VisualizationService
 from .services.recording_service import RecordingService
-
+from .services.visualization_service import VisualizationService
+from .ui.advanced_panel import AdvancedProcessingPanel
 # Import UI components
 from .ui.connection_panel import ConnectionPanel
-from .ui.processing_panel import ProcessingPanel  
+from .ui.mne_panel import MNEPanel
+from .ui.processing_panel import ProcessingPanel
 from .ui.recording_panel import RecordingPanel
 from .ui.streaming_panel import StreamingPanel
-from .ui.advanced_panel import AdvancedProcessingPanel
-from .ui.mne_panel import MNEPanel
-
 # Import utils
-from .utils.help_system import HelpButton, show_help_topic, show_eeg_concepts_help
+from .utils.help_system import show_eeg_concepts_help
 from .utils.theme_manager import ThemeManager
 
 

@@ -5,15 +5,11 @@ This module provides the main application window that integrates the EEG process
 and input collector modules.
 """
 
-import os
-import time
+from PyQt5.QtCore import Qt, QTimer, pyqtSlot
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QTabWidget, QPushButton, QLabel, QGroupBox,
-    QCheckBox, QComboBox, QFileDialog, QSpinBox,
-    QStatusBar, QMessageBox, QSplitter, QFrame
+    QTabWidget, QLabel, QMessageBox, QSplitter
 )
-from PyQt5.QtCore import Qt, QTimer, pyqtSlot
 
 from .recording_panel import UnifiedRecordingPanel
 from .sync_visualization_panel import SynchronizedDataVisualization

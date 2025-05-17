@@ -6,6 +6,7 @@ EEG processing and input collection.
 """
 
 import sys
+
 from python.unified_app import UnifiedApplication
 
 

@@ -9,20 +9,19 @@ using Lab Streaming Layer (LSL) with millisecond precision. It supports:
 4. Export of synchronized data to standard formats (HDF5, EDF+, BIDS)
 """
 
-import time
-import numpy as np
 import logging
-from typing import Dict, List, Optional, Tuple, Union, Any
-import os
+import queue
+import threading
+import time
+from typing import Dict, List, Optional, Union
+
+import h5py
+import numpy as np
+from PyQt5.QtCore import QTimer, pyqtSignal, Qt
+# For visualization
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox
 # Fixed import - remove LostError which doesn't exist in pylsl
 from pylsl import StreamInfo, StreamOutlet, StreamInlet, resolve_streams, local_clock
-import threading
-import queue
-import h5py
-
-# For visualization
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox, QCheckBox
-from PyQt5.QtCore import QTimer, pyqtSignal, Qt
 
 
 class LSLStreamPublisher:

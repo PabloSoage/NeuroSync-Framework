@@ -6,9 +6,9 @@ displaying a virtual controller with joysticks and button states.
 """
 
 from typing import Dict, List, Optional, Set, Tuple
-from PyQt5.QtCore import Qt, QRectF, QPointF
-from PyQt5.QtGui import QPainter, QColor, QBrush, QPen, QFont, QFontMetrics
-from PyQt5.QtWidgets import QWidget
+
+from PyQt5.QtCore import Qt, QRectF
+from PyQt5.QtGui import QPainter, QColor, QBrush, QPen
 
 from .visualizer_base import BaseVisualizer
 from ..interfaces import InputData

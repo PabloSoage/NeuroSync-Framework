@@ -4,19 +4,19 @@ Synchronized data visualization panel.
 This module provides a UI component for visualizing synchronized EEG and input data.
 """
 
+import matplotlib.pyplot as plt
 import numpy as np
+from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox,
     QPushButton, QLabel, QComboBox, QSpinBox,
-    QCheckBox, QSlider, QSplitter, QGridLayout,
+    QCheckBox, QGridLayout,
     QScrollArea, QFrame, QDoubleSpinBox, QToolTip,
     QDialog, QTextBrowser
 )
-from PyQt5.QtCore import Qt, QTimer, QSize
-from PyQt5.QtGui import QColor, QIcon
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
+
 
 # Use a consistent help button style similar to the one in UnifiedRecordingPanel
 class HelpButton(QPushButton):

@@ -4,13 +4,11 @@ Unified recording panel.
 This module provides a unified recording control panel for both EEG and input data.
 """
 
-import os
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox,
     QPushButton, QLabel, QFileDialog, QCheckBox,
     QComboBox, QSpinBox, QLineEdit, QMessageBox
 )
-from PyQt5.QtCore import Qt, QTimer
 
 
 class UnifiedRecordingPanel(QWidget):

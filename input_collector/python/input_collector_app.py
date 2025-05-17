@@ -6,19 +6,17 @@ logging keyboard and mouse inputs in real-time with a graphical user interface u
 """
 
 import sys
-import time
-from typing import List, Dict, Optional
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QAction
+from typing import List, Dict
+
 from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QAction
 
-from .interfaces import InputData
-from .collectors import KeyboardMouseCollector, CollectorManager
-
-# Import new modular components
-from .ui import UIManager
+from .app import AppCoordinator
+from .collectors import CollectorManager
 from .logging import LoggingManager
 from .processing import EventProcessor
-from .app import AppCoordinator
+# Import new modular components
+from .ui import UIManager
 
 # Import PS4 controller with fallback
 try:
@@ -676,9 +674,18 @@ class InputCollectorApp(QMainWindow):
         """Handle application close event."""
         # Stop collectors
         self.collector_manager.stop_capture()
-            
+        
         # Close log files
         self.logging_manager.close_all()
+        
+        # Clean up API integration if it exists
+        try:
+            from .api_integration import get_api_integration
+            api_integration = get_api_integration()
+            if api_integration and api_integration.is_registered:
+                api_integration.shutdown()
+        except:
+            pass
         
         # Accept the close event
         event.accept()

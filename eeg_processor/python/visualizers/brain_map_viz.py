@@ -1,8 +1,8 @@
 import logging
-import numpy as np
-from typing import Dict, List, Optional, Tuple
-import sys
 import os
+import sys
+
+import numpy as np
 
 # Fix imports to work both when imported and when run directly
 try:
@@ -17,7 +17,7 @@ except ImportError:
 
 import pyqtgraph as pg
 from PyQt5.QtCore import Qt, QTimer, QPointF
-from PyQt5.QtGui import QFont, QColor, QPainter, QPainterPath, QPen, QBrush
+from PyQt5.QtGui import QFont, QColor, QPainterPath
 
 
 class BrainMapVisualizer:
