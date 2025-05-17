@@ -676,9 +676,18 @@ class InputCollectorApp(QMainWindow):
         """Handle application close event."""
         # Stop collectors
         self.collector_manager.stop_capture()
-            
+        
         # Close log files
         self.logging_manager.close_all()
+        
+        # Clean up API integration if it exists
+        try:
+            from .api_integration import get_api_integration
+            api_integration = get_api_integration()
+            if api_integration and api_integration.is_registered:
+                api_integration.shutdown()
+        except:
+            pass
         
         # Accept the close event
         event.accept()

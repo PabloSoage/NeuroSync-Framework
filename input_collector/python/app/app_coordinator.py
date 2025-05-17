@@ -448,3 +448,15 @@ class AppCoordinator(QObject):
             List[str]: The list of tracked keys and buttons
         """
         return self.tracked_keys
+    
+    def __del__(self) -> None:
+        """Cleanup resources when the coordinator is destroyed."""
+        try:
+            # Unregister from API explorer if we're using it
+            if hasattr(self, '_api_integration') and self._api_integration:
+                from ..api_integration import get_api_integration
+                api_integration = get_api_integration()
+                if api_integration and api_integration.is_registered:
+                    api_integration.shutdown()
+        except:
+            pass

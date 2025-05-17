@@ -81,13 +81,19 @@ class ApiExplorer:
         self.callback_registry: Dict[str, Dict[int, Callable]] = {}
         self.next_callback_id = 0
         
-        # Setup basic routes
-        self._setup_routes()
+        # Active module tracking for reference counting
+        self.active_module_count = 0
+        self.active_modules = set()
         
         # Server control
         self.server = None
         self.server_thread = None
         self.is_running = False
+        self.server_port = None
+        self.server_host = None
+        
+        # Setup basic routes
+        self._setup_routes()
     
     def _setup_directories(self):
         """Set up necessary directories."""
@@ -106,21 +112,72 @@ class ApiExplorer:
         async def websocket_endpoint(websocket: WebSocket, module_id: str):
             await websocket.accept()
             # Add connection info with module ID for routing
+            print(f"WebSocket connection established for module: {module_id}")
             websocket.scope["module_id"] = module_id
             self.active_connections.append(websocket)
             
             try:
+                # Acknowledge connection
+                await websocket.send_json({"status": "connected", "module": module_id})
+                
                 # Keep connection open
                 while True:
                     # Wait for client messages (can be used to implement commands)
                     data = await websocket.receive_text()
-                    # We don't need to do anything with client messages for now
+                    try:
+                        # Parse the message as JSON
+                        message = json.loads(data)
+                        # Handle command messages
+                        if message.get("command") == "ping":
+                            await websocket.send_json({"response": "pong"})
+                    except:
+                        # Ignore non-JSON messages
+                        pass
             except WebSocketDisconnect:
-                self.active_connections.remove(websocket)
-            finally:
-                # Ensure cleanup happens
+                print(f"WebSocket disconnected for module: {module_id}")
                 if websocket in self.active_connections:
                     self.active_connections.remove(websocket)
+            finally:
+                # Ensure cleanup happens
+                print(f"WebSocket connection cleaned up for module: {module_id}")
+                if websocket in self.active_connections:
+                    self.active_connections.remove(websocket)
+    
+    async def broadcast_event(self, module_id: str, event_data: Dict) -> None:
+        """
+        Broadcast an event to all WebSocket clients for a specific module.
+        
+        Args:
+            module_id: ID of the module the event belongs to
+            event_data: Event data to broadcast
+        """
+        # Print debug information
+        print(f"Broadcasting event for module {module_id}: {event_data.get('event_type', 'unknown')}")
+        
+        # Notify callbacks for this module
+        if module_id in self.callback_registry:
+            for callback in self.callback_registry[module_id].values():
+                if callback:
+                    try:
+                        callback(event_data)
+                    except Exception as e:
+                        logging.error(f"Error in {module_id} callback: {e}")
+        
+        # Send to all connected WebSockets for this module
+        active_count = 0
+        for connection in self.active_connections:
+            if connection.scope.get("module_id") == module_id:
+                try:
+                    await connection.send_json(event_data)
+                    active_count += 1
+                except Exception as e:
+                    logging.error(f"Error sending to WebSocket: {e}")
+        
+        # Print how many connections received the event
+        if active_count > 0:
+            print(f"Event broadcast to {active_count} active connections")
+        else:
+            print("No active connections to receive event")
     
     def _generate_html(self) -> str:
         """Generate HTML for the home page."""
@@ -169,23 +226,27 @@ class ApiExplorer:
                         <h3 class="mt-3">Real-time Events</h3>
                         <p>Connect to the WebSocket to see real-time events as they happen.</p>
                         
-                        <div class="mb-3">
+                        <div class="ws-controls">
                             <button class="btn btn-primary" id="{module_id}-connect-ws-btn" 
                                     onclick="connectWebSocket('{module_id}')">Connect WebSocket</button>
                             <button class="btn btn-danger" id="{module_id}-disconnect-ws-btn" 
                                     onclick="disconnectWebSocket('{module_id}')" disabled>Disconnect</button>
                             <button class="btn btn-secondary" id="{module_id}-clear-events-btn" 
                                     onclick="clearEvents('{module_id}')">Clear Events</button>
+                            
+                            <span id="{module_id}-connection-status" class="connection-status disconnected"></span>
+                            <span>WebSocket Status</span>
+                            
+                            <span id="{module_id}-event-count" class="event-count">Events: 0</span>
                         </div>
                         
-                        <div>
-                            <label>
-                                <input type="checkbox" id="{module_id}-auto-scroll" checked> Auto-scroll
-                            </label>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="{module_id}-auto-scroll" checked>
+                            <label class="form-check-label" for="{module_id}-auto-scroll">Auto-scroll</label>
                         </div>
                         
                         <div class="real-time-container" id="{module_id}-events-container">
-                            <div class="text-muted">Not connected. Click "Connect WebSocket" to start receiving events.</div>
+                            <div class="event event-system">Not connected. Click "Connect WebSocket" to start receiving events.</div>
                         </div>
                     </div>
                 </div>
@@ -203,7 +264,7 @@ class ApiExplorer:
             </div>
             """
         
-        # Complete HTML template
+        # Complete HTML template with proper CSS styling
         html_content = f"""
         <!DOCTYPE html>
         <html>
@@ -258,23 +319,34 @@ class ApiExplorer:
                     word-wrap: break-word;
                 }}
                 .real-time-container {{
-                    height: 300px;
+                    height: 400px;
                     overflow-y: auto;
                     border: 1px solid #dee2e6;
                     padding: 10px;
                     border-radius: 5px;
-                    background-color: #f8f9fa;
-                    font-family: monospace;
+                    background-color: #1e1e1e;
+                    font-family: 'Courier New', monospace;
+                    color: #f0f0f0;
                 }}
                 .event {{
                     margin-bottom: 8px;
-                    padding: 5px;
+                    padding: 8px;
                     border-radius: 3px;
+                    word-wrap: break-word;
+                    overflow-wrap: break-word;
+                    white-space: pre-wrap;
                 }}
-                .event-key {{ background-color: #e3f2fd; }}
-                .event-mouse {{ background-color: #e8f5e9; }}
-                .event-button {{ background-color: #fff8e1; }}
-                .event-controller {{ background-color: #f3e5f5; }}
+                .event-key {{ background-color: rgba(100, 150, 200, 0.2); border-left: 3px solid #4b6cb7; }}
+                .event-mouse {{ background-color: rgba(100, 200, 100, 0.2); border-left: 3px solid #5cb85c; }}
+                .event-button {{ background-color: rgba(200, 150, 100, 0.2); border-left: 3px solid #f0ad4e; }}
+                .event-controller {{ background-color: rgba(150, 100, 200, 0.2); border-left: 3px solid #8e44ad; }}
+                .event-system {{ background-color: rgba(80, 80, 80, 0.2); border-left: 3px solid #777777; }}
+                .event-time {{ 
+                    font-size: 0.8em; 
+                    color: #aaaaaa; 
+                    display: block;
+                    margin-bottom: 5px;
+                }}
                 .badge {{
                     margin-left: 8px;
                 }}
@@ -302,6 +374,26 @@ class ApiExplorer:
                     margin-top: 30px;
                     padding-top: 20px;
                 }}
+                .ws-controls {{
+                    margin-bottom: 15px;
+                    display: flex;
+                    gap: 10px;
+                    align-items: center;
+                }}
+                .event-count {{
+                    color: #aaaaaa;
+                    font-size: 0.9em;
+                    margin-left: auto;
+                }}
+                .connection-status {{
+                    display: inline-block;
+                    width: 12px;
+                    height: 12px;
+                    border-radius: 50%;
+                    margin-right: 8px;
+                }}
+                .connected {{ background-color: #5cb85c; }}
+                .disconnected {{ background-color: #d9534f; }}
             </style>
         </head>
         <body>
@@ -389,6 +481,7 @@ class ApiExplorer:
                     const connectBtn = document.getElementById(`${{moduleId}}-connect-ws-btn`);
                     const disconnectBtn = document.getElementById(`${{moduleId}}-disconnect-ws-btn`);
                     const eventsContainer = document.getElementById(`${{moduleId}}-events-container`);
+                    const statusIndicator = document.getElementById(`${{moduleId}}-connection-status`);
                     
                     // Clear previous events
                     eventsContainer.innerHTML = '';
@@ -397,34 +490,69 @@ class ApiExplorer:
                     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                     webSockets[moduleId] = new WebSocket(`${{wsProtocol}}//${{window.location.host}}/ws/${{moduleId}}`);
                     
+                    // Event counter
+                    let eventCount = 0;
+                    const eventCountEl = document.getElementById(`${{moduleId}}-event-count`);
+                    
+                    // Update UI to show connecting state
+                    if (statusIndicator) statusIndicator.className = 'connection-status disconnected';
+                    addEvent(moduleId, 'Connecting to WebSocket...', 'system');
+                    
                     webSockets[moduleId].onopen = function(e) {{
                         connectBtn.disabled = true;
                         disconnectBtn.disabled = false;
-                        addEvent(moduleId, 'WebSocket connection established', 'success');
+                        if (statusIndicator) statusIndicator.className = 'connection-status connected';
+                        addEvent(moduleId, 'WebSocket connection established', 'system');
+                        
+                        // Ping the server every 30 seconds to keep the connection alive
+                        webSockets[moduleId].pingInterval = setInterval(() => {{
+                            if (webSockets[moduleId] && webSockets[moduleId].readyState === WebSocket.OPEN) {{
+                                webSockets[moduleId].send(JSON.stringify({{ command: 'ping' }}));
+                            }}
+                        }}, 30000);
                     }};
                     
                     webSockets[moduleId].onmessage = function(event) {{
                         try {{
                             const data = JSON.parse(event.data);
                             
+                            // Skip system messages like pong responses
+                            if (data.response === 'pong') return;
+                            
+                            // Update event counter
+                            eventCount++;
+                            if (eventCountEl) eventCountEl.textContent = `Events: ${{eventCount}}`;
+                            
                             // Determine event type for styling
                             let eventClass = 'event';
-                            if (data.event_type) {{
-                                if (data.event_type.includes('key')) {{
-                                    eventClass += ' event-key';
-                                }} else if (data.event_type.includes('mouse')) {{
-                                    eventClass += ' event-mouse';
-                                }} else if (data.event_type.includes('button')) {{
-                                    eventClass += ' event-button';
-                                }} else if (data.event_type.includes('controller')) {{
-                                    eventClass += ' event-controller';
-                                }}
+                            let eventType = data.event_type || 'unknown';
+                            
+                            if (eventType.includes('key')) {{
+                                eventClass += ' event-key';
+                            }} else if (eventType.includes('mouse')) {{
+                                eventClass += ' event-mouse';
+                            }} else if (eventType.includes('button') || eventType.includes('click')) {{
+                                eventClass += ' event-button';
+                            }} else if (eventType.includes('controller') || eventType.includes('axis')) {{
+                                eventClass += ' event-controller';
+                            }} else {{
+                                eventClass += ' event-system';
                             }}
                             
-                            // Format and display event
+                            // Format event data for display
+                            const formattedData = formatEventData(data);
+                            
+                            // Format timestamp
+                            let timeStr = '';
+                            if (data.timestamp) {{
+                                const date = new Date(data.timestamp * 1000);
+                                timeStr = `<span class="event-time">${{date.toLocaleTimeString()}}.${{date.getMilliseconds().toString().padStart(3, '0')}}</span>`;
+                            }}
+                            
+                            // Create and append event element
                             const eventElement = document.createElement('div');
                             eventElement.className = eventClass;
-                            eventElement.textContent = JSON.stringify(data);
+                            eventElement.innerHTML = `${{timeStr}}${{formattedData}}`;
                             eventsContainer.appendChild(eventElement);
                             
                             // Auto-scroll if enabled
@@ -432,15 +560,22 @@ class ApiExplorer:
                                 eventsContainer.scrollTop = eventsContainer.scrollHeight;
                             }}
                         }} catch (e) {{
-                            console.error('Error parsing WebSocket message:', e);
+                            console.error('Error parsing WebSocket message:', e, event.data);
+                            addEvent(moduleId, `Error parsing message: ${{e.message}}`, 'system');
                         }}
                     }};
                     
                     webSockets[moduleId].onclose = function(event) {{
+                        if (webSockets[moduleId].pingInterval) {{
+                            clearInterval(webSockets[moduleId].pingInterval);
+                        }}
+                        
+                        if (statusIndicator) statusIndicator.className = 'connection-status disconnected';
+                        
                         if (event.wasClean) {{
-                            addEvent(moduleId, `WebSocket connection closed cleanly, code=${{event.code}}, reason=${{event.reason}}`, 'info');
+                            addEvent(moduleId, `WebSocket connection closed cleanly, code=${{event.code}}, reason=${{event.reason}}`, 'system');
                         }} else {{
-                            addEvent(moduleId, 'WebSocket connection died', 'error');
+                            addEvent(moduleId, 'WebSocket connection died', 'system');
                         }}
                         
                         connectBtn.disabled = false;
@@ -449,17 +584,24 @@ class ApiExplorer:
                     }};
                     
                     webSockets[moduleId].onerror = function(error) {{
-                        addEvent(moduleId, `WebSocket error: ${{error.message}}`, 'error');
+                        if (statusIndicator) statusIndicator.className = 'connection-status disconnected';
+                        addEvent(moduleId, `WebSocket error: ${{error.message || 'Unknown error'}}`, 'system');
                     }};
                 }}
                 
                 function disconnectWebSocket(moduleId) {{
                     if (webSockets[moduleId]) {{
                         webSockets[moduleId].close();
+                        if (webSockets[moduleId].pingInterval) {{
+                            clearInterval(webSockets[moduleId].pingInterval);
+                        }}
                         webSockets[moduleId] = null;
                         
                         document.getElementById(`${{moduleId}}-connect-ws-btn`).disabled = false;
                         document.getElementById(`${{moduleId}}-disconnect-ws-btn`).disabled = true;
+                        
+                        const statusIndicator = document.getElementById(`${{moduleId}}-connection-status`);
+                        if (statusIndicator) statusIndicator.className = 'connection-status disconnected';
                     }}
                 }}
                 
@@ -479,12 +621,336 @@ class ApiExplorer:
                         eventsContainer.scrollTop = eventsContainer.scrollHeight;
                     }}
                 }}
+                
+                // Function to format event data for better display
+                function formatEventData(data) {{
+                    // Create a simplified representation for display
+                    let output = '';
+                    
+                    // Add event type
+                    if (data.event_type) {{
+                        output += `<strong>Event:</strong> ${{data.event_type}}\\n`;
+                    }}
+                    
+                    // Add key info if present
+                    if (data.key) {{
+                        output += `<strong>Key:</strong> ${{data.key}}\\n`;
+                    }}
+                    
+                    // Add active keys if present
+                    if (data.active_keys && data.active_keys.length > 0) {{
+                        output += `<strong>Active Keys:</strong> ${{data.active_keys.join(', ')}}\\n`;
+                    }}
+                    
+                    // Add mouse position if present
+                    if (data.mouse_x !== undefined && data.mouse_y !== undefined) {{
+                        output += `<strong>Mouse Position:</strong> (${{data.mouse_x}}, ${{data.mouse_y}})\\n`;
+                    }}
+                    
+                    // Add mouse button if present
+                    if (data.button_pressed) {{
+                        output += `<strong>Button:</strong> ${{data.button_pressed}}\\n`;
+                    }}
+                    
+                    // Add direction if present
+                    if (data.direction) {{
+                        output += `<strong>Direction:</strong> ${{data.direction}}\\n`;
+                    }}
+                    
+                    // Add joystick position if present
+                    if (data.rel_x !== undefined && data.rel_y !== undefined) {{
+                        output += `<strong>Joystick:</strong> (${{data.rel_x.toFixed(2)}}, ${{data.rel_y.toFixed(2)}})\\n`;
+                    }}
+                    
+                    // If there's no specific data to display, show the full object
+                    if (!output) {{
+                        output = JSON.stringify(data, null, 2);
+                    }}
+                    
+                    return output;
+                }}
             </script>
         </body>
         </html>
         """
         
         return html_content
+    
+    def _generate_server_info_html(self) -> str:
+        """Generate HTML with information about API Explorer servers."""
+        # Try to detect other API Explorer servers
+        other_servers = self._detect_other_servers()
+        
+        if not self.server_port:
+            current_server = "Not yet started"
+        else:
+            current_server = f"http://{self.server_host}:{self.server_port}"
+        
+        html = f"""
+        <div class="server-info mb-4">
+            <h4>API Explorer Servers</h4>
+            <p>Current server: <strong>{current_server}</strong></p>
+        """
+        
+        if other_servers:
+            html += """
+            <p>Other API Explorer servers found:</p>
+            <ul>
+            """
+            
+            for server in other_servers:
+                html += f"""
+                <li><a href="{server}" target="_blank">{server}</a></li>
+                """
+            
+            html += """
+            </ul>
+            """
+        else:
+            html += """
+            <p>No other API Explorer servers detected.</p>
+            """
+        
+        html += """
+        </div>
+        """
+        return html
+    
+    def _detect_other_servers(self) -> List[str]:
+        """
+        Try to detect other API Explorer servers running on different ports.
+        
+        Returns:
+            List[str]: List of server URLs
+        """
+        other_servers = []
+        base_port = 8000
+        max_port = 8010
+        
+        for port in range(base_port, max_port + 1):
+            # Skip current server port
+            if port == self.server_port:
+                continue
+                
+            # Try to connect to potential server
+            try:
+                import socket
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(0.1)
+                result = sock.connect_ex(('127.0.0.1', port))
+                sock.close()
+                
+                if result == 0:  # Port is open
+                    other_servers.append(f"http://127.0.0.1:{port}")
+            except:
+                pass
+                
+        return other_servers
+    
+    def start_server(self, host: str = "127.0.0.1", port: int = 8000, 
+                    block: bool = False) -> None:
+        """
+        Start the API Explorer server.
+        
+        Args:
+            host: Host to bind the server to
+            port: Port to bind the server to
+            block: Whether to block the current thread (True) or run in background (False)
+        """
+        # Include all module routers
+        for module_id, module_info in self.modules.items():
+            router = module_info.get('router')
+            if router:
+                self.app.include_router(router)
+        
+        # Check if server is already running
+        if self.is_running:
+            logging.info(f"API Explorer server already running at http://{self.server_host}:{self.server_port}")
+            return
+            
+        # Check if the specified port is already in use
+        original_port = port
+        while self._is_port_in_use(host, port):
+            logging.info(f"Port {port} is already in use, looking for an alternative port...")
+            port += 1
+            if port > 8100:  # Set a reasonable limit to avoid infinite loop
+                logging.error("Could not find an available port in range 8000-8100")
+                return
+                
+        # If we changed ports, log it
+        if port != original_port:
+            logging.info(f"Using alternative port {port}")
+        
+        # Save server host and port
+        self.server_host = host
+        self.server_port = port
+        
+        if block:
+            # Run in current thread (blocking)
+            logging.info(f"API Explorer server starting at http://{host}:{port}")
+            uvicorn.run(self.app, host=host, port=port)
+        else:
+            # Run in background thread
+            self.is_running = True
+            
+            def run_server():
+                try:
+                    config = uvicorn.Config(self.app, host=host, port=port, log_level="info")
+                    self.server = uvicorn.Server(config)
+                    logging.info(f"API Explorer server started at http://{host}:{port}")
+                    self.server.run()
+                except Exception as e:
+                    logging.error(f"Error in API Explorer server: {e}")
+                finally:
+                    self.is_running = False
+                    self.server = None
+            
+            self.server_thread = threading.Thread(target=run_server, daemon=True)
+            self.server_thread.start()
+    
+    def _is_port_in_use(self, host: str, port: int) -> bool:
+        """
+        Check if a port is already in use.
+        
+        Args:
+            host: Host to check
+            port: Port to check
+            
+        Returns:
+            bool: True if port is in use, False otherwise
+        """
+        try:
+            import socket
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(1)
+            result = sock.connect_ex((host, port))
+            sock.close()
+            return result == 0
+        except:
+            # If there's an error, assume port is not in use
+            return False
+    
+    def stop_server(self) -> None:
+        """Stop the API Explorer server."""
+        if self.server and self.is_running:
+            self.server.should_exit = True
+            self.is_running = False
+            logging.info("API Explorer server stopping...")
+    
+    def add_method_group(self, module_id: str, group_id: str, name: str) -> None:
+        """
+        Add a method group to a module.
+        
+        Args:
+            module_id: ID of the module to add the group to
+            group_id: Unique identifier for the group
+            name: Display name for the group
+        """
+        if module_id not in self.modules:
+            raise ValueError(f"Module '{module_id}' is not registered.")
+        
+        module = self.modules[module_id]
+        if 'method_groups' not in module:
+            module['method_groups'] = {}
+        
+        module['method_groups'][group_id] = {
+            'name': name,
+            'methods': {}
+        }
+
+    def register_method(self, module_id: str, group_id: str, method_id: str, method_info: Dict,
+                        handler_function: Callable) -> None:
+        """
+        Register an API method with the Explorer.
+        
+        Args:
+            module_id: ID of the module to add the method to
+            group_id: ID of the group to add the method to
+            method_id: Unique identifier for the method
+            method_info: Dictionary with method metadata (name, description, params, etc.)
+            handler_function: Function that will handle API requests for this method
+        """
+        if module_id not in self.modules:
+            raise ValueError(f"Module '{module_id}' is not registered.")
+        
+        module = self.modules[module_id]
+        if group_id not in module.get('method_groups', {}):
+            raise ValueError(f"Group '{group_id}' is not defined in module '{module_id}'.")
+        
+        # Add method to the group
+        module['method_groups'][group_id]['methods'][method_id] = method_info
+        
+        # Register the API endpoint
+        router = module.get('router')
+        if not router:
+            raise ValueError(f"Router not found for module '{module_id}'.")
+        
+        # Determine if GET or POST
+        method_type = method_info.get('type', 'GET').upper()
+        
+        # Get the parameter signature of the handler function
+        import inspect
+        sig = inspect.signature(handler_function)
+        param_names = list(sig.parameters.keys())
+        
+        # Create the endpoint
+        if method_type == 'GET':
+            # Create a GET endpoint with properly defined parameters
+            if len(param_names) == 0:
+                # No parameters needed
+                @router.get(f"/{method_id}")
+                async def endpoint():
+                    return await handler_function()
+            else:
+                # Create parameters dynamically based on method_info params
+                from fastapi import Query, Depends
+                from pydantic import create_model
+                
+                param_dict = {}
+                for param_id, param_info in method_info.get('params', {}).items():
+                    if param_info.get('type') == 'number':
+                        # Number parameter
+                        param_dict[param_id] = (Optional[int], Query(None))
+                    else:
+                        # String parameter (default)
+                        param_dict[param_id] = (str, Query(...))
+                
+                # Create dynamic model for query parameters
+                QueryModel = create_model(f'{module_id.capitalize()}{method_id.capitalize()}Query', **param_dict)
+                
+                # Use Depends to extract parameters
+                @router.get(f"/{method_id}")
+                async def endpoint(query: QueryModel = Depends()):
+                    # Convert to dict and pass to handler
+                    param_dict = {k: v for k, v in query.__dict__.items() if v is not None}
+                    return await handler_function(**param_dict)
+        else:
+            # For POST requests
+            from fastapi import Body
+            from pydantic import create_model
+            
+            param_fields = {}
+            for param_id, param_info in method_info.get('params', {}).items():
+                # Determine the Python type based on the param type
+                if param_info.get('type') == 'number':
+                    field_type = int
+                else:
+                    field_type = str
+                
+                # Create the field with type and default
+                if param_info.get('required', False):
+                    param_fields[param_id] = (field_type, ...)
+                else:
+                    param_fields[param_id] = (Optional[field_type], None)
+            
+            # Create dynamic model for request body
+            RequestModel = create_model(f'{module_id.capitalize()}{method_id.capitalize()}Request', **param_fields)
+            
+            @router.post(f"/{method_id}")
+            async def endpoint(request_data: RequestModel = Body(...)):
+                # Convert to dict and pass to handler
+                data_dict = {k: v for k, v in request_data.__dict__.items() if v is not None}
+                return await handler_function(**data_dict)
     
     def _generate_method_links(self, module_id: str, module_info: Dict) -> str:
         """Generate HTML for the method links sidebar."""
@@ -497,7 +963,7 @@ class ApiExplorer:
             links_html += f"<a href='#{module_id}-{group_id}' class='list-group-item list-group-item-action'>{group_info['name']}</a>"
         
         return links_html
-    
+
     def _generate_method_cards(self, module_id: str, module_info: Dict) -> str:
         """Generate HTML for the method cards."""
         method_groups = module_info.get('method_groups', {})
@@ -574,245 +1040,3 @@ class ApiExplorer:
                 """
         
         return cards_html
-    
-    def register_module(self, module_id: str, name: str, description: str) -> None:
-        """
-        Register a new module with the API Explorer.
-        
-        Args:
-            module_id: Unique identifier for the module
-            name: Display name for the module
-            description: Description of the module's functionality
-        """
-        if module_id in self.modules:
-            # Update existing module info
-            self.modules[module_id].update({
-                'name': name,
-                'description': description
-            })
-        else:
-            # Add new module
-            self.modules[module_id] = {
-                'name': name,
-                'description': description,
-                'method_groups': {},
-                'router': APIRouter(prefix=f"/api/{module_id}", tags=[name])
-            }
-            
-            # Create callback registry for this module
-            self.callback_registry[module_id] = {}
-    
-    def add_method_group(self, module_id: str, group_id: str, name: str) -> None:
-        """
-        Add a method group to a module.
-        
-        Args:
-            module_id: ID of the module to add the group to
-            group_id: Unique identifier for the group
-            name: Display name for the group
-        """
-        if module_id not in self.modules:
-            raise ValueError(f"Module '{module_id}' is not registered.")
-        
-        module = self.modules[module_id]
-        if 'method_groups' not in module:
-            module['method_groups'] = {}
-        
-        module['method_groups'][group_id] = {
-            'name': name,
-            'methods': {}
-        }
-    
-    def register_method(self, module_id: str, group_id: str, method_id: str, method_info: Dict,
-                  handler_function: Callable) -> None:
-        """
-        Register an API method with the Explorer.
-        
-        Args:
-            module_id: ID of the module to add the method to
-            group_id: ID of the group to add the method to
-            method_id: Unique identifier for the method
-            method_info: Dictionary with method metadata (name, description, params, etc.)
-            handler_function: Function that will handle API requests for this method
-        """
-        if module_id not in self.modules:
-            raise ValueError(f"Module '{module_id}' is not registered.")
-        
-        module = self.modules[module_id]
-        if group_id not in module.get('method_groups', {}):
-            raise ValueError(f"Group '{group_id}' is not defined in module '{module_id}'.")
-        
-        # Add method to the group
-        module['method_groups'][group_id]['methods'][method_id] = method_info
-        
-        # Register the API endpoint
-        router = module.get('router')
-        if not router:
-            raise ValueError(f"Router not found for module '{module_id}'.")
-        
-        # Determine if GET or POST
-        method_type = method_info.get('type', 'GET').upper()
-        
-        # Get the parameter signature of the handler function
-        import inspect
-        sig = inspect.signature(handler_function)
-        param_names = list(sig.parameters.keys())
-        
-        # Create the endpoint
-        if method_type == 'GET':
-            # Create a GET endpoint with properly defined parameters
-            if len(param_names) == 0:
-                # No parameters needed
-                @router.get(f"/{method_id}")
-                async def endpoint():
-                    return await handler_function()
-            else:
-                # Create parameters dynamically based on method_info params
-                param_dict = {}
-                for param_id, param_info in method_info.get('params', {}).items():
-                    if param_info.get('type') == 'number':
-                        # Number parameter
-                        param_dict[param_id] = (Optional[int], Query(None))
-                    else:
-                        # String parameter (default)
-                        param_dict[param_id] = (str, Query(...))
-                
-                # Create dynamic model for query parameters
-                QueryModel = create_model(f'{module_id.capitalize()}{method_id.capitalize()}Query', **param_dict)
-                
-                # Use Depends to extract parameters
-                @router.get(f"/{method_id}")
-                async def endpoint(query: QueryModel = Depends()):
-                    # Convert to dict and pass to handler
-                    param_dict = {k: v for k, v in query.__dict__.items() if v is not None}
-                    return await handler_function(**param_dict)
-        else:
-            # For POST requests
-            param_fields = {}
-            for param_id, param_info in method_info.get('params', {}).items():
-                # Determine the Python type based on the param type
-                if param_info.get('type') == 'number':
-                    field_type = int
-                else:
-                    field_type = str
-                
-                # Create the field with type and default
-                if param_info.get('required', False):
-                    param_fields[param_id] = (field_type, ...)
-                else:
-                    param_fields[param_id] = (Optional[field_type], None)
-            
-            # Create dynamic model for request body
-            RequestModel = create_model(f'{module_id.capitalize()}{method_id.capitalize()}Request', **param_fields)
-            
-            @router.post(f"/{method_id}")
-            async def endpoint(request_data: RequestModel = Body(...)):
-                # Convert to dict and pass to handler
-                data_dict = {k: v for k, v in request_data.__dict__.items() if v is not None}
-                return await handler_function(**data_dict)
-    
-    def register_event_callback(self, module_id: str, callback: Callable) -> int:
-        """
-        Register a callback for a module's events.
-        
-        Args:
-            module_id: ID of the module to register callback for
-            callback: Function to call with events
-            
-        Returns:
-            Callback ID for later unregistering
-        """
-        if module_id not in self.callback_registry:
-            self.callback_registry[module_id] = {}
-        
-        callback_id = self.next_callback_id
-        self.next_callback_id += 1
-        
-        self.callback_registry[module_id][callback_id] = callback
-        return callback_id
-    
-    def unregister_event_callback(self, module_id: str, callback_id: int) -> bool:
-        """
-        Unregister a previously registered callback.
-        
-        Args:
-            module_id: ID of the module the callback belongs to
-            callback_id: ID of the callback to remove
-            
-        Returns:
-            True if successfully unregistered, False otherwise
-        """
-        if (module_id in self.callback_registry and 
-            callback_id in self.callback_registry[module_id]):
-            self.callback_registry[module_id][callback_id] = None
-            return True
-        return False
-    
-    async def broadcast_event(self, module_id: str, event_data: Dict) -> None:
-        """
-        Broadcast an event to all WebSocket clients for a specific module.
-        
-        Args:
-            module_id: ID of the module the event belongs to
-            event_data: Event data to broadcast
-        """
-        # Notify callbacks for this module
-        if module_id in self.callback_registry:
-            for callback in self.callback_registry[module_id].values():
-                if callback:
-                    try:
-                        callback(event_data)
-                    except Exception as e:
-                        logging.error(f"Error in {module_id} callback: {e}")
-        
-        # Send to all connected WebSockets for this module
-        for connection in self.active_connections:
-            if connection.scope.get("module_id") == module_id:
-                try:
-                    await connection.send_json(event_data)
-                except Exception as e:
-                    logging.error(f"Error sending to WebSocket: {e}")
-    
-    def start_server(self, host: str = "127.0.0.1", port: int = 8000, 
-                    block: bool = False) -> None:
-        """
-        Start the API Explorer server.
-        
-        Args:
-            host: Host to bind the server to
-            port: Port to bind the server to
-            block: Whether to block the current thread (True) or run in background (False)
-        """
-        # Include all module routers
-        for module_id, module_info in self.modules.items():
-            router = module_info.get('router')
-            if router:
-                self.app.include_router(router)
-        
-        if block:
-            # Run in current thread (blocking)
-            uvicorn.run(self.app, host=host, port=port)
-        else:
-            # Run in background thread
-            if self.is_running:
-                logging.warning("Server is already running")
-                return
-            
-            self.is_running = True
-            
-            def run_server():
-                config = uvicorn.Config(self.app, host=host, port=port, log_level="info")
-                self.server = uvicorn.Server(config)
-                self.server.run()
-                self.is_running = False
-            
-            self.server_thread = threading.Thread(target=run_server, daemon=True)
-            self.server_thread.start()
-            logging.info(f"API Explorer server started at http://{host}:{port}")
-    
-    def stop_server(self) -> None:
-        """Stop the API Explorer server."""
-        if self.server and self.is_running:
-            self.server.should_exit = True
-            self.is_running = False
-            logging.info("API Explorer server stopping...")

@@ -11,8 +11,13 @@ import inspect
 import asyncio
 import threading
 import socket
-import requests
+import logging
 from typing import Dict, List, Optional, Any, Callable, Union
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, 
+                   format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # Add parent directory to path if needed
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -44,6 +49,13 @@ class InputCollectorApiIntegration:
         self.module_id = "input_collector"
         self.is_registered = False
         self.event_callback_id = None
+        
+        # For storing method groups and methods when fallback is used
+        self.fallback_method_groups = {}
+        self.fallback_methods = {}
+        
+        # Module registration status flag
+        self.module_registered = False
     
     def register_api(self, start_server: bool = True, host: str = "127.0.0.1", 
                      port: int = 8000) -> bool:
@@ -73,38 +85,107 @@ class InputCollectorApiIntegration:
                         break
                 else:
                     print("Unable to find an available port in the range. Will try to use port", port)
-        
+            
             # Get the ApiExplorer instance
             self.explorer = ApiExplorer.get_instance()
             
-            # Register the input collector module
-            self.explorer.register_module(
-                module_id=self.module_id,
-                name="Input Collector",
-                description="API for accessing real-time input data with minimal overhead"
-            )
+            # Check if required methods exist
+            self._check_explorer_methods()
             
-            # Register method groups
-            self._register_method_groups()
+            # Register the input collector module first
+            self._register_module()
             
-            # Register all methods
-            self._register_methods()
-            
-            # Register for real-time events
-            self._register_for_events()
-            
-            # Start the server if requested
-            if start_server and not self.explorer.is_running:
-                self.explorer.start_server(host=host, port=port, block=False)
-            
-            self.is_registered = True
-            return True
+            # Only proceed with method groups if module registration was successful
+            if self.module_registered:
+                # Register method groups
+                self._register_method_groups()
+                
+                # Register all methods
+                self._register_methods()
+                
+                # Register for real-time events
+                self._register_for_events()
+                
+                # Start the server if requested
+                if start_server and not self.explorer.is_running:
+                    if hasattr(self.explorer, 'start_server'):
+                        self.explorer.start_server(host=host, port=port, block=False)
+                    else:
+                        logger.warning("ApiExplorer does not have start_server method")
+                
+                self.is_registered = True
+                return True
+            else:
+                # Failed to register module
+                return False
             
         except Exception as e:
             print(f"Error registering input collector API: {e}")
             import traceback
             traceback.print_exc()
             return False
+    
+    def _register_module(self) -> bool:
+        """Register the input collector module with proper fallback."""
+        try:
+            if hasattr(self.explorer, 'register_module'):
+                self.explorer.register_module(
+                    module_id=self.module_id,
+                    name="Input Collector",
+                    description="API for accessing real-time input data with minimal overhead"
+                )
+                logger.info(f"Module '{self.module_id}' registered with API Explorer")
+                self.module_registered = True
+            else:
+                logger.warning("ApiExplorer does not have register_module method, using fallback")
+                # Create fallback implementation
+                if not hasattr(self.explorer, 'modules'):
+                    # Create modules dict if it doesn't exist
+                    setattr(self.explorer, 'modules', {})
+                
+                # Create a router for this module
+                try:
+                    from fastapi import APIRouter
+                    router = APIRouter(prefix=f"/api/{self.module_id}", tags=["Input Collector"])
+                    
+                    # If explorer has an app attribute, add the router directly
+                    if hasattr(self.explorer, 'app'):
+                        self.explorer.app.include_router(router)
+                        logger.info(f"Added router for {self.module_id} directly to app")
+                except Exception as e:
+                    logger.error(f"Error creating router: {e}")
+                    router = None
+                
+                # Register module in the modules dict
+                self.explorer.modules[self.module_id] = {
+                    'name': "Input Collector",
+                    'description': "API for accessing real-time input data with minimal overhead",
+                    'method_groups': {},
+                    'router': router  # Attach the router we created
+                }
+                
+                logger.info(f"Module '{self.module_id}' registered using fallback mechanism")
+                self.module_registered = True
+            
+            return self.module_registered
+        except Exception as e:
+            logger.error(f"Error registering module: {e}")
+            self.module_registered = False
+            return False
+    
+    def _check_explorer_methods(self):
+        """Check if the ApiExplorer class has the required methods."""
+        required_methods = [
+            'register_module',
+            'add_method_group',
+            'register_method',
+            'start_server',
+            'broadcast_event'
+        ]
+        
+        for method in required_methods:
+            if not hasattr(self.explorer, method):
+                logger.warning(f"ApiExplorer does not have {method} method")
     
     def _is_server_running(self, host: str, port: int) -> bool:
         """Check if a server is already running at the specified host and port."""
@@ -120,35 +201,140 @@ class InputCollectorApiIntegration:
         except:
             return False
     
-    def _register_method_groups(self):
+    def _register_method_groups(self) -> None:
         """Register method groups for the input collector."""
-        # State methods group
-        self.explorer.add_method_group(
-            module_id=self.module_id,
-            group_id="state_methods",
-            name="State Methods"
-        )
+        if not self.module_registered:
+            logger.error("Cannot register method groups - module not registered")
+            return
+            
+        groups = [
+            ("state_methods", "State Methods"),
+            ("event_methods", "Event Methods"),
+            ("controller_methods", "Controller Methods"),
+            ("callback_methods", "Callback Methods")
+        ]
         
-        # Event methods group
-        self.explorer.add_method_group(
-            module_id=self.module_id,
-            group_id="event_methods",
-            name="Event Methods"
-        )
+        for group_id, group_name in groups:
+            self._add_method_group(self.module_id, group_id, group_name)
+    
+    def _add_method_group(self, module_id, group_id, name):
+        """Add a method group with fallback support."""
+        # First verify the module exists
+        if not self.module_registered:
+            logger.error(f"Cannot add method group {group_id} - module {module_id} not registered")
+            return False
+            
+        if hasattr(self.explorer, 'add_method_group'):
+            try:
+                self.explorer.add_method_group(module_id, group_id, name)
+                return True
+            except Exception as e:
+                logger.error(f"Error adding method group: {e}")
+                logger.warning(f"Falling back to manual method group creation")
+                # Fall through to fallback implementation
         
-        # Controller methods group
-        self.explorer.add_method_group(
-            module_id=self.module_id,
-            group_id="controller_methods",
-            name="Controller Methods"
-        )
+        # Fallback implementation
+        logger.warning(f"ApiExplorer does not have add_method_group method, creating fallback")
         
-        # Callback methods group
-        self.explorer.add_method_group(
-            module_id=self.module_id,
-            group_id="callback_methods",
-            name="Callback Methods"
-        )
+        # Check if modules attribute exists
+        if hasattr(self.explorer, 'modules'):
+            # Check if our module exists
+            if module_id in self.explorer.modules:
+                # Check if method_groups dict exists
+                if 'method_groups' not in self.explorer.modules[module_id]:
+                    self.explorer.modules[module_id]['method_groups'] = {}
+                
+                # Add the method group
+                self.explorer.modules[module_id]['method_groups'][group_id] = {
+                    'name': name,
+                    'methods': {}
+                }
+                
+                logger.info(f"Created method group {group_id} in {module_id} using fallback")
+                return True
+            else:
+                logger.error(f"Module {module_id} not found in ApiExplorer modules")
+                return False
+        else:
+            # Storage in local fallback structure
+            if module_id not in self.fallback_method_groups:
+                self.fallback_method_groups[module_id] = {}
+            
+            self.fallback_method_groups[module_id][group_id] = {
+                'name': name,
+                'methods': {}
+            }
+            
+            logger.info(f"Created method group {group_id} in local fallback storage")
+            return True
+    
+    def _register_method(self, module_id, group_id, method_id, method_info, handler_function):
+        """Register a method with fallback support."""
+        if hasattr(self.explorer, 'register_method'):
+            self.explorer.register_method(
+                module_id, group_id, method_id, method_info, handler_function
+            )
+        else:
+            # Store in fallback
+            if module_id not in self.fallback_methods:
+                self.fallback_methods[module_id] = {}
+            
+            if group_id not in self.fallback_methods[module_id]:
+                self.fallback_methods[module_id][group_id] = {}
+            
+            self.fallback_methods[module_id][group_id][method_id] = {
+                'info': method_info,
+                'handler': handler_function
+            }
+            
+            # Add to group for UI display
+            if module_id in self.fallback_method_groups and group_id in self.fallback_method_groups[module_id]:
+                self.fallback_method_groups[module_id][group_id]['methods'][method_id] = method_info
+                
+            logger.info(f"Registered method {method_id} in {module_id}/{group_id} using fallback")
+            
+            # Create fallback endpoint if explorer has any routing capability
+            if hasattr(self.explorer, 'app'):
+                try:
+                    # Try to add a route directly to the FastAPI app
+                    from fastapi import APIRouter, Depends, Query, Body
+                    from pydantic import create_model
+                    
+                    # Get the path for this method
+                    path = f"/api/{module_id}/{method_id}"
+                    
+                    # Determine if GET or POST
+                    method_type = method_info.get('type', 'GET').upper()
+                    
+                    # Create a simple async wrapper around the handler function
+                    async def endpoint_wrapper(*args, **kwargs):
+                        result = await handler_function(*args, **kwargs)
+                        return result
+                    
+                    if method_type == 'GET':
+                        # Add GET route directly to app
+                        self.explorer.app.add_api_route(
+                            path,
+                            endpoint_wrapper,
+                            methods=["GET"],
+                            response_model=None,
+                            tags=["Input Collector"]
+                        )
+                    else:
+                        # Add POST route directly to app
+                        self.explorer.app.add_api_route(
+                            path,
+                            endpoint_wrapper,
+                            methods=["POST"],
+                            response_model=None,
+                            tags=["Input Collector"]
+                        )
+                    
+                    logger.info(f"Added fallback route for {method_id} at {path}")
+                except Exception as e:
+                    logger.error(f"Failed to add fallback route for {method_id}: {e}")
+                    import traceback
+                    traceback.print_exc()
     
     def _register_methods(self):
         """Register all API methods for the input collector."""
@@ -167,7 +353,7 @@ class InputCollectorApiIntegration:
     def _register_state_methods(self):
         """Register state-related API methods."""
         # get_active_keys method
-        self.explorer.register_method(
+        self._register_method(
             module_id=self.module_id,
             group_id="state_methods",
             method_id="get_active_keys",
@@ -181,7 +367,7 @@ class InputCollectorApiIntegration:
         )
         
         # is_key_active method
-        self.explorer.register_method(
+        self._register_method(
             module_id=self.module_id,
             group_id="state_methods",
             method_id="is_key_active",
@@ -202,7 +388,7 @@ class InputCollectorApiIntegration:
         )
         
         # get_mouse_position method
-        self.explorer.register_method(
+        self._register_method(
             module_id=self.module_id,
             group_id="state_methods",
             method_id="get_mouse_position",
@@ -216,7 +402,7 @@ class InputCollectorApiIntegration:
         )
         
         # get_mouse_button_state method
-        self.explorer.register_method(
+        self._register_method(
             module_id=self.module_id,
             group_id="state_methods",
             method_id="get_mouse_button_state",
@@ -237,7 +423,7 @@ class InputCollectorApiIntegration:
         )
         
         # is_mouse_moving method
-        self.explorer.register_method(
+        self._register_method(
             module_id=self.module_id,
             group_id="state_methods",
             method_id="is_mouse_moving",
@@ -251,7 +437,7 @@ class InputCollectorApiIntegration:
         )
         
         # get_mouse_direction method
-        self.explorer.register_method(
+        self._register_method(
             module_id=self.module_id,
             group_id="state_methods",
             method_id="get_mouse_direction",
@@ -265,7 +451,7 @@ class InputCollectorApiIntegration:
         )
         
         # get_metadata method
-        self.explorer.register_method(
+        self._register_method(
             module_id=self.module_id,
             group_id="state_methods",
             method_id="get_metadata",
@@ -281,7 +467,7 @@ class InputCollectorApiIntegration:
     def _register_event_methods(self):
         """Register event-related API methods."""
         # get_current_event method
-        self.explorer.register_method(
+        self._register_method(
             module_id=self.module_id,
             group_id="event_methods",
             method_id="get_current_event",
@@ -295,7 +481,7 @@ class InputCollectorApiIntegration:
         )
         
         # get_key_events method
-        self.explorer.register_method(
+        self._register_method(
             module_id=self.module_id,
             group_id="event_methods",
             method_id="get_key_events",
@@ -316,7 +502,7 @@ class InputCollectorApiIntegration:
         )
         
         # get_mouse_movement_events method
-        self.explorer.register_method(
+        self._register_method(
             module_id=self.module_id,
             group_id="event_methods",
             method_id="get_mouse_movement_events",
@@ -337,7 +523,7 @@ class InputCollectorApiIntegration:
         )
         
         # get_mouse_button_events method
-        self.explorer.register_method(
+        self._register_method(
             module_id=self.module_id,
             group_id="event_methods",
             method_id="get_mouse_button_events",
@@ -358,7 +544,7 @@ class InputCollectorApiIntegration:
         )
         
         # get_controller_events method
-        self.explorer.register_method(
+        self._register_method(
             module_id=self.module_id,
             group_id="event_methods",
             method_id="get_controller_events",
@@ -381,7 +567,7 @@ class InputCollectorApiIntegration:
     def _register_controller_methods(self):
         """Register controller-related API methods."""
         # is_controller_connected method
-        self.explorer.register_method(
+        self._register_method(
             module_id=self.module_id,
             group_id="controller_methods",
             method_id="is_controller_connected",
@@ -395,7 +581,7 @@ class InputCollectorApiIntegration:
         )
         
         # get_controller_name method
-        self.explorer.register_method(
+        self._register_method(
             module_id=self.module_id,
             group_id="controller_methods",
             method_id="get_controller_name",
@@ -411,7 +597,7 @@ class InputCollectorApiIntegration:
     def _register_callback_methods(self):
         """Register callback-related API methods."""
         # register_event_callback method
-        self.explorer.register_method(
+        self._register_method(
             module_id=self.module_id,
             group_id="callback_methods",
             method_id="register_event_callback",
@@ -425,7 +611,7 @@ class InputCollectorApiIntegration:
         )
         
         # unregister_event_callback method
-        self.explorer.register_method(
+        self._register_method(
             module_id=self.module_id,
             group_id="callback_methods",
             method_id="unregister_event_callback",
@@ -467,17 +653,49 @@ class InputCollectorApiIntegration:
                 if not key.startswith("_") and value is not None:
                     event_dict[key] = value
             
-            # Create an async task to broadcast the event
-            loop = asyncio.new_event_loop()
-            
-            async def broadcast():
-                await self.explorer.broadcast_event(self.module_id, event_dict)
+            # Add event type for easier filtering in the frontend
+            if 'event_type' not in event_dict and hasattr(event, 'event_type'):
+                event_dict['event_type'] = event.event_type
                 
-            loop.run_until_complete(broadcast())
-            loop.close()
+            # Debug logging to see if events are being processed
+            print(f"WebSocket event: {event_dict.get('event_type', 'unknown')}")
+            
+            # Broadcast event if method exists
+            if hasattr(self.explorer, 'broadcast_event'):
+                # Create a new event loop if needed
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_closed():
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                
+                # Run the broadcast in the event loop
+                async def broadcast():
+                    try:
+                        await self.explorer.broadcast_event(self.module_id, event_dict)
+                    except Exception as e:
+                        print(f"Error broadcasting event: {e}")
+                
+                try:
+                    # Run the coroutine
+                    if loop.is_running():
+                        asyncio.run_coroutine_threadsafe(broadcast(), loop)
+                    else:
+                        loop.run_until_complete(broadcast())
+                except Exception as e:
+                    print(f"Error in event loop: {e}")
+                    import traceback
+                    traceback.print_exc()
+            else:
+                print("ApiExplorer does not have broadcast_event method, event not sent")
             
         except Exception as e:
             print(f"Error in event callback: {e}")
+            import traceback
+            traceback.print_exc()
     
     def shutdown(self):
         """Clean up resources."""
@@ -486,7 +704,6 @@ class InputCollectorApiIntegration:
             self.event_callback_id = None
     
     # Handler methods for API endpoints
-    # Fix these methods to properly handle parameters
     
     async def _handle_get_active_keys(self):
         """Handle get_active_keys API endpoint."""
@@ -606,4 +823,11 @@ def initialize_api(enable_web_api: bool = True, host: str = "127.0.0.1", port: i
         return False
     
     integration = get_api_integration()
-    return integration.register_api(start_server=True, host=host, port=port)
+    success = integration.register_api(start_server=True, host=host, port=port)
+    
+    # Update the log message to show the actual port being used
+    if success and integration.explorer and integration.explorer.server_port:
+        actual_port = integration.explorer.server_port
+        print(f"Web API initialized at http://{host}:{actual_port}")
+    
+    return success
