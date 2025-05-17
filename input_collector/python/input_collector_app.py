@@ -8,7 +8,10 @@ logging keyboard and mouse inputs in real-time with a graphical user interface u
 import sys
 import time
 from typing import List, Dict, Optional
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QAction
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QFileDialog, QMessageBox, QAction, 
+    QGroupBox, QHBoxLayout, QPushButton, QLabel  # Add missing imports
+)
 from PyQt5.QtCore import Qt, QTimer
 
 from .interfaces import InputData
@@ -239,6 +242,70 @@ class InputCollectorApp(QMainWindow):
         
         # Now that UI is initialized, synchronize mouse settings
         QTimer.singleShot(100, self._sync_mouse_settings)
+        
+        # Add API Explorer button with delay to ensure UI is ready
+        QTimer.singleShot(200, self._add_api_explorer_button)
+
+    def _add_api_explorer_button(self) -> None:
+        """Add API Explorer button to the UI."""
+        try:
+            if hasattr(self.ui_manager, 'components') and 'main_layout' in self.ui_manager.components:
+                main_layout = self.ui_manager.components['main_layout']
+                
+                # Create a group box for the API Explorer
+                api_group = QGroupBox("API Tools")
+                api_layout = QHBoxLayout(api_group)
+                
+                # Add API Explorer button
+                api_explorer_button = QPushButton("Open API Explorer")
+                api_explorer_button.setStyleSheet(
+                    f"background-color: {self.accent_color}; color: white; padding: 8px;"
+                )
+                api_explorer_button.clicked.connect(self._show_api_explorer)
+                api_layout.addWidget(api_explorer_button)
+                
+                # Add help text
+                api_help = QLabel("Interactive explorer for the Input Data API (F1)")
+                api_help.setStyleSheet("color: #777;")
+                api_layout.addWidget(api_help, 1)
+                
+                # Insert before the last item (status area) if possible
+                if main_layout.count() > 0:
+                    main_layout.insertWidget(max(0, main_layout.count() - 1), api_group)
+                else:
+                    main_layout.addWidget(api_group)
+                
+                # Store reference to button
+                self.ui_manager.components['api_explorer_button'] = api_explorer_button
+                print("API Explorer button added successfully")
+        except Exception as e:
+            print(f"Error adding API Explorer button: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def _show_api_explorer(self) -> None:
+        """Show the API Explorer window."""
+        try:
+            # Defer import to avoid circular imports
+            from .ui.api_explorer import APIExplorer
+            
+            # Create API Explorer window if it doesn't exist yet
+            if not hasattr(self, 'api_explorer') or self.api_explorer is None:
+                self.api_explorer = APIExplorer()
+                self.api_explorer.setWindowTitle("Input Data API Explorer")
+                
+            # Show the window
+            self.api_explorer.show()
+            self.api_explorer.raise_()  # Bring to front
+            self.api_explorer.activateWindow()  # Give it focus
+            
+            # Log that API Explorer was opened
+            self.ui_manager.log_status("API Explorer opened", self.accent_color)
+        except Exception as e:
+            print(f"Error showing API Explorer: {e}")
+            self.ui_manager.log_status(f"Error opening API Explorer: {e}", self.error_color)
+            import traceback
+            traceback.print_exc()
 
     def _sync_mouse_settings(self) -> None:
         """Synchronize UI settings with initial mouse configuration."""
@@ -275,6 +342,12 @@ class InputCollectorApp(QMainWindow):
         esc_shortcut.setShortcut("Esc")
         esc_shortcut.triggered.connect(self._exit_fullscreen)
         self.addAction(esc_shortcut)
+        
+        # Add F1 shortcut for API Explorer
+        api_explorer_shortcut = QAction("API Explorer", self)
+        api_explorer_shortcut.setShortcut("F1")
+        api_explorer_shortcut.triggered.connect(self._show_api_explorer)
+        self.addAction(api_explorer_shortcut)
 
     def _toggle_json_logging(self, enabled: bool) -> None:
         """Toggle JSON logging."""
