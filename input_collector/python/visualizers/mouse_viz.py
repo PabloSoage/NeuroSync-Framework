@@ -5,13 +5,13 @@ This module provides visualization components for mouse input events,
 displaying mouse movement and button states in a joystick-like interface using PyQt5.
 """
 
-from PyQt5.QtWidgets import QWidget, QSizePolicy, QVBoxLayout, QLabel, QFrame
-from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QFont, QPolygon
-from PyQt5.QtCore import Qt, QPoint, QRect, QSize
 import math
-from typing import List, Dict, Optional, Any
+from typing import Dict, Any
 
-from ..interfaces import InputData
+from PyQt5.QtCore import Qt, QPoint, QRect, QSize
+from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QFont, QPolygon
+from PyQt5.QtWidgets import QWidget, QSizePolicy, QVBoxLayout, QLabel, QFrame
+
 from .visualizer_base import BaseVisualizer
 
 

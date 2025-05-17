@@ -1,12 +1,13 @@
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QGroupBox,
     QLabel, QPushButton, QFileDialog,
     QRadioButton, QSpinBox, QLineEdit
 )
-from PyQt5.QtCore import pyqtSignal
 
 from .base_panel import BasePanel
 from ..utils.help_system import HelpButton
+
 
 class RecordingPanel(BasePanel):
     """Panel for data recording operations."""

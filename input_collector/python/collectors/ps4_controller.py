@@ -6,11 +6,11 @@ a PS4 controller using SDL2, providing a unified interface compatible with the a
 input collector framework.
 """
 
-import time
-import threading
 import ctypes
 import math  # Added for magnitude calculations in axis events
-from typing import List, Dict, Optional, Callable, Set, Any
+import threading
+import time
+from typing import List, Dict, Callable, Any
 
 try:
     from sdl2 import *

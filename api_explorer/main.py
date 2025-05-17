@@ -5,11 +5,10 @@ This module provides a web interface similar to FastAPI's /docs for
 exploring and testing module APIs in real-time.
 """
 
-import sys
-import os
 import argparse
 import logging
-from typing import Dict, Optional
+import os
+import sys
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 

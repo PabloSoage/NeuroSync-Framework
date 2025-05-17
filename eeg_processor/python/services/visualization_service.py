@@ -1,8 +1,8 @@
 import logging
-from typing import Optional
 
-from ..visualizers.eeg_viz import EEGVisualizer
 from ..visualizers.brain_map_viz import BrainMapVisualizer
+from ..visualizers.eeg_viz import EEGVisualizer
+
 
 class VisualizationService:
     """

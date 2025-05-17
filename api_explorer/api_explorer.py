@@ -5,24 +5,18 @@ This module provides a reusable, dynamic API Explorer that can be used by differ
 to expose their APIs through a web interface.
 """
 
-import os
-import sys
-import inspect
-import threading
-import asyncio
-import time
-from typing import Dict, List, Optional, Any, Callable, Union, Type
 import logging
-from enum import Enum
+import os
+import threading
+from typing import Dict, List, Optional, Callable
 
+import uvicorn
 # FastAPI imports
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Query, Body, APIRouter, Depends
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, APIRouter
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
-from pydantic import BaseModel, Field, create_model
 
 
 class ApiExplorer:

@@ -5,15 +5,13 @@ This script connects to the synthetic board, collects data for a few seconds,
 and analyzes the CH_0 channel to understand its pattern and purpose.
 """
 
-import os
-import time
 import logging
+import time
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-
 from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds
-from brainflow.data_filter import DataFilter
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

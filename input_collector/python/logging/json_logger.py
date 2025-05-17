@@ -5,10 +5,10 @@ Provides functionality for logging input events to JSON format.
 """
 
 import json
-import time
 import os
-import math
-from typing import Any, Dict, Optional, TextIO
+import time
+from typing import Optional, TextIO
+
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from ..interfaces import InputData

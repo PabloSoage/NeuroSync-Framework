@@ -5,11 +5,10 @@ Run the input collector application.
 This script starts the input collector application and optionally enables the web API.
 """
 
-import sys
-import os
 import argparse
+import os
+import sys
 from typing import Dict, Any
-import json
 
 # Add module root to path
 current_dir = os.path.dirname(os.path.abspath(__file__))

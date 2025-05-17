@@ -4,8 +4,8 @@ Collectors package for input collection.
 This package provides classes for collecting input events from various devices.
 """
 
-from .keyboard_mouse import KeyboardMouseCollector
 from .collector_manager import CollectorManager
+from .keyboard_mouse import KeyboardMouseCollector
 
 # Export classes in the package namespace
 __all__ = ["KeyboardMouseCollector", "CollectorManager"]

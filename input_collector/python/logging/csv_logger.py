@@ -5,9 +5,10 @@ Provides functionality for logging input events to CSV format.
 """
 
 import csv
-import time
 import os
-from typing import Dict, List, Optional, TextIO, Any
+import time
+from typing import List, Optional, TextIO
+
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from ..interfaces import InputData

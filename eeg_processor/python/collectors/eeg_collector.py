@@ -1,10 +1,11 @@
 import logging
-import time
-from typing import Dict, List, Any, Optional, Tuple
 import os
+import queue
 import sys
 import threading
-import queue
+import time
+from typing import Dict, List, Any, Optional, Tuple
+
 import numpy as np
 
 # Import interfaces

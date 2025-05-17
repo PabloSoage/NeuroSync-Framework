@@ -5,10 +5,9 @@ This module provides synchronization between EEG data and input events
 using Lab Streaming Layer (LSL) for millisecond-precision timing.
 """
 
-import time
-import numpy as np
 import threading
-from typing import Dict, List, Optional, Any, Tuple
+import time
+
 from PyQt5.QtCore import QObject, pyqtSignal
 
 # Import LSL

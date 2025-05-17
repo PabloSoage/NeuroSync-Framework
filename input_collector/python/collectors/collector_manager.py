@@ -5,11 +5,9 @@ Provides a central manager for different input collectors.
 """
 
 from typing import Dict, List, Optional, Callable, Any
-import time
 
-from ..interfaces import InputData, AbstractInputCollector
 from .keyboard_mouse import KeyboardMouseCollector
-
+from ..interfaces import InputData, AbstractInputCollector
 # Import services (add this new import)
 from ..services.data_access_service import DataAccessService
 

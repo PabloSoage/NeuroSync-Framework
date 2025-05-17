@@ -5,14 +5,15 @@ Manages the user interface components and layout for the input collector applica
 """
 
 import time
-from typing import Optional, Callable, Dict, Any, List
+from typing import Optional, Dict, Any, List
+
+from PyQt5.QtCore import Qt, pyqtSignal, QObject
+from PyQt5.QtGui import QPalette, QColor, QTextCursor
 from PyQt5.QtWidgets import (
-    QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QGroupBox, QLabel, 
+    QWidget, QMainWindow, QVBoxLayout, QHBoxLayout, QGroupBox, QLabel,
     QCheckBox, QPushButton, QComboBox, QTextEdit, QFrame, QSlider, QLineEdit,
-    QSizePolicy, QScrollArea, QFileDialog, QApplication
+    QScrollArea, QApplication
 )
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QSize, QObject
-from PyQt5.QtGui import QPalette, QColor, QTextCursor, QFont
 
 from ..visualizers import KeyboardVisualizer, MouseVisualizer, MouseButtonsSelector
 

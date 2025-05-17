@@ -5,9 +5,10 @@ This script launches the complete BCI system with integrated
 EEG processing and input collection functionality.
 """
 
-import sys
-import os
 import logging
+import os
+import sys
+
 from PyQt5.QtWidgets import QApplication
 
 # Add parent directory to path to make the imports work

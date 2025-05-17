@@ -1,9 +1,11 @@
 import logging
 from typing import Dict, List, Any, Tuple, Optional
-import numpy as np
 
-from brainflow.data_filter import DataFilter, FilterTypes, WaveletTypes, AggOperations
+import numpy as np
+from brainflow.data_filter import WaveletTypes, AggOperations
+
 from ..processors.signal_processor import SignalProcessor
+
 
 class ProcessorService:
     """

@@ -6,19 +6,17 @@ logging keyboard and mouse inputs in real-time with a graphical user interface u
 """
 
 import sys
-import time
-from typing import List, Dict, Optional
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QAction
+from typing import List, Dict
+
 from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QAction
 
-from .interfaces import InputData
-from .collectors import KeyboardMouseCollector, CollectorManager
-
-# Import new modular components
-from .ui import UIManager
+from .app import AppCoordinator
+from .collectors import CollectorManager
 from .logging import LoggingManager
 from .processing import EventProcessor
-from .app import AppCoordinator
+# Import new modular components
+from .ui import UIManager
 
 # Import PS4 controller with fallback
 try:

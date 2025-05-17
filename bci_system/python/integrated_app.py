@@ -5,20 +5,19 @@ This module combines EEG processing and input collection into a single
 synchronized application for brain-computer interface research.
 """
 
+import logging
 import os
 import sys
 import time
-import logging
-from typing import Optional, Dict, Any
 
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal
+from PyQt5.QtGui import QColor, QPalette
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QTabWidget, QPushButton, QLabel, QGroupBox, QCheckBox, QComboBox,
-    QSplitter, QMessageBox, QScrollArea, QSizePolicy, QFrame,
+    QSplitter, QMessageBox, QScrollArea, QFrame,
     QFileDialog, QLineEdit, QRadioButton  # Added QFileDialog, QLineEdit, QRadioButton
 )
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal
-from PyQt5.QtGui import QColor, QPalette, QIcon
 
 # Import from EEG processor module
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "eeg_processor"))
@@ -30,7 +29,7 @@ from input_collector.python.input_collector_app import InputCollectorApp
 
 # Import the LSL synchronization module
 from lsl_synchronizer import (
-    LSLEEGPublisher, LSLInputPublisher, LSLMarkerPublisher, 
+    LSLInputPublisher, LSLMarkerPublisher,
     LSLDataReceiver, DatasetExporter, LSLSynchronizerWidget
 )
 

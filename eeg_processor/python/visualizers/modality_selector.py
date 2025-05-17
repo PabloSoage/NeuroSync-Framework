@@ -1,11 +1,10 @@
 import logging
-from typing import List, Dict
 
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QListWidget, QListWidgetItem, QCheckBox
+    QListWidget, QListWidgetItem
 )
-from PyQt5.QtCore import Qt
 
 from .multi_modality_viz import MultiModalityVisualizer
 from ..collectors.eeg_collector import EEGCollector

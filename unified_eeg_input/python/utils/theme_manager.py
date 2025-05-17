@@ -5,7 +5,6 @@ This module provides theme management for the unified application UI.
 """
 
 from PyQt5.QtGui import QColor, QPalette
-from PyQt5.QtWidgets import QApplication
 
 
 class UnifiedThemeManager:

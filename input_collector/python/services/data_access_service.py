@@ -7,7 +7,7 @@ Provides real-time access to input data with minimal overhead.
 import logging
 import threading
 import time
-from typing import Dict, List, Any, Optional, Tuple, Callable, Set
+from typing import Dict, List, Any, Optional, Tuple, Callable
 
 from ..interfaces.collector_interface import InputData
 

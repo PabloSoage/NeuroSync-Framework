@@ -5,14 +5,12 @@ This module integrates the input collector with the API Explorer,
 registering its methods and handling API requests.
 """
 
-import sys
-import os
-import inspect
 import asyncio
-import threading
-import socket
 import logging
-from typing import Dict, List, Optional, Any, Callable, Union
+import os
+import socket
+import sys
+from typing import Optional
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 

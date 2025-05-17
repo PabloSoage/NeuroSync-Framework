@@ -5,14 +5,14 @@ Acts as the central coordinator between different components of the application,
 handling high-level business logic while delegating specific responsibilities.
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List
+
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 
 from ..interfaces import InputData
-from ..collectors import KeyboardMouseCollector
-from ..ui import UIManager
 from ..logging import LoggingManager
 from ..processing import EventProcessor
+from ..ui import UIManager
 
 
 class AppCoordinator(QObject):

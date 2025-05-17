@@ -5,11 +5,13 @@ Manages visualization components for input events.
 """
 
 from typing import Dict, List, Any, Optional
+
 from PyQt5.QtCore import QObject, pyqtSignal, Qt, QEvent
 from PyQt5.QtWidgets import QWidget
 
 from ..visualizers import KeyboardVisualizer, MouseVisualizer, MouseButtonsSelector, PS4ControllerVisualizer
-from ..interfaces import InputData
+
+
 # Note: We don't import the interfaces for inheritance to avoid metaclass conflicts
 
 class VisualizerManager(QObject):  # Only inherit from QObject

@@ -5,10 +5,9 @@ This script shows how to use the Input Data API to access input events
 and state in real-time.
 """
 
-import sys
 import os
+import sys
 import time
-from typing import Dict, Any
 
 # Add module to path for imports
 current_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

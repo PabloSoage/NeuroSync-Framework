@@ -1,12 +1,13 @@
+from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import (
-    QVBoxLayout, QHBoxLayout, QGroupBox, 
+    QVBoxLayout, QHBoxLayout, QGroupBox,
     QLabel, QPushButton, QComboBox,
     QCheckBox, QDoubleSpinBox
 )
-from PyQt5.QtCore import QTimer
 
 from .base_panel import BasePanel
 from ..utils.help_system import HelpButton
+
 
 class ProcessingPanel(BasePanel):
     """Panel for signal processing operations."""

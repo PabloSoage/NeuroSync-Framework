@@ -5,9 +5,10 @@ This script shows how to use the EEG Data API to access data streams
 and metadata in real-time.
 """
 
-import time
-import sys
 import os
+import sys
+import time
+
 import numpy as np
 
 # Add module to path for imports

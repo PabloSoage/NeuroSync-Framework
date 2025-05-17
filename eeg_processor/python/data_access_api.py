@@ -5,10 +5,12 @@ This module provides a clean interface for accessing EEG data and metadata
 in real-time with minimal overhead.
 """
 
+from typing import Dict, List, Any, Tuple, Callable
+
 import numpy as np
-from typing import Dict, List, Any, Optional, Tuple, Callable
 
 from .services.data_access_service import DataAccessService
+
 
 class EEGDataAPI:
     """

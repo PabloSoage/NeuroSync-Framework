@@ -1,11 +1,12 @@
 import logging
 from typing import Dict, List, Any, Optional, Tuple, Union
-import numpy as np
-from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds, BrainFlowPresets
 
-from ..collectors.eeg_collector import EEGCollector
-from ..collectors.board_configuration import BoardConfiguration
+import numpy as np
+
 from .data_access_service import DataAccessService
+from ..collectors.board_configuration import BoardConfiguration
+from ..collectors.eeg_collector import EEGCollector
+
 
 class CollectorService:
     """

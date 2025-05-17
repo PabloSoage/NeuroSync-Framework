@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (
 from .base_panel import BasePanel
 from ..utils.help_system import HelpButton
 
+
 class StreamingPanel(BasePanel):
     """Panel for managing data streaming options."""
     
