@@ -3,6 +3,7 @@ import sys
 import socket
 import asyncio
 import logging
+import time
 import numpy as np
 import importlib
 from typing import Dict, List, Any, Optional, Tuple
@@ -55,6 +56,54 @@ class EEGProcessorApiIntegration:
         # Callback registration for streaming data
         self.callback_id = None
         
+        # Timer to periodically pull data from the collector
+        self.update_timer = None
+        
+    def start_data_polling(self, interval=0.5):
+        """Start polling for data from the collector service."""
+        self.stop_data_polling()  # Stop any existing timer
+        
+        loop = asyncio.get_event_loop()
+        self.update_timer = loop.call_later(interval, self._poll_data, interval, loop)
+        logger.info(f"Started data polling with interval {interval}s")
+        
+    def stop_data_polling(self):
+        """Stop polling for data."""
+        if self.update_timer:
+            self.update_timer.cancel()
+            self.update_timer = None
+            logger.info("Stopped data polling")
+            
+    def _poll_data(self, interval, loop):
+        """Poll for new data from the collector and update the data service."""
+        try:
+            if self.collector_service and self.collector_service.is_connected() and self.collector_service.is_streaming_active():
+                # Get data from collector
+                data, timestamps = self.collector_service.get_board_data(100)  # Get last 100 samples
+                
+                if data.size > 0:
+                    # Update data in the data service
+                    self.data_service.update_data(data, timestamps)
+                    
+                    # Update metadata if not set
+                    metadata = self.data_service.get_metadata()
+                    if not metadata.get("streaming", False) or metadata.get("sampling_rate", 0) == 0:
+                        new_metadata = {
+                            "streaming": True,
+                            "sampling_rate": self.collector_service.get_sampling_rate(),
+                            "eeg_channels": self.collector_service.get_eeg_channels(),
+                            "channel_names": self._get_channel_names_direct()
+                        }
+                        self.data_service.update_metadata(new_metadata)
+                        
+                    logger.debug(f"Updated data service with data shape {data.shape}")
+        except Exception as e:
+            logger.error(f"Error polling data: {e}")
+        finally:
+            # Schedule next poll
+            if loop.is_running():
+                self.update_timer = loop.call_later(interval, self._poll_data, interval, loop)
+        
     def register_api(self, host: str = "127.0.0.1", port: int = 8000) -> bool:
         """Register all EEG data endpoints with the API Explorer."""
         if not explorer_available:
@@ -91,6 +140,9 @@ class EEGProcessorApiIntegration:
         
         # Register data callback
         self.callback_id = EEGDataAPI.register_data_callback(self._handle_data_callback)
+        
+        # Start data polling
+        self.start_data_polling()
         
         return True
         
@@ -347,7 +399,7 @@ class EEGProcessorApiIntegration:
             logger.error(f"Error accessing collector: {e}")
             
         return None
-            
+    
     def _get_board_id_and_preset(self) -> Tuple[int, int]:
         """Get current board ID and preset."""
         collector = self._get_active_collector()
@@ -429,10 +481,12 @@ class EEGProcessorApiIntegration:
         is_streaming = EEGDataAPI.is_streaming()
         
         # If API reports not streaming but we have a collector that is streaming
-        if not is_streaming:
-            collector = self._get_active_collector()
-            if collector and hasattr(collector, 'is_streaming'):
-                is_streaming = collector.is_streaming
+        if not is_streaming and self.collector_service:
+            is_streaming = self.collector_service.is_streaming_active()
+            
+            # Update data service with streaming status
+            if is_streaming:
+                self.data_service.update_metadata({"streaming": True})
                 
         return {"streaming": is_streaming}
         

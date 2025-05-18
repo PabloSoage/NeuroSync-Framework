@@ -10,6 +10,7 @@ import argparse
 import logging
 import os
 import sys
+import time
 
 from PyQt5.QtWidgets import QApplication
 
@@ -63,20 +64,21 @@ def main():
         handlers=[logging.StreamHandler()],  # Only console logging by default
     )
 
+    # Create and start the application
+    app = QApplication(sys.argv)
+    app.setStyle("Fusion")
+    ex = EEGProcessorApp()
+    ex.show()
+
+    # Initialize API after the main application has started
     if args.enable_web_api:
-        from python.api_integration import initialize_api, get_api_integration
+        from eeg_processor.python.api_integration import initialize_api, get_api_integration
         if initialize_api(host=args.api_host, port=args.api_port):
             intg = get_api_integration()
             port = intg.explorer.server_port or args.api_port
             print(f"Web API EEG Processor en http://{args.api_host}:{port}")
         else:
             print("Fallo inicializando Web API EEG Processor")
-
-    # Create and start the application
-    app = QApplication(sys.argv)
-    app.setStyle("Fusion")
-    ex = EEGProcessorApp()
-    ex.show()
     
     # Example: register a callback for new data
     callback_id = EEGDataAPI.register_data_callback(data_callback)
