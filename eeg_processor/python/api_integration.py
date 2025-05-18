@@ -486,7 +486,12 @@ class EEGProcessorApiIntegration:
         
     def _get_board_info_direct(self) -> Dict[str, Any]:
         """Get complete board info directly from collector."""
-        # First attempt: get complete info from collector service
+        # First attempt: get currently selected board info
+        selected_board_info = self._get_selected_board_info()
+        if selected_board_info:
+            return selected_board_info
+        
+        # Fallback: get info from collector service if connected
         if self.collector_service and self.collector_service.is_connected():
             try:
                 board_info = self.collector_service.get_board_info()
@@ -498,7 +503,7 @@ class EEGProcessorApiIntegration:
             except Exception as e:
                 logger.debug(f"Error getting board info from collector service: {e}")
     
-        # Second attempt: get from data service metadata
+        # Last fallback: get from data service metadata
         try:
             metadata = self.data_service.get_metadata()
             if "board_info" in metadata and isinstance(metadata["board_info"], dict):
@@ -511,7 +516,7 @@ class EEGProcessorApiIntegration:
         except Exception as e:
             logger.debug(f"Error getting board info from metadata: {e}")
     
-        # Last resort: return minimal info
+        # If all else fails: return minimal info
         return {
             "board_id": -1,
             "board_name": "Unknown",
@@ -521,6 +526,102 @@ class EEGProcessorApiIntegration:
             "connected": False,
             "streaming": False
         }
+        
+    def _get_selected_board_info(self) -> Dict[str, Any]:
+        """Get information about the currently selected board (even if not connected)."""
+        try:
+            from .collectors.board_configuration import BoardConfiguration
+            
+            # Try to access the UI connection panel to get selected board
+            if not hasattr(self, "_main_window"):
+                # Find the main application window
+                from PyQt5.QtWidgets import QApplication
+                for widget in QApplication.topLevelWidgets():
+                    if widget.__class__.__name__ == "EEGProcessorApp":
+                        self._main_window = widget
+                        break
+            
+            # If we found the main window, try to get the selected board
+            if hasattr(self, "_main_window"):
+                # Get the connection panel from the main window
+                if hasattr(self._main_window, "connection_panel"):
+                    connection_panel = self._main_window.connection_panel
+                    # Get the selected board ID
+                    if hasattr(connection_panel, "board_type_combo"):
+                        board_id = connection_panel.board_type_combo.currentData()
+                        if board_id is not None:
+                            # Get the selected preset
+                            preset = None
+                            if hasattr(connection_panel, "preset_combo"):
+                                preset = connection_panel.preset_combo.currentData()
+                            
+                            # Get board description from BoardConfiguration
+                            board_desc = BoardConfiguration.get_board_description(board_id, preset)
+                            if board_desc:
+                                # Get connection status
+                                connected = self.collector_service and self.collector_service.is_connected()
+                                streaming = self.collector_service and self.collector_service.is_streaming_active()
+                                
+                                # Format channel names properly
+                                eeg_names = board_desc.get("eeg_names", "")
+                                if isinstance(eeg_names, str) and "," in eeg_names:
+                                    eeg_names = eeg_names.split(",")
+                                
+                                # Create new dictionary with ordered keys for better readability
+                                ordered_result = {}
+                                
+                                # 1. Basic board information first
+                                ordered_result["board_id"] = board_id
+                                ordered_result["board_name"] = board_desc.get("name", f"Board ID {board_id}")
+                                ordered_result["sampling_rate"] = board_desc.get("sampling_rate", 0)
+                                ordered_result["preset"] = preset
+                                
+                                # 2. Add available presets if present
+                                if "available_presets" in board_desc:
+                                    ordered_result["available_presets"] = board_desc["available_presets"]
+                                
+                                # 3. EEG channels and names
+                                if "eeg_channels" in board_desc:
+                                    ordered_result["eeg_channels"] = board_desc["eeg_channels"]
+                                
+                                if eeg_names:
+                                    ordered_result["eeg_names"] = eeg_names
+                                    ordered_result["channel_names"] = eeg_names
+                                
+                                # 4. Primary channel info
+                                if "num_rows" in board_desc:
+                                    ordered_result["num_rows"] = board_desc["num_rows"]
+                                if "package_num_channel" in board_desc:
+                                    ordered_result["package_num_channel"] = board_desc["package_num_channel"]
+                                if "timestamp_channel" in board_desc:
+                                    ordered_result["timestamp_channel"] = board_desc["timestamp_channel"]
+                                if "marker_channel" in board_desc:
+                                    ordered_result["marker_channel"] = board_desc["marker_channel"]
+                                
+                                # 5. Other specialized channels in a consistent order
+                                for channel_type in [
+                                    "emg_channels", "ecg_channels", "eog_channels", 
+                                    "eda_channels", "ppg_channels", "accel_channels", 
+                                    "gyro_channels", "temperature_channels", 
+                                    "resistance_channels", "battery_channel"
+                                ]:
+                                    if channel_type in board_desc:
+                                        ordered_result[channel_type] = board_desc[channel_type]
+                                
+                                # 6. Connection status at the end
+                                ordered_result["connected"] = connected
+                                ordered_result["streaming"] = streaming
+                                
+                                # 7. Copy any remaining fields we didn't explicitly handle
+                                for key, value in board_desc.items():
+                                    if key not in ordered_result and key != "name":  # Skip 'name' as we renamed it to 'board_name'
+                                        ordered_result[key] = value
+                                
+                                return ordered_result
+        except Exception as e:
+            logger.debug(f"Error getting selected board info: {e}")
+            
+        return None
 
     # --- Handler methods for API endpoints ---
     
