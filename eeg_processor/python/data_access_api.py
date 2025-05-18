@@ -6,6 +6,7 @@ in real-time with minimal overhead.
 """
 
 from typing import Dict, List, Any, Tuple, Callable, Optional
+import logging
 
 import numpy as np
 
@@ -36,13 +37,18 @@ class EEGDataAPI:
         Get data for a specific channel.
         
         Args:
-            channel_index: Index of the channel to get
+            channel_index: Index of the channel (1-based for external API)
             
         Returns:
             Tuple of (channel_data, timestamps)
         """
+        # Convert from 1-based external index to 0-based internal index
+        internal_index = channel_index - 1
+        if internal_index < 0:
+            return np.array([]), []
+            
         data_access = DataAccessService.get_instance()
-        return data_access.get_channel_data(channel_index)
+        return data_access.get_channel_data(internal_index)
     
     @staticmethod
     def get_channel_by_name(channel_name: str) -> Tuple[np.ndarray, List[int]]:
