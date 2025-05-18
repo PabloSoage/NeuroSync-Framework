@@ -10,6 +10,10 @@ pysdl2-dll
 pylsl
 h5py
 
+# Optional dependencies for API testing
+fastapi
+uvicorn[standard]
+
 # Optional dependencies for advanced features
 mne
 scipy
