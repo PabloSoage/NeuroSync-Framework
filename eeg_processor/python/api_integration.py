@@ -405,8 +405,19 @@ class EEGProcessorApiIntegration:
         collector = self._get_active_collector()
         if collector and hasattr(collector, 'board_id') and hasattr(collector, 'preset'):
             return collector.board_id, collector.preset
-        return None, None
             
+        # Fallback: if collector or attributes aren't available
+        try:
+            # If collector service is available, try to get board info from there
+            if self.collector_service:
+                board_info = self.collector_service.get_board_info()
+                if board_info:
+                    return board_info.get('board_id', None), board_info.get('preset', None)
+        except Exception as e:
+            logger.debug(f"Error getting board ID and preset from fallback: {e}")
+        
+        return None, None
+        
     def _get_sampling_rate_direct(self) -> float:
         """Get sampling rate directly from collector."""
         collector = self._get_active_collector()
@@ -426,11 +437,21 @@ class EEGProcessorApiIntegration:
         
     def _get_eeg_channels_direct(self) -> List[int]:
         """Get EEG channels directly from collector."""
+        # First attempt: from collector
         collector = self._get_active_collector()
         if collector and hasattr(collector, 'eeg_channels'):
             return collector.eeg_channels
-            
-        # Alternative method: try BrainFlow directly
+    
+        # Second attempt: from collector service
+        if self.collector_service:
+            try:
+                channels = self.collector_service.get_eeg_channels()
+                if channels:
+                    return channels
+            except Exception as e:
+                logger.debug(f"Error getting EEG channels from collector service: {e}")
+        
+        # Third attempt: from BrainFlow directly
         try:
             from brainflow.board_shim import BoardShim
             board_id, preset = self._get_board_id_and_preset()
@@ -438,7 +459,16 @@ class EEGProcessorApiIntegration:
                 return BoardShim.get_eeg_channels(board_id, preset)
         except Exception as e:
             logger.debug(f"Error getting EEG channels from BrainFlow: {e}")
-            
+        
+        # Fourth attempt: from metadata
+        try:
+            metadata = self.data_service.get_metadata()
+            if metadata and 'eeg_channels' in metadata:
+                return metadata['eeg_channels']
+        except Exception as e:
+            logger.debug(f"Error getting EEG channels from metadata: {e}")
+    
+        # Last resort: return empty list
         return []
         
     def _get_channel_names_direct(self) -> List[str]:
@@ -456,22 +486,59 @@ class EEGProcessorApiIntegration:
         
     def _get_board_info_direct(self) -> Dict[str, Any]:
         """Get board info directly from collector."""
+        # First attempt: from collector methods
         collector = self._get_active_collector()
-        if collector and hasattr(collector, 'get_device_info'):
-            return collector.get_device_info()
-        elif collector and hasattr(collector, 'get_board_info'):
-            return collector.get_board_info()
+        if collector:
+            if hasattr(collector, 'get_device_info'):
+                try:
+                    return collector.get_device_info()
+                except Exception as e:
+                    logger.debug(f"Error getting device info: {e}")
+        
+            if hasattr(collector, 'get_board_info'):
+                try:
+                    return collector.get_board_info()
+                except Exception as e:
+                    logger.debug(f"Error getting board info: {e}")
+    
+        # Second attempt: from collector service
+        if self.collector_service:
+            try:
+                board_info = self.collector_service.get_board_info()
+                if board_info:
+                    return board_info
+            except Exception as e:
+                logger.debug(f"Error getting board info from collector service: {e}")
+    
+        # Third attempt: build info from metadata
+        try:
+            metadata = self.data_service.get_metadata()
+            if metadata:
+                # Construct basic board info from metadata
+                board_info = {
+                    "board_id": metadata.get("board_id", -1),
+                    "board_name": metadata.get("board_name", "Unknown"),
+                    "sampling_rate": metadata.get("sampling_rate", 0),
+                    "eeg_channels": metadata.get("eeg_channels", []),
+                    "channel_names": metadata.get("channel_names", [])
+                }
+                return board_info
+        except Exception as e:
+            logger.debug(f"Error constructing board info from metadata: {e}")
             
-        # Basic fallback info
+        # Fallback: build from individual pieces
         board_id, preset = self._get_board_id_and_preset()
         sampling_rate = self._get_sampling_rate_direct()
         eeg_channels = self._get_eeg_channels_direct()
+        channel_names = self._get_channel_names_direct()
         
         return {
             "board_id": board_id,
             "preset": preset,
             "sampling_rate": sampling_rate,
-            "eeg_channels": eeg_channels
+            "eeg_channels": eeg_channels,
+            "channel_names": channel_names,
+            "status": "Reconstructed from partial data"
         }
     
     # --- Handler methods for API endpoints ---
@@ -523,12 +590,37 @@ class EEGProcessorApiIntegration:
         
     async def _handle_get_board_info(self):
         """Handle get_board_info endpoint."""
-        return self._get_board_info_direct()
+        board_info = self._get_board_info_direct()
         
+        # Add connection status
+        if self.collector_service:
+            board_info["connected"] = self.collector_service.is_connected()
+            board_info["streaming"] = self.collector_service.is_streaming_active()
+        
+        # Always provide at least some basic data
+        if not board_info:
+            # Provide minimal info if nothing else is available
+            return {
+                "error": "No board information available",
+                "connected": False,
+                "streaming": False
+            }
+        
+        return board_info
+    
     async def _handle_get_preset(self):
         """Handle get_preset endpoint."""
         board_id, preset = self._get_board_id_and_preset()
-        return {"preset": preset}
+        
+        # If preset is None, try to get it from board info
+        if preset is None:
+            board_info = self._get_board_info_direct()
+            preset = board_info.get("preset", 0)
+        
+        return {
+            "preset": preset if preset is not None else 0,
+            "board_id": board_id if board_id is not None else -1
+        }
         
     async def _handle_get_current_data(self, max_samples: Optional[int] = None):
         """Handle get_current_data endpoint."""
@@ -555,33 +647,66 @@ class EEGProcessorApiIntegration:
         
         # Extract only EEG channels if we have data
         if data.size > 0:
+            # Get EEG channels
             eeg_channels = self._get_eeg_channels_direct()
-            if eeg_channels:
-                # Filter to keep only EEG channels
-                eeg_data = data[eeg_channels]
+            
+            if eeg_channels and len(eeg_channels) > 0:
+                # Ensure eeg_channels indices are valid for the data array
+                valid_channels = [ch for ch in eeg_channels if ch < data.shape[0]]
+                
+                if valid_channels:
+                    # Filter to keep only valid EEG channels
+                    eeg_data = data[valid_channels]
+                    
+                    # Apply max_samples limit if provided
+                    if max_samples and eeg_data.shape[1] > max_samples:
+                        eeg_data = eeg_data[:, -max_samples:]
+                        if len(timestamps) > max_samples:
+                            timestamps = timestamps[-max_samples:]
+                        
+                    # Convert to list for JSON serialization
+                    if hasattr(eeg_data, 'tolist'):
+                        eeg_data = eeg_data.tolist()
+                        
+                    return {
+                        "data": eeg_data,
+                        "timestamps": timestamps,
+                        "eeg_channels": valid_channels,
+                        "channel_names": self._get_channel_names_direct()[:len(valid_channels)]
+                    }
+            
+            # Fallback if no valid EEG channels: use first few channels
+            if data.shape[0] > 0:
+                # Use first 4 channels or all if less than 4
+                num_channels = min(4, data.shape[0])
+                fallback_channels = list(range(num_channels))
+                fallback_data = data[:num_channels]
                 
                 # Apply max_samples limit if provided
-                if max_samples:
-                    eeg_data = eeg_data[:, -max_samples:]
-                    timestamps = timestamps[-max_samples:]
+                if max_samples and fallback_data.shape[1] > max_samples:
+                    fallback_data = fallback_data[:, -max_samples:]
+                    if len(timestamps) > max_samples:
+                        timestamps = timestamps[-max_samples:]
                     
                 # Convert to list for JSON serialization
-                if hasattr(eeg_data, 'tolist'):
-                    eeg_data = eeg_data.tolist()
+                if hasattr(fallback_data, 'tolist'):
+                    fallback_data = fallback_data.tolist()
                     
                 return {
-                    "data": eeg_data,
+                    "data": fallback_data,
                     "timestamps": timestamps,
-                    "eeg_channels": eeg_channels,
-                    "channel_names": self._get_channel_names_direct()
+                    "eeg_channels": fallback_channels,
+                    "channel_names": self._get_channel_names_direct()[:num_channels],
+                    "note": "Using fallback channels since no EEG channels were identified"
                 }
-                
+        
         # If we couldn't extract EEG data
         return {
             "data": [],
             "timestamps": [],
             "eeg_channels": self._get_eeg_channels_direct(),
-            "channel_names": self._get_channel_names_direct()
+            "channel_names": self._get_channel_names_direct(),
+            "error": "No data available"
         }
         
     async def _handle_get_channel_names(self):
@@ -597,6 +722,15 @@ class EEGProcessorApiIntegration:
     async def _handle_get_eeg_channels(self):
         """Handle get_eeg_channels endpoint."""
         channels = self._get_eeg_channels_direct()
+        
+        # Add channel names if available
+        channel_names = self._get_channel_names_direct()
+        if channel_names and len(channel_names) >= len(channels):
+            return {
+                "eeg_channels": channels,
+                "channel_names": channel_names[:len(channels)] if channels else channel_names
+            }
+        
         return {"eeg_channels": channels}
         
     async def _handle_get_channel_data(self, channel_index: int, max_samples: Optional[int] = None):
@@ -670,8 +804,23 @@ class EEGProcessorApiIntegration:
             
             # Get required data
             data, _ = EEGDataAPI.get_current_data()
+            
+            # Check if we have valid data
+            if data.size == 0:
+                return {
+                    "error": "No data available for quality calculation",
+                    "quality_by_index": {}
+                }
+            
+            # Get sampling rate and EEG channels
             sampling_rate = self._get_sampling_rate_direct()
+            if sampling_rate == 0:
+                sampling_rate = 250  # Default fallback sampling rate
+                
             eeg_channels = self._get_eeg_channels_direct()
+            if not eeg_channels:
+                # Fallback: use all channels or first 8
+                eeg_channels = list(range(min(8, data.shape[0])))
             
             # Instantiate processor
             processor = SignalProcessor(sampling_rate)
@@ -680,28 +829,38 @@ class EEGProcessorApiIntegration:
             quality_values = {}
             for ch in eeg_channels:
                 try:
-                    quality = processor.get_signal_quality(data, ch)
-                    quality_values[ch] = quality
+                    # Ensure channel index is valid
+                    if ch < data.shape[0]:
+                        quality = processor.get_signal_quality(data, ch)
+                        quality_values[ch] = quality
+                    else:
+                        logger.warning(f"Channel index {ch} out of bounds for data shape {data.shape}")
+                        quality_values[ch] = 0.0
                 except Exception as e:
-                    quality_values[ch] = 0
+                    logger.error(f"Error calculating quality for channel {ch}: {e}")
+                    quality_values[ch] = 0.0
                     
             # Add channel names if available
             channel_names = self._get_channel_names_direct()
             if channel_names and len(channel_names) >= len(eeg_channels):
+                name_mapping = {}
+                for i, ch in enumerate(eeg_channels):
+                    if i < len(channel_names):
+                        name_mapping[channel_names[i]] = quality_values.get(ch, 0.0)
+                
                 return {
                     "quality_by_index": quality_values,
-                    "quality_by_name": {
-                        channel_names[i]: quality_values[ch]
-                        for i, ch in enumerate(eeg_channels)
-                        if i < len(channel_names)
-                    }
+                    "quality_by_name": name_mapping
                 }
                 
             return {"quality_by_index": quality_values}
-            
+        
         except Exception as e:
             logger.error(f"Error calculating all channel quality: {e}")
-            return {"error": str(e)}
+            return {
+                "error": str(e),
+                "quality_by_index": {}
+            }
         
     async def _handle_register_data_callback(self):
         """Handle register_data_callback endpoint."""

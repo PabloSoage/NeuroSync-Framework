@@ -126,9 +126,23 @@ class DataAccessService:
             if not metadata.get("board_name") and hasattr(collector, "device_name"):
                 metadata["board_name"] = collector.device_name
                 
+            # Update preset if missing
+            if not metadata.get("preset") and hasattr(collector, "preset"):
+                metadata["preset"] = collector.preset
+                
             # Update streaming status
             if hasattr(collector, "is_streaming"):
                 metadata["streaming"] = collector.is_streaming
+                
+            # Store the entire board_info for convenience if available
+            if (hasattr(collector, "get_device_info") or hasattr(collector, "get_board_info")):
+                try:
+                    if hasattr(collector, "get_device_info"):
+                        metadata["board_info"] = collector.get_device_info()
+                    elif hasattr(collector, "get_board_info"):
+                        metadata["board_info"] = collector.get_board_info()
+                except Exception as e:
+                    logging.debug(f"Error getting board info: {e}")
         except Exception as e:
             logging.debug(f"Error updating metadata from collector: {e}")
     

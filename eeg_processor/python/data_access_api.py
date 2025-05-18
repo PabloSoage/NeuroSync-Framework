@@ -5,7 +5,7 @@ This module provides a clean interface for accessing EEG data and metadata
 in real-time with minimal overhead.
 """
 
-from typing import Dict, List, Any, Tuple, Callable
+from typing import Dict, List, Any, Tuple, Callable, Optional
 
 import numpy as np
 
@@ -135,3 +135,131 @@ class EEGDataAPI:
         """
         data_access = DataAccessService.get_instance()
         return data_access.unregister_callback(callback_id)
+    
+    @staticmethod
+    def get_eeg_channels() -> List[int]:
+        """
+        Get the EEG channel indices.
+        
+        Returns:
+            List of EEG channel indices
+        """
+        data_access = DataAccessService.get_instance()
+        metadata = data_access.get_metadata()
+        return metadata.get("eeg_channels", [])
+
+    @staticmethod
+    def get_board_info() -> Dict[str, Any]:
+        """
+        Get information about the connected board.
+        
+        Returns:
+            Dictionary with board information
+        """
+        data_access = DataAccessService.get_instance()
+        metadata = data_access.get_metadata()
+        
+        # Basic board info from metadata
+        board_info = {
+            "board_id": metadata.get("board_id", -1),
+            "board_name": metadata.get("board_name", "Unknown"),
+            "sampling_rate": metadata.get("sampling_rate", 0),
+            "eeg_channels": metadata.get("eeg_channels", []),
+            "channel_names": metadata.get("channel_names", []),
+            "streaming": metadata.get("streaming", False)
+        }
+        
+        # Additional board info if available
+        if "board_info" in metadata:
+            board_info.update(metadata["board_info"])
+            
+        return board_info
+
+    @staticmethod
+    def get_eeg_data(max_samples: Optional[int] = None) -> Tuple[np.ndarray, List[int]]:
+        """
+        Get EEG channel data only.
+        
+        Args:
+            max_samples: Maximum number of samples to return
+            
+        Returns:
+            Tuple of (eeg_data, timestamps)
+        """
+        data_access = DataAccessService.get_instance()
+        data, timestamps = data_access.get_current_data()
+        metadata = data_access.get_metadata()
+        
+        eeg_channels = metadata.get("eeg_channels", [])
+        
+        if data.size > 0 and eeg_channels:
+            # Filter to only include valid eeg channels
+            valid_channels = [ch for ch in eeg_channels if ch < data.shape[0]]
+            
+            if valid_channels:
+                eeg_data = data[valid_channels]
+                
+                # Apply max_samples limit if provided
+                if max_samples and eeg_data.shape[1] > max_samples:
+                    eeg_data = eeg_data[:, -max_samples:]
+                    timestamps = timestamps[-max_samples:]
+                    
+                return eeg_data, timestamps
+                
+        # Fallback: return empty data
+        return np.array([]), []
+
+    @staticmethod
+    def get_board_preset() -> int:
+        """
+        Get the current board preset value.
+        
+        Returns:
+            Preset value, or 0 if not available
+        """
+        data_access = DataAccessService.get_instance()
+        metadata = data_access.get_metadata()
+        return metadata.get("preset", 0)
+
+    @staticmethod
+    def get_all_channels_quality() -> Dict[int, float]:
+        """
+        Get signal quality for all EEG channels.
+        
+        Returns:
+            Dictionary mapping channel indices to quality scores (0-1)
+        """
+        try:
+            from .processors.signal_processor import SignalProcessor
+            
+            data_access = DataAccessService.get_instance()
+            data, _ = data_access.get_current_data()
+            metadata = data_access.get_metadata()
+            
+            if data.size == 0:
+                return {}
+                
+            sampling_rate = metadata.get("sampling_rate", 250)
+            eeg_channels = metadata.get("eeg_channels", [])
+            
+            # Fallback if no EEG channels defined
+            if not eeg_channels and data.size > 0:
+                eeg_channels = list(range(min(8, data.shape[0])))
+                
+            # Create processor and calculate quality
+            processor = SignalProcessor(sampling_rate)
+            quality_values = {}
+            
+            for ch in eeg_channels:
+                # Make sure channel index is valid
+                if ch < data.shape[0]:
+                    try:
+                        quality = processor.get_signal_quality(data, ch)
+                        quality_values[ch] = quality
+                    except:
+                        quality_values[ch] = 0.0
+                        
+            return quality_values
+        except Exception as e:
+            logging.error(f"Error calculating channel quality: {e}")
+            return {}
