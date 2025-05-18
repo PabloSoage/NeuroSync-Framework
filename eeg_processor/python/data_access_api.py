@@ -159,20 +159,21 @@ class EEGDataAPI:
         data_access = DataAccessService.get_instance()
         metadata = data_access.get_metadata()
         
-        # Basic board info from metadata
-        board_info = {
-            "board_id": metadata.get("board_id", -1),
-            "board_name": metadata.get("board_name", "Unknown"),
-            "sampling_rate": metadata.get("sampling_rate", 0),
-            "eeg_channels": metadata.get("eeg_channels", []),
-            "channel_names": metadata.get("channel_names", []),
-            "streaming": metadata.get("streaming", False)
-        }
+        # Get the raw board info if available in metadata
+        if "board_info" in metadata and isinstance(metadata["board_info"], dict):
+            # Start with the complete board_info from the metadata
+            board_info = metadata["board_info"].copy()
+        else:
+            # If not available, create from other metadata fields
+            board_info = {
+                "board_id": metadata.get("board_id", -1),
+                "board_name": metadata.get("board_name", "Unknown"),
+                "sampling_rate": metadata.get("sampling_rate", 0),
+                "eeg_channels": metadata.get("eeg_channels", []),
+                "channel_names": metadata.get("channel_names", []),
+                "streaming": metadata.get("streaming", False)
+            }
         
-        # Additional board info if available
-        if "board_info" in metadata:
-            board_info.update(metadata["board_info"])
-            
         return board_info
 
     @staticmethod

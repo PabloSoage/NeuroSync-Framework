@@ -47,19 +47,21 @@ class CollectorService:
                 # Update metadata in DataAccessService
                 data_access = DataAccessService.get_instance()
                 
-                # Update metadata with board info
+                # Update metadata with complete board info
                 device_info = self.collector.get_device_info()
-                metadata = {
+                
+                # Update metadata with device info
+                data_access.update_metadata({
                     "sampling_rate": device_info.get("sampling_rate", 0),
                     "eeg_channels": device_info.get("eeg_channels", []),
                     "channel_names": device_info.get("eeg_names", []),
                     "num_channels": len(device_info.get("eeg_channels", [])),
                     "board_id": device_info.get("board_id", -1),
                     "board_name": device_info.get("board_name", ""),
-                    "streaming": False
-                }
-                data_access.update_metadata(metadata)
-            
+                    "streaming": False,
+                    "board_info": device_info  # Store the complete info
+                })
+        
             return True
         except Exception as e:
             logging.error(f"Connection error: {e}")
