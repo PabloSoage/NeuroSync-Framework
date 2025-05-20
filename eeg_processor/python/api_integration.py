@@ -7,6 +7,8 @@ import time
 import numpy as np
 import importlib
 from typing import Dict, List, Any, Optional, Tuple
+from fastapi import Request
+from fastapi.responses import HTMLResponse
 
 # Configure logging
 logging.basicConfig(level=logging.INFO,
@@ -137,7 +139,88 @@ class EEGProcessorApiIntegration:
         
         # Start server
         self.explorer.start_server(host=host, port=port, block=False)
-        
+
+        # Exponer página custom para Real-time Events
+        app = self.explorer.app
+
+        @app.get("/realtime", response_class=HTMLResponse)
+        async def realtime_page(request: Request):
+            # construye la URL del WebSocket según el host/puerto y módulo
+            ws_url = f"ws://{request.client.host}:{request.url.port}/ws/{self.module_id}"
+            html = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>Real-time EEG Events</title>
+                <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+                <style>
+                  body {{ font-family:sans-serif; margin:20px; }}
+                  #listView, #chartView {{ margin-top:20px; }}
+                  button {{ margin-right:10px; }}
+                </style>
+            </head>
+            <body>
+                <h1>Real-time EEG Events</h1>
+                <button id="listViewBtn">Lista</button>
+                <button id="chartViewBtn">Gráfico</button>
+                <div id="listView" style="display:none;">
+                  <table id="dataTable" border="1" cellpadding="5">
+                    <thead><tr><th>Canal</th><th>Tipo</th><th>Valor</th></tr></thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+                <div id="chartView" style="display:none;">
+                  <canvas id="myChart" width="800" height="400"></canvas>
+                </div>
+                <script>
+                  const listBtn = document.getElementById('listViewBtn');
+                  const chartBtn = document.getElementById('chartViewBtn');
+                  const listDiv = document.getElementById('listView');
+                  const chartDiv = document.getElementById('chartView');
+                  listBtn.onclick = ()=>{{ listDiv.style.display='block'; chartDiv.style.display='none'; }};
+                  chartBtn.onclick= ()=>{{ chartDiv.style.display='block'; listDiv.style.display='none'; }};
+                  const ws = new WebSocket("{ws_url}");
+                  let chart;
+                  ws.onmessage = evt => {{
+                    const msg = JSON.parse(evt.data);
+                    const list = msg.visualization_data.list_view;
+                    // actualizar tabla
+                    const tbody = document.querySelector("#dataTable tbody");
+                    tbody.innerHTML = "";
+                    list.forEach(item => {{
+                      const tr = document.createElement('tr');
+                      tr.innerHTML = `<td>${{item.channel}}</td><td>${{item.type}}</td><td>${{item.value}}</td>`;
+                      tbody.appendChild(tr);
+                    }});
+                    // actualizar gráfico (EEG como ejemplo)
+                    const chartData = msg.visualization_data.chart_data['eeg'] || {{}};
+                    const labels = msg.visualization_data.timestamps;
+                    const datasets = Object.entries(chartData).map(([ch, data],i) => ({{
+                      label: ch,
+                      data: data,
+                      borderColor: `hsl(${{i*50%360}},70%,50%)`,
+                      fill: false
+                    }}));
+                    if (!chart) {{
+                      const ctx = document.getElementById('myChart').getContext('2d');
+                      chart = new Chart(ctx, {{
+                        type: 'line',
+                        data: {{ labels, datasets }},
+                        options: {{ animation:false, responsive:true }}
+                      }});
+                    }} else {{
+                      chart.data.labels = labels;
+                      chart.data.datasets = datasets;
+                      chart.update();
+                    }}
+                  }};
+                </script>
+            </body>
+            </html>
+            """
+            return HTMLResponse(html)
+
         # Register data callback
         self.callback_id = EEGDataAPI.register_data_callback(self._handle_data_callback)
         
@@ -975,41 +1058,108 @@ class EEGProcessorApiIntegration:
             return
             
         try:
-            # Create a simplified payload with essential data
-            # (Full data would be too large for efficient WebSocket transmission)
+            # Get metadata for channel information
+            metadata = self.data_service.get_metadata()
+            board_info = self._get_board_info_direct()
             
-            # Get only EEG channels for the payload
+            # Get all types of channels
             eeg_channels = self._get_eeg_channels_direct()
-            eeg_names = self._get_channel_names_direct()
             
-            # Take just a few channels and the most recent samples for efficiency
-            samples_to_send = min(5, data.shape[1]) if data.size > 0 else 0
+            # Get additional channel types if available
+            channel_types = {}
+            for channel_type in ['eeg', 'emg', 'ecg', 'accel', 'gyro', 'eda', 'ppg', 'temperature']:
+                if f"{channel_type}_channels" in board_info:
+                    channel_types[channel_type] = board_info[f"{channel_type}_channels"]
             
-            if data.size > 0 and samples_to_send > 0 and len(eeg_channels) > 0:
-                # Create a simplified representation
-                channels_to_send = min(4, len(eeg_channels))  # Send at most 4 channels
-                selected_channels = eeg_channels[:channels_to_send]
-                
-                # Extract data for selected channels, last few samples
-                channel_data = data[selected_channels, -samples_to_send:]
-                
-                # Create payload with recent snapshot and metadata
-                payload = {
-                    "event_type": "eeg_data_update",
-                    "timestamp": timestamps[-1] if timestamps else time.time(),
-                    "sampling_rate": self._get_sampling_rate_direct(),
-                    "channels": selected_channels[:channels_to_send],
-                    "channel_names": eeg_names[:channels_to_send] if eeg_names else [],
-                    "data": channel_data.tolist() if hasattr(channel_data, 'tolist') else channel_data,
-                    "samples": samples_to_send,
-                    "total_channels": len(eeg_channels)
+            # If no channel types found, default to EEG only
+            if not channel_types:
+                channel_types = {'eeg': eeg_channels}
+            
+            # Determine how many samples to send (not too many to keep WebSocket efficient)
+            samples_to_send = min(20, data.shape[1]) if data.size > 0 else 0
+            
+            if data.size > 0 and samples_to_send > 0:
+                # Prepare visualization data - both raw values and time series
+                viz_data = {
+                    "list_view": [],  # For raw list visualization
+                    "chart_data": {},  # For chart visualization
+                    "timestamps": [] 
                 }
                 
-                # Broadcast through WebSocket
-                self._broadcast_event(payload)
+                # Get the last N timestamps (convert to relative time if needed)
+                ts_slice = timestamps[-samples_to_send:]
+                # Convert timestamps to relative time (milliseconds since start)
+                if ts_slice:
+                    base_time = ts_slice[0]
+                    rel_timestamps = [int(ts - base_time) for ts in ts_slice]
+                    viz_data["timestamps"] = rel_timestamps
+                
+                # Process each channel type
+                for ch_type, channels in channel_types.items():
+                    # Skip if no channels of this type
+                    if not channels:
+                        continue
+                        
+                    # Get channel names if available
+                    channel_names = []
+                    if ch_type == 'eeg' and metadata.get('channel_names'):
+                        channel_names = metadata.get('channel_names')
+                    else:
+                        # Generate generic names
+                        channel_names = [f"{ch_type.upper()}_{i}" for i in range(len(channels))]
+                    
+                    # Slice to ensure we have valid names
+                    channel_names = channel_names[:len(channels)]
+                    
+                    # Add data for each channel
+                    chart_data_by_type = {}
+                    
+                    for i, ch_idx in enumerate(channels):
+                        if ch_idx < data.shape[0]:
+                            # Get name for this channel
+                            ch_name = channel_names[i] if i < len(channel_names) else f"{ch_type}_{ch_idx}"
+                            
+                            # Get the last N samples for this channel
+                            channel_data = data[ch_idx, -samples_to_send:].tolist()
+                            
+                            # Add to list view (last value only)
+                            if channel_data:
+                                viz_data["list_view"].append({
+                                    "channel": ch_name,
+                                    "type": ch_type,
+                                    "value": channel_data[-1],
+                                    "values": channel_data[-5:],  # Last 5 values for brief history
+                                    "index": ch_idx
+                                })
+                        
+                            # Add to chart data
+                            chart_data_by_type[ch_name] = channel_data
+                
+                # Add chart data for this type
+                if chart_data_by_type:
+                    viz_data["chart_data"][ch_type] = chart_data_by_type
+            
+            # Create payload with both visualization options
+            payload = {
+                "event_type": "eeg_data_update",
+                "timestamp": time.time(),
+                "sampling_rate": self._get_sampling_rate_direct(),
+                "visualization_data": viz_data,
+                "samples_count": samples_to_send,
+                "visualization_modes": ["list", "chart"],
+                "channel_types": list(channel_types.keys()),
+                "metadata": {
+                    "board_name": board_info.get("board_name", "Unknown"),
+                    "channel_count": data.shape[0] if data.size > 0 else 0,
+                    "eeg_channels_count": len(eeg_channels)
+                }
+            }
+            
+            # Broadcast through WebSocket
+            self._broadcast_event(payload)
         except Exception as e:
             logger.error(f"Error in data callback: {e}")
-        
+    
     def _broadcast_event(self, payload):
         """Broadcast event through WebSocket."""
         try:
