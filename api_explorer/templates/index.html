@@ -4,6 +4,8 @@
     <title>Dynamic API Explorer</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="/static/css/styles.css" rel="stylesheet">
+    <!-- Add Chart.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
@@ -134,17 +136,36 @@
                             </div>
                             
                             {% if module.show_data_table %}
+                                <!-- Toggle for Graph View -->
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="{{ module.id }}-show-graph">
+                                    <label class="form-check-label" for="{{ module.id }}-show-graph">Show Graph</label>
+                                </div>
+                                
+                                <!-- Type Filter Controls -->
+                                <div id="{{ module.id }}-type-filters" class="type-filters mb-3" style="display: none;">
+                                    <h5>Filter by Type:</h5>
+                                    <div class="filter-buttons"></div>
+                                </div>
+                                
+                                <!-- Graph Container -->
+                                <div id="{{ module.id }}-graph-container" class="graph-container mb-4" style="display: none;">
+                                    <canvas id="{{ module.id }}-graph-canvas"></canvas>
+                                </div>
+                                
                                 <!-- EEG Channel Data Table (Only shown for appropriate modules) -->
-                                <table id="{{ module.id }}-data-table" class="table table-bordered table-striped mt-3">
-                                    <thead class="table-dark">
-                                        <tr>
-                                            <th>Canal</th>
-                                            <th>Tipo</th>
-                                            <th>Valor</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody></tbody>
-                                </table>
+                                <div id="{{ module.id }}-table-container">
+                                    <table id="{{ module.id }}-data-table" class="table table-bordered table-striped mb-4">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Canal</th>
+                                                <th>Tipo</th>
+                                                <th>Valor</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
                             {% endif %}
                             
                             <div class="real-time-container" id="{{ module.id }}-events-container">

@@ -1,5 +1,8 @@
 // JavaScript for API Explorer functionality
 const webSockets = {};
+const moduleCharts = {}; // Store chart objects by module
+const channelData = {}; // Store historical data by module and channel
+const activeTypeFilters = {}; // Store active type filters by module
 
 // Toggle method details
 function toggleMethod(moduleId, methodId) {
@@ -116,10 +119,14 @@ function connectWebSocket(moduleId) {
             eventCount++;
             if (eventCountEl) eventCountEl.textContent = `Events: ${eventCount}`;
             
-            // Update the EEG data table if visualization_data exists AND the table exists
+            // Update the channel data and graph if visualization data exists
             if (data.visualization_data && data.visualization_data.list_view) {
+                // Update channel data for the graph
+                updateChannelData(moduleId, data);
+                
+                // Update the table if it exists
                 const tableBody = document.querySelector(`#${moduleId}-data-table tbody`);
-                if (tableBody) {  // Solo procesar si la tabla existe
+                if (tableBody) {
                     // Clear existing rows
                     tableBody.innerHTML = '';
                     
@@ -282,3 +289,294 @@ function formatEventData(data) {
     
     return output;
 }
+
+// Initialize or update the graph for a module
+function initOrUpdateGraph(moduleId) {
+    const canvas = document.getElementById(`${moduleId}-graph-canvas`);
+    
+    // Initialize data structures if needed
+    initModuleDataStructures(moduleId);
+    
+    // If we already have a chart, destroy it first
+    if (moduleCharts[moduleId]) {
+        moduleCharts[moduleId].destroy();
+    }
+    
+    // Prepare datasets from channelData
+    const datasets = [];
+    const types = new Set();
+    const colors = {
+        eeg: 'rgba(75, 108, 183, 1)',
+        emg: 'rgba(92, 184, 92, 1)',
+        ecg: 'rgba(217, 83, 79, 1)',
+        accel: 'rgba(240, 173, 78, 1)',
+        gyro: 'rgba(91, 192, 222, 1)',
+        eda: 'rgba(142, 68, 173, 1)',
+        ppg: 'rgba(232, 62, 140, 1)',
+        temperature: 'rgba(253, 126, 20, 1)'
+    };
+    
+    // Get all available types from data
+    Object.values(channelData[moduleId]).forEach(channelInfo => {
+        types.add(channelInfo.type);
+    });
+    
+    // Convert to array for easier handling
+    const typeArray = Array.from(types);
+    
+    // If no active type filter is set, default to eeg or first available type
+    if (!activeTypeFilters[moduleId] && typeArray.length > 0) {
+        // Default to 'eeg' if available, otherwise take the first type
+        activeTypeFilters[moduleId] = typeArray.includes('eeg') ? 'eeg' : typeArray[0];
+        console.log(`Setting default active type to: ${activeTypeFilters[moduleId]}`);
+    }
+    
+    // Current active type
+    const activeType = activeTypeFilters[moduleId];
+    console.log(`Current active type: ${activeType}`);
+    
+    // Create datasets only for channels of the active type
+    Object.keys(channelData[moduleId]).forEach(channel => {
+        const channelInfo = channelData[moduleId][channel];
+        const type = channelInfo.type;
+        
+        // Only include channels with active type
+        if (type === activeType) {
+            datasets.push({
+                label: channel,
+                data: channelInfo.values.slice(-100), // Only keep last 100 values
+                borderColor: colors[type] || 'rgba(0, 0, 0, 1)',
+                backgroundColor: 'rgba(0, 0, 0, 0)',
+                borderWidth: 1,
+                pointRadius: 0,
+                hidden: false
+            });
+        }
+    });
+    
+    // Check if we have data to display for the current type
+    const hasDataForCurrentType = datasets.length > 0;
+    
+    // Update type filters UI
+    updateTypeFilters(moduleId, typeArray, activeType);
+    
+    // If no data for current type but we have data for other types,
+    // display a message
+    const graphContainer = document.getElementById(`${moduleId}-graph-container`);
+    
+    if (!hasDataForCurrentType) {
+        if (graphContainer) {
+            graphContainer.innerHTML = `<div class="alert alert-info mt-3">No data available for type: ${activeType || ''}. Select a different type.</div>`;
+            
+            // Create a new canvas for when data arrives
+            const newCanvas = document.createElement('canvas');
+            newCanvas.id = `${moduleId}-graph-canvas`;
+            graphContainer.appendChild(newCanvas);
+        }
+        return;
+    }
+    
+    // Clear any previous "no data" message
+    if (graphContainer) {
+        graphContainer.innerHTML = '';
+        const newCanvas = document.createElement('canvas');
+        newCanvas.id = `${moduleId}-graph-canvas`;
+        graphContainer.appendChild(newCanvas);
+    }
+    
+    // Now get the canvas (might be newly created)
+    const canvasToUse = document.getElementById(`${moduleId}-graph-canvas`);
+    
+    // Create chart
+    moduleCharts[moduleId] = new Chart(canvasToUse, {
+        type: 'line',
+        data: {
+            labels: Array(100).fill(''), // Empty labels for the X-axis
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    type: 'logarithmic',
+                    min: 0.1, // Avoid zero values with log scale
+                    title: {
+                        display: true,
+                        text: 'Value (log scale)'
+                    }
+                },
+                x: {
+                    display: false
+                }
+            },
+            animation: {
+                duration: 0 // Disable animations for performance
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        boxWidth: 12,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            }
+        }
+    });
+}
+
+// Update type filters UI - modified to work as radio buttons
+function updateTypeFilters(moduleId, types, activeType) {
+    const filterContainer = document.querySelector(`#${moduleId}-type-filters .filter-buttons`);
+    
+    // Clear existing filters
+    filterContainer.innerHTML = '';
+    
+    // Create a button for each type
+    types.forEach(type => {
+        const btn = document.createElement('button');
+        btn.className = `type-filter-btn type-${type} ${type === activeType ? 'active' : ''}`;
+        btn.textContent = type.toUpperCase();
+        btn.addEventListener('click', () => {
+            console.log(`Clicked filter button for type: ${type}`);
+            
+            // Set this as the only active type
+            activeTypeFilters[moduleId] = type;
+            
+            // Update all buttons to reflect the new active state
+            const buttons = filterContainer.querySelectorAll('.type-filter-btn');
+            buttons.forEach(button => {
+                if (button.textContent === type.toUpperCase()) {
+                    button.classList.add('active');
+                } else {
+                    button.classList.remove('active');
+                }
+            });
+            
+            // Update graph with the new selected type
+            console.log(`Updating graph with new active type: ${type}`);
+            initOrUpdateGraph(moduleId);
+        });
+        
+        filterContainer.appendChild(btn);
+    });
+    
+    // If no types, show a message
+    if (types.length === 0) {
+        const msg = document.createElement('div');
+        msg.className = 'alert alert-info mt-2';
+        msg.textContent = 'No data types available yet. Connect WebSocket and wait for data.';
+        filterContainer.appendChild(msg);
+    }
+}
+
+// Initialize data structures for a module
+function initModuleDataStructures(moduleId) {
+    if (!channelData[moduleId]) {
+        channelData[moduleId] = {};
+    }
+    
+    if (activeTypeFilters[moduleId] === undefined) {
+        activeTypeFilters[moduleId] = ''; // Now a string instead of a Set
+    }
+}
+
+// Update channel data from WebSocket message
+function updateChannelData(moduleId, data) {
+    if (!data.visualization_data || !data.visualization_data.list_view) return;
+    
+    // Initialize data structures if needed
+    initModuleDataStructures(moduleId);
+    
+    // Flag to check if we received new data
+    let hasNewData = false;
+    
+    // Update channel data
+    data.visualization_data.list_view.forEach(item => {
+        const channelId = item.channel;
+        const type = item.type;
+        const value = Math.abs(item.value) < 0.1 ? 0.1 : item.value; // Ensure non-zero for log scale
+        
+        hasNewData = true;
+        
+        // Initialize channel if new
+        if (!channelData[moduleId][channelId]) {
+            channelData[moduleId][channelId] = {
+                type: type,
+                values: Array(100).fill(value) // Pre-fill with current value
+            };
+        }
+        
+        // Update channel data
+        channelData[moduleId][channelId].values.push(value);
+        
+        // Limit to last 100 values
+        if (channelData[moduleId][channelId].values.length > 100) {
+            channelData[moduleId][channelId].values.shift();
+        }
+    });
+    
+    // Update graph if visible and we have new data
+    if (hasNewData && document.getElementById(`${moduleId}-show-graph`).checked) {
+        // If it's our first data, we need to initialize the graph
+        if (!moduleCharts[moduleId]) {
+            initOrUpdateGraph(moduleId);
+        } else {
+            // Just update the existing chart
+            const chart = moduleCharts[moduleId];
+            
+            // Get current active type
+            const activeType = activeTypeFilters[moduleId];
+            
+            // Update each dataset with new data
+            chart.data.datasets.forEach(dataset => {
+                const channel = dataset.label;
+                if (channelData[moduleId][channel] && channelData[moduleId][channel].type === activeType) {
+                    dataset.data = channelData[moduleId][channel].values;
+                }
+            });
+            
+            chart.update('none'); // Update without animation
+        }
+    }
+}
+
+// Function for handling show graph toggle
+function toggleGraphView(moduleId) {
+    const showGraph = document.getElementById(`${moduleId}-show-graph`).checked;
+    const graphContainer = document.getElementById(`${moduleId}-graph-container`);
+    const tableContainer = document.getElementById(`${moduleId}-table-container`);
+    const typeFilters = document.getElementById(`${moduleId}-type-filters`);
+    
+    if (showGraph) {
+        // Show graph, hide table
+        graphContainer.style.display = 'block';
+        tableContainer.style.display = 'none';
+        typeFilters.style.display = 'block';
+        
+        // Initialize or update the graph
+        initOrUpdateGraph(moduleId);
+    } else {
+        // Show table, hide graph
+        graphContainer.style.display = 'none';
+        tableContainer.style.display = 'block';
+        typeFilters.style.display = 'none';
+    }
+    
+    console.log(`Graph view toggled for ${moduleId}: ${showGraph ? 'on' : 'off'}`);
+}
+
+// Add event listeners when the DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Find all show-graph toggles and add event listeners
+    document.querySelectorAll('[id$="-show-graph"]').forEach(toggle => {
+        const moduleId = toggle.id.replace('-show-graph', '');
+        toggle.addEventListener('change', () => toggleGraphView(moduleId));
+        console.log(`Added event listener for ${moduleId} graph toggle`);
+    });
+});

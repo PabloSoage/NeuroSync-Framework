@@ -62,6 +62,7 @@ pre {
     background-color: #1e1e1e;
     font-family: 'Courier New', monospace;
     color: #f0f0f0;
+    margin-top: 20px; /* Add top margin to create space */
 }
 
 .event {
@@ -143,3 +144,60 @@ pre {
 
 .connected { background-color: #5cb85c; }
 .disconnected { background-color: #d9534f; }
+
+.graph-container {
+    height: 400px;
+    width: 100%;
+    margin-bottom: 20px;
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 10px;
+    position: relative; /* Add position relative */
+    overflow: hidden;   /* Prevent content overflow */
+}
+
+.type-filters {
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+}
+
+.filter-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.type-filter-btn {
+    padding: 5px 10px;
+    font-size: 0.9em;
+    border-radius: 15px;
+    border: 2px solid #ccc;
+    background-color: #f8f9fa;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.type-filter-btn.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #0056b3;
+}
+
+.type-filter-btn:hover {
+    opacity: 0.8;
+}
+
+/* Type-specific colors for filter buttons */
+.type-eeg { border-color: #4b6cb7; }
+.type-emg { border-color: #5cb85c; }
+.type-ecg { border-color: #d9534f; }
+.type-accel { border-color: #f0ad4e; }
+.type-gyro { border-color: #5bc0de; }
+.type-eda { border-color: #8e44ad; }
+.type-ppg { border-color: #e83e8c; }
+.type-temperature { border-color: #fd7e14; }
