@@ -177,6 +177,9 @@ class ApiExplorer:
         """Generate HTML for the home page."""
         modules_html = ""
         for module_id, module_info in self.modules.items():
+            # Determine if this module should show the data table
+            show_data_table = module_info.get('show_data_table', False)
+            
             # Create a module section
             modules_html += f"""
             <div class="module-section mb-5" id="module-{module_id}">
@@ -238,6 +241,20 @@ class ApiExplorer:
                             <input class="form-check-input" type="checkbox" id="{module_id}-auto-scroll" checked>
                             <label class="form-check-label" for="{module_id}-auto-scroll">Auto-scroll</label>
                         </div>
+                        
+                        {f'''
+                        <!-- EEG Channel Data Table (Only shown for appropriate modules) -->
+                        <table id="{module_id}-data-table" class="table table-bordered table-striped mt-3">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Canal</th>
+                                    <th>Tipo</th>
+                                    <th>Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                        ''' if show_data_table else ''}
                         
                         <div class="real-time-container" id="{module_id}-events-container">
                             <div class="event event-system">Not connected. Click "Connect WebSocket" to start receiving events.</div>
@@ -516,6 +533,26 @@ class ApiExplorer:
                             // Update event counter
                             eventCount++;
                             if (eventCountEl) eventCountEl.textContent = `Events: ${{eventCount}}`;
+                            
+                            // Update the EEG data table if visualization_data exists AND the table exists
+                            if (data.visualization_data && data.visualization_data.list_view) {{
+                                const tableBody = document.querySelector(`#${{moduleId}}-data-table tbody`);
+                                if (tableBody) {{  // Solo procesar si la tabla existe
+                                    // Clear existing rows
+                                    tableBody.innerHTML = '';
+                                    
+                                    // Add new rows from list_view data
+                                    data.visualization_data.list_view.forEach(item => {{
+                                        const tr = document.createElement('tr');
+                                        tr.innerHTML = `
+                                            <td>${{item.channel}}</td>
+                                            <td>${{item.type}}</td>
+                                            <td>${{item.value.toFixed(2)}}</td>
+                                        `;
+                                        tableBody.appendChild(tr);
+                                    }});
+                                }}
+                            }}
                             
                             // Determine event type for styling
                             let eventClass = 'event';
@@ -875,8 +912,16 @@ class ApiExplorer:
                 data_dict = {k: v for k, v in request_data.__dict__.items() if v is not None}
                 return await handler_function(**data_dict)
     
-    def register_module(self, module_id: str, name: str, description: str) -> None:
-        """Register a new module with its own router."""
+    def register_module(self, module_id: str, name: str, description: str, show_data_table: bool = False) -> None:
+        """
+        Register a new module with its own router.
+        
+        Args:
+            module_id: Unique identifier for the module
+            name: Display name for the module
+            description: Module description
+            show_data_table: Whether to show the data table in real-time view for this module
+        """
         if module_id in self.modules:
             raise ValueError(f"Module '{module_id}' already registered.")
         router = APIRouter(prefix=f"/api/{module_id}", tags=[name])
@@ -884,7 +929,8 @@ class ApiExplorer:
             'name': name,
             'description': description,
             'method_groups': {},
-            'router': router
+            'router': router,
+            'show_data_table': show_data_table  # Nueva propiedad para controlar la visualización de la tabla
         }
 
     def _generate_method_links(self, module_id: str, module_info: Dict) -> str:

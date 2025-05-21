@@ -119,11 +119,12 @@ class EEGProcessorApiIntegration:
         # Get API Explorer instance
         self.explorer = ApiExplorer.get_instance()
         
-        # Register module
+        # Register module - especificando show_data_table=True para este módulo
         self.explorer.register_module(
             module_id=self.module_id,
             name="EEG Processor",
-            description="Real-time access to EEG data streams and device information"
+            description="Real-time access to EEG data streams and device information",
+            show_data_table=True  # Indicamos que queremos mostrar la tabla de datos
         )
         
         # Register method groups
@@ -140,86 +141,8 @@ class EEGProcessorApiIntegration:
         # Start server
         self.explorer.start_server(host=host, port=port, block=False)
 
-        # Exponer página custom para Real-time Events
-        app = self.explorer.app
-
-        @app.get("/realtime", response_class=HTMLResponse)
-        async def realtime_page(request: Request):
-            # construye la URL del WebSocket según el host/puerto y módulo
-            ws_url = f"ws://{request.client.host}:{request.url.port}/ws/{self.module_id}"
-            html = f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="utf-8">
-                <title>Real-time EEG Events</title>
-                <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-                <style>
-                  body {{ font-family:sans-serif; margin:20px; }}
-                  #listView, #chartView {{ margin-top:20px; }}
-                  button {{ margin-right:10px; }}
-                </style>
-            </head>
-            <body>
-                <h1>Real-time EEG Events</h1>
-                <button id="listViewBtn">Lista</button>
-                <button id="chartViewBtn">Gráfico</button>
-                <div id="listView" style="display:none;">
-                  <table id="dataTable" border="1" cellpadding="5">
-                    <thead><tr><th>Canal</th><th>Tipo</th><th>Valor</th></tr></thead>
-                    <tbody></tbody>
-                  </table>
-                </div>
-                <div id="chartView" style="display:none;">
-                  <canvas id="myChart" width="800" height="400"></canvas>
-                </div>
-                <script>
-                  const listBtn = document.getElementById('listViewBtn');
-                  const chartBtn = document.getElementById('chartViewBtn');
-                  const listDiv = document.getElementById('listView');
-                  const chartDiv = document.getElementById('chartView');
-                  listBtn.onclick = ()=>{{ listDiv.style.display='block'; chartDiv.style.display='none'; }};
-                  chartBtn.onclick= ()=>{{ chartDiv.style.display='block'; listDiv.style.display='none'; }};
-                  const ws = new WebSocket("{ws_url}");
-                  let chart;
-                  ws.onmessage = evt => {{
-                    const msg = JSON.parse(evt.data);
-                    const list = msg.visualization_data.list_view;
-                    // actualizar tabla
-                    const tbody = document.querySelector("#dataTable tbody");
-                    tbody.innerHTML = "";
-                    list.forEach(item => {{
-                      const tr = document.createElement('tr');
-                      tr.innerHTML = `<td>${{item.channel}}</td><td>${{item.type}}</td><td>${{item.value}}</td>`;
-                      tbody.appendChild(tr);
-                    }});
-                    // actualizar gráfico (EEG como ejemplo)
-                    const chartData = msg.visualization_data.chart_data['eeg'] || {{}};
-                    const labels = msg.visualization_data.timestamps;
-                    const datasets = Object.entries(chartData).map(([ch, data],i) => ({{
-                      label: ch,
-                      data: data,
-                      borderColor: `hsl(${{i*50%360}},70%,50%)`,
-                      fill: false
-                    }}));
-                    if (!chart) {{
-                      const ctx = document.getElementById('myChart').getContext('2d');
-                      chart = new Chart(ctx, {{
-                        type: 'line',
-                        data: {{ labels, datasets }},
-                        options: {{ animation:false, responsive:true }}
-                      }});
-                    }} else {{
-                      chart.data.labels = labels;
-                      chart.data.datasets = datasets;
-                      chart.update();
-                    }}
-                  }};
-                </script>
-            </body>
-            </html>
-            """
-            return HTMLResponse(html)
+        # Ya no es necesaria la ruta /realtime, se integra en la página principal
+        # en la pestaña "Real-time Events"
 
         # Register data callback
         self.callback_id = EEGDataAPI.register_data_callback(self._handle_data_callback)
