@@ -5,10 +5,7 @@ import asyncio
 import logging
 import time
 import numpy as np
-import importlib
-from typing import Dict, List, Any, Optional, Tuple
-from fastapi import Request
-from fastapi.responses import HTMLResponse
+from typing import Dict, List, Any, Optional, Tuple, Union, Callable
 
 # Configure logging
 logging.basicConfig(level=logging.INFO,
@@ -31,6 +28,7 @@ except ImportError:
 from .data_access_api import EEGDataAPI
 from .services.data_access_service import DataAccessService
 from .services.collector_service import CollectorService
+
 
 class EEGProcessorApiIntegration:
     """Direct integration with EEG processor services and data."""
@@ -61,7 +59,74 @@ class EEGProcessorApiIntegration:
         # Timer to periodically pull data from the collector
         self.update_timer = None
         
-    def start_data_polling(self, interval=0.5):
+    #
+    # Main API Registration Methods
+    #
+        
+    def register_api(self, host: str = "127.0.0.1", port: int = 8000) -> bool:
+        """Register all EEG data endpoints with the API Explorer."""
+        if not explorer_available:
+            return False
+            
+        # Find available port
+        while self._port_in_use(host, port):
+            logger.info(f"Port {port} already in use, trying port {port+1}")
+            port += 1
+        
+        # Get API Explorer instance
+        self.explorer = ApiExplorer.get_instance()
+        
+        # Register module - specify show_data_table=True for this module
+        self.explorer.register_module(
+            module_id=self.module_id,
+            name="EEG Processor",
+            description="Real-time access to EEG data streams and device information",
+            show_data_table=True
+        )
+        
+        # Register methods for various endpoints
+        self._register_all_method_groups()
+        
+        # Start server
+        self.explorer.start_server(host=host, port=port, block=False)
+
+        # Register data callback
+        self.callback_id = EEGDataAPI.register_data_callback(self._handle_data_callback)
+        
+        # Start data polling
+        self.start_data_polling()
+        
+        return True
+    
+    def _register_all_method_groups(self):
+        """Register all method groups and their endpoints."""
+        self._register_method_groups()
+        self._register_status_methods()
+        self._register_device_methods()
+        self._register_data_methods()
+        self._register_channel_methods()
+        self._register_quality_methods()
+        self._register_event_methods()
+        
+    def _register_method_groups(self):
+        """Register all method groups."""
+        groups = [
+            ("status", "Status Methods"),
+            ("device", "Device Methods"),
+            ("data", "Data Access Methods"),
+            ("channels", "Channel Methods"),
+            ("quality", "Signal Quality Methods"),
+            ("events", "Event Methods")
+        ]
+        
+        for group_id, group_name in groups:
+            self.explorer.add_method_group(self.module_id, group_id, group_name)
+            
+    #
+    # Data Polling Methods
+    #
+    
+    def start_data_polling(self, interval: float = 0.5) -> None:
         """Start polling for data from the collector service."""
         self.stop_data_polling()  # Stop any existing timer
         
@@ -69,14 +134,14 @@ class EEGProcessorApiIntegration:
         self.update_timer = loop.call_later(interval, self._poll_data, interval, loop)
         logger.info(f"Started data polling with interval {interval}s")
         
-    def stop_data_polling(self):
+    def stop_data_polling(self) -> None:
         """Stop polling for data."""
         if self.update_timer:
             self.update_timer.cancel()
             self.update_timer = None
             logger.info("Stopped data polling")
             
-    def _poll_data(self, interval, loop):
+    def _poll_data(self, interval: float, loop: asyncio.AbstractEventLoop) -> None:
         """Poll for new data from the collector and update the data service."""
         try:
             if self.collector_service and self.collector_service.is_connected() and self.collector_service.is_streaming_active():
@@ -105,67 +170,270 @@ class EEGProcessorApiIntegration:
             # Schedule next poll
             if loop.is_running():
                 self.update_timer = loop.call_later(interval, self._poll_data, interval, loop)
-        
-    def register_api(self, host: str = "127.0.0.1", port: int = 8000) -> bool:
-        """Register all EEG data endpoints with the API Explorer."""
-        if not explorer_available:
-            return False
+    
+    def _port_in_use(self, host: str, port: int) -> bool:
+        """Check if port is already in use."""
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(1)
+            return s.connect_ex((host, port)) == 0
             
-        # Find available port
-        while self._port_in_use(host, port):
-            logger.info(f"Port {port} already in use, trying port {port+1}")
-            port += 1
-        
-        # Get API Explorer instance
-        self.explorer = ApiExplorer.get_instance()
-        
-        # Register module - especificando show_data_table=True para este módulo
-        self.explorer.register_module(
-            module_id=self.module_id,
-            name="EEG Processor",
-            description="Real-time access to EEG data streams and device information",
-            show_data_table=True  # Indicamos que queremos mostrar la tabla de datos
-        )
-        
-        # Register method groups
-        self._register_method_groups()
-        
-        # Register methods for each group
-        self._register_status_methods()
-        self._register_device_methods()
-        self._register_data_methods()
-        self._register_channel_methods()
-        self._register_quality_methods()
-        self._register_event_methods()
-        
-        # Start server
-        self.explorer.start_server(host=host, port=port, block=False)
-
-        # Ya no es necesaria la ruta /realtime, se integra en la página principal
-        # en la pestaña "Real-time Events"
-
-        # Register data callback
-        self.callback_id = EEGDataAPI.register_data_callback(self._handle_data_callback)
-        
-        # Start data polling
-        self.start_data_polling()
-        
-        return True
-        
-    def _register_method_groups(self):
-        """Register all method groups."""
-        groups = [
-            ("status", "Status Methods"),
-            ("device", "Device Methods"),
-            ("data", "Data Access Methods"),
-            ("channels", "Channel Methods"),
-            ("quality", "Signal Quality Methods"),
-            ("events", "Event Methods")
-        ]
-        
-        for group_id, group_name in groups:
-            self.explorer.add_method_group(self.module_id, group_id, group_name)
+    #
+    # Direct data access methods
+    #
             
+    def _get_active_collector(self) -> Any:
+        """Get currently active collector for direct data access."""
+        if not self.collector_service:
+            return None
+            
+        # Try to access the collector service's active collector
+        try:
+            # Different possible attribute names
+            if hasattr(self.collector_service, 'collector'):
+                return self.collector_service.collector
+            elif hasattr(self.collector_service, 'active_collector'):
+                return self.collector_service.active_collector
+            elif hasattr(self.collector_service, 'current_collector'):
+                return self.collector_service.current_collector
+            
+            # Fallback: try to get collector from internal state
+            collectors = getattr(self.collector_service, '_collectors', {})
+            active_id = getattr(self.collector_service, '_active_collector_id', None)
+            if active_id and active_id in collectors:
+                return collectors[active_id]
+                
+        except Exception as e:
+            logger.error(f"Error accessing collector: {e}")
+            
+        return None
+    
+    def _get_board_id_and_preset(self) -> Tuple[Optional[int], Optional[int]]:
+        """Get current board ID and preset."""
+        collector = self._get_active_collector()
+        if collector and hasattr(collector, 'board_id') and hasattr(collector, 'preset'):
+            return collector.board_id, collector.preset
+            
+        # Fallback: if collector or attributes aren't available
+        try:
+            # If collector service is available, try to get board info from there
+            if self.collector_service:
+                board_info = self.collector_service.get_board_info()
+                if board_info:
+                    return board_info.get('board_id', None), board_info.get('preset', None)
+        except Exception as e:
+            logger.debug(f"Error getting board ID and preset from fallback: {e}")
+        
+        return None, None
+        
+    def _get_sampling_rate_direct(self) -> float:
+        """Get sampling rate directly from collector."""
+        collector = self._get_active_collector()
+        if collector and hasattr(collector, 'sampling_rate'):
+            return collector.sampling_rate
+        
+        # Alternative method: try BrainFlow directly
+        try:
+            from brainflow.board_shim import BoardShim
+            board_id, preset = self._get_board_id_and_preset()
+            if board_id is not None and preset is not None:
+                return BoardShim.get_sampling_rate(board_id, preset)
+        except Exception as e:
+            logger.debug(f"Error getting sampling rate from BrainFlow: {e}")
+            
+        return 0
+        
+    def _get_eeg_channels_direct(self) -> List[int]:
+        """Get EEG channels directly from collector."""
+        # First attempt: from collector
+        collector = self._get_active_collector()
+        if collector and hasattr(collector, 'eeg_channels'):
+            return collector.eeg_channels
+    
+        # Second attempt: from collector service
+        if self.collector_service:
+            try:
+                channels = self.collector_service.get_eeg_channels()
+                if channels:
+                    return channels
+            except Exception as e:
+                logger.debug(f"Error getting EEG channels from collector service: {e}")
+        
+        # Third attempt: from BrainFlow directly
+        try:
+            from brainflow.board_shim import BoardShim
+            board_id, preset = self._get_board_id_and_preset()
+            if board_id is not None and preset is not None:
+                return BoardShim.get_eeg_channels(board_id, preset)
+        except Exception as e:
+            logger.debug(f"Error getting EEG channels from BrainFlow: {e}")
+        
+        # Fourth attempt: from metadata
+        try:
+            metadata = self.data_service.get_metadata()
+            if metadata and 'eeg_channels' in metadata:
+                return metadata['eeg_channels']
+        except Exception as e:
+            logger.debug(f"Error getting EEG channels from metadata: {e}")
+    
+        # Last resort: return empty list
+        return []
+        
+    def _get_channel_names_direct(self) -> List[str]:
+        """Get channel names directly from collector."""
+        collector = self._get_active_collector()
+        if collector and hasattr(collector, 'eeg_names'):
+            return collector.eeg_names
+            
+        # Fallback: generate generic names for EEG channels
+        eeg_channels = self._get_eeg_channels_direct()
+        if eeg_channels:
+            return [f"CH{i+1}" for i in range(len(eeg_channels))]
+            
+        return []
+        
+    def _get_board_info_direct(self) -> Dict[str, Any]:
+        """Get complete board info directly from collector."""
+        # First attempt: get currently selected board info
+        selected_board_info = self._get_selected_board_info()
+        if selected_board_info:
+            return selected_board_info
+        
+        # Fallback: get info from collector service if connected
+        if self.collector_service and self.collector_service.is_connected():
+            try:
+                board_info = self.collector_service.get_board_info()
+                if board_info:
+                    # Add connection and streaming status
+                    board_info["connected"] = True
+                    board_info["streaming"] = self.collector_service.is_streaming_active()
+                    return board_info
+            except Exception as e:
+                logger.debug(f"Error getting board info from collector service: {e}")
+    
+        # Last fallback: get from data service metadata
+        try:
+            metadata = self.data_service.get_metadata()
+            if "board_info" in metadata and isinstance(metadata["board_info"], dict):
+                board_info = metadata["board_info"].copy()
+                # Add connection status
+                if self.collector_service:
+                    board_info["connected"] = self.collector_service.is_connected()
+                    board_info["streaming"] = self.collector_service.is_streaming_active()
+                return board_info
+        except Exception as e:
+            logger.debug(f"Error getting board info from metadata: {e}")
+    
+        # If all else fails: return minimal info
+        return {
+            "board_id": -1,
+            "board_name": "Unknown",
+            "sampling_rate": 0,
+            "eeg_channels": [],
+            "channel_names": [],
+            "connected": False,
+            "streaming": False
+        }
+        
+    def _get_selected_board_info(self) -> Optional[Dict[str, Any]]:
+        """Get information about the currently selected board (even if not connected)."""
+        try:
+            from .collectors.board_configuration import BoardConfiguration
+            
+            # Try to access the UI connection panel to get selected board
+            if not hasattr(self, "_main_window"):
+                # Find the main application window
+                from PyQt5.QtWidgets import QApplication
+                for widget in QApplication.topLevelWidgets():
+                    if widget.__class__.__name__ == "EEGProcessorApp":
+                        self._main_window = widget
+                        break
+            
+            # If we found the main window, try to get the selected board
+            if hasattr(self, "_main_window"):
+                # Get the connection panel from the main window
+                if hasattr(self._main_window, "connection_panel"):
+                    connection_panel = self._main_window.connection_panel
+                    # Get the selected board ID
+                    if hasattr(connection_panel, "board_type_combo"):
+                        board_id = connection_panel.board_type_combo.currentData()
+                        if board_id is not None:
+                            # Get the selected preset
+                            preset = None
+                            if hasattr(connection_panel, "preset_combo"):
+                                preset = connection_panel.preset_combo.currentData()
+                            
+                            # Get board description from BoardConfiguration
+                            board_desc = BoardConfiguration.get_board_description(board_id, preset)
+                            if board_desc:
+                                # Get connection status
+                                connected = self.collector_service and self.collector_service.is_connected()
+                                streaming = self.collector_service and self.collector_service.is_streaming_active()
+                                
+                                # Format channel names properly
+                                eeg_names = board_desc.get("eeg_names", "")
+                                if isinstance(eeg_names, str) and "," in eeg_names:
+                                    eeg_names = eeg_names.split(",")
+                                
+                                # Create new dictionary with ordered keys for better readability
+                                ordered_result = {}
+                                
+                                # 1. Basic board information first
+                                ordered_result["board_id"] = board_id
+                                ordered_result["board_name"] = board_desc.get("name", f"Board ID {board_id}")
+                                ordered_result["sampling_rate"] = board_desc.get("sampling_rate", 0)
+                                ordered_result["preset"] = preset
+                                
+                                # 2. Add available presets if present
+                                if "available_presets" in board_desc:
+                                    ordered_result["available_presets"] = board_desc["available_presets"]
+                                
+                                # 3. EEG channels and names
+                                if "eeg_channels" in board_desc:
+                                    ordered_result["eeg_channels"] = board_desc["eeg_channels"]
+                                
+                                if eeg_names:
+                                    ordered_result["eeg_names"] = eeg_names
+                                    ordered_result["channel_names"] = eeg_names
+                                
+                                # 4. Primary channel info
+                                if "num_rows" in board_desc:
+                                    ordered_result["num_rows"] = board_desc["num_rows"]
+                                if "package_num_channel" in board_desc:
+                                    ordered_result["package_num_channel"] = board_desc["package_num_channel"]
+                                if "timestamp_channel" in board_desc:
+                                    ordered_result["timestamp_channel"] = board_desc["timestamp_channel"]
+                                if "marker_channel" in board_desc:
+                                    ordered_result["marker_channel"] = board_desc["marker_channel"]
+                                
+                                # 5. Other specialized channels in a consistent order
+                                for channel_type in [
+                                    "emg_channels", "ecg_channels", "eog_channels", 
+                                    "eda_channels", "ppg_channels", "accel_channels", 
+                                    "gyro_channels", "temperature_channels", 
+                                    "resistance_channels", "battery_channel"
+                                ]:
+                                    if channel_type in board_desc:
+                                        ordered_result[channel_type] = board_desc[channel_type]
+                                
+                                # 6. Connection status at the end
+                                ordered_result["connected"] = connected
+                                ordered_result["streaming"] = streaming
+                                
+                                # 7. Copy any remaining fields we didn't explicitly handle
+                                for key, value in board_desc.items():
+                                    if key not in ordered_result and key != "name":
+                                        ordered_result[key] = value
+                                
+                                return ordered_result
+        except Exception as e:
+            logger.debug(f"Error getting selected board info: {e}")
+            
+        return None
+
+    #
+    # Method registration for API endpoints
+    #
+    
     def _register_status_methods(self):
         """Register methods for checking stream status."""
         self.explorer.register_method(
@@ -371,266 +639,11 @@ class EEGProcessorApiIntegration:
             },
             self._handle_register_data_callback
         )
-        
-    def _port_in_use(self, host, port):
-        """Check if port is already in use."""
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(1)
-            return s.connect_ex((host, port)) == 0
-            
-    # --- Direct access to internal data ---
     
-    def _get_active_collector(self):
-        """Get currently active collector for direct data access."""
-        if not self.collector_service:
-            return None
-            
-        # Try to access the collector service's active collector
-        try:
-            # Different possible attribute names
-            if hasattr(self.collector_service, 'collector'):
-                return self.collector_service.collector
-            elif hasattr(self.collector_service, 'active_collector'):
-                return self.collector_service.active_collector
-            elif hasattr(self.collector_service, 'current_collector'):
-                return self.collector_service.current_collector
-            
-            # Fallback: try to get collector from internal state
-            collectors = getattr(self.collector_service, '_collectors', {})
-            active_id = getattr(self.collector_service, '_active_collector_id', None)
-            if active_id and active_id in collectors:
-                return collectors[active_id]
-                
-        except Exception as e:
-            logger.error(f"Error accessing collector: {e}")
-            
-        return None
-    
-    def _get_board_id_and_preset(self) -> Tuple[int, int]:
-        """Get current board ID and preset."""
-        collector = self._get_active_collector()
-        if collector and hasattr(collector, 'board_id') and hasattr(collector, 'preset'):
-            return collector.board_id, collector.preset
-            
-        # Fallback: if collector or attributes aren't available
-        try:
-            # If collector service is available, try to get board info from there
-            if self.collector_service:
-                board_info = self.collector_service.get_board_info()
-                if board_info:
-                    return board_info.get('board_id', None), board_info.get('preset', None)
-        except Exception as e:
-            logger.debug(f"Error getting board ID and preset from fallback: {e}")
+    #
+    # API endpoint handlers
+    #
         
-        return None, None
-        
-    def _get_sampling_rate_direct(self) -> float:
-        """Get sampling rate directly from collector."""
-        collector = self._get_active_collector()
-        if collector and hasattr(collector, 'sampling_rate'):
-            return collector.sampling_rate
-        
-        # Alternative method: try BrainFlow directly
-        try:
-            from brainflow.board_shim import BoardShim
-            board_id, preset = self._get_board_id_and_preset()
-            if board_id is not None and preset is not None:
-                return BoardShim.get_sampling_rate(board_id, preset)
-        except Exception as e:
-            logger.debug(f"Error getting sampling rate from BrainFlow: {e}")
-            
-        return 0
-        
-    def _get_eeg_channels_direct(self) -> List[int]:
-        """Get EEG channels directly from collector."""
-        # First attempt: from collector
-        collector = self._get_active_collector()
-        if collector and hasattr(collector, 'eeg_channels'):
-            return collector.eeg_channels
-    
-        # Second attempt: from collector service
-        if self.collector_service:
-            try:
-                channels = self.collector_service.get_eeg_channels()
-                if channels:
-                    return channels
-            except Exception as e:
-                logger.debug(f"Error getting EEG channels from collector service: {e}")
-        
-        # Third attempt: from BrainFlow directly
-        try:
-            from brainflow.board_shim import BoardShim
-            board_id, preset = self._get_board_id_and_preset()
-            if board_id is not None and preset is not None:
-                return BoardShim.get_eeg_channels(board_id, preset)
-        except Exception as e:
-            logger.debug(f"Error getting EEG channels from BrainFlow: {e}")
-        
-        # Fourth attempt: from metadata
-        try:
-            metadata = self.data_service.get_metadata()
-            if metadata and 'eeg_channels' in metadata:
-                return metadata['eeg_channels']
-        except Exception as e:
-            logger.debug(f"Error getting EEG channels from metadata: {e}")
-    
-        # Last resort: return empty list
-        return []
-        
-    def _get_channel_names_direct(self) -> List[str]:
-        """Get channel names directly from collector."""
-        collector = self._get_active_collector()
-        if collector and hasattr(collector, 'eeg_names'):
-            return collector.eeg_names
-            
-        # Fallback: generate generic names for EEG channels
-        eeg_channels = self._get_eeg_channels_direct()
-        if eeg_channels:
-            return [f"CH{i+1}" for i in range(len(eeg_channels))]
-            
-        return []
-        
-    def _get_board_info_direct(self) -> Dict[str, Any]:
-        """Get complete board info directly from collector."""
-        # First attempt: get currently selected board info
-        selected_board_info = self._get_selected_board_info()
-        if selected_board_info:
-            return selected_board_info
-        
-        # Fallback: get info from collector service if connected
-        if self.collector_service and self.collector_service.is_connected():
-            try:
-                board_info = self.collector_service.get_board_info()
-                if board_info:
-                    # Add connection and streaming status
-                    board_info["connected"] = True
-                    board_info["streaming"] = self.collector_service.is_streaming_active()
-                    return board_info
-            except Exception as e:
-                logger.debug(f"Error getting board info from collector service: {e}")
-    
-        # Last fallback: get from data service metadata
-        try:
-            metadata = self.data_service.get_metadata()
-            if "board_info" in metadata and isinstance(metadata["board_info"], dict):
-                board_info = metadata["board_info"].copy()
-                # Add connection status
-                if self.collector_service:
-                    board_info["connected"] = self.collector_service.is_connected()
-                    board_info["streaming"] = self.collector_service.is_streaming_active()
-                return board_info
-        except Exception as e:
-            logger.debug(f"Error getting board info from metadata: {e}")
-    
-        # If all else fails: return minimal info
-        return {
-            "board_id": -1,
-            "board_name": "Unknown",
-            "sampling_rate": 0,
-            "eeg_channels": [],
-            "channel_names": [],
-            "connected": False,
-            "streaming": False
-        }
-        
-    def _get_selected_board_info(self) -> Dict[str, Any]:
-        """Get information about the currently selected board (even if not connected)."""
-        try:
-            from .collectors.board_configuration import BoardConfiguration
-            
-            # Try to access the UI connection panel to get selected board
-            if not hasattr(self, "_main_window"):
-                # Find the main application window
-                from PyQt5.QtWidgets import QApplication
-                for widget in QApplication.topLevelWidgets():
-                    if widget.__class__.__name__ == "EEGProcessorApp":
-                        self._main_window = widget
-                        break
-            
-            # If we found the main window, try to get the selected board
-            if hasattr(self, "_main_window"):
-                # Get the connection panel from the main window
-                if hasattr(self._main_window, "connection_panel"):
-                    connection_panel = self._main_window.connection_panel
-                    # Get the selected board ID
-                    if hasattr(connection_panel, "board_type_combo"):
-                        board_id = connection_panel.board_type_combo.currentData()
-                        if board_id is not None:
-                            # Get the selected preset
-                            preset = None
-                            if hasattr(connection_panel, "preset_combo"):
-                                preset = connection_panel.preset_combo.currentData()
-                            
-                            # Get board description from BoardConfiguration
-                            board_desc = BoardConfiguration.get_board_description(board_id, preset)
-                            if board_desc:
-                                # Get connection status
-                                connected = self.collector_service and self.collector_service.is_connected()
-                                streaming = self.collector_service and self.collector_service.is_streaming_active()
-                                
-                                # Format channel names properly
-                                eeg_names = board_desc.get("eeg_names", "")
-                                if isinstance(eeg_names, str) and "," in eeg_names:
-                                    eeg_names = eeg_names.split(",")
-                                
-                                # Create new dictionary with ordered keys for better readability
-                                ordered_result = {}
-                                
-                                # 1. Basic board information first
-                                ordered_result["board_id"] = board_id
-                                ordered_result["board_name"] = board_desc.get("name", f"Board ID {board_id}")
-                                ordered_result["sampling_rate"] = board_desc.get("sampling_rate", 0)
-                                ordered_result["preset"] = preset
-                                
-                                # 2. Add available presets if present
-                                if "available_presets" in board_desc:
-                                    ordered_result["available_presets"] = board_desc["available_presets"]
-                                
-                                # 3. EEG channels and names
-                                if "eeg_channels" in board_desc:
-                                    ordered_result["eeg_channels"] = board_desc["eeg_channels"]
-                                
-                                if eeg_names:
-                                    ordered_result["eeg_names"] = eeg_names
-                                    ordered_result["channel_names"] = eeg_names
-                                
-                                # 4. Primary channel info
-                                if "num_rows" in board_desc:
-                                    ordered_result["num_rows"] = board_desc["num_rows"]
-                                if "package_num_channel" in board_desc:
-                                    ordered_result["package_num_channel"] = board_desc["package_num_channel"]
-                                if "timestamp_channel" in board_desc:
-                                    ordered_result["timestamp_channel"] = board_desc["timestamp_channel"]
-                                if "marker_channel" in board_desc:
-                                    ordered_result["marker_channel"] = board_desc["marker_channel"]
-                                
-                                # 5. Other specialized channels in a consistent order
-                                for channel_type in [
-                                    "emg_channels", "ecg_channels", "eog_channels", 
-                                    "eda_channels", "ppg_channels", "accel_channels", 
-                                    "gyro_channels", "temperature_channels", 
-                                    "resistance_channels", "battery_channel"
-                                ]:
-                                    if channel_type in board_desc:
-                                        ordered_result[channel_type] = board_desc[channel_type]
-                                
-                                # 6. Connection status at the end
-                                ordered_result["connected"] = connected
-                                ordered_result["streaming"] = streaming
-                                
-                                # 7. Copy any remaining fields we didn't explicitly handle
-                                for key, value in board_desc.items():
-                                    if key not in ordered_result and key != "name":  # Skip 'name' as we renamed it to 'board_name'
-                                        ordered_result[key] = value
-                                
-                                return ordered_result
-        except Exception as e:
-            logger.debug(f"Error getting selected board info: {e}")
-            
-        return None
-
-    # --- Handler methods for API endpoints ---
-    
     async def _handle_is_streaming(self):
         """Handle is_streaming endpoint."""
         is_streaming = EEGDataAPI.is_streaming()
@@ -973,115 +986,124 @@ class EEGProcessorApiIntegration:
         # This is just a placeholder for the WebSocket connection
         return {"status": "Use WebSocket connection for real-time updates"}
         
-    # --- Data callback handling ---
-    
+    #
+    # WebSocket data handling
+    #
+        
     def _handle_data_callback(self, data, timestamps):
         """Handle incoming data for WebSocket broadcasting."""
         if not self.explorer:
             return
             
         try:
-            # Get metadata for channel information
-            metadata = self.data_service.get_metadata()
-            board_info = self._get_board_info_direct()
-            
-            # Get all types of channels
-            eeg_channels = self._get_eeg_channels_direct()
-            
-            # Get additional channel types if available
-            channel_types = {}
-            for channel_type in ['eeg', 'emg', 'ecg', 'accel', 'gyro', 'eda', 'ppg', 'temperature']:
-                if f"{channel_type}_channels" in board_info:
-                    channel_types[channel_type] = board_info[f"{channel_type}_channels"]
-            
-            # If no channel types found, default to EEG only
-            if not channel_types:
-                channel_types = {'eeg': eeg_channels}
-            
-            # Determine how many samples to send (not too many to keep WebSocket efficient)
-            samples_to_send = min(20, data.shape[1]) if data.size > 0 else 0
-            
-            if data.size > 0 and samples_to_send > 0:
-                # Prepare visualization data - both raw values and time series
-                viz_data = {
-                    "list_view": [],  # For raw list visualization
-                    "chart_data": {},  # For chart visualization
-                    "timestamps": [] 
-                }
-                
-                # Get the last N timestamps (convert to relative time if needed)
-                ts_slice = timestamps[-samples_to_send:]
-                # Convert timestamps to relative time (milliseconds since start)
-                if ts_slice:
-                    base_time = ts_slice[0]
-                    rel_timestamps = [int(ts - base_time) for ts in ts_slice]
-                    viz_data["timestamps"] = rel_timestamps
-                
-                # Process each channel type
-                for ch_type, channels in channel_types.items():
-                    # Skip if no channels of this type
-                    if not channels:
-                        continue
-                        
-                    # Get channel names if available
-                    channel_names = []
-                    if ch_type == 'eeg' and metadata.get('channel_names'):
-                        channel_names = metadata.get('channel_names')
-                    else:
-                        # Generate generic names
-                        channel_names = [f"{ch_type.upper()}_{i}" for i in range(len(channels))]
-                    
-                    # Slice to ensure we have valid names
-                    channel_names = channel_names[:len(channels)]
-                    
-                    # Add data for each channel
-                    chart_data_by_type = {}
-                    
-                    for i, ch_idx in enumerate(channels):
-                        if ch_idx < data.shape[0]:
-                            # Get name for this channel
-                            ch_name = channel_names[i] if i < len(channel_names) else f"{ch_type}_{ch_idx}"
-                            
-                            # Get the last N samples for this channel
-                            channel_data = data[ch_idx, -samples_to_send:].tolist()
-                            
-                            # Add to list view (last value only)
-                            if channel_data:
-                                viz_data["list_view"].append({
-                                    "channel": ch_name,
-                                    "type": ch_type,
-                                    "value": channel_data[-1],
-                                    "values": channel_data[-5:],  # Last 5 values for brief history
-                                    "index": ch_idx
-                                })
-                        
-                            # Add to chart data
-                            chart_data_by_type[ch_name] = channel_data
-                
-                # Add chart data for this type
-                if chart_data_by_type:
-                    viz_data["chart_data"][ch_type] = chart_data_by_type
-            
-            # Create payload with both visualization options
-            payload = {
-                "event_type": "eeg_data_update",
-                "timestamp": time.time(),
-                "sampling_rate": self._get_sampling_rate_direct(),
-                "visualization_data": viz_data,
-                "samples_count": samples_to_send,
-                "visualization_modes": ["list", "chart"],
-                "channel_types": list(channel_types.keys()),
-                "metadata": {
-                    "board_name": board_info.get("board_name", "Unknown"),
-                    "channel_count": data.shape[0] if data.size > 0 else 0,
-                    "eeg_channels_count": len(eeg_channels)
-                }
-            }
+            # Create visualization payload for WebSocket
+            payload = self._create_visualization_payload(data, timestamps)
             
             # Broadcast through WebSocket
             self._broadcast_event(payload)
         except Exception as e:
             logger.error(f"Error in data callback: {e}")
+    
+    def _create_visualization_payload(self, data, timestamps):
+        """Create a structured payload for data visualization."""
+        # Get metadata for channel information
+        metadata = self.data_service.get_metadata()
+        board_info = self._get_board_info_direct()
+        
+        # Get all types of channels
+        eeg_channels = self._get_eeg_channels_direct()
+        
+        # Get additional channel types if available
+        channel_types = {}
+        for channel_type in ['eeg', 'emg', 'ecg', 'accel', 'gyro', 'eda', 'ppg', 'temperature']:
+            if f"{channel_type}_channels" in board_info:
+                channel_types[channel_type] = board_info[f"{channel_type}_channels"]
+        
+        # If no channel types found, default to EEG only
+        if not channel_types:
+            channel_types = {'eeg': eeg_channels}
+        
+        # Determine how many samples to send (not too many to keep WebSocket efficient)
+        samples_to_send = min(20, data.shape[1]) if data.size > 0 else 0
+        
+        if data.size > 0 and samples_to_send > 0:
+            # Prepare visualization data - both raw values and time series
+            viz_data = {
+                "list_view": [],  # For raw list visualization
+                "chart_data": {},  # For chart visualization
+                "timestamps": [] 
+            }
+            
+            # Get the last N timestamps (convert to relative time if needed)
+            ts_slice = timestamps[-samples_to_send:]
+            # Convert timestamps to relative time (milliseconds since start)
+            if ts_slice:
+                base_time = ts_slice[0]
+                rel_timestamps = [int(ts - base_time) for ts in ts_slice]
+                viz_data["timestamps"] = rel_timestamps
+            
+            # Process each channel type
+            for ch_type, channels in channel_types.items():
+                # Skip if no channels of this type
+                if not channels:
+                    continue
+                    
+                # Get channel names if available
+                channel_names = []
+                if ch_type == 'eeg' and metadata.get('channel_names'):
+                    channel_names = metadata.get('channel_names')
+                else:
+                    # Generate generic names
+                    channel_names = [f"{ch_type.upper()}_{i}" for i in range(len(channels))]
+                
+                # Slice to ensure we have valid names
+                channel_names = channel_names[:len(channels)]
+                
+                # Add data for each channel
+                chart_data_by_type = {}
+                
+                for i, ch_idx in enumerate(channels):
+                    if ch_idx < data.shape[0]:
+                        # Get name for this channel
+                        ch_name = channel_names[i] if i < len(channel_names) else f"{ch_type}_{ch_idx}"
+                        
+                        # Get the last N samples for this channel
+                        channel_data = data[ch_idx, -samples_to_send:].tolist()
+                        
+                        # Add to list view (last value only)
+                        if channel_data:
+                            viz_data["list_view"].append({
+                                "channel": ch_name,
+                                "type": ch_type,
+                                "value": channel_data[-1],
+                                "values": channel_data[-5:],  # Last 5 values for brief history
+                                "index": ch_idx
+                            })
+                    
+                        # Add to chart data
+                        chart_data_by_type[ch_name] = channel_data
+            
+            # Add chart data for this type
+            if chart_data_by_type:
+                viz_data["chart_data"][ch_type] = chart_data_by_type
+        
+        # Create payload with both visualization options
+        payload = {
+            "event_type": "eeg_data_update",
+            "timestamp": time.time(),
+            "sampling_rate": self._get_sampling_rate_direct(),
+            "visualization_data": viz_data,
+            "samples_count": samples_to_send,
+            "visualization_modes": ["list", "chart"],
+            "channel_types": list(channel_types.keys()),
+            "metadata": {
+                "board_name": board_info.get("board_name", "Unknown"),
+                "channel_count": data.shape[0] if data.size > 0 else 0,
+                "eeg_channels_count": len(eeg_channels)
+            }
+        }
+        
+        return payload
     
     def _broadcast_event(self, payload):
         """Broadcast event through WebSocket."""
@@ -1101,7 +1123,11 @@ class EEGProcessorApiIntegration:
             asyncio.run_coroutine_threadsafe(_broadcast(), loop)
         else:
             loop.run_until_complete(_broadcast())
-            
+
+
+#
+# Module-level API functions
+#
 
 def get_api_integration():
     """Get the API integration singleton instance."""
