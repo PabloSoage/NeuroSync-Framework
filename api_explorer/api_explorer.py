@@ -61,7 +61,7 @@ class ApiExplorer:
             allow_headers=["*"],
         )
         
-        # Get the base directory for this module
+        # Get the base directory for this module (the api_explorer package)
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
         
         # Set up templates and static files with absolute paths
@@ -94,11 +94,19 @@ class ApiExplorer:
         self._setup_routes()
     
     def _setup_directories(self):
-        """Set up necessary directories."""
-        os.makedirs(os.path.join(self.base_dir, "templates"), exist_ok=True)
-        os.makedirs(os.path.join(self.base_dir, "static"), exist_ok=True)
-        os.makedirs(os.path.join(self.base_dir, "static", "css"), exist_ok=True)
-        os.makedirs(os.path.join(self.base_dir, "static", "js"), exist_ok=True)
+        """Set up necessary directories only if we're in the api_explorer package."""
+        # Check if we are running directly in the api_explorer package
+        # This prevents creating directories in other modules
+        api_explorer_init = os.path.join(self.base_dir, "__init__.py")
+        if os.path.exists(api_explorer_init):
+            # We're in the api_explorer package, so create directories
+            os.makedirs(os.path.join(self.base_dir, "templates"), exist_ok=True)
+            os.makedirs(os.path.join(self.base_dir, "static"), exist_ok=True)
+            os.makedirs(os.path.join(self.base_dir, "static", "css"), exist_ok=True)
+            os.makedirs(os.path.join(self.base_dir, "static", "js"), exist_ok=True)
+        else:
+            # We're in a different module, just log a message
+            logging.info(f"Running ApiExplorer from external module, using templates from {self.base_dir}")
     
     def _setup_routes(self):
         """Set up the basic routes for the API Explorer."""
