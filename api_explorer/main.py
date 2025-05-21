@@ -19,8 +19,8 @@ parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if parent_dir not in sys.path:
     sys.path.append(parent_dir)
 
-# Import the ApiExplorer directly - FIX: changed import path
-from api_explorer import ApiExplorer
+# Import the ApiExplorer from the correct location
+from api_explorer.api_explorer import ApiExplorer
 
 def run_explorer(host: str = "127.0.0.1", port: int = 8000, block: bool = True) -> ApiExplorer:
     """

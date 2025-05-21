@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dynamic API Explorer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">Dynamic API Explorer</h1>
+        
+        {% if modules %}
+            {% for module in modules %}
+                <div class="module-section mb-5" id="module-{{ module.id }}">
+                    <h2 class="mb-3">{{ module.name }} API</h2>
+                    <p class="mb-4">{{ module.description }}</p>
+                    
+                    <ul class="nav nav-tabs" id="{{ module.id }}Tabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="{{ module.id }}-explorer-tab" data-bs-toggle="tab" 
+                               href="#{{ module.id }}-explorer" role="tab">API Explorer</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="{{ module.id }}-realtime-tab" data-bs-toggle="tab" 
+                               href="#{{ module.id }}-realtime" role="tab">Real-time Events</a>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content" id="{{ module.id }}TabContent">
+                        <!-- API Explorer Tab -->
+                        <div class="tab-pane fade show active" id="{{ module.id }}-explorer" role="tabpanel">
+                            <div class="row mb-3">
+                                <div class="col-md-3">
+                                    <div class="card">
+                                        <div class="card-header">API Methods</div>
+                                        <div class="card-body p-0">
+                                            <div class="list-group list-group-flush">
+                                                {% if module.method_groups %}
+                                                    {% for group in module.method_groups %}
+                                                        <a href="#{{ module.id }}-{{ group.id }}" class="list-group-item list-group-item-action">
+                                                            {{ group.name }}
+                                                        </a>
+                                                    {% endfor %}
+                                                {% else %}
+                                                    <a href="#" class="list-group-item list-group-item-action disabled">
+                                                        No methods available
+                                                    </a>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-9">
+                                    {% if module.method_groups %}
+                                        {% for group in module.method_groups %}
+                                            <h3 id="{{ module.id }}-{{ group.id }}" class="mt-4">{{ group.name }}</h3>
+                                            
+                                            {% for method in group.methods %}
+                                                <div class="method-card">
+                                                    <div class="method-header" onclick="toggleMethod('{{ module.id }}', '{{ method.id }}')">
+                                                        <span>{{ method.name }}</span>
+                                                        <span class="badge {% if method.type == 'POST' %}http-post{% else %}http-get{% endif %}">
+                                                            {{ method.type }}
+                                                        </span>
+                                                    </div>
+                                                    <div class="method-body" id="{{ module.id }}-{{ method.id }}">
+                                                        <p>{{ method.description }}</p>
+                                                        <input type="hidden" id="{{ module.id }}-{{ method.id }}_type" value="{{ method.type }}">
+                                                        
+                                                        {% for param_id, param_info in method.params.items() %}
+                                                            <div class="form-group">
+                                                                <label for="{{ module.id }}-{{ method.id }}_param_{{ param_id }}">
+                                                                    {{ param_id }}{% if param_info.required %} (required){% endif %}:
+                                                                </label>
+                                                                
+                                                                {% if param_info.type == 'select' %}
+                                                                    <select class="form-control" id="{{ module.id }}-{{ method.id }}_param_{{ param_id }}">
+                                                                        {% for option in param_info.options %}
+                                                                            <option value="{{ option }}">{{ option }}</option>
+                                                                        {% endfor %}
+                                                                    </select>
+                                                                {% else %}
+                                                                    <input type="{{ param_info.type }}" class="form-control" 
+                                                                           id="{{ module.id }}-{{ method.id }}_param_{{ param_id }}"
+                                                                           placeholder="{{ param_info.placeholder|default('') }}">
+                                                                {% endif %}
+                                                                
+                                                                <small class="form-text text-muted">{{ param_info.description|default('') }}</small>
+                                                            </div>
+                                                        {% endfor %}
+                                                        
+                                                        <button class="execute-btn" onclick="executeMethod('{{ module.id }}', '{{ method.id }}')">
+                                                            Execute
+                                                        </button>
+                                                        
+                                                        <div class="mt-3">
+                                                            <h5>Response:</h5>
+                                                            <pre id="{{ module.id }}-{{ method.id }}_response">// Response will appear here</pre>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="alert alert-info">No methods available for this module.</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Real-time Events Tab -->
+                        <div class="tab-pane fade" id="{{ module.id }}-realtime" role="tabpanel">
+                            <h3 class="mt-3">Real-time Events</h3>
+                            <p>Connect to the WebSocket to see real-time events as they happen.</p>
+                            
+                            <div class="ws-controls">
+                                <button class="btn btn-primary" id="{{ module.id }}-connect-ws-btn" 
+                                        onclick="connectWebSocket('{{ module.id }}')">Connect WebSocket</button>
+                                <button class="btn btn-danger" id="{{ module.id }}-disconnect-ws-btn" 
+                                        onclick="disconnectWebSocket('{{ module.id }}')" disabled>Disconnect</button>
+                                <button class="btn btn-secondary" id="{{ module.id }}-clear-events-btn" 
+                                        onclick="clearEvents('{{ module.id }}')">Clear Events</button>
+                                
+                                <span id="{{ module.id }}-connection-status" class="connection-status disconnected"></span>
+                                <span>WebSocket Status</span>
+                                
+                                <span id="{{ module.id }}-event-count" class="event-count">Events: 0</span>
+                            </div>
+                            
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="{{ module.id }}-auto-scroll" checked>
+                                <label class="form-check-label" for="{{ module.id }}-auto-scroll">Auto-scroll</label>
+                            </div>
+                            
+                            {% if module.show_data_table %}
+                                <!-- EEG Channel Data Table (Only shown for appropriate modules) -->
+                                <table id="{{ module.id }}-data-table" class="table table-bordered table-striped mt-3">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Canal</th>
+                                            <th>Tipo</th>
+                                            <th>Valor</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            {% endif %}
+                            
+                            <div class="real-time-container" id="{{ module.id }}-events-container">
+                                <div class="event event-system">Not connected. Click "Connect WebSocket" to start receiving events.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <hr>
+            {% endfor %}
+        {% else %}
+            <div class="alert alert-info">
+                <h4>No API Modules Registered</h4>
+                <p>This API Explorer is waiting for modules to register their APIs.</p>
+                <p>Once a module registers, its API methods will appear here.</p>
+            </div>
+        {% endif %}
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/script.js"></script>
+</body>
+</html>

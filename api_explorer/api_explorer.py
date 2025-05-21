@@ -5,6 +5,7 @@ This module provides a reusable, dynamic API Explorer that can be used by differ
 to expose their APIs through a web interface.
 """
 
+import json
 import logging
 import os
 import threading
@@ -12,7 +13,7 @@ from typing import Dict, List, Optional, Callable
 
 import uvicorn
 # FastAPI imports
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, APIRouter
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, APIRouter, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -60,10 +61,13 @@ class ApiExplorer:
             allow_headers=["*"],
         )
         
-        # Set up templates and static files
+        # Get the base directory for this module
+        self.base_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # Set up templates and static files with absolute paths
         self._setup_directories()
-        self.templates = Jinja2Templates(directory="templates")
-        self.app.mount("/static", StaticFiles(directory="static"), name="static")
+        self.templates = Jinja2Templates(directory=os.path.join(self.base_dir, "templates"))
+        self.app.mount("/static", StaticFiles(directory=os.path.join(self.base_dir, "static")), name="static")
         
         # Module registry - stores information about registered modules
         self.modules = {}
@@ -91,15 +95,51 @@ class ApiExplorer:
     
     def _setup_directories(self):
         """Set up necessary directories."""
-        os.makedirs("templates", exist_ok=True)
-        os.makedirs("static", exist_ok=True)
+        os.makedirs(os.path.join(self.base_dir, "templates"), exist_ok=True)
+        os.makedirs(os.path.join(self.base_dir, "static"), exist_ok=True)
+        os.makedirs(os.path.join(self.base_dir, "static", "css"), exist_ok=True)
+        os.makedirs(os.path.join(self.base_dir, "static", "js"), exist_ok=True)
     
     def _setup_routes(self):
         """Set up the basic routes for the API Explorer."""
         # Home page route
         @self.app.get("/", response_class=HTMLResponse)
-        async def get_home():
-            return self._generate_html()
+        async def get_home(request: Request):
+            # Convert modules dictionary to a list for the template
+            modules_list = []
+            for module_id, module_info in self.modules.items():
+                module_data = {
+                    'id': module_id,
+                    'name': module_info.get('name', ''),
+                    'description': module_info.get('description', ''),
+                    'show_data_table': module_info.get('show_data_table', False),
+                    'method_groups': []
+                }
+                
+                # Convert method groups
+                for group_id, group_info in module_info.get('method_groups', {}).items():
+                    group_data = {
+                        'id': group_id,
+                        'name': group_info.get('name', ''),
+                        'methods': []
+                    }
+                    
+                    # Convert methods in each group
+                    for method_id, method_info in group_info.get('methods', {}).items():
+                        method_data = {
+                            'id': method_id,
+                            'name': method_info.get('name', method_id),
+                            'description': method_info.get('description', ''),
+                            'type': method_info.get('type', 'GET'),
+                            'params': method_info.get('params', {})
+                        }
+                        group_data['methods'].append(method_data)
+                    
+                    module_data['method_groups'].append(group_data)
+                
+                modules_list.append(module_data)
+                
+            return self.templates.TemplateResponse("index.html", {"request": request, "modules": modules_list})
         
         # WebSocket endpoint for real-time events
         @self.app.websocket("/ws/{module_id}")
@@ -172,540 +212,6 @@ class ApiExplorer:
             print(f"Event broadcast to {active_count} active connections")
         else:
             print("No active connections to receive event")
-    
-    def _generate_html(self) -> str:
-        """Generate HTML for the home page."""
-        modules_html = ""
-        for module_id, module_info in self.modules.items():
-            # Determine if this module should show the data table
-            show_data_table = module_info.get('show_data_table', False)
-            
-            # Create a module section
-            modules_html += f"""
-            <div class="module-section mb-5" id="module-{module_id}">
-                <h2 class="mb-3">{module_info['name']} API</h2>
-                <p class="mb-4">{module_info['description']}</p>
-                
-                <ul class="nav nav-tabs" id="{module_id}Tabs" role="tablist">
-                    <li class="nav-item">
-                        <a class="nav-link active" id="{module_id}-explorer-tab" data-bs-toggle="tab" 
-                           href="#{module_id}-explorer" role="tab">API Explorer</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" id="{module_id}-realtime-tab" data-bs-toggle="tab" 
-                           href="#{module_id}-realtime" role="tab">Real-time Events</a>
-                    </li>
-                </ul>
-                
-                <div class="tab-content" id="{module_id}TabContent">
-                    <!-- API Explorer Tab -->
-                    <div class="tab-pane fade show active" id="{module_id}-explorer" role="tabpanel">
-                        <div class="row mb-3">
-                            <div class="col-md-3">
-                                <div class="card">
-                                    <div class="card-header">API Methods</div>
-                                    <div class="card-body p-0">
-                                        <div class="list-group list-group-flush">
-                                            {self._generate_method_links(module_id, module_info)}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-9">
-                                {self._generate_method_cards(module_id, module_info)}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Real-time Events Tab -->
-                    <div class="tab-pane fade" id="{module_id}-realtime" role="tabpanel">
-                        <h3 class="mt-3">Real-time Events</h3>
-                        <p>Connect to the WebSocket to see real-time events as they happen.</p>
-                        
-                        <div class="ws-controls">
-                            <button class="btn btn-primary" id="{module_id}-connect-ws-btn" 
-                                    onclick="connectWebSocket('{module_id}')">Connect WebSocket</button>
-                            <button class="btn btn-danger" id="{module_id}-disconnect-ws-btn" 
-                                    onclick="disconnectWebSocket('{module_id}')" disabled>Disconnect</button>
-                            <button class="btn btn-secondary" id="{module_id}-clear-events-btn" 
-                                    onclick="clearEvents('{module_id}')">Clear Events</button>
-                            
-                            <span id="{module_id}-connection-status" class="connection-status disconnected"></span>
-                            <span>WebSocket Status</span>
-                            
-                            <span id="{module_id}-event-count" class="event-count">Events: 0</span>
-                        </div>
-                        
-                        <div class="form-check form-switch mb-3">
-                            <input class="form-check-input" type="checkbox" id="{module_id}-auto-scroll" checked>
-                            <label class="form-check-label" for="{module_id}-auto-scroll">Auto-scroll</label>
-                        </div>
-                        
-                        {f'''
-                        <!-- EEG Channel Data Table (Only shown for appropriate modules) -->
-                        <table id="{module_id}-data-table" class="table table-bordered table-striped mt-3">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>Canal</th>
-                                    <th>Tipo</th>
-                                    <th>Valor</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                        ''' if show_data_table else ''}
-                        
-                        <div class="real-time-container" id="{module_id}-events-container">
-                            <div class="event event-system">Not connected. Click "Connect WebSocket" to start receiving events.</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <hr>
-            """
-        
-        # If no modules registered, show a message
-        if not modules_html:
-            modules_html = """
-            <div class="alert alert-info">
-                <h4>No API Modules Registered</h4>
-                <p>This API Explorer is waiting for modules to register their APIs.</p>
-                <p>Once a module registers, its API methods will appear here.</p>
-            </div>
-            """
-        
-        # Complete HTML template with proper CSS styling
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Dynamic API Explorer</title>
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-            <style>
-                body {{ 
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                    padding: 20px;
-                    background-color: #f8f9fa;
-                }}
-                .nav-link {{
-                    color: #007bff;
-                    cursor: pointer;
-                }}
-                .container {{
-                    max-width: 1200px;
-                    margin: 0 auto;
-                }}
-                .method-card {{
-                    margin-bottom: 15px;
-                    border: 1px solid #dee2e6;
-                    border-radius: 5px;
-                    background-color: #ffffff;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-                }}
-                .method-header {{
-                    padding: 12px 15px;
-                    background-color: #f1f3f5;
-                    border-bottom: 1px solid #dee2e6;
-                    cursor: pointer;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                }}
-                .method-body {{
-                    padding: 15px;
-                    display: none;
-                }}
-                .method-body.active {{
-                    display: block;
-                }}
-                .form-group {{
-                    margin-bottom: 15px;
-                }}
-                pre {{
-                    background-color: #f8f9fa;
-                    padding: 10px;
-                    border-radius: 5px;
-                    white-space: pre-wrap;
-                    word-wrap: break-word;
-                }}
-                .real-time-container {{
-                    height: 400px;
-                    overflow-y: auto;
-                    border: 1px solid #dee2e6;
-                    padding: 10px;
-                    border-radius: 5px;
-                    background-color: #1e1e1e;
-                    font-family: 'Courier New', monospace;
-                    color: #f0f0f0;
-                }}
-                .event {{
-                    margin-bottom: 8px;
-                    padding: 8px;
-                    border-radius: 3px;
-                    word-wrap: break-word;
-                    overflow-wrap: break-word;
-                    white-space: pre-wrap;
-                }}
-                .event-key {{ background-color: rgba(100, 150, 200, 0.2); border-left: 3px solid #4b6cb7; }}
-                .event-mouse {{ background-color: rgba(100, 200, 100, 0.2); border-left: 3px solid #5cb85c; }}
-                .event-button {{ background-color: rgba(200, 150, 100, 0.2); border-left: 3px solid #f0ad4e; }}
-                .event-controller {{ background-color: rgba(150, 100, 200, 0.2); border-left: 3px solid #8e44ad; }}
-                .event-system {{ background-color: rgba(80, 80, 80, 0.2); border-left: 3px solid #777777; }}
-                .event-time {{ 
-                    font-size: 0.8em; 
-                    color: #aaaaaa; 
-                    display: block;
-                    margin-bottom: 5px;
-                }}
-                .badge {{
-                    margin-left: 8px;
-                }}
-                .http-get {{ background-color: #28a745; color: white; }}
-                .http-post {{ background-color: #007bff; color: white; }}
-                .execute-btn {{
-                    background-color: #007bff;
-                    color: white;
-                    border: none;
-                    padding: 5px 15px;
-                    border-radius: 3px;
-                    cursor: pointer;
-                }}
-                .execute-btn:hover {{
-                    background-color: #0069d9;
-                }}
-                .card-header {{
-                    background-color: #f8f9fa;
-                    font-weight: bold;
-                }}
-                .tab-content {{
-                    padding: 15px 0;
-                }}
-                .module-section {{
-                    margin-top: 30px;
-                    padding-top: 20px;
-                }}
-                .ws-controls {{
-                    margin-bottom: 15px;
-                    display: flex;
-                    gap: 10px;
-                    align-items: center;
-                }}
-                .event-count {{
-                    color: #aaaaaa;
-                    font-size: 0.9em;
-                    margin-left: auto;
-                }}
-                .connection-status {{
-                    display: inline-block;
-                    width: 12px;
-                    height: 12px;
-                    border-radius: 50%;
-                    margin-right: 8px;
-                }}
-                .connected {{ background-color: #5cb85c; }}
-                .disconnected {{ background-color: #d9534f; }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1 class="mb-4">Dynamic API Explorer</h1>
-                
-                {modules_html}
-            </div>
-            
-            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-            <script>
-                // JavaScript for API Explorer functionality
-                const webSockets = {{}};
-                
-                // Toggle method details
-                function toggleMethod(moduleId, methodId) {{
-                    const methodBody = document.getElementById(`${{moduleId}}-${{methodId}}`);
-                    methodBody.classList.toggle('active');
-                }}
-                
-                // Execute API method
-                async function executeMethod(moduleId, methodId) {{
-                    const responseElem = document.getElementById(`${{moduleId}}-${{methodId}}_response`);
-                    responseElem.textContent = "Loading...";
-                    
-                    try {{
-                        // Get parameters from form elements
-                        const paramElements = document.querySelectorAll(`[id^="${{moduleId}}-${{methodId}}_param_"]`);
-                        let url = `/api/${{moduleId}}/${{methodId}}`;
-                        let options = {{ method: 'GET' }};
-                        let body = null;
-                        let queryParams = [];
-                        
-                        // Check if this is a POST method
-                        const methodType = document.getElementById(`${{moduleId}}-${{methodId}}_type`);
-                        if (methodType && methodType.value === 'POST') {{
-                            options.method = 'POST';
-                            body = {{}};
-                        }}
-                        
-                        // Process parameters
-                        paramElements.forEach(param => {{
-                            const paramName = param.id.replace(`${{moduleId}}-${{methodId}}_param_`, '');
-                            const paramValue = param.value.trim();
-                            
-                            if (paramValue) {{
-                                if (options.method === 'GET') {{
-                                    queryParams.push(`${{paramName}}=${{encodeURIComponent(paramValue)}}`);
-                                }} else {{
-                                    // For POST, add to body
-                                    body[paramName] = paramValue;
-                                }}
-                            }}
-                        }});
-                        
-                        // Add query parameters to URL for GET requests
-                        if (queryParams.length > 0 && options.method === 'GET') {{
-                            url += `?${{queryParams.join('&')}}`;
-                        }}
-                        
-                        // Set up headers and body for POST requests
-                        if (options.method === 'POST' && body) {{
-                            options.headers = {{ 'Content-Type': 'application/json' }};
-                            options.body = JSON.stringify(body);
-                        }}
-                        
-                        // Make API request
-                        const response = await fetch(url, options);
-                        const data = await response.json();
-                        
-                        // Update response element
-                        responseElem.textContent = JSON.stringify(data, null, 2);
-                        
-                    }} catch (error) {{
-                        responseElem.textContent = `Error: ${{error.message}}`;
-                    }}
-                }}
-                
-                // WebSocket connection for real-time events
-                function connectWebSocket(moduleId) {{
-                    if (webSockets[moduleId]) {{
-                        return; // Already connected
-                    }}
-                    
-                    const connectBtn = document.getElementById(`${{moduleId}}-connect-ws-btn`);
-                    const disconnectBtn = document.getElementById(`${{moduleId}}-disconnect-ws-btn`);
-                    const eventsContainer = document.getElementById(`${{moduleId}}-events-container`);
-                    const statusIndicator = document.getElementById(`${{moduleId}}-connection-status`);
-                    
-                    // Clear previous events
-                    eventsContainer.innerHTML = '';
-                    
-                    // Create WebSocket connection
-                    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                    webSockets[moduleId] = new WebSocket(`${{wsProtocol}}//${{window.location.host}}/ws/${{moduleId}}`);
-                    
-                    // Event counter
-                    let eventCount = 0;
-                    const eventCountEl = document.getElementById(`${{moduleId}}-event-count`);
-                    
-                    // Update UI to show connecting state
-                    if (statusIndicator) statusIndicator.className = 'connection-status disconnected';
-                    addEvent(moduleId, 'Connecting to WebSocket...', 'system');
-                    
-                    webSockets[moduleId].onopen = function(e) {{
-                        connectBtn.disabled = true;
-                        disconnectBtn.disabled = false;
-                        if (statusIndicator) statusIndicator.className = 'connection-status connected';
-                        addEvent(moduleId, 'WebSocket connection established', 'system');
-                        
-                        // Ping the server every 30 seconds to keep the connection alive
-                        webSockets[moduleId].pingInterval = setInterval(() => {{
-                            if (webSockets[moduleId] && webSockets[moduleId].readyState === WebSocket.OPEN) {{
-                                webSockets[moduleId].send(JSON.stringify({{ command: 'ping' }}));
-                            }}
-                        }}, 30000);
-                    }};
-                    
-                    webSockets[moduleId].onmessage = function(event) {{
-                        try {{
-                            const data = JSON.parse(event.data);
-                            
-                            // Skip system messages like pong responses
-                            if (data.response === 'pong') return;
-                            
-                            // Update event counter
-                            eventCount++;
-                            if (eventCountEl) eventCountEl.textContent = `Events: ${{eventCount}}`;
-                            
-                            // Update the EEG data table if visualization_data exists AND the table exists
-                            if (data.visualization_data && data.visualization_data.list_view) {{
-                                const tableBody = document.querySelector(`#${{moduleId}}-data-table tbody`);
-                                if (tableBody) {{  // Solo procesar si la tabla existe
-                                    // Clear existing rows
-                                    tableBody.innerHTML = '';
-                                    
-                                    // Add new rows from list_view data
-                                    data.visualization_data.list_view.forEach(item => {{
-                                        const tr = document.createElement('tr');
-                                        tr.innerHTML = `
-                                            <td>${{item.channel}}</td>
-                                            <td>${{item.type}}</td>
-                                            <td>${{item.value.toFixed(2)}}</td>
-                                        `;
-                                        tableBody.appendChild(tr);
-                                    }});
-                                }}
-                            }}
-                            
-                            // Determine event type for styling
-                            let eventClass = 'event';
-                            let eventType = data.event_type || 'unknown';
-                            
-                            if (eventType.includes('key')) {{
-                                eventClass += ' event-key';
-                            }} else if (eventType.includes('mouse')) {{
-                                eventClass += ' event-mouse';
-                            }} else if (eventType.includes('button') || eventType.includes('click')) {{
-                                eventClass += ' event-button';
-                            }} else if (eventType.includes('controller') || eventType.includes('axis')) {{
-                                eventClass += ' event-controller';
-                            }} else {{
-                                eventClass += ' event-system';
-                            }}
-                            
-                            // Format event data for display
-                            const formattedData = formatEventData(data);
-                            
-                            // Format timestamp
-                            let timeStr = '';
-                            if (data.timestamp) {{
-                                const date = new Date(data.timestamp * 1000);
-                                timeStr = `<span class="event-time">${{date.toLocaleTimeString()}}.${{date.getMilliseconds().toString().padStart(3, '0')}}</span>`;
-                            }}
-                            
-                            // Create and append event element
-                            const eventElement = document.createElement('div');
-                            eventElement.className = eventClass;
-                            eventElement.innerHTML = `${{timeStr}}${{formattedData}}`;
-                            eventsContainer.appendChild(eventElement);
-                            
-                            // Auto-scroll if enabled
-                            if (document.getElementById(`${{moduleId}}-auto-scroll`).checked) {{
-                                eventsContainer.scrollTop = eventsContainer.scrollHeight;
-                            }}
-                        }} catch (e) {{
-                            console.error('Error parsing WebSocket message:', e, event.data);
-                            addEvent(moduleId, `Error parsing message: ${{e.message}}`, 'system');
-                        }}
-                    }};
-                    
-                    webSockets[moduleId].onclose = function(event) {{
-                        if (webSockets[moduleId].pingInterval) {{
-                            clearInterval(webSockets[moduleId].pingInterval);
-                        }}
-                        
-                        if (statusIndicator) statusIndicator.className = 'connection-status disconnected';
-                        
-                        if (event.wasClean) {{
-                            addEvent(moduleId, `WebSocket connection closed cleanly, code=${{event.code}}, reason=${{event.reason}}`, 'system');
-                        }} else {{
-                            addEvent(moduleId, 'WebSocket connection died', 'system');
-                        }}
-                        
-                        connectBtn.disabled = false;
-                        disconnectBtn.disabled = true;
-                        webSockets[moduleId] = null;
-                    }};
-                    
-                    webSockets[moduleId].onerror = function(error) {{
-                        if (statusIndicator) statusIndicator.className = 'connection-status disconnected';
-                        addEvent(moduleId, `WebSocket error: ${{error.message || 'Unknown error'}}`, 'system');
-                    }};
-                }}
-                
-                function disconnectWebSocket(moduleId) {{
-                    if (webSockets[moduleId]) {{
-                        webSockets[moduleId].close();
-                        if (webSockets[moduleId].pingInterval) {{
-                            clearInterval(webSockets[moduleId].pingInterval);
-                        }}
-                        webSockets[moduleId] = null;
-                        
-                        document.getElementById(`${{moduleId}}-connect-ws-btn`).disabled = false;
-                        document.getElementById(`${{moduleId}}-disconnect-ws-btn`).disabled = true;
-                        
-                        const statusIndicator = document.getElementById(`${{moduleId}}-connection-status`);
-                        if (statusIndicator) statusIndicator.className = 'connection-status disconnected';
-                    }}
-                }}
-                
-                function clearEvents(moduleId) {{
-                    document.getElementById(`${{moduleId}}-events-container`).innerHTML = '';
-                }}
-                
-                function addEvent(moduleId, message, type = 'info') {{
-                    const eventsContainer = document.getElementById(`${{moduleId}}-events-container`);
-                    const eventElement = document.createElement('div');
-                    eventElement.className = `event event-${{type}}`;
-                    eventElement.textContent = message;
-                    eventsContainer.appendChild(eventElement);
-                    
-                    // Auto-scroll if enabled
-                    if (document.getElementById(`${{moduleId}}-auto-scroll`).checked) {{
-                        eventsContainer.scrollTop = eventsContainer.scrollHeight;
-                    }}
-                }}
-                
-                // Function to format event data for better display
-                function formatEventData(data) {{
-                    // Create a simplified representation for display
-                    let output = '';
-                    
-                    // Add event type
-                    if (data.event_type) {{
-                        output += `<strong>Event:</strong> ${{data.event_type}}\\n`;
-                    }}
-                    
-                    // Add key info if present
-                    if (data.key) {{
-                        output += `<strong>Key:</strong> ${{data.key}}\\n`;
-                    }}
-                    
-                    // Add active keys if present
-                    if (data.active_keys && data.active_keys.length > 0) {{
-                        output += `<strong>Active Keys:</strong> ${{data.active_keys.join(', ')}}\\n`;
-                    }}
-                    
-                    // Add mouse position if present
-                    if (data.mouse_x !== undefined && data.mouse_y !== undefined) {{
-                        output += `<strong>Mouse Position:</strong> (${{data.mouse_x}}, ${{data.mouse_y}})\\n`;
-                    }}
-                    
-                    // Add mouse button if present
-                    if (data.button_pressed) {{
-                        output += `<strong>Button:</strong> ${{data.button_pressed}}\\n`;
-                    }}
-                    
-                    // Add direction if present
-                    if (data.direction) {{
-                        output += `<strong>Direction:</strong> ${{data.direction}}\\n`;
-                    }}
-                    
-                    // Add joystick position if present
-                    if (data.rel_x !== undefined && data.rel_y !== undefined) {{
-                        output += `<strong>Joystick:</strong> (${{data.rel_x.toFixed(2)}}, ${{data.rel_y.toFixed(2)}})\\n`;
-                    }}
-                    
-                    // If there's no specific data to display, show the full object
-                    if (!output) {{
-                        output = JSON.stringify(data, null, 2);
-                    }}
-                    
-                    return output;
-                }}
-            </script>
-        </body>
-        </html>
-        """
-        
-        return html_content
     
     def start_server(self, host: str = "127.0.0.1", port: int = 8000, 
                     block: bool = False) -> None:
@@ -930,94 +436,5 @@ class ApiExplorer:
             'description': description,
             'method_groups': {},
             'router': router,
-            'show_data_table': show_data_table  # Nueva propiedad para controlar la visualización de la tabla
+            'show_data_table': show_data_table
         }
-
-    def _generate_method_links(self, module_id: str, module_info: Dict) -> str:
-        """Generate HTML for the method links sidebar."""
-        method_groups = module_info.get('method_groups', {})
-        if not method_groups:
-            return "<a href='#' class='list-group-item list-group-item-action disabled'>No methods available</a>"
-        
-        links_html = ""
-        for group_id, group_info in method_groups.items():
-            links_html += f"<a href='#{module_id}-{group_id}' class='list-group-item list-group-item-action'>{group_info['name']}</a>"
-        
-        return links_html
-
-    def _generate_method_cards(self, module_id: str, module_info: Dict) -> str:
-        """Generate HTML for the method cards."""
-        method_groups = module_info.get('method_groups', {})
-        if not method_groups:
-            return "<div class='alert alert-info'>No methods available for this module.</div>"
-        
-        cards_html = ""
-        for group_id, group_info in method_groups.items():
-            # Add group header
-            cards_html += f"<h3 id='{module_id}-{group_id}' class='mt-4'>{group_info['name']}</h3>"
-            
-            # Add methods in this group
-            methods = group_info.get('methods', {})
-            for method_id, method_info in methods.items():
-                # Method type badge
-                method_type = method_info.get('type', 'GET')
-                badge_class = "http-post" if method_type == "POST" else "http-get"
-                
-                # Parameter handling
-                params_html = ""
-                for param_id, param_info in method_info.get('params', {}).items():
-                    param_type = param_info.get('type', 'text')
-                    param_desc = param_info.get('description', '')
-                    param_required = param_info.get('required', False);
-                    
-                    if param_type == 'select':
-                        # For dropdown parameters
-                        options_html = ""
-                        for option in param_info.get('options', []):
-                            options_html += f"<option value='{option}'>{option}</option>"
-                        
-                        params_html += f"""
-                        <div class="form-group">
-                            <label for="{module_id}-{method_id}_param_{param_id}">{param_id}{' (required)' if param_required else ''}:</label>
-                            <select class="form-control" id="{module_id}-{method_id}_param_{param_id}">
-                                {options_html}
-                            </select>
-                            <small class="form-text text-muted">{param_desc}</small>
-                        </div>
-                        """
-                    else:
-                        # For text/number parameters
-                        placeholder = param_info.get('placeholder', '')
-                        params_html += f"""
-                        <div class="form-group">
-                            <label for="{module_id}-{method_id}_param_{param_id}">{param_id}{' (required)' if param_required else ''}:</label>
-                            <input type="{param_type}" class="form-control" id="{module_id}-{method_id}_param_{param_id}" 
-                                   placeholder="{placeholder}">
-                            <small class="form-text text-muted">{param_desc}</small>
-                        </div>
-                        """
-                
-                # Hidden field to store method type
-                type_field = f'<input type="hidden" id="{module_id}-{method_id}_type" value="{method_type}">'
-                
-                # Create the complete method card
-                cards_html += f"""
-                <div class="method-card">
-                    <div class="method-header" onclick="toggleMethod('{module_id}', '{method_id}')">
-                        <span>{method_info.get('name', method_id)}</span>
-                        <span class="badge {badge_class}">{method_type}</span>
-                    </div>
-                    <div class="method-body" id="{module_id}-{method_id}">
-                        <p>{method_info.get('description', '')}</p>
-                        {type_field}
-                        {params_html}
-                        <button class="execute-btn" onclick="executeMethod('{module_id}', '{method_id}')">Execute</button>
-                        <div class="mt-3">
-                            <h5>Response:</h5>
-                            <pre id="{module_id}-{method_id}_response">// Response will appear here</pre>
-                        </div>
-                    </div>
-                </div>
-                """
-        
-        return cards_html
