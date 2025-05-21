@@ -335,23 +335,56 @@ function initOrUpdateGraph(moduleId) {
     const activeType = activeTypeFilters[moduleId];
     console.log(`Current active type: ${activeType}`);
     
-    // Create datasets only for channels of the active type
+    // Track min and max values for auto-scaling
+    let minValue = Number.POSITIVE_INFINITY;
+    let maxValue = Number.NEGATIVE_INFINITY;
+    let datasetsByChannel = {};
+    
+    // First pass: determine data ranges and prepare dataset data
     Object.keys(channelData[moduleId]).forEach(channel => {
         const channelInfo = channelData[moduleId][channel];
         const type = channelInfo.type;
         
         // Only include channels with active type
         if (type === activeType) {
-            datasets.push({
-                label: channel,
-                data: channelInfo.values.slice(-100), // Only keep last 100 values
-                borderColor: colors[type] || 'rgba(0, 0, 0, 1)',
-                backgroundColor: 'rgba(0, 0, 0, 0)',
-                borderWidth: 1,
-                pointRadius: 0,
-                hidden: false
-            });
+            const values = channelInfo.values.slice(-100);
+            datasetsByChannel[channel] = values;
+            
+            // Find min/max for axis scaling
+            const channelMin = Math.min(...values);
+            const channelMax = Math.max(...values);
+            
+            if (channelMin < minValue) minValue = channelMin;
+            if (channelMax > maxValue) maxValue = channelMax;
         }
+    });
+    
+    // Add padding to the min/max values (20% padding)
+    const valueRange = maxValue - minValue;
+    const padding = valueRange * 0.2;
+    minValue = minValue - padding;
+    maxValue = maxValue + padding;
+    
+    // Now create datasets with the full value range context
+    Object.keys(datasetsByChannel).forEach(channel => {
+        const channelInfo = channelData[moduleId][channel];
+        const type = channelInfo.type;
+        const values = datasetsByChannel[channel];
+        
+        // Compute vertical offset to prevent overlap between signals
+        // Each channel gets its own "lane" within the full range
+        const channelColor = colors[type] || 'rgba(0, 0, 0, 1)';
+        
+        datasets.push({
+            label: channel,
+            data: values,
+            borderColor: channelColor,
+            backgroundColor: 'rgba(0, 0, 0, 0)',
+            borderWidth: 1.5,
+            pointRadius: 0,
+            tension: 0.3, // Add slight smoothing for better visualization
+            hidden: false
+        });
     });
     
     // Check if we have data to display for the current type
@@ -387,7 +420,7 @@ function initOrUpdateGraph(moduleId) {
     // Now get the canvas (might be newly created)
     const canvasToUse = document.getElementById(`${moduleId}-graph-canvas`);
     
-    // Create chart
+    // Create chart with improved configuration
     moduleCharts[moduleId] = new Chart(canvasToUse, {
         type: 'line',
         data: {
@@ -399,15 +432,25 @@ function initOrUpdateGraph(moduleId) {
             maintainAspectRatio: false,
             scales: {
                 y: {
-                    type: 'logarithmic',
-                    min: 0.1, // Avoid zero values with log scale
+                    type: 'linear', // Use linear scale instead of logarithmic
+                    min: minValue,
+                    max: maxValue,
                     title: {
                         display: true,
-                        text: 'Value (log scale)'
+                        text: 'Value'
+                    },
+                    grid: {
+                        color: 'rgba(200, 200, 200, 0.2)'  // Lighter grid lines
                     }
                 },
                 x: {
-                    display: false
+                    display: true,
+                    grid: {
+                        display: false  // Hide vertical grid lines for cleaner look
+                    },
+                    ticks: {
+                        display: false  // Hide tick labels
+                    }
                 }
             },
             animation: {
@@ -500,7 +543,7 @@ function updateChannelData(moduleId, data) {
     data.visualization_data.list_view.forEach(item => {
         const channelId = item.channel;
         const type = item.type;
-        const value = Math.abs(item.value) < 0.1 ? 0.1 : item.value; // Ensure non-zero for log scale
+        let value = item.value;
         
         hasNewData = true;
         
@@ -527,11 +570,44 @@ function updateChannelData(moduleId, data) {
         if (!moduleCharts[moduleId]) {
             initOrUpdateGraph(moduleId);
         } else {
-            // Just update the existing chart
-            const chart = moduleCharts[moduleId];
-            
             // Get current active type
             const activeType = activeTypeFilters[moduleId];
+            
+            // Check if we need to recalculate chart scale
+            let needsFullRefresh = false;
+            let minValue = Number.POSITIVE_INFINITY;
+            let maxValue = Number.NEGATIVE_INFINITY;
+            
+            // Find min/max across all channels of active type
+            Object.keys(channelData[moduleId]).forEach(channel => {
+                if (channelData[moduleId][channel].type === activeType) {
+                    const values = channelData[moduleId][channel].values;
+                    const min = Math.min(...values);
+                    const max = Math.max(...values);
+                    
+                    if (min < minValue) minValue = min;
+                    if (max > maxValue) maxValue = max;
+                }
+            });
+            
+            // Add padding (20%)
+            const valueRange = maxValue - minValue;
+            const padding = valueRange * 0.2;
+            minValue = minValue - padding;
+            maxValue = maxValue + padding;
+            
+            // Check if we need to update the scale
+            const chart = moduleCharts[moduleId];
+            const currentMin = chart.options.scales.y.min;
+            const currentMax = chart.options.scales.y.max;
+            
+            // If range changed significantly (more than 20%), update scale
+            if (minValue < currentMin || maxValue > currentMax || 
+                minValue > currentMin * 1.2 || maxValue < currentMax * 0.8) {
+                chart.options.scales.y.min = minValue;
+                chart.options.scales.y.max = maxValue;
+                needsFullRefresh = true;
+            }
             
             // Update each dataset with new data
             chart.data.datasets.forEach(dataset => {
@@ -541,7 +617,8 @@ function updateChannelData(moduleId, data) {
                 }
             });
             
-            chart.update('none'); // Update without animation
+            // Update chart with optimized options
+            chart.update(needsFullRefresh ? undefined : 'none');
         }
     }
 }
