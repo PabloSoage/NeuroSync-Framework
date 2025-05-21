@@ -146,15 +146,32 @@ pre {
 .disconnected { background-color: #d9534f; }
 
 .graph-container {
-    height: 400px;
     width: 100%;
     margin-bottom: 20px;
     background-color: #ffffff;
     border: 1px solid #dee2e6;
     border-radius: 5px;
     padding: 10px;
-    position: relative; /* Add position relative */
-    overflow: hidden;   /* Prevent content overflow */
+    position: relative;
+    overflow: visible; /* Changed from hidden to visible to allow content expansion */
+    min-height: 400px; /* Changed from fixed height to minimum height */
+}
+
+.channel-graphs-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.channel-graph-container {
+    height: 200px;
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 8px;
+    position: relative;
 }
 
 .type-filters {

@@ -292,31 +292,14 @@ function formatEventData(data) {
 
 // Initialize or update the graph for a module
 function initOrUpdateGraph(moduleId) {
-    const canvas = document.getElementById(`${moduleId}-graph-canvas`);
-    
     // Initialize data structures if needed
     initModuleDataStructures(moduleId);
     
-    // If we already have a chart, destroy it first
-    if (moduleCharts[moduleId]) {
-        moduleCharts[moduleId].destroy();
-    }
-    
-    // Prepare datasets from channelData
-    const datasets = [];
-    const types = new Set();
-    const colors = {
-        eeg: 'rgba(75, 108, 183, 1)',
-        emg: 'rgba(92, 184, 92, 1)',
-        ecg: 'rgba(217, 83, 79, 1)',
-        accel: 'rgba(240, 173, 78, 1)',
-        gyro: 'rgba(91, 192, 222, 1)',
-        eda: 'rgba(142, 68, 173, 1)',
-        ppg: 'rgba(232, 62, 140, 1)',
-        temperature: 'rgba(253, 126, 20, 1)'
-    };
+    // Check if we're in separate channels mode
+    const separateChannels = window.separateChannels[moduleId];
     
     // Get all available types from data
+    const types = new Set();
     Object.values(channelData[moduleId]).forEach(channelInfo => {
         types.add(channelInfo.type);
     });
@@ -335,27 +318,441 @@ function initOrUpdateGraph(moduleId) {
     const activeType = activeTypeFilters[moduleId];
     console.log(`Current active type: ${activeType}`);
     
+    // Update type filters UI
+    updateTypeFilters(moduleId, typeArray, activeType);
+    
+    // Get the graph container and check if we have data
+    const graphContainer = document.getElementById(`${moduleId}-graph-container`);
+    const channelsOfActiveType = Object.values(channelData[moduleId])
+        .filter(info => info.type === activeType);
+    
+    if (channelsOfActiveType.length === 0) {
+        if (graphContainer) {
+            graphContainer.innerHTML = `<div class="alert alert-info mt-3">No data available for type: ${activeType || ''}. Select a different type.</div>`;
+        }
+        return;
+    }
+    
+    // Clear any previous "no data" message
+    if (graphContainer) {
+        graphContainer.innerHTML = '';
+    }
+    
+    if (separateChannels) {
+        // Create a grid for separate channel graphs
+        const gridContainer = document.createElement('div');
+        gridContainer.className = 'channel-graphs-grid';
+        graphContainer.appendChild(gridContainer);
+        
+        // Create a separate graph for each channel
+        createSeparateChannelGraphs(moduleId, gridContainer, activeType);
+    } else {
+        // Create a single canvas for combined graph
+        const canvas = document.createElement('canvas');
+        canvas.id = `${moduleId}-graph-canvas`;
+        graphContainer.appendChild(canvas);
+        
+        // Create the combined graph
+        createCombinedGraph(moduleId, canvas, activeType);
+    }
+}
+
+// Create separate graphs for each channel
+function createSeparateChannelGraphs(moduleId, container, activeType) {
+    const colors = {
+        eeg: 'rgba(75, 108, 183, 1)',
+        emg: 'rgba(92, 184, 92, 1)',
+        ecg: 'rgba(217, 83, 79, 1)',
+        accel: 'rgba(240, 173, 78, 1)',
+        gyro: 'rgba(91, 192, 222, 1)',
+        eda: 'rgba(142, 68, 173, 1)',
+        ppg: 'rgba(232, 62, 140, 1)',
+        temperature: 'rgba(253, 126, 20, 1)'
+    };
+    
+    // Find all channels of the active type
+    const channelsOfType = Object.entries(channelData[moduleId])
+        .filter(([_, info]) => info.type === activeType)
+        .map(([channel, _]) => channel);
+        
+    console.log(`Found ${channelsOfType.length} channels of type ${activeType}`);
+    
+    // Dynamically adjust number of columns based on number of channels
+    // Cap at 3 columns maximum to prevent horizontal overflow
+    let columns = 2; // Default to 2 columns
+    
+    if (channelsOfType.length > 6) {
+        // Use 3 columns for many channels (7+)
+        columns = 3;
+    } else if (channelsOfType.length > 3) {
+        // Use 3 columns for medium channel count (4-6)
+        columns = 3;
+    }
+    
+    container.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+    
+    // Calculate rows needed
+    const rows = Math.ceil(channelsOfType.length / columns);
+    
+    // Calculate and set dynamic container height based on number of rows
+    // Each row is 200px (chart) + 10px (gap) = 210px per row
+    const graphContainer = document.getElementById(`${moduleId}-graph-container`);
+    const calculatedHeight = (rows * 210) + 20; // Add 20px for container padding
+    graphContainer.style.height = `${calculatedHeight}px`;
+    
+    console.log(`Adjusting grid to ${columns} columns and ${rows} rows with height ${calculatedHeight}px`);
+    
+    // Create a separate graph for each channel
+    channelsOfType.forEach(channel => {
+        // Create container for this channel
+        const channelContainer = document.createElement('div');
+        channelContainer.className = 'channel-graph-container';
+        channelContainer.id = `${moduleId}-${channel}-container`;
+        container.appendChild(channelContainer);
+        
+        // Create canvas for this channel
+        const canvas = document.createElement('canvas');
+        canvas.id = `${moduleId}-${channel}-canvas`;
+        channelContainer.appendChild(canvas);
+        
+        // Get channel data
+        const channelInfo = channelData[moduleId][channel];
+        const values = channelInfo.values.slice(-100);
+        
+        // Find min/max for y-axis
+        let minValue = Math.min(...values);
+        let maxValue = Math.max(...values);
+        
+        // Add padding to the min/max values (20% padding)
+        const valueRange = maxValue - minValue;
+        const padding = valueRange * 0.2;
+        minValue = minValue - padding;
+        maxValue = maxValue + padding;
+        
+        // Create the chart for this channel
+        window.channelCharts[moduleId][channel] = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: Array(100).fill(''),
+                datasets: [{
+                    label: channel,
+                    data: values,
+                    borderColor: colors[activeType] || 'rgba(0, 0, 0, 1)',
+                    backgroundColor: 'rgba(0, 0, 0, 0)',
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    tension: 0.3,
+                    hidden: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        type: 'linear',
+                        min: minValue,
+                        max: maxValue,
+                        title: {
+                            display: false
+                        },
+                        grid: {
+                            color: 'rgba(200, 200, 200, 0.2)'
+                        }
+                    },
+                    x: {
+                        display: false,
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            boxWidth: 10,
+                            font: {
+                                size: 10
+                            }
+                        }
+                    },
+                    tooltip: {
+                        enabled: false
+                    }
+                },
+                animation: {
+                    duration: 0
+                }
+            }
+        });
+    });
+}
+
+// Clear all charts for a module
+function clearAllCharts(moduleId) {
+    // Destroy main chart if it exists
+    if (moduleCharts[moduleId]) {
+        moduleCharts[moduleId].destroy();
+        moduleCharts[moduleId] = null;
+    }
+    
+    // Destroy all individual channel charts
+    if (window.channelCharts[moduleId]) {
+        Object.values(window.channelCharts[moduleId]).forEach(chart => {
+            if (chart) chart.destroy();
+        });
+        window.channelCharts[moduleId] = {};
+    }
+    
+    // Clear the graph container
+    const graphContainer = document.getElementById(`${moduleId}-graph-container`);
+    if (graphContainer) {
+        graphContainer.innerHTML = '';
+        graphContainer.style.height = 'auto'; // Reset height when clearing
+    }
+}
+
+// Initialize or update the graph for a module
+function initOrUpdateGraph(moduleId) {
+    // Initialize data structures if needed
+    initModuleDataStructures(moduleId);
+    
+    // Check if we're in separate channels mode
+    const separateChannels = window.separateChannels[moduleId];
+    
+    // Get all available types from data
+    const types = new Set();
+    Object.values(channelData[moduleId]).forEach(channelInfo => {
+        types.add(channelInfo.type);
+    });
+    
+    // Convert to array for easier handling
+    const typeArray = Array.from(types);
+    
+    // If no active type filter is set, default to eeg or first available type
+    if (!activeTypeFilters[moduleId] && typeArray.length > 0) {
+        // Default to 'eeg' if available, otherwise take the first type
+        activeTypeFilters[moduleId] = typeArray.includes('eeg') ? 'eeg' : typeArray[0];
+        console.log(`Setting default active type to: ${activeTypeFilters[moduleId]}`);
+    }
+    
+    // Current active type
+    const activeType = activeTypeFilters[moduleId];
+    console.log(`Current active type: ${activeType}`);
+    
+    // Update type filters UI
+    updateTypeFilters(moduleId, typeArray, activeType);
+    
+    // Get the graph container and check if we have data
+    const graphContainer = document.getElementById(`${moduleId}-graph-container`);
+    const channelsOfActiveType = Object.values(channelData[moduleId])
+        .filter(info => info.type === activeType);
+    
+    if (channelsOfActiveType.length === 0) {
+        if (graphContainer) {
+            graphContainer.innerHTML = `<div class="alert alert-info mt-3">No data available for type: ${activeType || ''}. Select a different type.</div>`;
+        }
+        return;
+    }
+    
+    // Clear any previous "no data" message
+    if (graphContainer) {
+        graphContainer.innerHTML = '';
+    }
+    
+    if (separateChannels) {
+        // Create a grid for separate channel graphs
+        const gridContainer = document.createElement('div');
+        gridContainer.className = 'channel-graphs-grid';
+        graphContainer.appendChild(gridContainer);
+        
+        // Create a separate graph for each channel
+        createSeparateChannelGraphs(moduleId, gridContainer, activeType);
+    } else {
+        // Create a single canvas for combined graph
+        const canvas = document.createElement('canvas');
+        canvas.id = `${moduleId}-graph-canvas`;
+        graphContainer.appendChild(canvas);
+        
+        // Create the combined graph
+        createCombinedGraph(moduleId, canvas, activeType);
+    }
+}
+
+// Create separate graphs for each channel
+function createSeparateChannelGraphs(moduleId, container, activeType) {
+    const colors = {
+        eeg: 'rgba(75, 108, 183, 1)',
+        emg: 'rgba(92, 184, 92, 1)',
+        ecg: 'rgba(217, 83, 79, 1)',
+        accel: 'rgba(240, 173, 78, 1)',
+        gyro: 'rgba(91, 192, 222, 1)',
+        eda: 'rgba(142, 68, 173, 1)',
+        ppg: 'rgba(232, 62, 140, 1)',
+        temperature: 'rgba(253, 126, 20, 1)'
+    };
+    
+    // Find all channels of the active type
+    const channelsOfType = Object.entries(channelData[moduleId])
+        .filter(([_, info]) => info.type === activeType)
+        .map(([channel, _]) => channel);
+        
+    console.log(`Found ${channelsOfType.length} channels of type ${activeType}`);
+    
+    // Dynamically adjust number of columns based on number of channels
+    // Cap at 3 columns maximum to prevent horizontal overflow
+    let columns = 2; // Default to 2 columns
+    
+    if (channelsOfType.length > 6) {
+        // Use 3 columns for many channels (7+)
+        columns = 3;
+    } else if (channelsOfType.length > 3) {
+        // Use 3 columns for medium channel count (4-6)
+        columns = 3;
+    }
+    
+    container.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+    
+    // Calculate rows needed
+    const rows = Math.ceil(channelsOfType.length / columns);
+    
+    // Calculate and set dynamic container height based on number of rows
+    // Each row is 200px (chart) + 10px (gap) = 210px per row
+    const graphContainer = document.getElementById(`${moduleId}-graph-container`);
+    const calculatedHeight = (rows * 210) + 20; // Add 20px for container padding
+    graphContainer.style.height = `${calculatedHeight}px`;
+    
+    console.log(`Adjusting grid to ${columns} columns and ${rows} rows with height ${calculatedHeight}px`);
+    
+    // Create a separate graph for each channel
+    channelsOfType.forEach(channel => {
+        // Create container for this channel
+        const channelContainer = document.createElement('div');
+        channelContainer.className = 'channel-graph-container';
+        channelContainer.id = `${moduleId}-${channel}-container`;
+        container.appendChild(channelContainer);
+        
+        // Create canvas for this channel
+        const canvas = document.createElement('canvas');
+        canvas.id = `${moduleId}-${channel}-canvas`;
+        channelContainer.appendChild(canvas);
+        
+        // Get channel data
+        const channelInfo = channelData[moduleId][channel];
+        const values = channelInfo.values.slice(-100);
+        
+        // Find min/max for y-axis
+        let minValue = Math.min(...values);
+        let maxValue = Math.max(...values);
+        
+        // Add padding to the min/max values (20% padding)
+        const valueRange = maxValue - minValue;
+        const padding = valueRange * 0.2;
+        minValue = minValue - padding;
+        maxValue = maxValue + padding;
+        
+        // Create the chart for this channel
+        window.channelCharts[moduleId][channel] = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: Array(100).fill(''),
+                datasets: [{
+                    label: channel,
+                    data: values,
+                    borderColor: colors[activeType] || 'rgba(0, 0, 0, 1)',
+                    backgroundColor: 'rgba(0, 0, 0, 0)',
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    tension: 0.3,
+                    hidden: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        type: 'linear',
+                        min: minValue,
+                        max: maxValue,
+                        title: {
+                            display: false
+                        },
+                        grid: {
+                            color: 'rgba(200, 200, 200, 0.2)'
+                        }
+                    },
+                    x: {
+                        display: false,
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            boxWidth: 10,
+                            font: {
+                                size: 10
+                            }
+                        }
+                    },
+                    tooltip: {
+                        enabled: false
+                    }
+                },
+                animation: {
+                    duration: 0
+                }
+            }
+        });
+    });
+}
+
+// Create a combined graph with all channels
+function createCombinedGraph(moduleId, canvas, activeType) {
     // Track min and max values for auto-scaling
     let minValue = Number.POSITIVE_INFINITY;
     let maxValue = Number.NEGATIVE_INFINITY;
-    let datasetsByChannel = {};
+    let datasets = [];
+    const colors = {
+        eeg: 'rgba(75, 108, 183, 1)',
+        emg: 'rgba(92, 184, 92, 1)',
+        ecg: 'rgba(217, 83, 79, 1)',
+        accel: 'rgba(240, 173, 78, 1)',
+        gyro: 'rgba(91, 192, 222, 1)',
+        eda: 'rgba(142, 68, 173, 1)',
+        ppg: 'rgba(232, 62, 140, 1)',
+        temperature: 'rgba(253, 126, 20, 1)'
+    };
     
-    // First pass: determine data ranges and prepare dataset data
-    Object.keys(channelData[moduleId]).forEach(channel => {
-        const channelInfo = channelData[moduleId][channel];
+    // First pass: determine data ranges
+    Object.entries(channelData[moduleId]).forEach(([channel, channelInfo]) => {
         const type = channelInfo.type;
         
-        // Only include channels with active type
         if (type === activeType) {
             const values = channelInfo.values.slice(-100);
-            datasetsByChannel[channel] = values;
-            
-            // Find min/max for axis scaling
             const channelMin = Math.min(...values);
             const channelMax = Math.max(...values);
             
             if (channelMin < minValue) minValue = channelMin;
             if (channelMax > maxValue) maxValue = channelMax;
+            
+            datasets.push({
+                label: channel,
+                data: values,
+                borderColor: colors[type] || 'rgba(0, 0, 0, 1)',
+                backgroundColor: 'rgba(0, 0, 0, 0)',
+                borderWidth: 1.5,
+                pointRadius: 0,
+                tension: 0.3,
+                hidden: false
+            });
         }
     });
     
@@ -365,66 +762,11 @@ function initOrUpdateGraph(moduleId) {
     minValue = minValue - padding;
     maxValue = maxValue + padding;
     
-    // Now create datasets with the full value range context
-    Object.keys(datasetsByChannel).forEach(channel => {
-        const channelInfo = channelData[moduleId][channel];
-        const type = channelInfo.type;
-        const values = datasetsByChannel[channel];
-        
-        // Compute vertical offset to prevent overlap between signals
-        // Each channel gets its own "lane" within the full range
-        const channelColor = colors[type] || 'rgba(0, 0, 0, 1)';
-        
-        datasets.push({
-            label: channel,
-            data: values,
-            borderColor: channelColor,
-            backgroundColor: 'rgba(0, 0, 0, 0)',
-            borderWidth: 1.5,
-            pointRadius: 0,
-            tension: 0.3, // Add slight smoothing for better visualization
-            hidden: false
-        });
-    });
-    
-    // Check if we have data to display for the current type
-    const hasDataForCurrentType = datasets.length > 0;
-    
-    // Update type filters UI
-    updateTypeFilters(moduleId, typeArray, activeType);
-    
-    // If no data for current type but we have data for other types,
-    // display a message
-    const graphContainer = document.getElementById(`${moduleId}-graph-container`);
-    
-    if (!hasDataForCurrentType) {
-        if (graphContainer) {
-            graphContainer.innerHTML = `<div class="alert alert-info mt-3">No data available for type: ${activeType || ''}. Select a different type.</div>`;
-            
-            // Create a new canvas for when data arrives
-            const newCanvas = document.createElement('canvas');
-            newCanvas.id = `${moduleId}-graph-canvas`;
-            graphContainer.appendChild(newCanvas);
-        }
-        return;
-    }
-    
-    // Clear any previous "no data" message
-    if (graphContainer) {
-        graphContainer.innerHTML = '';
-        const newCanvas = document.createElement('canvas');
-        newCanvas.id = `${moduleId}-graph-canvas`;
-        graphContainer.appendChild(newCanvas);
-    }
-    
-    // Now get the canvas (might be newly created)
-    const canvasToUse = document.getElementById(`${moduleId}-graph-canvas`);
-    
-    // Create chart with improved configuration
-    moduleCharts[moduleId] = new Chart(canvasToUse, {
+    // Create the combined chart
+    moduleCharts[moduleId] = new Chart(canvas, {
         type: 'line',
         data: {
-            labels: Array(100).fill(''), // Empty labels for the X-axis
+            labels: Array(100).fill(''),
             datasets: datasets
         },
         options: {
@@ -432,7 +774,7 @@ function initOrUpdateGraph(moduleId) {
             maintainAspectRatio: false,
             scales: {
                 y: {
-                    type: 'linear', // Use linear scale instead of logarithmic
+                    type: 'linear',
                     min: minValue,
                     max: maxValue,
                     title: {
@@ -440,21 +782,21 @@ function initOrUpdateGraph(moduleId) {
                         text: 'Value'
                     },
                     grid: {
-                        color: 'rgba(200, 200, 200, 0.2)'  // Lighter grid lines
+                        color: 'rgba(200, 200, 200, 0.2)'
                     }
                 },
                 x: {
                     display: true,
                     grid: {
-                        display: false  // Hide vertical grid lines for cleaner look
+                        display: false
                     },
                     ticks: {
-                        display: false  // Hide tick labels
+                        display: false
                     }
                 }
             },
             animation: {
-                duration: 0 // Disable animations for performance
+                duration: 0
             },
             plugins: {
                 legend: {
@@ -527,6 +869,391 @@ function initModuleDataStructures(moduleId) {
     if (activeTypeFilters[moduleId] === undefined) {
         activeTypeFilters[moduleId] = ''; // Now a string instead of a Set
     }
+    
+    // Initialize separate channels state
+    if (typeof window.separateChannels === 'undefined') {
+        window.separateChannels = {};
+    }
+    
+    if (window.separateChannels[moduleId] === undefined) {
+        window.separateChannels[moduleId] = false;
+    }
+    
+    // Initialize storage for multiple charts when in separate mode
+    if (typeof window.channelCharts === 'undefined') {
+        window.channelCharts = {};
+    }
+    
+    if (!window.channelCharts[moduleId]) {
+        window.channelCharts[moduleId] = {};
+    }
+}
+
+// Function for handling show graph toggle
+function toggleGraphView(moduleId) {
+    const showGraph = document.getElementById(`${moduleId}-show-graph`).checked;
+    const graphContainer = document.getElementById(`${moduleId}-graph-container`);
+    const tableContainer = document.getElementById(`${moduleId}-table-container`);
+    const typeFilters = document.getElementById(`${moduleId}-type-filters`);
+    const separateToggleContainer = document.getElementById(`${moduleId}-separate-toggle-container`);
+    
+    if (showGraph) {
+        // Show graph, hide table
+        graphContainer.style.display = 'block';
+        tableContainer.style.display = 'none';
+        typeFilters.style.display = 'block';
+        separateToggleContainer.style.display = 'block';
+        
+        // Initialize or update the graph
+        initOrUpdateGraph(moduleId);
+    } else {
+        // Show table, hide graph
+        graphContainer.style.display = 'none';
+        tableContainer.style.display = 'block';
+        typeFilters.style.display = 'none';
+        separateToggleContainer.style.display = 'none';
+    }
+    
+    console.log(`Graph view toggled for ${moduleId}: ${showGraph ? 'on' : 'off'}`);
+}
+
+// Function for handling separate channels toggle
+function toggleSeparateChannels(moduleId) {
+    const separateChannels = document.getElementById(`${moduleId}-separate-channels`).checked;
+    window.separateChannels[moduleId] = separateChannels;
+    
+    console.log(`Separate channels toggled for ${moduleId}: ${separateChannels ? 'on' : 'off'}`);
+    
+    // Clear existing charts
+    clearAllCharts(moduleId);
+    
+    // Reinitialize the graphs with new layout
+    initOrUpdateGraph(moduleId);
+}
+
+// Clear all charts for a module
+function clearAllCharts(moduleId) {
+    // Destroy main chart if it exists
+    if (moduleCharts[moduleId]) {
+        moduleCharts[moduleId].destroy();
+        moduleCharts[moduleId] = null;
+    }
+    
+    // Destroy all individual channel charts
+    if (window.channelCharts[moduleId]) {
+        Object.values(window.channelCharts[moduleId]).forEach(chart => {
+            if (chart) chart.destroy();
+        });
+        window.channelCharts[moduleId] = {};
+    }
+    
+    // Clear the graph container
+    const graphContainer = document.getElementById(`${moduleId}-graph-container`);
+    if (graphContainer) {
+        graphContainer.innerHTML = '';
+        graphContainer.style.height = 'auto'; // Reset height when clearing
+    }
+}
+
+// Initialize or update the graph for a module
+function initOrUpdateGraph(moduleId) {
+    // Initialize data structures if needed
+    initModuleDataStructures(moduleId);
+    
+    // Check if we're in separate channels mode
+    const separateChannels = window.separateChannels[moduleId];
+    
+    // Get all available types from data
+    const types = new Set();
+    Object.values(channelData[moduleId]).forEach(channelInfo => {
+        types.add(channelInfo.type);
+    });
+    
+    // Convert to array for easier handling
+    const typeArray = Array.from(types);
+    
+    // If no active type filter is set, default to eeg or first available type
+    if (!activeTypeFilters[moduleId] && typeArray.length > 0) {
+        // Default to 'eeg' if available, otherwise take the first type
+        activeTypeFilters[moduleId] = typeArray.includes('eeg') ? 'eeg' : typeArray[0];
+        console.log(`Setting default active type to: ${activeTypeFilters[moduleId]}`);
+    }
+    
+    // Current active type
+    const activeType = activeTypeFilters[moduleId];
+    console.log(`Current active type: ${activeType}`);
+    
+    // Update type filters UI
+    updateTypeFilters(moduleId, typeArray, activeType);
+    
+    // Get the graph container and check if we have data
+    const graphContainer = document.getElementById(`${moduleId}-graph-container`);
+    const channelsOfActiveType = Object.values(channelData[moduleId])
+        .filter(info => info.type === activeType);
+    
+    if (channelsOfActiveType.length === 0) {
+        if (graphContainer) {
+            graphContainer.innerHTML = `<div class="alert alert-info mt-3">No data available for type: ${activeType || ''}. Select a different type.</div>`;
+        }
+        return;
+    }
+    
+    // Clear any previous "no data" message
+    if (graphContainer) {
+        graphContainer.innerHTML = '';
+    }
+    
+    if (separateChannels) {
+        // Create a grid for separate channel graphs
+        const gridContainer = document.createElement('div');
+        gridContainer.className = 'channel-graphs-grid';
+        graphContainer.appendChild(gridContainer);
+        
+        // Create a separate graph for each channel
+        createSeparateChannelGraphs(moduleId, gridContainer, activeType);
+    } else {
+        // Create a single canvas for combined graph
+        const canvas = document.createElement('canvas');
+        canvas.id = `${moduleId}-graph-canvas`;
+        graphContainer.appendChild(canvas);
+        
+        // Create the combined graph
+        createCombinedGraph(moduleId, canvas, activeType);
+    }
+}
+
+// Create separate graphs for each channel
+function createSeparateChannelGraphs(moduleId, container, activeType) {
+    const colors = {
+        eeg: 'rgba(75, 108, 183, 1)',
+        emg: 'rgba(92, 184, 92, 1)',
+        ecg: 'rgba(217, 83, 79, 1)',
+        accel: 'rgba(240, 173, 78, 1)',
+        gyro: 'rgba(91, 192, 222, 1)',
+        eda: 'rgba(142, 68, 173, 1)',
+        ppg: 'rgba(232, 62, 140, 1)',
+        temperature: 'rgba(253, 126, 20, 1)'
+    };
+    
+    // Find all channels of the active type
+    const channelsOfType = Object.entries(channelData[moduleId])
+        .filter(([_, info]) => info.type === activeType)
+        .map(([channel, _]) => channel);
+        
+    console.log(`Found ${channelsOfType.length} channels of type ${activeType}`);
+    
+    // Dynamically adjust number of columns based on number of channels
+    // Cap at 3 columns maximum to prevent horizontal overflow
+    let columns = 2; // Default to 2 columns
+    
+    if (channelsOfType.length > 6) {
+        // Use 3 columns for many channels (7+)
+        columns = 3;
+    } else if (channelsOfType.length > 3) {
+        // Use 3 columns for medium channel count (4-6)
+        columns = 3;
+    }
+    
+    container.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+    
+    // Calculate rows needed
+    const rows = Math.ceil(channelsOfType.length / columns);
+    
+    // Calculate and set dynamic container height based on number of rows
+    // Each row is 200px (chart) + 10px (gap) = 210px per row
+    const graphContainer = document.getElementById(`${moduleId}-graph-container`);
+    const calculatedHeight = (rows * 210) + 20; // Add 20px for container padding
+    graphContainer.style.height = `${calculatedHeight}px`;
+    
+    console.log(`Adjusting grid to ${columns} columns and ${rows} rows with height ${calculatedHeight}px`);
+    
+    // Create a separate graph for each channel
+    channelsOfType.forEach(channel => {
+        // Create container for this channel
+        const channelContainer = document.createElement('div');
+        channelContainer.className = 'channel-graph-container';
+        channelContainer.id = `${moduleId}-${channel}-container`;
+        container.appendChild(channelContainer);
+        
+        // Create canvas for this channel
+        const canvas = document.createElement('canvas');
+        canvas.id = `${moduleId}-${channel}-canvas`;
+        channelContainer.appendChild(canvas);
+        
+        // Get channel data
+        const channelInfo = channelData[moduleId][channel];
+        const values = channelInfo.values.slice(-100);
+        
+        // Find min/max for y-axis
+        let minValue = Math.min(...values);
+        let maxValue = Math.max(...values);
+        
+        // Add padding to the min/max values (20% padding)
+        const valueRange = maxValue - minValue;
+        const padding = valueRange * 0.2;
+        minValue = minValue - padding;
+        maxValue = maxValue + padding;
+        
+        // Create the chart for this channel
+        window.channelCharts[moduleId][channel] = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: Array(100).fill(''),
+                datasets: [{
+                    label: channel,
+                    data: values,
+                    borderColor: colors[activeType] || 'rgba(0, 0, 0, 1)',
+                    backgroundColor: 'rgba(0, 0, 0, 0)',
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    tension: 0.3,
+                    hidden: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        type: 'linear',
+                        min: minValue,
+                        max: maxValue,
+                        title: {
+                            display: false
+                        },
+                        grid: {
+                            color: 'rgba(200, 200, 200, 0.2)'
+                        }
+                    },
+                    x: {
+                        display: false,
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            boxWidth: 10,
+                            font: {
+                                size: 10
+                            }
+                        }
+                    },
+                    tooltip: {
+                        enabled: false
+                    }
+                },
+                animation: {
+                    duration: 0
+                }
+            }
+        });
+    });
+}
+
+// Create a combined graph with all channels
+function createCombinedGraph(moduleId, canvas, activeType) {
+    // Track min and max values for auto-scaling
+    let minValue = Number.POSITIVE_INFINITY;
+    let maxValue = Number.NEGATIVE_INFINITY;
+    let datasets = [];
+    const colors = {
+        eeg: 'rgba(75, 108, 183, 1)',
+        emg: 'rgba(92, 184, 92, 1)',
+        ecg: 'rgba(217, 83, 79, 1)',
+        accel: 'rgba(240, 173, 78, 1)',
+        gyro: 'rgba(91, 192, 222, 1)',
+        eda: 'rgba(142, 68, 173, 1)',
+        ppg: 'rgba(232, 62, 140, 1)',
+        temperature: 'rgba(253, 126, 20, 1)'
+    };
+    
+    // First pass: determine data ranges
+    Object.entries(channelData[moduleId]).forEach(([channel, channelInfo]) => {
+        const type = channelInfo.type;
+        
+        if (type === activeType) {
+            const values = channelInfo.values.slice(-100);
+            const channelMin = Math.min(...values);
+            const channelMax = Math.max(...values);
+            
+            if (channelMin < minValue) minValue = channelMin;
+            if (channelMax > maxValue) maxValue = channelMax;
+            
+            datasets.push({
+                label: channel,
+                data: values,
+                borderColor: colors[type] || 'rgba(0, 0, 0, 1)',
+                backgroundColor: 'rgba(0, 0, 0, 0)',
+                borderWidth: 1.5,
+                pointRadius: 0,
+                tension: 0.3,
+                hidden: false
+            });
+        }
+    });
+    
+    // Add padding to the min/max values (20% padding)
+    const valueRange = maxValue - minValue;
+    const padding = valueRange * 0.2;
+    minValue = minValue - padding;
+    maxValue = maxValue + padding;
+    
+    // Create the combined chart
+    moduleCharts[moduleId] = new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels: Array(100).fill(''),
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    type: 'linear',
+                    min: minValue,
+                    max: maxValue,
+                    title: {
+                        display: true,
+                        text: 'Value'
+                    },
+                    grid: {
+                        color: 'rgba(200, 200, 200, 0.2)'
+                    }
+                },
+                x: {
+                    display: true,
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        display: false
+                    }
+                }
+            },
+            animation: {
+                duration: 0
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        boxWidth: 12,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            }
+        }
+    });
 }
 
 // Update channel data from WebSocket message
@@ -566,12 +1293,39 @@ function updateChannelData(moduleId, data) {
     
     // Update graph if visible and we have new data
     if (hasNewData && document.getElementById(`${moduleId}-show-graph`).checked) {
-        // If it's our first data, we need to initialize the graph
-        if (!moduleCharts[moduleId]) {
-            initOrUpdateGraph(moduleId);
-        } else {
-            // Get current active type
-            const activeType = activeTypeFilters[moduleId];
+        const separateChannels = window.separateChannels[moduleId];
+        const activeType = activeTypeFilters[moduleId];
+        
+        if (separateChannels) {
+            // Update each individual channel graph
+            data.visualization_data.list_view.forEach(item => {
+                const channelId = item.channel;
+                const type = item.type;
+                
+                // Only update if it's the selected type and has a chart
+                if (type === activeType && window.channelCharts[moduleId][channelId]) {
+                    const chart = window.channelCharts[moduleId][channelId];
+                    const values = channelData[moduleId][channelId].values;
+                    
+                    // Update data
+                    chart.data.datasets[0].data = values;
+                    
+                    // Check if we need to adjust y-axis scale
+                    const minValue = Math.min(...values);
+                    const maxValue = Math.max(...values);
+                    const valueRange = maxValue - minValue;
+                    const padding = valueRange * 0.2;
+                    
+                    chart.options.scales.y.min = minValue - padding;
+                    chart.options.scales.y.max = maxValue + padding;
+                    
+                    // Update without animation
+                    chart.update('none');
+                }
+            });
+        } else if (moduleCharts[moduleId]) {
+            // Update the combined chart
+            const chart = moduleCharts[moduleId];
             
             // Check if we need to recalculate chart scale
             let needsFullRefresh = false;
@@ -597,11 +1351,10 @@ function updateChannelData(moduleId, data) {
             maxValue = maxValue + padding;
             
             // Check if we need to update the scale
-            const chart = moduleCharts[moduleId];
             const currentMin = chart.options.scales.y.min;
             const currentMax = chart.options.scales.y.max;
             
-            // If range changed significantly (more than 20%), update scale
+            // If range changed significantly, update scale
             if (minValue < currentMin || maxValue > currentMax || 
                 minValue > currentMin * 1.2 || maxValue < currentMax * 0.8) {
                 chart.options.scales.y.min = minValue;
@@ -617,35 +1370,10 @@ function updateChannelData(moduleId, data) {
                 }
             });
             
-            // Update chart with optimized options
+            // Update without animation
             chart.update(needsFullRefresh ? undefined : 'none');
         }
     }
-}
-
-// Function for handling show graph toggle
-function toggleGraphView(moduleId) {
-    const showGraph = document.getElementById(`${moduleId}-show-graph`).checked;
-    const graphContainer = document.getElementById(`${moduleId}-graph-container`);
-    const tableContainer = document.getElementById(`${moduleId}-table-container`);
-    const typeFilters = document.getElementById(`${moduleId}-type-filters`);
-    
-    if (showGraph) {
-        // Show graph, hide table
-        graphContainer.style.display = 'block';
-        tableContainer.style.display = 'none';
-        typeFilters.style.display = 'block';
-        
-        // Initialize or update the graph
-        initOrUpdateGraph(moduleId);
-    } else {
-        // Show table, hide graph
-        graphContainer.style.display = 'none';
-        tableContainer.style.display = 'block';
-        typeFilters.style.display = 'none';
-    }
-    
-    console.log(`Graph view toggled for ${moduleId}: ${showGraph ? 'on' : 'off'}`);
 }
 
 // Add event listeners when the DOM is loaded
@@ -655,5 +1383,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const moduleId = toggle.id.replace('-show-graph', '');
         toggle.addEventListener('change', () => toggleGraphView(moduleId));
         console.log(`Added event listener for ${moduleId} graph toggle`);
+    });
+    
+    // Find all separate-channels toggles and add event listeners
+    document.querySelectorAll('[id$="-separate-channels"]').forEach(toggle => {
+        const moduleId = toggle.id.replace('-separate-channels', '');
+        toggle.addEventListener('change', () => toggleSeparateChannels(moduleId));
+        console.log(`Added event listener for ${moduleId} separate channels toggle`);
     });
 });
