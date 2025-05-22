@@ -2,6 +2,139 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     padding: 20px;
     background-color: #f8f9fa;
+    color: #212529;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* Dark Mode Styles */
+body.dark-mode {
+    background-color: #1a1a1a;
+    color: #f0f0f0;
+}
+
+.dark-mode .container {
+    background-color: #1a1a1a;
+}
+
+.dark-mode .card,
+.dark-mode .method-card {
+    background-color: #2d2d2d;
+    border-color: #444;
+}
+
+.dark-mode .card-header,
+.dark-mode .method-header {
+    background-color: #333;
+    border-color: #444;
+    color: #f0f0f0;
+}
+
+.dark-mode .list-group-item {
+    background-color: #2d2d2d;
+    border-color: #444;
+    color: #f0f0f0;
+}
+
+.dark-mode .list-group-item:hover {
+    background-color: #3d3d3d;
+}
+
+.dark-mode .nav-tabs .nav-link {
+    color: #f0f0f0;
+}
+
+.dark-mode .nav-tabs .nav-link.active {
+    background-color: #2d2d2d;
+    color: #f0f0f0;
+    border-color: #444;
+}
+
+.dark-mode pre {
+    background-color: #2d2d2d;
+    color: #f0f0f0;
+    border: 1px solid #444;
+}
+
+.dark-mode .form-control {
+    background-color: #333;
+    border-color: #444;
+    color: #f0f0f0;
+}
+
+/* Fix for table striping in dark mode */
+.dark-mode .table {
+    color: #f0f0f0;
+}
+
+.dark-mode .table-striped tbody tr:nth-of-type(odd) {
+    background-color: #2d2d2d;
+}
+
+.dark-mode .table-striped tbody tr:nth-of-type(even) {
+    background-color: #383838;
+}
+
+/* Make sure table cell text is always visible in dark mode */
+.dark-mode .table-striped tbody tr td {
+    color: #f0f0f0 !important;
+}
+
+.dark-mode .table-bordered {
+    border-color: #444;
+}
+
+.dark-mode .table-dark {
+    background-color: #212529;
+}
+
+/* Fix for type filters section in dark mode */
+.dark-mode .type-filters {
+    background-color: #2d2d2d;
+    border-color: #444;
+    color: #f0f0f0;
+}
+
+.dark-mode .form-check-input {
+    background-color: #333;
+    border-color: #666;
+}
+
+.dark-mode .form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.dark-mode .alert-info {
+    background-color: #2d3748;
+    color: #cbd5e0;
+    border-color: #4a5568;
+}
+
+/* Fix for graph containers in dark mode */
+.dark-mode .graph-container {
+    background-color: #2d2d2d;
+    border-color: #444;
+    color: #f0f0f0;
+}
+
+.dark-mode .channel-graph-container {
+    background-color: #2d2d2d;
+    border-color: #444;
+    color: #f0f0f0;
+}
+
+.dark-mode .type-filter-btn {
+    background-color: #333;
+    color: #f0f0f0;
+}
+
+.dark-mode .type-filter-btn.active {
+    background-color: #0d6efd;
+}
+
+/* This adds a moon toggle icon using CSS only */
+.dark-mode .form-check-input {
+    position: relative;
 }
 
 .nav-link {

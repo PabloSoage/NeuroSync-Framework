@@ -10,7 +10,6 @@ import argparse
 import logging
 import os
 import sys
-import time
 
 from PyQt5.QtWidgets import QApplication
 
@@ -18,29 +17,6 @@ from PyQt5.QtWidgets import QApplication
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from eeg_processor.python.eeg_processor_app import EEGProcessorApp
-from eeg_processor.python.data_access_api import EEGDataAPI
-
-
-def run_example_data_access():
-    """Example of accessing data through the API."""
-    
-    # Get current data
-    data, timestamps = EEGDataAPI.get_current_data()
-    if data.size > 0:
-        print(f"Got data with shape: {data.shape}")
-        
-    # Get metadata
-    metadata = EEGDataAPI.get_metadata()
-    print(f"Sampling rate: {metadata.get('sampling_rate')} Hz")
-    print(f"Channel names: {metadata.get('channel_names')}")
-    
-    # Get a specific channel by name
-    channel_names = EEGDataAPI.get_channel_names()
-    if channel_names:
-        first_channel = channel_names[0]
-        channel_data, ts = EEGDataAPI.get_channel_by_name(first_channel)
-        if channel_data.size > 0:
-            print(f"Channel {first_channel} latest value: {channel_data[-1]}")
 
 def data_callback(data, timestamps):
     """Callback that gets called when new data arrives."""
@@ -79,9 +55,6 @@ def main():
             print(f"Web API EEG Processor en http://{args.api_host}:{port}")
         else:
             print("Fallo inicializando Web API EEG Processor")
-    
-    # Example: register a callback for new data
-    callback_id = EEGDataAPI.register_data_callback(data_callback)
     
     sys.exit(app.exec_())
 

@@ -4,6 +4,69 @@ const moduleCharts = {}; // Store chart objects by module
 const channelData = {}; // Store historical data by module and channel
 const activeTypeFilters = {}; // Store active type filters by module
 
+// Dark Mode Toggle Functionality
+function initDarkMode() {
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    
+    // Check for saved preference or default to dark mode if no preference saved
+    const isDarkMode = localStorage.getItem('darkMode') !== 'light';
+    
+    // Set initial state
+    document.body.classList.toggle('dark-mode', isDarkMode);
+    darkModeToggle.checked = isDarkMode;
+    
+    // Update charts if they exist
+    updateChartsForDarkMode(isDarkMode);
+    
+    // Add event listener for toggle changes
+    darkModeToggle.addEventListener('change', function() {
+        const isDark = this.checked;
+        document.body.classList.toggle('dark-mode', isDark);
+        localStorage.setItem('darkMode', isDark ? 'dark' : 'light');
+        
+        // Update charts for the new mode
+        updateChartsForDarkMode(isDark);
+    });
+}
+
+// Update chart themes based on dark mode
+function updateChartsForDarkMode(isDarkMode) {
+    // Set Chart.js defaults based on mode
+    Chart.defaults.color = isDarkMode ? '#f0f0f0' : '#666';
+    Chart.defaults.scale.grid.color = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+    
+    // Set the background color for charts
+    const backgroundColor = isDarkMode ? '#2d2d2d' : '#ffffff';
+    
+    // Update existing module charts
+    Object.keys(moduleCharts).forEach(moduleId => {
+        if (moduleCharts[moduleId]) {
+            // Update chart background color
+            moduleCharts[moduleId].options.plugins.tooltip.backgroundColor = isDarkMode ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.7)';
+            moduleCharts[moduleId].options.plugins.tooltip.titleColor = isDarkMode ? '#fff' : '#000';
+            moduleCharts[moduleId].options.plugins.tooltip.bodyColor = isDarkMode ? '#fff' : '#000';
+            
+            moduleCharts[moduleId].update();
+        }
+    });
+    
+    // Update individual channel charts
+    if (window.channelCharts) {
+        Object.keys(window.channelCharts).forEach(moduleId => {
+            Object.keys(window.channelCharts[moduleId] || {}).forEach(channelId => {
+                if (window.channelCharts[moduleId][channelId]) {
+                    // Update chart background color
+                    window.channelCharts[moduleId][channelId].options.plugins.tooltip.backgroundColor = isDarkMode ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.7)';
+                    window.channelCharts[moduleId][channelId].options.plugins.tooltip.titleColor = isDarkMode ? '#fff' : '#000';
+                    window.channelCharts[moduleId][channelId].options.plugins.tooltip.bodyColor = isDarkMode ? '#fff' : '#000';
+                    
+                    window.channelCharts[moduleId][channelId].update();
+                }
+            });
+        });
+    }
+}
+
 // Toggle method details
 function toggleMethod(moduleId, methodId) {
     const methodBody = document.getElementById(`${moduleId}-${methodId}`);
@@ -1378,6 +1441,9 @@ function updateChannelData(moduleId, data) {
 
 // Add event listeners when the DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize dark mode
+    initDarkMode();
+    
     // Find all show-graph toggles and add event listeners
     document.querySelectorAll('[id$="-show-graph"]').forEach(toggle => {
         const moduleId = toggle.id.replace('-show-graph', '');
