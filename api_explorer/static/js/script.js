@@ -46,7 +46,22 @@ function updateChartsForDarkMode(isDarkMode) {
             moduleCharts[moduleId].options.plugins.tooltip.titleColor = isDarkMode ? '#fff' : '#000';
             moduleCharts[moduleId].options.plugins.tooltip.bodyColor = isDarkMode ? '#fff' : '#000';
             
-            moduleCharts[moduleId].update();
+            // Force color refresh on scales
+            if (moduleCharts[moduleId].options.scales.y) {
+                moduleCharts[moduleId].options.scales.y.ticks = { 
+                    color: isDarkMode ? '#f0f0f0' : '#666'
+                };
+                moduleCharts[moduleId].options.scales.y.title.color = isDarkMode ? '#f0f0f0' : '#666';
+            }
+            
+            if (moduleCharts[moduleId].options.scales.x) {
+                moduleCharts[moduleId].options.scales.x.ticks = { 
+                    color: isDarkMode ? '#f0f0f0' : '#666'
+                };
+            }
+            
+            // Force full update to refresh colors
+            moduleCharts[moduleId].update('none');
         }
     });
     
@@ -60,11 +75,35 @@ function updateChartsForDarkMode(isDarkMode) {
                     window.channelCharts[moduleId][channelId].options.plugins.tooltip.titleColor = isDarkMode ? '#fff' : '#000';
                     window.channelCharts[moduleId][channelId].options.plugins.tooltip.bodyColor = isDarkMode ? '#fff' : '#000';
                     
-                    window.channelCharts[moduleId][channelId].update();
+                    // Force color refresh on scales
+                    if (window.channelCharts[moduleId][channelId].options.scales.y) {
+                        window.channelCharts[moduleId][channelId].options.scales.y.ticks = { 
+                            color: isDarkMode ? '#f0f0f0' : '#666'
+                        };
+                    }
+                    
+                    if (window.channelCharts[moduleId][channelId].options.scales.x) {
+                        window.channelCharts[moduleId][channelId].options.scales.x.ticks = { 
+                            color: isDarkMode ? '#f0f0f0' : '#666'
+                        };
+                    }
+                    
+                    // Force full update to refresh colors
+                    window.channelCharts[moduleId][channelId].update('none');
                 }
             });
         });
     }
+    
+    // For modules that have graph view enabled, force a full refresh
+    document.querySelectorAll('[id$="-show-graph"]').forEach(toggle => {
+        if (toggle.checked) {
+            const moduleId = toggle.id.replace('-show-graph', '');
+            // Force a full rebuild of the charts to apply new theme
+            clearAllCharts(moduleId);
+            initOrUpdateGraph(moduleId);
+        }
+    });
 }
 
 // Toggle method details
