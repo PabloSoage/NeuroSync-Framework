@@ -39,11 +39,31 @@ class InputCollectorAPI:
         Returns:
             bool: True if initialization was successful
         """
-        service = InputCollectorAPI._get_service()
-        return service.initialize(
+        # Import adapter here to avoid circular imports
+        from .adapters.qt_interaction_adapter import QtInteractionAdapter
+        
+        # Create and initialize Qt adapter
+        adapter = QtInteractionAdapter()
+        adapter.initialize(
             app_coordinator, ui_manager, logging_manager, 
             collector_manager, event_processor
         )
+        
+        # Get the service instance
+        service = InputCollectorAPI._get_service()
+        
+        # Register components with the service
+        components = {
+            "ui_adapter": adapter,
+            "app_coordinator": app_coordinator,
+            "ui_manager": ui_manager,
+            "logging_manager": logging_manager,
+            "collector_manager": collector_manager,
+            "event_processor": event_processor
+        }
+        
+        # Initialize the service
+        return service.initialize(components)
     
     @staticmethod
     def get_last_operation_status() -> Dict[str, Any]:

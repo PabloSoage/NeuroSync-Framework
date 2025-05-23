@@ -9,12 +9,6 @@ import logging
 import threading
 from typing import Dict, List, Optional, Any, Tuple, Callable, Set
 
-# Import necessary components
-from ..app.app_coordinator import AppCoordinator
-from ..ui.ui_manager import UIManager
-from ..logging.logging_manager import LoggingManager
-from ..collectors.collector_manager import CollectorManager
-
 class InteractionService:
     """
     Service for controlling and interacting with the input collector application.
@@ -38,11 +32,7 @@ class InteractionService:
     def __init__(self):
         """Initialize the interaction service."""
         # Component references - will be set externally
-        self._app_coordinator = None
-        self._ui_manager = None
-        self._logging_manager = None
-        self._collector_manager = None
-        self._event_processor = None
+        self._component_registry = {}
         
         self._is_initialized = False
         
@@ -54,18 +44,34 @@ class InteractionService:
         
         logging.info("Interaction service initialized")
     
-    def initialize(self, app_coordinator: AppCoordinator, ui_manager: UIManager, 
-                 logging_manager: LoggingManager, collector_manager: CollectorManager,
-                 event_processor: Any) -> bool:
+    def register_component(self, component_name: str, component: Any) -> None:
+        """
+        Register a component with the service.
+        
+        Args:
+            component_name: Name of the component
+            component: Component instance
+        """
+        self._component_registry[component_name] = component
+    
+    def get_component(self, component_name: str) -> Any:
+        """
+        Get a registered component.
+        
+        Args:
+            component_name: Name of the component
+            
+        Returns:
+            Component instance or None if not found
+        """
+        return self._component_registry.get(component_name)
+    
+    def initialize(self, components: Dict[str, Any]) -> bool:
         """
         Initialize the service with application components.
         
         Args:
-            app_coordinator: Application coordinator
-            ui_manager: UI manager
-            logging_manager: Logging manager
-            collector_manager: Collector manager
-            event_processor: Event processor
+            components: Dictionary of components
             
         Returns:
             bool: True if successful
@@ -75,11 +81,8 @@ class InteractionService:
             return False
             
         try:
-            self._app_coordinator = app_coordinator
-            self._ui_manager = ui_manager
-            self._logging_manager = logging_manager
-            self._collector_manager = collector_manager
-            self._event_processor = event_processor
+            for name, component in components.items():
+                self.register_component(name, component)
             
             self._is_initialized = True
             self._set_status(True, "Service initialized successfully")
@@ -139,62 +142,20 @@ class InteractionService:
             return False
             
         try:
-            # Check if already recording
-            if self._app_coordinator.is_recording:
-                self._set_status(False, "Already recording")
+            adapter = self.get_component("ui_adapter")
+            if not adapter:
+                self._set_status(False, "UI adapter not available")
                 return False
                 
-            # Make sure not in edit mode
-            if self._app_coordinator.edit_mode:
-                self._set_status(False, "Cannot start recording while in edit mode")
-                return False
-                
-            # Start recording using thread-safe call
-            # This is critical - we must use Qt's thread-safe method invocation
-            from PyQt5.QtCore import QMetaObject, Qt
-            
-            # Store the previous recording state
-            prev_state = self._app_coordinator.is_recording
-            
-            try:
-                # Use the simpler form of invokeMethod without result_callback
-                QMetaObject.invokeMethod(
-                    self._app_coordinator,
-                    "_toggle_recording_proxy",
-                    Qt.BlockingQueuedConnection
-                )
-                
-                # After the method returns, check if state changed
-                current_state = self._app_coordinator.is_recording
-                recording_started = (not prev_state) and current_state
-                
-                if recording_started:
-                    self._set_status(True, "Recording started")
-                    return True
-                else:
-                    self._set_status(False, "Failed to start recording")
-                    return False
-                    
-            except Exception as e:
-                # Try direct call as fallback
-                self._app_coordinator.toggle_recording()
-                
-                # Check if recording state changed
-                current_state = self._app_coordinator.is_recording
-                recording_started = (not prev_state) and current_state
-                
-                if recording_started:
-                    self._set_status(True, "Recording started")
-                    return True
-                else:
-                    self._set_status(False, f"Failed to start recording: {e}")
-                    return False
-                
+            result = adapter.start_recording()
+            if result:
+                self._set_status(True, "Recording started")
+            else:
+                self._set_status(False, "Failed to start recording")
+            return result
         except Exception as e:
             self._set_status(False, f"Error starting recording: {e}")
             logging.error(f"Error starting recording: {e}")
-            import traceback
-            traceback.print_exc()
             return False
     
     def stop_recording(self) -> bool:
@@ -208,54 +169,20 @@ class InteractionService:
             return False
             
         try:
-            # Check if currently recording
-            if not self._app_coordinator.is_recording:
-                self._set_status(False, "Not currently recording")
+            adapter = self.get_component("ui_adapter")
+            if not adapter:
+                self._set_status(False, "UI adapter not available")
                 return False
                 
-            # Store the previous recording state
-            prev_state = self._app_coordinator.is_recording
-            
-            try:
-                # Use the simpler form of invokeMethod without result_callback
-                from PyQt5.QtCore import QMetaObject, Qt
-                QMetaObject.invokeMethod(
-                    self._app_coordinator,
-                    "_toggle_recording_proxy",
-                    Qt.BlockingQueuedConnection
-                )
-                
-                # After the method returns, check if state changed
-                current_state = self._app_coordinator.is_recording
-                recording_stopped = prev_state and (not current_state)
-                
-                if recording_stopped:
-                    self._set_status(True, "Recording stopped")
-                    return True
-                else:
-                    self._set_status(False, "Failed to stop recording")
-                    return False
-                    
-            except Exception as e:
-                # Try direct call as fallback
-                self._app_coordinator.toggle_recording()
-                
-                # Check if recording state changed
-                current_state = self._app_coordinator.is_recording
-                recording_stopped = prev_state and (not current_state)
-                
-                if recording_stopped:
-                    self._set_status(True, "Recording stopped")
-                    return True
-                else:
-                    self._set_status(False, f"Failed to stop recording: {e}")
-                    return False
-                
+            result = adapter.stop_recording()
+            if result:
+                self._set_status(True, "Recording stopped")
+            else:
+                self._set_status(False, "Failed to stop recording")
+            return result
         except Exception as e:
             self._set_status(False, f"Error stopping recording: {e}")
             logging.error(f"Error stopping recording: {e}")
-            import traceback
-            traceback.print_exc()
             return False
 
     def toggle_recording(self) -> bool:
@@ -269,51 +196,21 @@ class InteractionService:
             return False
             
         try:
-            # Store previous recording state
-            prev_state = self._app_coordinator.is_recording
-            
-            try:
-                # Use the simpler form of invokeMethod without result_callback
-                from PyQt5.QtCore import QMetaObject, Qt
-                QMetaObject.invokeMethod(
-                    self._app_coordinator,
-                    "_toggle_recording_proxy",
-                    Qt.BlockingQueuedConnection
-                )
+            adapter = self.get_component("ui_adapter")
+            if not adapter:
+                self._set_status(False, "UI adapter not available")
+                return False
                 
-                # After the method returns, check if state changed
-                current_state = self._app_coordinator.is_recording
-                state_changed = prev_state != current_state
-                
-                if state_changed:
-                    new_state = "started" if current_state else "stopped"
-                    self._set_status(True, f"Recording {new_state}")
-                    return True
-                else:
-                    self._set_status(False, "Failed to toggle recording")
-                    return False
-                    
-            except Exception as e:
-                # Try direct call as fallback
-                self._app_coordinator.toggle_recording()
-                
-                # Check if state changed
-                current_state = self._app_coordinator.is_recording
-                state_changed = prev_state != current_state
-                
-                if state_changed:
-                    new_state = "started" if current_state else "stopped"
-                    self._set_status(True, f"Recording {new_state}")
-                    return True
-                else:
-                    self._set_status(False, f"Failed to toggle recording: {e}")
-                    return False
-                
+            result, is_recording = adapter.toggle_recording()
+            if result:
+                state = "started" if is_recording else "stopped"
+                self._set_status(True, f"Recording {state}")
+            else:
+                self._set_status(False, "Failed to toggle recording")
+            return result
         except Exception as e:
             self._set_status(False, f"Error toggling recording: {e}")
             logging.error(f"Error toggling recording: {e}")
-            import traceback
-            traceback.print_exc()
             return False
     
     def is_recording(self) -> bool:
@@ -325,7 +222,18 @@ class InteractionService:
         """
         if not self._check_initialized():
             return False
-        return self._app_coordinator.is_recording
+            
+        try:
+            adapter = self.get_component("ui_adapter")
+            if not adapter:
+                self._set_status(False, "UI adapter not available")
+                return False
+                
+            return adapter.is_recording()
+        except Exception as e:
+            self._set_status(False, f"Error checking recording state: {e}")
+            logging.error(f"Error checking recording state: {e}")
+            return False
     
     #
     # Logging configuration methods
@@ -339,13 +247,18 @@ class InteractionService:
             enabled: Whether to enable JSON logging
             
         Returns:
-            bool: True if successful
+            bool: True if the operation was successful
         """
         if not self._check_initialized():
             return False
             
         try:
-            result = self._logging_manager.set_json_logging(enabled)
+            logging_manager = self.get_component("logging_manager")
+            if not logging_manager:
+                self._set_status(False, "Logging manager not available")
+                return False
+                
+            result = logging_manager.set_json_logging(enabled)
             
             if result:
                 state = "enabled" if enabled else "disabled"
@@ -368,20 +281,28 @@ class InteractionService:
             filepath: Path for CSV file (required when enabling if not previously set)
             
         Returns:
-            bool: True if successful
+            bool: True if the operation was successful
         """
         if not self._check_initialized():
             return False
             
         try:
+            logging_manager = self.get_component("logging_manager")
+            if not logging_manager:
+                self._set_status(False, "Logging manager not available")
+                return False
+                
             # If enabling CSV logging, make sure we have a file path
             if enabled and filepath:
-                self._logging_manager.csv_logger.set_filepath(filepath)
-                if hasattr(self._ui_manager, 'set_csv_path'):
-                    self._ui_manager.set_csv_path(filepath)
+                logging_manager.csv_logger.set_filepath(filepath)
+                
+                # Update UI as well via adapter
+                adapter = self.get_component("ui_adapter")
+                if adapter:
+                    adapter.set_csv_path(filepath)
                     
             # Set logging state
-            result = self._logging_manager.set_csv_logging(enabled)
+            result = logging_manager.set_csv_logging(enabled)
             
             if result:
                 state = "enabled" if enabled else "disabled"
@@ -410,9 +331,17 @@ class InteractionService:
             return False
             
         try:
-            self._logging_manager.csv_logger.set_filepath(filepath)
-            if hasattr(self._ui_manager, 'set_csv_path'):
-                self._ui_manager.set_csv_path(filepath)
+            logging_manager = self.get_component("logging_manager")
+            if not logging_manager:
+                self._set_status(False, "Logging manager not available")
+                return False
+                
+            logging_manager.csv_logger.set_filepath(filepath)
+            
+            # Update UI as well
+            adapter = self.get_component("ui_adapter")
+            if adapter:
+                adapter.set_csv_path(filepath)
                 
             self._set_status(True, f"CSV path set to {filepath}")
             return True
@@ -432,11 +361,16 @@ class InteractionService:
             return {"error": "Service not initialized"}
             
         try:
+            logging_manager = self.get_component("logging_manager")
+            if not logging_manager:
+                self._set_status(False, "Logging manager not available")
+                return {"error": "Logging manager not available"}
+                
             return {
-                "json_logging": self._logging_manager.log_to_json,
-                "csv_logging": self._logging_manager.log_to_csv,
-                "csv_path": self._logging_manager.csv_logger.filepath if hasattr(
-                    self._logging_manager.csv_logger, 'filepath') else None
+                "json_logging": logging_manager.log_to_json,
+                "csv_logging": logging_manager.log_to_csv,
+                "csv_path": logging_manager.csv_logger.filepath if hasattr(
+                    logging_manager.csv_logger, 'filepath') else None
             }
         except Exception as e:
             self._set_status(False, f"Error getting logging state: {e}")
@@ -458,7 +392,12 @@ class InteractionService:
             return []
             
         try:
-            collectors = self._collector_manager.get_available_collectors()
+            collector_manager = self.get_component("collector_manager")
+            if not collector_manager:
+                self._set_status(False, "Collector manager not available")
+                return []
+                
+            collectors = collector_manager.get_available_collectors()
             self._set_status(True, f"Found {len(collectors)} available collectors")
             return collectors
         except Exception as e:
@@ -480,22 +419,17 @@ class InteractionService:
             return False
             
         try:
-            # Stop recording if active
-            was_recording = self._app_coordinator.is_recording
-            if was_recording:
-                self._app_coordinator.toggle_recording()
+            adapter = self.get_component("ui_adapter")
+            if not adapter:
+                self._set_status(False, "UI adapter not available")
+                return False
                 
-            # Switch collector
-            self._app_coordinator.switch_collector(collector_type)
-            
-            # Verify the switch
-            current_type = self._collector_manager.get_current_collector_type()
-            if current_type == collector_type:
+            result = adapter.switch_collector(collector_type)
+            if result:
                 self._set_status(True, f"Switched to {collector_type} collector")
-                return True
             else:
                 self._set_status(False, f"Failed to switch to {collector_type} collector")
-                return False
+            return result
         except Exception as e:
             self._set_status(False, f"Error switching collector: {e}")
             logging.error(f"Error switching collector: {e}")
@@ -512,12 +446,17 @@ class InteractionService:
             return {"error": "Service not initialized"}
             
         try:
-            collector_type = self._collector_manager.get_current_collector_type()
-            capabilities = self._collector_manager.get_current_collector_capabilities()
+            collector_manager = self.get_component("collector_manager")
+            if not collector_manager:
+                self._set_status(False, "Collector manager not available")
+                return {"error": "Collector manager not available"}
+                
+            collector_type = collector_manager.get_current_collector_type()
+            capabilities = collector_manager.get_current_collector_capabilities()
             
             return {
                 "type": collector_type,
-                "name": self._collector_manager._get_collector_display_name(collector_type),
+                "name": collector_manager._get_collector_display_name(collector_type),
                 "capabilities": capabilities
             }
         except Exception as e:
@@ -536,13 +475,12 @@ class InteractionService:
             return []
             
         try:
-            ps4_collector = self._collector_manager.get_collector("ps4_controller")
-            if not ps4_collector:
-                self._set_status(False, "PS4 collector not available")
+            adapter = self.get_component("ui_adapter")
+            if not adapter:
+                self._set_status(False, "UI adapter not available")
                 return []
                 
-            controllers = ps4_collector.scan_controllers()
-            
+            controllers = adapter.scan_controllers()
             self._set_status(True, f"Found {len(controllers)} controllers")
             return controllers
         except Exception as e:
@@ -564,23 +502,17 @@ class InteractionService:
             return False
             
         try:
-            ps4_collector = self._collector_manager.get_collector("ps4_controller")
-            if not ps4_collector:
-                self._set_status(False, "PS4 collector not available")
+            adapter = self.get_component("ui_adapter")
+            if not adapter:
+                self._set_status(False, "UI adapter not available")
                 return False
                 
-            success = ps4_collector.connect_to_controller(index)
-            
-            if success:
+            result = adapter.connect_controller(index)
+            if result:
                 self._set_status(True, f"Connected to controller {index}")
-                
-                # Switch to PS4 collector if connection successful
-                if self._collector_manager.get_current_collector_type() != "ps4_controller":
-                    self.switch_collector("ps4_controller")
             else:
                 self._set_status(False, f"Failed to connect to controller {index}")
-                
-            return success
+            return result
         except Exception as e:
             self._set_status(False, f"Error connecting to controller: {e}")
             logging.error(f"Error connecting to controller: {e}")
@@ -605,22 +537,18 @@ class InteractionService:
             return False
             
         try:
-            # Get current direction only setting if not specified
-            if direction_only is None:
-                direction_only = self._ui_manager.is_direction_only_mode()
+            adapter = self.get_component("ui_adapter")
+            if not adapter:
+                self._set_status(False, "UI adapter not available")
+                return False
                 
-            # Update UI first
-            if direction_only is not None:
-                self._ui_manager.set_direction_only_mode(direction_only)
-                
-            self._ui_manager.set_tracking_mode(mode)
-            
-            # Apply via coordinator
-            self._app_coordinator.set_mouse_tracking_mode(mode)
-            
-            mode_desc = mode + (" (direction-only)" if direction_only else "")
-            self._set_status(True, f"Mouse tracking mode set to {mode_desc}")
-            return True
+            result = adapter.set_mouse_tracking_mode(mode, direction_only)
+            if result:
+                mode_desc = mode + (" (direction-only)" if direction_only else "")
+                self._set_status(True, f"Mouse tracking mode set to {mode_desc}")
+            else:
+                self._set_status(False, f"Failed to set mouse tracking mode to {mode}")
+            return result
         except Exception as e:
             self._set_status(False, f"Error setting mouse tracking mode: {e}")
             logging.error(f"Error setting mouse tracking mode: {e}")
@@ -644,21 +572,19 @@ class InteractionService:
             return False
             
         try:
-            # Update UI settings
-            if delta_smoothing is not None:
-                self._ui_manager.set_delta_smoothing(delta_smoothing)
+            adapter = self.get_component("ui_adapter")
+            if not adapter:
+                self._set_status(False, "UI adapter not available")
+                return False
                 
-            if joystick_sensitivity is not None:
-                self._ui_manager.set_joystick_sensitivity(joystick_sensitivity)
-                
-            if angle_grouping is not None:
-                self._ui_manager.set_angle_grouping(angle_grouping)
-                
-            # Apply settings
-            self._app_coordinator.apply_mouse_settings()
-            
-            self._set_status(True, "Mouse settings updated")
-            return True
+            result = adapter.set_mouse_settings(
+                delta_smoothing, joystick_sensitivity, angle_grouping
+            )
+            if result:
+                self._set_status(True, "Mouse settings updated")
+            else:
+                self._set_status(False, "Failed to update mouse settings")
+            return result
         except Exception as e:
             self._set_status(False, f"Error setting mouse settings: {e}")
             logging.error(f"Error setting mouse settings: {e}")
@@ -675,13 +601,13 @@ class InteractionService:
             return {"error": "Service not initialized"}
             
         try:
-            return {
-                "tracking_mode": self._ui_manager.get_tracking_mode(),
-                "direction_only": self._ui_manager.is_direction_only_mode(),
-                "delta_smoothing": self._ui_manager.get_delta_smoothing(),
-                "joystick_sensitivity": self._ui_manager.get_joystick_sensitivity(),
-                "angle_grouping": self._ui_manager.get_angle_grouping()
-            }
+            adapter = self.get_component("ui_adapter")
+            if not adapter:
+                self._set_status(False, "UI adapter not available")
+                return {"error": "UI adapter not available"}
+                
+            settings = adapter.get_mouse_settings()
+            return settings
         except Exception as e:
             self._set_status(False, f"Error getting mouse settings: {e}")
             logging.error(f"Error getting mouse settings: {e}")
@@ -702,7 +628,12 @@ class InteractionService:
             return []
             
         try:
-            tracked_keys = self._app_coordinator.get_tracked_keys()
+            adapter = self.get_component("ui_adapter")
+            if not adapter:
+                self._set_status(False, "UI adapter not available")
+                return []
+                
+            tracked_keys = adapter.get_tracked_keys()
             self._set_status(True, f"Retrieved {len(tracked_keys)} tracked keys")
             return tracked_keys
         except Exception as e:
@@ -721,23 +652,18 @@ class InteractionService:
             return False
             
         try:
-            # Check if recording (cannot edit while recording)
-            if self._app_coordinator.is_recording:
-                self._set_status(False, "Cannot enter edit mode while recording")
+            adapter = self.get_component("ui_adapter")
+            if not adapter:
+                self._set_status(False, "UI adapter not available")
                 return False
                 
-            # Toggle edit mode
-            prev_state = self._app_coordinator.edit_mode
-            self._app_coordinator.toggle_edit_mode()
-            
-            # Check if state changed
-            if prev_state != self._app_coordinator.edit_mode:
-                new_state = "enabled" if self._app_coordinator.edit_mode else "disabled"
+            result, is_edit_mode = adapter.toggle_edit_mode()
+            if result:
+                new_state = "enabled" if is_edit_mode else "disabled"
                 self._set_status(True, f"Edit mode {new_state}")
-                return True
             else:
                 self._set_status(False, "Failed to toggle edit mode")
-                return False
+            return result
         except Exception as e:
             self._set_status(False, f"Error toggling edit mode: {e}")
             logging.error(f"Error toggling edit mode: {e}")
@@ -752,7 +678,18 @@ class InteractionService:
         """
         if not self._check_initialized():
             return False
-        return self._app_coordinator.edit_mode
+            
+        try:
+            adapter = self.get_component("ui_adapter")
+            if not adapter:
+                self._set_status(False, "UI adapter not available")
+                return False
+                
+            return adapter.is_edit_mode()
+        except Exception as e:
+            self._set_status(False, f"Error checking edit mode: {e}")
+            logging.error(f"Error checking edit mode: {e}")
+            return False
     
     def add_tracked_key(self, key: str) -> bool:
         """
@@ -768,36 +705,17 @@ class InteractionService:
             return False
             
         try:
-            # Check if already in edit mode
-            if not self._app_coordinator.edit_mode:
-                self._set_status(False, "Must be in edit mode to add keys")
+            adapter = self.get_component("ui_adapter")
+            if not adapter:
+                self._set_status(False, "UI adapter not available")
                 return False
                 
-            # Normalize key name
-            if key.lower() == "space":
-                key = "Key.space"
-            elif key.lower() == "shift":
-                key = "Key.shift"
-            elif key.lower() == "f9":
-                key = "Key.media_play_pause"
-                
-            # Check if already tracked
-            tracked_keys = self._app_coordinator.get_tracked_keys()
-            if any(k.lower() == key.lower() for k in tracked_keys):
-                self._set_status(False, f"Key '{key}' is already tracked")
-                return False
-                
-            # Add key via edit handler
-            self._app_coordinator.handle_key_edit(key)
-            
-            # Verify key was added
-            new_tracked_keys = self._app_coordinator.get_tracked_keys()
-            if any(k.lower() == key.lower() for k in new_tracked_keys):
+            result = adapter.add_tracked_key(key)
+            if result:
                 self._set_status(True, f"Added key '{key}' to tracked keys")
-                return True
             else:
                 self._set_status(False, f"Failed to add key '{key}'")
-                return False
+            return result
         except Exception as e:
             self._set_status(False, f"Error adding tracked key: {e}")
             logging.error(f"Error adding tracked key: {e}")
@@ -817,41 +735,17 @@ class InteractionService:
             return False
             
         try:
-            # Check if in edit mode
-            if not self._app_coordinator.edit_mode:
-                self._set_status(False, "Must be in edit mode to remove keys")
+            adapter = self.get_component("ui_adapter")
+            if not adapter:
+                self._set_status(False, "UI adapter not available")
                 return False
                 
-            # Normalize key name
-            if key.lower() == "space":
-                key = "Key.space"
-            elif key.lower() == "shift":
-                key = "Key.shift"
-            elif key.lower() == "f9":
-                key = "Key.media_play_pause"
-                
-            # Check if this is F9/media key which cannot be removed
-            if key.lower() == "key.media_play_pause".lower():
-                self._set_status(False, "Cannot remove F9/media_play_pause key")
-                return False
-                
-            # Check if key is tracked
-            tracked_keys = self._app_coordinator.get_tracked_keys()
-            if not any(k.lower() == key.lower() for k in tracked_keys):
-                self._set_status(False, f"Key '{key}' is not currently tracked")
-                return False
-                
-            # Remove key via edit handler
-            self._app_coordinator.handle_key_edit(key)
-            
-            # Verify key was removed
-            new_tracked_keys = self._app_coordinator.get_tracked_keys()
-            if not any(k.lower() == key.lower() for k in new_tracked_keys):
+            result = adapter.remove_tracked_key(key)
+            if result:
                 self._set_status(True, f"Removed key '{key}' from tracked keys")
-                return True
             else:
                 self._set_status(False, f"Failed to remove key '{key}'")
-                return False
+            return result
         except Exception as e:
             self._set_status(False, f"Error removing tracked key: {e}")
             logging.error(f"Error removing tracked key: {e}")
@@ -872,25 +766,18 @@ class InteractionService:
             return False
             
         try:
-            # Check if in edit mode
-            if not self._app_coordinator.edit_mode:
-                self._set_status(False, "Must be in edit mode to change button tracking")
+            adapter = self.get_component("ui_adapter")
+            if not adapter:
+                self._set_status(False, "UI adapter not available")
                 return False
                 
-            # Toggle button tracking
-            self._app_coordinator.handle_button_edit(button_id, track)
-            
-            # Verify tracking state
-            tracked_keys = self._app_coordinator.get_tracked_keys()
-            is_tracked = button_id in tracked_keys
-            
-            if is_tracked == track:
+            result = adapter.toggle_button_tracking(button_id, track)
+            if result:
                 action = "Added" if track else "Removed"
                 self._set_status(True, f"{action} tracking for {button_id}")
-                return True
             else:
                 self._set_status(False, f"Failed to {'add' if track else 'remove'} tracking for {button_id}")
-                return False
+            return result
         except Exception as e:
             self._set_status(False, f"Error toggling button tracking: {e}")
             logging.error(f"Error toggling button tracking: {e}")
@@ -911,10 +798,17 @@ class InteractionService:
             return False
             
         try:
-            # Use the UI manager's toggle_fullscreen signal
-            self._ui_manager.toggle_fullscreen.emit()
-            self._set_status(True, "Toggled fullscreen mode")
-            return True
+            adapter = self.get_component("ui_adapter")
+            if not adapter:
+                self._set_status(False, "UI adapter not available")
+                return False
+                
+            result = adapter.toggle_fullscreen()
+            if result:
+                self._set_status(True, "Toggled fullscreen mode")
+            else:
+                self._set_status(False, "Failed to toggle fullscreen mode")
+            return result
         except Exception as e:
             self._set_status(False, f"Error toggling fullscreen: {e}")
             logging.error(f"Error toggling fullscreen: {e}")
@@ -934,8 +828,14 @@ class InteractionService:
             # Get state from various components
             collector_info = self.get_current_collector()
             logging_state = self.get_logging_state()
-            mouse_settings = self.get_mouse_settings()
-            tracked_keys = self.get_tracked_keys()
+            
+            adapter = self.get_component("ui_adapter")
+            if not adapter:
+                self._set_status(False, "UI adapter not available")
+                return {"error": "UI adapter not available"}
+                
+            mouse_settings = adapter.get_mouse_settings()
+            tracked_keys = adapter.get_tracked_keys()
             
             return {
                 "recording": self.is_recording(),

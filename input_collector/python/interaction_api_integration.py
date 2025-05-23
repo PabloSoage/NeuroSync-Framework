@@ -54,7 +54,7 @@ class InteractionApiIntegration:
         self.module_registered = False
     
     def register_api(self, start_server: bool = True, host: str = "127.0.0.1", 
-                     port: int = 8000) -> bool:
+                     port: int = 8001) -> bool:
         """
         Register the input collector's interaction API with the Explorer.
         
@@ -784,111 +784,195 @@ class InteractionApiIntegration:
             import traceback
             traceback.print_exc()
             return {"success": False, "status": {"message": f"Error: {str(e)}"}}
-
+    
     async def _handle_is_recording(self):
         """Handle is_recording API request."""
-        is_recording = InputCollectorAPI.is_recording()
-        return {"recording": is_recording}
+        try:
+            recording = InputCollectorAPI.is_recording()
+            return {"recording": recording}
+        except Exception as e:
+            logger.error(f"Error in is_recording endpoint: {e}")
+            return {"recording": False, "error": str(e)}
     
     async def _handle_enable_json_logging(self, enabled: bool = True):
         """Handle enable_json_logging API request."""
-        success = InputCollectorAPI.enable_json_logging(enabled)
-        return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+        try:
+            success = InputCollectorAPI.enable_json_logging(enabled)
+            return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+        except Exception as e:
+            logger.error(f"Error in enable_json_logging endpoint: {e}")
+            return {"success": False, "status": {"message": f"Error: {str(e)}"}}
     
     async def _handle_enable_csv_logging(self, enabled: bool = True, filepath: Optional[str] = None):
         """Handle enable_csv_logging API request."""
-        success = InputCollectorAPI.enable_csv_logging(enabled, filepath)
-        return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+        try:
+            success = InputCollectorAPI.enable_csv_logging(enabled, filepath)
+            return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+        except Exception as e:
+            logger.error(f"Error in enable_csv_logging endpoint: {e}")
+            return {"success": False, "status": {"message": f"Error: {str(e)}"}}
     
     async def _handle_set_csv_path(self, filepath: str):
         """Handle set_csv_path API request."""
-        success = InputCollectorAPI.set_csv_path(filepath)
-        return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+        try:
+            success = InputCollectorAPI.set_csv_path(filepath)
+            return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+        except Exception as e:
+            logger.error(f"Error in set_csv_path endpoint: {e}")
+            return {"success": False, "status": {"message": f"Error: {str(e)}"}}
     
     async def _handle_get_logging_state(self):
         """Handle get_logging_state API request."""
-        return InputCollectorAPI.get_logging_state()
+        try:
+            return InputCollectorAPI.get_logging_state()
+        except Exception as e:
+            logger.error(f"Error in get_logging_state endpoint: {e}")
+            return {"error": str(e)}
     
     async def _handle_get_available_collectors(self):
         """Handle get_available_collectors API request."""
-        collectors = InputCollectorAPI.get_available_collectors()
-        return {"collectors": collectors}
+        try:
+            collectors = InputCollectorAPI.get_available_collectors()
+            return {"collectors": collectors}
+        except Exception as e:
+            logger.error(f"Error in get_available_collectors endpoint: {e}")
+            return {"collectors": [], "error": str(e)}
     
     async def _handle_switch_collector(self, collector_type: str):
         """Handle switch_collector API request."""
-        success = InputCollectorAPI.switch_collector(collector_type)
-        return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+        try:
+            success = InputCollectorAPI.switch_collector(collector_type)
+            return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+        except Exception as e:
+            logger.error(f"Error in switch_collector endpoint: {e}")
+            return {"success": False, "status": {"message": f"Error: {str(e)}"}}
     
     async def _handle_get_current_collector(self):
         """Handle get_current_collector API request."""
-        return InputCollectorAPI.get_current_collector()
+        try:
+            return InputCollectorAPI.get_current_collector()
+        except Exception as e:
+            logger.error(f"Error in get_current_collector endpoint: {e}")
+            return {"error": str(e)}
     
     async def _handle_scan_controllers(self):
         """Handle scan_controllers API request."""
-        controllers = InputCollectorAPI.scan_controllers()
-        return {"controllers": controllers}
+        try:
+            controllers = InputCollectorAPI.scan_controllers()
+            return {"controllers": controllers}
+        except Exception as e:
+            logger.error(f"Error in scan_controllers endpoint: {e}")
+            return {"controllers": [], "error": str(e)}
     
     async def _handle_connect_controller(self, index: int):
         """Handle connect_controller API request."""
-        success = InputCollectorAPI.connect_controller(index)
-        return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+        try:
+            success = InputCollectorAPI.connect_controller(index)
+            return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+        except Exception as e:
+            logger.error(f"Error in connect_controller endpoint: {e}")
+            return {"success": False, "status": {"message": f"Error: {str(e)}"}}
     
     async def _handle_set_mouse_tracking_mode(self, mode: str, direction_only: Optional[bool] = None):
         """Handle set_mouse_tracking_mode API request."""
-        success = InputCollectorAPI.set_mouse_tracking_mode(mode, direction_only)
-        return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+        try:
+            success = InputCollectorAPI.set_mouse_tracking_mode(mode, direction_only)
+            return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+        except Exception as e:
+            logger.error(f"Error in set_mouse_tracking_mode endpoint: {e}")
+            return {"success": False, "status": {"message": f"Error: {str(e)}"}}
     
     async def _handle_set_mouse_settings(self, delta_smoothing: Optional[float] = None,
                                       joystick_sensitivity: Optional[float] = None,
                                       angle_grouping: Optional[int] = None):
         """Handle set_mouse_settings API request."""
-        success = InputCollectorAPI.set_mouse_settings(
-            delta_smoothing, joystick_sensitivity, angle_grouping
-        )
-        return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+        try:
+            success = InputCollectorAPI.set_mouse_settings(
+                delta_smoothing, joystick_sensitivity, angle_grouping
+            )
+            return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+        except Exception as e:
+            logger.error(f"Error in set_mouse_settings endpoint: {e}")
+            return {"success": False, "status": {"message": f"Error: {str(e)}"}}
     
     async def _handle_get_mouse_settings(self):
         """Handle get_mouse_settings API request."""
-        return InputCollectorAPI.get_mouse_settings()
+        try:
+            return InputCollectorAPI.get_mouse_settings()
+        except Exception as e:
+            logger.error(f"Error in get_mouse_settings endpoint: {e}")
+            return {"error": str(e)}
     
     async def _handle_get_tracked_keys(self):
         """Handle get_tracked_keys API request."""
-        keys = InputCollectorAPI.get_tracked_keys()
-        return {"keys": keys}
+        try:
+            keys = InputCollectorAPI.get_tracked_keys()
+            return {"keys": keys}
+        except Exception as e:
+            logger.error(f"Error in get_tracked_keys endpoint: {e}")
+            return {"keys": [], "error": str(e)}
     
     async def _handle_toggle_edit_mode(self):
         """Handle toggle_edit_mode API request."""
-        success = InputCollectorAPI.toggle_edit_mode()
-        return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+        try:
+            success = InputCollectorAPI.toggle_edit_mode()
+            return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+        except Exception as e:
+            logger.error(f"Error in toggle_edit_mode endpoint: {e}")
+            return {"success": False, "status": {"message": f"Error: {str(e)}"}}
     
     async def _handle_is_edit_mode(self):
         """Handle is_edit_mode API request."""
-        edit_mode = InputCollectorAPI.is_edit_mode()
-        return {"edit_mode": edit_mode}
+        try:
+            edit_mode = InputCollectorAPI.is_edit_mode()
+            return {"edit_mode": edit_mode}
+        except Exception as e:
+            logger.error(f"Error in is_edit_mode endpoint: {e}")
+            return {"edit_mode": False, "error": str(e)}
     
     async def _handle_add_tracked_key(self, key: str):
         """Handle add_tracked_key API request."""
-        success = InputCollectorAPI.add_tracked_key(key)
-        return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+        try:
+            success = InputCollectorAPI.add_tracked_key(key)
+            return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+        except Exception as e:
+            logger.error(f"Error in add_tracked_key endpoint: {e}")
+            return {"success": False, "status": {"message": f"Error: {str(e)}"}}
     
     async def _handle_remove_tracked_key(self, key: str):
         """Handle remove_tracked_key API request."""
-        success = InputCollectorAPI.remove_tracked_key(key)
-        return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+        try:
+            success = InputCollectorAPI.remove_tracked_key(key)
+            return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+        except Exception as e:
+            logger.error(f"Error in remove_tracked_key endpoint: {e}")
+            return {"success": False, "status": {"message": f"Error: {str(e)}"}}
     
     async def _handle_toggle_button_tracking(self, button_id: str, track: bool):
         """Handle toggle_button_tracking API request."""
-        success = InputCollectorAPI.toggle_button_tracking(button_id, track)
-        return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+        try:
+            success = InputCollectorAPI.toggle_button_tracking(button_id, track)
+            return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+        except Exception as e:
+            logger.error(f"Error in toggle_button_tracking endpoint: {e}")
+            return {"success": False, "status": {"message": f"Error: {str(e)}"}}
     
     async def _handle_toggle_fullscreen(self):
         """Handle toggle_fullscreen API request."""
-        success = InputCollectorAPI.toggle_fullscreen()
-        return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+        try:
+            success = InputCollectorAPI.toggle_fullscreen()
+            return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+        except Exception as e:
+            logger.error(f"Error in toggle_fullscreen endpoint: {e}")
+            return {"success": False, "status": {"message": f"Error: {str(e)}"}}
     
     async def _handle_get_application_state(self):
         """Handle get_application_state API request."""
-        return InputCollectorAPI.get_application_state()
+        try:
+            return InputCollectorAPI.get_application_state()
+        except Exception as e:
+            logger.error(f"Error in get_application_state endpoint: {e}")
+            return {"error": str(e)}
 
 
 # Module-level functions for easier access

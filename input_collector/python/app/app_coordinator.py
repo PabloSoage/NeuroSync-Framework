@@ -457,7 +457,12 @@ class AppCoordinator(QObject):
         This method exists solely to be called via QMetaObject.invokeMethod
         from other threads to ensure thread safety.
         """
-        self.toggle_recording()
+        try:
+            self.toggle_recording()
+        except Exception as e:
+            print(f"Error in _toggle_recording_proxy: {e}")
+            import traceback
+            traceback.print_exc()
 
     def __del__(self) -> None:
         """Cleanup resources when the coordinator is destroyed."""
