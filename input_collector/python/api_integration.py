@@ -787,14 +787,27 @@ def initialize_api(enable_web_api: bool = True, host: str = "127.0.0.1", port: i
     Returns:
         True if initialization was successful, False otherwise
     """
+    print(f"API initialization called with: enable_web_api={enable_web_api}, host={host}, port={port}")
+    
     if not enable_web_api:
+        print("Web API explicitly disabled by parameter")
         return False
         
     if not explorer_available:
+        print("API Explorer not available. This indicates that the required module cannot be imported.")
         logger.warning("API Explorer not available. Web API will not be enabled.")
         return False
     
-    integration = get_api_integration()
-    success = integration.register_api(start_server=True, host=host, port=port)
-    
-    return success
+    try:
+        print("Creating API integration instance...")
+        integration = get_api_integration()
+        print("Registering API...")
+        success = integration.register_api(start_server=True, host=host, port=port)
+        print(f"API registration result: {'Success' if success else 'Failed'}")
+        return success
+    except Exception as e:
+        print(f"Exception during API initialization: {e}")
+        logger.error(f"Error initializing API: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
