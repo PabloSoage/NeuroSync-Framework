@@ -1,7 +1,8 @@
 import logging
 from typing import Dict, List, Any, Optional, Tuple, Union
-
 import numpy as np
+import threading
+import time
 
 from .data_access_service import DataAccessService
 from ..collectors.board_configuration import BoardConfiguration
@@ -20,6 +21,10 @@ class CollectorService:
         """Initialize the collector service."""
         self.collector = None
         self.is_streaming = False
+        
+        # Background data fetch thread
+        self._data_thread = None
+        self._stop_event = threading.Event()
     
     def connect_to_board(self, board_id: int, params: Dict[str, Any], preset: int) -> bool:
         """
@@ -111,6 +116,11 @@ class CollectorService:
             data_access = DataAccessService.get_instance()
             data_access.update_metadata({"streaming": True})
             
+            # Start background data retrieval thread
+            self._stop_event.clear()
+            self._data_thread = threading.Thread(target=self._data_loop, daemon=True)
+            self._data_thread.start()
+            
             logging.info("Stream started")
             return True
         except Exception as e:
@@ -134,6 +144,11 @@ class CollectorService:
             # Update streaming status in DataAccessService
             data_access = DataAccessService.get_instance()
             data_access.update_metadata({"streaming": False})
+            
+            # Stop background data retrieval thread
+            self._stop_event.set()
+            if self._data_thread:
+                self._data_thread.join()
             
             logging.info("Stream stopped")
             return True
@@ -371,4 +386,27 @@ class CollectorService:
         
     def cleanup(self) -> None:
         """Clean up resources when closing the application."""
-        self.disconnect_from_board()
+        # Ensure background thread is stopped
+        self._stop_event.set()
+    
+    def _data_loop(self):
+        """Background loop to fetch data and update DataAccessService."""
+        data_access = DataAccessService.get_instance()
+        # Determine sampling rate once
+        sr = None
+        while not self._stop_event.is_set() and self.collector and self.is_streaming:
+            try:
+                # Fetch available data
+                data, timestamps = self.collector.get_data()
+                if data.size > 0:
+                    data_access.update_data(data, timestamps)
+                    if sr is None:
+                        md = data_access.get_metadata()
+                        sr = md.get("sampling_rate", None)
+                # Sleep for sample interval if known
+                if sr and sr > 0:
+                    time.sleep(1.0 / sr)
+                else:
+                    time.sleep(0.01)
+            except Exception:
+                break

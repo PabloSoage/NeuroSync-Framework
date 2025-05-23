@@ -18,10 +18,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from eeg_processor.python.eeg_processor_app import EEGProcessorApp
 
-def data_callback(data, timestamps):
-    """Callback that gets called when new data arrives."""
-    print(f"New data received: {data.shape[1]} samples")
-
 def parse_args():
     p=argparse.ArgumentParser()
     p.add_argument("--enable-web-api", action="store_true")

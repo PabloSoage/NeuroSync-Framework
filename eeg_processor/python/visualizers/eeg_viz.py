@@ -199,8 +199,8 @@ class EEGVisualizer:
     def update_plots(self):
         """Update all plots with new data."""
         try:
-            # Get the latest data
-            data, timestamps = self.collector.get_data(self.num_points)
+            # Get the latest data from central DataAccessService
+            data, timestamps = DataAccessService.get_instance().get_current_data()
 
             if data.size == 0 or len(self.eeg_channels) == 0:
                 return

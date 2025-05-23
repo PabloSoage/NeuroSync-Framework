@@ -27,10 +27,12 @@ class DataAccessService:
         self._data_lock = threading.Lock()
         self._metadata_lock = threading.Lock()
         
-        # Current data buffer
-        self._current_data = np.array([])
+        # Current data buffer: 2D array (channels x samples), start empty
+        self._current_data = np.zeros((0, 0))
         self._timestamps = []
-        
+        # Maximum number of samples to keep (set after sampling_rate known)
+        self._buffer_max_samples = None
+
         # Reference to collector service for direct access when needed
         self._collector_service = None
         
@@ -67,12 +69,20 @@ class DataAccessService:
     def update_data(self, data: np.ndarray, timestamps: List[int]) -> None:
         """Update the current data buffer."""
         with self._data_lock:
-            self._current_data = data
-            self._timestamps = timestamps
-            
-            # Update last update timestamp
-            with self._metadata_lock:
-                self._metadata["last_update"] = time.time()
+            # Append new data to buffer
+            if self._current_data.size == 0 or self._current_data.shape[0] != data.shape[0]:
+                # Initialize or reset buffer if channel count changes
+                self._current_data = data.copy()
+                self._timestamps = timestamps.copy()
+            else:
+                # Concatenate along time axis
+                self._current_data = np.concatenate((self._current_data, data), axis=1)
+                self._timestamps.extend(timestamps)
+            # Trim oldest samples if exceeding buffer size
+            if self._buffer_max_samples and self._current_data.shape[1] > self._buffer_max_samples:
+                excess = self._current_data.shape[1] - self._buffer_max_samples
+                self._current_data = self._current_data[:, excess:]
+                self._timestamps = self._timestamps[excess:]
         
         # Notify registered callbacks
         self._notify_callbacks(data, timestamps)
@@ -81,6 +91,11 @@ class DataAccessService:
         """Update stream metadata."""
         with self._metadata_lock:
             self._metadata.update(metadata)
+            # Initialize buffer max length when sampling_rate is first known
+            sr = self._metadata.get("sampling_rate", 0)
+            if sr and not self._buffer_max_samples:
+                # Keep 10 seconds of data by default
+                self._buffer_max_samples = int(sr * 10)
     
     def get_current_data(self) -> Tuple[np.ndarray, List[int]]:
         """Get the current data and timestamps."""
