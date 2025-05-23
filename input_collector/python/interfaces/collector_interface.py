@@ -86,6 +86,26 @@ class InputData:
         if self.active_keys is None:
             self.active_keys = []
 
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert the input data to a dictionary for JSON serialization.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation of this object
+        """
+        result = {}
+        # Include all non-None attributes
+        for key, value in self.__dict__.items():
+            if value is not None:
+                # Special handling for different types
+                if isinstance(value, list):
+                    result[key] = list(value)  # Create a copy for safety
+                elif hasattr(value, "to_dict") and callable(getattr(value, "to_dict")):
+                    result[key] = value.to_dict()
+                else:
+                    result[key] = value
+        return result
+
 
 class AbstractInputCollector(ABC):
     """
@@ -168,7 +188,7 @@ class AbstractInputCollector(ABC):
         Removes all events from the collector's history, keeping the current state.
         """
         pass
-    
+
     def get_active_keys(self) -> List[str]:
         """
         Get a list of currently active keys or buttons.
@@ -177,7 +197,7 @@ class AbstractInputCollector(ABC):
             List[str]: List of active keys/buttons
         """
         return []
-    
+
     def get_collector_type(self) -> str:
         """
         Get the type of this collector.
@@ -186,7 +206,7 @@ class AbstractInputCollector(ABC):
             str: The collector type identifier (e.g., "keyboard_mouse", "ps4_controller")
         """
         return "abstract"
-    
+
     def get_capabilities(self) -> Dict[str, Any]:
         """
         Get the capabilities of this collector.

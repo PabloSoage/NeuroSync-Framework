@@ -352,18 +352,38 @@ class InputCollectorApiIntegration:
     
     def _event_to_dict(self, event: Any) -> Dict:
         """Convert an event object to a serializable dictionary."""
-        # Extract serializable attributes
-        event_dict = {}
-        for key, value in event.__dict__.items():
-            if not key.startswith("_") and value is not None:
-                event_dict[key] = value
-        
-        # Add event type if available
-        if 'event_type' not in event_dict and hasattr(event, 'event_type'):
-            event_dict['event_type'] = event.event_type
+        # Check if it's an InputData object with to_dict method
+        if hasattr(event, 'to_dict') and callable(getattr(event, 'to_dict')):
+            return event.to_dict()
             
-        return event_dict
-    
+        # Fall back to class name check if to_dict doesn't exist
+        elif hasattr(event, '__class__') and event.__class__.__name__ == 'InputData':
+            # Create a dict with all non-None fields
+            event_dict = {}
+            for key, value in event.__dict__.items():
+                if not key.startswith("_") and value is not None:
+                    # Convert lists to JSON-safe lists
+                    if isinstance(value, list):
+                        event_dict[key] = list(value)  # Create a copy to avoid reference issues
+                    else:
+                        event_dict[key] = value
+            return event_dict
+            
+        # For other objects, use generic approach
+        try:
+            # Try to convert to dict if possible
+            if hasattr(event, '__dict__'):
+                return {k: v for k, v in event.__dict__.items() 
+                        if not k.startswith("_") and v is not None}
+            elif isinstance(event, dict):
+                return event
+            else:
+                # Convert to string if we can't do anything else
+                return {"value": str(event)}
+        except:
+            # Last resort - convert to string
+            return {"value": str(event)}
+
     def _broadcast_event(self, event_dict: Dict) -> None:
         """Broadcast an event through the WebSocket connection."""
         if not hasattr(self.explorer, 'broadcast_event'):
@@ -383,9 +403,27 @@ class InputCollectorApiIntegration:
         # Create broadcast coroutine
         async def broadcast():
             try:
+                # Add JSON serialization check
+                import json
+                try:
+                    # Test serialization before sending
+                    json.dumps(event_dict)
+                except TypeError as e:
+                    # Something isn't serializable - fix problematic fields
+                    logger.warning(f"Event not fully serializable: {e}. Converting problematic fields.")
+                    event_dict_copy = event_dict.copy()
+                    for key, value in event_dict_copy.items():
+                        try:
+                            json.dumps({key: value})
+                        except:
+                            # Convert problematic value to string
+                            event_dict[key] = str(value)
+                
                 await self.explorer.broadcast_event(self.module_id, event_dict)
             except Exception as e:
                 logger.error(f"Error broadcasting event: {e}")
+                import traceback
+                traceback.print_exc()
         
         # Run the broadcast
         try:

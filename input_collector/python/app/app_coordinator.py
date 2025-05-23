@@ -6,6 +6,7 @@ handling high-level business logic while delegating specific responsibilities.
 """
 
 from typing import List
+import time
 
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 
@@ -13,6 +14,7 @@ from ..interfaces import InputData
 from ..logging import LoggingManager
 from ..processing import EventProcessor
 from ..ui import UIManager
+from ..core.event_system import EventType, dispatch
 
 
 class AppCoordinator(QObject):
@@ -77,6 +79,9 @@ class AppCoordinator(QObject):
         """
         self.tracked_keys = tracked_keys
         self.collector_manager.set_tracked_keys(tracked_keys)
+        
+        # Dispatch initial state events for any listeners
+        dispatch(EventType.TRACKED_KEYS_CHANGED, self.tracked_keys)
     
     def on_collector_event(self, event: InputData) -> None:
         """
@@ -87,6 +92,9 @@ class AppCoordinator(QObject):
         """
         # Forward via signal to ensure thread safety between threads
         self.event_received.emit(event)
+        
+        # Dispatch to core event system for API/websocket consumers
+        dispatch(EventType.INPUT, event)
     
     @pyqtSlot(object)
     def _process_event(self, event: InputData) -> None:
@@ -185,8 +193,19 @@ class AppCoordinator(QObject):
         # Start logging
         self.logging_manager.start_recording()
         
-        # Emit signal
+        # Emit signal for Qt components
         self.recording_started.emit()
+        
+        # Dispatch core event
+        timestamp = time.time()
+        dispatch(EventType.RECORDING_STARTED, timestamp)
+        
+        # Also dispatch as a general state change
+        dispatch(EventType.STATE_CHANGE, {
+            "event": "recording_started",
+            "timestamp": timestamp,
+            "is_recording": True
+        })
     
     def _stop_recording(self) -> None:
         """Stop recording inputs."""
@@ -201,8 +220,19 @@ class AppCoordinator(QObject):
         # Stop logging
         self.logging_manager.stop_recording()
         
-        # Emit signal
+        # Emit signal for Qt components
         self.recording_stopped.emit()
+        
+        # Dispatch core event
+        timestamp = time.time()
+        dispatch(EventType.RECORDING_STOPPED, timestamp)
+        
+        # Also dispatch as a general state change
+        dispatch(EventType.STATE_CHANGE, {
+            "event": "recording_stopped",
+            "timestamp": timestamp,
+            "is_recording": False
+        })
     
     def _initialize_csv_logging(self) -> None:
         """Initialize CSV logging with appropriate headers."""
@@ -243,6 +273,20 @@ class AppCoordinator(QObject):
                 )
             else:
                 self.ui_manager.log_status("Key editing finished", "accent")
+                
+            # Dispatch core event
+            dispatch(EventType.EDIT_MODE_CHANGED, {
+                "enabled": self.edit_mode,
+                "timestamp": time.time()
+            })
+            
+            # Also dispatch as a general state change
+            dispatch(EventType.STATE_CHANGE, {
+                "event": "edit_mode_changed",
+                "timestamp": time.time(),
+                "edit_mode": self.edit_mode
+            })
+            
         except Exception as e:
             print(f"Error toggling edit mode: {e}")
             import traceback
@@ -299,8 +343,18 @@ class AppCoordinator(QObject):
             # Update key list in collectors
             self.collector_manager.set_tracked_keys(self.tracked_keys)
             
-            # Emit signal to notify listeners (especially visualizers) about the change
+            # Emit signal for Qt components
             self.tracked_keys_changed.emit(self.tracked_keys)
+            
+            # Dispatch core event
+            dispatch(EventType.TRACKED_KEYS_CHANGED, self.tracked_keys)
+            
+            # Also dispatch as a general state change
+            dispatch(EventType.STATE_CHANGE, {
+                "event": "tracked_keys_changed",
+                "timestamp": time.time(),
+                "tracked_keys": self.tracked_keys
+            })
             
         except Exception as e:
             print(f"Error handling key edit: {e}")
@@ -342,8 +396,11 @@ class AppCoordinator(QObject):
             # Update collector
             self.collector_manager.set_tracked_keys(self.tracked_keys)
             
-            # Emit signal for tracked keys change
+            # Emit signal for Qt components
             self.tracked_keys_changed.emit(self.tracked_keys)
+            
+            # Dispatch core event
+            dispatch(EventType.TRACKED_KEYS_CHANGED, self.tracked_keys)
             return
             
         # For other buttons, update tracked keys list
@@ -361,8 +418,22 @@ class AppCoordinator(QObject):
         # Update collector
         self.collector_manager.set_tracked_keys(self.tracked_keys)
         
-        # Emit signal for tracked keys change
+        # Emit signal for Qt components
         self.tracked_keys_changed.emit(self.tracked_keys)
+        
+        # Dispatch core event
+        dispatch(EventType.TRACKED_KEYS_CHANGED, self.tracked_keys)
+        
+        # Also dispatch as a general state change
+        dispatch(EventType.STATE_CHANGE, {
+            "event": "tracked_keys_changed",
+            "timestamp": time.time(),
+            "tracked_keys": self.tracked_keys,
+            "button_change": {
+                "button_id": button_id,
+                "is_tracked": is_tracked
+            }
+        })
     
     def switch_collector(self, collector_type: str) -> None:
         """
@@ -382,12 +453,29 @@ class AppCoordinator(QObject):
             # Get collector capabilities
             capabilities = self.collector_manager.get_current_collector_capabilities()
             
-            # Emit signal about collector change
+            # Emit signal for Qt components
             self.collector_switched.emit(collector_type, capabilities)
             
             # Log success message
             collector_name = self.collector_manager._get_collector_display_name(collector_type)
             self.ui_manager.log_status(f"Switched to {collector_name} collector", "accent")
+            
+            # Dispatch core event
+            dispatch(EventType.COLLECTOR_CHANGED, {
+                "collector_type": collector_type,
+                "capabilities": capabilities,
+                "collector_name": collector_name,
+                "timestamp": time.time()
+            })
+            
+            # Also dispatch as a general state change
+            dispatch(EventType.STATE_CHANGE, {
+                "event": "collector_changed",
+                "timestamp": time.time(),
+                "collector_type": collector_type,
+                "collector_name": collector_name,
+                "capabilities": capabilities
+            })
         else:
             # Log failure
             self.ui_manager.log_status(f"Failed to switch to collector: {collector_type}", "error")
