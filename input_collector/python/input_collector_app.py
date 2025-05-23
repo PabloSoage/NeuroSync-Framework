@@ -17,6 +17,7 @@ from .logging import LoggingManager
 from .processing import EventProcessor
 # Import new modular components
 from .ui import UIManager
+from .interaction_api import InputCollectorAPI
 
 # Import PS4 controller with fallback
 try:
@@ -110,6 +111,16 @@ class InputCollectorApp(QMainWindow):
             self.collector_manager,
             self.ui_manager,
             self.logging_manager,
+            self.event_processor
+        )
+        
+        # Initialize interaction API with application components
+        print("Initializing Interaction API...")
+        InputCollectorAPI.initialize(
+            self.app_coordinator,
+            self.ui_manager,
+            self.logging_manager,
+            self.collector_manager,
             self.event_processor
         )
 
@@ -684,6 +695,15 @@ class InputCollectorApp(QMainWindow):
             api_integration = get_api_integration()
             if api_integration and api_integration.is_registered:
                 api_integration.shutdown()
+        except:
+            pass
+        
+        # Clean up interaction API integration if it exists
+        try:
+            from .interaction_api_integration import get_interaction_api_integration
+            interaction_api_integration = get_interaction_api_integration()
+            if interaction_api_integration and interaction_api_integration.is_registered:
+                interaction_api_integration.shutdown()
         except:
             pass
         

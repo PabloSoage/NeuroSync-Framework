@@ -449,6 +449,16 @@ class AppCoordinator(QObject):
         """
         return self.tracked_keys
     
+    @pyqtSlot()
+    def _toggle_recording_proxy(self) -> None:
+        """
+        Thread-safe proxy for toggle_recording.
+        
+        This method exists solely to be called via QMetaObject.invokeMethod
+        from other threads to ensure thread safety.
+        """
+        self.toggle_recording()
+
     def __del__(self) -> None:
         """Cleanup resources when the coordinator is destroyed."""
         try:
