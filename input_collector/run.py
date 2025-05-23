@@ -46,59 +46,45 @@ def main():
     # Parse configuration
     config = parse_config()
     
-    # Debug output to confirm flag detection
-    print(f"Configuration: web_api={config.get('enable_web_api', False)}, control_api={config.get('enable_control_api', False)}")
+    # Import here to avoid circular imports
+    from python.input_collector_app import run_collector_app
     
     # Initialize the data access web API if enabled
     if config.get("enable_web_api", False):
-        try:
-            print("Attempting to initialize Data Access Web API...")
-            
-            # Import the API integration
-            from python.api_integration import initialize_api, get_api_integration
-            
-            # Initialize the API
-            api_initialized = initialize_api(
-                enable_web_api=True,
-                host=config.get("api_host", "127.0.0.1"),
-                port=config.get("api_port", 8000)
-            )
-            
-            if api_initialized:
-                # Get actual port used
-                integration = get_api_integration()
-                actual_port = integration.explorer.server_port or config['api_port']
-                print(f"Data Access API initialized at http://{config['api_host']}:{actual_port}")
-            else:
-                print("Failed to initialize Data Access API - returned False")
-        except Exception as e:
-            print(f"Error initializing Data Access API: {e}")
-            import traceback
-            traceback.print_exc()
+        # Import the API integration
+        from python.api_integration import initialize_api, get_api_integration
+        
+        # Initialize the API
+        api_initialized = initialize_api(
+            enable_web_api=True,
+            host=config.get("api_host", "127.0.0.1"),
+            port=config.get("api_port", 8000)
+        )
+        
+        if api_initialized:
+            # Get actual port used
+            integration = get_api_integration()
+            actual_port = integration.explorer.server_port or config['api_port']
+            print(f"Data Access API initialized at http://{config['api_host']}:{actual_port}")
+        else:
+            print("Failed to initialize Data Access API")
     
     # Initialize the control web API if enabled
     if config.get("enable_control_api", False):
-        try:
-            print("Attempting to initialize Control API...")
-            
-            # Import the interaction API integration
-            from python.interaction_api_integration import initialize_interaction_api
-            
-            # Initialize the interaction API
-            control_api_initialized = initialize_interaction_api(
-                enable_web_api=True,
-                host=config.get("control_api_host", "127.0.0.1"),
-                port=config.get("control_api_port", 8001)
-            )
-            
-            if control_api_initialized:
-                print(f"Control API initialized at http://{config['control_api_host']}:{config['control_api_port']}")
-            else:
-                print("Failed to initialize Control API - returned False")
-        except Exception as e:
-            print(f"Error initializing Control API: {e}")
-            import traceback
-            traceback.print_exc()
+        # Import the interaction API integration
+        from python.interaction_api_integration import initialize_interaction_api
+        
+        # Initialize the interaction API
+        control_api_initialized = initialize_interaction_api(
+            enable_web_api=True,
+            host=config.get("control_api_host", "127.0.0.1"),
+            port=config.get("control_api_port", 8001)
+        )
+        
+        if control_api_initialized:
+            print(f"Control API initialized at http://{config['control_api_host']}:{config['control_api_port']}")
+        else:
+            print("Failed to initialize Control API")
     
     # Run the collector application
     run_collector_app()
