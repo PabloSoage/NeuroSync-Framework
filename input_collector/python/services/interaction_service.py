@@ -27,7 +27,7 @@ class InteractionService:
         """Get or create the singleton instance of the service."""
         with cls._lock:
             if cls._instance is None:
-                cls._instance = cls()
+                cls._instance = InteractionService()
             return cls._instance
     
     def __init__(self):
