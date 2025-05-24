@@ -9,6 +9,7 @@ from typing import Dict, List, Any, Optional, Tuple, Callable
 
 from .core.event_system import EventType, subscribe, unsubscribe
 from .interfaces import InputData
+from .services.interaction_service import InteractionService
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
@@ -21,16 +22,6 @@ class InputCollectorAPI:
     
     This class provides methods to control the application and access real-time events.
     """
-    
-    # Static references to application components (set during initialization)
-    _app_coordinator = None
-    _ui_manager = None
-    _logging_manager = None
-    _collector_manager = None
-    _event_processor = None
-    
-    # Last operation status
-    _last_status = {"success": False, "message": "API not initialized"}
     
     # Dictionary of registered event callbacks
     _event_callbacks = {}
@@ -55,13 +46,16 @@ class InputCollectorAPI:
             collector_manager: The collector manager
             event_processor: The event processor
         """
-        cls._app_coordinator = app_coordinator
-        cls._ui_manager = ui_manager
-        cls._logging_manager = logging_manager
-        cls._collector_manager = collector_manager
-        cls._event_processor = event_processor
-        
-        cls._last_status = {"success": True, "message": "API initialized"}
+        # Initialize the service with the components
+        service = InteractionService.get_instance()
+        components = {
+            'app_coordinator': app_coordinator,
+            'ui_manager': ui_manager,
+            'logging_manager': logging_manager,
+            'collector_manager': collector_manager,
+            'event_processor': event_processor
+        }
+        service.initialize(components)
         
         # Subscribe to core events
         from .core.event_system import EventType, subscribe
@@ -73,23 +67,10 @@ class InputCollectorAPI:
         logger.info("Interaction API initialized")
     
     @classmethod
-    def _set_status(cls, success: bool, message: str) -> None:
-        """Set the status of the last operation."""
-        cls._last_status = {"success": success, "message": message}
-        logger.info(f"Interaction status: {message} {'(success)' if success else '(failure)'}")
-    
-    @classmethod
     def get_last_operation_status(cls) -> Dict[str, Any]:
         """Get the status of the last operation."""
-        return cls._last_status
-    
-    @classmethod
-    def _check_initialized(cls) -> bool:
-        """Check if the API is initialized."""
-        if cls._app_coordinator is None:
-            cls._set_status(False, "API not initialized")
-            return False
-        return True
+        service = InteractionService.get_instance()
+        return service.get_last_status()
     
     #
     # Event handling methods
@@ -146,37 +127,8 @@ class InputCollectorAPI:
         Returns:
             bool: True if successful
         """
-        if not cls._check_initialized():
-            return False
-            
-        try:
-            # Check if already recording
-            if cls.is_recording():
-                cls._set_status(False, "Already recording")
-                return False
-                
-            # Make sure not in edit mode
-            if cls.is_edit_mode():
-                cls._set_status(False, "Cannot start recording while in edit mode")
-                return False
-                
-            # Start recording
-            cls._app_coordinator.toggle_recording()
-            
-            # Check if recording started successfully
-            if cls.is_recording():
-                cls._set_status(True, "Recording started")
-                return True
-            else:
-                cls._set_status(False, "Failed to start recording")
-                return False
-                
-        except Exception as e:
-            cls._set_status(False, f"Error starting recording: {e}")
-            logger.error(f"Error starting recording: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
+        service = InteractionService.get_instance()
+        return service.start_recording()
     
     @classmethod
     def stop_recording(cls) -> bool:
@@ -186,32 +138,8 @@ class InputCollectorAPI:
         Returns:
             bool: True if successful
         """
-        if not cls._check_initialized():
-            return False
-            
-        try:
-            # Check if currently recording
-            if not cls.is_recording():
-                cls._set_status(False, "Not currently recording")
-                return False
-                
-            # Stop recording
-            cls._app_coordinator.toggle_recording()
-            
-            # Check if recording stopped successfully
-            if not cls.is_recording():
-                cls._set_status(True, "Recording stopped")
-                return True
-            else:
-                cls._set_status(False, "Failed to stop recording")
-                return False
-                
-        except Exception as e:
-            cls._set_status(False, f"Error stopping recording: {e}")
-            logger.error(f"Error stopping recording: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
+        service = InteractionService.get_instance()
+        return service.stop_recording()
     
     @classmethod
     def toggle_recording(cls) -> bool:
@@ -221,33 +149,8 @@ class InputCollectorAPI:
         Returns:
             bool: True if successful
         """
-        if not cls._check_initialized():
-            return False
-            
-        try:
-            # Store previous recording state
-            prev_state = cls.is_recording()
-            
-            # Toggle recording
-            cls._app_coordinator.toggle_recording()
-            
-            # Check if state changed
-            current_state = cls.is_recording()
-            if current_state != prev_state:
-                new_state = "started" if current_state else "stopped"
-                cls._set_status(True, f"Recording {new_state}")
-                return True
-            else:
-                # If state didn't change, there was likely an error
-                cls._set_status(False, "Failed to toggle recording")
-                return False
-                
-        except Exception as e:
-            cls._set_status(False, f"Error toggling recording: {e}")
-            logger.error(f"Error toggling recording: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
+        service = InteractionService.get_instance()
+        return service.toggle_recording()
     
     @classmethod
     def is_recording(cls) -> bool:
@@ -257,10 +160,8 @@ class InputCollectorAPI:
         Returns:
             bool: True if recording is active
         """
-        if not cls._check_initialized():
-            return False
-            
-        return cls._app_coordinator.is_recording
+        service = InteractionService.get_instance()
+        return service.is_recording()
     
     @classmethod
     def enable_json_logging(cls, enabled: bool = True) -> bool:
@@ -273,20 +174,8 @@ class InputCollectorAPI:
         Returns:
             bool: True if successful
         """
-        if not cls._check_initialized():
-            return False
-            
-        try:
-            success = cls._logging_manager.set_json_logging(enabled)
-            if success:
-                cls._set_status(True, f"JSON logging {'enabled' if enabled else 'disabled'}")
-            else:
-                cls._set_status(False, f"Failed to {'enable' if enabled else 'disable'} JSON logging")
-            return success
-        except Exception as e:
-            cls._set_status(False, f"Error configuring JSON logging: {e}")
-            logger.error(f"Error configuring JSON logging: {e}")
-            return False
+        service = InteractionService.get_instance()
+        return service.enable_json_logging(enabled)
     
     @classmethod
     def enable_csv_logging(cls, enabled: bool = True, filepath: Optional[str] = None) -> bool:
@@ -300,25 +189,8 @@ class InputCollectorAPI:
         Returns:
             bool: True if successful
         """
-        if not cls._check_initialized():
-            return False
-            
-        try:
-            # If enabling and filepath is provided, set it first
-            if enabled and filepath:
-                cls.set_csv_path(filepath)
-                
-            # Enable/disable CSV logging
-            success = cls._logging_manager.set_csv_logging(enabled)
-            if success:
-                cls._set_status(True, f"CSV logging {'enabled' if enabled else 'disabled'}")
-            else:
-                cls._set_status(False, f"Failed to {'enable' if enabled else 'disable'} CSV logging")
-            return success
-        except Exception as e:
-            cls._set_status(False, f"Error configuring CSV logging: {e}")
-            logger.error(f"Error configuring CSV logging: {e}")
-            return False
+        service = InteractionService.get_instance()
+        return service.enable_csv_logging(enabled, filepath)
     
     @classmethod
     def set_csv_path(cls, filepath: str) -> bool:
@@ -331,18 +203,8 @@ class InputCollectorAPI:
         Returns:
             bool: True if successful
         """
-        if not cls._check_initialized():
-            return False
-            
-        try:
-            cls._logging_manager.csv_logger.set_filepath(filepath)
-            cls._ui_manager.set_csv_path(filepath)
-            cls._set_status(True, f"CSV path set to {filepath}")
-            return True
-        except Exception as e:
-            cls._set_status(False, f"Error setting CSV path: {e}")
-            logger.error(f"Error setting CSV path: {e}")
-            return False
+        service = InteractionService.get_instance()
+        return service.set_csv_path(filepath)
     
     @classmethod
     def get_logging_state(cls) -> Dict[str, Any]:
@@ -352,18 +214,8 @@ class InputCollectorAPI:
         Returns:
             Dict with logging state information
         """
-        if not cls._check_initialized():
-            return {"error": "API not initialized"}
-            
-        try:
-            return {
-                "json_logging_enabled": cls._logging_manager.log_to_json,
-                "csv_logging_enabled": cls._logging_manager.log_to_csv,
-                "csv_path": cls._logging_manager.csv_logger.filepath if cls._logging_manager.csv_logger else ""
-            }
-        except Exception as e:
-            logger.error(f"Error getting logging state: {e}")
-            return {"error": str(e)}
+        service = InteractionService.get_instance()
+        return service.get_logging_state()
     
     @classmethod
     def get_available_collectors(cls) -> List[Dict[str, str]]:
@@ -373,14 +225,8 @@ class InputCollectorAPI:
         Returns:
             List of collector information dictionaries
         """
-        if not cls._check_initialized():
-            return []
-            
-        try:
-            return cls._collector_manager.get_available_collectors()
-        except Exception as e:
-            logger.error(f"Error getting available collectors: {e}")
-            return []
+        service = InteractionService.get_instance()
+        return service.get_available_collectors()
     
     @classmethod
     def switch_collector(cls, collector_type: str) -> bool:
@@ -393,60 +239,8 @@ class InputCollectorAPI:
         Returns:
             bool: True if successful
         """
-        if not cls._check_initialized():
-            return False
-            
-        try:
-            # Get current collector type for comparison
-            prev_collector = cls._collector_manager.get_current_collector_type()
-            
-            # Special handling for PS4 controller to match GUI behavior
-            if collector_type == "ps4_controller":
-                # Check if PS4 collector is available
-                ps4_collector = cls._collector_manager.get_collector("ps4_controller")
-                if not ps4_collector:
-                    cls._set_status(False, "PS4 controller support not available")
-                    return False
-                    
-                # Check if a controller is already connected
-                if not ps4_collector.controller:
-                    # Scan for controllers
-                    cls._set_status(True, "Scanning for controllers...")
-                    controllers = ps4_collector.scan_controllers()
-                    if not controllers:
-                        cls._set_status(False, "No controllers found, falling back to keyboard/mouse")
-                        # Switch to keyboard/mouse instead
-                        cls._app_coordinator.switch_collector("keyboard_mouse")
-                        return False
-                    
-                    cls._set_status(True, f"Found {len(controllers)} controller(s), connecting to first one")
-                    # Connect to first controller
-                    success = ps4_collector.connect_to_controller(controllers[0]["index"])
-                    if not success:
-                        cls._set_status(False, "Failed to connect to controller, falling back to keyboard/mouse")
-                        # Switch to keyboard/mouse instead
-                        cls._app_coordinator.switch_collector("keyboard_mouse")
-                        return False
-            
-            # Switch collector using the app coordinator
-            cls._app_coordinator.switch_collector(collector_type)
-            
-            # Verify switch was successful by checking current collector type
-            current_collector = cls._collector_manager.get_current_collector_type()
-            if current_collector == collector_type:
-                collector_name = cls._collector_manager._get_collector_display_name(collector_type)
-                cls._set_status(True, f"Switched to {collector_name} collector")
-                return True
-            else:
-                cls._set_status(False, f"Failed to switch to {collector_type} collector")
-                return False
-                
-        except Exception as e:
-            cls._set_status(False, f"Error switching collector: {e}")
-            logger.error(f"Error switching collector: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
+        service = InteractionService.get_instance()
+        return service.switch_collector(collector_type)
     
     @classmethod
     def get_current_collector(cls) -> Dict[str, Any]:
@@ -456,21 +250,8 @@ class InputCollectorAPI:
         Returns:
             Dict with collector information
         """
-        if not cls._check_initialized():
-            return {"error": "API not initialized"}
-            
-        try:
-            collector_type = cls._collector_manager.get_current_collector_type()
-            capabilities = cls._collector_manager.get_current_collector_capabilities()
-            
-            return {
-                "type": collector_type,
-                "name": cls._collector_manager._get_collector_display_name(collector_type),
-                "capabilities": capabilities
-            }
-        except Exception as e:
-            logger.error(f"Error getting current collector: {e}")
-            return {"error": str(e)}
+        service = InteractionService.get_instance()
+        return service.get_current_collector()
     
     @classmethod
     def scan_controllers(cls) -> List[Dict[str, Any]]:
@@ -480,17 +261,8 @@ class InputCollectorAPI:
         Returns:
             List of controller information dictionaries
         """
-        if not cls._check_initialized():
-            return []
-            
-        try:
-            ps4_collector = cls._collector_manager.get_collector("ps4_controller")
-            if ps4_collector:
-                return ps4_collector.scan_controllers()
-            return []
-        except Exception as e:
-            logger.error(f"Error scanning controllers: {e}")
-            return []
+        service = InteractionService.get_instance()
+        return service.scan_controllers()
     
     @classmethod
     def connect_controller(cls, index: int) -> bool:
@@ -503,28 +275,8 @@ class InputCollectorAPI:
         Returns:
             bool: True if successful
         """
-        if not cls._check_initialized():
-            return False
-            
-        try:
-            ps4_collector = cls._collector_manager.get_collector("ps4_controller")
-            if ps4_collector:
-                success = ps4_collector.connect_to_controller(index)
-                if success:
-                    cls._set_status(True, "Connected to controller")
-                    # Switch to PS4 controller
-                    cls.switch_collector("ps4_controller")
-                else:
-                    cls._set_status(False, "Failed to connect to controller")
-                return success
-            else:
-                cls._set_status(False, "PS4 collector not available")
-                return False
-                
-        except Exception as e:
-            cls._set_status(False, f"Error connecting to controller: {e}")
-            logger.error(f"Error connecting to controller: {e}")
-            return False
+        service = InteractionService.get_instance()
+        return service.connect_controller(index)
 
     @classmethod
     def get_available_tracking_modes(cls, direction_only: bool = None) -> List[str]:
@@ -537,9 +289,12 @@ class InputCollectorAPI:
         Returns:
             List[str]: Available tracking modes
         """
+        service = InteractionService.get_instance()
+        ui_manager = service.get_component('ui_manager')
+        
         # If direction_only not specified, get current setting
-        if direction_only is None and cls._ui_manager:
-            direction_only = cls._ui_manager.is_direction_only_mode()
+        if direction_only is None and ui_manager:
+            direction_only = ui_manager.is_direction_only_mode()
             
         # Return appropriate modes based on direction_only setting
         if direction_only:
@@ -559,32 +314,37 @@ class InputCollectorAPI:
         Returns:
             bool: True if successful
         """
-        if not cls._check_initialized():
+        service = InteractionService.get_instance()
+        ui_manager = service.get_component('ui_manager')
+        app_coordinator = service.get_component('app_coordinator')
+        
+        if not ui_manager or not app_coordinator:
+            service._set_status(False, "Required components not available")
             return False
             
         try:
             # Validate the mode based on direction_only setting
-            current_dir_only = cls._ui_manager.is_direction_only_mode() if direction_only is None else direction_only
+            current_dir_only = ui_manager.is_direction_only_mode() if direction_only is None else direction_only
             valid_modes = cls.get_available_tracking_modes(current_dir_only)
             
             if mode not in valid_modes:
-                cls._set_status(False, f"Invalid tracking mode '{mode}' for direction_only={current_dir_only}. Valid modes: {valid_modes}")
+                service._set_status(False, f"Invalid tracking mode '{mode}' for direction_only={current_dir_only}. Valid modes: {valid_modes}")
                 return False
             
             # Update direction-only mode if specified
             if direction_only is not None:
-                cls._ui_manager.set_direction_only_mode(direction_only)
+                ui_manager.set_direction_only_mode(direction_only)
                 
             # Set tracking mode in UI
-            cls._ui_manager.set_tracking_mode(mode)
+            ui_manager.set_tracking_mode(mode)
             
             # Apply mode to collector via app coordinator
-            cls._app_coordinator.set_mouse_tracking_mode(mode)
+            app_coordinator.set_mouse_tracking_mode(mode)
             
-            cls._set_status(True, f"Mouse tracking mode set to {mode}")
+            service._set_status(True, f"Mouse tracking mode set to {mode}")
             return True
         except Exception as e:
-            cls._set_status(False, f"Error setting mouse tracking mode: {e}")
+            service._set_status(False, f"Error setting mouse tracking mode: {e}")
             logger.error(f"Error setting mouse tracking mode: {e}")
             import traceback
             traceback.print_exc()
@@ -605,11 +365,16 @@ class InputCollectorAPI:
         Returns:
             bool: True if successful
         """
-        if not cls._check_initialized():
+        service = InteractionService.get_instance()
+        ui_manager = service.get_component('ui_manager')
+        app_coordinator = service.get_component('app_coordinator')
+        
+        if not ui_manager or not app_coordinator:
+            service._set_status(False, "Required components not available")
             return False
             
         try:
-            # Convert parameters to correct types (important fix)
+            # Convert parameters to correct types
             if delta_smoothing is not None:
                 delta_smoothing = float(delta_smoothing)
                 
@@ -623,41 +388,41 @@ class InputCollectorAPI:
             if delta_smoothing is not None:
                 min_val, max_val = cls.MOUSE_SETTING_RANGES["delta_smoothing"]
                 if not min_val <= delta_smoothing <= max_val:
-                    cls._set_status(False, f"Delta smoothing must be between {min_val} and {max_val}")
+                    service._set_status(False, f"Delta smoothing must be between {min_val} and {max_val}")
                     return False
                 
             if joystick_sensitivity is not None:
                 min_val, max_val = cls.MOUSE_SETTING_RANGES["joystick_sensitivity"]
                 if not min_val <= joystick_sensitivity <= max_val:
-                    cls._set_status(False, f"Joystick sensitivity must be between {min_val} and {max_val}")
+                    service._set_status(False, f"Joystick sensitivity must be between {min_val} and {max_val}")
                     return False
                 
             if angle_grouping is not None:
                 min_val, max_val = cls.MOUSE_SETTING_RANGES["angle_grouping"]
                 if not min_val <= angle_grouping <= max_val:
-                    cls._set_status(False, f"Angle grouping must be between {min_val} and {max_val}")
+                    service._set_status(False, f"Angle grouping must be between {min_val} and {max_val}")
                     return False
             
             # Update UI settings - using the correct method names
             if delta_smoothing is not None:
-                if hasattr(cls._ui_manager, 'get_delta_smoothing_slider') and cls._ui_manager.get_delta_smoothing_slider():
-                    cls._ui_manager.get_delta_smoothing_slider().setValue(int(delta_smoothing))
+                if hasattr(ui_manager, 'get_delta_smoothing_slider') and ui_manager.get_delta_smoothing_slider():
+                    ui_manager.get_delta_smoothing_slider().setValue(int(delta_smoothing))
                 
             if joystick_sensitivity is not None:
-                if hasattr(cls._ui_manager, 'get_joystick_sensitivity_slider') and cls._ui_manager.get_joystick_sensitivity_slider():
-                    cls._ui_manager.get_joystick_sensitivity_slider().setValue(int(joystick_sensitivity))
+                if hasattr(ui_manager, 'get_joystick_sensitivity_slider') and ui_manager.get_joystick_sensitivity_slider():
+                    ui_manager.get_joystick_sensitivity_slider().setValue(int(joystick_sensitivity))
                 
             if angle_grouping is not None:
-                if hasattr(cls._ui_manager, 'get_angle_grouping_slider') and cls._ui_manager.get_angle_grouping_slider():
-                    cls._ui_manager.get_angle_grouping_slider().setValue(int(angle_grouping))
+                if hasattr(ui_manager, 'get_angle_grouping_slider') and ui_manager.get_angle_grouping_slider():
+                    ui_manager.get_angle_grouping_slider().setValue(int(angle_grouping))
                 
             # Apply settings to collector
-            cls._app_coordinator.apply_mouse_settings()
+            app_coordinator.apply_mouse_settings()
             
-            cls._set_status(True, "Mouse settings updated")
+            service._set_status(True, "Mouse settings updated")
             return True
         except Exception as e:
-            cls._set_status(False, f"Error setting mouse settings: {e}")
+            service._set_status(False, f"Error setting mouse settings: {e}")
             logger.error(f"Error setting mouse settings: {e}")
             import traceback
             traceback.print_exc()
@@ -671,16 +436,19 @@ class InputCollectorAPI:
         Returns:
             Dict with mouse settings
         """
-        if not cls._check_initialized():
-            return {"error": "API not initialized"}
+        service = InteractionService.get_instance()
+        ui_manager = service.get_component('ui_manager')
+        
+        if not ui_manager:
+            return {"error": "UI manager not available"}
             
         try:
             return {
-                "tracking_mode": cls._ui_manager.get_tracking_mode(),
-                "direction_only": cls._ui_manager.is_direction_only_mode(),
-                "delta_smoothing": cls._ui_manager.get_delta_smoothing(),
-                "joystick_sensitivity": cls._ui_manager.get_joystick_sensitivity(),
-                "angle_grouping": cls._ui_manager.get_angle_grouping(),
+                "tracking_mode": ui_manager.get_tracking_mode(),
+                "direction_only": ui_manager.is_direction_only_mode(),
+                "delta_smoothing": ui_manager.get_delta_smoothing(),
+                "joystick_sensitivity": ui_manager.get_joystick_sensitivity(),
+                "angle_grouping": ui_manager.get_angle_grouping(),
                 "available_tracking_modes": cls.get_available_tracking_modes()
             }
         except Exception as e:
@@ -697,11 +465,14 @@ class InputCollectorAPI:
         Returns:
             List of tracked keys
         """
-        if not cls._check_initialized():
+        service = InteractionService.get_instance()
+        app_coordinator = service.get_component('app_coordinator')
+        
+        if not app_coordinator:
             return []
             
         try:
-            return cls._app_coordinator.get_tracked_keys()
+            return app_coordinator.get_tracked_keys()
         except Exception as e:
             logger.error(f"Error getting tracked keys: {e}")
             return []
@@ -714,33 +485,37 @@ class InputCollectorAPI:
         Returns:
             bool: True if successful
         """
-        if not cls._check_initialized():
+        service = InteractionService.get_instance()
+        app_coordinator = service.get_component('app_coordinator')
+        
+        if not app_coordinator:
+            service._set_status(False, "App coordinator not available")
             return False
             
         try:
             # Check if recording is active - can't toggle edit mode during recording
-            if cls.is_recording():
-                cls._set_status(False, "Cannot edit keys while recording. Stop recording first.")
+            if app_coordinator.is_recording:
+                service._set_status(False, "Cannot edit keys while recording. Stop recording first.")
                 return False
                 
             # Store previous edit mode state
-            prev_state = cls.is_edit_mode()
+            prev_state = app_coordinator.edit_mode
             
             # Toggle edit mode
-            cls._app_coordinator.toggle_edit_mode()
+            app_coordinator.toggle_edit_mode()
             
             # Check if state changed
-            current_state = cls.is_edit_mode()
+            current_state = app_coordinator.edit_mode
             if current_state != prev_state:
                 new_state = "enabled" if current_state else "disabled"
-                cls._set_status(True, f"Edit mode {new_state}")
+                service._set_status(True, f"Edit mode {new_state}")
                 return True
             else:
-                cls._set_status(False, f"Failed to toggle edit mode. May already be in desired state.")
+                service._set_status(False, f"Failed to toggle edit mode. May already be in desired state.")
                 return False
                 
         except Exception as e:
-            cls._set_status(False, f"Error toggling edit mode: {e}")
+            service._set_status(False, f"Error toggling edit mode: {e}")
             logger.error(f"Error toggling edit mode: {e}")
             import traceback
             traceback.print_exc()
@@ -754,10 +529,13 @@ class InputCollectorAPI:
         Returns:
             bool: True if edit mode is active
         """
-        if not cls._check_initialized():
+        service = InteractionService.get_instance()
+        app_coordinator = service.get_component('app_coordinator')
+        
+        if not app_coordinator:
             return False
             
-        return cls._app_coordinator.edit_mode
+        return app_coordinator.edit_mode
     
     @classmethod
     def add_tracked_key(cls, key: str) -> bool:
@@ -770,58 +548,62 @@ class InputCollectorAPI:
         Returns:
             bool: True if successful
         """
-        if not cls._check_initialized():
+        service = InteractionService.get_instance()
+        app_coordinator = service.get_component('app_coordinator')
+        
+        if not app_coordinator:
+            service._set_status(False, "App coordinator not available")
             return False
             
         try:
             # Check if recording is active - can't edit keys during recording
-            if cls.is_recording():
-                cls._set_status(False, "Cannot edit keys while recording. Stop recording first.")
+            if app_coordinator.is_recording:
+                service._set_status(False, "Cannot edit keys while recording. Stop recording first.")
                 return False
             
             # Check if already in tracked keys
-            if key in cls._app_coordinator.get_tracked_keys():
-                cls._set_status(True, f"Key {key} is already being tracked")
+            if key in app_coordinator.get_tracked_keys():
+                service._set_status(True, f"Key {key} is already being tracked")
                 return True
             
             # Enable edit mode if not already in edit mode (mimicking GUI behavior)
-            was_in_edit_mode = cls.is_edit_mode()
+            was_in_edit_mode = app_coordinator.edit_mode
             if not was_in_edit_mode:
                 # Unlike GUI, the API allows adding keys without explicitly toggling edit mode
                 # But we still need to enable it temporarily
-                cls._app_coordinator.toggle_edit_mode()
+                app_coordinator.toggle_edit_mode()
                 
             # Add key
-            cls._app_coordinator.handle_key_edit(key)
+            app_coordinator.handle_key_edit(key)
             
             # Check if key was added
-            if key in cls._app_coordinator.get_tracked_keys():
-                cls._set_status(True, f"Added tracked key: {key}")
+            if key in app_coordinator.get_tracked_keys():
+                service._set_status(True, f"Added tracked key: {key}")
                 
                 # Exit edit mode if we enabled it
-                if not was_in_edit_mode and cls.is_edit_mode():
-                    cls._app_coordinator.toggle_edit_mode()
+                if not was_in_edit_mode and app_coordinator.edit_mode:
+                    app_coordinator.toggle_edit_mode()
                     
                 return True
             else:
-                cls._set_status(False, f"Failed to add key: {key}")
+                service._set_status(False, f"Failed to add key: {key}")
                 
                 # Exit edit mode if we enabled it
-                if not was_in_edit_mode and cls.is_edit_mode():
-                    cls._app_coordinator.toggle_edit_mode()
+                if not was_in_edit_mode and app_coordinator.edit_mode:
+                    app_coordinator.toggle_edit_mode()
                     
                 return False
                 
         except Exception as e:
-            cls._set_status(False, f"Error adding tracked key: {e}")
+            service._set_status(False, f"Error adding tracked key: {e}")
             logger.error(f"Error adding tracked key: {e}")
             import traceback
             traceback.print_exc()
             
             # Clean up edit mode if needed
-            if 'was_in_edit_mode' in locals() and not was_in_edit_mode and cls.is_edit_mode():
+            if 'was_in_edit_mode' in locals() and not was_in_edit_mode and app_coordinator.edit_mode:
                 try:
-                    cls._app_coordinator.toggle_edit_mode()
+                    app_coordinator.toggle_edit_mode()
                 except:
                     pass
                 
@@ -838,61 +620,66 @@ class InputCollectorAPI:
         Returns:
             bool: True if successful
         """
-        if not cls._check_initialized():
+        service = InteractionService.get_instance()
+        app_coordinator = service.get_component('app_coordinator')
+        
+        if not app_coordinator:
+            service._set_status(False, "App coordinator not available")
             return False
             
         try:
             # Check if recording is active - can't edit keys during recording
-            if cls.is_recording():
-                cls._set_status(False, "Cannot edit keys while recording. Stop recording first.")
+            if app_coordinator.is_recording:
+                service._set_status(False, "Cannot edit keys while recording. Stop recording first.")
                 return False
                 
             # Check if key is tracked
-            if key not in cls._app_coordinator.get_tracked_keys():
-                cls._set_status(False, f"Key {key} is not being tracked")
+            if key not in app_coordinator.get_tracked_keys():
+                service._set_status(False, f"Key {key} is not being tracked")
                 return False
                 
             # Don't allow removing F9/media_play_pause
             if key.lower() == "key.media_play_pause".lower():
-                cls._set_status(False, "Cannot remove F9/media_play_pause key (required for recording toggle)")
+                service._set_status(False, "Cannot remove F9/media_play_pause key (required for recording toggle)")
                 return False
                 
             # Enable edit mode temporarily
-            was_in_edit_mode = cls.is_edit_mode()
+            was_in_edit_mode = app_coordinator.edit_mode
             if not was_in_edit_mode:
-                cls._app_coordinator.toggle_edit_mode()
+                app_coordinator.toggle_edit_mode()
                 
             # Remove key
-            cls._app_coordinator.handle_key_edit(key)
+            app_coordinator.handle_key_edit(key)
             
             # Check if key was removed
-            if key not in cls._app_coordinator.get_tracked_keys():
-                cls._set_status(True, f"Removed tracked key: {key}")
+            if key not in app_coordinator.get_tracked_keys():
+                service._set_status(True, f"Removed tracked key: {key}")
                 
                 # Exit edit mode if we enabled it
-                if not was_in_edit_mode and cls.is_edit_mode():
-                    cls._app_coordinator.toggle_edit_mode()
+                if not was_in_edit_mode and app_coordinator.edit_mode:
+                    app_coordinator.toggle_edit_mode()
                     
                 return True
             else:
-                cls._set_status(False, f"Failed to remove key: {key}")
+                service._set_status(False, f"Failed to remove key: {key}")
                 
                 # Exit edit mode if we enabled it
-                if not was_in_edit_mode and cls.is_edit_mode():
-                    cls._app_coordinator.toggle_edit_mode()
+                if not was_in_edit_mode and app_coordinator.edit_mode:
+                    app_coordinator.toggle_edit_mode()
                     
                 return False
                 
         except Exception as e:
-            cls._set_status(False, f"Error removing tracked key: {e}")
+            service._set_status(False, f"Error removing tracked key: {e}")
             logger.error(f"Error removing tracked key: {e}")
             import traceback
             traceback.print_exc()
             
             # Clean up edit mode if needed
-            if 'was_in_edit_mode' in locals() and not was_in_edit_mode and cls.is_edit_mode():
+            if 'was_in_edit_mode' in locals() and not was_in_edit_mode:
                 try:
-                    cls._app_coordinator.toggle_edit_mode()
+                    if app_coordinator.edit_mode:
+                        app_coordinator.toggle_edit_mode()
                 except:
                     pass
                 
@@ -910,51 +697,55 @@ class InputCollectorAPI:
         Returns:
             bool: True if successful
         """
-        if not cls._check_initialized():
+        service = InteractionService.get_instance()
+        app_coordinator = service.get_component('app_coordinator')
+        
+        if not app_coordinator:
+            service._set_status(False, "App coordinator not available")
             return False
             
         try:
             # Check if recording is active - can't edit buttons during recording
-            if cls.is_recording():
-                cls._set_status(False, "Cannot edit buttons while recording. Stop recording first.")
+            if app_coordinator.is_recording:
+                service._set_status(False, "Cannot edit buttons while recording. Stop recording first.")
                 return False
                 
             # Get current tracked keys before making changes
-            tracked_keys = cls._app_coordinator.get_tracked_keys()
+            tracked_keys = app_coordinator.get_tracked_keys()
             is_currently_tracked = button_id in tracked_keys
             
             # If current state already matches desired state, do nothing
             if is_currently_tracked == track:
                 action = "tracked" if track else "not tracked"
-                cls._set_status(True, f"Button {button_id} is already {action}")
+                service._set_status(True, f"Button {button_id} is already {action}")
                 return True
                 
             # Enable edit mode temporarily
-            was_in_edit_mode = cls.is_edit_mode()
+            was_in_edit_mode = app_coordinator.edit_mode
             if not was_in_edit_mode:
-                cls._app_coordinator.toggle_edit_mode()
+                app_coordinator.toggle_edit_mode()
             
             # Toggle button tracking using AppCoordinator's handle_button_edit
-            cls._app_coordinator.handle_button_edit(button_id, track)
+            app_coordinator.handle_button_edit(button_id, track)
             
             # Verify change by checking updated tracked keys
-            updated_tracked_keys = cls._app_coordinator.get_tracked_keys()
+            updated_tracked_keys = app_coordinator.get_tracked_keys()
             button_tracked = button_id in updated_tracked_keys
             
             # Exit edit mode if we entered it
-            if not was_in_edit_mode and cls.is_edit_mode():
-                cls._app_coordinator.toggle_edit_mode()
+            if not was_in_edit_mode and app_coordinator.edit_mode:
+                app_coordinator.toggle_edit_mode()
                 
             # Check if button tracking state changed as expected
             if button_tracked == track:
-                cls._set_status(True, f"Button {button_id} tracking {'enabled' if track else 'disabled'}")
+                service._set_status(True, f"Button {button_id} tracking {'enabled' if track else 'disabled'}")
                 return True
             else:
-                cls._set_status(False, f"Failed to {'enable' if track else 'disable'} tracking for {button_id}")
+                service._set_status(False, f"Failed to {'enable' if track else 'disable'} tracking for {button_id}")
                 return False
                 
         except Exception as e:
-            cls._set_status(False, f"Error toggling button tracking: {e}")
+            service._set_status(False, f"Error toggling button tracking: {e}")
             logger.error(f"Error toggling button tracking: {e}")
             import traceback
             traceback.print_exc()
@@ -962,8 +753,8 @@ class InputCollectorAPI:
             # Clean up edit mode if needed
             if 'was_in_edit_mode' in locals() and not was_in_edit_mode:
                 try:
-                    if cls.is_edit_mode():
-                        cls._app_coordinator.toggle_edit_mode()
+                    if app_coordinator.edit_mode:
+                        app_coordinator.toggle_edit_mode()
                 except:
                     pass
                 
@@ -977,16 +768,20 @@ class InputCollectorAPI:
         Returns:
             bool: True if successful
         """
-        if not cls._check_initialized():
+        service = InteractionService.get_instance()
+        ui_manager = service.get_component('ui_manager')
+        
+        if not ui_manager:
+            service._set_status(False, "UI manager not available")
             return False
             
         try:
             # Send signal to toggle fullscreen
-            cls._ui_manager.toggle_fullscreen.emit()
-            cls._set_status(True, "Toggled fullscreen mode")
+            ui_manager.toggle_fullscreen.emit()
+            service._set_status(True, "Toggled fullscreen mode")
             return True
         except Exception as e:
-            cls._set_status(False, f"Error toggling fullscreen: {e}")
+            service._set_status(False, f"Error toggling fullscreen: {e}")
             logger.error(f"Error toggling fullscreen: {e}")
             return False
     
@@ -998,12 +793,17 @@ class InputCollectorAPI:
         Returns:
             Dict with application state
         """
-        if not cls._check_initialized():
-            return {"error": "API not initialized"}
+        service = InteractionService.get_instance()
+        
+        # Get components
+        app_coordinator = service.get_component('app_coordinator')
+        collector_manager = service.get_component('collector_manager')
+        
+        if not app_coordinator or not collector_manager:
+            return {"error": "Required components not available"}
             
         try:
             # Get collector information
-            collector_type = cls._collector_manager.get_current_collector_type()
             collector_info = cls.get_current_collector()
             
             # Get recording state
@@ -1022,7 +822,7 @@ class InputCollectorAPI:
             logging_state = cls.get_logging_state()
             
             # Get active keys
-            active_keys = cls._collector_manager.get_active_keys()
+            active_keys = collector_manager.get_active_keys()
             
             return {
                 "collector": collector_info,
