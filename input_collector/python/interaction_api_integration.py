@@ -928,6 +928,8 @@ class InteractionApiIntegration:
                         "min": 0,
                         "max": 100,
                         "step": 1,
+                        "display_value": True,
+                        "display_format": "{value}/100",
                         "required": False
                     },
                     "joystick_sensitivity": {
@@ -936,6 +938,8 @@ class InteractionApiIntegration:
                         "min": 0,
                         "max": 100,
                         "step": 1,
+                        "display_value": True,
+                        "display_format": "{value}/100",
                         "required": False
                     },
                     "angle_grouping": {
@@ -944,6 +948,8 @@ class InteractionApiIntegration:
                         "min": 1,
                         "max": 60,
                         "step": 1,
+                        "display_value": True, 
+                        "display_format": "{value}° ({360/value} values)",
                         "required": False
                     }
                 }

@@ -419,18 +419,37 @@ class InputCollectorAPI:
                     service._set_status(False, f"Angle grouping must be between {min_val} and {max_val}")
                     return False
             
-            # Update UI settings - using more reliable direct methods
+            # Update UI settings - use proper methods that actually exist in the UIManager
+            # Use indirect approach with the appropriate slider widgets rather than direct methods
             if delta_smoothing is not None:
-                # Directly set the slider value and update any display
-                ui_manager.set_delta_smoothing(int(delta_smoothing))
+                # Instead of ui_manager.set_delta_smoothing()
+                # Update the slider value directly if accessible
+                delta_slider = ui_manager.components.get('delta_slider')
+                if delta_slider and hasattr(delta_slider, 'setValue'):
+                    delta_slider.setValue(int(delta_smoothing))
+                    # Force update of any value labels
+                    if hasattr(ui_manager, 'update_delta_value_label'):
+                        ui_manager.update_delta_value_label(int(delta_smoothing))
                 
             if joystick_sensitivity is not None:
-                ui_manager.set_joystick_sensitivity(int(joystick_sensitivity))
+                # Instead of ui_manager.set_joystick_sensitivity()
+                joystick_slider = ui_manager.components.get('joystick_slider')
+                if joystick_slider and hasattr(joystick_slider, 'setValue'):
+                    joystick_slider.setValue(int(joystick_sensitivity))
+                    # Force update of any value labels
+                    if hasattr(ui_manager, 'update_joystick_value_label'):
+                        ui_manager.update_joystick_value_label(int(joystick_sensitivity))
                 
             if angle_grouping is not None:
-                ui_manager.set_angle_grouping(int(angle_grouping))
+                # Instead of ui_manager.set_angle_grouping()
+                angle_slider = ui_manager.components.get('angle_slider')
+                if angle_slider and hasattr(angle_slider, 'setValue'):
+                    angle_slider.setValue(int(angle_grouping))
+                    # Force update of any value labels
+                    if hasattr(ui_manager, 'update_angle_value_label'):
+                        ui_manager.update_angle_value_label(int(angle_grouping))
                 
-            # Apply settings to collector
+            # Apply settings to collector via app coordinator
             app_coordinator.apply_mouse_settings()
             
             # Create status message with actual values set
