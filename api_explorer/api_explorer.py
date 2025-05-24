@@ -147,7 +147,14 @@ class ApiExplorer:
                 
                 modules_list.append(module_data)
                 
-            return self.templates.TemplateResponse("index.html", {"request": request, "modules": modules_list})
+            # add base path for browser
+            cwd = os.getcwd().replace("\\", "/")
+            return self.templates.TemplateResponse(
+                "index.html",
+                {"request": request,
+                 "modules": modules_list,
+                 "base_browse_path": cwd}
+            )
         
         # WebSocket endpoint for real-time events
         @self.app.websocket("/ws/{module_id}")
@@ -184,6 +191,23 @@ class ApiExplorer:
                 print(f"WebSocket connection cleaned up for module: {module_id}")
                 if websocket in self.active_connections:
                     self.active_connections.remove(websocket)
+        
+        # --- Add directory‐listing endpoint for file browser ---
+        from fastapi import Query, HTTPException
+
+        @self.app.get("/api/files")
+        async def list_files(path: str = Query(...)):
+            import os
+            if not os.path.exists(path) or not os.path.isdir(path):
+                raise HTTPException(status_code=400, detail="Path not found or is not a directory")
+            items = []
+            parent = os.path.dirname(path)
+            if parent and os.path.isdir(parent):
+                items.append({"name": "..", "path": parent})
+            for name in os.listdir(path):
+                full = os.path.join(path, name)
+                items.append({"name": name, "path": full})
+            return {"items": items}
     
     async def broadcast_event(self, module_id: str, event_data: Dict) -> None:
         """

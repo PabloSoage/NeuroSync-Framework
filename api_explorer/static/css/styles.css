@@ -8,8 +8,8 @@ body {
 
 /* Dark Mode Styles */
 body.dark-mode {
-    background-color: #1a1a1a;
-    color: #f0f0f0;
+    background-color: #212529;
+    color: #f8f9fa;
 }
 
 .dark-mode .container {
@@ -228,11 +228,11 @@ pre {
 .http-post { background-color: #007bff; color: white; }
 
 .execute-btn {
+    padding: 0.5rem 1rem;
     background-color: #007bff;
     color: white;
     border: none;
-    padding: 5px 15px;
-    border-radius: 3px;
+    border-radius: 4px;
     cursor: pointer;
 }
 
@@ -255,28 +255,32 @@ pre {
 }
 
 .ws-controls {
-    margin-bottom: 15px;
+    margin-bottom: 1rem;
     display: flex;
-    gap: 10px;
     align-items: center;
+    gap: 0.5rem;
 }
 
 .event-count {
-    color: #aaaaaa;
-    font-size: 0.9em;
     margin-left: auto;
 }
 
+/* Connection status indicator */
 .connection-status {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    margin-right: 8px;
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-left: 10px;
 }
 
-.connected { background-color: #5cb85c; }
-.disconnected { background-color: #d9534f; }
+.connection-status.connected {
+  background-color: #28a745;
+}
+
+.connection-status.disconnected {
+  background-color: #dc3545;
+}
 
 .graph-container {
     width: 100%;
@@ -323,31 +327,204 @@ pre {
 }
 
 .type-filter-btn {
-    padding: 5px 10px;
-    font-size: 0.9em;
-    border-radius: 15px;
-    border: 2px solid #ccc;
-    background-color: #f8f9fa;
+    padding: 0.25rem 0.5rem;
+    margin-right: 0.25rem;
+    margin-bottom: 0.25rem;
+    border: none;
+    border-radius: 4px;
     cursor: pointer;
-    transition: all 0.2s;
 }
 
 .type-filter-btn.active {
-    background-color: #007bff;
-    color: white;
-    border-color: #0056b3;
+    border: 2px solid white;
 }
 
-.type-filter-btn:hover {
-    opacity: 0.8;
+.type-eeg {
+  background-color: rgba(75, 108, 183, 1);
+  color: white;
 }
 
-/* Type-specific colors for filter buttons */
-.type-eeg { border-color: #4b6cb7; }
-.type-emg { border-color: #5cb85c; }
-.type-ecg { border-color: #d9534f; }
-.type-accel { border-color: #f0ad4e; }
-.type-gyro { border-color: #5bc0de; }
-.type-eda { border-color: #8e44ad; }
-.type-ppg { border-color: #e83e8c; }
-.type-temperature { border-color: #fd7e14; }
+.type-emg {
+  background-color: rgba(92, 184, 92, 1);
+  color: white;
+}
+
+.type-ecg {
+  background-color: rgba(217, 83, 79, 1);
+  color: white;
+}
+
+.type-accel {
+  background-color: rgba(240, 173, 78, 1);
+  color: white;
+}
+
+.type-gyro {
+  background-color: rgba(91, 192, 222, 1);
+  color: white;
+}
+
+.type-eda {
+  background-color: rgba(142, 68, 173, 1);
+  color: white;
+}
+
+.type-ppg {
+  background-color: rgba(232, 62, 140, 1);
+  color: white;
+}
+
+.type-temperature {
+  background-color: rgba(253, 126, 20, 1);
+  color: white;
+}
+
+/* ------ Fix File Browser Modal Colors ------ */
+
+/* Modal content - adapt to current mode */
+body:not(.dark-mode) .modal-content {
+  background-color: #fff;
+  color: #212529;
+}
+
+body.dark-mode .modal-content {
+  background-color: #343a40;
+  color: #f8f9fa;
+}
+
+/* File Browser Modal inputs in dark mode */
+body.dark-mode .modal-content .form-control.bg-secondary {
+  background-color: #495057 !important;
+  color: #f8f9fa;
+  border-color: #6c757d;
+}
+
+body.dark-mode .modal-content .form-control.bg-secondary::placeholder {
+  color: #ced4da;
+}
+
+/* File Browser Modal inputs in light mode */
+body:not(.dark-mode) .modal-content .form-control.bg-secondary {
+  background-color: #ffffff !important; 
+  color: #212529;
+  border-color: #ced4da;
+}
+
+body:not(.dark-mode) .modal-content .form-control.bg-secondary::placeholder {
+  color: #6c757d;
+}
+
+/* Make modal close button visible in both modes */
+body.dark-mode .modal-header .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* Modal note text color */
+body.dark-mode .modal-body small.text-light {
+  color: #ced4da !important;
+}
+
+body:not(.dark-mode) .modal-body small.text-light {
+  color: #6c757d !important;
+}
+
+/* Modal file list */
+body.dark-mode .modal-content .list-group.bg-dark {
+  background-color: #212529 !important;
+}
+
+body:not(.dark-mode) .modal-content .list-group.bg-dark {
+  background-color: #f8f9fa !important; 
+}
+
+body:not(.dark-mode) .modal-content .list-group.bg-dark .list-group-item {
+  background-color: #ffffff;
+  color: #212529;
+  border-color: #dee2e6;
+}
+
+body.dark-mode .modal-content .list-group.bg-dark .list-group-item {
+  background-color: #343a40;
+  color: #f8f9fa;
+  border-color: #495057;
+}
+
+/* API parameter descriptions - ensure proper visibility in dark mode */
+body.dark-mode .form-text.text-muted {
+  color: #ced4da !important;
+}
+
+body:not(.dark-mode) .modal-footer .btn-success {
+  background-color: #28a745;
+  color: white;
+}
+
+body.dark-mode .modal-footer .btn-success {
+  background-color: #28a745;
+  color: white;
+}
+
+/* Add these rules to fix input text visibility and button text color in both themes */
+
+/* Fix text color in file browser inputs (light mode) */
+body:not(.dark-mode) .modal-content input[type="text"],
+body:not(.dark-mode) .modal-content .form-control {
+  color: #212529 !important;
+  background-color: #fff !important;
+}
+
+/* Fix text color in file browser inputs (dark mode) */
+body.dark-mode .modal-content input[type="text"],
+body.dark-mode .modal-content .form-control {
+  color: #f8f9fa !important;
+  background-color: #495057 !important;
+}
+
+/* Make "Browse..." and "Save as..." buttons adapt to theme */
+body.dark-mode .file-dialog-btn {
+  color: #f8f9fa;
+}
+
+body:not(.dark-mode) .file-dialog-btn {
+  color: #212529;
+}
+
+/* Fix any method descriptions in dark mode */
+body.dark-mode .form-text.text-muted,
+body.dark-mode small.form-text.text-muted,
+body.dark-mode .method-body p {
+  color: #d1d1d1 !important;
+}
+
+/* Fix any method descriptions in light mode */
+body:not(.dark-mode) .modal-body small.text-light {
+  color: #6c757d !important;
+}
+
+/* Increase contrast for button outlines in light mode */
+body:not(.dark-mode) .btn-outline-secondary {
+  border-color: #6c757d;
+}
+
+/* Add these rules to fix placeholder text visibility in dark mode */
+
+/* Make placeholder text visible in dark mode */
+body.dark-mode input::placeholder,
+body.dark-mode textarea::placeholder {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Fix readonly file inputs placeholder color in dark mode */
+body.dark-mode input[readonly] {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Fix readonly file inputs placeholder in light mode */
+body:not(.dark-mode) input[readonly] {
+    color: #212529 !important;
+}
+
+/* Fix file dialog button text color in dark mode */
+body.dark-mode .btn-outline-secondary {
+    color: #f8f9fa;
+}

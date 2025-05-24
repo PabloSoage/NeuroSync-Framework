@@ -4,6 +4,8 @@ const moduleCharts = {}; // Store chart objects by module
 const channelData = {}; // Store historical data by module and channel
 const activeTypeFilters = {}; // Store active type filters by module
 
+let currentBrowseDefaultExt;
+
 // Dark Mode Toggle Functionality
 function initDarkMode() {
     const darkModeToggle = document.getElementById('darkModeToggle');
@@ -1496,4 +1498,90 @@ document.addEventListener('DOMContentLoaded', function() {
         toggle.addEventListener('change', () => toggleSeparateChannels(moduleId));
         console.log(`Added event listener for ${moduleId} separate channels toggle`);
     });
+    
+    // Init Bootstrap modal
+    fileBrowserModal = new bootstrap.Modal(document.getElementById('fileBrowserModal'));
+
+    // "Go" button inside modal
+    document.getElementById('fileBrowserGo')
+        .addEventListener('click', () => {
+            const p = document.getElementById('fileBrowserPath').value;
+            openBrowserDialog(p);
+        });
+
+    // "Select" button inside modal
+    document.getElementById('fileBrowserSelect')
+        .addEventListener('click', () => {
+            if (currentBrowseTargetId) {
+                let dir    = currentBrowsePath;
+                const prefix = document.getElementById('fileBrowserPrefix').value.trim();
+                
+                // Build the filepath prefix only; the backend service will append its own timestamp
+                let full = dir.endsWith('/') ? dir : dir + '/';
+                if (prefix) full += prefix;
+                
+                // Ensure default extension
+                if (currentBrowseDefaultExt && !full.toLowerCase().endsWith(currentBrowseDefaultExt.toLowerCase())) {
+                    full += currentBrowseDefaultExt;
+                }
+                document.getElementById(currentBrowseTargetId).value = full;
+            }
+            fileBrowserModal.hide();
+        });
+
+    // Override file-dialog buttons to open our modal
+    document.querySelectorAll('.file-dialog-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const tgt = e.currentTarget.dataset;
+            currentBrowseTargetId     = tgt.target;
+            currentBrowseDefaultExt   = tgt.defaultExtension || '';
+            openBrowserDialog();
+        });
+    });
 });
+
+// Fetch and display server directory listing
+async function openBrowserDialog(overridePath) {
+    const listEl    = document.getElementById('file-list');
+    const pathInput = document.getElementById('fileBrowserPath');
+    const labelEl   = document.getElementById('fileBrowserLabel');
+
+    // Determine base path
+    const base = overridePath !== undefined
+        ? overridePath.replace(/\\/g,'/')
+        : ( document.getElementById(currentBrowseTargetId).value.replace(/\\/g,'/') 
+            || window.baseBrowsePath );
+    currentBrowsePath = base.endsWith('/') ? base : base + '/';  // ensure trailing slash
+    pathInput.value   = base;
+    labelEl.textContent = `Select Directory: ${base}`;
+
+    // Show loading state and open modal
+    listEl.innerHTML = '<li class="list-group-item">Loading...</li>';
+    fileBrowserModal.show();
+
+    try {
+        const res  = await fetch(`/api/files?path=${encodeURIComponent(base)}`);
+        const data = await res.json();
+
+        if (!res.ok || !Array.isArray(data.items)) {
+            listEl.innerHTML = `<li class="list-group-item">Error: ${data.error||'Invalid response'}</li>`;
+            return;
+        }
+
+        // Populate list
+        listEl.innerHTML = '';
+        if (data.items.length === 0) {
+            listEl.innerHTML = '<li class="list-group-item">No items found</li>';
+        }
+        data.items.forEach(item => {
+            const li = document.createElement('li');
+            li.className = 'list-group-item list-group-item-action';
+            li.textContent = item.name;
+            li.onclick = () => openBrowserDialog(item.path);
+            listEl.appendChild(li);
+        });
+
+    } catch (err) {
+        listEl.innerHTML = `<li class="list-group-item">Error: ${err.message}</li>`;
+    }
+}
