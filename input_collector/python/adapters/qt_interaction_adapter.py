@@ -5,12 +5,11 @@ This module provides an adapter that bridges between the UI framework (PyQt5)
 and the framework-independent interaction service layer.
 """
 
-import logging
-import threading
-import time
 from typing import Dict, List, Any, Optional, Tuple, Set, Callable
 
 from PyQt5.QtCore import QMetaObject, Qt, QObject, pyqtSlot, QTimer, QEventLoop
+import threading
+import logging
 
 class QtInteractionAdapter:
     """
@@ -41,72 +40,67 @@ class QtInteractionAdapter:
         
         Args:
             app_coordinator: Application coordinator
-            ui_manager: UI manager
+            ui_manager: UI manager for the application
             logging_manager: Logging manager
             collector_manager: Collector manager
             event_processor: Event processor
             
         Returns:
-            bool: True if successful
+            bool: True if initialization was successful
         """
-        try:
-            self.app_coordinator = app_coordinator
-            self.ui_manager = ui_manager
-            self.logging_manager = logging_manager
-            self.collector_manager = collector_manager
-            self.event_processor = event_processor
-            
-            logging.info("Qt interaction adapter initialized")
-            return True
-        except Exception as e:
-            logging.error(f"Failed to initialize Qt interaction adapter: {e}")
-            return False
+        self.app_coordinator = app_coordinator
+        self.ui_manager = ui_manager
+        self.logging_manager = logging_manager
+        self.collector_manager = collector_manager
+        self.event_processor = event_processor
+        
+        logging.info("Qt interaction adapter initialized")
+        return True
     
     def _execute_safely(self, func, *args, **kwargs):
         """
-        Execute a function safely, ensuring it runs on the main thread.
+        Execute a function in a thread-safe manner.
+        
+        This method ensures that UI operations are executed in the main thread.
         
         Args:
-            func: The function to execute
-            *args: Arguments to pass to the function
-            **kwargs: Keyword arguments to pass to the function
+            func: Function to execute
+            *args: Arguments for the function
+            **kwargs: Keyword arguments for the function
             
         Returns:
-            The result of the function call
+            Result of the function call
         """
-        # Create a timer in the current thread
-        timer = QTimer()
-        # Create an event loop in the current thread
-        loop = QEventLoop()
-        # Variable to store the result
-        result_container = {"result": None, "done": False, "exception": None}
+        # If we're already in the main thread, execute directly
+        if threading.current_thread() is self.app_coordinator.thread():
+            return func(*args, **kwargs)
         
-        # Function to be executed in the main thread
-        def execute_function():
+        # If we're not in the main thread, use Qt's event system
+        result = [None]
+        error = [None]
+        completed = threading.Event()
+        
+        def callback():
             try:
-                result_container["result"] = func(*args, **kwargs)
-                result_container["done"] = True
+                result[0] = func(*args, **kwargs)
             except Exception as e:
-                result_container["exception"] = e
-                result_container["done"] = True
+                error[0] = e
             finally:
-                loop.quit()
+                completed.set()
         
-        # Connect the timer to the function
-        timer.timeout.connect(execute_function)
-        # Set timer to fire once
-        timer.setSingleShot(True)
-        # Start the timer with a short timeout
-        timer.start(0)
-        # Wait for the function to complete
-        loop.exec_()
+        # Use QTimer single shot to execute in the main thread
+        QTimer.singleShot(0, callback)
         
-        # Check if an exception occurred
-        if result_container["exception"]:
-            raise result_container["exception"]
+        # Wait for completion with timeout
+        if not completed.wait(timeout=5.0):
+            logging.error("Operation timed out when executing safely")
+            raise TimeoutError("Operation timed out")
         
-        # Return the result
-        return result_container["result"]
+        # Raise any errors that occurred
+        if error[0]:
+            raise error[0]
+            
+        return result[0]
     
     #
     # Recording control methods
@@ -114,96 +108,86 @@ class QtInteractionAdapter:
     
     def start_recording(self) -> bool:
         """
-        Start recording input events.
+        Start recording inputs.
         
         Returns:
-            bool: True if successful
+            bool: True if recording started successfully
         """
-        with self._lock:
-            # Get current state
-            prev_state = self.app_coordinator.is_recording if self.app_coordinator else False
-            
-            # Only attempt to start if not already recording
-            if not prev_state:
-                try:
-                    # Use our thread-safe execution function
-                    self._execute_safely(self.app_coordinator.toggle_recording)
-                    
-                    # Wait a brief moment for state to update
-                    time.sleep(0.1)
-                    
-                    # Check if recording state changed
-                    current_state = self.app_coordinator.is_recording if self.app_coordinator else False
-                    return current_state
-                except Exception as e:
-                    logging.error(f"Error starting recording: {e}")
-                    import traceback
-                    traceback.print_exc()
+        try:
+            # Check if app_coordinator exists
+            if not self.app_coordinator:
+                logging.error("Cannot start recording: app_coordinator not initialized")
+                return False
+                
+            # Check if already recording
+            if self.is_recording():
+                logging.info("Already recording, no action taken")
+                return True
+                
+            # Start recording safely in main thread
+            def start():
+                if self.app_coordinator.edit_mode:
                     return False
-            else:
-                # Already recording
-                return True  # Return success since it's in the desired state
+                if not self.app_coordinator.is_recording:
+                    self.app_coordinator._start_recording()
+                return True
+                
+            return self._execute_safely(start)
+        except Exception as e:
+            logging.error(f"Error starting recording: {e}")
+            return False
     
     def stop_recording(self) -> bool:
         """
-        Stop recording input events.
+        Stop recording inputs.
         
         Returns:
-            bool: True if successful
+            bool: True if recording stopped successfully
         """
-        with self._lock:
-            # Get current state
-            prev_state = self.app_coordinator.is_recording if self.app_coordinator else False
-            
-            # Only attempt to stop if currently recording
-            if prev_state:
-                try:
-                    # Use our thread-safe execution function
-                    self._execute_safely(self.app_coordinator.toggle_recording)
-                    
-                    # Wait a brief moment for state to update
-                    time.sleep(0.1)
-                    
-                    # Check if recording state changed
-                    current_state = self.app_coordinator.is_recording if self.app_coordinator else True
-                    return not current_state
-                except Exception as e:
-                    logging.error(f"Error stopping recording: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    return False
-            else:
-                # Not recording
-                return True  # Return success since it's in the desired state
+        try:
+            # Check if app_coordinator exists
+            if not self.app_coordinator:
+                logging.error("Cannot stop recording: app_coordinator not initialized")
+                return False
+                
+            # Check if already stopped
+            if not self.is_recording():
+                logging.info("Not recording, no action taken")
+                return True
+                
+            # Stop recording safely in main thread
+            def stop():
+                if self.app_coordinator.is_recording:
+                    self.app_coordinator._stop_recording()
+                return True
+                
+            return self._execute_safely(stop)
+        except Exception as e:
+            logging.error(f"Error stopping recording: {e}")
+            return False
     
     def toggle_recording(self) -> Tuple[bool, bool]:
         """
         Toggle recording state.
         
         Returns:
-            Tuple of (success, is_recording)
+            Tuple[bool, bool]: (success, is_recording_after_toggle)
         """
-        with self._lock:
-            # Get current state
-            prev_state = self.app_coordinator.is_recording if self.app_coordinator else False
+        try:
+            # Check if app_coordinator exists
+            if not self.app_coordinator:
+                logging.error("Cannot toggle recording: app_coordinator not initialized")
+                return False, False
             
-            try:
-                # Use our thread-safe execution function
-                self._execute_safely(self.app_coordinator.toggle_recording)
+            # Toggle recording safely in main thread
+            def toggle():
+                self.app_coordinator.toggle_recording()
+                return True, self.app_coordinator.is_recording
                 
-                # Wait a brief moment for state to update
-                time.sleep(0.1)
-                
-                # Get new state
-                current_state = self.app_coordinator.is_recording if self.app_coordinator else prev_state
-                
-                # Return success and new state
-                return True, current_state
-            except Exception as e:
-                logging.error(f"Error toggling recording: {e}")
-                import traceback
-                traceback.print_exc()
-                return False, prev_state
+            return self._execute_safely(toggle)
+        except Exception as e:
+            logging.error(f"Error toggling recording: {e}")
+            return False, False
     
     def is_recording(self) -> bool:
         """
@@ -212,7 +196,9 @@ class QtInteractionAdapter:
         Returns:
             bool: True if recording is active
         """
-        return self.app_coordinator.is_recording if self.app_coordinator else False
+        if not self.app_coordinator:
+            return False
+        return self.app_coordinator.is_recording
     
     #
     # UI methods
@@ -220,63 +206,85 @@ class QtInteractionAdapter:
     
     def set_csv_path(self, filepath: str) -> bool:
         """
-        Set the CSV path in the UI.
+        Set the CSV log file path.
         
         Args:
-            filepath: Path to the CSV file
+            filepath: Path for the CSV file
             
         Returns:
             bool: True if successful
         """
-        if not self.ui_manager:
-            return False
-            
         try:
-            self.ui_manager.set_csv_path(filepath)
-            return True
+            if not self.logging_manager:
+                logging.error("Cannot set CSV path: logging_manager not initialized")
+                return False
+                
+            # Set CSV path safely
+            def set_path():
+                self.logging_manager.csv_logger.set_filepath(filepath)
+                self.ui_manager.set_csv_path(filepath)
+                return True
+                
+            return self._execute_safely(set_path)
         except Exception as e:
-            logging.error(f"Error setting CSV path in UI: {e}")
+            logging.error(f"Error setting CSV path: {e}")
             return False
     
     def scan_controllers(self) -> List[Dict[str, Any]]:
         """
-        Scan for controllers.
+        Scan for available controllers.
         
         Returns:
-            List of controller info dictionaries
+            List of controller information dictionaries
         """
-        if not self.collector_manager:
-            return []
-            
         try:
+            if not self.collector_manager:
+                logging.error("Cannot scan controllers: collector_manager not initialized")
+                return []
+                
+            # Get PS4 collector
             ps4_collector = self.collector_manager.get_collector("ps4_controller")
-            if ps4_collector:
+            if not ps4_collector:
+                logging.error("Cannot scan controllers: PS4 collector not available")
+                return []
+                
+            # Scan controllers safely
+            def scan():
                 return ps4_collector.scan_controllers()
-            return []
+                
+            return self._execute_safely(scan)
         except Exception as e:
             logging.error(f"Error scanning controllers: {e}")
             return []
     
     def connect_controller(self, index: int) -> bool:
         """
-        Connect to a controller.
+        Connect to a specific controller by index.
         
         Args:
-            index: Controller index
+            index: Controller index from scan_controllers()
             
         Returns:
-            bool: True if successful
+            bool: True if connection successful
         """
-        if not self.collector_manager:
-            return False
-            
         try:
+            if not self.collector_manager:
+                logging.error("Cannot connect controller: collector_manager not initialized")
+                return False
+                
+            # Get PS4 collector
             ps4_collector = self.collector_manager.get_collector("ps4_controller")
-            if ps4_collector:
+            if not ps4_collector:
+                logging.error("Cannot connect controller: PS4 collector not available")
+                return False
+                
+            # Connect controller safely
+            def connect():
                 return ps4_collector.connect_to_controller(index)
-            return False
+                
+            return self._execute_safely(connect)
         except Exception as e:
-            logging.error(f"Error connecting to controller: {e}")
+            logging.error(f"Error connecting controller: {e}")
             return False
     
     def switch_collector(self, collector_type: str) -> bool:
@@ -284,44 +292,59 @@ class QtInteractionAdapter:
         Switch to a different input collector.
         
         Args:
-            collector_type: Type identifier for the collector
+            collector_type: The type identifier for the collector
             
         Returns:
             bool: True if successful
         """
-        if not self.app_coordinator:
+        try:
+            if not self.app_coordinator:
+                logging.error("Cannot switch collector: app_coordinator not initialized")
+                return False
+                
+            # Switch collector safely
+            def switch():
+                self.app_coordinator.switch_collector(collector_type)
+                return True
+                
+            return self._execute_safely(switch)
+        except Exception as e:
+            logging.error(f"Error switching collector: {e}")
             return False
-            
-        success, _ = self._ensure_main_thread(self.app_coordinator, "switch_collector", collector_type)
-        return success
     
     def set_mouse_tracking_mode(self, mode: str, direction_only: bool = None) -> bool:
         """
-        Set the mouse tracking mode.
+        Set mouse tracking mode.
         
         Args:
-            mode: The tracking mode to use
+            mode: Tracking mode ('joystick', 'delta', 'angle', 'axis')
             direction_only: Whether to use direction-only mode
             
         Returns:
             bool: True if successful
         """
-        if not self.ui_manager:
-            return False
-            
         try:
-            # Update direction-only mode first if specified
-            if direction_only is not None:
-                self.ui_manager.set_direction_only_mode(direction_only)
+            if not self.app_coordinator or not self.ui_manager:
+                logging.error("Cannot set mouse tracking mode: required components not initialized")
+                return False
                 
-            # Set tracking mode in UI
-            self.ui_manager.set_tracking_mode(mode)
-            
-            # Apply mode change through coordinator
-            if self.app_coordinator:
-                success, _ = self._ensure_main_thread(self.app_coordinator, "set_mouse_tracking_mode", mode)
-                return success
-            return True
+            # Set tracking mode safely
+            def set_mode():
+                # Handle direction_only parameter if provided
+                if direction_only is not None:
+                    current_dir_only = self.ui_manager.is_direction_only_mode()
+                    if direction_only != current_dir_only:
+                        self.ui_manager.set_direction_only_checkbox(direction_only)
+                        # This will trigger an update of available modes
+                
+                # Set the tracking mode in UI
+                self.ui_manager.set_tracking_mode(mode)
+                
+                # Apply mode to collector via app coordinator
+                self.app_coordinator.set_mouse_tracking_mode(mode)
+                return True
+                
+            return self._execute_safely(set_mode)
         except Exception as e:
             logging.error(f"Error setting mouse tracking mode: {e}")
             return False
@@ -333,32 +356,41 @@ class QtInteractionAdapter:
         Set mouse tracking settings.
         
         Args:
-            delta_smoothing: Smoothing factor for delta tracking
-            joystick_sensitivity: Sensitivity for joystick tracking
-            angle_grouping: Angle grouping in degrees
+            delta_smoothing: Smoothing factor for delta tracking (0-100)
+            joystick_sensitivity: Sensitivity for joystick tracking (0-100)
+            angle_grouping: Angle grouping in degrees (1-60)
             
         Returns:
             bool: True if successful
         """
-        if not self.ui_manager:
-            return False
-            
         try:
-            # Update UI settings
-            if delta_smoothing is not None:
-                self.ui_manager.set_delta_smoothing(delta_smoothing)
+            if not self.app_coordinator or not self.ui_manager:
+                logging.error("Cannot set mouse settings: required components not initialized")
+                return False
                 
-            if joystick_sensitivity is not None:
-                self.ui_manager.set_joystick_sensitivity(joystick_sensitivity)
+            # Set mouse settings safely
+            def set_settings():
+                # Update UI sliders
+                if delta_smoothing is not None:
+                    delta_slider = self.ui_manager.components.get('delta_slider')
+                    if delta_slider:
+                        delta_slider.setValue(int(delta_smoothing))
                 
-            if angle_grouping is not None:
-                self.ui_manager.set_angle_grouping(angle_grouping)
+                if joystick_sensitivity is not None:
+                    joystick_slider = self.ui_manager.components.get('joystick_slider')
+                    if joystick_slider:
+                        joystick_slider.setValue(int(joystick_sensitivity))
                 
-            # Apply settings
-            if self.app_coordinator:
-                success, _ = self._ensure_main_thread(self.app_coordinator, "apply_mouse_settings")
-                return success
-            return True
+                if angle_grouping is not None:
+                    angle_slider = self.ui_manager.components.get('angle_slider')
+                    if angle_slider:
+                        angle_slider.setValue(int(angle_grouping))
+                
+                # Apply settings via app coordinator
+                self.app_coordinator.apply_mouse_settings()
+                return True
+                
+            return self._execute_safely(set_settings)
         except Exception as e:
             logging.error(f"Error setting mouse settings: {e}")
             return False
@@ -368,60 +400,72 @@ class QtInteractionAdapter:
         Get current mouse tracking settings.
         
         Returns:
-            Dict[str, Any]: Dictionary with mouse settings
+            Dict with current mouse settings
         """
-        if not self.ui_manager:
-            return {"error": "UI manager not available"}
-            
         try:
-            return {
-                "tracking_mode": self.ui_manager.get_tracking_mode(),
-                "direction_only": self.ui_manager.is_direction_only_mode(),
-                "delta_smoothing": self.ui_manager.get_delta_smoothing(),
-                "joystick_sensitivity": self.ui_manager.get_joystick_sensitivity(),
-                "angle_grouping": self.ui_manager.get_angle_grouping()
-            }
+            if not self.ui_manager:
+                logging.error("Cannot get mouse settings: ui_manager not initialized")
+                return {}
+                
+            # Dictionary to store settings
+            settings = {}
+            
+            # Get settings directly from UI manager (thread-safe read operation)
+            settings["tracking_mode"] = self.ui_manager.get_tracking_mode()
+            settings["direction_only"] = self.ui_manager.is_direction_only_mode()
+            settings["delta_smoothing"] = self.ui_manager.get_delta_smoothing()
+            settings["joystick_sensitivity"] = self.ui_manager.get_joystick_sensitivity()
+            settings["angle_grouping"] = self.ui_manager.get_angle_grouping()
+            
+            # Determine available tracking modes based on direction_only
+            if settings["direction_only"]:
+                settings["available_tracking_modes"] = ["axis", "angle"]
+            else:
+                settings["available_tracking_modes"] = ["joystick", "delta", "angle"]
+                
+            return settings
         except Exception as e:
             logging.error(f"Error getting mouse settings: {e}")
-            return {"error": str(e)}
+            return {}
     
     def get_tracked_keys(self) -> List[str]:
         """
-        Get the list of currently tracked keys.
+        Get list of tracked keys.
         
         Returns:
-            List[str]: List of tracked keys
+            List of tracked keys
         """
         if not self.app_coordinator:
             return []
-            
-        try:
-            return self.app_coordinator.get_tracked_keys()
-        except Exception as e:
-            logging.error(f"Error getting tracked keys: {e}")
-            return []
+        return self.app_coordinator.get_tracked_keys()
     
     def toggle_edit_mode(self) -> Tuple[bool, bool]:
         """
         Toggle key/button edit mode.
         
         Returns:
-            Tuple of (success, is_edit_mode)
+            Tuple[bool, bool]: (success, is_edit_mode_after_toggle)
         """
-        if not self.app_coordinator:
+        try:
+            if not self.app_coordinator:
+                logging.error("Cannot toggle edit mode: app_coordinator not initialized")
+                return False, False
+                
+            # Check if recording is active
+            if self.app_coordinator.is_recording:
+                logging.warning("Cannot toggle edit mode while recording")
+                return False, self.app_coordinator.edit_mode
+                
+            # Toggle edit mode safely
+            def toggle():
+                prev_state = self.app_coordinator.edit_mode
+                self.app_coordinator.toggle_edit_mode()
+                return self.app_coordinator.edit_mode != prev_state, self.app_coordinator.edit_mode
+                
+            return self._execute_safely(toggle)
+        except Exception as e:
+            logging.error(f"Error toggling edit mode: {e}")
             return False, False
-            
-        # Get current state
-        prev_state = self.app_coordinator.edit_mode if self.app_coordinator else False
-        
-        # Toggle edit mode
-        success, _ = self._ensure_main_thread(self.app_coordinator, "toggle_edit_mode")
-        
-        # Get new state
-        current_state = self.app_coordinator.edit_mode if self.app_coordinator else prev_state
-        
-        # Return success and new state
-        return success, current_state
     
     def is_edit_mode(self) -> bool:
         """
@@ -430,41 +474,108 @@ class QtInteractionAdapter:
         Returns:
             bool: True if edit mode is active
         """
-        return self.app_coordinator.edit_mode if self.app_coordinator else False
+        if not self.app_coordinator:
+            return False
+        return self.app_coordinator.edit_mode
     
     def add_tracked_key(self, key: str) -> bool:
         """
-        Add a key to the tracked keys list.
+        Add a key to tracked keys.
         
         Args:
-            key: Key to add
+            key: Key to add for tracking
             
         Returns:
             bool: True if successful
         """
-        if not self.app_coordinator:
+        try:
+            if not self.app_coordinator:
+                logging.error("Cannot add tracked key: app_coordinator not initialized")
+                return False
+                
+            # Check if already in tracked keys
+            current_keys = self.app_coordinator.get_tracked_keys()
+            if key in current_keys:
+                logging.info(f"Key {key} is already tracked")
+                return True
+                
+            # Add key safely via handle_key_edit
+            def add_key():
+                # Store previous edit mode state
+                was_in_edit_mode = self.app_coordinator.edit_mode
+                
+                # Enable edit mode temporarily if needed
+                if not was_in_edit_mode:
+                    self.app_coordinator.toggle_edit_mode()
+                
+                # Add the key
+                self.app_coordinator.handle_key_edit(key)
+                
+                # Check if added successfully
+                added = key in self.app_coordinator.get_tracked_keys()
+                
+                # Restore previous edit mode if needed
+                if not was_in_edit_mode and self.app_coordinator.edit_mode:
+                    self.app_coordinator.toggle_edit_mode()
+                
+                return added
+                
+            return self._execute_safely(add_key)
+        except Exception as e:
+            logging.error(f"Error adding tracked key: {e}")
             return False
-            
-        # Simulate what handle_key_edit does
-        success, _ = self._ensure_main_thread(self.app_coordinator, "handle_key_edit", key)
-        return success
     
     def remove_tracked_key(self, key: str) -> bool:
         """
-        Remove a key from the tracked keys list.
+        Remove a key from tracked keys.
         
         Args:
-            key: Key to remove
+            key: Key to remove from tracking
             
         Returns:
             bool: True if successful
         """
-        if not self.app_coordinator:
+        try:
+            if not self.app_coordinator:
+                logging.error("Cannot remove tracked key: app_coordinator not initialized")
+                return False
+                
+            # Check if key is tracked
+            current_keys = self.app_coordinator.get_tracked_keys()
+            if key not in current_keys:
+                logging.info(f"Key {key} is not tracked")
+                return False
+                
+            # Don't allow removing F9/media_play_pause
+            if key.lower() == "key.media_play_pause".lower():
+                logging.warning("Cannot remove F9/media_play_pause key (required for recording toggle)")
+                return False
+                
+            # Remove key safely via handle_key_edit
+            def remove_key():
+                # Store previous edit mode state
+                was_in_edit_mode = self.app_coordinator.edit_mode
+                
+                # Enable edit mode temporarily if needed
+                if not was_in_edit_mode:
+                    self.app_coordinator.toggle_edit_mode()
+                
+                # Remove the key
+                self.app_coordinator.handle_key_edit(key)
+                
+                # Check if removed successfully
+                removed = key not in self.app_coordinator.get_tracked_keys()
+                
+                # Restore previous edit mode if needed
+                if not was_in_edit_mode and self.app_coordinator.edit_mode:
+                    self.app_coordinator.toggle_edit_mode()
+                
+                return removed
+                
+            return self._execute_safely(remove_key)
+        except Exception as e:
+            logging.error(f"Error removing tracked key: {e}")
             return False
-            
-        # Simulate what handle_key_edit does
-        success, _ = self._ensure_main_thread(self.app_coordinator, "handle_key_edit", key)
-        return success
     
     def toggle_button_tracking(self, button_id: str, track: bool) -> bool:
         """
@@ -477,11 +588,46 @@ class QtInteractionAdapter:
         Returns:
             bool: True if successful
         """
-        if not self.app_coordinator:
-            return False
+        try:
+            if not self.app_coordinator:
+                logging.error("Cannot toggle button tracking: app_coordinator not initialized")
+                return False
+                
+            # Get current tracked keys
+            tracked_keys = self.app_coordinator.get_tracked_keys()
+            is_currently_tracked = button_id in tracked_keys
             
-        success, _ = self._ensure_main_thread(self.app_coordinator, "handle_button_edit", button_id, track)
-        return success
+            # If current state already matches desired state, do nothing
+            if is_currently_tracked == track:
+                action = "tracked" if track else "not tracked"
+                logging.info(f"Button {button_id} is already {action}")
+                return True
+                
+            # Toggle button tracking safely
+            def toggle_button():
+                # Store previous edit mode state
+                was_in_edit_mode = self.app_coordinator.edit_mode
+                
+                # Enable edit mode temporarily if needed
+                if not was_in_edit_mode:
+                    self.app_coordinator.toggle_edit_mode()
+                
+                # Toggle the button
+                self.app_coordinator.handle_button_edit(button_id, track)
+                
+                # Check if toggled successfully
+                toggled = bool(button_id in self.app_coordinator.get_tracked_keys()) == track
+                
+                # Restore previous edit mode if needed
+                if not was_in_edit_mode and self.app_coordinator.edit_mode:
+                    self.app_coordinator.toggle_edit_mode()
+                
+                return toggled
+                
+            return self._execute_safely(toggle_button)
+        except Exception as e:
+            logging.error(f"Error toggling button tracking: {e}")
+            return False
     
     def toggle_fullscreen(self) -> bool:
         """
@@ -490,13 +636,17 @@ class QtInteractionAdapter:
         Returns:
             bool: True if successful
         """
-        if not self.ui_manager:
-            return False
-            
         try:
-            # Use the UI manager's toggle_fullscreen signal
-            self.ui_manager.toggle_fullscreen.emit()
-            return True
+            if not self.ui_manager:
+                logging.error("Cannot toggle fullscreen: ui_manager not initialized")
+                return False
+                
+            # Toggle fullscreen safely
+            def toggle():
+                self.ui_manager.toggle_fullscreen.emit()
+                return True
+                
+            return self._execute_safely(toggle)
         except Exception as e:
             logging.error(f"Error toggling fullscreen: {e}")
             return False
