@@ -36,6 +36,13 @@ class InputCollectorAPI:
     _event_callbacks = {}
     _next_callback_id = 1
     
+    # Constants for validation
+    MOUSE_SETTING_RANGES = {
+        "delta_smoothing": (0, 100),
+        "joystick_sensitivity": (0, 100),
+        "angle_grouping": (1, 60)
+    }
+    
     @classmethod
     def initialize(cls, app_coordinator, ui_manager, logging_manager, collector_manager, event_processor):
         """
@@ -91,6 +98,10 @@ class InputCollectorAPI:
     @classmethod
     def _on_input_event(cls, event: InputData) -> None:
         """Handle input events."""
+        # Skip key_release events to match GUI behavior
+        if hasattr(event, 'event_type') and event.event_type == 'key_release':
+            return
+            
         # Notify all registered event callbacks
         cls._notify_event_callbacks(event)
     
@@ -389,6 +400,32 @@ class InputCollectorAPI:
             # Get current collector type for comparison
             prev_collector = cls._collector_manager.get_current_collector_type()
             
+            # Special handling for PS4 controller to match GUI behavior
+            if collector_type == "ps4_controller":
+                # Check if PS4 collector is available
+                ps4_collector = cls._collector_manager.get_collector("ps4_controller")
+                if not ps4_collector:
+                    cls._set_status(False, "PS4 controller support not available")
+                    return False
+                    
+                # Check if a controller is already connected
+                if not ps4_collector.controller:
+                    # Scan for controllers
+                    controllers = ps4_collector.scan_controllers()
+                    if not controllers:
+                        cls._set_status(False, "No controllers found, falling back to keyboard/mouse")
+                        # Switch to keyboard/mouse instead
+                        cls._app_coordinator.switch_collector("keyboard_mouse")
+                        return False
+                    
+                    # Connect to first controller
+                    success = ps4_collector.connect_to_controller(controllers[0]["index"])
+                    if not success:
+                        cls._set_status(False, "Failed to connect to controller, falling back to keyboard/mouse")
+                        # Switch to keyboard/mouse instead
+                        cls._app_coordinator.switch_collector("keyboard_mouse")
+                        return False
+            
             # Switch collector using the app coordinator
             cls._app_coordinator.switch_collector(collector_type)
             
@@ -404,6 +441,8 @@ class InputCollectorAPI:
         except Exception as e:
             cls._set_status(False, f"Error switching collector: {e}")
             logger.error(f"Error switching collector: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     @classmethod
@@ -483,6 +522,27 @@ class InputCollectorAPI:
             cls._set_status(False, f"Error connecting to controller: {e}")
             logger.error(f"Error connecting to controller: {e}")
             return False
+
+    @classmethod
+    def get_available_tracking_modes(cls, direction_only: bool = None) -> List[str]:
+        """
+        Get available tracking modes based on direction_only setting.
+        
+        Args:
+            direction_only: Whether direction-only mode is enabled
+            
+        Returns:
+            List[str]: Available tracking modes
+        """
+        # If direction_only not specified, get current setting
+        if direction_only is None and cls._ui_manager:
+            direction_only = cls._ui_manager.is_direction_only_mode()
+            
+        # Return appropriate modes based on direction_only setting
+        if direction_only:
+            return ["axis", "angle"]
+        else:
+            return ["joystick", "delta", "angle"]
     
     @classmethod
     def set_mouse_tracking_mode(cls, mode: str, direction_only: Optional[bool] = None) -> bool:
@@ -500,6 +560,14 @@ class InputCollectorAPI:
             return False
             
         try:
+            # Validate the mode based on direction_only setting
+            current_dir_only = cls._ui_manager.is_direction_only_mode() if direction_only is None else direction_only
+            valid_modes = cls.get_available_tracking_modes(current_dir_only)
+            
+            if mode not in valid_modes:
+                cls._set_status(False, f"Invalid tracking mode '{mode}' for direction_only={current_dir_only}. Valid modes: {valid_modes}")
+                return False
+            
             # Update direction-only mode if specified
             if direction_only is not None:
                 cls._ui_manager.set_direction_only_mode(direction_only)
@@ -515,6 +583,8 @@ class InputCollectorAPI:
         except Exception as e:
             cls._set_status(False, f"Error setting mouse tracking mode: {e}")
             logger.error(f"Error setting mouse tracking mode: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     @classmethod
@@ -536,15 +606,37 @@ class InputCollectorAPI:
             return False
             
         try:
-            # Update UI settings
+            # Validate input ranges
             if delta_smoothing is not None:
-                cls._ui_manager.set_delta_smoothing(delta_smoothing)
+                min_val, max_val = cls.MOUSE_SETTING_RANGES["delta_smoothing"]
+                if not min_val <= delta_smoothing <= max_val:
+                    cls._set_status(False, f"Delta smoothing must be between {min_val} and {max_val}")
+                    return False
                 
             if joystick_sensitivity is not None:
-                cls._ui_manager.set_joystick_sensitivity(joystick_sensitivity)
+                min_val, max_val = cls.MOUSE_SETTING_RANGES["joystick_sensitivity"]
+                if not min_val <= joystick_sensitivity <= max_val:
+                    cls._set_status(False, f"Joystick sensitivity must be between {min_val} and {max_val}")
+                    return False
                 
             if angle_grouping is not None:
-                cls._ui_manager.set_angle_grouping(angle_grouping)
+                min_val, max_val = cls.MOUSE_SETTING_RANGES["angle_grouping"]
+                if not min_val <= angle_grouping <= max_val:
+                    cls._set_status(False, f"Angle grouping must be between {min_val} and {max_val}")
+                    return False
+            
+            # Update UI settings - using the correct method names
+            if delta_smoothing is not None:
+                if hasattr(cls._ui_manager, 'get_delta_smoothing_slider') and cls._ui_manager.get_delta_smoothing_slider():
+                    cls._ui_manager.get_delta_smoothing_slider().setValue(int(delta_smoothing))
+                
+            if joystick_sensitivity is not None:
+                if hasattr(cls._ui_manager, 'get_joystick_sensitivity_slider') and cls._ui_manager.get_joystick_sensitivity_slider():
+                    cls._ui_manager.get_joystick_sensitivity_slider().setValue(int(joystick_sensitivity))
+                
+            if angle_grouping is not None:
+                if hasattr(cls._ui_manager, 'get_angle_grouping_slider') and cls._ui_manager.get_angle_grouping_slider():
+                    cls._ui_manager.get_angle_grouping_slider().setValue(int(angle_grouping))
                 
             # Apply settings to collector
             cls._app_coordinator.apply_mouse_settings()
@@ -554,6 +646,8 @@ class InputCollectorAPI:
         except Exception as e:
             cls._set_status(False, f"Error setting mouse settings: {e}")
             logger.error(f"Error setting mouse settings: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     @classmethod
@@ -573,10 +667,13 @@ class InputCollectorAPI:
                 "direction_only": cls._ui_manager.is_direction_only_mode(),
                 "delta_smoothing": cls._ui_manager.get_delta_smoothing(),
                 "joystick_sensitivity": cls._ui_manager.get_joystick_sensitivity(),
-                "angle_grouping": cls._ui_manager.get_angle_grouping()
+                "angle_grouping": cls._ui_manager.get_angle_grouping(),
+                "available_tracking_modes": cls.get_available_tracking_modes()
             }
         except Exception as e:
             logger.error(f"Error getting mouse settings: {e}")
+            import traceback
+            traceback.print_exc()
             return {"error": str(e)}
     
     @classmethod
@@ -608,6 +705,11 @@ class InputCollectorAPI:
             return False
             
         try:
+            # Check if recording is active - can't toggle edit mode during recording
+            if cls.is_recording():
+                cls._set_status(False, "Cannot edit keys while recording")
+                return False
+                
             # Store previous edit mode state
             prev_state = cls.is_edit_mode()
             
@@ -627,6 +729,8 @@ class InputCollectorAPI:
         except Exception as e:
             cls._set_status(False, f"Error toggling edit mode: {e}")
             logger.error(f"Error toggling edit mode: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     @classmethod
@@ -657,9 +761,19 @@ class InputCollectorAPI:
             return False
             
         try:
-            # Check if already in edit mode
-            if not cls.is_edit_mode():
-                # Enable edit mode first
+            # Check if recording is active - can't edit keys during recording
+            if cls.is_recording():
+                cls._set_status(False, "Cannot edit keys while recording")
+                return False
+            
+            # Check if already in tracked keys
+            if key in cls._app_coordinator.get_tracked_keys():
+                cls._set_status(True, f"Key {key} is already being tracked")
+                return True
+            
+            # Enable edit mode temporarily
+            was_in_edit_mode = cls.is_edit_mode()
+            if not was_in_edit_mode:
                 cls._app_coordinator.toggle_edit_mode()
                 
             # Add key
@@ -669,16 +783,16 @@ class InputCollectorAPI:
             if key in cls._app_coordinator.get_tracked_keys():
                 cls._set_status(True, f"Added tracked key: {key}")
                 
-                # Exit edit mode
-                if cls.is_edit_mode():
+                # Exit edit mode if we enabled it
+                if not was_in_edit_mode and cls.is_edit_mode():
                     cls._app_coordinator.toggle_edit_mode()
                     
                 return True
             else:
                 cls._set_status(False, f"Failed to add key: {key}")
                 
-                # Exit edit mode
-                if cls.is_edit_mode():
+                # Exit edit mode if we enabled it
+                if not was_in_edit_mode and cls.is_edit_mode():
                     cls._app_coordinator.toggle_edit_mode()
                     
                 return False
@@ -686,9 +800,11 @@ class InputCollectorAPI:
         except Exception as e:
             cls._set_status(False, f"Error adding tracked key: {e}")
             logger.error(f"Error adding tracked key: {e}")
+            import traceback
+            traceback.print_exc()
             
-            # Exit edit mode
-            if cls.is_edit_mode():
+            # Clean up edit mode if needed
+            if 'was_in_edit_mode' in locals() and not was_in_edit_mode and cls.is_edit_mode():
                 try:
                     cls._app_coordinator.toggle_edit_mode()
                 except:
@@ -711,14 +827,24 @@ class InputCollectorAPI:
             return False
             
         try:
-            # Check if key is tracked
-            if key not in cls._app_coordinator.get_tracked_keys():
-                cls._set_status(False, f"Key {key} is not tracked")
+            # Check if recording is active - can't edit keys during recording
+            if cls.is_recording():
+                cls._set_status(False, "Cannot edit keys while recording")
                 return False
                 
-            # Check if already in edit mode
-            if not cls.is_edit_mode():
-                # Enable edit mode first
+            # Check if key is tracked
+            if key not in cls._app_coordinator.get_tracked_keys():
+                cls._set_status(False, f"Key {key} is not being tracked")
+                return False
+                
+            # Don't allow removing F9/media_play_pause
+            if key.lower() == "key.media_play_pause".lower():
+                cls._set_status(False, "Cannot remove F9/media_play_pause key")
+                return False
+                
+            # Enable edit mode temporarily
+            was_in_edit_mode = cls.is_edit_mode()
+            if not was_in_edit_mode:
                 cls._app_coordinator.toggle_edit_mode()
                 
             # Remove key
@@ -728,16 +854,16 @@ class InputCollectorAPI:
             if key not in cls._app_coordinator.get_tracked_keys():
                 cls._set_status(True, f"Removed tracked key: {key}")
                 
-                # Exit edit mode
-                if cls.is_edit_mode():
+                # Exit edit mode if we enabled it
+                if not was_in_edit_mode and cls.is_edit_mode():
                     cls._app_coordinator.toggle_edit_mode()
                     
                 return True
             else:
                 cls._set_status(False, f"Failed to remove key: {key}")
                 
-                # Exit edit mode
-                if cls.is_edit_mode():
+                # Exit edit mode if we enabled it
+                if not was_in_edit_mode and cls.is_edit_mode():
                     cls._app_coordinator.toggle_edit_mode()
                     
                 return False
@@ -745,9 +871,11 @@ class InputCollectorAPI:
         except Exception as e:
             cls._set_status(False, f"Error removing tracked key: {e}")
             logger.error(f"Error removing tracked key: {e}")
+            import traceback
+            traceback.print_exc()
             
-            # Exit edit mode
-            if cls.is_edit_mode():
+            # Clean up edit mode if needed
+            if 'was_in_edit_mode' in locals() and not was_in_edit_mode and cls.is_edit_mode():
                 try:
                     cls._app_coordinator.toggle_edit_mode()
                 except:
@@ -771,44 +899,61 @@ class InputCollectorAPI:
             return False
             
         try:
-            # Make sure in edit mode
+            # Check if recording is active - can't edit buttons during recording
+            if cls.is_recording():
+                cls._set_status(False, "Cannot edit buttons while recording")
+                return False
+                
+            # Enable edit mode temporarily
             was_in_edit_mode = cls.is_edit_mode()
             if not was_in_edit_mode:
                 cls._app_coordinator.toggle_edit_mode()
-                
-            # Toggle button tracking
-            cls._app_coordinator.handle_button_edit(button_id, track)
             
-            # Check if button tracking state changed as expected
+            # Current state of button tracking
             tracked_keys = cls._app_coordinator.get_tracked_keys()
-            button_tracked = button_id in tracked_keys
-            if button_tracked == track:
-                cls._set_status(True, f"Button {button_id} tracking {'enabled' if track else 'disabled'}")
+            is_currently_tracked = button_id in tracked_keys
+            
+            # Only make changes if needed
+            if is_currently_tracked != track:
+                # Toggle button tracking
+                cls._app_coordinator.handle_button_edit(button_id, track)
                 
-                # Exit edit mode if we entered it
-                if not was_in_edit_mode and cls.is_edit_mode():
-                    cls._app_coordinator.toggle_edit_mode()
+                # Check if button tracking state changed as expected
+                updated_tracked_keys = cls._app_coordinator.get_tracked_keys()
+                button_tracked = button_id in updated_tracked_keys
+                
+                if button_tracked == track:
+                    cls._set_status(True, f"Button {button_id} tracking {'enabled' if track else 'disabled'}")
+                else:
+                    cls._set_status(False, f"Failed to {'enable' if track else 'disable'} tracking for {button_id}")
                     
-                return True
+                    # Exit edit mode if we entered it
+                    if not was_in_edit_mode and cls.is_edit_mode():
+                        cls._app_coordinator.toggle_edit_mode()
+                        
+                    return False
             else:
-                cls._set_status(False, f"Failed to {'enable' if track else 'disable'} tracking for {button_id}")
+                cls._set_status(True, f"Button {button_id} already {'tracked' if track else 'not tracked'}")
                 
-                # Exit edit mode if we entered it
-                if not was_in_edit_mode and cls.is_edit_mode():
-                    cls._app_coordinator.toggle_edit_mode()
-                    
-                return False
+            # Exit edit mode if we entered it
+            if not was_in_edit_mode and cls.is_edit_mode():
+                cls._app_coordinator.toggle_edit_mode()
+                
+            return True
                 
         except Exception as e:
             cls._set_status(False, f"Error toggling button tracking: {e}")
             logger.error(f"Error toggling button tracking: {e}")
+            import traceback
+            traceback.print_exc()
             
-            # Make sure to exit edit mode if we entered it
-            try:
-                if not was_in_edit_mode and cls.is_edit_mode():
-                    cls._app_coordinator.toggle_edit_mode()
-            except:
-                pass
+            # Clean up edit mode if needed
+            if 'was_in_edit_mode' in locals() and not was_in_edit_mode:
+                try:
+                    if cls.is_edit_mode():
+                        cls._app_coordinator.toggle_edit_mode()
+                except:
+                    pass
                 
             return False
     

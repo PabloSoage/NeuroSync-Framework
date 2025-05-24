@@ -131,6 +131,10 @@ class InteractionApiIntegration:
         """
         try:
             # Skip key_release events to match GUI behavior
+            if event_type == EventType.INPUT and hasattr(data, 'event_type') and data.event_type == 'key_release':
+                return
+                
+            # Skip INPUT events with key_release in a dict structure
             if isinstance(data, dict) and data.get("event_type") == "key_release":
                 return
                 
@@ -145,7 +149,7 @@ class InteractionApiIntegration:
                     return  # We've handled this event specifically
                 
                 # For other InputData events that aren't key_release
-                if hasattr(data, 'event_type') and data.event_type != 'key_release':
+                if hasattr(data, 'event_type'):
                     # Create a simplified version of the event
                     formatted_event = self._create_simple_event(data)
                     if formatted_event:
@@ -693,6 +697,7 @@ class InteractionApiIntegration:
                     "enabled": {
                         "type": "boolean",
                         "description": "Whether to enable JSON logging",
+                        "options": [True, False],
                         "required": True,
                         "default": True
                     }
@@ -714,12 +719,14 @@ class InteractionApiIntegration:
                     "enabled": {
                         "type": "boolean",
                         "description": "Whether to enable CSV logging",
+                        "options": [True, False],
                         "required": True,
                         "default": True
                     },
                     "filepath": {
-                        "type": "text",
+                        "type": "file",
                         "description": "Path for CSV file (required when enabling if not previously set)",
+                        "file_filter": "CSV Files (*.csv)",
                         "required": False
                     }
                 }
@@ -738,8 +745,10 @@ class InteractionApiIntegration:
                 "type": "POST",
                 "params": {
                     "filepath": {
-                        "type": "text",
+                        "type": "file",
                         "description": "Path for CSV file",
+                        "file_filter": "CSV Files (*.csv)",
+                        "save_mode": True,
                         "required": True
                     }
                 }
@@ -788,8 +797,9 @@ class InteractionApiIntegration:
                 "type": "POST",
                 "params": {
                     "collector_type": {
-                        "type": "text",
-                        "description": "Type identifier for the collector",
+                        "type": "select",
+                        "description": "Type of collector to switch to",
+                        "options": ["keyboard_mouse", "ps4_controller"],
                         "required": True
                     }
                 }
@@ -866,6 +876,7 @@ class InteractionApiIntegration:
                     "direction_only": {
                         "type": "boolean",
                         "description": "Whether to use direction-only mode",
+                        "options": [True, False],
                         "required": False
                     }
                 }
@@ -884,18 +895,24 @@ class InteractionApiIntegration:
                 "type": "POST",
                 "params": {
                     "delta_smoothing": {
-                        "type": "number",
-                        "description": "Smoothing factor for delta tracking (0-100)",
+                        "type": "range",
+                        "description": "Smoothing factor for delta tracking",
+                        "min": 0,
+                        "max": 100,
                         "required": False
                     },
                     "joystick_sensitivity": {
-                        "type": "number",
-                        "description": "Sensitivity for joystick tracking (0-100)",
+                        "type": "range",
+                        "description": "Sensitivity for joystick tracking",
+                        "min": 0,
+                        "max": 100,
                         "required": False
                     },
                     "angle_grouping": {
-                        "type": "number",
-                        "description": "Angle grouping in degrees (1-60)",
+                        "type": "range",
+                        "description": "Angle grouping in degrees",
+                        "min": 1,
+                        "max": 60,
                         "required": False
                     }
                 }
@@ -915,6 +932,27 @@ class InteractionApiIntegration:
                 "params": {}
             },
             handler_function=self._handle_get_mouse_settings
+        )
+
+        # get_available_tracking_modes method
+        self._register_method(
+            module_id=self.module_id,
+            group_id="mouse",
+            method_id="get_available_tracking_modes",
+            method_info={
+                "name": "get_available_tracking_modes(direction_only)",
+                "description": "Get available tracking modes based on direction-only setting.",
+                "type": "GET",
+                "params": {
+                    "direction_only": {
+                        "type": "boolean",
+                        "description": "Direction-only mode setting",
+                        "options": [True, False],
+                        "required": False
+                    }
+                }
+            },
+            handler_function=self._handle_get_available_tracking_modes
         )
     
     def _register_key_methods(self) -> None:
@@ -1020,6 +1058,7 @@ class InteractionApiIntegration:
                     "track": {
                         "type": "boolean",
                         "description": "Whether to track the button",
+                        "options": [True, False],
                         "required": True
                     }
                 }
@@ -1185,6 +1224,19 @@ class InteractionApiIntegration:
     async def _handle_set_mouse_tracking_mode(self, mode: str, direction_only: Optional[bool] = None):
         """Handle set_mouse_tracking_mode API request."""
         try:
+            # Get available modes first
+            available_modes = InputCollectorAPI.get_available_tracking_modes(direction_only)
+            
+            # Validate mode against available modes
+            if mode not in available_modes:
+                return {
+                    "success": False, 
+                    "status": {
+                        "success": False,
+                        "message": f"Invalid tracking mode '{mode}' for direction_only={direction_only}. Valid modes: {available_modes}"
+                    }
+                }
+                
             success = InputCollectorAPI.set_mouse_tracking_mode(mode, direction_only)
             return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
         except Exception as e:
@@ -1196,6 +1248,16 @@ class InteractionApiIntegration:
                                       angle_grouping: Optional[int] = None):
         """Handle set_mouse_settings API request."""
         try:
+            # Validate ranges
+            if delta_smoothing is not None and not (0 <= delta_smoothing <= 100):
+                return {"success": False, "status": {"message": "Delta smoothing must be between 0 and 100"}}
+                
+            if joystick_sensitivity is not None and not (0 <= joystick_sensitivity <= 100):
+                return {"success": False, "status": {"message": "Joystick sensitivity must be between 0 and 100"}}
+                
+            if angle_grouping is not None and not (1 <= angle_grouping <= 60):
+                return {"success": False, "status": {"message": "Angle grouping must be between 1 and 60"}}
+                
             success = InputCollectorAPI.set_mouse_settings(
                 delta_smoothing, joystick_sensitivity, angle_grouping
             )
@@ -1210,6 +1272,15 @@ class InteractionApiIntegration:
             return InputCollectorAPI.get_mouse_settings()
         except Exception as e:
             logger.error(f"Error in get_mouse_settings endpoint: {e}")
+            return {"error": str(e)}
+    
+    async def _handle_get_available_tracking_modes(self, direction_only: Optional[bool] = None):
+        """Handle get_available_tracking_modes API request."""
+        try:
+            modes = InputCollectorAPI.get_available_tracking_modes(direction_only)
+            return {"modes": modes, "direction_only": direction_only}
+        except Exception as e:
+            logger.error(f"Error in get_available_tracking_modes endpoint: {e}")
             return {"error": str(e)}
     
     async def _handle_get_tracked_keys(self):
