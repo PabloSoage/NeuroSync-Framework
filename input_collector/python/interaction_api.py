@@ -292,11 +292,12 @@ class InputCollectorAPI:
         service = InteractionService.get_instance()
         ui_manager = service.get_component('ui_manager')
         
-        # If direction_only not specified, get current setting
+        # If direction_only is explicitly provided, use it regardless of UI state
+        # Otherwise, get the current UI state
         if direction_only is None and ui_manager:
             direction_only = ui_manager.is_direction_only_mode()
             
-        # Return appropriate modes based on direction_only setting
+        # Return appropriate modes based on direction_only parameter
         if direction_only:
             return ["axis", "angle"]
         else:
@@ -323,25 +324,40 @@ class InputCollectorAPI:
             return False
             
         try:
-            # Validate the mode based on direction_only setting
-            current_dir_only = ui_manager.is_direction_only_mode() if direction_only is None else direction_only
-            valid_modes = cls.get_available_tracking_modes(current_dir_only)
+            # Get current direction-only status
+            current_dir_only = ui_manager.is_direction_only_mode()
+            
+            # If direction_only parameter is provided and different from current state,
+            # we need to update it first using the appropriate method
+            if direction_only is not None and direction_only != current_dir_only:
+                # Update the direction only checkbox in UI
+                if hasattr(ui_manager, 'set_direction_only_checkbox'):
+                    ui_manager.set_direction_only_checkbox(direction_only)
+                    # After changing the checkbox, update tracking modes in UI
+                    ui_manager.update_tracking_modes(
+                        cls.get_available_tracking_modes(direction_only),
+                        mode,
+                        "axis" if direction_only else "joystick"
+                    )
+                else:
+                    service._set_status(False, "Cannot set direction-only mode: UI manager missing required method")
+                    return False
+            
+            # Validate the mode based on updated direction_only setting
+            updated_dir_only = ui_manager.is_direction_only_mode()
+            valid_modes = cls.get_available_tracking_modes(updated_dir_only)
             
             if mode not in valid_modes:
-                service._set_status(False, f"Invalid tracking mode '{mode}' for direction_only={current_dir_only}. Valid modes: {valid_modes}")
+                service._set_status(False, f"Invalid tracking mode '{mode}' for direction_only={updated_dir_only}. Valid modes: {valid_modes}")
                 return False
             
-            # Update direction-only mode if specified
-            if direction_only is not None:
-                ui_manager.set_direction_only_mode(direction_only)
-                
             # Set tracking mode in UI
             ui_manager.set_tracking_mode(mode)
             
             # Apply mode to collector via app coordinator
             app_coordinator.set_mouse_tracking_mode(mode)
             
-            service._set_status(True, f"Mouse tracking mode set to {mode}")
+            service._set_status(True, f"Mouse tracking mode set to {mode} (direction-only: {updated_dir_only})")
             return True
         except Exception as e:
             service._set_status(False, f"Error setting mouse tracking mode: {e}")
@@ -403,23 +419,31 @@ class InputCollectorAPI:
                     service._set_status(False, f"Angle grouping must be between {min_val} and {max_val}")
                     return False
             
-            # Update UI settings - using the correct method names
+            # Update UI settings - using more reliable direct methods
             if delta_smoothing is not None:
-                if hasattr(ui_manager, 'get_delta_smoothing_slider') and ui_manager.get_delta_smoothing_slider():
-                    ui_manager.get_delta_smoothing_slider().setValue(int(delta_smoothing))
+                # Directly set the slider value and update any display
+                ui_manager.set_delta_smoothing(int(delta_smoothing))
                 
             if joystick_sensitivity is not None:
-                if hasattr(ui_manager, 'get_joystick_sensitivity_slider') and ui_manager.get_joystick_sensitivity_slider():
-                    ui_manager.get_joystick_sensitivity_slider().setValue(int(joystick_sensitivity))
+                ui_manager.set_joystick_sensitivity(int(joystick_sensitivity))
                 
             if angle_grouping is not None:
-                if hasattr(ui_manager, 'get_angle_grouping_slider') and ui_manager.get_angle_grouping_slider():
-                    ui_manager.get_angle_grouping_slider().setValue(int(angle_grouping))
+                ui_manager.set_angle_grouping(int(angle_grouping))
                 
             # Apply settings to collector
             app_coordinator.apply_mouse_settings()
             
-            service._set_status(True, "Mouse settings updated")
+            # Create status message with actual values set
+            values_msg = []
+            if delta_smoothing is not None:
+                values_msg.append(f"Delta smoothing: {int(delta_smoothing)}/100")
+            if joystick_sensitivity is not None:
+                values_msg.append(f"Joystick sensitivity: {int(joystick_sensitivity)}/100")
+            if angle_grouping is not None:
+                angle_values = 360 // int(angle_grouping)
+                values_msg.append(f"Angle grouping: {int(angle_grouping)}° ({angle_values} values)")
+                
+            service._set_status(True, f"Mouse settings updated: {', '.join(values_msg)}")
             return True
         except Exception as e:
             service._set_status(False, f"Error setting mouse settings: {e}")
@@ -566,12 +590,16 @@ class InputCollectorAPI:
                 service._set_status(True, f"Key {key} is already being tracked")
                 return True
             
-            # Enable edit mode if not already in edit mode (mimicking GUI behavior)
+            # Enable edit mode if not already in edit mode
             was_in_edit_mode = app_coordinator.edit_mode
             if not was_in_edit_mode:
-                # Unlike GUI, the API allows adding keys without explicitly toggling edit mode
-                # But we still need to enable it temporarily
+                # Enable edit mode temporarily
                 app_coordinator.toggle_edit_mode()
+                
+                # Check if edit mode was enabled successfully
+                if not app_coordinator.edit_mode:
+                    service._set_status(False, "Failed to enable edit mode")
+                    return False
                 
             # Add key
             app_coordinator.handle_key_edit(key)
@@ -601,9 +629,10 @@ class InputCollectorAPI:
             traceback.print_exc()
             
             # Clean up edit mode if needed
-            if 'was_in_edit_mode' in locals() and not was_in_edit_mode and app_coordinator.edit_mode:
+            if 'was_in_edit_mode' in locals() and not was_in_edit_mode:
                 try:
-                    app_coordinator.toggle_edit_mode()
+                    if app_coordinator.edit_mode:
+                        app_coordinator.toggle_edit_mode()
                 except:
                     pass
                 
@@ -647,6 +676,11 @@ class InputCollectorAPI:
             was_in_edit_mode = app_coordinator.edit_mode
             if not was_in_edit_mode:
                 app_coordinator.toggle_edit_mode()
+                
+                # Check if edit mode was enabled successfully
+                if not app_coordinator.edit_mode:
+                    service._set_status(False, "Failed to enable edit mode")
+                    return False
                 
             # Remove key
             app_coordinator.handle_key_edit(key)
@@ -724,8 +758,44 @@ class InputCollectorAPI:
             was_in_edit_mode = app_coordinator.edit_mode
             if not was_in_edit_mode:
                 app_coordinator.toggle_edit_mode()
+                
+                # Check if edit mode was enabled successfully
+                if not app_coordinator.edit_mode:
+                    service._set_status(False, "Failed to enable edit mode")
+                    return False
             
-            # Toggle button tracking using AppCoordinator's handle_button_edit
+            # Handle special case for scroll button because of naming inconsistency
+            if button_id == "Button.scroll":
+                if hasattr(app_coordinator, 'handle_button_edit'):
+                    app_coordinator.handle_button_edit("Button.scroll", track)
+                    
+                    # Check if the change was applied successfully 
+                    updated_tracked_keys = app_coordinator.get_tracked_keys()
+                    button_tracked = button_id in updated_tracked_keys
+                    
+                    if button_tracked == track:
+                        service._set_status(True, f"Scroll wheel tracking {'enabled' if track else 'disabled'}")
+                        
+                        # Exit edit mode if we entered it
+                        if not was_in_edit_mode and app_coordinator.edit_mode:
+                            app_coordinator.toggle_edit_mode()
+                        return True
+                    else:
+                        service._set_status(False, f"Failed to {'enable' if track else 'disable'} scroll wheel tracking")
+                        
+                        # Exit edit mode if we entered it
+                        if not was_in_edit_mode and app_coordinator.edit_mode:
+                            app_coordinator.toggle_edit_mode()
+                        return False
+                else:
+                    service._set_status(False, "Button edit functionality not available")
+                    
+                    # Exit edit mode if we entered it
+                    if not was_in_edit_mode and app_coordinator.edit_mode:
+                        app_coordinator.toggle_edit_mode()
+                    return False
+            
+            # For other buttons, use the handle_button_edit method
             app_coordinator.handle_button_edit(button_id, track)
             
             # Verify change by checking updated tracked keys

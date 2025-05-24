@@ -700,7 +700,7 @@ class InteractionApiIntegration:
                 "params": {
                     "enabled": {
                         "type": "select",
-                        "description": "Whether to enable JSON logging",
+                        "description": "<span style='color:#f0f0f0;'>Whether to enable JSON logging</span>",
                         "options": [True, False],
                         "required": True,
                         "default": True
@@ -722,15 +722,17 @@ class InteractionApiIntegration:
                 "params": {
                     "enabled": {
                         "type": "select",
-                        "description": "Whether to enable CSV logging",
+                        "description": "<span style='color:#f0f0f0;'>Whether to enable CSV logging</span>",
                         "options": [True, False],
                         "required": True,
                         "default": True
                     },
                     "filepath": {
                         "type": "file",
-                        "description": "Path for CSV file (required when enabling if not previously set)",
+                        "description": "<span style='color:#f0f0f0;'>Path for CSV file</span>",
                         "file_filter": "CSV Files (*.csv)",
+                        "default_extension": ".csv",
+                        "save_mode": True,
                         "required": False
                     }
                 }
@@ -750,8 +752,9 @@ class InteractionApiIntegration:
                 "params": {
                     "filepath": {
                         "type": "file",
-                        "description": "Path for CSV file",
+                        "description": "<span style='color:#f0f0f0;'>Path for CSV file</span>",
                         "file_filter": "CSV Files (*.csv)",
+                        "default_extension": ".csv",
                         "save_mode": True,
                         "required": True
                     }
@@ -873,13 +876,13 @@ class InteractionApiIntegration:
                 "params": {
                     "mode": {
                         "type": "select",
-                        "description": "Tracking mode",
+                        "description": "<span style='color:#f0f0f0;'>Tracking mode to use</span>",
                         "options": ["joystick", "delta", "angle", "axis"],
                         "required": True
                     },
                     "direction_only": {
                         "type": "select",
-                        "description": "Whether to use direction-only mode",
+                        "description": "<span style='color:#f0f0f0;'>Whether to use direction-only mode</span>",
                         "options": [True, False],
                         "required": False
                     }
@@ -888,7 +891,7 @@ class InteractionApiIntegration:
             handler_function=self._handle_set_mouse_tracking_mode
         )
         
-        # Get available tracking modes method (new method)
+        # Get available tracking modes method
         self._register_method(
             module_id=self.module_id,
             group_id="mouse",
@@ -900,7 +903,7 @@ class InteractionApiIntegration:
                 "params": {
                     "direction_only": {
                         "type": "select",
-                        "description": "Direction-only mode setting",
+                        "description": "<span style='color:#f0f0f0;'>Direction-only mode setting</span>",
                         "options": [True, False],
                         "required": False
                     }
@@ -921,23 +924,26 @@ class InteractionApiIntegration:
                 "params": {
                     "delta_smoothing": {
                         "type": "range",
-                        "description": "Smoothing factor for delta tracking",
+                        "description": "<span style='color:#f0f0f0;'>Smoothing factor for delta tracking (0-100)</span>",
                         "min": 0,
                         "max": 100,
+                        "step": 1,
                         "required": False
                     },
                     "joystick_sensitivity": {
                         "type": "range",
-                        "description": "Sensitivity for joystick tracking",
+                        "description": "<span style='color:#f0f0f0;'>Sensitivity for joystick tracking (0-100)</span>",
                         "min": 0,
                         "max": 100,
+                        "step": 1,
                         "required": False
                     },
                     "angle_grouping": {
                         "type": "range",
-                        "description": "Angle grouping in degrees",
+                        "description": "<span style='color:#f0f0f0;'>Angle grouping in degrees (1-60)</span>",
                         "min": 1,
                         "max": 60,
+                        "step": 1,
                         "required": False
                     }
                 }
@@ -1010,12 +1016,12 @@ class InteractionApiIntegration:
             method_id="add_tracked_key",
             method_info={
                 "name": "add_tracked_key(key)",
-                "description": "Add a key to tracked keys list. Temporarily enables edit mode if needed.",
+                "description": "Add a key to tracked keys list. Automatically enables edit mode temporarily.",
                 "type": "POST",
                 "params": {
                     "key": {
                         "type": "text",
-                        "description": "Key to track (e.g., 'a', 'b', 'Key.space')",
+                        "description": "<span style='color:#f0f0f0;'>Key to track (e.g., 'a', 'b', 'Key.space')</span>",
                         "required": True
                     }
                 }
@@ -1030,12 +1036,12 @@ class InteractionApiIntegration:
             method_id="remove_tracked_key",
             method_info={
                 "name": "remove_tracked_key(key)",
-                "description": "Remove a key from tracked keys list. Temporarily enables edit mode if needed.",
+                "description": "Remove a key from tracked keys list. Automatically enables edit mode temporarily.",
                 "type": "POST",
                 "params": {
                     "key": {
                         "type": "text",
-                        "description": "Key to untrack (e.g., 'a', 'b', 'Key.space')",
+                        "description": "<span style='color:#f0f0f0;'>Key to untrack (e.g., 'a', 'b', 'Key.space')</span>",
                         "required": True
                     }
                 }
@@ -1050,402 +1056,18 @@ class InteractionApiIntegration:
             method_id="toggle_button_tracking",
             method_info={
                 "name": "toggle_button_tracking(button_id, track)",
-                "description": "Toggle tracking for a mouse button. Temporarily enables edit mode if needed.",
+                "description": "Toggle tracking for a mouse button. Automatically enables edit mode temporarily.",
                 "type": "POST",
                 "params": {
                     "button_id": {
                         "type": "select",
-                        "description": "Button identifier",
+                        "description": "<span style='color:#f0f0f0;'>Button identifier</span>",
                         "options": ["Button.left", "Button.right", "Button.middle", "Button.scroll"],
                         "required": True
                     },
                     "track": {
                         "type": "select",
-                        "description": "Whether to track the button",
-                        "options": [True, False],
-                        "required": True
-                    }
-                }
-            },
-            handler_function=self._handle_toggle_button_tracking
-        )
-    
-    def _register_logging_methods(self) -> None:
-        """Register logging configuration methods."""
-        # enable_json_logging method
-        self._register_method(
-            module_id=self.module_id,
-            group_id="logging",
-            method_id="enable_json_logging",
-            method_info={
-                "name": "enable_json_logging(enabled)",
-                "description": "Enable or disable JSON logging.",
-                "type": "POST",
-                "params": {
-                    "enabled": {
-                        "type": "select",
-                        "description": "Whether to enable JSON logging",
-                        "options": [True, False],
-                        "required": True,
-                        "default": True
-                    }
-                }
-            },
-            handler_function=self._handle_enable_json_logging
-        )
-        
-        # enable_csv_logging method
-        self._register_method(
-            module_id=self.module_id,
-            group_id="logging",
-            method_id="enable_csv_logging",
-            method_info={
-                "name": "enable_csv_logging(enabled, filepath)",
-                "description": "Enable or disable CSV logging.",
-                "type": "POST",
-                "params": {
-                    "enabled": {
-                        "type": "select",
-                        "description": "Whether to enable CSV logging",
-                        "options": [True, False],
-                        "required": True,
-                        "default": True
-                    },
-                    "filepath": {
-                        "type": "file",
-                        "description": "Path for CSV file (required when enabling if not previously set)",
-                        "file_filter": "CSV Files (*.csv)",
-                        "required": False
-                    }
-                }
-            },
-            handler_function=self._handle_enable_csv_logging
-        )
-        
-        # set_csv_path method
-        self._register_method(
-            module_id=self.module_id,
-            group_id="logging",
-            method_id="set_csv_path",
-            method_info={
-                "name": "set_csv_path(filepath)",
-                "description": "Set the CSV logging file path.",
-                "type": "POST",
-                "params": {
-                    "filepath": {
-                        "type": "file",
-                        "description": "Path for CSV file",
-                        "file_filter": "CSV Files (*.csv)",
-                        "save_mode": True,
-                        "required": True
-                    }
-                }
-            },
-            handler_function=self._handle_set_csv_path
-        )
-        
-        # get_logging_state method
-        self._register_method(
-            module_id=self.module_id,
-            group_id="logging",
-            method_id="get_logging_state",
-            method_info={
-                "name": "get_logging_state()",
-                "description": "Get current logging configuration.",
-                "type": "GET",
-                "params": {}
-            },
-            handler_function=self._handle_get_logging_state
-        )
-    
-    def _register_collector_methods(self) -> None:
-        """Register collector management methods."""
-        # get_available_collectors method
-        self._register_method(
-            module_id=self.module_id,
-            group_id="collectors",
-            method_id="get_available_collectors",
-            method_info={
-                "name": "get_available_collectors()",
-                "description": "Get list of available collectors.",
-                "type": "GET",
-                "params": {}
-            },
-            handler_function=self._handle_get_available_collectors
-        )
-        
-        # switch_collector method
-        self._register_method(
-            module_id=self.module_id,
-            group_id="collectors",
-            method_id="switch_collector",
-            method_info={
-                "name": "switch_collector(collector_type)",
-                "description": "Switch to a different input collector.",
-                "type": "POST",
-                "params": {
-                    "collector_type": {
-                        "type": "select",
-                        "description": "Type of collector to switch to",
-                        "options": ["keyboard_mouse", "ps4_controller"],
-                        "required": True
-                    }
-                }
-            },
-            handler_function=self._handle_switch_collector
-        )
-        
-        # get_current_collector method
-        self._register_method(
-            module_id=self.module_id,
-            group_id="collectors",
-            method_id="get_current_collector",
-            method_info={
-                "name": "get_current_collector()",
-                "description": "Get information about the current collector.",
-                "type": "GET",
-                "params": {}
-            },
-            handler_function=self._handle_get_current_collector
-        )
-        
-        # scan_controllers method
-        self._register_method(
-            module_id=self.module_id,
-            group_id="collectors",
-            method_id="scan_controllers",
-            method_info={
-                "name": "scan_controllers()",
-                "description": "Scan for available controllers.",
-                "type": "GET",
-                "params": {}
-            },
-            handler_function=self._handle_scan_controllers
-        )
-        
-        # connect_controller method
-        self._register_method(
-            module_id=self.module_id,
-            group_id="collectors",
-            method_id="connect_controller",
-            method_info={
-                "name": "connect_controller(index)",
-                "description": "Connect to a specific controller by index.",
-                "type": "POST",
-                "params": {
-                    "index": {
-                        "type": "number",
-                        "description": "Controller index from scan_controllers()",
-                        "required": True
-                    }
-                }
-            },
-            handler_function=self._handle_connect_controller
-        )
-    
-    def _register_mouse_methods(self) -> None:
-        """Register mouse tracking configuration methods."""
-        # set_mouse_tracking_mode method
-        self._register_method(
-            module_id=self.module_id,
-            group_id="mouse",
-            method_id="set_mouse_tracking_mode",
-            method_info={
-                "name": "set_mouse_tracking_mode(mode, direction_only)",
-                "description": "Set the mouse tracking mode.",
-                "type": "POST",
-                "params": {
-                    "mode": {
-                        "type": "select",
-                        "description": "Tracking mode",
-                        "options": ["joystick", "delta", "angle", "axis"],
-                        "required": True
-                    },
-                    "direction_only": {
-                        "type": "select",
-                        "description": "Whether to use direction-only mode",
-                        "options": [True, False],
-                        "required": False
-                    }
-                }
-            },
-            handler_function=self._handle_set_mouse_tracking_mode
-        )
-        
-        # Get available tracking modes method (new method)
-        self._register_method(
-            module_id=self.module_id,
-            group_id="mouse",
-            method_id="get_available_tracking_modes",
-            method_info={
-                "name": "get_available_tracking_modes(direction_only)",
-                "description": "Get available tracking modes based on direction-only setting.",
-                "type": "GET",
-                "params": {
-                    "direction_only": {
-                        "type": "select",
-                        "description": "Direction-only mode setting",
-                        "options": [True, False],
-                        "required": False
-                    }
-                }
-            },
-            handler_function=self._handle_get_available_tracking_modes
-        )
-        
-        # set_mouse_settings method
-        self._register_method(
-            module_id=self.module_id,
-            group_id="mouse",
-            method_id="set_mouse_settings",
-            method_info={
-                "name": "set_mouse_settings(delta_smoothing, joystick_sensitivity, angle_grouping)",
-                "description": "Set mouse tracking settings.",
-                "type": "POST",
-                "params": {
-                    "delta_smoothing": {
-                        "type": "range",
-                        "description": "Smoothing factor for delta tracking",
-                        "min": 0,
-                        "max": 100,
-                        "required": False
-                    },
-                    "joystick_sensitivity": {
-                        "type": "range",
-                        "description": "Sensitivity for joystick tracking",
-                        "min": 0,
-                        "max": 100,
-                        "required": False
-                    },
-                    "angle_grouping": {
-                        "type": "range",
-                        "description": "Angle grouping in degrees",
-                        "min": 1,
-                        "max": 60,
-                        "required": False
-                    }
-                }
-            },
-            handler_function=self._handle_set_mouse_settings
-        )
-        
-        # get_mouse_settings method
-        self._register_method(
-            module_id=self.module_id,
-            group_id="mouse",
-            method_id="get_mouse_settings",
-            method_info={
-                "name": "get_mouse_settings()",
-                "description": "Get current mouse tracking settings.",
-                "type": "GET",
-                "params": {}
-            },
-            handler_function=self._handle_get_mouse_settings
-        )
-    
-    def _register_key_methods(self) -> None:
-        """Register key tracking methods."""
-        # get_tracked_keys method
-        self._register_method(
-            module_id=self.module_id,
-            group_id="keys",
-            method_id="get_tracked_keys",
-            method_info={
-                "name": "get_tracked_keys()",
-                "description": "Get list of tracked keys.",
-                "type": "GET",
-                "params": {}
-            },
-            handler_function=self._handle_get_tracked_keys
-        )
-        
-        # toggle_edit_mode method
-        self._register_method(
-            module_id=self.module_id,
-            group_id="keys",
-            method_id="toggle_edit_mode",
-            method_info={
-                "name": "toggle_edit_mode()",
-                "description": "Toggle key/button edit mode. Cannot be enabled during recording.",
-                "type": "POST",
-                "params": {}
-            },
-            handler_function=self._handle_toggle_edit_mode
-        )
-        
-        # is_edit_mode method
-        self._register_method(
-            module_id=self.module_id,
-            group_id="keys",
-            method_id="is_edit_mode",
-            method_info={
-                "name": "is_edit_mode()",
-                "description": "Check if edit mode is active.",
-                "type": "GET",
-                "params": {}
-            },
-            handler_function=self._handle_is_edit_mode
-        )
-        
-        # add_tracked_key method
-        self._register_method(
-            module_id=self.module_id,
-            group_id="keys",
-            method_id="add_tracked_key",
-            method_info={
-                "name": "add_tracked_key(key)",
-                "description": "Add a key to tracked keys list. Temporarily enables edit mode if needed.",
-                "type": "POST",
-                "params": {
-                    "key": {
-                        "type": "text",
-                        "description": "Key to track (e.g., 'a', 'b', 'Key.space')",
-                        "required": True
-                    }
-                }
-            },
-            handler_function=self._handle_add_tracked_key
-        )
-        
-        # remove_tracked_key method
-        self._register_method(
-            module_id=self.module_id,
-            group_id="keys",
-            method_id="remove_tracked_key",
-            method_info={
-                "name": "remove_tracked_key(key)",
-                "description": "Remove a key from tracked keys list. Temporarily enables edit mode if needed.",
-                "type": "POST",
-                "params": {
-                    "key": {
-                        "type": "text",
-                        "description": "Key to untrack (e.g., 'a', 'b', 'Key.space')",
-                        "required": True
-                    }
-                }
-            },
-            handler_function=self._handle_remove_tracked_key
-        )
-        
-        # toggle_button_tracking method
-        self._register_method(
-            module_id=self.module_id,
-            group_id="keys",
-            method_id="toggle_button_tracking",
-            method_info={
-                "name": "toggle_button_tracking(button_id, track)",
-                "description": "Toggle tracking for a mouse button. Temporarily enables edit mode if needed.",
-                "type": "POST",
-                "params": {
-                    "button_id": {
-                        "type": "select",
-                        "description": "Button identifier",
-                        "options": ["Button.left", "Button.right", "Button.middle", "Button.scroll"],
-                        "required": True
-                    },
-                    "track": {
-                        "type": "select",
-                        "description": "Whether to track the button",
+                        "description": "<span style='color:#f0f0f0;'>Whether to track the button</span>",
                         "options": [True, False],
                         "required": True
                     }
@@ -1612,7 +1234,7 @@ class InteractionApiIntegration:
     async def _handle_set_mouse_tracking_mode(self, mode: str, direction_only: Optional[bool] = None):
         """Handle set_mouse_tracking_mode API request."""
         try:
-            # Get available modes first
+            # Get available modes first based on requested direction_only
             available_modes = InputCollectorAPI.get_available_tracking_modes(direction_only)
             
             # Validate mode against available modes
@@ -1627,25 +1249,39 @@ class InteractionApiIntegration:
                 }
                 
             success = InputCollectorAPI.set_mouse_tracking_mode(mode, direction_only)
+            
+            # Get updated available modes after the operation
+            updated_modes = InputCollectorAPI.get_available_tracking_modes(None)
+            current_settings = InputCollectorAPI.get_mouse_settings()
+                
             return {
                 "success": success, 
                 "status": InputCollectorAPI.get_last_operation_status(),
-                "available_modes": available_modes
+                "available_modes": updated_modes,
+                "current_settings": current_settings
             }
         except Exception as e:
             logger.error(f"Error in set_mouse_tracking_mode endpoint: {e}")
             return {"success": False, "status": {"message": f"Error: {str(e)}"}}
     
     async def _handle_set_mouse_settings(self, delta_smoothing: Optional[float] = None,
-                                      joystick_sensitivity: Optional[float] = None,
-                                      angle_grouping: Optional[int] = None):
+                                  joystick_sensitivity: Optional[float] = None,
+                                  angle_grouping: Optional[int] = None):
         """Handle set_mouse_settings API request."""
         try:
             # Input validation is now handled in the InputCollectorAPI class
             success = InputCollectorAPI.set_mouse_settings(
                 delta_smoothing, joystick_sensitivity, angle_grouping
             )
-            return {"success": success, "status": InputCollectorAPI.get_last_operation_status()}
+            
+            # Get current settings to return updated values
+            current_settings = InputCollectorAPI.get_mouse_settings()
+            
+            return {
+                "success": success, 
+                "status": InputCollectorAPI.get_last_operation_status(),
+                "current_settings": current_settings
+            }
         except Exception as e:
             logger.error(f"Error in set_mouse_settings endpoint: {e}")
             return {"success": False, "status": {"message": f"Error: {str(e)}"}}
