@@ -19,8 +19,12 @@ from .services.collector_service import CollectorService
 from .services.processor_service import ProcessorService
 from .services.recording_service import RecordingService
 from .services.visualization_service import VisualizationService
-from .ui.advanced_panel import AdvancedProcessingPanel
+
+# Import adapters
+from .adapters.qt_interaction_adapter import QtInteractionAdapter
+
 # Import UI components
+from .ui.advanced_panel import AdvancedProcessingPanel
 from .ui.connection_panel import ConnectionPanel
 from .ui.mne_panel import MNEPanel
 from .ui.processing_panel import ProcessingPanel
@@ -59,6 +63,9 @@ class EEGProcessorApp(QMainWindow):
         self.processor_service = ProcessorService()
         self.visualization_service = VisualizationService()
         self.recording_service = RecordingService()
+        
+        # Initialize Qt interaction adapter
+        self.qt_adapter = QtInteractionAdapter(self)
         
         # Application state
         self.is_streaming = False
@@ -225,5 +232,10 @@ class EEGProcessorApp(QMainWindow):
         self.collector_service.cleanup()
         self.visualization_service.cleanup()
         self.recording_service.cleanup()
+        
+        # Clean up Qt adapter
+        if hasattr(self, 'qt_adapter'):
+            del self.qt_adapter
+            
         event.accept()
 

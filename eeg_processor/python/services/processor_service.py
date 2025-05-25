@@ -1,6 +1,5 @@
-import logging
 from typing import Dict, List, Any, Tuple, Optional
-
+import logging
 import numpy as np
 from brainflow.data_filter import WaveletTypes, AggOperations
 
@@ -139,31 +138,9 @@ class ProcessorService:
             return data
             
         try:
-            filtered_data = data.copy()
-            
-            # Apply bandpass if configured
-            if filters_config.get('bandpass', {}).get('enabled', False):
-                low_cutoff = filters_config['bandpass'].get('low_cutoff', 1.0)
-                high_cutoff = filters_config['bandpass'].get('high_cutoff', 50.0)
-                filtered_data = self.apply_bandpass_filter(filtered_data, low_cutoff, high_cutoff)
-            
-            # Apply notch if configured
-            if filters_config.get('notch', {}).get('enabled', False):
-                notch_freq = filters_config['notch'].get('frequency', 50.0)
-                filtered_data = self.apply_notch_filter(filtered_data, notch_freq)
-            
-            # Apply detrend if configured
-            if filters_config.get('detrend', False):
-                filtered_data = self.apply_detrend(filtered_data)
-            
-            # Apply wavelet denoising if configured
-            if filters_config.get('wavelet', {}).get('enabled', False):
-                wavelet = filters_config['wavelet'].get('type', WaveletTypes.DB4)
-                filtered_data = self.apply_wavelet_denoising(filtered_data, wavelet)
-            
-            return filtered_data
+            return self.processor.apply_all_filters(data, filters_config)
         except Exception as e:
-            logging.error(f"Applying filters error: {e}")
+            logging.error(f"Apply all filters error: {e}")
             return data
     
     def get_eeg_metrics(self, data: np.ndarray, eeg_channels: List[int]) -> Dict[str, Any]:
@@ -179,18 +156,10 @@ class ProcessorService:
         """
         # Check if processor is initialized, if not, initialize it with default sampling rate
         if self.processor is None:
-            logging.info("Initializing processor with default sampling rate for metrics calculation")
-            # Try to infer sampling rate from data or use default
-            if data.size > 0 and hasattr(data, 'shape') and data.shape[1] > 100:
-                # Assume sampling rate is 250 Hz if we have enough data
-                estimated_sr = 250
-            else:
-                estimated_sr = 250  # Default sampling rate
-                
-            self.initialize_processor(estimated_sr)
+            default_sampling_rate = 250
+            self.initialize_processor(default_sampling_rate)
             
         try:
-            # Use the processor's get_eeg_metrics method
             return self.processor.get_eeg_metrics(data, eeg_channels)
         except Exception as e:
             logging.error(f"EEG metrics calculation error: {e}")
@@ -209,13 +178,13 @@ class ProcessorService:
         """
         if self.processor is None:
             logging.warning("Processor not initialized")
-            return (None, None, None, None)
+            return None, None, None, None
             
         try:
             return self.processor.perform_ica(data, num_components)
         except Exception as e:
             logging.error(f"ICA error: {e}")
-            return (None, None, None, None)
+            return None, None, None, None
     
     def perform_downsampling(self, data: np.ndarray, factor: int, 
                          operation: AggOperations = AggOperations.MEAN) -> np.ndarray:

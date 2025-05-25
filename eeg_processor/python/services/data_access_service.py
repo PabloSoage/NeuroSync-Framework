@@ -1,9 +1,7 @@
-import logging
-import threading
-import time
 from typing import Dict, List, Any, Tuple, Callable
-
 import numpy as np
+import threading
+import logging
 
 
 class DataAccessService:
@@ -16,7 +14,7 @@ class DataAccessService:
     
     @classmethod
     def get_instance(cls):
-        """Get the singleton instance of the service."""
+        """Get the singleton instance."""
         with cls._lock:
             if cls._instance is None:
                 cls._instance = DataAccessService()
@@ -25,245 +23,178 @@ class DataAccessService:
     def __init__(self):
         """Initialize the data access service."""
         self._data_lock = threading.Lock()
-        self._metadata_lock = threading.Lock()
+        self._current_data = np.array([])
+        self._current_timestamps = []
+        self._metadata = {}
+        self._callbacks = {}
+        self._callback_counter = 0
         
-        # Current data buffer: 2D array (channels x samples), start empty
-        self._current_data = np.zeros((0, 0))
-        self._timestamps = []
-        # Maximum number of samples to keep (set after sampling_rate known)
-        self._buffer_max_samples = None
-
-        # Reference to collector service for direct access when needed
-        self._collector_service = None
-        
-        # Board and stream metadata
-        self._metadata = {
-            "sampling_rate": 0,
-            "eeg_channels": [],
-            "channel_names": [],
-            "num_channels": 0,
-            "board_id": -1,
-            "board_name": "",
-            "streaming": False,
-            "last_update": 0
-        }
-        
-        # Registered callbacks for data updates
-        self._callbacks = []
-        self._callback_lock = threading.Lock()
-        
-        # Initialize collector reference (will be set properly when collector starts)
+        # Try to get reference to collector
+        self._collector_ref = None
         self._init_collector_reference()
         
         logging.info("Data access service initialized")
-    
+
     def _init_collector_reference(self):
-        """Initialize reference to collector service (if available)."""
+        """Initialize reference to the collector service."""
         try:
             from .collector_service import CollectorService
-            self._collector_service = CollectorService()
-            logging.info("Connected to collector service")
+            self._collector_ref = CollectorService()
         except Exception as e:
-            logging.debug(f"Could not connect to collector service: {e}")
+            logging.debug(f"Could not initialize collector reference: {e}")
     
     def update_data(self, data: np.ndarray, timestamps: List[int]) -> None:
-        """Update the current data buffer."""
-        with self._data_lock:
-            # Append new data to buffer
-            if self._current_data.size == 0 or self._current_data.shape[0] != data.shape[0]:
-                # Initialize or reset buffer if channel count changes
-                self._current_data = data.copy()
-                self._timestamps = timestamps.copy()
-            else:
-                # Concatenate along time axis
-                self._current_data = np.concatenate((self._current_data, data), axis=1)
-                self._timestamps.extend(timestamps)
-            # Trim oldest samples if exceeding buffer size
-            if self._buffer_max_samples and self._current_data.shape[1] > self._buffer_max_samples:
-                excess = self._current_data.shape[1] - self._buffer_max_samples
-                self._current_data = self._current_data[:, excess:]
-                self._timestamps = self._timestamps[excess:]
+        """
+        Update the current data and timestamps.
         
-        # Notify registered callbacks
+        Args:
+            data: New data array
+            timestamps: Corresponding timestamps
+        """
+        with self._data_lock:
+            self._current_data = data.copy() if data.size > 0 else np.array([])
+            self._current_timestamps = timestamps.copy()
+            
+        # Notify callbacks
         self._notify_callbacks(data, timestamps)
     
     def update_metadata(self, metadata: Dict[str, Any]) -> None:
-        """Update stream metadata."""
-        with self._metadata_lock:
+        """
+        Update the metadata.
+        
+        Args:
+            metadata: New metadata dictionary
+        """
+        with self._data_lock:
             self._metadata.update(metadata)
-            # Initialize buffer max length when sampling_rate is first known
-            sr = self._metadata.get("sampling_rate", 0)
-            if sr and not self._buffer_max_samples:
-                # Keep 10 seconds of data by default
-                self._buffer_max_samples = int(sr * 10)
+            
+        # Update from collector if available
+        if self._collector_ref:
+            self._update_metadata_from_collector(metadata)
     
     def get_current_data(self) -> Tuple[np.ndarray, List[int]]:
-        """Get the current data and timestamps."""
+        """
+        Get the current data and timestamps.
+        
+        Returns:
+            Tuple of (data, timestamps)
+        """
         with self._data_lock:
-            return self._current_data.copy(), self._timestamps.copy()
+            return self._current_data.copy(), self._current_timestamps.copy()
     
     def get_metadata(self) -> Dict[str, Any]:
-        """Get the current stream metadata."""
-        with self._metadata_lock:
-            metadata = self._metadata.copy()
-            
-            # If we have a collector service and metadata is missing critical info, try to get it directly
-            if self._collector_service and (metadata.get("sampling_rate", 0) == 0 or not metadata.get("channel_names")):
-                self._update_metadata_from_collector(metadata)
-                
-            return metadata
+        """
+        Get the current metadata.
+        
+        Returns:
+            Metadata dictionary
+        """
+        with self._data_lock:
+            return self._metadata.copy()
     
     def _update_metadata_from_collector(self, metadata: Dict[str, Any]) -> None:
-        """Update metadata from collector if available."""
+        """Update metadata from collector information."""
         try:
-            # Get active collector
-            collector = self._get_active_collector()
-            if not collector:
-                return
-                
-            # Update sampling rate if missing
-            if metadata.get("sampling_rate", 0) == 0 and hasattr(collector, "sampling_rate"):
-                metadata["sampling_rate"] = collector.sampling_rate
-                
-            # Update channel names if missing
-            if not metadata.get("channel_names") and hasattr(collector, "eeg_names"):
-                metadata["channel_names"] = collector.eeg_names
-                
-            # Update EEG channels if missing
-            if not metadata.get("eeg_channels") and hasattr(collector, "eeg_channels"):
-                metadata["eeg_channels"] = collector.eeg_channels
-                
-            # Update board info if missing
-            if metadata.get("board_id", -1) == -1 and hasattr(collector, "board_id"):
-                metadata["board_id"] = collector.board_id
-                
-            # Update board name if missing
-            if not metadata.get("board_name") and hasattr(collector, "device_name"):
-                metadata["board_name"] = collector.device_name
-                
-            # Update preset if missing
-            if not metadata.get("preset") and hasattr(collector, "preset"):
-                metadata["preset"] = collector.preset
-                
-            # Update streaming status
-            if hasattr(collector, "is_streaming"):
-                metadata["streaming"] = collector.is_streaming
-                
-            # Store the entire board_info for convenience if available
-            if (hasattr(collector, "get_device_info") or hasattr(collector, "get_board_info")):
-                try:
-                    if hasattr(collector, "get_device_info"):
-                        metadata["board_info"] = collector.get_device_info()
-                    elif hasattr(collector, "get_board_info"):
-                        metadata["board_info"] = collector.get_board_info()
-                except Exception as e:
-                    logging.debug(f"Error getting board info: {e}")
+            if self._collector_ref and self._collector_ref.is_connected():
+                # Get board info and update metadata
+                board_info = self._collector_ref.get_board_info()
+                if board_info:
+                    metadata.update(board_info)
         except Exception as e:
             logging.debug(f"Error updating metadata from collector: {e}")
     
     def _get_active_collector(self):
-        """Get the active collector from collector service."""
-        if not self._collector_service:
-            return None
-            
-        try:
-            # Different possible attribute names in collector service
-            if hasattr(self._collector_service, 'collector'):
-                return self._collector_service.collector
-            elif hasattr(self._collector_service, 'active_collector'):
-                return self._collector_service.active_collector
-            
-            # Try to get from collectors dict
-            if hasattr(self._collector_service, '_collectors'):
-                collectors = self._collector_service._collectors
-                active_id = getattr(self._collector_service, '_active_collector_id', None)
-                if active_id and active_id in collectors:
-                    return collectors[active_id]
-        except Exception as e:
-            logging.debug(f"Error getting active collector: {e}")
-            
+        """Get the active collector instance."""
+        if self._collector_ref:
+            return self._collector_ref
         return None
     
     def get_channel_data(self, channel_index: int) -> Tuple[np.ndarray, List[int]]:
-        """Get data for a specific channel."""
+        """
+        Get data for a specific channel.
+        
+        Args:
+            channel_index: Index of the channel
+            
+        Returns:
+            Tuple of (channel_data, timestamps)
+        """
         with self._data_lock:
-            if self._current_data.size == 0 or channel_index >= self._current_data.shape[0]:
-                return np.array([]), []
-                
-            return self._current_data[channel_index].copy(), self._timestamps.copy()
+            if self._current_data.size > 0 and channel_index < self._current_data.shape[0]:
+                return self._current_data[channel_index].copy(), self._current_timestamps.copy()
+            return np.array([]), []
     
     def get_channel_names(self) -> List[str]:
-        """Get names of all channels."""
-        with self._metadata_lock:
-            names = self._metadata.get("channel_names", []).copy()
-            
-            # If names are empty, try to get from collector
-            if not names:
-                collector = self._get_active_collector()
-                if collector and hasattr(collector, "eeg_names"):
-                    names = collector.eeg_names
-                
-                # If still empty, try to generate generic names based on channels
-                if not names:
-                    eeg_channels = self._metadata.get("eeg_channels", [])
-                    if eeg_channels:
-                        names = [f"CH{i+1}" for i in range(len(eeg_channels))]
-            
-            return names
+        """
+        Get names of all channels.
+        
+        Returns:
+            List of channel names
+        """
+        with self._data_lock:
+            return self._metadata.get('channel_names', [])
     
     def get_sampling_rate(self) -> float:
-        """Get the sampling rate."""
-        with self._metadata_lock:
-            rate = self._metadata.get("sampling_rate", 0)
-            
-            # If rate is 0, try to get directly from collector
-            if rate == 0:
-                collector = self._get_active_collector()
-                if collector and hasattr(collector, "sampling_rate"):
-                    rate = collector.sampling_rate
-                    
-                    # Update metadata for future calls
-                    self._metadata["sampling_rate"] = rate
-            
-            return rate
+        """
+        Get the sampling rate.
+        
+        Returns:
+            Sampling rate in Hz
+        """
+        with self._data_lock:
+            return self._metadata.get('sampling_rate', 0.0)
     
     def is_streaming(self) -> bool:
-        """Check if streaming is active."""
-        with self._metadata_lock:
-            streaming = self._metadata.get("streaming", False)
-            
-            # If not streaming according to metadata, check directly
-            if not streaming:
-                collector = self._get_active_collector()
-                if collector and hasattr(collector, "is_streaming"):
-                    streaming = collector.is_streaming
-                    
-                    # Update metadata
-                    self._metadata["streaming"] = streaming
-            
-            return streaming
+        """
+        Check if streaming is active.
+        
+        Returns:
+            True if streaming, False otherwise
+        """
+        with self._data_lock:
+            return self._metadata.get('streaming', False)
     
     def register_callback(self, callback: Callable[[np.ndarray, List[int]], None]) -> int:
-        """Register a callback function to be called when new data arrives."""
-        with self._callback_lock:
-            callback_id = len(self._callbacks)
-            self._callbacks.append(callback)
+        """
+        Register a callback for data updates.
+        
+        Args:
+            callback: Function to call when data updates
+            
+        Returns:
+            Callback ID for later removal
+        """
+        with self._data_lock:
+            callback_id = self._callback_counter
+            self._callbacks[callback_id] = callback
+            self._callback_counter += 1
             return callback_id
     
     def unregister_callback(self, callback_id: int) -> bool:
-        """Unregister a previously registered callback."""
-        with self._callback_lock:
-            if 0 <= callback_id < len(self._callbacks):
-                self._callbacks[callback_id] = None
+        """
+        Unregister a callback.
+        
+        Args:
+            callback_id: ID of callback to remove
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        with self._data_lock:
+            if callback_id in self._callbacks:
+                del self._callbacks[callback_id]
                 return True
             return False
     
     def _notify_callbacks(self, data: np.ndarray, timestamps: List[int]) -> None:
-        """Notify all registered callbacks of new data."""
-        with self._callback_lock:
-            for callback in self._callbacks:
-                if callback is not None:
-                    try:
-                        callback(data, timestamps)
-                    except Exception as e:
-                        logging.error(f"Error in data access callback: {e}")
+        """Notify all registered callbacks of data update."""
+        # Get callbacks outside the lock
+        with self._data_lock:
+            callbacks = list(self._callbacks.values())
+        
+        # Call callbacks outside the lock
+        for callback in callbacks:
+            try:
+                callback(data, timestamps)
+            except Exception as e:
+                logging.error(f"Error in data callback: {e}")

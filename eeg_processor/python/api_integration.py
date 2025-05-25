@@ -29,6 +29,9 @@ from .data_access_api import EEGDataAPI
 from .services.data_access_service import DataAccessService
 from .services.collector_service import CollectorService
 
+# Import interaction API integration
+from .interaction_api_integration import EEGProcessorInteractionApiIntegration
+
 
 class EEGProcessorApiIntegration:
     """Direct integration with EEG processor services and data."""
@@ -52,6 +55,9 @@ class EEGProcessorApiIntegration:
             self.collector_service = CollectorService()
         except Exception as e:
             logger.warning(f"Could not initialize collector service: {e}")
+        
+        # Initialize interaction API integration
+        self.interaction_integration = EEGProcessorInteractionApiIntegration.get_instance()
         
         # Callback registration for streaming data
         self.callback_id = None
@@ -107,6 +113,9 @@ class EEGProcessorApiIntegration:
         self._register_channel_methods()
         self._register_quality_methods()
         self._register_event_methods()
+        
+        # Register interaction API methods
+        self.interaction_integration.register_api_methods(self.explorer)
         
     def _register_method_groups(self):
         """Register all method groups."""
