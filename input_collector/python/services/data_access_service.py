@@ -80,6 +80,10 @@ class DataAccessService:
         Args:
             event: New input event
         """
+        # Filter out key_release events before processing
+        if hasattr(event, "event_type") and event.event_type == "key_release":
+            return
+            
         with self._data_lock:
             # Update current event
             self._current_event = event
