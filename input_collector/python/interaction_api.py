@@ -175,8 +175,22 @@ class InputCollectorAPI:
             bool: True if successful
         """
         service = InteractionService.get_instance()
+        
+        # Parse boolean parameter to handle string values like "True"/"False" from web API
+        enabled = cls._parse_bool(enabled)
+        
         # Llamada original
         success = service.enable_json_logging(enabled)
+        
+        if success:
+            # Update UI checkbox state
+            ui_manager = service.get_component('ui_manager')
+            if ui_manager and 'log_checkbox' in ui_manager.components:
+                # Block signals to prevent recursion
+                ui_manager.components['log_checkbox'].blockSignals(True)
+                ui_manager.components['log_checkbox'].setChecked(enabled)
+                ui_manager.components['log_checkbox'].blockSignals(False)
+        
         # Ajustar mensaje según el parámetro
         service._set_status(success, f"JSON logging {'enabled' if enabled else 'disabled'}")
         return success
@@ -194,8 +208,22 @@ class InputCollectorAPI:
             bool: True if successful
         """
         service = InteractionService.get_instance()
+        
+        # Parse boolean parameter to handle string values like "True"/"False" from web API
+        enabled = cls._parse_bool(enabled)
+        
         # Llamada original
         success = service.enable_csv_logging(enabled, filepath)
+        
+        if success:
+            # Update UI checkbox state
+            ui_manager = service.get_component('ui_manager')
+            if ui_manager and 'csv_checkbox' in ui_manager.components:
+                # Block signals to prevent recursion
+                ui_manager.components['csv_checkbox'].blockSignals(True)
+                ui_manager.components['csv_checkbox'].setChecked(enabled)
+                ui_manager.components['csv_checkbox'].blockSignals(False)
+    
         # Ajustar mensaje según el parámetro
         service._set_status(success, f"CSV logging {'enabled' if enabled else 'disabled'}")
         return success
