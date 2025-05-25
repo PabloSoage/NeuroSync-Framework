@@ -528,3 +528,17 @@ body:not(.dark-mode) input[readonly] {
 body.dark-mode .btn-outline-secondary {
     color: #f8f9fa;
 }
+
+/* Range slider value display */
+.range-value-display {
+    display: inline-block;
+    min-width: 2.5em;
+    text-align: center;
+    font-weight: bold;
+    color: #212529;
+}
+
+/* Dark-mode override */
+body.dark-mode .range-value-display {
+    color: #f8f9fa;
+}

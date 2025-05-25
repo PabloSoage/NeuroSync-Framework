@@ -110,13 +110,28 @@
                                                                     </div>
                                                                 {% elif param_info.type == 'range' %}
                                                                     <div class="input-group">
-                                                                        <input type="range" class="form-range" 
-                                                                            id="{{ module.id }}-{{ method.id }}_param_{{ param_id }}"
-                                                                            min="{{ param_info.min|default(0) }}" 
-                                                                            max="{{ param_info.max|default(100) }}"
-                                                                            step="{{ param_info.step|default(1) }}"
-                                                                            value="{{ param_info.default|default(param_info.min|default(0)) }}">
-                                                                        <span class="ms-2 range-value-display"></span>
+                                                                        <input type="range" class="form-range"
+                                                                               id="{{ module.id }}-{{ method.id }}_param_{{ param_id }}"
+                                                                               min="{{ param_info.min|default(0) }}"
+                                                                               max="{{ param_info.max|default(100) }}"
+                                                                               step="{{ param_info.step|default(1) }}"
+                                                                               value="{{ param_info.default|default(param_info.min|default(0)) }}"
+                                                                               {% if param_id == 'angle_grouping' %}
+                                                                               oninput="this.nextElementSibling.textContent = `${this.value}° (${Math.floor(360/this.value)} values)`"
+                                                                               onchange="this.nextElementSibling.textContent = `${this.value}° (${Math.floor(360/this.value)} values)`"
+                                                                               {% else %}
+                                                                               oninput="this.nextElementSibling.textContent=this.value"
+                                                                               onchange="this.nextElementSibling.textContent=this.value"
+                                                                               {% endif %}>
+                                                                        <span class="ms-2 range-value-display">
+                                                                          {% if param_id == 'angle_grouping' %}
+                                                                            {# compute initial format #}
+                                                                            {% set v = param_info.default|default(param_info.min|default(1))|int %}
+                                                                            {{ v }}° ({{ (360 // v) }} values)
+                                                                          {% else %}
+                                                                            {{ param_info.default|default(param_info.min|default(0)) }}
+                                                                          {% endif %}
+                                                                        </span>
                                                                     </div>
                                                                 {% else %}
                                                                     <input type="{{ param_info.type }}" class="form-control" 

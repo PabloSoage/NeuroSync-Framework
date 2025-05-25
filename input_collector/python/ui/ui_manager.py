@@ -382,7 +382,12 @@ class UIManager(QObject):
         self.components['delta_smoothing_slider'] = QSlider(Qt.Horizontal)
         self.components['delta_smoothing_slider'].setRange(0, 90)
         self.components['delta_smoothing_slider'].setValue(50)
+        self.components['delta_smoothing_slider'].valueChanged.connect(self._update_delta_value_label)
         delta_layout.addWidget(self.components['delta_smoothing_slider'])
+        # Add value label for delta smoothing
+        self.components['delta_value_label'] = QLabel("50/90")
+        self.components['delta_value_label'].setMinimumWidth(60)
+        delta_layout.addWidget(self.components['delta_value_label'])
         settings_row1.addLayout(delta_layout)
         
         # Joystick sensitivity
@@ -391,7 +396,12 @@ class UIManager(QObject):
         self.components['sensitivity_slider'] = QSlider(Qt.Horizontal)
         self.components['sensitivity_slider'].setRange(10, 200)
         self.components['sensitivity_slider'].setValue(10)
+        self.components['sensitivity_slider'].valueChanged.connect(self._update_sensitivity_value_label)
         sensitivity_layout.addWidget(self.components['sensitivity_slider'])
+        # Add value label for joystick sensitivity
+        self.components['sensitivity_value_label'] = QLabel("10/200")
+        self.components['sensitivity_value_label'].setMinimumWidth(60)
+        sensitivity_layout.addWidget(self.components['sensitivity_value_label'])
         settings_row1.addLayout(sensitivity_layout)
         
         settings_layout.addLayout(settings_row1)
@@ -427,12 +437,22 @@ class UIManager(QObject):
         # Add settings to main layout
         self.main_layout.addWidget(self.components['mouse_settings_group'])
     
+    def _update_delta_value_label(self) -> None:
+        """Update the delta smoothing value label when slider changes."""
+        value = self.components['delta_smoothing_slider'].value()
+        self.components['delta_value_label'].setText(f"{value}/90")
+    
+    def _update_sensitivity_value_label(self) -> None:
+        """Update the joystick sensitivity value label when slider changes."""
+        value = self.components['sensitivity_slider'].value()
+        self.components['sensitivity_value_label'].setText(f"{value}/200")
+        
     def _update_angle_grouping_label(self) -> None:
         """Update the angle grouping label when slider changes."""
         value = self.components['angle_grouping_slider'].value()
         num_values = 360 // value if value > 0 else 360
         self.components['angle_grouping_label'].setText(f"{value}° ({num_values} values)")
-    
+
     def set_visualizers(self, keyboard_viz: KeyboardVisualizer, 
                        mouse_viz: MouseVisualizer, 
                        mouse_buttons: MouseButtonsSelector,

@@ -29,8 +29,8 @@ class InputCollectorAPI:
     
     # Constants for validation
     MOUSE_SETTING_RANGES = {
-        "delta_smoothing": (0, 100),
-        "joystick_sensitivity": (0, 100),
+        "delta_smoothing": (0, 90),
+        "joystick_sensitivity": (10, 200),
         "angle_grouping": (1, 60)
     }
     
@@ -469,30 +469,28 @@ class InputCollectorAPI:
             if delta_smoothing is not None:
                 # Instead of ui_manager.set_delta_smoothing()
                 # Update the slider value directly if accessible
-                delta_slider = ui_manager.components.get('delta_slider')
+                delta_slider = ui_manager.components.get('delta_smoothing_slider')
                 if delta_slider and hasattr(delta_slider, 'setValue'):
                     delta_slider.setValue(int(delta_smoothing))
                     # Force update of any value labels
-                    if hasattr(ui_manager, 'update_delta_value_label'):
-                        ui_manager.update_delta_value_label(int(delta_smoothing))
+                    if hasattr(ui_manager, '_update_angle_grouping_label'):
+                        ui_manager._update_angle_grouping_label()
                 
             if joystick_sensitivity is not None:
                 # Instead of ui_manager.set_joystick_sensitivity()
-                joystick_slider = ui_manager.components.get('joystick_slider')
+                joystick_slider = ui_manager.components.get('sensitivity_slider')
                 if joystick_slider and hasattr(joystick_slider, 'setValue'):
                     joystick_slider.setValue(int(joystick_sensitivity))
-                    # Force update of any value labels
-                    if hasattr(ui_manager, 'update_joystick_value_label'):
-                        ui_manager.update_joystick_value_label(int(joystick_sensitivity))
+                    # No corresponding update method for joystick sensitivity
                 
             if angle_grouping is not None:
                 # Instead of ui_manager.set_angle_grouping()
-                angle_slider = ui_manager.components.get('angle_slider')
+                angle_slider = ui_manager.components.get('angle_grouping_slider')
                 if angle_slider and hasattr(angle_slider, 'setValue'):
                     angle_slider.setValue(int(angle_grouping))
-                    # Force update of any value labels
-                    if hasattr(ui_manager, 'update_angle_value_label'):
-                        ui_manager.update_angle_value_label(int(angle_grouping))
+                    # Call the update method that exists
+                    if hasattr(ui_manager, '_update_angle_grouping_label'):
+                        ui_manager._update_angle_grouping_label()
                 
             # Apply settings to collector via app coordinator
             app_coordinator.apply_mouse_settings()
@@ -500,9 +498,9 @@ class InputCollectorAPI:
             # Create status message with actual values set
             values_msg = []
             if delta_smoothing is not None:
-                values_msg.append(f"Delta smoothing: {int(delta_smoothing)}/100")
+                values_msg.append(f"Delta smoothing: {int(delta_smoothing)}/90")
             if joystick_sensitivity is not None:
-                values_msg.append(f"Joystick sensitivity: {int(joystick_sensitivity)}/100")
+                values_msg.append(f"Joystick sensitivity: {int(joystick_sensitivity)}/200")
             if angle_grouping is not None:
                 angle_values = 360 // int(angle_grouping)
                 values_msg.append(f"Angle grouping: {int(angle_grouping)}° ({angle_values} values)")

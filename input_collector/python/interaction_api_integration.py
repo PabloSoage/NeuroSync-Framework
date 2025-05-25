@@ -924,22 +924,22 @@ class InteractionApiIntegration:
                 "params": {
                     "delta_smoothing": {
                         "type": "range",
-                        "description": "<span style='color:#f0f0f0;'>Smoothing factor for delta tracking (0-100)</span>",
+                        "description": "<span style='color:#f0f0f0;'>Smoothing factor for delta tracking (0-90)</span>",
                         "min": 0,
-                        "max": 100,
+                        "max": 90,
                         "step": 1,
                         "display_value": True,
-                        "display_format": "{value}/100",
+                        "display_format": "{value}/90",
                         "required": False
                     },
                     "joystick_sensitivity": {
                         "type": "range",
-                        "description": "<span style='color:#f0f0f0;'>Sensitivity for joystick tracking (0-100)</span>",
-                        "min": 0,
-                        "max": 100,
+                        "description": "<span style='color:#f0f0f0;'>Sensitivity for joystick tracking (10-200)</span>",
+                        "min": 10,
+                        "max": 200,
                         "step": 1,
                         "display_value": True,
-                        "display_format": "{value}/100",
+                        "display_format": "{value}/200",
                         "required": False
                     },
                     "angle_grouping": {
@@ -949,7 +949,7 @@ class InteractionApiIntegration:
                         "max": 60,
                         "step": 1,
                         "display_value": True, 
-                        "display_format": "{value}° ({360/value} values)",
+                        "display_format": "{value}° ({Math.floor(360/{value})} values)",
                         "required": False
                     }
                 }
