@@ -693,19 +693,15 @@ class UIManager(QObject):
         if active_keys_label:
             active_keys_label.setText(", ".join(active_keys) if active_keys else "None")
     
-    # Add missing methods to support InputCollectorApp
-    
     def is_direction_only_mode(self) -> bool:
-        """
-        Check if direction-only mode is enabled.
-        
-        Returns:
-            bool: True if direction-only mode is enabled
-        """
-        direction_only_check = self.components.get('direction_only_check')
-        if direction_only_check:
-            return direction_only_check.isChecked()
-        return True  # Default to True
+        """Return whether the 'Dir Only' checkbox is checked."""
+        return self.components['direction_only_check'].isChecked()
+
+    def set_direction_only_checkbox(self, enabled: bool) -> None:
+        """Set the state of the 'Dir Only' checkbox."""
+        self.components['direction_only_check'].setChecked(enabled)
+    
+    # Add missing methods to support InputCollectorApp
     
     def get_tracking_mode(self) -> str:
         """

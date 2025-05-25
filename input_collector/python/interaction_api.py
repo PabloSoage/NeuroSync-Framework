@@ -175,8 +175,12 @@ class InputCollectorAPI:
             bool: True if successful
         """
         service = InteractionService.get_instance()
-        return service.enable_json_logging(enabled)
-    
+        # Llamada original
+        success = service.enable_json_logging(enabled)
+        # Ajustar mensaje según el parámetro
+        service._set_status(success, f"JSON logging {'enabled' if enabled else 'disabled'}")
+        return success
+
     @classmethod
     def enable_csv_logging(cls, enabled: bool = True, filepath: Optional[str] = None) -> bool:
         """
@@ -190,8 +194,12 @@ class InputCollectorAPI:
             bool: True if successful
         """
         service = InteractionService.get_instance()
-        return service.enable_csv_logging(enabled, filepath)
-    
+        # Llamada original
+        success = service.enable_csv_logging(enabled, filepath)
+        # Ajustar mensaje según el parámetro
+        service._set_status(success, f"CSV logging {'enabled' if enabled else 'disabled'}")
+        return success
+
     @classmethod
     def set_csv_path(cls, filepath: str) -> bool:
         """
@@ -278,6 +286,13 @@ class InputCollectorAPI:
         service = InteractionService.get_instance()
         return service.connect_controller(index)
 
+    @staticmethod
+    def _parse_bool(val):
+        """Convert string 'True'/'False' or numeric to proper bool."""
+        if isinstance(val, str):
+            return val.lower() in ("true", "1", "yes")
+        return bool(val)
+
     @classmethod
     def get_available_tracking_modes(cls, direction_only: bool = None) -> List[str]:
         """
@@ -297,6 +312,9 @@ class InputCollectorAPI:
         if direction_only is None and ui_manager:
             direction_only = ui_manager.is_direction_only_mode()
             
+        # normalize string params
+        direction_only = cls._parse_bool(direction_only)
+        
         # Return appropriate modes based on direction_only parameter
         if direction_only:
             return ["axis", "angle"]
@@ -319,6 +337,9 @@ class InputCollectorAPI:
         ui_manager = service.get_component('ui_manager')
         app_coordinator = service.get_component('app_coordinator')
         
+        # normalize string params
+        direction_only = cls._parse_bool(direction_only)
+        
         if not ui_manager or not app_coordinator:
             service._set_status(False, "Required components not available")
             return False
@@ -328,20 +349,12 @@ class InputCollectorAPI:
             current_dir_only = ui_manager.is_direction_only_mode()
             
             # If direction_only parameter is provided and different from current state,
-            # we need to update it first using the appropriate method
+            # update it first
             if direction_only is not None and direction_only != current_dir_only:
                 # Update the direction only checkbox in UI
-                if hasattr(ui_manager, 'set_direction_only_checkbox'):
-                    ui_manager.set_direction_only_checkbox(direction_only)
-                    # After changing the checkbox, update tracking modes in UI
-                    ui_manager.update_tracking_modes(
-                        cls.get_available_tracking_modes(direction_only),
-                        mode,
-                        "axis" if direction_only else "joystick"
-                    )
-                else:
-                    service._set_status(False, "Cannot set direction-only mode: UI manager missing required method")
-                    return False
+                ui_manager.set_direction_only_checkbox(direction_only)
+                # Emit signal to update tracking modes
+                ui_manager.update_tracking_mode.emit()
             
             # Validate the mode based on updated direction_only setting
             updated_dir_only = ui_manager.is_direction_only_mode()
@@ -351,8 +364,12 @@ class InputCollectorAPI:
                 service._set_status(False, f"Invalid tracking mode '{mode}' for direction_only={updated_dir_only}. Valid modes: {valid_modes}")
                 return False
             
-            # Set tracking mode in UI
-            ui_manager.set_tracking_mode(mode)
+            # Update tracking modes in UI and set the new mode
+            ui_manager.update_tracking_modes(
+                valid_modes,
+                mode,
+                "axis" if updated_dir_only else "joystick"
+            )
             
             # Apply mode to collector via app coordinator
             app_coordinator.set_mouse_tracking_mode(mode)
@@ -597,6 +614,11 @@ class InputCollectorAPI:
         if not app_coordinator:
             service._set_status(False, "App coordinator not available")
             return False
+        
+        # Sólo en modo edición
+        if not app_coordinator.edit_mode:
+            service._set_status(False, "Cannot add key: edit mode is disabled")
+            return False
             
         try:
             # Check if recording is active - can't edit keys during recording
@@ -674,6 +696,11 @@ class InputCollectorAPI:
         if not app_coordinator:
             service._set_status(False, "App coordinator not available")
             return False
+        
+        # Sólo en modo edición
+        if not app_coordinator.edit_mode:
+            service._set_status(False, "Cannot remove key: edit mode is disabled")
+            return False
             
         try:
             # Check if recording is active - can't edit keys during recording
@@ -742,113 +769,24 @@ class InputCollectorAPI:
     def toggle_button_tracking(cls, button_id: str, track: bool) -> bool:
         """
         Toggle tracking for a mouse button.
-        
+
         Args:
             button_id: Button identifier
             track: Whether to track the button
-            
+
         Returns:
             bool: True if successful
         """
-        service = InteractionService.get_instance()
-        app_coordinator = service.get_component('app_coordinator')
+        # normalize string params
+        track = cls._parse_bool(track)
         
-        if not app_coordinator:
-            service._set_status(False, "App coordinator not available")
-            return False
-            
-        try:
-            # Check if recording is active - can't edit buttons during recording
-            if app_coordinator.is_recording:
-                service._set_status(False, "Cannot edit buttons while recording. Stop recording first.")
-                return False
-                
-            # Get current tracked keys before making changes
-            tracked_keys = app_coordinator.get_tracked_keys()
-            is_currently_tracked = button_id in tracked_keys
-            
-            # If current state already matches desired state, do nothing
-            if is_currently_tracked == track:
-                action = "tracked" if track else "not tracked"
-                service._set_status(True, f"Button {button_id} is already {action}")
-                return True
-                
-            # Enable edit mode temporarily
-            was_in_edit_mode = app_coordinator.edit_mode
-            if not was_in_edit_mode:
-                app_coordinator.toggle_edit_mode()
-                
-                # Check if edit mode was enabled successfully
-                if not app_coordinator.edit_mode:
-                    service._set_status(False, "Failed to enable edit mode")
-                    return False
-            
-            # Handle special case for scroll button because of naming inconsistency
-            if button_id == "Button.scroll":
-                if hasattr(app_coordinator, 'handle_button_edit'):
-                    app_coordinator.handle_button_edit("Button.scroll", track)
-                    
-                    # Check if the change was applied successfully 
-                    updated_tracked_keys = app_coordinator.get_tracked_keys()
-                    button_tracked = button_id in updated_tracked_keys
-                    
-                    if button_tracked == track:
-                        service._set_status(True, f"Scroll wheel tracking {'enabled' if track else 'disabled'}")
-                        
-                        # Exit edit mode if we entered it
-                        if not was_in_edit_mode and app_coordinator.edit_mode:
-                            app_coordinator.toggle_edit_mode()
-                        return True
-                    else:
-                        service._set_status(False, f"Failed to {'enable' if track else 'disable'} scroll wheel tracking")
-                        
-                        # Exit edit mode if we entered it
-                        if not was_in_edit_mode and app_coordinator.edit_mode:
-                            app_coordinator.toggle_edit_mode()
-                        return False
-                else:
-                    service._set_status(False, "Button edit functionality not available")
-                    
-                    # Exit edit mode if we entered it
-                    if not was_in_edit_mode and app_coordinator.edit_mode:
-                        app_coordinator.toggle_edit_mode()
-                    return False
-            
-            # For other buttons, use the handle_button_edit method
-            app_coordinator.handle_button_edit(button_id, track)
-            
-            # Verify change by checking updated tracked keys
-            updated_tracked_keys = app_coordinator.get_tracked_keys()
-            button_tracked = button_id in updated_tracked_keys
-            
-            # Exit edit mode if we entered it
-            if not was_in_edit_mode and app_coordinator.edit_mode:
-                app_coordinator.toggle_edit_mode()
-                
-            # Check if button tracking state changed as expected
-            if button_tracked == track:
-                service._set_status(True, f"Button {button_id} tracking {'enabled' if track else 'disabled'}")
-                return True
-            else:
-                service._set_status(False, f"Failed to {'enable' if track else 'disable'} tracking for {button_id}")
-                return False
-                
-        except Exception as e:
-            service._set_status(False, f"Error toggling button tracking: {e}")
-            logger.error(f"Error toggling button tracking: {e}")
-            import traceback
-            traceback.print_exc()
-            
-            # Clean up edit mode if needed
-            if 'was_in_edit_mode' in locals() and not was_in_edit_mode:
-                try:
-                    if app_coordinator.edit_mode:
-                        app_coordinator.toggle_edit_mode()
-                except:
-                    pass
-                
-            return False
-    
+        # Delegate to the add/remove methods which handle edit mode,
+        # recording checks and actual toggling in the coordinator
+        if track:
+            return cls.add_tracked_key(button_id)
+        else:
+            return cls.remove_tracked_key(button_id)
+
     @classmethod
     def toggle_fullscreen(cls) -> bool:
         """
