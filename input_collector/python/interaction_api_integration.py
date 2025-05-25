@@ -36,6 +36,9 @@ from .interaction_api import InputCollectorAPI
 # Import core event system
 from .core.event_system import EventType, subscribe, unsubscribe
 
+# Import API integration for reusing event processing functions
+from .api_integration import get_api_integration
+
 class InteractionApiIntegration:
     """
     Integrates the input collector's interaction API with the API Explorer.
@@ -58,6 +61,9 @@ class InteractionApiIntegration:
         
         # For tracking event subscriptions
         self._event_subscriptions = []
+        
+        # Reference to data API integration for reusing event processing functions
+        self.data_api_integration = None
     
     def register_api(self, start_server: bool = True, host: str = "127.0.0.1", 
                      port: int = 8001) -> bool:
@@ -85,6 +91,9 @@ class InteractionApiIntegration:
             
             # Register methods
             self._register_all_methods()
+            
+            # Get reference to data API integration for reusing event processing functions
+            self.data_api_integration = get_api_integration()
             
             # Setup websocket events
             self._setup_websocket_events()
@@ -146,19 +155,21 @@ class InteractionApiIntegration:
             if event_type == EventType.INPUT:
                 # Check if this is a mouse move event with tracking mode
                 if hasattr(data, 'event_type') and data.event_type == 'mouse_move' and hasattr(data, 'mouse_tracking_mode'):
-                    # Format the event based on tracking mode
-                    formatted_event = self._format_mouse_event(data)
-                    if formatted_event:
-                        self._broadcast_event(formatted_event)
-                    return  # We've handled this event specifically
-                
+                    # Format the event based on tracking mode using data_api_integration's function if available
+                    if self.data_api_integration and hasattr(self.data_api_integration, '_format_mouse_event'):
+                        formatted_event = self.data_api_integration._format_mouse_event(data)
+                        if formatted_event:
+                            self._broadcast_event(formatted_event)
+                        return  # We've handled this event specifically
+                    
                 # For other InputData events that aren't key_release
                 if hasattr(data, 'event_type'):
-                    # Create a simplified version of the event
-                    formatted_event = self._create_simple_event(data)
-                    if formatted_event:
-                        self._broadcast_event(formatted_event)
-                    return
+                    # Create a simplified version of the event using data_api_integration's function if available
+                    if self.data_api_integration and hasattr(self.data_api_integration, '_create_simple_event'):
+                        formatted_event = self.data_api_integration._create_simple_event(data)
+                        if formatted_event:
+                            self._broadcast_event(formatted_event)
+                        return
                     
             # For other event types (not InputData)
             # Create a standard event payload
@@ -179,150 +190,13 @@ class InteractionApiIntegration:
             import traceback
             traceback.print_exc()
 
-    def _format_mouse_event(self, event_data: Any) -> Dict:
-        """
-        Format a mouse event based on its tracking mode.
-        
-        Args:
-            event_data: Mouse event data
-            
-        Returns:
-            Dict: Formatted event for websocket broadcast
-        """
-        try:
-            # Get the tracking mode
-            mode = getattr(event_data, 'mouse_tracking_mode', 'joystick')
-            direction_only = getattr(event_data, 'direction_only', False)
-            
-            # Initialize the formatted event
-            formatted_event = {
-                "type": "mouse_movement",
-                "timestamp": event_data.timestamp,
-                "tracking_mode": mode,
-                "direction_only": direction_only
-            }
-            
-            # Format based on tracking mode
-            if mode == "axis" and direction_only:
-                # Extract axis values
-                formatted_event["north"] = getattr(event_data, 'north', 0)
-                formatted_event["south"] = getattr(event_data, 'south', 0)
-                formatted_event["east"] = getattr(event_data, 'east', 0)
-                formatted_event["west"] = getattr(event_data, 'west', 0)
-                
-                # Generate a status string like in the GUI
-                active_directions = []
-                if formatted_event["north"] > 0.2:
-                    active_directions.append("UP")
-                if formatted_event["south"] > 0.2:
-                    active_directions.append("DOWN")
-                if formatted_event["east"] > 0.2:
-                    active_directions.append("RIGHT")
-                if formatted_event["west"] > 0.2:
-                    active_directions.append("LEFT")
-                    
-                formatted_event["status"] = " + ".join(active_directions) if active_directions else "NONE"
-            
-            elif mode == "angle" and direction_only:
-                # Extract angle value
-                angle = getattr(event_data, 'discrete_angle', 0)
-                formatted_event["angle"] = angle
-                
-                # Determine direction name based on angle
-                direction = self._angle_to_direction(angle)
-                formatted_event["status"] = direction
-                
-            elif mode == "delta":
-                # Extract delta values
-                formatted_event["delta_x"] = getattr(event_data, 'mouse_delta_x', 0)
-                formatted_event["delta_y"] = getattr(event_data, 'mouse_delta_y', 0)
-                formatted_event["magnitude"] = getattr(event_data, 'mouse_delta_magnitude', 0)
-                
-                # Generate status string
-                if getattr(event_data, 'is_moving', False):
-                    formatted_event["status"] = f"DELTA: {formatted_event['delta_x']:.1f}, {formatted_event['delta_y']:.1f}"
-                else:
-                    formatted_event["status"] = "IDLE"
-                    
-            elif mode == "joystick":
-                # Extract joystick values
-                formatted_event["rel_x"] = getattr(event_data, 'rel_x', 0)
-                formatted_event["rel_y"] = getattr(event_data, 'rel_y', 0)
-                
-                # Generate status string
-                if getattr(event_data, 'is_moving', False):
-                    formatted_event["status"] = f"X: {formatted_event['rel_x']:.2f}, Y: {formatted_event['rel_y']:.2f}"
-                else:
-                    formatted_event["status"] = "IDLE"
-                    
-            # Add active keys if any
-            active_keys = getattr(event_data, 'active_keys', [])
-            if active_keys:
-                formatted_event["active_keys"] = active_keys
-                
-            return formatted_event
-        except Exception as e:
-            logger.error(f"Error formatting mouse event: {e}")
-            return None
-            
-    def _angle_to_direction(self, angle: int) -> str:
-        """Convert an angle to a human-readable direction."""
-        directions = {
-            0: "RIGHT",
-            45: "DOWN-RIGHT",
-            90: "DOWN",
-            135: "DOWN-LEFT",
-            180: "LEFT",
-            225: "UP-LEFT",
-            270: "UP",
-            315: "UP-RIGHT"
-        }
-        
-        # Find the closest direction
-        closest = min(directions.keys(), key=lambda k: abs(k - angle))
-        return directions[closest]
-        
-    def _create_simple_event(self, event_data: Any) -> Dict:
-        """
-        Create a simplified event for websocket broadcast.
-        
-        Args:
-            event_data: Event data
-            
-        Returns:
-            Dict: Simplified event
-        """
-        try:
-            # Create basic event structure
-            simple_event = {
-                "type": getattr(event_data, 'event_type', 'unknown'),
-                "timestamp": getattr(event_data, 'timestamp', time.time())
-            }
-            
-            # Add key info if present
-            if hasattr(event_data, 'key') and event_data.key:
-                simple_event["key"] = event_data.key
-                
-            # Add button info if present
-            if hasattr(event_data, 'button_pressed') and event_data.button_pressed:
-                simple_event["button"] = event_data.button_pressed
-            
-            # Add direction if present
-            if hasattr(event_data, 'direction') and event_data.direction:
-                simple_event["direction"] = event_data.direction
-                
-            # Add active keys if any
-            active_keys = getattr(event_data, 'active_keys', [])
-            if active_keys:
-                simple_event["active_keys"] = active_keys
-                
-            return simple_event
-        except Exception as e:
-            logger.error(f"Error creating simple event: {e}")
-            return None
-
     def _event_to_dict(self, event: Any) -> Dict:
         """Convert an event object to a serializable dictionary."""
+        # Reuse data_api_integration's function if available
+        if self.data_api_integration and hasattr(self.data_api_integration, '_event_to_dict'):
+            return self.data_api_integration._event_to_dict(event)
+            
+        # Fallback implementation
         # Check if it's an InputData object with to_dict method
         if hasattr(event, 'to_dict') and callable(getattr(event, 'to_dict')):
             return event.to_dict()

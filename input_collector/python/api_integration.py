@@ -10,6 +10,7 @@ import logging
 import os
 import socket
 import sys
+import time
 from typing import Optional, Dict, List, Any, Callable, Union
 
 # Configure logging
@@ -33,6 +34,9 @@ except ImportError:
 # Import the InputDataAPI
 from .data_access_api import InputDataAPI
 
+# Import core event system
+from .core.event_system import EventType, subscribe, unsubscribe
+
 
 class InputCollectorApiIntegration:
     """
@@ -54,6 +58,9 @@ class InputCollectorApiIntegration:
         
         # Module registration status flag
         self.module_registered = False
+        
+        # For tracking event subscriptions
+        self._event_subscriptions = []
     
     def register_api(self, start_server: bool = True, host: str = "127.0.0.1", 
                      port: int = 8000) -> bool:
@@ -85,8 +92,8 @@ class InputCollectorApiIntegration:
             # Register methods
             self._register_all_methods()
             
-            # Register for real-time events
-            self._register_for_events()
+            # Setup websocket events
+            self._setup_websocket_events()
             
             # Start the server if requested
             if start_server and hasattr(self.explorer, 'start_server') and not self.explorer.is_running:
@@ -330,25 +337,244 @@ class InputCollectorApiIntegration:
         except Exception as e:
             logger.error(f"Failed to add fallback route for {method_id}: {e}")
     
+    def _setup_websocket_events(self):
+        """Set up event handlers for websocket real-time events."""
+        # Subscribe to core events for websocket forwarding
+        self._subscribe_to_core_events()
+        
+        # Legacy: still register event callback for backward compatibility
+        self._register_for_events()
+
+    def _subscribe_to_core_events(self):
+        """Subscribe to core events from event system."""
+        # Subscribe to all event types
+        for event_type in EventType:
+            # Create a handler for this event type
+            handler = lambda data, event_type=event_type: self._handle_core_event(event_type, data)
+            
+            # Subscribe to the event
+            subscribe(event_type, handler)
+            
+            # Store subscription for cleanup
+            self._event_subscriptions.append((event_type, handler))
+            
+        logger.info("Subscribed to core events for real-time forwarding")
+
+    def _handle_core_event(self, event_type: EventType, data: Any):
+        """
+        Handle events from the core event system.
+        
+        Args:
+            event_type: Type of event
+            data: Event data
+        """
+        try:
+            # Skip key_release events to match GUI behavior
+            if event_type == EventType.INPUT and hasattr(data, 'event_type') and data.event_type == 'key_release':
+                return
+                
+            # Skip INPUT events with key_release in a dict structure
+            if event_type == EventType.INPUT and isinstance(data, dict) and data.get("event_type") == "key_release":
+                return
+            
+            # Skip any event with key_release regardless of structure
+            if isinstance(data, dict) and "key_release" in str(data):
+                return
+                
+            # For InputData events, apply special formatting
+            if event_type == EventType.INPUT:
+                # Check if this is a mouse move event with tracking mode
+                if hasattr(data, 'event_type') and data.event_type == 'mouse_move' and hasattr(data, 'mouse_tracking_mode'):
+                    # Format the event based on tracking mode
+                    formatted_event = self._format_mouse_event(data)
+                    if formatted_event:
+                        self._broadcast_event(formatted_event)
+                    return  # We've handled this event specifically
+                
+                # For other InputData events that aren't key_release
+                if hasattr(data, 'event_type'):
+                    # Create a simplified version of the event
+                    formatted_event = self._create_simple_event(data)
+                    if formatted_event:
+                        self._broadcast_event(formatted_event)
+                    return
+                    
+            # For other event types (not InputData)
+            # Create a standard event payload
+            event_payload = {
+                "type": event_type.name,
+                "data": self._event_to_dict(data) if hasattr(data, '__dict__') else data,
+                "timestamp": time.time()
+            }
+            
+            # Add specific fields based on event type
+            if isinstance(data, dict) and "timestamp" in data:
+                event_payload["timestamp"] = data["timestamp"]
+            
+            # Broadcast the event
+            self._broadcast_event(event_payload)
+        except Exception as e:
+            logger.error(f"Error handling core event: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def _format_mouse_event(self, event_data: Any) -> Dict:
+        """
+        Format a mouse event based on its tracking mode.
+        
+        Args:
+            event_data: Mouse event data
+            
+        Returns:
+            Dict: Formatted event for websocket broadcast
+        """
+        try:
+            # Get the tracking mode
+            mode = getattr(event_data, 'mouse_tracking_mode', 'joystick')
+            direction_only = getattr(event_data, 'direction_only', False)
+            
+            # Initialize the formatted event
+            formatted_event = {
+                "type": "mouse_movement",
+                "timestamp": event_data.timestamp,
+                "tracking_mode": mode,
+                "direction_only": direction_only
+            }
+            
+            # Format based on tracking mode
+            if mode == "axis" and direction_only:
+                # Extract axis values
+                formatted_event["north"] = getattr(event_data, 'north', 0)
+                formatted_event["south"] = getattr(event_data, 'south', 0)
+                formatted_event["east"] = getattr(event_data, 'east', 0)
+                formatted_event["west"] = getattr(event_data, 'west', 0)
+                
+                # Generate a status string like in the GUI
+                active_directions = []
+                if formatted_event["north"] > 0.2:
+                    active_directions.append("UP")
+                if formatted_event["south"] > 0.2:
+                    active_directions.append("DOWN")
+                if formatted_event["east"] > 0.2:
+                    active_directions.append("RIGHT")
+                if formatted_event["west"] > 0.2:
+                    active_directions.append("LEFT")
+                    
+                formatted_event["status"] = " + ".join(active_directions) if active_directions else "NONE"
+            
+            elif mode == "angle" and direction_only:
+                # Extract angle value
+                angle = getattr(event_data, 'discrete_angle', 0)
+                formatted_event["angle"] = angle
+                
+                # Determine direction name based on angle
+                direction = self._angle_to_direction(angle)
+                formatted_event["status"] = direction
+                
+            elif mode == "delta":
+                # Extract delta values
+                formatted_event["delta_x"] = getattr(event_data, 'mouse_delta_x', 0)
+                formatted_event["delta_y"] = getattr(event_data, 'mouse_delta_y', 0)
+                formatted_event["magnitude"] = getattr(event_data, 'mouse_delta_magnitude', 0)
+                
+                # Generate status string
+                if getattr(event_data, 'is_moving', False):
+                    formatted_event["status"] = f"DELTA: {formatted_event['delta_x']:.1f}, {formatted_event['delta_y']:.1f}"
+                else:
+                    formatted_event["status"] = "IDLE"
+                    
+            elif mode == "joystick":
+                # Extract joystick values
+                formatted_event["rel_x"] = getattr(event_data, 'rel_x', 0)
+                formatted_event["rel_y"] = getattr(event_data, 'rel_y', 0)
+                
+                # Generate status string
+                if getattr(event_data, 'is_moving', False):
+                    formatted_event["status"] = f"X: {formatted_event['rel_x']:.2f}, Y: {formatted_event['rel_y']:.2f}"
+                else:
+                    formatted_event["status"] = "IDLE"
+                    
+            # Add active keys if any
+            active_keys = getattr(event_data, 'active_keys', [])
+            if active_keys:
+                formatted_event["active_keys"] = active_keys
+                
+            return formatted_event
+        except Exception as e:
+            logger.error(f"Error formatting mouse event: {e}")
+            return None
+            
+    def _angle_to_direction(self, angle: int) -> str:
+        """Convert an angle to a human-readable direction."""
+        directions = {
+            0: "RIGHT",
+            45: "DOWN-RIGHT",
+            90: "DOWN",
+            135: "DOWN-LEFT",
+            180: "LEFT",
+            225: "UP-LEFT",
+            270: "UP",
+            315: "UP-RIGHT"
+        }
+        
+        # Find the closest direction
+        closest = min(directions.keys(), key=lambda k: abs(k - angle))
+        return directions[closest]
+        
+    def _create_simple_event(self, event_data: Any) -> Dict:
+        """
+        Create a simplified event for websocket broadcast.
+        
+        Args:
+            event_data: Event data
+            
+        Returns:
+            Dict: Simplified event
+        """
+        try:
+            # Create basic event structure
+            simple_event = {
+                "type": getattr(event_data, 'event_type', 'unknown'),
+                "timestamp": getattr(event_data, 'timestamp', time.time())
+            }
+            
+            # Add key info if present
+            if hasattr(event_data, 'key') and event_data.key:
+                simple_event["key"] = event_data.key
+                
+            # Add button info if present
+            if hasattr(event_data, 'button_pressed') and event_data.button_pressed:
+                simple_event["button"] = event_data.button_pressed
+            
+            # Add direction if present
+            if hasattr(event_data, 'direction') and event_data.direction:
+                simple_event["direction"] = event_data.direction
+                
+            # Add active keys if any
+            active_keys = getattr(event_data, 'active_keys', [])
+            if active_keys:
+                simple_event["active_keys"] = active_keys
+                
+            return simple_event
+        except Exception as e:
+            logger.error(f"Error creating simple event: {e}")
+            return None
+    
     def _register_for_events(self) -> None:
-        """Register for real-time events from the input collector."""
+        """Register for real-time events from the input collector (legacy method)."""
         callback_id = InputDataAPI.register_event_callback(self._event_callback)
         self.event_callback_id = callback_id
         logger.info(f"Registered for input events with callback ID {callback_id}")
     
     def _event_callback(self, event: Any) -> None:
-        """Handle input events and broadcast them through WebSocket."""
-        if not self.is_registered or not self.explorer:
-            return
+        """
+        Handle input events and broadcast them through WebSocket (legacy method).
         
-        try:
-            # Convert event to dictionary
-            event_dict = self._event_to_dict(event)
-            
-            # Broadcast through WebSocket
-            self._broadcast_event(event_dict)
-        except Exception as e:
-            logger.error(f"Error in event callback: {e}")
+        This is kept for backward compatibility but most events are now handled
+        through the core event system subscription.
+        """
+        # We don't need to process most events here anymore as they're handled by the core event system
+        pass
     
     def _event_to_dict(self, event: Any) -> Dict:
         """Convert an event object to a serializable dictionary."""
@@ -421,7 +647,7 @@ class InputCollectorApiIntegration:
                 
                 await self.explorer.broadcast_event(self.module_id, event_dict)
             except Exception as e:
-                logger.error(f"Error broadcasting event: {e}")
+                logger.error(f"Error in broadcast_event: {e}")
                 import traceback
                 traceback.print_exc()
         
@@ -436,9 +662,15 @@ class InputCollectorApiIntegration:
     
     def shutdown(self) -> None:
         """Clean up resources when shutting down."""
+        # Unsubscribe from core events
+        for event_type, handler in self._event_subscriptions:
+            unsubscribe(event_type, handler)
+            
+        # Unregister legacy callback
         if self.event_callback_id is not None:
             InputDataAPI.unregister_event_callback(self.event_callback_id)
             self.event_callback_id = None
+            
         logger.info("API integration shut down")
     
     #
