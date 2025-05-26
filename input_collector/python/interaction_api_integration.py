@@ -120,7 +120,7 @@ class InteractionApiIntegration:
         # Subscribe to all event types
         for event_type in EventType:
             # Create a handler for this event type
-            handler = lambda data, event_type=event_type: self._handle_core_event(event_type, data)
+            handler = lambda data, evnt_type=event_type: self._handle_core_event(evnt_type, data)
             
             # Subscribe to the event
             subscribe(event_type, handler)

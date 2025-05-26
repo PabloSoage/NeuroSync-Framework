@@ -5,7 +5,7 @@ This provides a clean interface for controlling the input collector application.
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Tuple, Callable
+from typing import Dict, List, Any, Optional, Callable
 
 from .core.event_system import EventType, subscribe, unsubscribe
 from .interfaces import InputData
@@ -19,13 +19,7 @@ logger = logging.getLogger(__name__)
 class InputCollectorAPI:
     """
     Main API for controlling the input collector.
-    
-    This class provides methods to control the application and access real-time events.
     """
-    
-    # Dictionary of registered event callbacks
-    _event_callbacks = {}
-    _next_callback_id = 1
     
     # Constants for validation
     MOUSE_SETTING_RANGES = {
@@ -57,13 +51,6 @@ class InputCollectorAPI:
         }
         service.initialize(components)
         
-        # Subscribe to core events
-        from .core.event_system import EventType, subscribe
-        subscribe(EventType.INPUT, cls._on_input_event)
-        subscribe(EventType.STATE_CHANGE, cls._on_state_change)
-        subscribe(EventType.RECORDING_STARTED, cls._on_recording_started)
-        subscribe(EventType.RECORDING_STOPPED, cls._on_recording_stopped)
-        
         logger.info("Interaction API initialized")
     
     @classmethod
@@ -71,49 +58,6 @@ class InputCollectorAPI:
         """Get the status of the last operation."""
         service = InteractionService.get_instance()
         return service.get_last_status()
-    
-    #
-    # Event handling methods
-    #
-    
-    @classmethod
-    def _on_input_event(cls, event: InputData) -> None:
-        """Handle input events."""
-        # Skip key_release events to match GUI behavior
-        if hasattr(event, 'event_type') and event.event_type == 'key_release':
-            return
-            
-        # Notify all registered event callbacks
-        cls._notify_event_callbacks(event)
-    
-    @classmethod
-    def _on_state_change(cls, state: Dict[str, Any]) -> None:
-        """Handle state change events."""
-        # Notify all registered event callbacks
-        cls._notify_event_callbacks(state)
-    
-    @classmethod
-    def _on_recording_started(cls, data: Any) -> None:
-        """Handle recording started events."""
-        state = {"event_type": "recording_started", "timestamp": data}
-        cls._notify_event_callbacks(state)
-    
-    @classmethod
-    def _on_recording_stopped(cls, data: Any) -> None:
-        """Handle recording stopped events."""
-        state = {"event_type": "recording_stopped", "timestamp": data}
-        cls._notify_event_callbacks(state)
-    
-    @classmethod
-    def _notify_event_callbacks(cls, event: Any) -> None:
-        """Notify all registered event callbacks."""
-        # Make a copy of the callbacks to avoid modification during iteration
-        callbacks = list(cls._event_callbacks.values())
-        for callback in callbacks:
-            try:
-                callback(event)
-            except Exception as e:
-                logger.error(f"Error in event callback: {e}")
     
     #
     # Public API methods
@@ -889,35 +833,3 @@ class InputCollectorAPI:
         except Exception as e:
             logger.error(f"Error getting application state: {e}")
             return {"error": str(e)}
-    
-    @classmethod
-    def register_event_callback(cls, callback: Callable[[Any], None]) -> int:
-        """
-        Register a callback for real-time events.
-        
-        Args:
-            callback: Function to call when events occur
-            
-        Returns:
-            int: Callback ID for unregistering
-        """
-        callback_id = cls._next_callback_id
-        cls._event_callbacks[callback_id] = callback
-        cls._next_callback_id += 1
-        return callback_id
-    
-    @classmethod
-    def unregister_event_callback(cls, callback_id: int) -> bool:
-        """
-        Unregister an event callback.
-        
-        Args:
-            callback_id: ID of the callback to unregister
-            
-        Returns:
-            bool: True if successful
-        """
-        if callback_id in cls._event_callbacks:
-            del cls._event_callbacks[callback_id]
-            return True
-        return False

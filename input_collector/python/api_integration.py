@@ -350,7 +350,7 @@ class InputCollectorApiIntegration:
         # Subscribe to all event types
         for event_type in EventType:
             # Create a handler for this event type
-            handler = lambda data, event_type=event_type: self._handle_core_event(event_type, data)
+            handler = lambda data, evnt_type=event_type: self._handle_core_event(evnt_type, data)
             
             # Subscribe to the event
             subscribe(event_type, handler)
@@ -471,6 +471,17 @@ class InputCollectorApiIntegration:
                 direction = self._angle_to_direction(angle)
                 formatted_event["status"] = direction
                 
+            elif mode == "angle" and not direction_only:
+                # Extract continuous angle and magnitude values
+                formatted_event["angle"] = getattr(event_data, 'mouse_delta_angle', 0.0)
+                formatted_event["magnitude"] = getattr(event_data, 'mouse_delta_magnitude', 0.0)
+                
+                # Generate status string
+                if getattr(event_data, 'is_moving', False):
+                    formatted_event["status"] = f"ANGLE: {formatted_event['angle']:.1f}°, MAG: {formatted_event['magnitude']:.1f}"
+                else:
+                    formatted_event["status"] = "IDLE"
+                
             elif mode == "delta":
                 # Extract delta values
                 formatted_event["delta_x"] = getattr(event_data, 'mouse_delta_x', 0)
@@ -487,6 +498,10 @@ class InputCollectorApiIntegration:
                 # Extract joystick values
                 formatted_event["rel_x"] = getattr(event_data, 'rel_x', 0)
                 formatted_event["rel_y"] = getattr(event_data, 'rel_y', 0)
+                # Add speed value
+                formatted_event["speed"] = getattr(event_data, 'speed', 0)
+                # Add direction information
+                formatted_event["direction"] = getattr(event_data, 'direction', None)
                 
                 # Generate status string
                 if getattr(event_data, 'is_moving', False):
