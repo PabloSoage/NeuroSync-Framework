@@ -376,16 +376,6 @@ function formatEventData(data) {
         output += `<strong>Button:</strong> ${data.button_pressed}\n`;
     }
     
-    // Add direction if present
-    if (data.direction) {
-        output += `<strong>Direction:</strong> ${data.direction}\n`;
-    }
-    
-    // Add joystick position if present
-    if (data.rel_x !== undefined && data.rel_y !== undefined) {
-        output += `<strong>Joystick:</strong> (${data.rel_x.toFixed(2)}, ${data.rel_y.toFixed(2)})\n`;
-    }
-    
     // If there's no specific data to display, show the full object
     if (!output) {
         output = JSON.stringify(data, null, 2);
