@@ -20,7 +20,7 @@ if parent_dir not in sys.path:
     sys.path.append(parent_dir)
 
 # Import the ApiExplorer from the correct location
-from api_explorer.api_explorer import ApiExplorer
+from api_explorer import ApiExplorer
 
 def run_explorer(host: str = "127.0.0.1", port: int = 8000, block: bool = True) -> ApiExplorer:
     """
