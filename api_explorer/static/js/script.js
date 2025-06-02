@@ -264,7 +264,7 @@ function connectWebSocket(moduleId) {
             }
             
             // Format event data for display
-            const formattedData = formatEventData(data);
+            const formattedData = JSON.stringify(data, null, 2);
             
             // Format timestamp
             let timeStr = '';
@@ -276,7 +276,7 @@ function connectWebSocket(moduleId) {
             // Create and append event element
             const eventElement = document.createElement('div');
             eventElement.className = eventClass;
-            eventElement.innerHTML = `${timeStr}${formattedData}`;
+            eventElement.innerHTML = `${timeStr}<pre>${formattedData}</pre>`;
             eventsContainer.appendChild(eventElement);
             
             // Auto-scroll if enabled
@@ -344,44 +344,6 @@ function addEvent(moduleId, message, type = 'info') {
     if (document.getElementById(`${moduleId}-auto-scroll`).checked) {
         eventsContainer.scrollTop = eventsContainer.scrollHeight;
     }
-}
-
-// Function to format event data for better display
-function formatEventData(data) {
-    // Create a simplified representation for display
-    let output = '';
-    
-    // Add event type
-    if (data.event_type) {
-        output += `<strong>Event:</strong> ${data.event_type}\n`;
-    }
-    
-    // Add key info if present
-    if (data.key) {
-        output += `<strong>Key:</strong> ${data.key}\n`;
-    }
-    
-    // Add active keys if present
-    if (data.active_keys && data.active_keys.length > 0) {
-        output += `<strong>Active Keys:</strong> ${data.active_keys.join(', ')}\n`;
-    }
-    
-    // Add mouse position if present
-    if (data.mouse_x !== undefined && data.mouse_y !== undefined) {
-        output += `<strong>Mouse Position:</strong> (${data.mouse_x}, ${data.mouse_y})\n`;
-    }
-    
-    // Add mouse button if present
-    if (data.button_pressed) {
-        output += `<strong>Button:</strong> ${data.button_pressed}\n`;
-    }
-    
-    // If there's no specific data to display, show the full object
-    if (!output) {
-        output = JSON.stringify(data, null, 2);
-    }
-    
-    return output;
 }
 
 // Initialize or update the graph for a module

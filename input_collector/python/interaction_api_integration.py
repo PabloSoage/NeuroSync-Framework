@@ -818,9 +818,9 @@ class InteractionApiIntegration:
                     },
                     "angle_grouping": {
                         "type": "range",
-                        "description": "<span style='color:#f0f0f0;'>Angle grouping in degrees (1-60)</span>",
+                        "description": "<span style='color:#f0f0f0;'>Angle grouping in degrees (1-90)</span>",
                         "min": 1,
-                        "max": 60,
+                        "max": 90,
                         "step": 1,
                         "display_value": True, 
                         "display_format": "{value}° ({Math.floor(360/{value})} values)",
@@ -942,7 +942,7 @@ class InteractionApiIntegration:
                     "button_id": {
                         "type": "select",
                         "description": "<span style='color:#f0f0f0;'>Button identifier</span>",
-                        "options": ["Button.left", "Button.right", "Button.middle", "Button.scroll"],
+                        "options": ["Button.left", "Button.right", "Button.scroll"],
                         "required": True
                     },
                     "track": {

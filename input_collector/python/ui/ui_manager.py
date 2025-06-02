@@ -413,7 +413,7 @@ class UIManager(QObject):
         angle_layout = QHBoxLayout()
         angle_layout.addWidget(QLabel("Angle Grouping:"))
         self.components['angle_grouping_slider'] = QSlider(Qt.Horizontal)
-        self.components['angle_grouping_slider'].setRange(1, 60)
+        self.components['angle_grouping_slider'].setRange(1, 90)
         self.components['angle_grouping_slider'].setValue(10)
         self.components['angle_grouping_slider'].valueChanged.connect(self._update_angle_grouping_label)
         angle_layout.addWidget(self.components['angle_grouping_slider'])

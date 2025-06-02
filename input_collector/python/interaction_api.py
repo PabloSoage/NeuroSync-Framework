@@ -25,7 +25,7 @@ class InputCollectorAPI:
     MOUSE_SETTING_RANGES = {
         "delta_smoothing": (0, 90),
         "joystick_sensitivity": (10, 200),
-        "angle_grouping": (1, 60)
+        "angle_grouping": (1, 90)
     }
     
     @classmethod
