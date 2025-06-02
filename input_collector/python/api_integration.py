@@ -660,6 +660,14 @@ class InputCollectorApiIntegration:
                             # Convert problematic value to string
                             event_dict[key] = str(value)
                 
+                # Add unique ID to event to prevent WebSocket buffer issues
+                # This ensures each event is uniquely identified
+                event_dict["event_id"] = f"{str(time.time()).replace('.', '')}_{id(event_dict)}"
+                
+                # Ensure timestamp has micro precision to avoid identical timestamps
+                if "timestamp" in event_dict:
+                    event_dict["timestamp"] = float(f"{event_dict['timestamp']:.6f}")
+                
                 await self.explorer.broadcast_event(self.module_id, event_dict)
             except Exception as e:
                 logger.error(f"Error in broadcast_event: {e}")
