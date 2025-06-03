@@ -151,6 +151,15 @@ class InteractionApiIntegration:
             if isinstance(data, dict) and "key_release" in str(data):
                 return
                 
+            # Only broadcast real clicks, not release-without-button
+            if event_type == EventType.INPUT and getattr(data, "event_type", "") == "mouse_click" \
+               and not getattr(data, "button_pressed", None):
+                return
+            # Only broadcast scroll start, not scroll-stop (direction None)
+            if event_type == EventType.INPUT and getattr(data, "event_type", "") == "mouse_scroll" \
+               and not getattr(data, "direction", None):
+                return
+
             # For InputData events, apply special formatting
             if event_type == EventType.INPUT:
                 # Check if this is a mouse move event with tracking mode

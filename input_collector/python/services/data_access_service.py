@@ -81,9 +81,17 @@ class DataAccessService:
             event: New input event
         """
         # Filter out key_release events before processing
-        if hasattr(event, "event_type") and event.event_type == "key_release":
+        if getattr(event, "event_type", "") == "key_release":
             return
-            
+
+        # Skip click-releases
+        if event.event_type == "mouse_click" and not getattr(event, "button_pressed", None):
+            return
+
+        # Skip scroll-stop
+        if event.event_type == "mouse_scroll" and not getattr(event, "direction", None):
+            return
+
         with self._data_lock:
             # Update current event
             self._current_event = event
