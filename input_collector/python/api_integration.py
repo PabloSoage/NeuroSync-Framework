@@ -390,23 +390,64 @@ class InputCollectorApiIntegration:
                and not getattr(data, "direction", None):
                 return
 
-            # For InputData events, apply special formatting
-            if event_type == EventType.INPUT:
-                # Check if this is a mouse move event with tracking mode
-                if hasattr(data, 'event_type') and data.event_type == 'mouse_move' and hasattr(data, 'mouse_tracking_mode'):
-                    # Format the event based on tracking mode
-                    formatted_event = self._format_mouse_event(data)
-                    if formatted_event:
-                        self._broadcast_event(formatted_event)
-                    return  # We've handled this event specifically
+            # Unify all InputData events into a single JSON with subsections
+            if event_type == EventType.INPUT and hasattr(data, 'event_type'):
+                # Create unified payload structure
+                payload = {
+                    "timestamp": getattr(data, "timestamp", time.time()),
+                    "event_type": data.event_type,
+                    "keys": getattr(data, "active_keys", [])
+                }
                 
-                # For other InputData events that aren't key_release
-                if hasattr(data, 'event_type'):
-                    # Create a simplified version of the event
-                    formatted_event = self._create_simple_event(data)
-                    if formatted_event:
-                        self._broadcast_event(formatted_event)
-                    return
+                # Movement subsection - only populate for mouse_move events
+                if data.event_type == "mouse_move" and hasattr(data, 'mouse_tracking_mode'):
+                    movement_data = self._format_mouse_event(data)
+                    if movement_data:
+                        # Extract only the movement-specific fields
+                        payload["movement"] = {
+                            "tracking_mode": movement_data.get("tracking_mode"),
+                            "direction_only": movement_data.get("direction_only"),
+                            "status": movement_data.get("status")
+                        }
+                        
+                        # Add mode-specific fields
+                        for key in ["north", "south", "east", "west", "angle", "magnitude", 
+                                   "delta_x", "delta_y", "rel_x", "rel_y", "speed", "direction"]:
+                            if key in movement_data:
+                                payload["movement"][key] = movement_data[key]
+                else:
+                    payload["movement"] = {}
+                
+                # Click subsection - only populate for mouse_click events with button
+                if data.event_type == "mouse_click" and getattr(data, "button_pressed", None):
+                    payload["click"] = {
+                        "button": data.button_pressed
+                    }
+                else:
+                    payload["click"] = {}
+                
+                # Scroll subsection - only populate for mouse_scroll events with direction
+                if data.event_type == "mouse_scroll" and getattr(data, "direction", None):
+                    payload["scroll"] = {
+                        "direction": data.direction
+                    }
+                else:
+                    payload["scroll"] = {}
+                
+                # Key subsection - only populate for key events
+                if data.event_type == "key_press" and hasattr(data, 'key') and data.key:
+                    payload["key"] = {
+                        "pressed": data.key
+                    }
+                else:
+                    payload["key"] = {}
+                
+                # Add unique ID
+                payload["event_id"] = f"{str(time.time()).replace('.', '')}_{id(payload)}"
+                
+                # Broadcast unified event
+                self._broadcast_event(payload)
+                return
                     
             # For other event types (not InputData)
             # Create a standard event payload
