@@ -282,6 +282,15 @@ class PS4ControllerWidget(QWidget):
             for key, data in self.images.items():
                 if data['pos'] is not None and key != 'stick_released':
                     painter.drawPixmap(data['pos'][0] + 5, data['pos'][1] + 5, data['pixmap'])
+            
+            # Special handling for right bumper (R1) in edit mode
+            if 'bumper_pressed' in self.images:
+                bumper = self.images['bumper_pressed']['pixmap']
+                flipped_bumper = bumper.transformed(QTransform().scale(-1, 1))
+                # Position R1 at a fixed offset from L1
+                l1_pos = self.images['bumper_pressed']['pos']
+                r1_pos = (l1_pos[0] + 489, l1_pos[1])  # Offset for R1 position
+                painter.drawPixmap(r1_pos[0] + 5, r1_pos[1] + 5, flipped_bumper)
         else:
             # Normal mode - show only pressed buttons
             button_image_map = {
