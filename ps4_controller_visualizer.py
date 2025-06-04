@@ -1,22 +1,12 @@
 import sys
 import json
 import time
-import struct
 from datetime import datetime
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 import sdl2
 import sdl2.ext
-
-# Try to import hidapi for direct PS4 controller access
-try:
-    import hid
-    HID_AVAILABLE = True
-except ImportError:
-    HID_AVAILABLE = False
-    print("Warning: hidapi not available. Install with: pip install hidapi")
-    print("Accelerometer, gyroscope, and touchpad will have limited functionality.")
 
 class PS4ControllerWidget(QWidget):
     def __init__(self):
@@ -27,7 +17,6 @@ class PS4ControllerWidget(QWidget):
         self.trigger_values = {'left': 0, 'right': 0}
         self.accelerometer = {'x': 0, 'y': 0, 'z': 0}
         self.gyroscope = {'x': 0, 'y': 0, 'z': 0}
-        self.touchpad = {'active': False, 'x': 0, 'y': 0, 'touch_id': 0}
         
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -47,8 +36,11 @@ class PS4ControllerWidget(QWidget):
         painter.drawRoundedRect(left_handle, 20, 20)
         painter.drawRoundedRect(right_handle, 20, 20)
         
-        # Draw touchpad with touch position
-        self.draw_touchpad(painter, 300, 180)
+        # Draw touchpad
+        touchpad_rect = QRect(300, 180, 200, 100)
+        color = QColor(100, 100, 100) if self.button_states.get('touchpad', False) else QColor(80, 80, 80)
+        painter.setBrush(QBrush(color))
+        painter.drawRoundedRect(touchpad_rect, 5, 5)
         
         # Draw D-pad
         self.draw_dpad(painter, 150, 250)
@@ -73,27 +65,6 @@ class PS4ControllerWidget(QWidget):
         ps_color = QColor(0, 100, 200) if self.button_states.get('ps', False) else QColor(40, 40, 40)
         painter.setBrush(QBrush(ps_color))
         painter.drawEllipse(375, 320, 50, 50)
-
-    def draw_touchpad(self, painter, x, y):
-        touchpad_rect = QRect(x, y, 200, 100)
-        
-        # Base touchpad color
-        base_color = QColor(100, 100, 100) if self.button_states.get('touchpad', False) else QColor(80, 80, 80)
-        painter.setBrush(QBrush(base_color))
-        painter.drawRoundedRect(touchpad_rect, 5, 5)
-        
-        # Draw touch point if active
-        if self.touchpad['active']:
-            touch_x = x + int(self.touchpad['x'] * 200 / 1920)  # PS4 touchpad is 1920x942
-            touch_y = y + int(self.touchpad['y'] * 100 / 942)
-            
-            painter.setBrush(QBrush(QColor(255, 0, 0)))
-            painter.drawEllipse(touch_x - 5, touch_y - 5, 10, 10)
-            
-            # Draw touch coordinates
-            painter.setPen(QPen(QColor(255, 255, 255)))
-            painter.drawText(x + 5, y + 15, f"Touch: ({self.touchpad['x']}, {self.touchpad['y']})")
-            painter.setPen(QPen(QColor(40, 40, 40), 3))
         
     def draw_dpad(self, painter, x, y):
         buttons = ['up', 'down', 'left', 'right']
@@ -172,11 +143,9 @@ class PS4ControllerApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.controller = None
-        self.hid_device = None
         self.controller_widget = PS4ControllerWidget()
         self.setup_ui()
         self.setup_sdl()
-        self.setup_hid()
         self.setup_timer()
         
     def setup_ui(self):
@@ -203,11 +172,9 @@ class PS4ControllerApp(QMainWindow):
         self.sensor_layout = QVBoxLayout(self.sensor_widget)
         self.accel_label = QLabel("Accelerometer: X=0, Y=0, Z=0")
         self.gyro_label = QLabel("Gyroscope: X=0, Y=0, Z=0")
-        self.touchpad_label = QLabel("Touchpad: Not active")
         self.sensor_layout.addWidget(QLabel("Sensor Data:"))
         self.sensor_layout.addWidget(self.accel_label)
         self.sensor_layout.addWidget(self.gyro_label)
-        self.sensor_layout.addWidget(self.touchpad_label)
         left_panel.addWidget(self.sensor_widget)
         
         # Right side - Log display
@@ -231,117 +198,6 @@ class PS4ControllerApp(QMainWindow):
     def setup_sdl(self):
         sdl2.SDL_Init(sdl2.SDL_INIT_JOYSTICK | sdl2.SDL_INIT_GAMECONTROLLER)
         
-    def setup_hid(self):
-        if not HID_AVAILABLE:
-            return
-            
-        # PS4 Controller VID:PID
-        self.ps4_vid = 0x054C
-        self.ps4_pids = [0x05C4, 0x09CC, 0x0BA0]  # Different PS4 controller variants
-        
-    def connect_hid_controller(self):
-        if not HID_AVAILABLE:
-            return False
-            
-        try:
-            for pid in self.ps4_pids:
-                devices = hid.enumerate(self.ps4_vid, pid)
-                for device_info in devices:
-                    if device_info['interface_number'] == 0:  # Use the first interface
-                        self.hid_device = hid.device()
-                        self.hid_device.open_path(device_info['path'])
-                        self.hid_device.set_nonblocking(1)
-                        return True
-        except Exception as e:
-            print(f"HID connection error: {e}")
-            
-        return False
-        
-    def parse_ps4_report(self, data):
-        # Convert list to bytes if necessary
-        if isinstance(data, list):
-            data = bytes(data)
-        
-        if len(data) < 64:
-            return
-            
-        # PS4 controller report structure (simplified)
-        # Touchpad data is at different offsets depending on report type
-        if data[0] == 0x01:  # Standard input report
-            # Touchpad data starts around byte 33
-            touchpad_data = data[33:43]
-            
-            # Parse touchpad
-            if len(touchpad_data) >= 9:
-                touch_active = (touchpad_data[0] & 0x80) == 0
-                if touch_active:
-                    touch_id = touchpad_data[0] & 0x7F
-                    touch_x = touchpad_data[1] | ((touchpad_data[2] & 0x0F) << 8)
-                    touch_y = ((touchpad_data[2] & 0xF0) >> 4) | (touchpad_data[3] << 4)
-                    
-                    prev_touchpad = self.controller_widget.touchpad.copy()
-                    self.controller_widget.touchpad = {
-                        'active': True,
-                        'x': touch_x,
-                        'y': touch_y,
-                        'touch_id': touch_id
-                    }
-                    
-                    if not prev_touchpad['active'] or prev_touchpad['x'] != touch_x or prev_touchpad['y'] != touch_y:
-                        self.log_event("touchpad", {
-                            "active": True,
-                            "x": touch_x,
-                            "y": touch_y,
-                            "touch_id": touch_id
-                        })
-                else:
-                    if self.controller_widget.touchpad['active']:
-                        self.controller_widget.touchpad['active'] = False
-                        self.log_event("touchpad", {"active": False})
-            
-            # Parse accelerometer and gyroscope (bytes 13-24)
-            if len(data) >= 25:
-                # Accelerometer (3 x 16-bit signed)
-                accel_x = struct.unpack('<h', data[13:15])[0]
-                accel_y = struct.unpack('<h', data[15:17])[0] 
-                accel_z = struct.unpack('<h', data[17:19])[0]
-                
-                # Gyroscope (3 x 16-bit signed)
-                gyro_x = struct.unpack('<h', data[19:21])[0]
-                gyro_y = struct.unpack('<h', data[21:23])[0]
-                gyro_z = struct.unpack('<h', data[23:25])[0]
-                
-                prev_accel = self.controller_widget.accelerometer.copy()
-                prev_gyro = self.controller_widget.gyroscope.copy()
-                
-                # Convert to g-force (approximate)
-                self.controller_widget.accelerometer = {
-                    'x': accel_x / 8192.0,
-                    'y': accel_y / 8192.0,
-                    'z': accel_z / 8192.0
-                }
-                
-                # Convert to degrees/second (approximate)
-                self.controller_widget.gyroscope = {
-                    'x': gyro_x / 1024.0,
-                    'y': gyro_y / 1024.0,
-                    'z': gyro_z / 1024.0
-                }
-                
-                # Log significant changes
-                accel_threshold = 0.1
-                gyro_threshold = 5.0
-                
-                if (abs(self.controller_widget.accelerometer['x'] - prev_accel['x']) > accel_threshold or
-                    abs(self.controller_widget.accelerometer['y'] - prev_accel['y']) > accel_threshold or
-                    abs(self.controller_widget.accelerometer['z'] - prev_accel['z']) > accel_threshold):
-                    self.log_event("accelerometer", self.controller_widget.accelerometer)
-                    
-                if (abs(self.controller_widget.gyroscope['x'] - prev_gyro['x']) > gyro_threshold or
-                    abs(self.controller_widget.gyroscope['y'] - prev_gyro['y']) > gyro_threshold or
-                    abs(self.controller_widget.gyroscope['z'] - prev_gyro['z']) > gyro_threshold):
-                    self.log_event("gyroscope", self.controller_widget.gyroscope)
-
     def setup_timer(self):
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_controller)
@@ -357,11 +213,6 @@ class PS4ControllerApp(QMainWindow):
                     self.status_label.setText(f"Status: Connected - {name}")
                     self.status_label.setStyleSheet("color: green; font-weight: bold;")
                     self.log_event("controller_connected", {"name": name, "index": i})
-                    
-                    # Try to connect HID for advanced features
-                    if self.connect_hid_controller():
-                        self.status_label.setText(f"Status: Connected - {name} (HID Enhanced)")
-                    
                     return True
         return False
         
@@ -376,26 +227,11 @@ class PS4ControllerApp(QMainWindow):
         # Check if controller is still connected
         if not sdl2.SDL_GameControllerGetAttached(self.controller):
             self.controller = None
-            if self.hid_device:
-                self.hid_device.close()
-                self.hid_device = None
             self.status_label.setText("Status: Disconnected")
             self.status_label.setStyleSheet("color: red; font-weight: bold;")
             self.log_event("controller_disconnected", {})
             return
             
-        # Read HID data for sensors and touchpad
-        if self.hid_device:
-            try:
-                data = self.hid_device.read(64)
-                if data and len(data) > 0:  # Check if data is not empty
-                    self.parse_ps4_report(data)
-            except Exception as e:
-                # Reduce error spam by only logging unique errors
-                if not hasattr(self, '_last_hid_error') or self._last_hid_error != str(e):
-                    print(f"HID read error: {e}")
-                    self._last_hid_error = str(e)
-
         # Read button states
         button_mapping = {
             'triangle': sdl2.SDL_CONTROLLER_BUTTON_Y,
@@ -448,18 +284,10 @@ class PS4ControllerApp(QMainWindow):
         self.controller_widget.trigger_values['left'] = left_trigger
         self.controller_widget.trigger_values['right'] = right_trigger
         
-        # Update sensor display
-        accel = self.controller_widget.accelerometer
-        gyro = self.controller_widget.gyroscope
-        touchpad = self.controller_widget.touchpad
-        
-        self.accel_label.setText(f"Accelerometer: X={accel['x']:.3f}g, Y={accel['y']:.3f}g, Z={accel['z']:.3f}g")
-        self.gyro_label.setText(f"Gyroscope: X={gyro['x']:.1f}°/s, Y={gyro['y']:.1f}°/s, Z={gyro['z']:.1f}°/s")
-        
-        if touchpad['active']:
-            self.touchpad_label.setText(f"Touchpad: Active - X={touchpad['x']}, Y={touchpad['y']}")
-        else:
-            self.touchpad_label.setText("Touchpad: Not active")
+        # Update sensor display (simulated - SDL2 doesn't provide gyro/accel directly)
+        # In a real implementation, you'd need additional libraries or direct USB communication
+        self.accel_label.setText(f"Accelerometer: X={left_x:.2f}, Y={left_y:.2f}, Z={right_x:.2f}")
+        self.gyro_label.setText(f"Gyroscope: X={right_y:.2f}, Y={left_trigger/32767:.2f}, Z={right_trigger/32767:.2f}")
         
         # Log changes
         if changed_buttons:
@@ -500,8 +328,6 @@ class PS4ControllerApp(QMainWindow):
     def closeEvent(self, event):
         if self.controller:
             sdl2.SDL_GameControllerClose(self.controller)
-        if self.hid_device:
-            self.hid_device.close()
         sdl2.SDL_Quit()
         event.accept()
 
