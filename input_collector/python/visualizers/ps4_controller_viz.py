@@ -29,8 +29,8 @@ class PS4ControllerVisualizer(BaseVisualizer):
         # Set supported collector types
         self.supported_collectors = ["ps4_controller"]
         
-        # Controller dimensions and layout
-        self.setMinimumSize(500, 300)
+        # Controller dimensions and layout - increase minimum size for better visibility
+        self.setMinimumSize(600, 400)
         
         # Button state tracking
         self.active_buttons: Set[str] = set()
@@ -42,15 +42,15 @@ class PS4ControllerVisualizer(BaseVisualizer):
         # Trigger values: [L2, R2]
         self.trigger_values = [0.0, 0.0]
         
-        # Colors
+        # Colors - enhance colors for better visibility
         self.bg_color = QColor(40, 40, 45)
-        self.controller_color = QColor(50, 50, 55)
-        self.button_color = QColor(70, 70, 75)
+        self.controller_color = QColor(50, 50, 60) 
+        self.button_color = QColor(70, 70, 80)
         self.active_color = QColor(0, 114, 206)  # PlayStation blue
-        self.inactive_color = QColor(80, 80, 85)
+        self.inactive_color = QColor(85, 85, 90)
         self.joystick_color = QColor(30, 30, 35)
-        self.joystick_active_color = QColor(0, 114, 206)
-        self.text_color = QColor(200, 200, 210)
+        self.joystick_active_color = QColor(0, 114, 206)  
+        self.text_color = QColor(220, 220, 230)
         
         # Define button mapping (button_name: (x, y, width, height))
         # Coordinates are relative (0-100) to make resizing easier

@@ -632,32 +632,65 @@ class UIManager(QObject):
         mouse_settings_group = self.components.get('mouse_settings_group')
         if mouse_settings_group:
             mouse_settings_group.setVisible(mouse_tracking_supported and is_keyboard_mouse)
-            
-        # Update PS4 controller group visibility
+        
+        # Get references to all visualization components
         ps4_controller_group = self.components.get('ps4_controller_group')
-        if ps4_controller_group:
-            # Show PS4 controller visualizer when using PS4 controller
-            ps4_controller_group.setVisible(is_ps4_controller)
-            
-        # Update mouse group visibility
         mouse_group = self.components.get('mouse_group')
-        if mouse_group:
-            mouse_group.setVisible(is_keyboard_mouse)
-            
-        # Update viz_layout to show the right visualizer
+        keyboard_group = self.components.get('keyboard_group')
+        mouse_buttons_group = self.components.get('mouse_buttons_group')
+        left_viz_layout = self.components.get('left_viz_layout')
         viz_layout = self.components.get('viz_layout')
-        if viz_layout and is_ps4_controller and ps4_controller_group and mouse_group:
-            # Remove mouse group and add PS4 controller group
-            viz_layout.removeWidget(mouse_group)
-            mouse_group.setVisible(False)
-            viz_layout.addWidget(ps4_controller_group, 45)
+        
+        # Complete layout restructure based on collector type
+        if is_ps4_controller and viz_layout and ps4_controller_group:
+            # Clear viz_layout and add only PS4 controller for full-width display
+            # First, remove all items from the viz_layout
+            while viz_layout.count():
+                item = viz_layout.takeAt(0)
+                if item.widget():
+                    item.widget().setVisible(False)
+                elif item.layout():
+                    # Hide all widgets in the layout
+                    for i in range(item.layout().count()):
+                        widget = item.layout().itemAt(i).widget()
+                        if widget:
+                            widget.setVisible(False)
+            
+            # Add PS4 controller to take full width
+            viz_layout.addWidget(ps4_controller_group)
             ps4_controller_group.setVisible(True)
-        elif viz_layout and not is_ps4_controller and ps4_controller_group and mouse_group:
-            # Remove PS4 controller group and add mouse group
-            viz_layout.removeWidget(ps4_controller_group)
-            ps4_controller_group.setVisible(False)
+            
+            # Hide keyboard and mouse components
+            if keyboard_group:
+                keyboard_group.setVisible(False)
+            if mouse_buttons_group:
+                mouse_buttons_group.setVisible(False)
+            if mouse_group:
+                mouse_group.setVisible(False)
+        
+        elif is_keyboard_mouse and viz_layout and left_viz_layout and mouse_group:
+            # Restore original layout for keyboard/mouse
+            # First, clear the viz_layout
+            while viz_layout.count():
+                item = viz_layout.takeAt(0)
+                if item.widget():
+                    item.widget().setVisible(False)
+        
+            # Show keyboard and mouse components
+            if keyboard_group:
+                keyboard_group.setVisible(True)
+            if mouse_buttons_group:
+                mouse_buttons_group.setVisible(True)
+            if mouse_group:
+                mouse_group.setVisible(True)
+            
+            # Hide PS4 controller
+            if ps4_controller_group:
+                ps4_controller_group.setVisible(False)
+            
+            # Rebuild the layout
+            viz_layout.addLayout(left_viz_layout, 55)
             viz_layout.addWidget(mouse_group, 45)
-            mouse_group.setVisible(True)
     
     def set_csv_path(self, path: str) -> None:
         """

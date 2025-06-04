@@ -102,25 +102,28 @@ class VisualizerManager(QObject):  # Only inherit from QObject
             collector_type: Type of the current collector
             capabilities: Dictionary of collector capabilities
         """
-        # Update visualizer visibility
+        # Check if we're using PS4 controller
+        is_ps4_controller = collector_type == "ps4_controller"
+        
+        # Update visualizer visibility - completely hide keyboard/mouse elements when using PS4
         self.keyboard_viz.setVisible(
             self.keyboard_viz.supports_collector(collector_type) and 
-            collector_type != "ps4_controller"  # Hide keyboard when using PS4 controller
+            not is_ps4_controller  # Hide keyboard when using PS4 controller
         )
         
         self.mouse_viz.setVisible(
             self.mouse_viz.supports_collector(collector_type) and
-            collector_type != "ps4_controller"  # Hide mouse when using PS4 controller
+            not is_ps4_controller  # Hide mouse when using PS4 controller
         )
         
         self.mouse_buttons_selector.setVisible(
             self.mouse_buttons_selector.supports_collector(collector_type) and
             capabilities.get("supports_mouse_buttons", False) and
-            collector_type != "ps4_controller"  # Hide mouse buttons when using PS4 controller
+            not is_ps4_controller  # Hide mouse buttons when using PS4 controller
         )
         
         # Show PS4 controller visualizer only when using PS4 controller
-        self.ps4_controller_viz.setVisible(collector_type == "ps4_controller")
+        self.ps4_controller_viz.setVisible(is_ps4_controller)
         
         # Update capabilities
         if hasattr(self.keyboard_viz, "set_collector_capabilities"):
