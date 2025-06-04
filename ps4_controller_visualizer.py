@@ -15,8 +15,6 @@ class PS4ControllerWidget(QWidget):
         self.button_states = {}
         self.stick_positions = {'left': (0, 0), 'right': (0, 0)}
         self.trigger_values = {'left': 0, 'right': 0}
-        self.accelerometer = {'x': 0, 'y': 0, 'z': 0}
-        self.gyroscope = {'x': 0, 'y': 0, 'z': 0}
         
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -36,11 +34,16 @@ class PS4ControllerWidget(QWidget):
         painter.drawRoundedRect(left_handle, 20, 20)
         painter.drawRoundedRect(right_handle, 20, 20)
         
-        # Draw touchpad
+        # Draw touchpad - Fixed detection
         touchpad_rect = QRect(300, 180, 200, 100)
-        color = QColor(100, 100, 100) if self.button_states.get('touchpad', False) else QColor(80, 80, 80)
+        color = QColor(0, 150, 255) if self.button_states.get('touchpad', False) else QColor(80, 80, 80)
         painter.setBrush(QBrush(color))
         painter.drawRoundedRect(touchpad_rect, 5, 5)
+        
+        # Add touchpad label
+        painter.setPen(QPen(QColor(255, 255, 255)))
+        painter.drawText(touchpad_rect.center().x() - 30, touchpad_rect.center().y() + 5, "TOUCHPAD")
+        painter.setPen(QPen(QColor(40, 40, 40), 3))
         
         # Draw D-pad
         self.draw_dpad(painter, 150, 250)
@@ -143,6 +146,7 @@ class PS4ControllerApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.controller = None
+        self.joystick = None
         self.controller_widget = PS4ControllerWidget()
         self.setup_ui()
         self.setup_sdl()
@@ -167,16 +171,6 @@ class PS4ControllerApp(QMainWindow):
         self.status_label.setStyleSheet("color: red; font-weight: bold;")
         left_panel.addWidget(self.status_label)
         
-        # Sensor data
-        self.sensor_widget = QWidget()
-        self.sensor_layout = QVBoxLayout(self.sensor_widget)
-        self.accel_label = QLabel("Accelerometer: X=0, Y=0, Z=0")
-        self.gyro_label = QLabel("Gyroscope: X=0, Y=0, Z=0")
-        self.sensor_layout.addWidget(QLabel("Sensor Data:"))
-        self.sensor_layout.addWidget(self.accel_label)
-        self.sensor_layout.addWidget(self.gyro_label)
-        left_panel.addWidget(self.sensor_widget)
-        
         # Right side - Log display
         right_panel = QVBoxLayout()
         right_panel.addWidget(QLabel("Real-time Logs (JSON)"))
@@ -196,7 +190,8 @@ class PS4ControllerApp(QMainWindow):
         layout.addLayout(right_panel)
         
     def setup_sdl(self):
-        sdl2.SDL_Init(sdl2.SDL_INIT_JOYSTICK | sdl2.SDL_INIT_GAMECONTROLLER)
+        # Initialize with more subsystems for better sensor support
+        sdl2.SDL_Init(sdl2.SDL_INIT_JOYSTICK | sdl2.SDL_INIT_GAMECONTROLLER | sdl2.SDL_INIT_HAPTIC)
         
     def setup_timer(self):
         self.timer = QTimer()
@@ -208,7 +203,9 @@ class PS4ControllerApp(QMainWindow):
         for i in range(num_joysticks):
             if sdl2.SDL_IsGameController(i):
                 self.controller = sdl2.SDL_GameControllerOpen(i)
-                if self.controller:
+                # Also open as joystick for raw access
+                self.joystick = sdl2.SDL_JoystickOpen(i)
+                if self.controller and self.joystick:
                     name = sdl2.SDL_GameControllerName(self.controller).decode()
                     self.status_label.setText(f"Status: Connected - {name}")
                     self.status_label.setStyleSheet("color: green; font-weight: bold;")
@@ -226,13 +223,16 @@ class PS4ControllerApp(QMainWindow):
             
         # Check if controller is still connected
         if not sdl2.SDL_GameControllerGetAttached(self.controller):
+            if self.joystick:
+                sdl2.SDL_JoystickClose(self.joystick)
+                self.joystick = None
             self.controller = None
             self.status_label.setText("Status: Disconnected")
             self.status_label.setStyleSheet("color: red; font-weight: bold;")
             self.log_event("controller_disconnected", {})
             return
             
-        # Read button states
+        # Read button states with improved touchpad detection
         button_mapping = {
             'triangle': sdl2.SDL_CONTROLLER_BUTTON_Y,
             'circle': sdl2.SDL_CONTROLLER_BUTTON_B,
@@ -249,7 +249,6 @@ class PS4ControllerApp(QMainWindow):
             'left_stick': sdl2.SDL_CONTROLLER_BUTTON_LEFTSTICK,
             'right_stick': sdl2.SDL_CONTROLLER_BUTTON_RIGHTSTICK,
             'ps': sdl2.SDL_CONTROLLER_BUTTON_GUIDE,
-            'touchpad': sdl2.SDL_CONTROLLER_BUTTON_MISC1
         }
         
         changed_buttons = {}
@@ -261,6 +260,46 @@ class PS4ControllerApp(QMainWindow):
                 changed_buttons[button_name] = current_state
                 
             self.controller_widget.button_states[button_name] = current_state
+        
+        # Improved touchpad detection - try multiple methods
+        touchpad_pressed = False
+        
+        # Method 1: Try MISC1 button (most common for PS4 touchpad)
+        touchpad_pressed = bool(sdl2.SDL_GameControllerGetButton(self.controller, sdl2.SDL_CONTROLLER_BUTTON_MISC1))
+        
+        # Method 2: Try raw joystick button access for various common touchpad button indices
+        if not touchpad_pressed and self.joystick:
+            num_buttons = sdl2.SDL_JoystickNumButtons(self.joystick)
+            # Try multiple button indices that could be the touchpad
+            for button_idx in [13, 14, 15, 16, 17, 18]:
+                if button_idx < num_buttons:
+                    if sdl2.SDL_JoystickGetButton(self.joystick, button_idx):
+                        # Double-check this isn't a D-pad false positive
+                        # If any D-pad button is also pressed, ignore this detection
+                        dpad_conflict = any([
+                            self.controller_widget.button_states.get('dpad_up', False),
+                            self.controller_widget.button_states.get('dpad_down', False),
+                            self.controller_widget.button_states.get('dpad_left', False),
+                            self.controller_widget.button_states.get('dpad_right', False)
+                        ])
+                        
+                        if not dpad_conflict:
+                            touchpad_pressed = True
+                            break
+        
+        # Method 3: Try TOUCHPAD button directly if available
+        if not touchpad_pressed:
+            try:
+                # Some SDL2 versions have this constant
+                touchpad_pressed = bool(sdl2.SDL_GameControllerGetButton(self.controller, 15))  # Common touchpad button ID
+            except:
+                pass
+        
+        # Update touchpad state
+        previous_touchpad = self.controller_widget.button_states.get('touchpad', False)
+        if touchpad_pressed != previous_touchpad:
+            changed_buttons['touchpad'] = touchpad_pressed
+        self.controller_widget.button_states['touchpad'] = touchpad_pressed
             
         # Read analog sticks
         left_x = sdl2.SDL_GameControllerGetAxis(self.controller, sdl2.SDL_CONTROLLER_AXIS_LEFTX) / 32767.0
@@ -283,11 +322,6 @@ class PS4ControllerApp(QMainWindow):
         
         self.controller_widget.trigger_values['left'] = left_trigger
         self.controller_widget.trigger_values['right'] = right_trigger
-        
-        # Update sensor display (simulated - SDL2 doesn't provide gyro/accel directly)
-        # In a real implementation, you'd need additional libraries or direct USB communication
-        self.accel_label.setText(f"Accelerometer: X={left_x:.2f}, Y={left_y:.2f}, Z={right_x:.2f}")
-        self.gyro_label.setText(f"Gyroscope: X={right_y:.2f}, Y={left_trigger/32767:.2f}, Z={right_trigger/32767:.2f}")
         
         # Log changes
         if changed_buttons:
@@ -326,6 +360,8 @@ class PS4ControllerApp(QMainWindow):
         self.log_display.clear()
         
     def closeEvent(self, event):
+        if self.joystick:
+            sdl2.SDL_JoystickClose(self.joystick)
         if self.controller:
             sdl2.SDL_GameControllerClose(self.controller)
         sdl2.SDL_Quit()
