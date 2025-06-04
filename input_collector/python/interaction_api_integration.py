@@ -10,7 +10,7 @@ import logging
 import os
 import sys
 import time
-from typing import Optional, Dict, List, Any, Callable, Union
+from typing import Optional, Dict, List, Any, Callable, Union, Set
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
@@ -61,6 +61,7 @@ class InteractionApiIntegration:
         
         # For tracking event subscriptions
         self._event_subscriptions = []
+        self._pressed_buttons: Set[str] = set()   # <— nuevo
         
         # Reference to data API integration for reusing event processing functions
         self.data_api_integration = None
@@ -139,8 +140,17 @@ class InteractionApiIntegration:
             data: Event data
         """
         try:
-            # Skip key_release events to match GUI behavior
-            if event_type == EventType.INPUT and hasattr(data, 'event_type') and data.event_type == 'key_release':
+            # 1) Actualizar estado de botones antes de filtrar release
+            if event_type == EventType.INPUT and getattr(data, "event_type", "") == "mouse_click":
+                if getattr(data, "button_pressed", None):
+                    self._pressed_buttons.add(data.button_pressed)
+                else:
+                    btn = getattr(data, "button", None)
+                    if btn:
+                        self._pressed_buttons.discard(btn)
+
+            # 2) Skip key_release y scroll como antes...
+            if event_type == EventType.INPUT and getattr(data, "event_type", "") == "key_release":
                 return
                 
             # Skip INPUT events with key_release in a dict structure
@@ -160,7 +170,7 @@ class InteractionApiIntegration:
                and not getattr(data, "direction", None):
                 return
 
-            # Unify all InputData events into a single JSON with subsections
+            # 3) Unificar InputData en payload
             if event_type == EventType.INPUT and hasattr(data, 'event_type'):
                 # Create unified payload structure
                 payload = {
@@ -191,14 +201,9 @@ class InteractionApiIntegration:
                 else:
                     payload["movement"] = {}
                 
-                # Click subsection - only populate for mouse_click events with button
-                if data.event_type == "mouse_click" and getattr(data, "button_pressed", None):
-                    payload["click"] = {
-                        "button": data.button_pressed
-                    }
-                else:
-                    payload["click"] = {}
-                
+                # Click subsection: lista completa
+                payload["click"] = {"buttons": list(self._pressed_buttons)}
+
                 # Scroll subsection - only populate for mouse_scroll events with direction
                 if data.event_type == "mouse_scroll" and getattr(data, "direction", None):
                     payload["scroll"] = {

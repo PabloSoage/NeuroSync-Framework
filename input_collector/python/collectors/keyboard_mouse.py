@@ -76,8 +76,8 @@ class KeyboardMouseCollector(AbstractInputCollector):
             "speed_y": 0,
             "is_moving": False,
             "movement_threshold": 1.0,
-            "click_left": False,
-            "click_right": False,
+            "click_left": False,    # State of left mouse button
+            "click_right": False,   # State of right mouse button
             "wheel_up": False,
             "wheel_down": False,
             "center_x": None,
@@ -741,10 +741,10 @@ class KeyboardMouseCollector(AbstractInputCollector):
             # Determine button type
             if button == mouse.Button.left:
                 button_str = "Button.left"
-                self.mouse_state["click_left"] = pressed
+                self.mouse_state["click_left"] = pressed   # Updates to True when pressed, False when released
             elif button == mouse.Button.right:
                 button_str = "Button.right"
-                self.mouse_state["click_right"] = pressed
+                self.mouse_state["click_right"] = pressed  # Updates to True when pressed, False when released
             elif button == mouse.Button.middle:
                 button_str = "Button.middle"
             else:
@@ -770,6 +770,8 @@ class KeyboardMouseCollector(AbstractInputCollector):
                 is_moving=self.mouse_state["is_moving"],
                 active_keys=active_keys,
             )
+            # expose raw button for release tracking
+            event.button = button_str
 
             # Process event
             self._process_event(event)
