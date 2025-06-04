@@ -1,16 +1,12 @@
-import sys
 import json
-import time
-from datetime import datetime
+from pathlib import Path
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-import sdl2
-import sdl2.ext
-import os
-from pathlib import Path
 
 class PS4ControllerWidget(QWidget):
+    """Widget that visualizes the PS4 controller state"""
+    
     def __init__(self):
         super().__init__()
         self.setFixedSize(800, 600)
@@ -37,7 +33,14 @@ class PS4ControllerWidget(QWidget):
         }
         
         self.load_images()
-        
+    
+    def update_controller_state(self, button_states, stick_positions, trigger_values):
+        """Update controller state from external source"""
+        self.button_states = button_states
+        self.stick_positions = stick_positions
+        self.trigger_values = trigger_values
+        self.update()
+    
     def load_positions_from_json(self):
         """Load positions from JSON file"""
         try:
@@ -86,6 +89,9 @@ class PS4ControllerWidget(QWidget):
                         'file': f"{key}.png",
                         'pos': list(data['pos'])  # Convert tuples to lists for JSON serialization
                     }
+            
+            # Make sure directory exists
+            self.positions_file.parent.mkdir(parents=True, exist_ok=True)
             
             with open(self.positions_file, 'w') as f:
                 json.dump(positions, f, indent=2)
@@ -519,318 +525,3 @@ class PS4ControllerWidget(QWidget):
         painter.drawRect(280, 220, 30, 15)
         painter.setBrush(QBrush(options_color))
         painter.drawRect(490, 220, 30, 15)
-
-class PS4ControllerApp(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.controller = None
-        self.joystick = None
-        self.controller_widget = PS4ControllerWidget()
-        self.setup_ui()
-        self.setup_sdl()
-        self.setup_timer()
-        
-    def setup_ui(self):
-        self.setWindowTitle("PS4 Controller Visualizer")
-        self.setGeometry(100, 100, 1400, 800)
-        
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        
-        layout = QHBoxLayout(central_widget)
-        
-        # Left side - Controller visualization
-        left_panel = QVBoxLayout()
-        
-        # Control buttons panel
-        control_panel = QHBoxLayout()
-        
-        # Toggle image mode button
-        self.toggle_button = QPushButton("Switch to Drawn Mode" if self.controller_widget.image_mode else "Switch to Image Mode")
-        self.toggle_button.clicked.connect(self.toggle_display_mode)
-        if not self.controller_widget.images_loaded:
-            self.toggle_button.setEnabled(False)
-            self.toggle_button.setText("Images Not Available")
-        control_panel.addWidget(self.toggle_button)
-        
-        # Edit mode button
-        self.edit_button = QPushButton("Enter Edit Mode")
-        self.edit_button.clicked.connect(self.toggle_edit_mode)
-        if not self.controller_widget.images_loaded:
-            self.edit_button.setEnabled(False)
-        control_panel.addWidget(self.edit_button)
-        
-        # Save positions button
-        self.save_button = QPushButton("Save Positions")
-        self.save_button.clicked.connect(self.save_positions)
-        self.save_button.setEnabled(False)
-        control_panel.addWidget(self.save_button)
-        
-        left_panel.addLayout(control_panel)
-        
-        # Instructions for edit mode
-        self.instructions_label = QLabel("")
-        self.instructions_label.setStyleSheet("color: blue;")
-        left_panel.addWidget(self.instructions_label)
-        
-        # Controller widget
-        left_panel.addWidget(QLabel("PS4 Controller"))
-        left_panel.addWidget(self.controller_widget)
-        
-        # Connection status
-        self.status_label = QLabel("Status: Disconnected")
-        self.status_label.setStyleSheet("color: red; font-weight: bold;")
-        left_panel.addWidget(self.status_label)
-        
-        # Mode status
-        mode_text = "Image Mode" if self.controller_widget.image_mode else "Drawn Mode"
-        if not self.controller_widget.images_loaded:
-            mode_text += " (Images not loaded - using fallback)"
-        self.mode_label = QLabel(f"Display Mode: {mode_text}")
-        left_panel.addWidget(self.mode_label)
-        
-        # Right side - Log display
-        right_panel = QVBoxLayout()
-        right_panel.addWidget(QLabel("Real-time Logs (JSON)"))
-        
-        self.log_display = QTextEdit()
-        self.log_display.setReadOnly(True)
-        self.log_display.setMinimumWidth(500)
-        self.log_display.setStyleSheet("background-color: black; color: green; font-family: monospace;")
-        right_panel.addWidget(self.log_display)
-        
-        # Clear logs button
-        clear_button = QPushButton("Clear Logs")
-        clear_button.clicked.connect(self.clear_logs)
-        right_panel.addWidget(clear_button)
-        
-        layout.addLayout(left_panel)
-        layout.addLayout(right_panel)
-        
-    def setup_sdl(self):
-        # Initialize with more subsystems for better sensor support
-        sdl2.SDL_Init(sdl2.SDL_INIT_JOYSTICK | sdl2.SDL_INIT_GAMECONTROLLER | sdl2.SDL_INIT_HAPTIC)
-        
-    def setup_timer(self):
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_controller)
-        self.timer.start(16)  # ~60 FPS
-        
-    def toggle_display_mode(self):
-        """Toggle between image and drawn display modes"""
-        new_mode = self.controller_widget.toggle_image_mode()
-        mode_text = "Image Mode" if new_mode else "Drawn Mode"
-        self.mode_label.setText(f"Display Mode: {mode_text}")
-        self.toggle_button.setText("Switch to Drawn Mode" if new_mode else "Switch to Image Mode")
-        
-        # When switching to drawn mode, exit edit mode first if it's active
-        if not new_mode and self.controller_widget.edit_mode:
-            self.toggle_edit_mode()
-            
-        # Show/hide edit buttons based on mode
-        self.edit_button.setVisible(new_mode)
-        self.save_button.setVisible(new_mode)
-        
-        self.log_event("display_mode_changed", {"mode": mode_text})
-    
-    def toggle_edit_mode(self):
-        """Toggle edit mode for positioning elements"""
-        edit_mode = self.controller_widget.toggle_edit_mode()
-        
-        if edit_mode:
-            self.edit_button.setText("Exit Edit Mode")
-            self.save_button.setEnabled(True)
-            self.instructions_label.setText(
-                "Edit Mode: Drag elements to reposition them.\n"
-                "By default, moving one element moves its entire group.\n"
-                "Hold SHIFT while dragging to move individual elements."
-            )
-            self.log_event("edit_mode_enabled", {})
-        else:
-            self.edit_button.setText("Enter Edit Mode")
-            self.save_button.setEnabled(False)
-            self.instructions_label.setText("")
-            self.log_event("edit_mode_disabled", {})
-    
-    def save_positions(self):
-        """Save current positions to JSON file"""
-        if self.controller_widget.save_positions_to_json():
-            QMessageBox.information(self, "Success", "Positions saved successfully!")
-            self.log_event("positions_saved", {"file": str(self.controller_widget.positions_file)})
-        else:
-            QMessageBox.warning(self, "Error", "Failed to save positions!")
-        
-    def connect_controller(self):
-        num_joysticks = sdl2.SDL_NumJoysticks()
-        for i in range(num_joysticks):
-            if sdl2.SDL_IsGameController(i):
-                self.controller = sdl2.SDL_GameControllerOpen(i)
-                # Also open as joystick for raw access
-                self.joystick = sdl2.SDL_JoystickOpen(i)
-                if self.controller and self.joystick:
-                    name = sdl2.SDL_GameControllerName(self.controller).decode()
-                    self.status_label.setText(f"Status: Connected - {name}")
-                    self.status_label.setStyleSheet("color: green; font-weight: bold;")
-                    self.log_event("controller_connected", {"name": name, "index": i})
-                    return True
-        return False
-        
-    def update_controller(self):
-        sdl2.SDL_PumpEvents()
-        
-        # Try to connect if not connected
-        if not self.controller:
-            self.connect_controller()
-            return
-            
-        # Check if controller is still connected
-        if not sdl2.SDL_GameControllerGetAttached(self.controller):
-            if self.joystick:
-                sdl2.SDL_JoystickClose(self.joystick)
-                self.joystick = None
-            self.controller = None
-            self.status_label.setText("Status: Disconnected")
-            self.status_label.setStyleSheet("color: red; font-weight: bold;")
-            self.log_event("controller_disconnected", {})
-            return
-            
-        # Read button states with improved touchpad detection
-        button_mapping = {
-            'triangle': sdl2.SDL_CONTROLLER_BUTTON_Y,
-            'circle': sdl2.SDL_CONTROLLER_BUTTON_B,
-            'cross': sdl2.SDL_CONTROLLER_BUTTON_A,
-            'square': sdl2.SDL_CONTROLLER_BUTTON_X,
-            'dpad_up': sdl2.SDL_CONTROLLER_BUTTON_DPAD_UP,
-            'dpad_down': sdl2.SDL_CONTROLLER_BUTTON_DPAD_DOWN,
-            'dpad_left': sdl2.SDL_CONTROLLER_BUTTON_DPAD_LEFT,
-            'dpad_right': sdl2.SDL_CONTROLLER_BUTTON_DPAD_RIGHT,
-            'l1': sdl2.SDL_CONTROLLER_BUTTON_LEFTSHOULDER,
-            'r1': sdl2.SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,
-            'share': sdl2.SDL_CONTROLLER_BUTTON_BACK,
-            'options': sdl2.SDL_CONTROLLER_BUTTON_START,
-            'left_stick': sdl2.SDL_CONTROLLER_BUTTON_LEFTSTICK,
-            'right_stick': sdl2.SDL_CONTROLLER_BUTTON_RIGHTSTICK,
-            'ps': sdl2.SDL_CONTROLLER_BUTTON_GUIDE,
-        }
-        
-        changed_buttons = {}
-        for button_name, sdl_button in button_mapping.items():
-            current_state = bool(sdl2.SDL_GameControllerGetButton(self.controller, sdl_button))
-            previous_state = self.controller_widget.button_states.get(button_name, False)
-            
-            if current_state != previous_state:
-                changed_buttons[button_name] = current_state
-                
-            self.controller_widget.button_states[button_name] = current_state
-        
-        # Improved touchpad detection - try multiple methods
-        touchpad_pressed = False
-        
-        # Method 1: Try MISC1 button (most common for PS4 touchpad)
-        touchpad_pressed = bool(sdl2.SDL_GameControllerGetButton(self.controller, sdl2.SDL_CONTROLLER_BUTTON_MISC1))
-        
-        # Method 2: Try raw joystick button access for various common touchpad button indices
-        if not touchpad_pressed and self.joystick:
-            num_buttons = sdl2.SDL_JoystickNumButtons(self.joystick)
-            # Try multiple button indices that could be the touchpad
-            for button_idx in [13, 14, 15, 16, 17, 18]:
-                if button_idx < num_buttons:
-                    if sdl2.SDL_JoystickGetButton(self.joystick, button_idx):
-                        # Double-check this isn't a D-pad false positive
-                        # If any D-pad button is also pressed, ignore this detection
-                        dpad_conflict = any([
-                            self.controller_widget.button_states.get('dpad_up', False),
-                            self.controller_widget.button_states.get('dpad_down', False),
-                            self.controller_widget.button_states.get('dpad_left', False),
-                            self.controller_widget.button_states.get('dpad_right', False)
-                        ])
-                        
-                        if not dpad_conflict:
-                            touchpad_pressed = True
-                            break
-        
-        # Method 3: Try TOUCHPAD button directly if available
-        if not touchpad_pressed:
-            try:
-                # Some SDL2 versions have this constant
-                touchpad_pressed = bool(sdl2.SDL_GameControllerGetButton(self.controller, 15))  # Common touchpad button ID
-            except:
-                pass
-        
-        # Update touchpad state
-        previous_touchpad = self.controller_widget.button_states.get('touchpad', False)
-        if touchpad_pressed != previous_touchpad:
-            changed_buttons['touchpad'] = touchpad_pressed
-        self.controller_widget.button_states['touchpad'] = touchpad_pressed
-            
-        # Read analog sticks
-        left_x = sdl2.SDL_GameControllerGetAxis(self.controller, sdl2.SDL_CONTROLLER_AXIS_LEFTX) / 32767.0
-        left_y = sdl2.SDL_GameControllerGetAxis(self.controller, sdl2.SDL_CONTROLLER_AXIS_LEFTY) / 32767.0
-        right_x = sdl2.SDL_GameControllerGetAxis(self.controller, sdl2.SDL_CONTROLLER_AXIS_RIGHTX) / 32767.0
-        right_y = sdl2.SDL_GameControllerGetAxis(self.controller, sdl2.SDL_CONTROLLER_AXIS_RIGHTY) / 32767.0
-        
-        prev_left = self.controller_widget.stick_positions['left']
-        prev_right = self.controller_widget.stick_positions['right']
-        
-        self.controller_widget.stick_positions['left'] = (left_x, left_y)
-        self.controller_widget.stick_positions['right'] = (right_x, right_y)
-        
-        # Read triggers
-        left_trigger = sdl2.SDL_GameControllerGetAxis(self.controller, sdl2.SDL_CONTROLLER_AXIS_TRIGGERLEFT)
-        right_trigger = sdl2.SDL_GameControllerGetAxis(self.controller, sdl2.SDL_CONTROLLER_AXIS_TRIGGERRIGHT)
-        
-        prev_left_trigger = self.controller_widget.trigger_values['left']
-        prev_right_trigger = self.controller_widget.trigger_values['right']
-        
-        self.controller_widget.trigger_values['left'] = left_trigger
-        self.controller_widget.trigger_values['right'] = right_trigger
-        
-        # Log changes
-        if changed_buttons:
-            self.log_event("button_change", changed_buttons)
-            
-        if abs(left_x - prev_left[0]) > 0.1 or abs(left_y - prev_left[1]) > 0.1:
-            self.log_event("left_stick", {"x": left_x, "y": left_y})
-            
-        if abs(right_x - prev_right[0]) > 0.1 or abs(right_y - prev_right[1]) > 0.1:
-            self.log_event("right_stick", {"x": right_x, "y": right_y})
-            
-        if abs(left_trigger - prev_left_trigger) > 1000:
-            self.log_event("left_trigger", {"value": left_trigger / 32767.0})
-            
-        if abs(right_trigger - prev_right_trigger) > 1000:
-            self.log_event("right_trigger", {"value": right_trigger / 32767.0})
-        
-        self.controller_widget.update()
-        
-    def log_event(self, event_type, data):
-        log_entry = {
-            "timestamp": datetime.now().isoformat(),
-            "event": event_type,
-            "data": data
-        }
-        
-        json_str = json.dumps(log_entry, indent=2)
-        self.log_display.append(json_str)
-        self.log_display.append("-" * 50)
-        
-        # Auto-scroll to bottom
-        scrollbar = self.log_display.verticalScrollBar()
-        scrollbar.setValue(scrollbar.maximum())
-        
-    def clear_logs(self):
-        self.log_display.clear()
-        
-    def closeEvent(self, event):
-        if self.joystick:
-            sdl2.SDL_JoystickClose(self.joystick)
-        if self.controller:
-            sdl2.SDL_GameControllerClose(self.controller)
-        sdl2.SDL_Quit()
-        event.accept()
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = PS4ControllerApp()
-    window.show()
-    sys.exit(app.exec_())
