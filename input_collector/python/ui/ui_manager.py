@@ -393,6 +393,8 @@ class UIManager(QObject):
         self.components['active_keys_label'].setAlignment(Qt.AlignCenter)
         active_keys_layout.addWidget(self.components['active_keys_label'])
         self.main_layout.addWidget(active_keys_group)
+        # Store reference to the group itself
+        self.components['active_keys_group'] = active_keys_group
     
     def _create_status_area(self) -> None:
         """Create the status area for messages."""
@@ -403,6 +405,8 @@ class UIManager(QObject):
         self.components['status_text'].setMaximumHeight(80)
         status_layout.addWidget(self.components['status_text'])
         self.main_layout.addWidget(status_group)
+        # Store reference to the group itself
+        self.components['status_group'] = status_group
     
     def _create_mouse_settings(self) -> None:
         """Create the mouse settings area."""
@@ -692,6 +696,18 @@ class UIManager(QObject):
         mouse_settings_group = self.components.get('mouse_settings_group')
         if mouse_settings_group:
             mouse_settings_group.setVisible(mouse_tracking_supported and is_keyboard_mouse)
+            
+        # Show/hide Status and Active Keys sections based on collector type
+        active_keys_group = next((self.components.get(k) for k in self.components if isinstance(self.components.get(k), QGroupBox) and 
+                                 self.components.get(k).title() == "Active Keys"), None)
+        status_group = next((self.components.get(k) for k in self.components if isinstance(self.components.get(k), QGroupBox) and 
+                            self.components.get(k).title() == "Status"), None)
+        
+        if active_keys_group:
+            active_keys_group.setVisible(is_keyboard_mouse)
+        
+        if status_group:
+            status_group.setVisible(is_keyboard_mouse)
         
         # Get references to all visualization components
         ps4_controller_group = self.components.get('ps4_controller_group')
@@ -995,7 +1011,7 @@ class UIManager(QObject):
         # Desactivar la combobox de PS4 Viz en modo edición
         if ps4_combo := self.components.get('ps4_viz_mode_combo'):
             ps4_combo.setEnabled(not edit_mode)
-
+            
         # --- RESTAURAR POSICIÓN DEL SCROLL ---
         if scrollbar and prev_pos is not None:
             scrollbar.setValue(prev_pos)

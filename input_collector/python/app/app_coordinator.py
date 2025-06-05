@@ -158,10 +158,11 @@ class AppCoordinator(QObject):
         
         # Log the event if flagged for logging
         if result["should_log"]:
-            # Display in UI
-            self.ui_manager.log_status(result["display_text"])
+            # Only display in UI if it's visible (keyboard mouse mode)
+            if collector_type == "keyboard_mouse":
+                self.ui_manager.log_status(result["display_text"])
             
-            # Log to files if enabled
+            # Log to files if enabled (do this regardless of UI visibility)
             self.logging_manager.log_event(event, collector_type)
     
     def toggle_recording(self) -> None:
