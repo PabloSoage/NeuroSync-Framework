@@ -81,47 +81,51 @@ class InteractionApiIntegration:
     def register_api(self, start_server: bool = True, host: str = "127.0.0.1", 
                      port: int = 8001) -> bool:
         """
-        Register the input collector's interaction API with the Explorer.
-        
+        Registers the input collector's interaction API with the Explorer.
+
         Args:
-            start_server: Whether to start the API Explorer server
-            host: Host to bind the server to
-            port: Port to bind the server to
-            
+            start_server: Whether to launch the API Explorer server.
+            host: Server host address.
+            port: Server port number.
+
         Returns:
-            True if registration was successful, False otherwise
+            True if the API was successfully registered, False otherwise.
         """
         if not explorer_available:
             return False
-        
+
         try:
-            # Get the ApiExplorer instance
+            # Get a reference to the ApiExplorer singleton
             self.explorer = ApiExplorer.get_instance()
-            
-            # Register module
-            if not self._register_module():
-                return False
-            
-            # Register methods
+
+            # Integrate the data module and its methods first
+            data_integration = get_api_integration()
+            data_integration.explorer = self.explorer
+            if not data_integration.module_registered:
+                data_integration._register_module()
+            data_integration._register_all_methods()
+            data_integration._setup_websocket_events()
+
+            # Add control methods to the same data module
+            self.module_id = data_integration.module_id
+            self.module_registered = True
             self._register_all_methods()
-            
-            # Get reference to data API integration for reusing event processing functions
-            self.data_api_integration = get_api_integration()
-            
-            # Setup websocket events
+
+            # Register any additional websocket events (only needed once)
             self._setup_websocket_events()
-            
-            # Start the server if requested
+
+            # Start the server if it's not already running
             if start_server and hasattr(self.explorer, 'start_server') and not self.explorer.is_running:
                 self.explorer.start_server(host=host, port=port, block=False)
-            
+
             self.is_registered = True
             return True
+
         except Exception as e:
             logger.error(f"Error registering interaction API: {e}")
-            import traceback
-            traceback.print_exc()
+            import traceback; traceback.print_exc()
             return False
+
 
     def _setup_websocket_events(self):
         """Set up event handlers for websocket real-time events."""
