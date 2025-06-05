@@ -657,6 +657,11 @@ class UIManager(QObject):
                 # When using keyboard/mouse - normal style
                 scan_button.setStyleSheet("background-color: #444466; color: white;")
         
+        # Update Edit Keys button visibility - hide it when using PS4 controller
+        edit_keys_button = self.components.get('edit_keys_button')
+        if edit_keys_button:
+            edit_keys_button.setVisible(is_keyboard_mouse)
+        
         # Update mouse-specific UI elements
         mouse_tracking_supported = capabilities.get("supports_mouse_tracking", False)
         tracking_mode_combo = self.components.get('tracking_mode_combo')

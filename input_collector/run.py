@@ -8,6 +8,7 @@ This script starts the input collector application and optionally enables the we
 import argparse
 import os
 import sys
+import threading
 from typing import Dict, Any
 
 # Add module root to path
@@ -26,6 +27,8 @@ def parse_config() -> Dict[str, Any]:
     
     # Basic configuration
     parser.add_argument("--fullscreen", action="store_true", help="Start in fullscreen mode")
+    parser.add_argument("--no-gui", action="store_true", help="Run without GUI (headless mode) using CLI instead")
+    parser.add_argument("--cli", action="store_true", help="Enable CLI shell along with the GUI")
     
     # Data API configuration
     parser.add_argument("--enable-web-api", action="store_true", help="Enable the data access web API")
@@ -41,13 +44,21 @@ def parse_config() -> Dict[str, Any]:
     args = parser.parse_args()
     return vars(args)
 
+def start_cli_in_thread():
+    """Start the CLI in a separate thread."""
+    from python.cli.cli_app import run_cli
+    # Set flag to indicate CLI is running with GUI
+    from python.cli.cli_app import set_gui_mode
+    set_gui_mode(True)
+    cli_thread = threading.Thread(target=run_cli, daemon=True)
+    cli_thread.start()
+    print("CLI shell started in a separate thread. You can interact with both GUI and CLI simultaneously.")
+    return cli_thread
+
 def main():
     """Run the input collector application."""
     # Parse configuration
     config = parse_config()
-    
-    # Import here to avoid circular imports
-    from python.input_collector_app import run_collector_app
     
     # Initialize the data access web API if enabled
     if config.get("enable_web_api", False):
@@ -86,8 +97,30 @@ def main():
         else:
             print("Failed to initialize Control API")
     
-    # Run the collector application
-    run_collector_app()
+    # Run in CLI-only mode, GUI-only mode, or both
+    if config.get("no_gui", False):
+        # Run in headless mode with CLI
+        print("Starting Input Collector in CLI mode...")
+        print("You'll be presented with an interactive shell to control the application.")
+        print("Type 'help' to see available commands.")
+        from python.cli.cli_app import run_cli
+        run_cli()
+    else:
+        # Run with GUI
+        print("Starting Input Collector with GUI...")
+        
+        # Start CLI in parallel if requested
+        cli_thread = None
+        if config.get("cli", False):
+            cli_thread = start_cli_in_thread()
+            
+        # Start the GUI (which will block until the GUI is closed)
+        from python.input_collector_app import run_collector_app
+        run_collector_app()
+        
+        # If CLI was started, wait for it to finish (though this will typically not be reached)
+        if cli_thread and cli_thread.is_alive():
+            cli_thread.join(timeout=0.5)
 
 if __name__ == "__main__":
     main()
