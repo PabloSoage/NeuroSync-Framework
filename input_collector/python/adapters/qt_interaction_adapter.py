@@ -5,11 +5,24 @@ This module provides an adapter that bridges between the UI framework (PyQt5)
 and the framework-independent interaction service layer.
 """
 
-from typing import Dict, List, Any, Optional, Tuple, Set, Callable
+from typing import (
+    Dict,
+    List,
+    Any,
+    Optional,
+    Tuple,
+    Set,
+    Callable,
+    TypeVar,
+    Generic,
+    cast,
+)
 
 from PyQt5.QtCore import QMetaObject, Qt, QObject, pyqtSlot, QTimer, QEventLoop
 import threading
 import logging
+
+T = TypeVar("T")  # Define a type variable for _execute_safely return type
 
 
 class QtInteractionAdapter:
@@ -21,7 +34,7 @@ class QtInteractionAdapter:
     the core service layer.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the adapter."""
         self.app_coordinator = None
         self.ui_manager = None
@@ -36,11 +49,11 @@ class QtInteractionAdapter:
 
     def initialize(
         self,
-        app_coordinator,
-        ui_manager,
-        logging_manager,
-        collector_manager,
-        event_processor,
+        app_coordinator: Any,
+        ui_manager: Any,
+        logging_manager: Any,
+        collector_manager: Any,
+        event_processor: Any,
     ) -> bool:
         """
         Initialize the adapter with application components.
@@ -64,7 +77,7 @@ class QtInteractionAdapter:
         logging.info("Qt interaction adapter initialized")
         return True
 
-    def _execute_safely(self, func, *args, **kwargs):
+    def _execute_safely(self, func: Callable[..., T], *args: Any, **kwargs: Any) -> T:
         """
         Execute a function in a thread-safe manner.
 
@@ -79,15 +92,18 @@ class QtInteractionAdapter:
             Result of the function call
         """
         # If we're already in the main thread, execute directly
-        if threading.current_thread() is self.app_coordinator.thread():
+        if (
+            threading.current_thread() is threading.main_thread()
+            and self.app_coordinator is not None
+        ):
             return func(*args, **kwargs)
 
         # If we're not in the main thread, use Qt's event system
-        result = [None]
-        error = [None]
+        result: List[Optional[T]] = [None]
+        error: List[Optional[Exception]] = [None]
         completed = threading.Event()
 
-        def callback():
+        def callback() -> None:
             try:
                 result[0] = func(*args, **kwargs)
             except Exception as e:
@@ -104,10 +120,11 @@ class QtInteractionAdapter:
             raise TimeoutError("Operation timed out")
 
         # Raise any errors that occurred
-        if error[0]:
+        if error[0] is not None:
             raise error[0]
 
-        return result[0]
+        # We know this isn't None at this point
+        return cast(T, result[0])
 
     #
     # Recording control methods
@@ -132,10 +149,10 @@ class QtInteractionAdapter:
                 return True
 
             # Start recording safely in main thread
-            def start():
-                if self.app_coordinator.edit_mode:
+            def start() -> bool:
+                if self.app_coordinator and self.app_coordinator.edit_mode:
                     return False
-                if not self.app_coordinator.is_recording:
+                if self.app_coordinator and not self.app_coordinator.is_recording:
                     self.app_coordinator._start_recording()
                 return True
 
@@ -163,8 +180,8 @@ class QtInteractionAdapter:
                 return True
 
             # Stop recording safely in main thread
-            def stop():
-                if self.app_coordinator.is_recording:
+            def stop() -> bool:
+                if self.app_coordinator and self.app_coordinator.is_recording:
                     self.app_coordinator._stop_recording()
                 return True
 
@@ -189,9 +206,11 @@ class QtInteractionAdapter:
                 return False, False
 
             # Toggle recording safely in main thread
-            def toggle():
-                self.app_coordinator.toggle_recording()
-                return True, self.app_coordinator.is_recording
+            def toggle() -> Tuple[bool, bool]:
+                if self.app_coordinator:
+                    self.app_coordinator.toggle_recording()
+                    return True, self.app_coordinator.is_recording
+                return False, False
 
             return self._execute_safely(toggle)
         except Exception as e:
@@ -229,10 +248,13 @@ class QtInteractionAdapter:
                 return False
 
             # Set CSV path safely
-            def set_path():
-                self.logging_manager.csv_logger.set_filepath(filepath)
-                self.ui_manager.set_csv_path(filepath)
-                return True
+            def set_path() -> bool:
+                if self.logging_manager and self.ui_manager:
+                    if hasattr(self.logging_manager, "csv_logger"):
+                        self.logging_manager.csv_logger.set_filepath(filepath)
+                    self.ui_manager.set_csv_path(filepath)
+                    return True
+                return False
 
             return self._execute_safely(set_path)
         except Exception as e:
@@ -260,8 +282,10 @@ class QtInteractionAdapter:
                 return []
 
             # Scan controllers safely
-            def scan():
-                return ps4_collector.scan_controllers()
+            def scan() -> List[Dict[str, Any]]:
+                if ps4_collector:
+                    return ps4_collector.scan_controllers()
+                return []
 
             return self._execute_safely(scan)
         except Exception as e:
@@ -292,8 +316,10 @@ class QtInteractionAdapter:
                 return False
 
             # Connect controller safely
-            def connect():
-                return ps4_collector.connect_to_controller(index)
+            def connect() -> bool:
+                if ps4_collector:
+                    return ps4_collector.connect_to_controller(index)
+                return False
 
             return self._execute_safely(connect)
         except Exception as e:
@@ -318,16 +344,20 @@ class QtInteractionAdapter:
                 return False
 
             # Switch collector safely
-            def switch():
-                self.app_coordinator.switch_collector(collector_type)
-                return True
+            def switch() -> bool:
+                if self.app_coordinator:
+                    self.app_coordinator.switch_collector(collector_type)
+                    return True
+                return False
 
             return self._execute_safely(switch)
         except Exception as e:
             logging.error(f"Error switching collector: {e}")
             return False
 
-    def set_mouse_tracking_mode(self, mode: str, direction_only: bool = None) -> bool:
+    def set_mouse_tracking_mode(
+        self, mode: str, direction_only: Optional[bool] = None
+    ) -> bool:
         """
         Set mouse tracking mode.
 
@@ -346,20 +376,22 @@ class QtInteractionAdapter:
                 return False
 
             # Set tracking mode safely
-            def set_mode():
-                # Handle direction_only parameter if provided
-                if direction_only is not None:
-                    current_dir_only = self.ui_manager.is_direction_only_mode()
-                    if direction_only != current_dir_only:
-                        self.ui_manager.set_direction_only_checkbox(direction_only)
-                        # This will trigger an update of available modes
+            def set_mode() -> bool:
+                if self.ui_manager and self.app_coordinator:
+                    # Handle direction_only parameter if provided
+                    if direction_only is not None:
+                        current_dir_only = self.ui_manager.is_direction_only_mode()
+                        if direction_only != current_dir_only:
+                            self.ui_manager.set_direction_only_checkbox(direction_only)
+                            # This will trigger an update of available modes
 
-                # Set the tracking mode in UI
-                self.ui_manager.set_tracking_mode(mode)
+                    # Set the tracking mode in UI
+                    self.ui_manager.set_tracking_mode(mode)
 
-                # Apply mode to collector via app coordinator
-                self.app_coordinator.set_mouse_tracking_mode(mode)
-                return True
+                    # Apply mode to collector via app coordinator
+                    self.app_coordinator.set_mouse_tracking_mode(mode)
+                    return True
+                return False
 
             return self._execute_safely(set_mode)
         except Exception as e:
@@ -391,26 +423,31 @@ class QtInteractionAdapter:
                 return False
 
             # Set mouse settings safely
-            def set_settings():
-                # Update UI sliders
-                if delta_smoothing is not None:
-                    delta_slider = self.ui_manager.components.get("delta_slider")
-                    if delta_slider:
-                        delta_slider.setValue(int(delta_smoothing))
+            def set_settings() -> bool:
+                if self.ui_manager and self.app_coordinator:
+                    # Update UI sliders
+                    if delta_smoothing is not None:
+                        components = getattr(self.ui_manager, "components", {})
+                        delta_slider = components.get("delta_slider")
+                        if delta_slider:
+                            delta_slider.setValue(int(delta_smoothing))
 
-                if joystick_sensitivity is not None:
-                    joystick_slider = self.ui_manager.components.get("joystick_slider")
-                    if joystick_slider:
-                        joystick_slider.setValue(int(joystick_sensitivity))
+                    if joystick_sensitivity is not None:
+                        components = getattr(self.ui_manager, "components", {})
+                        joystick_slider = components.get("joystick_slider")
+                        if joystick_slider:
+                            joystick_slider.setValue(int(joystick_sensitivity))
 
-                if angle_grouping is not None:
-                    angle_slider = self.ui_manager.components.get("angle_slider")
-                    if angle_slider:
-                        angle_slider.setValue(int(angle_grouping))
+                    if angle_grouping is not None:
+                        components = getattr(self.ui_manager, "components", {})
+                        angle_slider = components.get("angle_slider")
+                        if angle_slider:
+                            angle_slider.setValue(int(angle_grouping))
 
-                # Apply settings via app coordinator
-                self.app_coordinator.apply_mouse_settings()
-                return True
+                    # Apply settings via app coordinator
+                    self.app_coordinator.apply_mouse_settings()
+                    return True
+                return False
 
             return self._execute_safely(set_settings)
         except Exception as e:
@@ -483,13 +520,15 @@ class QtInteractionAdapter:
                 return False, self.app_coordinator.edit_mode
 
             # Toggle edit mode safely
-            def toggle():
-                prev_state = self.app_coordinator.edit_mode
-                self.app_coordinator.toggle_edit_mode()
-                return (
-                    self.app_coordinator.edit_mode != prev_state,
-                    self.app_coordinator.edit_mode,
-                )
+            def toggle() -> Tuple[bool, bool]:
+                if self.app_coordinator:
+                    prev_state = self.app_coordinator.edit_mode
+                    self.app_coordinator.toggle_edit_mode()
+                    return (
+                        self.app_coordinator.edit_mode != prev_state,
+                        self.app_coordinator.edit_mode,
+                    )
+                return False, False
 
             return self._execute_safely(toggle)
         except Exception as e:
@@ -529,25 +568,27 @@ class QtInteractionAdapter:
                 return True
 
             # Add key safely via handle_key_edit
-            def add_key():
-                # Store previous edit mode state
-                was_in_edit_mode = self.app_coordinator.edit_mode
+            def add_key() -> bool:
+                if self.app_coordinator:
+                    # Store previous edit mode state
+                    was_in_edit_mode = self.app_coordinator.edit_mode
 
-                # Enable edit mode temporarily if needed
-                if not was_in_edit_mode:
-                    self.app_coordinator.toggle_edit_mode()
+                    # Enable edit mode temporarily if needed
+                    if not was_in_edit_mode:
+                        self.app_coordinator.toggle_edit_mode()
 
-                # Add the key
-                self.app_coordinator.handle_key_edit(key)
+                    # Add the key
+                    self.app_coordinator.handle_key_edit(key)
 
-                # Check if added successfully
-                added = key in self.app_coordinator.get_tracked_keys()
+                    # Check if added successfully
+                    added = key in self.app_coordinator.get_tracked_keys()
 
-                # Restore previous edit mode if needed
-                if not was_in_edit_mode and self.app_coordinator.edit_mode:
-                    self.app_coordinator.toggle_edit_mode()
+                    # Restore previous edit mode if needed
+                    if not was_in_edit_mode and self.app_coordinator.edit_mode:
+                        self.app_coordinator.toggle_edit_mode()
 
-                return added
+                    return added
+                return False
 
             return self._execute_safely(add_key)
         except Exception as e:
@@ -585,25 +626,27 @@ class QtInteractionAdapter:
                 return False
 
             # Remove key safely via handle_key_edit
-            def remove_key():
-                # Store previous edit mode state
-                was_in_edit_mode = self.app_coordinator.edit_mode
+            def remove_key() -> bool:
+                if self.app_coordinator:
+                    # Store previous edit mode state
+                    was_in_edit_mode = self.app_coordinator.edit_mode
 
-                # Enable edit mode temporarily if needed
-                if not was_in_edit_mode:
-                    self.app_coordinator.toggle_edit_mode()
+                    # Enable edit mode temporarily if needed
+                    if not was_in_edit_mode:
+                        self.app_coordinator.toggle_edit_mode()
 
-                # Remove the key
-                self.app_coordinator.handle_key_edit(key)
+                    # Remove the key
+                    self.app_coordinator.handle_key_edit(key)
 
-                # Check if removed successfully
-                removed = key not in self.app_coordinator.get_tracked_keys()
+                    # Check if removed successfully
+                    removed = key not in self.app_coordinator.get_tracked_keys()
 
-                # Restore previous edit mode if needed
-                if not was_in_edit_mode and self.app_coordinator.edit_mode:
-                    self.app_coordinator.toggle_edit_mode()
+                    # Restore previous edit mode if needed
+                    if not was_in_edit_mode and self.app_coordinator.edit_mode:
+                        self.app_coordinator.toggle_edit_mode()
 
-                return removed
+                    return removed
+                return False
 
             return self._execute_safely(remove_key)
         except Exception as e:
@@ -639,27 +682,30 @@ class QtInteractionAdapter:
                 return True
 
             # Toggle button tracking safely
-            def toggle_button():
-                # Store previous edit mode state
-                was_in_edit_mode = self.app_coordinator.edit_mode
+            def toggle_button() -> bool:
+                if self.app_coordinator:
+                    # Store previous edit mode state
+                    was_in_edit_mode = self.app_coordinator.edit_mode
 
-                # Enable edit mode temporarily if needed
-                if not was_in_edit_mode:
-                    self.app_coordinator.toggle_edit_mode()
+                    # Enable edit mode temporarily if needed
+                    if not was_in_edit_mode:
+                        self.app_coordinator.toggle_edit_mode()
 
-                # Toggle the button
-                self.app_coordinator.handle_button_edit(button_id, track)
+                    # Toggle the button
+                    self.app_coordinator.handle_button_edit(button_id, track)
 
-                # Check if toggled successfully
-                toggled = (
-                    bool(button_id in self.app_coordinator.get_tracked_keys()) == track
-                )
+                    # Check if toggled successfully
+                    toggled = (
+                        bool(button_id in self.app_coordinator.get_tracked_keys())
+                        == track
+                    )
 
-                # Restore previous edit mode if needed
-                if not was_in_edit_mode and self.app_coordinator.edit_mode:
-                    self.app_coordinator.toggle_edit_mode()
+                    # Restore previous edit mode if needed
+                    if not was_in_edit_mode and self.app_coordinator.edit_mode:
+                        self.app_coordinator.toggle_edit_mode()
 
-                return toggled
+                    return toggled
+                return False
 
             return self._execute_safely(toggle_button)
         except Exception as e:
@@ -679,9 +725,11 @@ class QtInteractionAdapter:
                 return False
 
             # Toggle fullscreen safely
-            def toggle():
-                self.ui_manager.toggle_fullscreen.emit()
-                return True
+            def toggle() -> bool:
+                if self.ui_manager and hasattr(self.ui_manager, "toggle_fullscreen"):
+                    self.ui_manager.toggle_fullscreen.emit()
+                    return True
+                return False
 
             return self._execute_safely(toggle)
         except Exception as e:
