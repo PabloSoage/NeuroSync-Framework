@@ -11,6 +11,7 @@ import os
 import socket
 import sys
 import time
+import math
 from typing import Optional, Dict, List, Any, Callable, Union, Set
 
 # Configure logging
@@ -61,7 +62,19 @@ class InputCollectorApiIntegration:
         
         # For tracking event subscriptions
         self._event_subscriptions = []
-        self._pressed_buttons: Set[str] = set()    # <— nuevo
+        self._pressed_buttons: Set[str] = set()
+        
+        # PS4 controller state tracking
+        self._ps4_button_states: Dict[str, bool] = {}  # Maps button name to pressed state (True/False)
+        self._ps4_active_buttons: Set[str] = set()     # Set of currently pressed buttons
+        self._ps4_stick_states: Dict[str, Dict[str, float]] = {  # Maps stick name to position data
+            "left": {"x": 0.0, "y": 0.0, "direction": "center"},
+            "right": {"x": 0.0, "y": 0.0, "direction": "center"}
+        }
+        self._ps4_trigger_states: Dict[str, float] = {  # Maps trigger name to value (0.0 - 1.0)
+            "left": 0.0,
+            "right": 0.0
+        }
     
     def register_api(self, start_server: bool = True, host: str = "127.0.0.1", 
                      port: int = 8000) -> bool:
@@ -380,7 +393,11 @@ class InputCollectorApiIntegration:
                     if btn:
                         self._pressed_buttons.discard(btn)
 
-            # 2) Skip key_release and scroll events as before
+            # 2) Special handling for PS4 controller events to maintain state
+            if event_type == EventType.INPUT and hasattr(data, 'event_type') and data.event_type in ["button_press", "button_release", "axis_motion"]:
+                self._update_ps4_controller_state(data)
+
+            # 3) Skip key_release and scroll events as before
             if event_type == EventType.INPUT and getattr(data, "event_type", "") == "key_release":
                 return
                 
@@ -401,55 +418,78 @@ class InputCollectorApiIntegration:
                and not getattr(data, "direction", None):
                 return
 
-            # 3) Unify InputData in payload structure
+            # 4) Unify InputData in payload structure
             if event_type == EventType.INPUT and hasattr(data, 'event_type'):
                 # Create unified payload structure
                 payload = {
                     "timestamp": getattr(data, "timestamp", time.time()),
-                    "event_type": data.event_type,
-                    "keys": getattr(data, "active_keys", [])
+                    "event_type": data.event_type
                 }
                 
-                # Movement subsection - only populate for mouse_move events
-                if data.event_type == "mouse_move" and hasattr(data, 'mouse_tracking_mode'):
-                    movement_data = self._format_mouse_event(data)
-                    if movement_data:
-                        # Extract only the movement-specific fields
-                        payload["movement"] = {
-                            "tracking_mode": movement_data.get("tracking_mode"),
-                            "direction_only": movement_data.get("direction_only"),
-                            "status": movement_data.get("status")
+                # Handle PS4 controller events specifically
+                is_ps4_event = data.event_type in ["button_press", "button_release", "axis_motion"]
+                
+                # Enhanced handling for PS4 controller events
+                if is_ps4_event:
+                    # For button events, add pressed/released button info
+                    if data.event_type in ["button_press", "button_release"] and hasattr(data, 'key') and data.key:
+                        # Use button_event format para eventos de botones
+                        payload["button_event"] = {
+                            "button": data.key,
+                            "action": "pressed" if data.event_type == "button_press" else "released" 
                         }
                         
-                        # Add mode-specific fields
-                        for key in ["north", "south", "east", "west", "angle", "magnitude", 
-                                   "delta_x", "delta_y", "rel_x", "rel_y", "speed", "direction"]:
-                            if key in movement_data:
-                                payload["movement"][key] = movement_data[key]
+                        # Add complete PS4 state to all PS4 events
+                        payload["ps4_state"] = self._get_ps4_controller_state()
+                        
+                    # For axis motion events, add detailed stick/trigger info
+                    elif data.event_type == "axis_motion":
+                        # Complete information about which control was moved
+                        self._add_ps4_control_details_to_payload(payload, data)
                 else:
-                    payload["movement"] = {}
-                
-                # 4) Click section: replaced to list all pressed buttons
-                payload["click"] = {"buttons": list(self._pressed_buttons)}
+                    # For non-PS4 events, add standard sections as before
+                    # Movement subsection for mouse_move
+                    if data.event_type == "mouse_move" and hasattr(data, 'mouse_tracking_mode'):
+                        movement_data = self._format_mouse_event(data)
+                        if movement_data:
+                            # Extract only the movement-specific fields
+                            payload["movement"] = {
+                                "tracking_mode": movement_data.get("tracking_mode"),
+                                "direction_only": movement_data.get("direction_only"),
+                                "status": movement_data.get("status")
+                            }
+                            
+                            # Add mode-specific fields
+                            for key in ["north", "south", "east", "west", "angle", "magnitude", 
+                                       "delta_x", "delta_y", "rel_x", "rel_y", "speed", "direction"]:
+                                if key in movement_data:
+                                    payload["movement"][key] = movement_data[key]
+                    elif is_ps4_event and data.event_type == "axis_motion":
+                        # For PS4 axis motion, use the stored state for comprehensive info
+                        self._add_ps4_movement_to_payload(payload)
+                    else:
+                        payload["movement"] = {}
+                    
+                    # Click subsection - keep previous code for non-PS4 events
+                    payload["click"] = {"buttons": list(self._pressed_buttons)}
+                    
+                    # Scroll subsection - only for mouse_scroll events
+                    if data.event_type == "mouse_scroll" and getattr(data, "direction", None):
+                        payload["scroll"] = {"direction": data.direction}
 
-                # Scroll subsection - only populate for mouse_scroll events with direction
-                if data.event_type == "mouse_scroll" and getattr(data, "direction", None):
-                    payload["scroll"] = {
-                        "direction": data.direction
-                    }
-                else:
-                    payload["scroll"] = {}
-                
-                # Key subsection - only populate for key events
-                if data.event_type == "key_press" and hasattr(data, 'key') and data.key:
-                    payload["key"] = {
-                        "pressed": data.key
-                    }
-                else:
+                    # Key section for keyboard events
                     payload["key"] = {}
-                
-                # Add unique ID
+                    if data.event_type == "key_press" and hasattr(data, 'key') and data.key:
+                        payload["key"] = {"pressed": data.key}
+                    
+                    # Include active keys for non-PS4 events
+                    payload["keys"] = getattr(data, "active_keys", [])
+
+                # 5) Add unique ID
                 payload["event_id"] = f"{str(time.time()).replace('.', '')}_{id(payload)}"
+                
+                # Filter out empty fields for cleaner JSON
+                self._filter_empty_fields(payload)
                 
                 # Broadcast unified event
                 self._broadcast_event(payload)
@@ -473,285 +513,283 @@ class InputCollectorApiIntegration:
             logger.error(f"Error handling core event: {e}")
             import traceback
             traceback.print_exc()
-
-    def _format_mouse_event(self, event_data: Any) -> Dict:
+    
+    def _update_ps4_controller_state(self, data: Any) -> None:
         """
-        Format a mouse event based on its tracking mode.
+        Update the internal PS4 controller state based on an event.
         
         Args:
-            event_data: Mouse event data
+            data: Event data for a PS4 controller event
+        """
+        # Handle button press events
+        if data.event_type == "button_press" and getattr(data, 'key', None):
+            button_name = data.key
+            self._ps4_button_states[button_name] = True
+            self._ps4_active_buttons.add(button_name)
+        
+        # Handle button release events
+        elif data.event_type == "button_release" and getattr(data, 'key', None):
+            button_name = data.key
+            self._ps4_button_states[button_name] = False
+            self._ps4_active_buttons.discard(button_name)
+        
+        # Handle axis motion events
+        elif data.event_type == "axis_motion" and getattr(data, 'key', None):
+            key = data.key
+            
+            # Handle stick movement
+            if "Left_Stick" in key:
+                x_value = getattr(data, "rel_x", 0)
+                y_value = getattr(data, "rel_y", 0)
+                direction = self._get_stick_direction(x_value, y_value)
+                self._ps4_stick_states["left"] = {
+                    "x": x_value,
+                    "y": y_value,
+                    "direction": direction
+                }
+            
+            elif "Right_Stick" in key:
+                x_value = getattr(data, "rel_x", 0)
+                y_value = getattr(data, "rel_y", 0)
+                direction = self._get_stick_direction(x_value, y_value)
+                self._ps4_stick_states["right"] = {
+                    "x": x_value,
+                    "y": y_value,
+                    "direction": direction
+                }
+            
+            # Handle trigger movement
+            elif "Left_Trigger" in key:
+                value = getattr(data, "rel_x", 0)
+                self._ps4_trigger_states["left"] = value
+            
+            elif "Right_Trigger" in key:
+                value = getattr(data, "rel_x", 0)
+                self._ps4_trigger_states["right"] = value
+    
+    def _get_stick_direction(self, x_value: float, y_value: float) -> str:
+        """
+        Get the direction of a stick based on its X and Y coordinates.
+        
+        Args:
+            x_value: X-axis value (-1.0 to 1.0)
+            y_value: Y-axis value (-1.0 to 1.0)
             
         Returns:
-            Dict: Formatted event for websocket broadcast
+            str: Direction name
         """
-        try:
-            # Get the tracking mode
-            mode = getattr(event_data, 'mouse_tracking_mode', 'joystick')
-            direction_only = getattr(event_data, 'direction_only', False)
+        # Use a small deadzone to determine when stick is centered
+        deadzone = 0.2
+        if abs(x_value) < deadzone and abs(y_value) < deadzone:
+            return "center"
             
-            # Initialize the formatted event
-            formatted_event = {
-                "type": "mouse_movement",
-                "timestamp": event_data.timestamp,
-                "tracking_mode": mode,
-                "direction_only": direction_only
+        # Calculate the angle in degrees
+        angle = math.degrees(math.atan2(-y_value, x_value))
+        
+        # Convert to positive angle (0-360)
+        if angle < 0:
+            angle += 360
+        
+        # Map the angle to a direction
+        if 22.5 <= angle < 67.5:
+            return "up-right"
+        elif 67.5 <= angle < 112.5:
+            return "up"
+        elif 112.5 <= angle < 157.5:
+            return "up-left"
+        elif 157.5 <= angle < 202.5:
+            return "left"
+        elif 202.5 <= angle < 247.5:
+            return "down-left"
+        elif 247.5 <= angle < 292.5:
+            return "down"
+        elif 292.5 <= angle < 337.5:
+            return "down-right"
+        else:  # 337.5 <= angle < 22.5
+            return "right"
+
+    def _get_ps4_controller_state(self) -> Dict[str, Any]:
+        """
+        Get the complete current state of the PS4 controller.
+        
+        Returns:
+            Dict: The current state of all PS4 controls
+        """
+        # Procesamiento de los sticks para incluir porcentajes y direcciones consistentes
+        left_stick_x = self._ps4_stick_states["left"]["x"]
+        left_stick_y = self._ps4_stick_states["left"]["y"]
+        right_stick_x = self._ps4_stick_states["right"]["x"]
+        right_stick_y = self._ps4_stick_states["right"]["y"]
+        left_trigger_val = self._ps4_trigger_states["left"] 
+        right_trigger_val = self._ps4_trigger_states["right"]
+        
+        # Calculate directions 
+        left_direction = self._get_stick_direction(left_stick_x, left_stick_y)
+        right_direction = self._get_stick_direction(right_stick_x, right_stick_y)
+        
+        return {
+            "active_buttons": list(self._ps4_active_buttons),
+            "sticks": {
+                "left": {
+                    "x": left_stick_x,
+                    "y": left_stick_y,
+                    "direction": left_direction,
+                    "percentage_x": f"{int(abs(left_stick_x) * 100)}%",
+                    "percentage_y": f"{int(abs(left_stick_y) * 100)}%"
+                },
+                "right": {
+                    "x": right_stick_x,
+                    "y": right_stick_y,
+                    "direction": right_direction,
+                    "percentage_x": f"{int(abs(right_stick_x) * 100)}%",
+                    "percentage_y": f"{int(abs(right_stick_y) * 100)}%"
+                }
+            },
+            "triggers": {
+                "left": {
+                    "value": left_trigger_val,
+                    "percentage": f"{int(abs(left_trigger_val) * 100)}%"
+                },
+                "right": {
+                    "value": right_trigger_val,
+                    "percentage": f"{int(abs(right_trigger_val) * 100)}%"
+                }
             }
-            
-            # Format based on tracking mode
-            if mode == "axis" and direction_only:
-                # Extract axis values
-                formatted_event["north"] = getattr(event_data, 'north', 0)
-                formatted_event["south"] = getattr(event_data, 'south', 0)
-                formatted_event["east"] = getattr(event_data, 'east', 0)
-                formatted_event["west"] = getattr(event_data, 'west', 0)
-                
-                # Generate a status string like in the GUI
-                active_directions = []
-                if formatted_event["north"] > 0.2:
-                    active_directions.append("UP")
-                if formatted_event["south"] > 0.2:
-                    active_directions.append("DOWN")
-                if formatted_event["east"] > 0.2:
-                    active_directions.append("RIGHT")
-                if formatted_event["west"] > 0.2:
-                    active_directions.append("LEFT")
-                    
-                formatted_event["status"] = " + ".join(active_directions) if active_directions else "NONE"
-            
-            elif mode == "angle" and direction_only:
-                # Extract angle value
-                angle = getattr(event_data, 'discrete_angle', 0)
-                formatted_event["angle"] = angle
-                
-                # Determine direction name based on angle
-                direction = self._angle_to_direction(angle)
-                formatted_event["status"] = direction
-                
-            elif mode == "angle" and not direction_only:
-                # Extract continuous angle and magnitude values
-                formatted_event["angle"] = getattr(event_data, 'mouse_delta_angle', 0.0)
-                formatted_event["magnitude"] = getattr(event_data, 'mouse_delta_magnitude', 0.0)
-                
-                # Generate status string
-                if getattr(event_data, 'is_moving', False):
-                    formatted_event["status"] = f"ANGLE: {formatted_event['angle']:.1f}°, MAG: {formatted_event['magnitude']:.1f}"
-                else:
-                    formatted_event["status"] = "IDLE"
-                
-            elif mode == "delta":
-                # Extract delta values
-                formatted_event["delta_x"] = getattr(event_data, 'mouse_delta_x', 0)
-                formatted_event["delta_y"] = getattr(event_data, 'mouse_delta_y', 0)
-                formatted_event["magnitude"] = getattr(event_data, 'mouse_delta_magnitude', 0)
-                
-                # Generate status string
-                if getattr(event_data, 'is_moving', False):
-                    formatted_event["status"] = f"DELTA: {formatted_event['delta_x']:.1f}, {formatted_event['delta_y']:.1f}"
-                else:
-                    formatted_event["status"] = "IDLE"
-                    
-            elif mode == "joystick":
-                # Extract joystick values
-                formatted_event["rel_x"] = getattr(event_data, 'rel_x', 0)
-                formatted_event["rel_y"] = getattr(event_data, 'rel_y', 0)
-                # Add speed value
-                formatted_event["speed"] = getattr(event_data, 'speed', 0)
-                # Add direction information
-                formatted_event["direction"] = getattr(event_data, 'direction', None)
-                
-                # Generate status string
-                if getattr(event_data, 'is_moving', False):
-                    formatted_event["status"] = f"X: {formatted_event['rel_x']:.2f}, Y: {formatted_event['rel_y']:.2f}"
-                else:
-                    formatted_event["status"] = "IDLE"
-                    
-            # Add active keys if any
-            active_keys = getattr(event_data, 'active_keys', [])
-            if active_keys:
-                formatted_event["active_keys"] = active_keys
-                
-            return formatted_event
-        except Exception as e:
-            logger.error(f"Error formatting mouse event: {e}")
-            return None
-            
-    def _angle_to_direction(self, angle: int) -> str:
-        """Convert an angle to a human-readable direction."""
-        directions = {
-            0: "RIGHT",
-            45: "DOWN-RIGHT",
-            90: "DOWN",
-            135: "DOWN-LEFT",
-            180: "LEFT",
-            225: "UP-LEFT",
-            270: "UP",
-            315: "UP-RIGHT"
         }
-        
-        # Find the closest direction
-        closest = min(directions.keys(), key=lambda k: abs(k - angle))
-        return directions[closest]
-        
-    def _create_simple_event(self, event_data: Any) -> Dict:
+    
+    def _add_ps4_movement_to_payload(self, payload: Dict) -> None:
         """
-        Create a simplified event for websocket broadcast.
+        Add PS4 movement data to the payload.
         
         Args:
-            event_data: Event data
-            
-        Returns:
-            Dict: Simplified event
+            payload: The payload to update
         """
-        try:
-            # Create basic event structure
-            simple_event = {
-                "type": getattr(event_data, 'event_type', 'unknown'),
-                "timestamp": getattr(event_data, 'timestamp', time.time())
+        # Include both sticks in the movement section
+        left_stick = self._ps4_stick_states["left"]
+        right_stick = self._ps4_stick_states["right"]
+        
+        payload["movement"] = {
+            "left_stick": {
+                "x": left_stick["x"],
+                "y": left_stick["y"],
+                "direction": left_stick["direction"]
+            },
+            "right_stick": {
+                "x": right_stick["x"],
+                "y": right_stick["y"],
+                "direction": right_stick["direction"]
+            },
+            "left_trigger": self._ps4_trigger_states["left"],
+            "right_trigger": self._ps4_trigger_states["right"]
+        }
+    
+    def _add_ps4_control_details_to_payload(self, payload: Dict, data: Any) -> None:
+        """
+        Add PS4 control details to the payload.
+        
+        Args:
+            payload: The payload to update
+            data: The event data
+        """
+        # Identify which control this is based on the key field
+        control_type = None
+        control_name = None
+        
+        if hasattr(data, 'key'):
+            key = data.key
+            if "Left_Stick" in key:
+                control_type = "stick"
+                control_name = "left_stick"
+            elif "Right_Stick" in key:
+                control_type = "stick"
+                control_name = "right_stick"
+            elif "Left_Trigger" in key:
+                control_type = "trigger"
+                control_name = "left_trigger"
+            elif "Right_Trigger" in key:
+                control_type = "trigger"
+                control_name = "right_trigger"
+        
+        # For stick movement
+        if control_type == "stick":
+            # Get X and Y values
+            x_value = getattr(data, "rel_x", 0)
+            y_value = getattr(data, "rel_y", 0)
+            direction = self._get_stick_direction(x_value, y_value)
+            
+            # Reuse the full controller state to be consistent
+            ps4_state = self._get_ps4_controller_state()
+            
+            # Add event-specific info
+            payload["motion_event"] = {
+                "control_type": control_type,
+                "control_name": control_name,
+                "x": x_value,
+                "y": y_value,
+                "direction": direction,
+                "percentage_x": f"{int(abs(x_value) * 100)}%",
+                "percentage_y": f"{int(abs(y_value) * 100)}%"
             }
             
-            # Add key info if present
-            if hasattr(event_data, 'key') and event_data.key:
-                simple_event["key"] = event_data.key
-                
-            # Add button info if present
-            if hasattr(event_data, 'button_pressed') and event_data.button_pressed:
-                simple_event["button"] = event_data.button_pressed
+            # Update stick state in the ps4_state - use simplified name for indexing
+            stick_name = control_name.split('_')[0]  # Extract "left" or "right" part
+            ps4_state["sticks"][stick_name] = {
+                "x": x_value,
+                "y": y_value,
+                "direction": direction,
+                "percentage_x": f"{int(abs(x_value) * 100)}%",
+                "percentage_y": f"{int(abs(y_value) * 100)}%"
+            }
             
-            # Add direction if present
-            if hasattr(event_data, 'direction') and event_data.direction:
-                simple_event["direction"] = event_data.direction
-                
-            # Add active keys if any
-            active_keys = getattr(event_data, 'active_keys', [])
-            if active_keys:
-                simple_event["active_keys"] = active_keys
-                
-            return simple_event
-        except Exception as e:
-            logger.error(f"Error creating simple event: {e}")
-            return None
-    
-    def _register_for_events(self) -> None:
-        """Register for real-time events from the input collector (legacy method)."""
-        callback_id = InputDataAPI.register_event_callback(self._event_callback)
-        self.event_callback_id = callback_id
-        logger.info(f"Registered for input events with callback ID {callback_id}")
-    
-    def _event_callback(self, event: Any) -> None:
-        """
-        Handle input events and broadcast them through WebSocket (legacy method).
-        
-        This is kept for backward compatibility but most events are now handled
-        through the core event system subscription.
-        """
-        # We don't need to process most events here anymore as they're handled by the core event system
-        pass
-    
-    def _event_to_dict(self, event: Any) -> Dict:
-        """Convert an event object to a serializable dictionary."""
-        # Check if it's an InputData object with to_dict method
-        if hasattr(event, 'to_dict') and callable(getattr(event, 'to_dict')):
-            return event.to_dict()
+            # Update PS4 state in the payload
+            payload["ps4_state"] = ps4_state
             
-        # Fall back to class name check if to_dict doesn't exist
-        elif hasattr(event, '__class__') and event.__class__.__name__ == 'InputData':
-            # Create a dict with all non-None fields
-            event_dict = {}
-            for key, value in event.__dict__.items():
-                if not key.startswith("_") and value is not None:
-                    # Convert lists to JSON-safe lists
-                    if isinstance(value, list):
-                        event_dict[key] = list(value)  # Create a copy to avoid reference issues
-                    else:
-                        event_dict[key] = value
-            return event_dict
+        # For trigger movement
+        elif control_type == "trigger":
+            # Get trigger value
+            value = getattr(data, "rel_x", 0)
+            percentage = f"{int(abs(value) * 100)}%"
             
-        # For other objects, use generic approach
-        try:
-            # Try to convert to dict if possible
-            if hasattr(event, '__dict__'):
-                return {k: v for k, v in event.__dict__.items() 
-                        if not k.startswith("_") and v is not None}
-            elif isinstance(event, dict):
-                return event
-            else:
-                # Convert to string if we can't do anything else
-                return {"value": str(event)}
-        except:
-            # Last resort - convert to string
-            return {"value": str(event)}
+            # Reuse the full controller state to be consistent
+            ps4_state = self._get_ps4_controller_state()
+            
+            # Add event-specific info
+            payload["motion_event"] = {
+                "control_type": control_type,
+                "control_name": control_name,
+                "value": value,
+                "percentage": percentage
+            }
+            
+            # Update trigger state in the ps4_state - use simplified name for indexing
+            trigger_name = control_name.split('_')[0]  # Extract "left" or "right" part
+            ps4_state["triggers"][trigger_name] = {
+                "value": value,
+                "percentage": percentage
+            }
+            
+            # Update PS4 state in the payload
+            payload["ps4_state"] = ps4_state
 
-    def _broadcast_event(self, event_dict: Dict) -> None:
-        """Broadcast an event through the WebSocket connection."""
-        if not hasattr(self.explorer, 'broadcast_event'):
-            logger.warning("ApiExplorer does not have broadcast_event method, event not sent")
-            return
-            
-        # Get or create event loop
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_closed():
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+    def _filter_empty_fields(self, payload: Dict) -> None:
+        """
+        Remove empty fields from the payload for cleaner JSON.
         
-        # Create broadcast coroutine
-        async def broadcast():
-            try:
-                # Add JSON serialization check
-                import json
-                try:
-                    # Test serialization before sending
-                    json.dumps(event_dict)
-                except TypeError as e:
-                    # Something isn't serializable - fix problematic fields
-                    logger.warning(f"Event not fully serializable: {e}. Converting problematic fields.")
-                    event_dict_copy = event_dict.copy()
-                    for key, value in event_dict_copy.items():
-                        try:
-                            json.dumps({key: value})
-                        except:
-                            # Convert problematic value to string
-                            event_dict[key] = str(value)
-                
-                # Add unique ID to event to prevent WebSocket buffer issues
-                # This ensures each event is uniquely identified
-                event_dict["event_id"] = f"{str(time.time()).replace('.', '')}_{id(event_dict)}"
-                
-                # Ensure timestamp has micro precision to avoid identical timestamps
-                if "timestamp" in event_dict:
-                    event_dict["timestamp"] = float(f"{event_dict['timestamp']:.6f}")
-                
-                await self.explorer.broadcast_event(self.module_id, event_dict)
-            except Exception as e:
-                logger.error(f"Error in broadcast_event: {e}")
-                import traceback
-                traceback.print_exc()
+        Args:
+            payload: The payload to filter
+        """
+        # Find keys with empty values
+        empty_keys = []
+        for key, value in payload.items():
+            if isinstance(value, dict) and not value:
+                empty_keys.append(key)
+            elif isinstance(value, list) and not value:
+                empty_keys.append(key)
         
-        # Run the broadcast
-        try:
-            if loop.is_running():
-                asyncio.run_coroutine_threadsafe(broadcast(), loop)
-            else:
-                loop.run_until_complete(broadcast())
-        except Exception as e:
-            logger.error(f"Error in event loop: {e}")
-    
-    def shutdown(self) -> None:
-        """Clean up resources when shutting down."""
-        # Unsubscribe from core events
-        for event_type, handler in self._event_subscriptions:
-            unsubscribe(event_type, handler)
-            
-        # Unregister legacy callback
-        if self.event_callback_id is not None:
-            InputDataAPI.unregister_event_callback(self.event_callback_id)
-            self.event_callback_id = None
-            
-        logger.info("API integration shut down")
-    
+        # Remove empty keys
+        for key in empty_keys:
+            del payload[key]
+
     #
     # Method registration for different API groups
     #
