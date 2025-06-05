@@ -22,10 +22,10 @@ class BaseVisualizer(QWidget):
     without directly inheriting from it to avoid metaclass conflicts.
     """
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         """Initialize the base visualizer."""
         super().__init__(parent)
-        self.capabilities = {}
+        self.capabilities: Dict[str, Any] = {}
         self.edit_mode = False
         self.supported_collectors = [
             "keyboard_mouse",

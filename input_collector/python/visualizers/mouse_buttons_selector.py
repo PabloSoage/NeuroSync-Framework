@@ -4,10 +4,10 @@ Mouse buttons selector module.
 This module provides a visual component for selecting which mouse buttons to track.
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 
 from PyQt5.QtCore import Qt, QRect, QSize, pyqtSignal
-from PyQt5.QtGui import QPainter, QColor, QFont, QPen, QBrush
+from PyQt5.QtGui import QPainter, QColor, QFont, QPen, QBrush, QPaintEvent, QMouseEvent
 from PyQt5.QtWidgets import QWidget, QSizePolicy, QHBoxLayout
 
 from .visualizer_base import BaseVisualizer
@@ -20,7 +20,7 @@ class MouseButton(QWidget):
 
     clicked = pyqtSignal(str)  # Signal emitted when button is clicked with button id
 
-    def __init__(self, button_id, label, parent=None):
+    def __init__(self, button_id: str, label: str, parent: Optional[QWidget] = None) -> None:
         """Initialize the mouse button widget."""
         super().__init__(parent)
         self.button_id = button_id
@@ -40,7 +40,7 @@ class MouseButton(QWidget):
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.setMinimumSize(60, 50)
 
-    def paintEvent(self, event):
+    def paintEvent(self, event: QPaintEvent) -> None:
         """Paint the button."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
@@ -69,31 +69,31 @@ class MouseButton(QWidget):
         painter.setFont(font)
         painter.drawText(rect, Qt.AlignCenter, self.label)
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event: QMouseEvent) -> None:
         """Handle mouse press events."""
         if (
             event.button() == Qt.LeftButton and self.edit_mode
         ):  # Solo responder en modo edición
             self.clicked.emit(self.button_id)
 
-    def setTracked(self, tracked):
+    def setTracked(self, tracked: bool) -> None:
         """Set whether this button is being tracked."""
         if self.tracked != tracked:
             self.tracked = tracked
             self.update()
 
-    def setActive(self, active):
+    def setActive(self, active: bool) -> None:
         """Set whether this button is currently active."""
         if self.active != active:
             self.active = active
             self.update()
 
-    def setEditMode(self, edit_mode):
+    def setEditMode(self, edit_mode: bool) -> None:
         """Set whether edit mode is active."""
         self.edit_mode = edit_mode
         self.setCursor(Qt.PointingHandCursor if edit_mode else Qt.ArrowCursor)
 
-    def sizeHint(self):
+    def sizeHint(self) -> QSize:
         """Suggested size."""
         return QSize(60, 50)
 
@@ -107,7 +107,7 @@ class MouseButtonsSelector(BaseVisualizer):
         str, bool
     )  # Signal emitted when a button is toggled (button_id, is_tracked)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         """Initialize the mouse buttons selector."""
         super().__init__(parent)
 
@@ -143,7 +143,7 @@ class MouseButtonsSelector(BaseVisualizer):
         # Set which collectors this visualizer supports
         self.supported_collectors = ["keyboard_mouse"]
 
-    def _on_button_clicked(self, button_id):
+    def _on_button_clicked(self, button_id: str) -> None:
         """Handle button clicks."""
         # Find the clicked button
         if button_id == "Button.left":
@@ -157,7 +157,7 @@ class MouseButtonsSelector(BaseVisualizer):
         button.setTracked(not button.tracked)
         self.button_toggled.emit(button_id, button.tracked)
 
-    def setTrackedButtons(self, button_ids):
+    def setTrackedButtons(self, button_ids: List[str]) -> None:
         """Set which buttons are being tracked."""
         # Convert to lowercase for case-insensitive comparison
         lower_ids = [bid.lower() if isinstance(bid, str) else "" for bid in button_ids]
@@ -175,7 +175,7 @@ class MouseButtonsSelector(BaseVisualizer):
             f"Scroll wheel tracking set to: {is_scroll_tracked} from button_ids: {button_ids}"
         )
 
-    def setActiveButtons(self, active_buttons):
+    def setActiveButtons(self, active_buttons: List[str]) -> None:
         """Set which buttons are currently active (pressed)."""
         # Convert to lowercase for case-insensitive comparison
         lower_buttons = [
@@ -189,22 +189,22 @@ class MouseButtonsSelector(BaseVisualizer):
             any(scroll in lower_buttons for scroll in ["button.scroll", "scrollwheel"])
         )
 
-    def setEditMode(self, edit_mode):
+    def setEditMode(self, edit_mode: bool) -> None:
         """Enable or disable edit mode."""
         # Propagar el modo de edición a todos los botones
         self.left_button.setEditMode(edit_mode)
         self.right_button.setEditMode(edit_mode)
         self.scroll_button.setEditMode(edit_mode)
 
-    def setScrollTracking(self, enabled):
+    def setScrollTracking(self, enabled: bool) -> None:
         """Set whether scroll wheel is being tracked."""
         self.scroll_button.setTracked(enabled)
 
-    def isScrollTracked(self):
+    def isScrollTracked(self) -> bool:
         """Check if scroll wheel is being tracked."""
         return self.scroll_button.tracked
 
-    def sizeHint(self):
+    def sizeHint(self) -> QSize:
         """Suggested size for the widget."""
         return QSize(200, 60)
 

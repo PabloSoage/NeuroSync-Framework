@@ -5,11 +5,11 @@ This module provides visualization components for keyboard input events,
 displaying a virtual keyboard with key highlight states using PyQt5.
 """
 
-from typing import Optional
+from typing import Optional, Set, Dict, Any, List
 
 from PyQt5.QtCore import Qt, QRect, QSize
-from PyQt5.QtGui import QPainter, QColor, QFont, QPen, QBrush
-from PyQt5.QtWidgets import QSizePolicy
+from PyQt5.QtGui import QPainter, QColor, QFont, QPen, QBrush, QPaintEvent
+from PyQt5.QtWidgets import QSizePolicy, QWidget
 
 from .visualizer_base import BaseVisualizer
 
@@ -46,7 +46,7 @@ class KeyboardVisualizer(BaseVisualizer):
         ["Ctrl", "Win", "Alt", "Space", "Alt", "Menu", "Ctrl"],
     ]
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         """
         Initialize the keyboard visualizer.
         """
@@ -63,15 +63,15 @@ class KeyboardVisualizer(BaseVisualizer):
         self.record_key_bg = QColor("#AA3333")
 
         # Store key state
-        self.active_keys = set()
-        self.tracked_keys = set()
+        self.active_keys: Set[str] = set()
+        self.tracked_keys: Set[str] = set()
 
         # Key mappings for special keys
-        self.key_mappings = {}
+        self.key_mappings: Dict[str, str] = {}
         self._create_key_mappings()
 
         # Almacenar información de posición de las teclas para interacción
-        self.key_rects = {}
+        self.key_rects: Dict[str, QRect] = {}
 
         # Set size policy and minimum size
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
@@ -99,7 +99,7 @@ class KeyboardVisualizer(BaseVisualizer):
         self.key_mappings["key.media_play_pause"] = "F9"
         self.key_mappings["key.f9"] = "F9"
 
-    def set_tracked_keys(self, keys) -> None:
+    def set_tracked_keys(self, keys: List[str]) -> None:
         """
         Set the list of tracked keys to highlight differently.
 
@@ -114,7 +114,7 @@ class KeyboardVisualizer(BaseVisualizer):
         # Immediately update to show changes
         self.update()  # Request a repaint
 
-    def update(self, input_data=None) -> None:
+    def update(self, input_data: Optional[Any] = None) -> None:
         """
         Update the keyboard visualization based on input data.
 
@@ -191,7 +191,7 @@ class KeyboardVisualizer(BaseVisualizer):
 
         return None
 
-    def paintEvent(self, event) -> None:
+    def paintEvent(self, event: QPaintEvent) -> None:
         """
         Paint the keyboard layout with appropriate highlighting.
 

@@ -32,6 +32,8 @@ from PyQt5.QtGui import (
     QFont,
     QCursor,
     QTextCursor,
+    QPaintEvent,
+    QMouseEvent,
 )
 
 from ..interfaces import InputData
@@ -49,20 +51,20 @@ class PS4ControllerVisualizer(BaseVisualizer):
     # Signal for edit mode
     key_clicked = pyqtSignal(str)
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         """Initialize the PS4 controller visualizer."""
         super().__init__(parent)
 
         # Controller state
-        self.button_states = {}
-        self.stick_positions = {"left": (0, 0), "right": (0, 0)}
+        self.button_states: Dict[str, bool] = {}
+        self.stick_positions = {"left": (0.0, 0.0), "right": (0.0, 0.0)}
         self.trigger_values = {"left": 0, "right": 0}
 
         # Visualization settings
         self.image_mode = True  # Use images vs drawn controller
         self.images_loaded = False
-        self.images = {}
-        self.base_image = None
+        self.images: Dict[str, Dict[str, Any]] = {}
+        self.base_image: Optional[QPixmap] = None
 
         # Get positions file path
         self.positions_file = (
@@ -74,8 +76,8 @@ class PS4ControllerVisualizer(BaseVisualizer):
 
         # Edit mode state
         self._edit_mode = False
-        self.selected_item = None
-        self.drag_start = None
+        self.selected_item: Optional[str] = None
+        self.drag_start: Optional[QPoint] = None
 
         # Define element groups for grouped movement
         self.element_groups = {
@@ -110,10 +112,10 @@ class PS4ControllerVisualizer(BaseVisualizer):
         self.setMinimumSize(1000, 600)
 
         # Snapshot and commit control for edit mode
-        self._snapshot = {}  # store original positions on enter edit
+        self._snapshot: Dict[str, Optional[Tuple[int, int]]] = {}  # store original positions on enter edit
         self._should_commit = True  # control save on exit
 
-    def _init_ui(self):
+    def _init_ui(self) -> None:
         """Initialize the UI layout with controller and log panel."""
         # Main layout is horizontal to put controller on left, logs on right
         self.main_layout = QHBoxLayout(self)
@@ -256,7 +258,7 @@ class PS4ControllerVisualizer(BaseVisualizer):
         self.state_update_timer.timeout.connect(self.update_state_display)
         self.state_update_timer.start(100)  # Update every 100ms
 
-    def update_state_display(self):
+    def update_state_display(self) -> None:
         """Update the controller state display."""
         try:
             # Update active buttons
@@ -331,9 +333,10 @@ class PS4ControllerVisualizer(BaseVisualizer):
             if base_path.exists():
                 self.base_image = QPixmap(str(base_path))
                 # Only set minimum size for controller widget, not entire visualizer
-                self.controller_widget.setMinimumSize(
-                    self.base_image.width(), self.base_image.height()
-                )
+                if self.base_image is not None:
+                    self.controller_widget.setMinimumSize(
+                        self.base_image.width(), self.base_image.height()
+                    )
             else:
                 print(f"PS4 controller base image not found: {base_path}")
                 self.image_mode = False
@@ -513,6 +516,8 @@ class PS4ControllerVisualizer(BaseVisualizer):
                     input_data.key == "Left_Stick_X"
                     and hasattr(input_data, "rel_x")
                     and hasattr(input_data, "rel_y")
+                    and input_data.rel_x is not None
+                    and input_data.rel_y is not None
                 ):
                     self.stick_positions["left"] = (input_data.rel_x, input_data.rel_y)
                     # Only log significant movements to avoid spamming
@@ -526,6 +531,8 @@ class PS4ControllerVisualizer(BaseVisualizer):
                     input_data.key == "Right_Stick_X"
                     and hasattr(input_data, "rel_x")
                     and hasattr(input_data, "rel_y")
+                    and input_data.rel_x is not None
+                    and input_data.rel_y is not None
                 ):
                     self.stick_positions["right"] = (input_data.rel_x, input_data.rel_y)
                     # Only log significant movements
@@ -535,7 +542,7 @@ class PS4ControllerVisualizer(BaseVisualizer):
                             color="#00AAFF",
                         )
 
-                elif input_data.key == "Left_Trigger" and hasattr(input_data, "rel_x"):
+                elif input_data.key == "Left_Trigger" and hasattr(input_data, "rel_x") and input_data.rel_x is not None:
                     self.trigger_values["left"] = int(input_data.rel_x * 32767)
                     # Only log significant changes
                     if input_data.rel_x > 0.2:
@@ -544,7 +551,7 @@ class PS4ControllerVisualizer(BaseVisualizer):
                             color="#FFAA33",
                         )
 
-                elif input_data.key == "Right_Trigger" and hasattr(input_data, "rel_x"):
+                elif input_data.key == "Right_Trigger" and hasattr(input_data, "rel_x") and input_data.rel_x is not None:
                     self.trigger_values["right"] = int(input_data.rel_x * 32767)
                     # Only log significant changes
                     if input_data.rel_x > 0.2:
@@ -711,7 +718,7 @@ class PS4ControllerVisualizer(BaseVisualizer):
                     new_pos = (old_pos[0] + delta_x, old_pos[1] + delta_y)
                     self.images[item_key]["pos"] = new_pos
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event: QMouseEvent) -> None:
         """Handle mouse press events for edit mode and button selection."""
         if not self._edit_mode or not self.images_loaded:
             return super().mousePressEvent(event)
@@ -740,7 +747,7 @@ class PS4ControllerVisualizer(BaseVisualizer):
             self.drag_start = None
             self.controller_widget.update()  # Redraw controller
 
-    def mouseMoveEvent(self, event):
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:
         """Handle mouse movement events for drag operations in edit mode."""
         if not self._edit_mode or not self.selected_item or not self.drag_start:
             return super().mouseMoveEvent(event)
@@ -779,7 +786,7 @@ class PS4ControllerVisualizer(BaseVisualizer):
             traceback.print_exc()
             self.log_event(f"Error: {str(e)}", color="#FF5555")
 
-    def mouseReleaseEvent(self, event):
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
         """Handle mouse release events for edit mode."""
         if not self._edit_mode:
             return super().mouseReleaseEvent(event)
@@ -789,7 +796,7 @@ class PS4ControllerVisualizer(BaseVisualizer):
             self.controller_widget.update()  # Redraw controller
             self.log_event(f"Placed: {self.selected_item}", color="#5FB878")
 
-    def _paint_controller(self, event):
+    def _paint_controller(self, event: QPaintEvent) -> None:
         """Paint the PS4 controller visualization."""
         painter = QPainter(self.controller_widget)
         painter.setRenderHint(QPainter.Antialiasing)
@@ -803,12 +810,12 @@ class PS4ControllerVisualizer(BaseVisualizer):
         if self._edit_mode and self.images_loaded:
             self.paint_edit_overlays(painter)
 
-    def paintEvent(self, event):
+    def paintEvent(self, event: QPaintEvent) -> None:
         """Original paint event is now a pass-through."""
         # No need to do anything here as painting is handled by controller_widget's paintEvent
         super().paintEvent(event)
 
-    def paint_edit_overlays(self, painter):
+    def paint_edit_overlays(self, painter: QPainter) -> None:
         """Draw edit mode visual aids."""
         try:
             # Draw bounding boxes around all overlays
@@ -890,7 +897,7 @@ class PS4ControllerVisualizer(BaseVisualizer):
 
             traceback.print_exc()
 
-    def paint_image_mode(self, painter):
+    def paint_image_mode(self, painter: QPainter) -> None:
         """Paint using loaded images."""
         try:
             if not self.base_image:
@@ -976,7 +983,7 @@ class PS4ControllerVisualizer(BaseVisualizer):
             painter.setPen(QPen(QColor(255, 0, 0)))
             painter.drawText(10, 30, f"Error rendering controller: {str(e)}")
 
-    def draw_image_analog_sticks(self, painter):
+    def draw_image_analog_sticks(self, painter: QPainter) -> None:
         """Draw analog sticks with images and movement."""
         try:
             stick_released_img = self.images.get("stick_released", {}).get("pixmap")
@@ -1036,7 +1043,7 @@ class PS4ControllerVisualizer(BaseVisualizer):
 
             traceback.print_exc()
 
-    def draw_image_triggers(self, painter):
+    def draw_image_triggers(self, painter: QPainter) -> None:
         """Draw triggers with pressure-based transparency."""
         try:
             # Left trigger (L2) with position from JSON
@@ -1078,7 +1085,7 @@ class PS4ControllerVisualizer(BaseVisualizer):
 
             traceback.print_exc()
 
-    def paint_drawn_mode(self, painter):
+    def paint_drawn_mode(self, painter: QPainter) -> None:
         """Paint using drawn shapes (fallback method)."""
         try:
             # Draw controller base
@@ -1147,7 +1154,7 @@ class PS4ControllerVisualizer(BaseVisualizer):
 
             traceback.print_exc()
 
-    def draw_dpad(self, painter, x, y):
+    def draw_dpad(self, painter: QPainter, x: int, y: int) -> None:
         """Draw the D-pad with current state."""
         buttons = ["up", "down", "left", "right"]
         positions = [(x + 25, y), (x + 25, y + 50), (x, y + 25), (x + 50, y + 25)]
@@ -1164,7 +1171,7 @@ class PS4ControllerVisualizer(BaseVisualizer):
             w, h = sizes[i]
             painter.drawRect(px, py, w, h)
 
-    def draw_action_buttons(self, painter, x, y):
+    def draw_action_buttons(self, painter: QPainter, x: int, y: int) -> None:
         """Draw action buttons with current state."""
         buttons = [("triangle", "△"), ("circle", "○"), ("cross", "✕"), ("square", "□")]
         positions = [(x + 25, y), (x + 50, y + 25), (x + 25, y + 50), (x, y + 25)]
@@ -1183,7 +1190,7 @@ class PS4ControllerVisualizer(BaseVisualizer):
             painter.drawText(px + 8, py + 18, symbol)
             painter.setPen(QPen(QColor(40, 40, 40), 3))
 
-    def draw_analog_stick(self, painter, x, y, stick):
+    def draw_analog_stick(self, painter: QPainter, x: int, y: int, stick: str) -> None:
         """Draw an analog stick with current position."""
         # Base circle
         painter.setBrush(QBrush(QColor(60, 60, 60)))
@@ -1202,7 +1209,7 @@ class PS4ControllerVisualizer(BaseVisualizer):
         painter.setBrush(QBrush(color))
         painter.drawEllipse(x + 15 + offset_x, y + 15 + offset_y, 30, 30)
 
-    def draw_shoulder_buttons(self, painter):
+    def draw_shoulder_buttons(self, painter: QPainter) -> None:
         """Draw shoulder buttons with current state."""
         # L1, R1
         l1_color = (
@@ -1221,7 +1228,7 @@ class PS4ControllerVisualizer(BaseVisualizer):
         painter.setBrush(QBrush(r1_color))
         painter.drawRect(620, 120, 80, 20)
 
-    def draw_triggers(self, painter):
+    def draw_triggers(self, painter: QPainter) -> None:
         """Draw triggers with current pressure values."""
         # L2, R2 with analog values
         l2_intensity = int(self.trigger_values["left"] * 255 / 32767)
@@ -1239,7 +1246,7 @@ class PS4ControllerVisualizer(BaseVisualizer):
         painter.setBrush(QBrush(r2_color))
         painter.drawRect(620, 90, 60, 20)
 
-    def draw_start_select(self, painter):
+    def draw_start_select(self, painter: QPainter) -> None:
         """Draw Start/Select buttons with current state."""
         # Options and Share buttons
         options_color = (
@@ -1278,7 +1285,7 @@ class PS4ControllerVisualizer(BaseVisualizer):
         self.log_text.clear()
         self.log_event("Log cleared", color="#AAAAAA")
 
-    def log_event(self, event_data: Any, color: str = None):
+    def log_event(self, event_data: Any, color: Optional[str] = None) -> None:
         """
         Add an event to the log panel.
 

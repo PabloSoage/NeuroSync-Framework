@@ -6,10 +6,10 @@ displaying mouse movement and button states in a joystick-like interface using P
 """
 
 import math
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from PyQt5.QtCore import Qt, QPoint, QRect, QSize
-from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QFont, QPolygon
+from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QFont, QPolygon, QPaintEvent
 from PyQt5.QtWidgets import QWidget, QSizePolicy, QVBoxLayout, QLabel, QFrame
 
 from .visualizer_base import BaseVisualizer
@@ -24,7 +24,7 @@ class MouseVisualizer(BaseVisualizer):
     states, and scroll events in real-time.
     """
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         """
         Initialize the mouse visualizer.
         """
@@ -69,7 +69,7 @@ class MouseVisualizer(BaseVisualizer):
         # Set which collectors this visualizer supports
         self.supported_collectors = ["keyboard_mouse"]
 
-    def update(self, input_data=None) -> None:
+    def update(self, input_data: Optional[Any] = None) -> None:
         """
         Update the mouse visualization based on input data.
 
@@ -167,7 +167,7 @@ class MouseVisualizer(BaseVisualizer):
 class Canvas(QWidget):
     """The actual mouse visualization canvas"""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setMinimumSize(300, 270)  # Aumentado a 270 para mejor visualización
@@ -208,7 +208,7 @@ class Canvas(QWidget):
         self.east = 0.0
         self.west = 0.0
 
-    def update_state(self, input_data):
+    def update_state(self, input_data: Any) -> None:
         """Update the visualization state based on input data"""
         # Handle mouse click events
         if input_data.event_type == "mouse_click":
@@ -307,7 +307,7 @@ class Canvas(QWidget):
 
         self.update()  # Request repaint
 
-    def paintEvent(self, event):
+    def paintEvent(self, event: QPaintEvent) -> None:
         """Paint the mouse visualization"""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
