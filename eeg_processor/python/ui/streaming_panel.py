@@ -173,3 +173,39 @@ class StreamingPanel(BasePanel):
         """Enable or disable streaming controls."""
         # Enable/disable all buttons and inputs related to streaming
         self.send_config_btn.setEnabled(enabled)
+        
+    # Add methods for API interaction
+    def update_streamer_list(self, streamers_list):
+        """Update the list of streamers from the API."""
+        try:
+            self.streamers_list.clear()
+            for streamer in streamers_list:
+                self.streamers_list.addItem(streamer)
+            return True
+        except Exception as e:
+            self.show_error("Streamer List Update Error", str(e))
+            return False
+    
+    def update_config_response(self, response_text):
+        """Update the configuration response text from the API."""
+        try:
+            self.config_response_text.setText(response_text)
+            return True
+        except Exception as e:
+            self.show_error("Config Response Update Error", str(e))
+            return False
+    
+    def get_streamer_params(self):
+        """Get currently configured streamer parameters."""
+        return {
+            "file": self.file_streamer_path.text(),
+            "network": self.network_streamer_path.text(),
+            "custom": self.custom_streamer_path.text()
+        }
+    
+    def get_active_streamers(self):
+        """Get list of currently active streamers."""
+        streamers = []
+        for i in range(self.streamers_list.count()):
+            streamers.append(self.streamers_list.item(i).text())
+        return streamers

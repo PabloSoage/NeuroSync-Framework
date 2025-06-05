@@ -211,3 +211,53 @@ class RecordingPanel(BasePanel):
     def update_recording_status(self, status_text):
         """Update the recording status label."""
         self.recording_status_label.setText(status_text)
+    
+    # Add methods for API interaction
+    def _update_recording_state(self, is_recording, filename=None, data_type=None):
+        """Update recording state from API call."""
+        try:
+            if is_recording:
+                self.start_record_btn.setEnabled(False)
+                self.stop_record_btn.setEnabled(True)
+                self.add_marker_btn.setEnabled(True)
+                self.recording_status_label.setText(f"Recording to {filename}")
+                
+                # Update file path and data type selection
+                if filename:
+                    self.record_file_edit.setText(filename)
+                
+                if data_type:
+                    if data_type == "processed":
+                        self.processed_radio.setChecked(True)
+                    elif data_type == "both":
+                        self.both_radio.setChecked(True)
+                    else:
+                        self.raw_radio.setChecked(True)
+                        
+            else:
+                self.start_record_btn.setEnabled(True)
+                self.stop_record_btn.setEnabled(False)
+                self.add_marker_btn.setEnabled(False)
+                self.recording_status_label.setText("Not recording")
+            
+            return True
+        except Exception as e:
+            self.show_error("Recording State Update Error", str(e))
+            return False
+    
+    def get_recording_settings(self):
+        """Get current recording settings."""
+        data_type = "raw"
+        if self.processed_radio.isChecked():
+            data_type = "processed"
+        elif self.both_radio.isChecked():
+            data_type = "both"
+            
+        return {
+            "filename": self.record_file_edit.text(),
+            "data_type": data_type
+        }
+    
+    def get_current_marker_value(self):
+        """Get the current marker value."""
+        return self.marker_value_spin.value()

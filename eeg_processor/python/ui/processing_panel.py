@@ -307,3 +307,72 @@ class ProcessingPanel(BasePanel):
         # Only enable brain map button if we're not already showing it
         if not hasattr(self.visualization_service, 'brain_map_visible') or not self.visualization_service.brain_map_visible():
             self.brain_map_btn.setEnabled(enabled)
+    
+    # Add methods for API interaction
+    def _update_filter_controls(self, filter_config):
+        """Update filter controls from API call."""
+        try:
+            # Update bandpass filter controls
+            if 'bandpass' in filter_config:
+                bp_config = filter_config['bandpass']
+                self.bandpass_check.setChecked(bp_config.get('enabled', False))
+                if 'low_cut' in bp_config:
+                    self.bandpass_low_spin.setValue(bp_config['low_cut'])
+                if 'high_cut' in bp_config:
+                    self.bandpass_high_spin.setValue(bp_config['high_cut'])
+            
+            # Update notch filter controls
+            if 'notch' in filter_config:
+                notch_config = filter_config['notch']
+                self.notch_check.setChecked(notch_config.get('enabled', False))
+                if 'frequency' in notch_config:
+                    # Find and select the appropriate frequency
+                    freq = str(notch_config['frequency'])
+                    for i in range(self.notch_type_combo.count()):
+                        if self.notch_type_combo.itemData(i) == freq:
+                            self.notch_type_combo.setCurrentIndex(i)
+                            break
+            
+            # Update detrend controls
+            if 'detrend' in filter_config:
+                self.detrend_check.setChecked(filter_config['detrend'])
+            
+            # Update button state if filters are applied
+            if filter_config.get('applied', False):
+                self.filters_applied = True
+                self.apply_filters_btn.setText("Remove Filters from Visualization")
+                self.apply_filters_btn.setStyleSheet("background-color: #AA3333; color: white;")
+            else:
+                self.filters_applied = False
+                self.apply_filters_btn.setText("Apply Filters to Visualization")
+                self.apply_filters_btn.setStyleSheet("")
+            
+            return True
+        except Exception as e:
+            self.show_error("Filter Controls Update Error", str(e))
+            return False
+    
+    def get_filter_settings(self):
+        """Get current filter settings."""
+        return {
+            "bandpass": {
+                "enabled": self.bandpass_check.isChecked(),
+                "low_cut": self.bandpass_low_spin.value(),
+                "high_cut": self.bandpass_high_spin.value()
+            },
+            "notch": {
+                "enabled": self.notch_check.isChecked(),
+                "frequency": float(self.notch_type_combo.currentData())
+            },
+            "detrend": self.detrend_check.isChecked(),
+            "applied": self.filters_applied
+        }
+    
+    def update_metrics_display(self, metrics_text):
+        """Update the metrics display from API call."""
+        try:
+            self.metrics_label.setText(metrics_text)
+            return True
+        except Exception as e:
+            self.show_error("Metrics Update Error", str(e))
+            return False

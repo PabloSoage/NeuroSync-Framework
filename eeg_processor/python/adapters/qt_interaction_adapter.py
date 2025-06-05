@@ -112,11 +112,47 @@ class QtInteractionAdapter(QObject):
     def _handle_board_disconnect(self, event: Event):
         """Handle board disconnection events."""
         try:
+            # Extraer datos adicionales del evento
+            force_update = event.data.get('force_ui_update', False)
+            
             # Update connection panel
             if hasattr(self.main_app, 'connection_panel'):
                 panel = self.main_app.connection_panel
+                
+                # Siempre actualizar los controles
                 if hasattr(panel, '_update_connection_state'):
                     self._safe_qt_call(panel._update_connection_state, False)
+                
+                # Forzar actualización adicional si se solicita
+                if force_update and hasattr(panel, 'disconnect_board'):
+                    # Enviar una señal board_disconnected directamente
+                    if hasattr(panel, 'board_disconnected'):
+                        self._safe_qt_call(lambda: panel.board_disconnected.emit())
+                    
+                    # También actualizar texto de información de la placa
+                    if hasattr(panel, 'board_info_label'):
+                        self._safe_qt_call(panel.board_info_label.setText, "No board connected")
+                
+                # Asegurarnos que los botones de streaming estén en el estado correcto
+                if hasattr(panel, 'start_stream_btn'):
+                    self._safe_qt_call(panel.start_stream_btn.setEnabled, False)
+                if hasattr(panel, 'stop_stream_btn'):
+                    self._safe_qt_call(panel.stop_stream_btn.setEnabled, False)
+            
+            # También desactivar los paneles que dependen de la conexión
+            if hasattr(self.main_app, 'processing_panel'):
+                self._safe_qt_call(self.main_app.processing_panel.enable_processing, False)
+            
+            if hasattr(self.main_app, 'recording_panel'):
+                self._safe_qt_call(self.main_app.recording_panel.enable_recording, False)
+            
+            # Actualizar el estado en collector_service de nuevo por si acaso
+            try:
+                from ..services.collector_service import CollectorService
+                collector_service = CollectorService()
+                collector_service._reset_connection_state()  # Llamar a un nuevo método que añadiremos
+            except Exception as e_collector:
+                logging.error(f"Error resetting collector state: {e_collector}")
             
             logging.info("GUI updated for board disconnection")
             

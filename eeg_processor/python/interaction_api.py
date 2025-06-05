@@ -133,33 +133,60 @@ class EEGProcessorInteractionAPI:
             from .services.collector_service import CollectorService
             
             collector_service = CollectorService()
+            
+            # Asegurar que streaming está detenido antes de desconectar
+            if collector_service.is_streaming_active():
+                collector_service.stop_stream()
+            
+            # Realizar la operación de desconexión
             success = collector_service.disconnect_from_board()
             
             if success:
-                # Publish event for GUI updates
+                # Publicar evento para actualizaciones de GUI con un delay para asegurar que es procesado
                 event_system = EventSystem.get_instance()
+                
+                # Publicar el evento con datos adicionales para forzar actualización de UI
                 event_system.publish_event(
                     EventType.BOARD_DISCONNECT,
-                    {},
+                    {
+                        "force_ui_update": True,
+                        "timestamp": __import__('time').time()
+                    },
                     source="interaction_api"
                 )
+                
+                # Añadir un segundo evento de actualización directa de UI
+                event_system.publish_event(
+                    EventType.UI_UPDATE_CONTROLS,
+                    {
+                        "controls": {
+                            "connection_panel._update_connection_state": False
+                        }
+                    },
+                    source="interaction_api"
+                )
+                
+                logging.info("Board disconnected successfully via API")
                 
                 return {
                     "success": True,
                     "message": "Board disconnected successfully"
                 }
             else:
+                logging.error("Failed to disconnect from board via API")
                 return {
                     "success": False,
-                    "message": "Failed to disconnect from board"
+                    "message": "Failed to disconnect from board",
+                    "error": "Disconnect operation failed"
                 }
                 
         except Exception as e:
-            logging.error(f"Error disconnecting from board: {e}")
+            error_message = str(e)
+            logging.error(f"Error disconnecting from board: {error_message}")
             return {
                 "success": False,
                 "message": "Error disconnecting from board",
-                "error": str(e)
+                "error": error_message
             }
     
     @staticmethod
@@ -366,7 +393,7 @@ class EEGProcessorInteractionAPI:
                     viz_service.create_eeg_visualizer(collector_service, processor_service)
                 success = viz_service.start_eeg_visualization()
             elif viz_type == "brain_map":
-                if not viz_service.brain_map_visualizer:
+                if not viz_service.brain-map_visualizer:
                     viz_service.create_brain_map_visualizer(collector_service, processor_service)
                 success = viz_service.start_brain_map_visualization()
             

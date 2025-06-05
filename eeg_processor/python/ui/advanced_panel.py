@@ -252,6 +252,72 @@ class AdvancedProcessingPanel(BasePanel):
         except Exception as e:
             self.show_error("Filtering Error", f"Error applying advanced filters: {str(e)}")
     
+    # Add methods for API interaction
+    def get_ica_settings(self):
+        """Get current ICA settings."""
+        return {
+            "components": self.ica_components_spin.value(),
+            "channel": self.ica_channel_combo.currentData()
+        }
+    
+    def get_wavelet_settings(self):
+        """Get current wavelet settings."""
+        return {
+            "type": self.wavelet_type_combo.currentData(),
+            "level": self.wavelet_level_spin.value(),
+            "channel": self.wavelet_channel_combo.currentData()
+        }
+    
+    def get_downsample_settings(self):
+        """Get current downsample settings."""
+        return {
+            "factor": self.downsample_factor_spin.value(),
+            "aggregation": self.downsample_agg_combo.currentData()
+        }
+    
+    def get_advanced_filter_settings(self):
+        """Get current advanced filter settings."""
+        return {
+            "filter_type": self.filter_type_combo.currentData(),
+            "window_function": self.window_function_combo.currentData()
+        }
+    
+    def update_channel_lists(self, channel_names):
+        """Update channel selection dropdowns from API call."""
+        try:
+            current_ica_ch = self.ica_channel_combo.currentData()
+            current_wavelet_ch = self.wavelet_channel_combo.currentData()
+            
+            # Clear existing items
+            self.ica_channel_combo.clear()
+            self.wavelet_channel_combo.clear()
+            
+            # Add "All Channels" option to ICA
+            self.ica_channel_combo.addItem("All Channels", -1)
+            
+            # Add channel options
+            for i, name in enumerate(channel_names):
+                self.ica_channel_combo.addItem(name, i)
+                self.wavelet_channel_combo.addItem(name, i)
+            
+            # Try to restore previous selections
+            if current_ica_ch is not None:
+                for i in range(self.ica_channel_combo.count()):
+                    if self.ica_channel_combo.itemData(i) == current_ica_ch:
+                        self.ica_channel_combo.setCurrentIndex(i)
+                        break
+            
+            if current_wavelet_ch is not None:
+                for i in range(self.wavelet_channel_combo.count()):
+                    if self.wavelet_channel_combo.itemData(i) == current_wavelet_ch:
+                        self.wavelet_channel_combo.setCurrentIndex(i)
+                        break
+            
+            return True
+        except Exception as e:
+            self.show_error("Channel List Update Error", str(e))
+            return False
+    
     def enable_processing(self, enabled):
         """Enable or disable advanced processing controls."""
         self.compute_ica_btn.setEnabled(enabled)

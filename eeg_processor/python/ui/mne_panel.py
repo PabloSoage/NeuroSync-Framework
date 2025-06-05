@@ -165,3 +165,47 @@ class MNEPanel(BasePanel):
         if not enabled:
             self.plot_mne_psd_btn.setEnabled(False)
             self.plot_mne_topomap_btn.setEnabled(False)
+    
+    # Add methods for API interaction
+    def get_mne_settings(self):
+        """Get current MNE settings."""
+        if not MNE_AVAILABLE:
+            return {"available": False}
+        
+        return {
+            "available": True,
+            "duration": self.mne_duration_spin.value() if hasattr(self, 'mne_duration_spin') else 5
+        }
+    
+    def update_mne_plot(self, plot_data):
+        """Update MNE plot from API call."""
+        if not MNE_AVAILABLE:
+            return False
+        
+        try:
+            # Clear the figure
+            self.mne_figure.clear()
+            
+            plot_type = plot_data.get("type", "psd")
+            title = plot_data.get("title", "")
+            
+            # Create a blank plot with message
+            ax = self.mne_figure.add_subplot(111)
+            ax.text(0.5, 0.5, plot_data.get("message", "Plot data updated from API"), 
+                    horizontalalignment='center', verticalalignment='center')
+            ax.set_title(title)
+            
+            if plot_type == "psd":
+                ax.set_xlabel("Frequency (Hz)")
+                ax.set_ylabel("Power (dB)")
+            else:
+                ax.axis('off')
+                
+            # Update canvas
+            self.mne_figure.tight_layout()
+            self.mne_canvas.draw()
+            
+            return True
+        except Exception as e:
+            self.show_error("MNE Plot Update Error", str(e))
+            return False

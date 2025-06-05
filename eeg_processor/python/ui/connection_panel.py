@@ -537,3 +537,79 @@ class ConnectionPanel(BasePanel):
         """Enable or disable streaming controls."""
         self.start_stream_btn.setEnabled(enabled)
         self.stop_stream_btn.setEnabled(False)
+    
+    # Add methods for API interaction
+    def _update_connection_state(self, connected):
+        """Update connection state from API call."""
+        try:
+            self.connect_btn.setEnabled(not connected)
+            self.disconnect_btn.setEnabled(connected)
+            
+            # Enable/disable start stream button if connected
+            self.start_stream_btn.setEnabled(connected)
+            
+            return True
+        except Exception as e:
+            self.show_error("Connection State Update Error", str(e))
+            return False
+    
+    def _update_streaming_state(self, streaming):
+        """Update streaming state from API call."""
+        try:
+            self.start_stream_btn.setEnabled(not streaming)
+            self.stop_stream_btn.setEnabled(streaming)
+            
+            # Enable/disable visualization button based on streaming state
+            self.show_viz_btn.setEnabled(not streaming and hasattr(self, 'visualization_service') and 
+                                         self.visualization_service.visualization_closed())
+            
+            return True
+        except Exception as e:
+            self.show_error("Streaming State Update Error", str(e))
+            return False
+    
+    def _update_params_from_dict(self, params):
+        """Update connection parameters from dictionary."""
+        try:
+            # Set field values if they exist in the params dictionary
+            for param_name, value in params.items():
+                if param_name in self.param_fields:
+                    field = self.param_fields[param_name]
+                    
+                    if isinstance(field, QComboBox):
+                        # For combo boxes, set by data value
+                        for i in range(field.count()):
+                            if field.itemData(i) == value:
+                                field.setCurrentIndex(i)
+                                break
+                    elif isinstance(field, QSpinBox):
+                        # For spinboxes, set value directly
+                        field.setValue(int(value))
+                    else:
+                        # For text fields (QLineEdit), set text
+                        field.setText(str(value))
+            
+            return True
+        except Exception as e:
+            self.show_error("Parameter Update Error", str(e))
+            return False
+    
+    def get_connection_settings(self):
+        """Get current connection settings."""
+        settings = {
+            "board_id": self.board_type_combo.currentData(),
+            "preset": self.preset_combo.currentData(),
+            "params": {}
+        }
+        
+        # Get parameter values
+        for param_name, field in self.param_fields.items():
+            if field.isEnabled():
+                if isinstance(field, QComboBox):
+                    settings["params"][param_name] = field.currentData()
+                elif isinstance(field, QSpinBox):
+                    settings["params"][param_name] = field.value()
+                else:  # QLineEdit
+                    settings["params"][param_name] = field.text()
+        
+        return settings

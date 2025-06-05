@@ -194,6 +194,9 @@ class InputCollectorApp(QMainWindow):
         # Connect PS4 overlay edit button
         self.ui_manager.toggle_ps4_overlay_edit.connect(self._toggle_ps4_overlay_edit)
         
+        # Connect discard signal for PS4 overlay edits
+        self.ui_manager.toggle_ps4_overlay_discard.connect(self._discard_ps4_overlay_edits)
+        
         # Connect visualizer signals to coordinator
         self.visualizer_manager.key_clicked.connect(self.app_coordinator.handle_key_edit)
         self.visualizer_manager.button_toggled.connect(self.app_coordinator.handle_button_edit)
@@ -439,6 +442,25 @@ class InputCollectorApp(QMainWindow):
                     ps4_controller_viz.set_edit_mode(False)
             except:
                 pass
+
+    def _discard_ps4_overlay_edits(self) -> None:
+        """
+        Discard any unsaved overlay moves and exit edit mode without saving.
+        """
+        # Get the PS4 controller visualizer
+        viz = self.visualizer_manager.get_ps4_controller_visualizer()
+        if viz:
+            # Prevent JSON save on exit
+            viz._should_commit = False
+            # Will restore snapshot internally  
+            viz.set_edit_mode(False)
+    
+        # Update application state
+        self._ps4_overlay_edit_mode = False
+        self.ui_manager.update_ps4_overlay_edit_state(False)
+        self.ui_manager.log_status("PS4 overlay edits discarded", self.warning_color)
+        
+        # No scroll position capture or restore - let it behave like any other button
 
     def _on_recording_started(self) -> None:
         """Handle recording started event."""

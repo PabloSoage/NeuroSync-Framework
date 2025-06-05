@@ -409,7 +409,19 @@ class EEGProcessorInteractionApiIntegration:
     
     async def _handle_disconnect_from_board(self):
         """Handle disconnect_from_board."""
-        return self.interaction_service.disconnect_from_board()
+        result = self.interaction_service.disconnect_from_board()
+        
+        # Asegurar que siempre devolvemos un diccionario JSON bien formado
+        if isinstance(result, dict):
+            return result
+        else:
+            # Si el resultado no es un diccionario (por ejemplo, es un booleano),
+            # convertirlo a un formato JSON adecuado
+            success = bool(result)
+            return {
+                "success": success,
+                "message": "Board disconnected successfully" if success else "Failed to disconnect from board"
+            }
     
     async def _handle_get_board_requirements(self, board_id: int):
         """Handle get_board_requirements."""

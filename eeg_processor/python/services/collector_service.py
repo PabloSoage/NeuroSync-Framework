@@ -410,3 +410,29 @@ class CollectorService:
                     time.sleep(0.01)
             except Exception:
                 break
+    
+    def _reset_connection_state(self):
+        """
+        Reset internal connection state forcefully.
+        Used as a backup mechanism to ensure disconnection is properly reflected.
+        """
+        try:
+            self.collector = None
+            self._reset_internal_state()
+            logging.info("Collector service connection state reset")
+            return True
+        except Exception as e:
+            logging.error(f"Error resetting collector state: {e}")
+            return False
+        
+    def _reset_internal_state(self):
+        """Reset all internal state variables to disconnected values."""
+        try:
+            # Reset any internal state variables
+            if hasattr(self, '_active_collector_id'):
+                self._active_collector_id = None
+            if hasattr(self, '_collectors') and isinstance(self._collectors, dict):
+                self._collectors.clear()
+            # Add any otras variables de estado internas que necesiten ser reiniciadas
+        except Exception as e:
+            logging.error(f"Error resetting internal state: {e}")

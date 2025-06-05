@@ -75,6 +75,10 @@ class PS4ControllerVisualizer(BaseVisualizer):
         
         # Enable mouse tracking for hover effects
         self.setMouseTracking(True)
+        
+        # Snapshot and commit control for edit mode
+        self._snapshot = {}        # store original positions on enter edit
+        self._should_commit = True # control save on exit
     
     def load_images(self) -> None:
         """Load PS4 controller images."""
@@ -270,6 +274,21 @@ class PS4ControllerVisualizer(BaseVisualizer):
         Args:
             enabled: Whether edit mode should be enabled
         """
+        # snapshot original positions when entering edit
+        if enabled:
+            self._snapshot = {
+                key: (tuple(data['pos']) if data['pos'] is not None else None)
+                for key,data in self.images.items()
+            }
+        else:
+            # on exit: commit or restore
+            if self._should_commit:
+                self.save_positions_to_json()
+            else:
+                for key,pos in self._snapshot.items():
+                    self.images[key]['pos'] = pos
+        self._should_commit = True  # reset flag
+
         # Don't do anything if images aren't loaded
         if enabled and not self.images_loaded:
             print("Cannot enter edit mode - images not loaded")
@@ -288,8 +307,6 @@ class PS4ControllerVisualizer(BaseVisualizer):
         self.selected_item = None
         self.drag_start = None
         self.setCursor(Qt.PointingHandCursor if enabled else Qt.ArrowCursor)
-        
-        # Force a complete repaint - this ensures overlays show/hide immediately
         self.repaint()
         print(f"PS4ControllerVisualizer: Edit mode now: {self._edit_mode}")
 
@@ -420,14 +437,10 @@ class PS4ControllerVisualizer(BaseVisualizer):
         """Handle mouse release events for edit mode."""
         if not self._edit_mode:
             return super().mouseReleaseEvent(event)
-            
         if event.button() == Qt.LeftButton and self.selected_item:
-            # Save the positions to JSON
-            self.save_positions_to_json()
-                
-            # Reset drag state but keep selection
+            # do not auto‐save here
             self.drag_start = None
-            self.repaint()  # Update to remove drag indicators
+            self.repaint()
     
     def paintEvent(self, event):
         """Paint the PS4 controller visualization."""
@@ -804,3 +817,16 @@ class PS4ControllerVisualizer(BaseVisualizer):
         painter.drawRect(280, 220, 30, 15)
         painter.setBrush(QBrush(options_color))
         painter.drawRect(490, 220, 30, 15)
+
+    def restore_positions(self) -> None:
+        """
+        Reload saved overlay positions from JSON, discarding any unsaved moves.
+        """
+        try:
+            mapping = self.load_positions_from_json()
+            for key, info in mapping.items():
+                if key in self.images and info.get('pos') is not None:
+                    self.images[key]['pos'] = tuple(info['pos'])
+            self.repaint()
+        except Exception as e:
+            print(f"Error restoring positions: {e}")

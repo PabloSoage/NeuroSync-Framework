@@ -44,6 +44,7 @@ class UIManager(QObject):
     # Add a new signal for the PS4 visualization mode
     toggle_ps4_viz_mode = pyqtSignal(str)
     toggle_ps4_overlay_edit = pyqtSignal(bool)
+    toggle_ps4_overlay_discard = pyqtSignal()  # new signal
     
     def __init__(self, main_window: QMainWindow) -> None:
         """
@@ -370,6 +371,14 @@ class UIManager(QObject):
             lambda checked: self.toggle_ps4_overlay_edit.emit(checked)
         )
         mouse_mode_frame.addWidget(self.components['ps4_edit_overlays'])
+        
+        # Add Discard Overlays button
+        self.components['ps4_discard_overlays'] = QPushButton("Discard Overlays")
+        self.components['ps4_discard_overlays'].setVisible(False)
+        self.components['ps4_discard_overlays'].clicked.connect(
+            lambda: self.toggle_ps4_overlay_discard.emit()
+        )
+        mouse_mode_frame.addWidget(self.components['ps4_discard_overlays'])
         
         control_panel.addLayout(mouse_mode_frame)
         
@@ -962,6 +971,11 @@ class UIManager(QObject):
         Args:
             edit_mode: Whether overlay edit mode is enabled
         """
+        # --- GUARDAR POSICIÓN DEL SCROLL ---
+        scrollbar = getattr(self, "main_scroll", None)
+        scrollbar = scrollbar.verticalScrollBar() if scrollbar else None
+        prev_pos = scrollbar.value() if scrollbar else None
+
         ps4_edit_overlays = self.components.get('ps4_edit_overlays')
         if ps4_edit_overlays:
             ps4_edit_overlays.setChecked(edit_mode)
@@ -973,4 +987,16 @@ class UIManager(QObject):
             else:
                 ps4_edit_overlays.setText("Edit Overlays")
                 ps4_edit_overlays.setStyleSheet("background-color: #007ACC; color: white;")
+        
+        # Show discard button only when truly in edit mode
+        if ps4_discard := self.components.get('ps4_discard_overlays'):
+            ps4_discard.setVisible(edit_mode)
+
+        # Desactivar la combobox de PS4 Viz en modo edición
+        if ps4_combo := self.components.get('ps4_viz_mode_combo'):
+            ps4_combo.setEnabled(not edit_mode)
+
+        # --- RESTAURAR POSICIÓN DEL SCROLL ---
+        if scrollbar and prev_pos is not None:
+            scrollbar.setValue(prev_pos)
 
