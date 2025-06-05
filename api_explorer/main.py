@@ -47,7 +47,7 @@ def run_explorer(
     return explorer
 
 
-def main():
+def main() -> None:
     """Run the API Explorer from command line."""
     parser = argparse.ArgumentParser(description="Run the API Explorer")
     parser.add_argument("--host", default="127.0.0.1", help="Host to bind to")

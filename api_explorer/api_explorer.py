@@ -9,7 +9,7 @@ import json
 import logging
 import os
 import threading
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Optional, Callable, Any, Type, Union, Set
 
 import uvicorn
 
@@ -30,18 +30,18 @@ class ApiExplorer:
     with the same Explorer instance.
     """
 
-    _instance = None
+    _instance: Optional["ApiExplorer"] = None
     _lock = threading.Lock()
 
     @classmethod
-    def get_instance(cls):
+    def get_instance(cls) -> "ApiExplorer":
         """Get or create the singleton instance of ApiExplorer."""
         with cls._lock:
             if cls._instance is None:
                 cls._instance = ApiExplorer()
             return cls._instance
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the API Explorer."""
         if ApiExplorer._instance is not None:
             raise RuntimeError(
@@ -79,7 +79,7 @@ class ApiExplorer:
         )
 
         # Module registry - stores information about registered modules
-        self.modules = {}
+        self.modules: Dict[str, Dict[str, Any]] = {}
 
         # WebSocket connections
         self.active_connections: List[WebSocket] = []
@@ -90,19 +90,19 @@ class ApiExplorer:
 
         # Active module tracking for reference counting
         self.active_module_count = 0
-        self.active_modules = set()
+        self.active_modules: Set[str] = set()
 
         # Server control
-        self.server = None
-        self.server_thread = None
+        self.server: Optional[uvicorn.Server] = None
+        self.server_thread: Optional[threading.Thread] = None
         self.is_running = False
-        self.server_port = None
-        self.server_host = None
+        self.server_port: Optional[int] = None
+        self.server_host: Optional[str] = None
 
         # Setup basic routes
         self._setup_routes()
 
-    def _setup_directories(self):
+    def _setup_directories(self) -> None:
         """Set up necessary directories only if we're in the api_explorer package."""
         # Check if we are running directly in the api_explorer package
         # This prevents creating directories in other modules
@@ -119,12 +119,12 @@ class ApiExplorer:
                 f"Running ApiExplorer from external module, using templates from {self.base_dir}"
             )
 
-    def _setup_routes(self):
+    def _setup_routes(self) -> None:
         """Set up the basic routes for the API Explorer."""
 
         # Home page route
         @self.app.get("/", response_class=HTMLResponse)
-        async def get_home(request: Request):
+        async def get_home(request: Request) -> HTMLResponse:
             # Convert modules dictionary to a list for the template
             modules_list = []
             for module_id, module_info in self.modules.items():
@@ -170,7 +170,7 @@ class ApiExplorer:
 
         # WebSocket endpoint for real-time events
         @self.app.websocket("/ws/{module_id}")
-        async def websocket_endpoint(websocket: WebSocket, module_id: str):
+        async def websocket_endpoint(websocket: WebSocket, module_id: str) -> None:
             await websocket.accept()
             # Add connection info with module ID for routing
             print(f"WebSocket connection established for module: {module_id}")
@@ -208,7 +208,7 @@ class ApiExplorer:
         from fastapi import Query, HTTPException
 
         @self.app.get("/api/files")
-        async def list_files(path: str = Query(...)):
+        async def list_files(path: str = Query(...)) -> Dict[str, List[Dict[str, str]]]:
             import os
 
             if not os.path.exists(path) or not os.path.isdir(path):
@@ -224,7 +224,7 @@ class ApiExplorer:
                 items.append({"name": name, "path": full})
             return {"items": items}
 
-    async def broadcast_event(self, module_id: str, event_data: Dict) -> None:
+    async def broadcast_event(self, module_id: str, event_data: Dict[str, Any]) -> None:
         """
         Broadcast an event to all WebSocket clients for a specific module.
 
@@ -240,7 +240,7 @@ class ApiExplorer:
         # Notify callbacks for this module
         if module_id in self.callback_registry:
             for callback in self.callback_registry[module_id].values():
-                if callback:
+                if callback is not None:
                     try:
                         callback(event_data)
                     except Exception as e:
@@ -313,7 +313,7 @@ class ApiExplorer:
             # Run in background thread
             self.is_running = True
 
-            def run_server():
+            def run_server() -> None:
                 try:
                     config = uvicorn.Config(
                         self.app, host=host, port=port, log_level="info"
@@ -383,8 +383,8 @@ class ApiExplorer:
         module_id: str,
         group_id: str,
         method_id: str,
-        method_info: Dict,
-        handler_function: Callable,
+        method_info: Dict[str, Any],
+        handler_function: Callable[..., Any],
     ) -> None:
         """
         Register an API method with the Explorer.
@@ -428,7 +428,7 @@ class ApiExplorer:
             if len(param_names) == 0:
                 # No parameters needed
                 @router.get(f"/{method_id}")
-                async def endpoint():
+                async def endpoint() -> Any:
                     return await handler_function()
 
             else:
@@ -436,14 +436,14 @@ class ApiExplorer:
                 from fastapi import Query, Depends
                 from pydantic import create_model
 
-                param_dict = {}
+                param_dict: Dict[str, Any] = {}
                 for param_id, param_info in method_info.get("params", {}).items():
                     if param_info.get("type") == "number":
                         # Number parameter
                         param_dict[param_id] = (Optional[int], Query(None))
                     else:
                         # String parameter (default)
-                        param_dict[param_id] = (str, Query(...))
+                        param_dict[param_id] = (Optional[str], Query(None))
 
                 # Create dynamic model for query parameters
                 QueryModel = create_model(
@@ -453,10 +453,10 @@ class ApiExplorer:
 
                 # Use Depends to extract parameters
                 @router.get(f"/{method_id}")
-                async def endpoint(query: QueryModel = Depends()):
+                async def endpoint(query: Any = Depends(QueryModel)) -> Any:
                     # Convert to dict and pass to handler
                     param_dict = {
-                        k: v for k, v in query.__dict__.items() if v is not None
+                        k: v for k, v in query.dict().items() if v is not None
                     }
                     return await handler_function(**param_dict)
 
@@ -465,11 +465,11 @@ class ApiExplorer:
             from fastapi import Body
             from pydantic import create_model
 
-            param_fields = {}
+            param_fields: Dict[str, Any] = {}
             for param_id, param_info in method_info.get("params", {}).items():
                 # Determine the Python type based on the param type
                 if param_info.get("type") == "number":
-                    field_type = int
+                    field_type: Type[Union[int, str]] = int
                 else:
                     field_type = str
 
@@ -486,10 +486,10 @@ class ApiExplorer:
             )
 
             @router.post(f"/{method_id}")
-            async def endpoint(request_data: RequestModel = Body(...)):
+            async def endpoint(request_data: Any = Body(...)) -> Any:
                 # Convert to dict and pass to handler
                 data_dict = {
-                    k: v for k, v in request_data.__dict__.items() if v is not None
+                    k: v for k, v in request_data.dict().items() if v is not None
                 }
                 return await handler_function(**data_dict)
 
