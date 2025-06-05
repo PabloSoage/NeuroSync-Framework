@@ -6,15 +6,41 @@ This script starts the input collector application and optionally enables the we
 """
 
 import argparse
+import atexit
 import os
 import sys
 import threading
+import time
 from typing import Dict, Any
 
 # Add module root to path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.append(current_dir)
+
+# Global CLI thread reference for cleanup
+cli_thread = None
+
+def cleanup_cli_thread():
+    """Clean up CLI thread on application exit."""
+    global cli_thread
+    if cli_thread and cli_thread.is_alive():
+        try:
+            # Signal the CLI to shut down
+            from python.cli.cli_app import shutdown_cli
+            from python.cli.cli_config import set_cli_running, wait_for_cli_exit
+            
+            # Set CLI as not running
+            set_cli_running(False)
+            
+            # Call shutdown handler
+            shutdown_cli()
+            
+            # Wait briefly for thread to terminate
+            if not wait_for_cli_exit(0.5):  # 500ms timeout
+                print("CLI thread did not exit cleanly, forcing exit...")
+        except Exception as e:
+            print(f"Error during CLI thread cleanup: {e}")
 
 def parse_config() -> Dict[str, Any]:
     """
@@ -46,10 +72,23 @@ def parse_config() -> Dict[str, Any]:
 
 def start_cli_in_thread():
     """Start the CLI in a separate thread."""
+    global cli_thread
+    
+    # Import CLI modules
     from python.cli.cli_app import run_cli
+    from python.cli.cli_config import set_cli_running
+
     # Set flag to indicate CLI is running with GUI
     from python.cli.cli_app import set_gui_mode
     set_gui_mode(True)
+    
+    # Set CLI as running
+    set_cli_running(True)
+    
+    # Register cleanup handler
+    atexit.register(cleanup_cli_thread)
+    
+    # Create daemon thread (will be terminated when main thread exits)
     cli_thread = threading.Thread(target=run_cli, daemon=True)
     cli_thread.start()
     print("CLI shell started in a separate thread. You can interact with both GUI and CLI simultaneously.")
@@ -110,17 +149,15 @@ def main():
         print("Starting Input Collector with GUI...")
         
         # Start CLI in parallel if requested
-        cli_thread = None
         if config.get("cli", False):
-            cli_thread = start_cli_in_thread()
+            start_cli_in_thread()
             
         # Start the GUI (which will block until the GUI is closed)
         from python.input_collector_app import run_collector_app
         run_collector_app()
         
-        # If CLI was started, wait for it to finish (though this will typically not be reached)
-        if cli_thread and cli_thread.is_alive():
-            cli_thread.join(timeout=0.5)
+        # GUI has closed, clean up CLI thread if needed
+        cleanup_cli_thread()
 
 if __name__ == "__main__":
     main()
