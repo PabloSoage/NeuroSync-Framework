@@ -8,6 +8,7 @@ import time
 import sys
 import os
 import asyncio
+import threading
 from typing import Optional, List, Dict, Any
 
 from ..core.event_system import EventType, subscribe, unsubscribe
@@ -116,6 +117,19 @@ class HeadlessInputCollector:
         )
         
         # Data Access API is automatically initialized with DataAccessService
+    
+    def shutdown(self):
+        """Clean up resources."""
+        try:
+            # Stop any active collectors
+            if hasattr(self, 'collector_manager'):
+                self.collector_manager.stop_capture()
+            
+            # Close any log files
+            if hasattr(self, 'logging_manager'):
+                self.logging_manager.close_all()
+        except Exception as e:
+            print(f"Error during headless shutdown: {e}")
 
 def init_headless_mode():
     """Initialize headless mode for CLI application."""
@@ -126,3 +140,21 @@ def init_headless_mode():
         headless_app = HeadlessInputCollector()
     
     return headless_app
+
+# Thread management
+cli_running = threading.Event()
+
+def set_cli_running(running: bool):
+    """Set whether the CLI is currently running."""
+    if running:
+        cli_running.set()
+    else:
+        cli_running.clear()
+
+def is_cli_running() -> bool:
+    """Check if the CLI is currently running."""
+    return cli_running.is_set()
+
+def wait_for_cli_exit(timeout: float = None):
+    """Wait for the CLI to exit."""
+    return not cli_running.wait(timeout)
