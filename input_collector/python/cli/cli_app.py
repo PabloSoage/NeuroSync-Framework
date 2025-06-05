@@ -172,10 +172,5 @@ def info():
     except Exception as e:
         console.print(f"[bold red]Error getting application info: {e}[/bold red]")
 
-def set_gui_mode(enabled: bool):
-    """Set whether CLI is running alongside GUI."""
-    from .cli_config import set_gui_mode as config_set_gui_mode
-    config_set_gui_mode(enabled)
-
 if __name__ == "__main__":
     app()

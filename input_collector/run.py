@@ -6,11 +6,9 @@ This script starts the input collector application and optionally enables the we
 """
 
 import argparse
-import atexit
 import os
 import sys
 import threading
-import time
 from typing import Dict, Any
 
 # Add module root to path
@@ -20,27 +18,6 @@ if current_dir not in sys.path:
 
 # Global CLI thread reference for cleanup
 cli_thread = None
-
-def cleanup_cli_thread():
-    """Clean up CLI thread on application exit."""
-    global cli_thread
-    if cli_thread and cli_thread.is_alive():
-        try:
-            # Signal the CLI to shut down
-            from python.cli.cli_app import shutdown_cli
-            from python.cli.cli_config import set_cli_running, wait_for_cli_exit
-            
-            # Set CLI as not running
-            set_cli_running(False)
-            
-            # Call shutdown handler
-            shutdown_cli()
-            
-            # Wait briefly for thread to terminate
-            if not wait_for_cli_exit(0.5):  # 500ms timeout
-                print("CLI thread did not exit cleanly, forcing exit...")
-        except Exception as e:
-            print(f"Error during CLI thread cleanup: {e}")
 
 def parse_config() -> Dict[str, Any]:
     """
@@ -74,25 +51,42 @@ def start_cli_in_thread():
     """Start the CLI in a separate thread."""
     global cli_thread
     
-    # Import CLI modules
+    # Import CLI modules - directly use the CLI config functions
     from python.cli.cli_app import run_cli
-    from python.cli.cli_config import set_cli_running
+    from python.cli.cli_config import set_gui_mode, set_cli_running
 
     # Set flag to indicate CLI is running with GUI
-    from python.cli.cli_app import set_gui_mode
     set_gui_mode(True)
     
     # Set CLI as running
     set_cli_running(True)
-    
-    # Register cleanup handler
-    atexit.register(cleanup_cli_thread)
     
     # Create daemon thread (will be terminated when main thread exits)
     cli_thread = threading.Thread(target=run_cli, daemon=True)
     cli_thread.start()
     print("CLI shell started in a separate thread. You can interact with both GUI and CLI simultaneously.")
     return cli_thread
+
+def cleanup_cli_thread():
+    """Clean up CLI thread on application exit."""
+    global cli_thread
+    if cli_thread and cli_thread.is_alive():
+        try:
+            # Use the CLI's own shutdown mechanism
+            from python.cli.cli_config import set_cli_running, wait_for_cli_exit
+            from python.cli.cli_app import shutdown_cli
+            
+            # Signal the CLI to shut down
+            set_cli_running(False)
+            
+            # Call shutdown handler
+            shutdown_cli()
+            
+            # Wait briefly for thread to terminate
+            if not wait_for_cli_exit(0.5):  # 500ms timeout
+                print("CLI thread did not exit cleanly, forcing exit...")
+        except Exception as e:
+            print(f"Error during CLI thread cleanup: {e}")
 
 def main():
     """Run the input collector application."""
