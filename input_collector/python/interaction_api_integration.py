@@ -143,6 +143,134 @@ class InteractionApiIntegration:
             
         logger.info("Subscribed to core events for real-time forwarding")
 
+    def _format_mouse_event(self, event_data: Any) -> Dict:
+        """
+        Format a mouse event based on its tracking mode.
+        
+        Args:
+            event_data: Mouse event data
+            
+        Returns:
+            Dict: Formatted event for websocket broadcast
+        """
+        # Reuse data_api_integration's function if available
+        if self.data_api_integration and hasattr(self.data_api_integration, '_format_mouse_event'):
+            return self.data_api_integration._format_mouse_event(event_data)
+                
+        # Fallback implementation if data_api_integration is not available
+        try:
+            # Get the tracking mode
+            mode = getattr(event_data, 'mouse_tracking_mode', 'joystick')
+            direction_only = getattr(event_data, 'direction_only', False)
+            
+            # Initialize the formatted event
+            formatted_event = {
+                "type": "mouse_movement",
+                "timestamp": event_data.timestamp,
+                "tracking_mode": mode,
+                "direction_only": direction_only
+            }
+            
+            # Format based on tracking mode
+            if mode == "axis" and direction_only:
+                # Extract axis values
+                formatted_event["north"] = getattr(event_data, 'north', 0)
+                formatted_event["south"] = getattr(event_data, 'south', 0)
+                formatted_event["east"] = getattr(event_data, 'east', 0)
+                formatted_event["west"] = getattr(event_data, 'west', 0)
+                
+                # Generate a status string like in the GUI
+                active_directions = []
+                if formatted_event["north"] > 0.2:
+                    active_directions.append("UP")
+                if formatted_event["south"] > 0.2:
+                    active_directions.append("DOWN")
+                if formatted_event["east"] > 0.2:
+                    active_directions.append("RIGHT")
+                if formatted_event["west"] > 0.2:
+                    active_directions.append("LEFT")
+                    
+                formatted_event["status"] = " + ".join(active_directions) if active_directions else "NONE"
+            
+            elif mode == "angle" and direction_only:
+                # Extract angle value
+                angle = getattr(event_data, 'discrete_angle', 0)
+                formatted_event["angle"] = angle
+                
+                # Determine direction name based on angle
+                direction = self._angle_to_direction(angle)
+                formatted_event["status"] = direction
+                
+            elif mode == "angle" and not direction_only:
+                # Extract continuous angle and magnitude values
+                formatted_event["angle"] = getattr(event_data, 'mouse_delta_angle', 0.0)
+                formatted_event["magnitude"] = getattr(event_data, 'mouse_delta_magnitude', 0.0)
+                
+                # Generate status string
+                if getattr(event_data, 'is_moving', False):
+                    formatted_event["status"] = f"ANGLE: {formatted_event['angle']:.1f}°, MAG: {formatted_event['magnitude']:.1f}"
+                else:
+                    formatted_event["status"] = "IDLE"
+                
+            elif mode == "delta":
+                # Extract delta values
+                formatted_event["delta_x"] = getattr(event_data, 'mouse_delta_x', 0)
+                formatted_event["delta_y"] = getattr(event_data, 'mouse_delta_y', 0)
+                formatted_event["magnitude"] = getattr(event_data, 'mouse_delta_magnitude', 0)
+                
+                # Generate status string
+                if getattr(event_data, 'is_moving', False):
+                    formatted_event["status"] = f"DELTA: {formatted_event['delta_x']:.1f}, {formatted_event['delta_y']:.1f}"
+                else:
+                    formatted_event["status"] = "IDLE"
+                    
+            elif mode == "joystick":
+                # Extract joystick values
+                formatted_event["rel_x"] = getattr(event_data, 'rel_x', 0)
+                formatted_event["rel_y"] = getattr(event_data, 'rel_y', 0)
+                # Add speed value
+                formatted_event["speed"] = getattr(event_data, 'speed', 0)
+                # Add direction information
+                formatted_event["direction"] = getattr(event_data, 'direction', None)
+                
+                # Generate status string
+                if getattr(event_data, 'is_moving', False):
+                    formatted_event["status"] = f"X: {formatted_event['rel_x']:.2f}, Y: {formatted_event['rel_y']:.2f}"
+                else:
+                    formatted_event["status"] = "IDLE"
+                    
+            # Add active keys if any
+            active_keys = getattr(event_data, 'active_keys', [])
+            if active_keys:
+                formatted_event["active_keys"] = active_keys
+                
+            return formatted_event
+        except Exception as e:
+            logger.error(f"Error formatting mouse event: {e}")
+            return None
+            
+    def _angle_to_direction(self, angle: int) -> str:
+        """Convert an angle to a human-readable direction."""
+        # If data_api_integration has the function, use it
+        if self.data_api_integration and hasattr(self.data_api_integration, '_angle_to_direction'):
+            return self.data_api_integration._angle_to_direction(angle)
+        
+        # Fallback implementation
+        directions = {
+            0: "RIGHT",
+            45: "DOWN-RIGHT",
+            90: "DOWN",
+            135: "DOWN-LEFT",
+            180: "LEFT",
+            225: "UP-LEFT",
+            270: "UP",
+            315: "UP-RIGHT"
+        }
+        
+        # Find the closest direction
+        closest = min(directions.keys(), key=lambda k: abs(k - angle))
+        return directions[closest]
+
     def _handle_core_event(self, event_type: EventType, data: Any):
         """
         Handle events from the core event system.
@@ -215,13 +343,14 @@ class InteractionApiIntegration:
                         # Complete information about which control was moved
                         self._add_ps4_control_details_to_payload(payload, data)
                 else:
-                    # For non-PS4 events, add standard sections as before
+                    # For non-PS4 events, handle keyboard and mouse events
+                    # Add the keys information for non-PS4 events
+                    payload["keys"] = getattr(data, "active_keys", [])
+                    
                     # Movement subsection for mouse_move
                     if data.event_type == "mouse_move" and hasattr(data, 'mouse_tracking_mode'):
                         # Movement data population for mouse_move events
-                        movement_data = None
-                        if self.data_api_integration and hasattr(self.data_api_integration, '_format_mouse_event'):
-                            movement_data = self.data_api_integration._format_mouse_event(data)
+                        movement_data = self._format_mouse_event(data)
                         
                         if movement_data:
                             # Extract only the movement-specific fields
@@ -236,29 +365,26 @@ class InteractionApiIntegration:
                                        "delta_x", "delta_y", "rel_x", "rel_y", "speed", "direction"]:
                                 if key in movement_data:
                                     payload["movement"][key] = movement_data[key]
-                    elif is_ps4_event and data.event_type == "axis_motion":
-                        # For PS4 axis motion, use the stored state for comprehensive info
-                        self._add_ps4_movement_to_payload(payload)
                     else:
                         payload["movement"] = {}
                     
-                    # Click subsection - keep previous code for non-PS4 events
+                    # Click subsection - for non-PS4 events
                     payload["click"] = {"buttons": list(self._pressed_buttons)}
                     
-                    # Scroll subsection - only for mouse_scroll events
+                    # Scroll subsection - only for mouse_scroll events with direction
                     if data.event_type == "mouse_scroll" and getattr(data, "direction", None):
                         payload["scroll"] = {"direction": data.direction}
-
-                    # Key section for keyboard events
+                    else:
+                        payload["scroll"] = {}
+                    
+                    # Key subsection - for keyboard events
                     payload["key"] = {}
                     if data.event_type == "key_press" and hasattr(data, 'key') and data.key:
                         payload["key"] = {"pressed": data.key}
-                    
-                    # Include active keys for non-PS4 events
-                    payload["keys"] = getattr(data, "active_keys", [])
 
-                # 5) Filtrar campos vacíos
+                # 5) Filtrar campos vacíos y agregar ID para todos los eventos
                 self._filter_empty_fields(payload)
+                payload["event_id"] = f"{str(time.time()).replace('.', '')}_{id(payload)}"
                 
                 # Broadcast unified event
                 self._broadcast_event(payload)
