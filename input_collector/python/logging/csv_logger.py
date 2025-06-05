@@ -279,22 +279,15 @@ class CSVLogger(QObject):
             if hasattr(event, 'key') and hasattr(event, 'rel_x') and event.rel_x is not None:
                 # Handle joystick axes
                 if "Stick" in event.key:
-                    if "_X" in event.key:
-                        axis_name = event.key.replace("_X", "")
-                        header = f"ps4_{axis_name}_x"
-                        if header in self.csv_headers:
-                            row_data[header] = event.rel_x
-                    elif "_Y" in event.key:
-                        axis_name = event.key.replace("_Y", "")
-                        header = f"ps4_{axis_name}_y"
-                        if header in self.csv_headers:
-                            row_data[header] = event.rel_y
-                
-                # Handle trigger axes (L2/R2)
+                    stick_name = event.key.replace("_X", "").lower()
+                    if f"ps4_{stick_name}_x" in self.csv_headers:
+                        row_data[f"ps4_{stick_name}_x"] = event.rel_x
+                    if f"ps4_{stick_name}_y" in self.csv_headers and hasattr(event, 'rel_y'):
+                        row_data[f"ps4_{stick_name}_y"] = event.rel_y
                 elif "Trigger" in event.key:
-                    header = f"ps4_{event.key}"
-                    if header in self.csv_headers:
-                        row_data[header] = event.rel_x
+                    trigger_name = event.key.lower()
+                    if f"ps4_{trigger_name}" in self.csv_headers:
+                        row_data[f"ps4_{trigger_name}"] = event.rel_x
         
         # Create row in same order as headers
         row = [row_data.get(header, '') for header in self.csv_headers]

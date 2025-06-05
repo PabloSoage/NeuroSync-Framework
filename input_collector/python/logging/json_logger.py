@@ -8,6 +8,7 @@ import json
 import os
 import time
 from typing import Optional, TextIO
+from datetime import datetime
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
@@ -184,49 +185,39 @@ class JSONLogger(QObject):
     
     def _log_ps4_event(self, event: InputData) -> None:
         """Log a PS4 controller event to JSON."""
-        if not self.log_file:
-            return
-        
         try:
-            import json
-            import time
+            timestamp_str = datetime.fromtimestamp(event.timestamp).strftime('%Y-%m-%d %H:%M:%S.%f')
             
-            # Create a dictionary with relevant event data
-            event_data = {
-                'timestamp': event.timestamp,
-                'event_type': event.event_type,
-                'active_keys': event.active_keys if hasattr(event, 'active_keys') else [],
+            # Create base log entry
+            log_entry = {
+                "timestamp": timestamp_str,
+                "event_type": event.event_type,
+                "collector": "ps4_controller",
+                "active_keys": event.active_keys
             }
             
-            # Add event-specific data
+            # Add specific details for different event types
             if event.event_type == "button_press" or event.event_type == "button_release":
-                event_data['button'] = event.key
-                event_data['pressed'] = (event.event_type == "button_press")
-            
+                log_entry["button"] = event.key
+                log_entry["pressed"] = (event.event_type == "button_press")
+                
             elif event.event_type == "axis_motion":
-                event_data['axis'] = event.key
-                
-                if hasattr(event, 'key') and "Stick" in event.key:
-                    if "_X" in event.key:
-                        event_data['x_value'] = event.rel_x
-                    elif "_Y" in event.key:
-                        event_data['y_value'] = event.rel_y
+                if "Stick" in event.key:
+                    # Analog stick movement
+                    log_entry["stick"] = event.key.replace("_X", "")
+                    log_entry["x"] = event.rel_x
+                    log_entry["y"] = event.rel_y
+                elif "Trigger" in event.key:
+                    # Trigger movement
+                    log_entry["trigger"] = event.key
+                    log_entry["value"] = event.rel_x
                     
-                    # Include direction and magnitude if available
-                    if hasattr(event, 'direction') and event.direction:
-                        event_data['direction'] = event.direction
-                    if hasattr(event, 'speed') and event.speed is not None:
-                        event_data['magnitude'] = event.speed
+            elif event.event_type == "controller_connected":
+                log_entry["controller_name"] = event.key
                 
-                elif hasattr(event, 'key') and "Trigger" in event.key:
-                    event_data['value'] = event.rel_x
-            
-            # Write the event data as a JSON line
-            json_line = json.dumps(event_data)
-            self.log_file.write(json_line + '\n')
+            # Write to file
+            self.log_file.write(json.dumps(log_entry) + ",\n")
             self.log_file.flush()
             
         except Exception as e:
-            self.status_message.emit(f"Error logging PS4 event: {e}", "#FF5555")
-            import traceback
-            traceback.print_exc()
+            self.status_message.emit(f"Error logging PS4 event to JSON: {e}", "#FF5555")
