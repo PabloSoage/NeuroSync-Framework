@@ -349,7 +349,7 @@ class SignalProcessor:
         return np.array(band_powers)
 
     def get_eeg_metrics(
-            self, data: np.ndarray, eeg_channels: List[int]
+        self, data: np.ndarray, eeg_channels: List[int]
     ) -> Dict[str, float]:
         """
         Calculate EEG metrics (mindfulness, restfulness, etc.) from the data.
@@ -440,17 +440,22 @@ class SignalProcessor:
             logging.error(f"Failed to perform ICA: {e}")
             return None, None, None, None
 
-    def detect_peaks(self, data: np.ndarray, lag: int = 5, threshold: float = 3.5, 
-                    influence: float = 0.1) -> np.ndarray:
+    def detect_peaks(
+        self,
+        data: np.ndarray,
+        lag: int = 5,
+        threshold: float = 3.5,
+        influence: float = 0.1,
+    ) -> np.ndarray:
         """
         Detect peaks in signal using z-score algorithm.
-        
+
         Args:
             data: Input data
             lag: Window size for averaging
             threshold: Threshold in stddev units
             influence: Contribution of peaks to mean value (0-1)
-            
+
         Returns:
             Array with detected peaks
         """
@@ -459,72 +464,83 @@ class SignalProcessor:
             peaks[channel_idx] = DataFilter.detect_peaks_z_score(
                 data[channel_idx], lag, threshold, influence
             )
-            
+
         logging.info(f"Detected peaks with threshold {threshold}")
         return peaks
 
-    def restore_wavelet_coeffs(self, data: np.ndarray, wavelet: int, 
-                               decomp_level: int, level_to_restore: int) -> np.ndarray:
+    def restore_wavelet_coeffs(
+        self, data: np.ndarray, wavelet: int, decomp_level: int, level_to_restore: int
+    ) -> np.ndarray:
         """
         Restore data from wavelet detailed coefficients.
-        
+
         Args:
             data: Input data
             wavelet: Wavelet type
             decomp_level: Decomposition level
             level_to_restore: Level to restore
-            
+
         Returns:
             Restored signal
         """
         restored_data = np.zeros((data.shape[0], data.shape[1]))
         for channel_idx in range(data.shape[0]):
-            restored_data[channel_idx] = DataFilter.restore_data_from_wavelet_detailed_coeffs(
-                data[channel_idx], wavelet, decomp_level, level_to_restore
+            restored_data[channel_idx] = (
+                DataFilter.restore_data_from_wavelet_detailed_coeffs(
+                    data[channel_idx], wavelet, decomp_level, level_to_restore
+                )
             )
-            
-        logging.info(f"Restored data from wavelet coefficients at level {level_to_restore}")
+
+        logging.info(
+            f"Restored data from wavelet coefficients at level {level_to_restore}"
+        )
         return restored_data
 
-    def get_signal_quality(self, data: np.ndarray, channel: int, gain: int = 24) -> float:
+    def get_signal_quality(
+        self, data: np.ndarray, channel: int, gain: int = 24
+    ) -> float:
         """
         Calculate signal quality based on railed percentage.
-        
+
         Args:
             data: Input data array
             channel: Channel index to check
             gain: Amplifier gain
-            
+
         Returns:
             Quality score between 0 (bad) and 1 (good)
         """
         try:
             if channel >= data.shape[0] or data.size == 0:
                 return 0.0
-                
+
             channel_data = data[channel]
             railed_percentage = DataFilter.get_railed_percentage(channel_data, gain)
-            
+
             # Convert to quality score (0 to 1, where 1 is best quality)
             # A high railed percentage means poor quality
             quality = 1.0 - min(railed_percentage / 100.0, 1.0)
-            
-            logging.debug(f"Channel {channel} railed percentage: {railed_percentage}%, quality: {quality:.2f}")
+
+            logging.debug(
+                f"Channel {channel} railed percentage: {railed_percentage}%, quality: {quality:.2f}"
+            )
             return quality
-            
+
         except Exception as e:
             logging.error(f"Error calculating signal quality: {e}")
             return 0.0  # Return worst quality on error
 
-    def get_all_channels_quality(self, data: np.ndarray, channels: List[int], gain: int = 24) -> Dict[int, float]:
+    def get_all_channels_quality(
+        self, data: np.ndarray, channels: List[int], gain: int = 24
+    ) -> Dict[int, float]:
         """
         Calculate quality for multiple channels.
-        
+
         Args:
             data: Input data array
             channels: List of channel indices
             gain: Amplifier gain
-            
+
         Returns:
             Dictionary mapping channel indices to quality scores
         """

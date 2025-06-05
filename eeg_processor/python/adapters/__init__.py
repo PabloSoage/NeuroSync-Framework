@@ -7,4 +7,4 @@ external integrations.
 
 from .qt_interaction_adapter import QtInteractionAdapter
 
-__all__ = ['QtInteractionAdapter']
+__all__ = ["QtInteractionAdapter"]

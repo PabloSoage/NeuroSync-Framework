@@ -18,22 +18,22 @@ from ..interfaces import InputData
 class JSONLogger(QObject):
     """
     Logger for input events in JSON format.
-    
+
     This class handles logging input events to JSON files with proper
     formatting and structure.
     """
-    
+
     status_message = pyqtSignal(str, str)  # message, color
-    
+
     def __init__(self) -> None:
         """Initialize the JSON logger."""
         super().__init__()
         self.log_file: Optional[TextIO] = None
-    
+
     def open_log(self) -> bool:
         """
         Open a new JSON log file.
-        
+
         Returns:
             bool: True if successful, False otherwise
         """
@@ -41,10 +41,10 @@ class JSONLogger(QObject):
             # Create log file with timestamp
             timestamp = time.strftime("%Y%m%d_%H%M%S", time.localtime(time.time()))
             filename = f"input_log_{timestamp}.json"
-            
+
             # Ensure directory exists
             os.makedirs(os.path.dirname(os.path.abspath(filename)), exist_ok=True)
-            
+
             # Open the file
             self.log_file = open(filename, "w")
             self.status_message.emit(f"Logging to {filename}", None)
@@ -52,7 +52,7 @@ class JSONLogger(QObject):
         except Exception as e:
             self.status_message.emit(f"Error opening JSON log file: {e}", "#FF5555")
             return False
-    
+
     def close_log(self) -> None:
         """Close the current log file."""
         if self.log_file:
@@ -61,12 +61,12 @@ class JSONLogger(QObject):
             except Exception:
                 pass
             self.log_file = None
-    
+
     def log_recording_start(self) -> None:
         """Log the start of a recording session."""
         if not self.log_file:
             return
-            
+
         try:
             self.log_file.write(
                 f'{{\n"event": "recording_started",\n"timestamp": {time.time()}\n}}\n'
@@ -74,12 +74,12 @@ class JSONLogger(QObject):
             self.log_file.flush()
         except Exception as e:
             self.status_message.emit(f"Error writing to JSON log: {e}", "#FF5555")
-    
+
     def log_recording_stop(self) -> None:
         """Log the end of a recording session."""
         if not self.log_file:
             return
-            
+
         try:
             self.log_file.write(
                 f'{{\n"event": "recording_stopped",\n"timestamp": {time.time()}\n}}\n'
@@ -87,18 +87,18 @@ class JSONLogger(QObject):
             self.log_file.flush()
         except Exception as e:
             self.status_message.emit(f"Error writing to JSON log: {e}", "#FF5555")
-    
+
     def log_event(self, event: InputData, collector_type: str) -> None:
         """
         Log an input event.
-        
+
         Args:
             event: The input event to log
             collector_type: Type of collector that generated the event
         """
         if not self.log_file:
             return
-            
+
         try:
             if collector_type == "keyboard_mouse":
                 self._log_keyboard_mouse_event(event)
@@ -106,7 +106,7 @@ class JSONLogger(QObject):
                 self._log_ps4_event(event)
         except Exception as e:
             self.status_message.emit(f"Error writing to JSON log: {e}", "#FF5555")
-    
+
     def _log_keyboard_mouse_event(self, event: InputData) -> None:
         """Log a keyboard/mouse event to JSON."""
         # Determine current tracking mode
@@ -172,35 +172,36 @@ class JSONLogger(QObject):
             clean_log["mouse"]["south"] = (
                 event.south if hasattr(event, "south") else 0.0
             )
-            clean_log["mouse"]["east"] = (
-                event.east if hasattr(event, "east") else 0.0
-            )
-            clean_log["mouse"]["west"] = (
-                event.west if hasattr(event, "west") else 0.0
-            )
+            clean_log["mouse"]["east"] = event.east if hasattr(event, "east") else 0.0
+            clean_log["mouse"]["west"] = event.west if hasattr(event, "west") else 0.0
 
         # Write to file and flush
         self.log_file.write(json.dumps(clean_log) + "\n")
         self.log_file.flush()
-    
+
     def _log_ps4_event(self, event: InputData) -> None:
         """Log a PS4 controller event to JSON."""
         try:
-            timestamp_str = datetime.fromtimestamp(event.timestamp).strftime('%Y-%m-%d %H:%M:%S.%f')
-            
+            timestamp_str = datetime.fromtimestamp(event.timestamp).strftime(
+                "%Y-%m-%d %H:%M:%S.%f"
+            )
+
             # Create base log entry
             log_entry = {
                 "timestamp": timestamp_str,
                 "event_type": event.event_type,
                 "collector": "ps4_controller",
-                "active_keys": event.active_keys
+                "active_keys": event.active_keys,
             }
-            
+
             # Add specific details for different event types
-            if event.event_type == "button_press" or event.event_type == "button_release":
+            if (
+                event.event_type == "button_press"
+                or event.event_type == "button_release"
+            ):
                 log_entry["button"] = event.key
-                log_entry["pressed"] = (event.event_type == "button_press")
-                
+                log_entry["pressed"] = event.event_type == "button_press"
+
             elif event.event_type == "axis_motion":
                 if "Stick" in event.key:
                     # Analog stick movement
@@ -211,13 +212,13 @@ class JSONLogger(QObject):
                     # Trigger movement
                     log_entry["trigger"] = event.key
                     log_entry["value"] = event.rel_x
-                    
+
             elif event.event_type == "controller_connected":
                 log_entry["controller_name"] = event.key
-                
+
             # Write to file
             self.log_file.write(json.dumps(log_entry) + ",\n")
             self.log_file.flush()
-            
+
         except Exception as e:
             self.status_message.emit(f"Error logging PS4 event to JSON: {e}", "#FF5555")

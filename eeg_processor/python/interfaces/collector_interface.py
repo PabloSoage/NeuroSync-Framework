@@ -69,18 +69,18 @@ class DataStorageInterface(ABC):
 
 class ContinuousRecordingInterface(ABC):
     """Interface for continuous data recording operations."""
-    
+
     @abstractmethod
     def start_continuous_recording(self, filename: str, data_type: str = "raw") -> None:
         """
         Start continuous recording of data to a file.
-        
+
         Args:
             filename: Path to save the file
             data_type: Type of data to record ('raw' or 'processed')
         """
         pass
-    
+
     @abstractmethod
     def stop_continuous_recording(self) -> None:
         """Stop continuous recording and close the file."""
@@ -103,28 +103,28 @@ class MarkerInterface(ABC):
 
 class ConfigurableCollectorInterface(ABC):
     """Interface for collectors that can be configured."""
-    
+
     @abstractmethod
     def config_device(self, config: str) -> str:
         """
         Send configuration to the device.
-        
+
         Args:
             config: Configuration string to send
-            
+
         Returns:
             Response from the device
         """
         pass
-    
+
     @abstractmethod
     def set_preset(self, preset: Any) -> bool:
         """
         Change the current preset/mode.
-        
+
         Args:
             preset: New preset value
-            
+
         Returns:
             Success status
         """

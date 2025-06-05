@@ -76,8 +76,8 @@ class KeyboardMouseCollector(AbstractInputCollector):
             "speed_y": 0,
             "is_moving": False,
             "movement_threshold": 1.0,
-            "click_left": False,    # State of left mouse button
-            "click_right": False,   # State of right mouse button
+            "click_left": False,  # State of left mouse button
+            "click_right": False,  # State of right mouse button
             "wheel_up": False,
             "wheel_down": False,
             "center_x": None,
@@ -741,10 +741,14 @@ class KeyboardMouseCollector(AbstractInputCollector):
             # Determine button type
             if button == mouse.Button.left:
                 button_str = "Button.left"
-                self.mouse_state["click_left"] = pressed   # Updates to True when pressed, False when released
+                self.mouse_state["click_left"] = (
+                    pressed  # Updates to True when pressed, False when released
+                )
             elif button == mouse.Button.right:
                 button_str = "Button.right"
-                self.mouse_state["click_right"] = pressed  # Updates to True when pressed, False when released
+                self.mouse_state["click_right"] = (
+                    pressed  # Updates to True when pressed, False when released
+                )
             elif button == mouse.Button.middle:
                 button_str = "Button.middle"
             else:
@@ -793,12 +797,15 @@ class KeyboardMouseCollector(AbstractInputCollector):
         """
         try:
             # Check if scroll wheel tracking is enabled
-            is_scroll_tracked = "button.scroll" in self.tracked_keys_set or "Button.scroll" in self.tracked_keys_set
-            
+            is_scroll_tracked = (
+                "button.scroll" in self.tracked_keys_set
+                or "Button.scroll" in self.tracked_keys_set
+            )
+
             # If scroll is not being tracked, completely ignore the event
             if not is_scroll_tracked:
                 return
-                
+
             # Determine scroll direction
             scroll_direction = None
             if dy > 0:
@@ -812,7 +819,7 @@ class KeyboardMouseCollector(AbstractInputCollector):
 
             # Get currently active keys
             active_keys = self.get_active_keys()
-            
+
             # Add Button.scroll to active keys
             if "Button.scroll" not in active_keys:
                 active_keys.append("Button.scroll")
@@ -849,6 +856,7 @@ class KeyboardMouseCollector(AbstractInputCollector):
         except Exception as e:
             print(f"Mouse scroll error: {e}")
             import traceback
+
             traceback.print_exc()
 
     def _reset_wheel(self, x: int, y: int) -> None:
@@ -870,17 +878,20 @@ class KeyboardMouseCollector(AbstractInputCollector):
                 self.mouse_state["wheel_down"] = False
 
                 # Check if scroll is tracked
-                is_scroll_tracked = "button.scroll" in self.tracked_keys_set or "Button.scroll" in self.tracked_keys_set
-                
+                is_scroll_tracked = (
+                    "button.scroll" in self.tracked_keys_set
+                    or "Button.scroll" in self.tracked_keys_set
+                )
+
                 # Only create reset event if scroll is tracked
                 if is_scroll_tracked:
                     # Get currently active keys
                     active_keys = self.get_active_keys()
-                    
+
                     # Add Button.scroll to active keys to ensure the visualizer knows it's still tracked
                     if "Button.scroll" not in active_keys:
                         active_keys.append("Button.scroll")
-                        
+
                     # Create a reset event specifically for visual feedback
                     reset_event = InputData(
                         timestamp=time.time(),
@@ -1259,7 +1270,7 @@ class KeyboardMouseCollector(AbstractInputCollector):
             str: The collector type identifier
         """
         return "keyboard_mouse"
-    
+
     def get_capabilities(self) -> Dict[str, Any]:
         """
         Get the capabilities of this collector.

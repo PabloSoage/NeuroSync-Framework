@@ -16,12 +16,12 @@ pip install -r requirements_cli.txt
 
 You have two options for using the CLI:
 
-1. **CLI-only mode** (no GUI): 
+1. **CLI-only mode** (no GUI):
 ```bash
 python run.py --no-gui
 ```
 
-2. **Combined GUI and CLI mode** (both interfaces simultaneously):  
+2. **Combined GUI and CLI mode** (both interfaces simultaneously):
 ```bash
 python run.py --cli
 ```

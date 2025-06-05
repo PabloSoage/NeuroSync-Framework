@@ -21,18 +21,18 @@ if __name__ == "__main__":
     # Setup logging
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
-    
+
     # Create and run the application
     app = QApplication(sys.argv)
-    
+
     # Set application style
     app.setStyle("Fusion")
-    
+
     # Create the main window
     main_window = IntegratedBCIApp()
     main_window.show()
-    
+
     # Start the application
     sys.exit(app.exec_())

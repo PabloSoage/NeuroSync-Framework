@@ -284,7 +284,7 @@
     }
 
     class BaseVisualizer {
-        -capabilities: Dict[str, Any] 
+        -capabilities: Dict[str, Any]
         -edit_mode: boolean
         -supported_collectors: List[str]
         +update(input_data: Optional[InputData]): void
@@ -347,7 +347,7 @@
         -preset: int
         -is_streaming: boolean
         -sampling_rate: float
-        -eeg_channels: List[int] 
+        -eeg_channels: List[int]
         -channel_types: Dict[str, List[int]]
         -raw_data: numpy.ndarray
         -processed_data: numpy.ndarray
@@ -381,7 +381,7 @@
         +update_plots(): void
         +set_bandpass_filter(enabled: bool, low_freq: float, high_freq: float): void
     }
-    
+
     class BrainMapVisualizer {
         -collector: EEGCollector
         -processor: SignalProcessor
@@ -466,7 +466,7 @@
     VisualizerManager "1" o-- "1" MouseButtonsSelector : "contains"
     LoggingManager "1" o-- "1" JSONLogger : "contains"
     LoggingManager "1" o-- "1" CSVLogger : "contains"
-    
+
     AppCoordinator "1" o-- "1" CollectorManager : "coordinates"
     AppCoordinator "1" o-- "1" UIManager : "coordinates"
     AppCoordinator "1" o-- "1" LoggingManager : "coordinates"
@@ -478,7 +478,7 @@
     InputCollectorApp "1" o-- "1" EventProcessor : "owns"
     InputCollectorApp "1" o-- "1" VisualizerManager : "owns"
     InputCollectorApp "1" o-- "1" AppCoordinator : "owns"
-    
+
     UIManager "1" --> "1" VisualizerManager : "sets visualizers"
 
     CollectorManager --> DataSynchronizer : "provides InputData"
@@ -487,18 +487,18 @@
     DataSynchronizer --> DataLogger : "stores SynchronizedData"
     DataLogger --> DataPreprocessor : "provides data for"
     DataPreprocessor --> InferenceEngine : "used by"
-    
+
     %% Direct real-time connections
     EEGCollector "1" --> "1" InferenceEngine : "supplies live EEGData"
     EEGCollector "1" --> "1" DataPreprocessor : "real-time processing"
     InferenceEngine "1" --> "1" VirtualDeviceEmulator : "generates Action"
 
-    %% Visualization connections  
+    %% Visualization connections
     EEGCollector "1" --> "1" EEGVisualizer : "provides data to"
     EEGCollector "1" --> "1" BrainMapVisualizer : "provides data to"
     SignalProcessor "1" --> "1" EEGVisualizer : "processes data for"
     SignalProcessor "1" --> "1" BrainMapVisualizer : "processes data for"
-    
+
     EEGCollector --|> IDataSource
     KeyboardMouseCollector -- InputData : "produces"
     PS4ControllerCollector -- InputData : "produces"

@@ -4,10 +4,10 @@ from PyQt5.QtGui import QColor, QPalette
 class ThemeManager:
     """
     Manages application theme and styling.
-    
+
     This class provides methods to set and manage different application themes.
     """
-    
+
     def __init__(self):
         """Initialize the theme manager with default colors."""
         # Define theme colors
@@ -18,11 +18,11 @@ class ThemeManager:
         self.success_color = "#5FB878"
         self.warning_color = "#FFAA33"
         self.error_color = "#FF5555"
-    
+
     def apply_dark_theme(self, widget):
         """
         Apply the dark theme to the specified widget.
-        
+
         Args:
             widget: The widget to apply the theme to
         """

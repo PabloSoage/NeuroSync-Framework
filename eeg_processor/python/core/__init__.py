@@ -7,4 +7,4 @@ shared functionality.
 
 from .event_system import EventSystem, EventType, Event
 
-__all__ = ['EventSystem', 'EventType', 'Event']
+__all__ = ["EventSystem", "EventType", "Event"]

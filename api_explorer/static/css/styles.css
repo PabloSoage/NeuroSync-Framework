@@ -1,4 +1,4 @@
-body { 
+body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     padding: 20px;
     background-color: #f8f9fa;
@@ -213,9 +213,9 @@ pre {
 .event-controller { background-color: rgba(150, 100, 200, 0.2); border-left: 3px solid #8e44ad; }
 .event-system { background-color: rgba(80, 80, 80, 0.2); border-left: 3px solid #777777; }
 
-.event-time { 
-    font-size: 0.8em; 
-    color: #aaaaaa; 
+.event-time {
+    font-size: 0.8em;
+    color: #aaaaaa;
     display: block;
     margin-bottom: 5px;
 }
@@ -405,7 +405,7 @@ body.dark-mode .modal-content .form-control.bg-secondary::placeholder {
 
 /* File Browser Modal inputs in light mode */
 body:not(.dark-mode) .modal-content .form-control.bg-secondary {
-  background-color: #ffffff !important; 
+  background-color: #ffffff !important;
   color: #212529;
   border-color: #ced4da;
 }
@@ -434,7 +434,7 @@ body.dark-mode .modal-content .list-group.bg-dark {
 }
 
 body:not(.dark-mode) .modal-content .list-group.bg-dark {
-  background-color: #f8f9fa !important; 
+  background-color: #f8f9fa !important;
 }
 
 body:not(.dark-mode) .modal-content .list-group.bg-dark .list-group-item {

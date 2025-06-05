@@ -295,7 +295,7 @@
     }
 
     class BaseVisualizer {
-        -capabilities: Dict[str, Any] 
+        -capabilities: Dict[str, Any]
         -edit_mode: boolean
         -supported_collectors: List[str]
         +update(input_data: Optional[InputData]): void
@@ -358,7 +358,7 @@
         -preset: int
         -is_streaming: boolean
         -sampling_rate: float
-        -eeg_channels: List[int] 
+        -eeg_channels: List[int]
         -channel_types: Dict[str, List[int]]
         -raw_data: numpy.ndarray
         -processed_data: numpy.ndarray
@@ -476,7 +476,7 @@
     VisualizerManager "1" o-- "1" MouseButtonsSelector : "contains"
     LoggingManager "1" o-- "1" JSONLogger : "contains"
     LoggingManager "1" o-- "1" CSVLogger : "contains"
-    
+
     AppCoordinator "1" o-- "1" CollectorManager : "coordinates"
     AppCoordinator "1" o-- "1" UIManager : "coordinates"
     AppCoordinator "1" o-- "1" LoggingManager : "coordinates"
@@ -488,7 +488,7 @@
     InputCollectorApp "1" o-- "1" EventProcessor : "owns"
     InputCollectorApp "1" o-- "1" VisualizerManager : "owns"
     InputCollectorApp "1" o-- "1" AppCoordinator : "owns"
-    
+
     UIManager "1" --> "1" VisualizerManager : "sets visualizers"
 
     CollectorManager --> DataSynchronizer : "provides InputData"
@@ -498,7 +498,7 @@
     DataPreprocessor --> ModelTrainer : "generates FeatureVector"
     ModelTrainer --> InferenceEngine : "delivers TrainedModel"
     InferenceEngine --> VirtualDeviceEmulator : "generates Action"
-    
+
     EEGCollector --|> IDataSource
     KeyboardMouseCollector -- InputData : "produces"
     PS4ControllerCollector -- InputData : "produces"

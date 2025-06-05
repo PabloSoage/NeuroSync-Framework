@@ -139,7 +139,7 @@ class MouseButtonsSelector(BaseVisualizer):
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         self.setMinimumHeight(60)
         self.setMaximumHeight(70)  # Limitar altura máxima
-        
+
         # Set which collectors this visualizer supports
         self.supported_collectors = ["keyboard_mouse"]
 
@@ -165,11 +165,15 @@ class MouseButtonsSelector(BaseVisualizer):
         # Update button states
         self.left_button.setTracked("button.left".lower() in lower_ids)
         self.right_button.setTracked("button.right".lower() in lower_ids)
-        
+
         # Special handling for scroll wheel - check both forms
-        is_scroll_tracked = "button.scroll".lower() in lower_ids or "scrollwheel".lower() in lower_ids
+        is_scroll_tracked = (
+            "button.scroll".lower() in lower_ids or "scrollwheel".lower() in lower_ids
+        )
         self.scroll_button.setTracked(is_scroll_tracked)
-        print(f"Scroll wheel tracking set to: {is_scroll_tracked} from button_ids: {button_ids}")
+        print(
+            f"Scroll wheel tracking set to: {is_scroll_tracked} from button_ids: {button_ids}"
+        )
 
     def setActiveButtons(self, active_buttons):
         """Set which buttons are currently active (pressed)."""
@@ -203,12 +207,12 @@ class MouseButtonsSelector(BaseVisualizer):
     def sizeHint(self):
         """Suggested size for the widget."""
         return QSize(200, 60)
-    
+
     def set_edit_mode(self, enabled: bool) -> None:
         """Enable or disable edit mode."""
         super().set_edit_mode(enabled)
         self.setEditMode(enabled)
-    
+
     def set_collector_capabilities(self, capabilities: Dict[str, Any]) -> None:
         """Configure the visualizer based on collector capabilities."""
         super().set_collector_capabilities(capabilities)

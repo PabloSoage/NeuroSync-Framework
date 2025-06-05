@@ -4,6 +4,7 @@ Keyboard visualization module.
 This module provides visualization components for keyboard input events,
 displaying a virtual keyboard with key highlight states using PyQt5.
 """
+
 from typing import Optional
 
 from PyQt5.QtCore import Qt, QRect, QSize
@@ -75,7 +76,7 @@ class KeyboardVisualizer(BaseVisualizer):
         # Set size policy and minimum size
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.setMinimumSize(400, 200)  # Aumentado desde 180 a 200 para más altura
-        
+
         # Set which collectors we support
         self.supported_collectors = ["keyboard_mouse"]
 
@@ -106,10 +107,10 @@ class KeyboardVisualizer(BaseVisualizer):
             keys: List of key names to track and highlight
         """
         print(f"KeyboardVisualizer.set_tracked_keys({keys})")
-        
+
         # Convert keys to lowercase for consistent comparison
         self.tracked_keys = {k.lower() for k in keys}
-        
+
         # Immediately update to show changes
         self.update()  # Request a repaint
 
@@ -164,29 +165,30 @@ class KeyboardVisualizer(BaseVisualizer):
         """
         try:
             # Asegurarse de que el diccionario key_rects existe
-            if not hasattr(self, 'key_rects'):
+            if not hasattr(self, "key_rects"):
                 print("Warning: key_rects no está inicializado")
                 return None
-                
+
             # Asegurarse de que el diccionario no está vacío
             if not self.key_rects:
                 print("Warning: key_rects está vacío")
                 return None
-                
+
             # Verificar cada rectángulo de tecla
             for key, rect in self.key_rects.items():
                 # Verificar que rect es un objeto QRect válido con método contains
-                if not hasattr(rect, 'contains'):
+                if not hasattr(rect, "contains"):
                     continue
-                    
+
                 # Comprobar si el punto está dentro del rectángulo
                 if rect.contains(x, y):
                     return key
         except Exception as e:
             print(f"Error getting key at position ({x}, {y}): {e}")
             import traceback
+
             traceback.print_exc()
-            
+
         return None
 
     def paintEvent(self, event) -> None:
@@ -222,7 +224,9 @@ class KeyboardVisualizer(BaseVisualizer):
             effective_width *= scale_factor
 
             # Scale font and key sizes based on available space
-            font_size = max(7, min(10, int(effective_width / 60)))  # Aumentado ligeramente
+            font_size = max(
+                7, min(10, int(effective_width / 60))
+            )  # Aumentado ligeramente
             font = QFont("Segoe UI", font_size)
             painter.setFont(font)
 
@@ -254,7 +258,10 @@ class KeyboardVisualizer(BaseVisualizer):
                             else (
                                 2.0
                                 if key
-                                in ["Backspace", "Enter"]  # Increased width for these keys
+                                in [
+                                    "Backspace",
+                                    "Enter",
+                                ]  # Increased width for these keys
                                 else 1.5 if key in ["Shift", "Tab"] else 1
                             )
                         )
@@ -276,7 +283,9 @@ class KeyboardVisualizer(BaseVisualizer):
                     if key_label == "Space":
                         key_width_actual = base_key_width * 4
                     elif key_label in ["Backspace", "Enter"]:
-                        key_width_actual = base_key_width * 2.0  # Increased from 1.8 to 2.0
+                        key_width_actual = (
+                            base_key_width * 2.0
+                        )  # Increased from 1.8 to 2.0
                     elif key_label in ["Shift", "Tab"]:
                         key_width_actual = base_key_width * 1.5
 
@@ -311,7 +320,10 @@ class KeyboardVisualizer(BaseVisualizer):
                             tracked_key.lower() == key_lower
                             or (tracked_key == "key.space" and key_lower == "space")
                             or (tracked_key == "key.shift" and key_lower == "shift")
-                            or (tracked_key == "key.media_play_pause" and key_lower == "f9")
+                            or (
+                                tracked_key == "key.media_play_pause"
+                                and key_lower == "f9"
+                            )
                         ):
                             key_color = self.tracked_key_bg
                             break
@@ -331,7 +343,8 @@ class KeyboardVisualizer(BaseVisualizer):
                             break
                         # Manejar la tecla shift
                         elif (
-                            active_key_lower in ["key.shift", "key.shift_l", "key.shift_r"]
+                            active_key_lower
+                            in ["key.shift", "key.shift_l", "key.shift_r"]
                             and key_lower == "shift"
                         ):
                             key_color = self.active_key_bg
@@ -339,7 +352,8 @@ class KeyboardVisualizer(BaseVisualizer):
                             break
                         # Manejar la tecla de media play/pause (F9)
                         elif (
-                            active_key_lower == "key.media_play_pause" and key_lower == "f9"
+                            active_key_lower == "key.media_play_pause"
+                            and key_lower == "f9"
                         ):
                             key_color = QColor(
                                 "#FF5555"
@@ -350,7 +364,9 @@ class KeyboardVisualizer(BaseVisualizer):
                         elif active_key_lower == key_lower:
                             is_tracked = key_lower in self.tracked_keys
                             key_color = (
-                                self.active_key_bg if is_tracked else self.secondary_key_bg
+                                self.active_key_bg
+                                if is_tracked
+                                else self.secondary_key_bg
                             )
                             is_active = True
                             break
@@ -388,6 +404,7 @@ class KeyboardVisualizer(BaseVisualizer):
         except Exception as e:
             print(f"Error in keyboard visualization: {e}")
             import traceback
+
             traceback.print_exc()
 
     def sizeHint(self) -> QSize:
@@ -407,10 +424,10 @@ class KeyboardVisualizer(BaseVisualizer):
     def supports_collector(self, collector_type: str) -> bool:
         """
         Check if this visualizer supports a specific collector type.
-        
+
         Args:
             collector_type: The type of collector to check
-            
+
         Returns:
             bool: True if supported, False otherwise
         """

@@ -65,7 +65,7 @@ class MouseVisualizer(BaseVisualizer):
         )
         self.button_label.setFrameStyle(QFrame.StyledPanel | QFrame.Sunken)
         layout.addWidget(self.button_label, 0)
-        
+
         # Set which collectors this visualizer supports
         self.supported_collectors = ["keyboard_mouse"]
 
@@ -89,10 +89,10 @@ class MouseVisualizer(BaseVisualizer):
             if tracking_mode == "delta":
                 if is_moving:
                     pass
-                    
+
                 if input_data.direction:
                     pass
-                    
+
                 if (
                     hasattr(input_data, "wheel_direction")
                     and input_data.wheel_direction
@@ -114,7 +114,7 @@ class MouseVisualizer(BaseVisualizer):
             else:  # joystick mode
                 if input_data.direction and is_moving:
                     pass
-                    
+
                 if is_moving and hasattr(input_data, "speed"):
                     pass
 
@@ -156,7 +156,7 @@ class MouseVisualizer(BaseVisualizer):
     def sizeHint(self) -> QSize:
         """Suggested size for the widget"""
         return QSize(400, 350)
-    
+
     def set_collector_capabilities(self, capabilities: Dict[str, Any]) -> None:
         """Configure the visualizer based on collector capabilities."""
         super().set_collector_capabilities(capabilities)
@@ -238,7 +238,7 @@ class Canvas(QWidget):
             # If the scroll is being tracked, we'll receive events with non-None directions
             # If the scroll event is a reset event, direction will be None
             self.wheel_direction = input_data.direction
-            
+
             # Debug print to verify we're setting wheel direction correctly
             if input_data.direction:
                 print(f"Setting wheel direction to: {input_data.direction}")

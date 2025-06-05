@@ -30,6 +30,7 @@ from .ui.mne_panel import MNEPanel
 from .ui.processing_panel import ProcessingPanel
 from .ui.recording_panel import RecordingPanel
 from .ui.streaming_panel import StreamingPanel
+
 # Import utils
 from .utils.help_system import show_eeg_concepts_help
 from .utils.theme_manager import ThemeManager
@@ -38,8 +39,8 @@ from .utils.theme_manager import ThemeManager
 class EEGProcessorApp(QMainWindow):
     """
     Main application for EEG data collection, processing and visualization.
-    
-    This class coordinates UI components and services but delegates specific 
+
+    This class coordinates UI components and services but delegates specific
     responsibilities to specialized classes.
     """
 
@@ -50,7 +51,7 @@ class EEGProcessorApp(QMainWindow):
         # Initialize logging
         logging.basicConfig(level=logging.INFO)
         BoardShim.enable_dev_board_logger()
-        
+
         # Setup theme
         self.theme_manager = ThemeManager()
         self.theme_manager.apply_dark_theme(self)
@@ -63,13 +64,13 @@ class EEGProcessorApp(QMainWindow):
         self.processor_service = ProcessorService()
         self.visualization_service = VisualizationService()
         self.recording_service = RecordingService()
-        
+
         # Initialize Qt interaction adapter
         self.qt_adapter = QtInteractionAdapter(self)
-        
+
         # Application state
         self.is_streaming = False
-        
+
         # Initialize UI
         self.setup_ui()
 
@@ -79,7 +80,7 @@ class EEGProcessorApp(QMainWindow):
         self.status_timer.start(1000)  # Update every second
 
         logging.info("EEG Processor application initialized")
-        
+
     def setup_ui(self):
         """Set up the user interface."""
         # Main widget and layout
@@ -93,30 +94,41 @@ class EEGProcessorApp(QMainWindow):
         app_title_label.setStyleSheet("font-size: 16px; font-weight: bold;")
         help_header_layout.addWidget(app_title_label)
         help_header_layout.addStretch()
-        
+
         help_btn = QPushButton("Help")
         help_btn.clicked.connect(lambda: show_eeg_concepts_help(self))
         help_btn.setStyleSheet("background-color: #007ACC;")
         help_header_layout.addWidget(help_btn)
-        
+
         main_layout.addLayout(help_header_layout)
 
         # Create tabs
         self.tabs = QTabWidget()
         # Ensure proper sizing policy for tab widget
-        self.tabs.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.tabs.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
         main_layout.addWidget(self.tabs)
 
         # Create UI components and connect them to services
-        self.connection_panel = ConnectionPanel(self.collector_service, self.visualization_service)
-        self.processing_panel = ProcessingPanel(self.collector_service, self.processor_service, self.visualization_service)
-        self.recording_panel = RecordingPanel(self.collector_service, self.recording_service)
+        self.connection_panel = ConnectionPanel(
+            self.collector_service, self.visualization_service
+        )
+        self.processing_panel = ProcessingPanel(
+            self.collector_service, self.processor_service, self.visualization_service
+        )
+        self.recording_panel = RecordingPanel(
+            self.collector_service, self.recording_service
+        )
         self.streaming_panel = StreamingPanel(self.collector_service)
-        self.advanced_panel = AdvancedProcessingPanel(self.collector_service, self.processor_service)
-        
+        self.advanced_panel = AdvancedProcessingPanel(
+            self.collector_service, self.processor_service
+        )
+
         # Check if MNE is available
         try:
             import mne
+
             self.mne_panel = MNEPanel(self.collector_service, self.processor_service)
             mne_available = True
         except ImportError:
@@ -134,10 +146,10 @@ class EEGProcessorApp(QMainWindow):
 
         # Connect signals from each panel to handle app-level state
         self.connect_panel_signals()
-        
+
         # Status bar for showing current status
         self.statusBar().showMessage("Ready")
-        
+
     def connect_panel_signals(self):
         """Connect signals from UI components to handle application state."""
         # Connection panel signals
@@ -145,19 +157,24 @@ class EEGProcessorApp(QMainWindow):
         self.connection_panel.stream_stopped.connect(self.on_stream_stopped)
         self.connection_panel.board_connected.connect(self.on_board_connected)
         self.connection_panel.board_disconnected.connect(self.on_board_disconnected)
-        
+
         # Recording panel signals
         self.recording_panel.recording_started.connect(self.on_recording_started)
         self.recording_panel.recording_stopped.connect(self.on_recording_stopped)
-        
+
         # Connect status messages from all panels
-        for panel in [self.connection_panel, self.processing_panel, self.recording_panel, 
-                     self.streaming_panel, self.advanced_panel]:
+        for panel in [
+            self.connection_panel,
+            self.processing_panel,
+            self.recording_panel,
+            self.streaming_panel,
+            self.advanced_panel,
+        ]:
             panel.status_message.connect(self.show_status_message)
             panel.error_message.connect(self.show_error_message)
-            
+
         # Add MNE panel if available
-        if hasattr(self, 'mne_panel'):
+        if hasattr(self, "mne_panel"):
             self.mne_panel.status_message.connect(self.show_status_message)
             self.mne_panel.error_message.connect(self.show_error_message)
 
@@ -166,8 +183,10 @@ class EEGProcessorApp(QMainWindow):
         # Get status from recording service
         if self.recording_service.is_recording():
             duration = self.recording_service.get_recording_duration()
-            self.recording_panel.update_recording_status(f"Recording... ({duration:.1f}s)")
-            
+            self.recording_panel.update_recording_status(
+                f"Recording... ({duration:.1f}s)"
+            )
+
         # Check visualization status
         if self.visualization_service.visualization_closed() and self.is_streaming:
             self.connection_panel.update_visualization_button(True)
@@ -180,24 +199,24 @@ class EEGProcessorApp(QMainWindow):
         self.recording_panel.enable_recording(True)
         self.processing_panel.enable_processing(True)
         self.advanced_panel.enable_processing(True)
-        if hasattr(self, 'mne_panel'):
+        if hasattr(self, "mne_panel"):
             self.mne_panel.enable_processing(True)
-            
+
     def on_stream_stopped(self):
         """Handle stream stopped event."""
         self.is_streaming = False
         self.recording_panel.enable_recording(False)
         self.processing_panel.enable_processing(False)
         self.advanced_panel.enable_processing(False)
-        if hasattr(self, 'mne_panel'):
+        if hasattr(self, "mne_panel"):
             self.mne_panel.enable_processing(False)
-            
+
     def on_board_connected(self):
         """Handle board connected event."""
         # Enable streaming controls but not recording yet
         self.connection_panel.enable_streaming(True)
         self.streaming_panel.enable_streaming(True)
-        
+
     def on_board_disconnected(self):
         """Handle board disconnected event."""
         self.is_streaming = False
@@ -207,21 +226,21 @@ class EEGProcessorApp(QMainWindow):
         self.processing_panel.enable_processing(False)
         self.streaming_panel.enable_streaming(False)
         self.advanced_panel.enable_processing(False)
-        if hasattr(self, 'mne_panel'):
+        if hasattr(self, "mne_panel"):
             self.mne_panel.enable_processing(False)
-            
+
     def on_recording_started(self):
         """Handle recording started event."""
         pass  # Any app-level changes needed when recording starts
-        
+
     def on_recording_stopped(self):
         """Handle recording stopped event."""
         pass  # Any app-level changes needed when recording stops
-        
+
     def show_status_message(self, message):
         """Show a status message."""
         self.statusBar().showMessage(message)
-        
+
     def show_error_message(self, title, message):
         """Show an error message box."""
         QMessageBox.critical(self, title, message)
@@ -232,10 +251,9 @@ class EEGProcessorApp(QMainWindow):
         self.collector_service.cleanup()
         self.visualization_service.cleanup()
         self.recording_service.cleanup()
-        
-        # Clean up Qt adapter
-        if hasattr(self, 'qt_adapter'):
-            del self.qt_adapter
-            
-        event.accept()
 
+        # Clean up Qt adapter
+        if hasattr(self, "qt_adapter"):
+            del self.qt_adapter
+
+        event.accept()
