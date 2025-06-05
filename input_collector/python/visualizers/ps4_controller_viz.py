@@ -241,13 +241,39 @@ class PS4ControllerVisualizer(BaseVisualizer):
         Toggle between image mode and drawn mode.
         
         Returns:
-            bool: New image mode state
+            bool: New image mode state (True for image mode, False for drawn mode)
         """
+        # Only toggle if images are loaded
         if self.images_loaded:
             self.image_mode = not self.image_mode
             self.update()
+        else:
+            # Set to drawn mode if images aren't loaded
+            self.image_mode = False
+        
+        # Return the current mode state
+        return self.image_mode
+    
+    def set_image_mode(self, use_image_mode: bool) -> bool:
+        """
+        Set the visualization mode directly.
+        
+        Args:
+            use_image_mode: Whether to use image mode (True) or drawn mode (False)
+        
+        Returns:
+            bool: Actual mode that was set
+        """
+        # Only set to image mode if images are loaded
+        if use_image_mode and not self.images_loaded:
+            self.image_mode = False
+            self.update()
             return self.image_mode
-        return False
+        
+        # Otherwise set as requested
+        self.image_mode = use_image_mode
+        self.update()
+        return self.image_mode
     
     def find_group_for_item(self, item_key: str) -> Optional[str]:
         """

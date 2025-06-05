@@ -41,6 +41,9 @@ class UIManager(QObject):
     mouse_button_toggled = pyqtSignal(str, bool)
     # Remove capture_scroll_changed signal
     
+    # Add a new signal for the PS4 visualization mode
+    toggle_ps4_viz_mode = pyqtSignal(str)
+    
     def __init__(self, main_window: QMainWindow) -> None:
         """
         Initialize the UI manager.
@@ -344,6 +347,20 @@ class UIManager(QObject):
         )
         mouse_mode_frame.addWidget(self.components['tracking_mode_combo'])
         
+        # Add PS4 visualization mode controls
+        self.components['ps4_mode_label'] = QLabel("PS4 Viz:")
+        self.components['ps4_mode_label'].setVisible(False)  # Hide by default
+        mouse_mode_frame.addWidget(self.components['ps4_mode_label'])
+        
+        self.components['ps4_viz_mode_combo'] = QComboBox()
+        self.components['ps4_viz_mode_combo'].addItems(["Image", "Drawn"])
+        self.components['ps4_viz_mode_combo'].setMinimumWidth(80)
+        self.components['ps4_viz_mode_combo'].setVisible(False)  # Hide by default
+        self.components['ps4_viz_mode_combo'].currentTextChanged.connect(
+            lambda text: self.toggle_ps4_viz_mode.emit(text)
+        )
+        mouse_mode_frame.addWidget(self.components['ps4_viz_mode_combo'])
+        
         control_panel.addLayout(mouse_mode_frame)
         
         # Add control panel to main layout
@@ -627,6 +644,16 @@ class UIManager(QObject):
         
         if direction_only_check:
             direction_only_check.setVisible(mouse_tracking_supported and is_keyboard_mouse)
+        
+        # Update PS4-specific UI elements
+        ps4_mode_label = self.components.get('ps4_mode_label')
+        ps4_viz_mode_combo = self.components.get('ps4_viz_mode_combo')
+        
+        if ps4_mode_label:
+            ps4_mode_label.setVisible(is_ps4_controller)
+        
+        if ps4_viz_mode_combo:
+            ps4_viz_mode_combo.setVisible(is_ps4_controller)
         
         # Update mouse settings group visibility
         mouse_settings_group = self.components.get('mouse_settings_group')

@@ -185,6 +185,9 @@ class InputCollectorApp(QMainWindow):
         self.ui_manager.toggle_fullscreen.connect(self._toggle_fullscreen)
         self.ui_manager.mouse_button_toggled.connect(self._on_mouse_button_toggled)
         
+        # Connect the new PS4 visualization mode toggle
+        self.ui_manager.toggle_ps4_viz_mode.connect(self._toggle_ps4_viz_mode)
+        
         # Connect visualizer signals to coordinator
         self.visualizer_manager.key_clicked.connect(self.app_coordinator.handle_key_edit)
         self.visualizer_manager.button_toggled.connect(self.app_coordinator.handle_button_edit)
@@ -676,6 +679,43 @@ class InputCollectorApp(QMainWindow):
         
         # Force update to refresh the visualization
         self.visualizer_manager.force_update()
+
+    # Add a new method to handle the PS4 visualization mode toggle
+    def _toggle_ps4_viz_mode(self, mode: str) -> None:
+        """
+        Toggle between PS4 controller visualization modes.
+        
+        Args:
+            mode: The visualization mode to use ("Image" or "Drawn")
+        """
+        ps4_visualizer = self.visualizer_manager.get_ps4_controller_visualizer()
+        if ps4_visualizer:
+            use_image_mode = (mode.lower() == "image")
+            
+            # Toggle image mode in the visualizer
+            if hasattr(ps4_visualizer, 'toggle_image_mode'):
+                current_mode = ps4_visualizer.toggle_image_mode()
+                
+                # If the toggle didn't work as expected (e.g., images not loaded), update the UI
+                if current_mode != use_image_mode:
+                    # Block signals to prevent feedback loop
+                    ps4_viz_mode_combo = self.ui_manager.components.get('ps4_viz_mode_combo')
+                    if ps4_viz_mode_combo:
+                        ps4_viz_mode_combo.blockSignals(True)
+                        ps4_viz_mode_combo.setCurrentText("Drawn")
+                        ps4_viz_mode_combo.blockSignals(False)
+                        
+                        # Inform the user
+                        self.ui_manager.log_status(
+                            "Cannot use image mode - images not loaded", 
+                            self.warning_color
+                        )
+                else:
+                    # Log the mode change
+                    self.ui_manager.log_status(
+                        f"PS4 controller visualization mode set to: {mode}",
+                        self.accent_color
+                    )
 
     def run(self) -> None:
         """Run the application."""
