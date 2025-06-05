@@ -43,6 +43,7 @@ class UIManager(QObject):
     
     # Add a new signal for the PS4 visualization mode
     toggle_ps4_viz_mode = pyqtSignal(str)
+    toggle_ps4_overlay_edit = pyqtSignal(bool)
     
     def __init__(self, main_window: QMainWindow) -> None:
         """
@@ -337,7 +338,7 @@ class UIManager(QObject):
         )
         mouse_mode_frame.addWidget(self.components['direction_only_check'])
         
-        mouse_mode_frame.addWidget(QLabel("Mode:"))
+        # Remove the "Mode:" text label - it was for keyboard/mouse only
         
         self.components['tracking_mode_combo'] = QComboBox()
         self.components['tracking_mode_combo'].addItems(["axis", "angle"])
@@ -360,6 +361,15 @@ class UIManager(QObject):
             lambda text: self.toggle_ps4_viz_mode.emit(text)
         )
         mouse_mode_frame.addWidget(self.components['ps4_viz_mode_combo'])
+        
+        # Add PS4 overlay edit button
+        self.components['ps4_edit_overlays'] = QPushButton("Edit Overlays")
+        self.components['ps4_edit_overlays'].setCheckable(True)
+        self.components['ps4_edit_overlays'].setVisible(False)  # Hide by default
+        self.components['ps4_edit_overlays'].clicked.connect(
+            lambda checked: self.toggle_ps4_overlay_edit.emit(checked)
+        )
+        mouse_mode_frame.addWidget(self.components['ps4_edit_overlays'])
         
         control_panel.addLayout(mouse_mode_frame)
         
@@ -648,12 +658,26 @@ class UIManager(QObject):
         # Update PS4-specific UI elements
         ps4_mode_label = self.components.get('ps4_mode_label')
         ps4_viz_mode_combo = self.components.get('ps4_viz_mode_combo')
+        ps4_edit_overlays = self.components.get('ps4_edit_overlays')
         
         if ps4_mode_label:
             ps4_mode_label.setVisible(is_ps4_controller)
         
         if ps4_viz_mode_combo:
             ps4_viz_mode_combo.setVisible(is_ps4_controller)
+        
+        if ps4_edit_overlays:
+            ps4_edit_overlays.setVisible(is_ps4_controller)
+            # Only enable overlay editing in image mode
+            current_mode = ps4_viz_mode_combo.currentText() if ps4_viz_mode_combo else "Image"
+            ps4_edit_overlays.setEnabled(current_mode == "Image")
+            ps4_edit_overlays.setChecked(False)
+            
+            # Update style based on enabled state
+            if current_mode == "Image":
+                ps4_edit_overlays.setStyleSheet("")  # Reset to default style
+            else:
+                ps4_edit_overlays.setStyleSheet("background-color: #555555; color: #999999;")
         
         # Update mouse settings group visibility
         mouse_settings_group = self.components.get('mouse_settings_group')
@@ -929,4 +953,24 @@ class UIManager(QObject):
                 print(f"Warning: Control '{control_key}' not found in components")
         
         # Remove the direct attribute access section since these don't exist as attributes
+        # ... existing code ...
+    
+    def update_ps4_overlay_edit_state(self, edit_mode: bool) -> None:
+        """
+        Update the state of the PS4 edit overlays button.
+        
+        Args:
+            edit_mode: Whether overlay edit mode is enabled
+        """
+        ps4_edit_overlays = self.components.get('ps4_edit_overlays')
+        if ps4_edit_overlays:
+            ps4_edit_overlays.setChecked(edit_mode)
+            
+            # Update button text and style based on state
+            if edit_mode:
+                ps4_edit_overlays.setText("Done Editing")
+                ps4_edit_overlays.setStyleSheet("background-color: #5FB878; color: white;")
+            else:
+                ps4_edit_overlays.setText("Edit Overlays")
+                ps4_edit_overlays.setStyleSheet("background-color: #007ACC; color: white;")
 

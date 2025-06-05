@@ -5,12 +5,13 @@ Provides a widget for visualizing PS4 controller state.
 """
 import json
 import time
+import os
 from pathlib import Path
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List, Tuple
 
-from PyQt5.QtWidgets import QWidget, QApplication
-from PyQt5.QtCore import Qt, QRect, QTimer, pyqtSignal
-from PyQt5.QtGui import QPainter, QPen, QBrush, QColor, QPixmap, QTransform, QFont
+from PyQt5.QtWidgets import QWidget, QApplication, QMessageBox
+from PyQt5.QtCore import Qt, QRect, QTimer, pyqtSignal, QPoint
+from PyQt5.QtGui import QPainter, QPen, QBrush, QColor, QPixmap, QTransform, QFont, QCursor
 
 from ..interfaces import InputData
 from .visualizer_base import BaseVisualizer
@@ -41,10 +42,15 @@ class PS4ControllerVisualizer(BaseVisualizer):
         self.images_loaded = False
         self.images = {}
         self.base_image = None
+        
+        # Get positions file path
         self.positions_file = Path(__file__).parent / 'ps4' / 'controller_positions.json'
         
+        # Ensure parent directories exist
+        os.makedirs(Path(__file__).parent / 'ps4', exist_ok=True)
+        
         # Edit mode state
-        self.edit_mode = False
+        self._edit_mode = False
         self.selected_item = None
         self.drag_start = None
         
@@ -66,6 +72,9 @@ class PS4ControllerVisualizer(BaseVisualizer):
         
         # Set a reasonable minimum size
         self.setMinimumSize(800, 600)
+        
+        # Enable mouse tracking for hover effects
+        self.setMouseTracking(True)
     
     def load_images(self) -> None:
         """Load PS4 controller images."""
@@ -74,16 +83,22 @@ class PS4ControllerVisualizer(BaseVisualizer):
             
             if not assets_path.exists():
                 print(f"PS4 controller assets path not found: {assets_path}")
-                # Try to create the directory structure
-                assets_path.mkdir(parents=True, exist_ok=True)
+                # Create the directory structure
+                os.makedirs(assets_path, exist_ok=True)
                 print(f"Created directory: {assets_path}")
+                self.image_mode = False
                 return
                 
             # Load base controller image
             base_path = assets_path / 'controller_base.png'
             if base_path.exists():
                 self.base_image = QPixmap(str(base_path))
-                self.setFixedSize(self.base_image.width() + 20, self.base_image.height() + 20)
+                self.setMinimumSize(self.base_image.width(), self.base_image.height())
+                self.resize(self.base_image.width() + 20, self.base_image.height() + 20)
+            else:
+                print(f"PS4 controller base image not found: {base_path}")
+                self.image_mode = False
+                return
             
             # Load positions from JSON if available
             image_mapping = self.load_positions_from_json()
@@ -128,7 +143,16 @@ class PS4ControllerVisualizer(BaseVisualizer):
                     return positions
             else:
                 print(f"PS4 controller positions file not found: {self.positions_file}, using defaults")
-                return self.get_default_positions()
+                # Auto-create the positions file with defaults
+                defaults = self.get_default_positions()
+                try:
+                    os.makedirs(self.positions_file.parent, exist_ok=True)
+                    with open(self.positions_file, 'w') as f:
+                        json.dump(defaults, f, indent=2)
+                    print(f"Created default positions file: {self.positions_file}")
+                except Exception as e:
+                    print(f"Error creating default positions file: {e}")
+                return defaults
         except Exception as e:
             print(f"Error loading PS4 controller positions: {e}")
             return self.get_default_positions()
@@ -178,7 +202,7 @@ class PS4ControllerVisualizer(BaseVisualizer):
                     }
             
             # Make sure directory exists
-            self.positions_file.parent.mkdir(parents=True, exist_ok=True)
+            os.makedirs(self.positions_file.parent, exist_ok=True)
             
             with open(self.positions_file, 'w') as f:
                 json.dump(positions, f, indent=2)
@@ -186,6 +210,8 @@ class PS4ControllerVisualizer(BaseVisualizer):
             return True
         except Exception as e:
             print(f"Error saving PS4 controller positions: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     def update(self, input_data: Optional[InputData] = None) -> None:
@@ -197,7 +223,7 @@ class PS4ControllerVisualizer(BaseVisualizer):
         """
         if not input_data:
             # Just repaint with current state
-            super().update()
+            self.repaint()
             return
             
         # Only process events from PS4 controller
@@ -219,11 +245,23 @@ class PS4ControllerVisualizer(BaseVisualizer):
                     self.trigger_values['right'] = int(input_data.rel_x * 32767)
 
         # Repaint with updated state
-        super().update()
+        self.repaint()
     
     def force_update(self) -> None:
         """Force a complete redraw of the visualization."""
-        super().update()
+        self.repaint()
+    
+    def toggle_edit_mode(self) -> bool:
+        """
+        Toggle edit mode.
+        
+        Returns:
+            bool: New edit mode state
+        """
+        # Just call set_edit_mode with the opposite state
+        self.set_edit_mode(not self._edit_mode)
+        # Return the current state after toggling
+        return self._edit_mode
     
     def set_edit_mode(self, enabled: bool) -> None:
         """
@@ -232,10 +270,29 @@ class PS4ControllerVisualizer(BaseVisualizer):
         Args:
             enabled: Whether edit mode should be enabled
         """
-        self.edit_mode = enabled
+        # Don't do anything if images aren't loaded
+        if enabled and not self.images_loaded:
+            print("Cannot enter edit mode - images not loaded")
+            QMessageBox.warning(
+                self,
+                "Edit Mode Not Available",
+                "Cannot enter edit mode because controller images are not properly loaded."
+            )
+            self._edit_mode = False
+            return
+        
+        print(f"PS4ControllerVisualizer: set_edit_mode({enabled}) - Previous state: {self._edit_mode}")
+            
+        # Set the state to the requested value
+        self._edit_mode = enabled
         self.selected_item = None
-        self.update()
-    
+        self.drag_start = None
+        self.setCursor(Qt.PointingHandCursor if enabled else Qt.ArrowCursor)
+        
+        # Force a complete repaint - this ensures overlays show/hide immediately
+        self.repaint()
+        print(f"PS4ControllerVisualizer: Edit mode now: {self._edit_mode}")
+
     def toggle_image_mode(self) -> bool:
         """
         Toggle between image mode and drawn mode.
@@ -246,11 +303,11 @@ class PS4ControllerVisualizer(BaseVisualizer):
         # Only toggle if images are loaded
         if self.images_loaded:
             self.image_mode = not self.image_mode
-            self.update()
         else:
             # Set to drawn mode if images aren't loaded
             self.image_mode = False
         
+        self.repaint()
         # Return the current mode state
         return self.image_mode
     
@@ -267,12 +324,11 @@ class PS4ControllerVisualizer(BaseVisualizer):
         # Only set to image mode if images are loaded
         if use_image_mode and not self.images_loaded:
             self.image_mode = False
-            self.update()
-            return self.image_mode
+        else:
+            # Otherwise set as requested
+            self.image_mode = use_image_mode
         
-        # Otherwise set as requested
-        self.image_mode = use_image_mode
-        self.update()
+        self.repaint()
         return self.image_mode
     
     def find_group_for_item(self, item_key: str) -> Optional[str]:
@@ -305,67 +361,35 @@ class PS4ControllerVisualizer(BaseVisualizer):
                     old_pos = self.images[item_key]['pos']
                     new_pos = (old_pos[0] + delta_x, old_pos[1] + delta_y)
                     self.images[item_key]['pos'] = new_pos
-    
+
     def mousePressEvent(self, event):
         """Handle mouse press events for edit mode and button selection."""
-        # In edit mode, handle controller element selection/dragging
-        if self.edit_mode and self.images_loaded:
-            if event.button() == Qt.LeftButton:
-                # Find which overlay was clicked
-                pos = event.pos()
-                for key, data in self.images.items():
-                    if data['pos'] is not None:
-                        pixmap_rect = QRect(data['pos'][0] + 5, data['pos'][1] + 5, 
-                                        data['pixmap'].width(), data['pixmap'].height())
-                        if pixmap_rect.contains(pos):
-                            self.selected_item = key
-                            self.drag_start = pos
-                            self.update()  # Redraw to show selection
-                            break
-        
-        # Process key clicks for tracking in edit mode
-        elif self.edit_mode:  
-            # In drawn mode, handle key selection for tracking
-            self._handle_edit_mode_click(event.pos())
-    
-    def _handle_edit_mode_click(self, pos):
-        """
-        Handle clicks in edit mode for the drawn controller.
-        
-        Args:
-            pos: Click position
-        """
-        # Map of regions for different buttons in drawn mode
-        button_regions = {
-            'cross': QRect(625, 273, 25, 25),
-            'circle': QRect(685, 216, 25, 25),
-            'square': QRect(569, 216, 25, 25),
-            'triangle': QRect(627, 158, 25, 25),
-            'dpad_up': QRect(136, 183, 25, 25),
-            'dpad_down': QRect(136, 256, 25, 25),
-            'dpad_left': QRect(94, 227, 25, 25),
-            'dpad_right': QRect(164, 227, 25, 25),
-            'share': QRect(280, 220, 30, 15),
-            'options': QRect(490, 220, 30, 15),
-            'ps': QRect(375, 320, 50, 50),
-            'touchpad': QRect(300, 180, 200, 100),
-            'l1': QRect(100, 120, 80, 20),
-            'r1': QRect(620, 120, 80, 20),
-            'left_stick': QRect(200, 380, 60, 60),
-            'right_stick': QRect(530, 380, 60, 60)
-        }
-        
-        # Check if click is in any button region
-        for button_name, region in button_regions.items():
-            if region.contains(pos):
-                print(f"PS4 button clicked in edit mode: {button_name}")
-                self.key_clicked.emit(button_name)
-                break
+        if not self._edit_mode or not self.images_loaded:
+            return super().mousePressEvent(event)
+            
+        if event.button() == Qt.LeftButton:
+            # Find which overlay was clicked
+            pos = event.pos()
+            for key, data in self.images.items():
+                if data['pos'] is not None:
+                    pixmap_rect = QRect(data['pos'][0], data['pos'][1], 
+                                      data['pixmap'].width(), data['pixmap'].height())
+                    if pixmap_rect.contains(pos):
+                        self.selected_item = key
+                        self.drag_start = pos
+                        self.repaint()  # Redraw to show selection
+                        print(f"Selected item: {key}")
+                        return
+            
+            # If we reach here, no item was clicked
+            self.selected_item = None
+            self.drag_start = None
+            self.repaint()
     
     def mouseMoveEvent(self, event):
-        """Handle mouse move events for edit mode dragging."""
-        if not self.edit_mode or not self.selected_item or not self.drag_start:
-            return
+        """Handle mouse movement events for drag operations in edit mode."""
+        if not self._edit_mode or not self.selected_item or not self.drag_start:
+            return super().mouseMoveEvent(event)
             
         current_pos = event.pos()
         delta_x = current_pos.x() - self.drag_start.x()
@@ -374,33 +398,36 @@ class PS4ControllerVisualizer(BaseVisualizer):
         # Check if we should move the group or individual item
         group = self.find_group_for_item(self.selected_item)
         
-        if group and not QApplication.keyboardModifiers() & Qt.ShiftModifier:
-            # Move entire group (default behavior)
-            self.move_group(group, delta_x, delta_y)
-        else:
-            # Move individual item (when Shift is held)
-            if self.selected_item in self.images and self.images[self.selected_item]['pos'] is not None:
-                old_pos = self.images[self.selected_item]['pos']
-                new_pos = (old_pos[0] + delta_x, old_pos[1] + delta_y)
-                self.images[self.selected_item]['pos'] = new_pos
+        try:
+            if group and not QApplication.keyboardModifiers() & Qt.ShiftModifier:
+                # Move entire group (default behavior)
+                self.move_group(group, delta_x, delta_y)
+            else:
+                # Move individual item (when Shift is held)
+                if self.selected_item in self.images and self.images[self.selected_item]['pos'] is not None:
+                    old_pos = self.images[self.selected_item]['pos']
+                    new_pos = (old_pos[0] + delta_x, old_pos[1] + delta_y)
+                    self.images[self.selected_item]['pos'] = new_pos
         
-        self.drag_start = current_pos
-        self.update()
+            self.drag_start = current_pos
+            self.repaint()
+        except Exception as e:
+            print(f"Error in mouseMoveEvent: {e}")
+            import traceback
+            traceback.print_exc()
     
     def mouseReleaseEvent(self, event):
         """Handle mouse release events for edit mode."""
-        if not self.edit_mode:
-            return
+        if not self._edit_mode:
+            return super().mouseReleaseEvent(event)
             
-        if event.button() == Qt.LeftButton:
-            # If we were dragging, save the positions
-            if self.selected_item and self.drag_start:
-                self.save_positions_to_json()
+        if event.button() == Qt.LeftButton and self.selected_item:
+            # Save the positions to JSON
+            self.save_positions_to_json()
                 
-            # Reset drag state
-            self.selected_item = None
+            # Reset drag state but keep selection
             self.drag_start = None
-            self.update()  # Update to remove selection highlight
+            self.repaint()  # Update to remove drag indicators
     
     def paintEvent(self, event):
         """Paint the PS4 controller visualization."""
@@ -413,233 +440,291 @@ class PS4ControllerVisualizer(BaseVisualizer):
             self.paint_drawn_mode(painter)
             
         # Draw edit mode overlays
-        if self.edit_mode and self.images_loaded:
+        if self._edit_mode and self.images_loaded:
             self.paint_edit_overlays(painter)
     
     def paint_edit_overlays(self, painter):
         """Draw edit mode visual aids."""
-        # Draw bounding boxes around all overlays
-        for key, data in self.images.items():
-            if data['pos'] is not None:
-                rect = QRect(data['pos'][0] + 5, data['pos'][1] + 5,
-                          data['pixmap'].width(), data['pixmap'].height())
-                
-                # Highlight selected item with green
-                if key == self.selected_item:
-                    painter.setPen(QPen(QColor(0, 255, 0), 3))
-                    painter.drawRect(rect)
-                # Draw red box around regular items
-                else:
-                    painter.setPen(QPen(QColor(255, 0, 0), 1))
-                    painter.drawRect(rect)
-                
-                # Show item name
-                painter.setPen(QPen(QColor(255, 255, 255)))
-                painter.setFont(QFont("Arial", 8))
-                painter.drawText(rect.topLeft() - QPoint(0, 5), key)
-        
-        # Draw blue dashed lines around groups
-        painter.setPen(QPen(QColor(0, 0, 255, 128), 1, Qt.DashLine))
-        for group_name, items in self.element_groups.items():
-            rects = []
-            for item_key in items:
-                if item_key in self.images and self.images[item_key]['pos'] is not None:
-                    pos = self.images[item_key]['pos']
-                    pixmap = self.images[item_key]['pixmap']
-                    rects.append(QRect(pos[0] + 5, pos[1] + 5, pixmap.width(), pixmap.height()))
+        try:
+            # Draw bounding boxes around all overlays
+            for key, data in self.images.items():
+                if data['pos'] is not None:
+                    rect = QRect(data['pos'][0], data['pos'][1],
+                               data['pixmap'].width(), data['pixmap'].height())
+                    
+                    # Highlight selected item with green
+                    if key == self.selected_item:
+                        painter.setPen(QPen(QColor(0, 255, 0), 3))
+                        painter.drawRect(rect)
+                    # Draw red box around regular items
+                    else:
+                        painter.setPen(QPen(QColor(255, 0, 0), 1))
+                        painter.drawRect(rect)
+                    
+                    # Show item name
+                    painter.setPen(QPen(QColor(255, 255, 255)))
+                    painter.setFont(QFont("Arial", 8))
+                    painter.drawText(rect.topLeft() - QPoint(0, 5), key)
             
-            if rects:
-                # Calculate union of all rectangles in the group
-                united = rects[0]
-                for rect in rects[1:]:
-                    united = united.united(rect)
+            # Draw blue dashed lines around groups
+            painter.setPen(QPen(QColor(0, 0, 255, 128), 1, Qt.DashLine))
+            for group_name, items in self.element_groups.items():
+                rects = []
+                for item_key in items:
+                    if item_key in self.images and self.images[item_key]['pos'] is not None:
+                        pos = self.images[item_key]['pos']
+                        pixmap = self.images[item_key]['pixmap']
+                        rects.append(QRect(pos[0], pos[1], pixmap.width(), pixmap.height()))
                 
-                # Draw group bounding box
-                painter.drawRect(united)
-                # Label the group
-                painter.setPen(QPen(QColor(50, 50, 255)))
-                painter.setFont(QFont("Arial", 10))
-                painter.drawText(united.topLeft() - QPoint(0, 10), group_name)
+                if rects:
+                    # Calculate union of all rectangles in the group
+                    united = rects[0]
+                    for rect in rects[1:]:
+                        united = united.united(rect)
+                    
+                    # Draw group bounding box
+                    painter.drawRect(united)
+                    # Label the group
+                    painter.setPen(QPen(QColor(50, 50, 255)))
+                    painter.setFont(QFont("Arial", 10))
+                    painter.drawText(united.topLeft() - QPoint(0, 10), group_name)
+                    
+            # Add edit mode instructions at the bottom center of the controller
+            if self.base_image:
+                # Calculate position for bottom center
+                text_x = self.base_image.width() // 2 - 200  # Center text horizontally with wider margin
+                text_y = self.base_image.height() - 40  # Place near bottom
+                
+                # Draw a semi-transparent background for better readability - INCREASED HEIGHT TO 45 PIXELS
+                painter.setBrush(QBrush(QColor(0, 0, 0, 180)))
+                painter.setPen(Qt.NoPen)
+                text_rect = QRect(text_x - 10, text_y - 20, 420, 45)  # Wider and taller rectangle
+                painter.drawRoundedRect(text_rect, 5, 5)
+                
+                # Draw instructions text
+                painter.setPen(QPen(QColor(255, 255, 255)))
+                painter.setFont(QFont("Arial", 10, QFont.Bold))
+                painter.drawText(text_rect, Qt.AlignCenter, "Edit Mode: Drag to move items, hold Shift for individual items")
+            
+        except Exception as e:
+            print(f"Error in paint_edit_overlays: {e}")
+            import traceback
+            traceback.print_exc()
 
     def paint_image_mode(self, painter):
         """Paint using loaded images."""
-        # Draw base controller
-        if self.base_image:
-            painter.drawPixmap(5, 5, self.base_image)
-        
-        # In edit mode, show all overlays
-        if self.edit_mode:
-            for key, data in self.images.items():
-                if data['pos'] is not None and key != 'stick_released':
-                    painter.drawPixmap(data['pos'][0] + 5, data['pos'][1] + 5, data['pixmap'])
+        try:
+            if not self.base_image:
+                painter.setPen(QPen(QColor(255, 0, 0)))
+                painter.drawText(10, 30, "Error: Base controller image not loaded")
+                return
+                
+            # Draw base controller
+            painter.drawPixmap(0, 0, self.base_image)
             
-            # Special handling for right bumper (R1) in edit mode
-            if 'bumper_pressed' in self.images:
-                bumper = self.images['bumper_pressed']['pixmap']
-                flipped_bumper = bumper.transformed(QTransform().scale(-1, 1))
-                # Position R1 at a fixed offset from L1
-                l1_pos = self.images['bumper_pressed']['pos']
-                r1_pos = (l1_pos[0] + 489, l1_pos[1])  # Offset for R1 position
-                painter.drawPixmap(r1_pos[0] + 5, r1_pos[1] + 5, flipped_bumper)
-        else:
-            # Normal mode - show only pressed buttons
-            button_image_map = {
-                'cross': 'X_pressed',
-                'circle': 'Circle_pressed', 
-                'square': 'Square_pressed',
-                'triangle': 'Triangle_pressed',
-                'share': 'share_pressed',
-                'options': 'options_pressed',
-                'ps': 'ps_pressed',
-                'touchpad': 'touchpad_pressed',
-                'l1': 'bumper_pressed',
-                'dpad_up': 'dpad_up',
-                'dpad_down': 'dpad_down',
-                'dpad_left': 'dpad_left',
-                'dpad_right': 'dpad_right'
-            }
+            # In edit mode, show all overlays
+            if self._edit_mode:
+                for key, data in self.images.items():
+                    if data['pos'] is not None and key != 'stick_released':
+                        painter.drawPixmap(data['pos'][0], data['pos'][1], data['pixmap'])
+                
+                # Special handling for right bumper (R1) in edit mode
+                if 'bumper_pressed' in self.images:
+                    bumper = self.images['bumper_pressed']['pixmap']
+                    flipped_bumper = bumper.transformed(QTransform().scale(-1, 1))
+                    # Position R1 at a fixed offset from L1
+                    l1_pos = self.images['bumper_pressed']['pos']
+                    r1_pos = (l1_pos[0] + 489, l1_pos[1])  # Offset for R1 position
+                    painter.drawPixmap(r1_pos[0], r1_pos[1], flipped_bumper)
+            else:
+                # Normal mode - show only pressed buttons
+                button_image_map = {
+                    'cross': 'X_pressed',
+                    'circle': 'Circle_pressed', 
+                    'square': 'Square_pressed',
+                    'triangle': 'Triangle_pressed',
+                    'share': 'share_pressed',
+                    'options': 'options_pressed',
+                    'ps': 'ps_pressed',
+                    'touchpad': 'touchpad_pressed',
+                    'l1': 'bumper_pressed',
+                    'dpad_up': 'dpad_up',
+                    'dpad_down': 'dpad_down',
+                    'dpad_left': 'dpad_left',
+                    'dpad_right': 'dpad_right'
+                }
+                
+                for button, image_key in button_image_map.items():
+                    if self.button_states.get(button, False) and image_key in self.images:
+                        img_data = self.images[image_key]
+                        if img_data['pos'] is not None:
+                            painter.drawPixmap(img_data['pos'][0], img_data['pos'][1], img_data['pixmap'])
+                
+                # Draw R1 (flipped bumper)
+                if self.button_states.get('r1', False) and 'bumper_pressed' in self.images:
+                    bumper = self.images['bumper_pressed']['pixmap']
+                    flipped_bumper = bumper.transformed(QTransform().scale(-1, 1))
+                    # Position R1 at a fixed offset from L1
+                    l1_pos = self.images['bumper_pressed']['pos']
+                    if l1_pos is not None:
+                        r1_pos = (l1_pos[0] + 489, l1_pos[1]) # Offset for R1 position
+                        painter.drawPixmap(r1_pos[0], r1_pos[1], flipped_bumper)
+                
+                # Draw analog sticks with movement
+                self.draw_image_analog_sticks(painter)
+                
+                # Draw triggers with pressure
+                self.draw_image_triggers(painter)
+        except Exception as e:
+            print(f"Error in paint_image_mode: {e}")
+            import traceback
+            traceback.print_exc()
             
-            for button, image_key in button_image_map.items():
-                if self.button_states.get(button, False) and image_key in self.images:
-                    img_data = self.images[image_key]
-                    # No offset correction needed when using JSON positions
-                    painter.drawPixmap(img_data['pos'][0] + 5, img_data['pos'][1] + 5, img_data['pixmap'])
-            
-            # Draw R1 (flipped bumper)
-            if self.button_states.get('r1', False) and 'bumper_pressed' in self.images:
-                bumper = self.images['bumper_pressed']['pixmap']
-                flipped_bumper = bumper.transformed(QTransform().scale(-1, 1))
-                # Position R1 at a fixed offset from L1
-                l1_pos = self.images['bumper_pressed']['pos']
-                r1_pos = (l1_pos[0] + 489, l1_pos[1]) # Offset for R1 position
-                painter.drawPixmap(r1_pos[0] + 5, r1_pos[1] + 5, flipped_bumper)
-            
-            # Draw analog sticks with movement
-            self.draw_image_analog_sticks(painter)
-            
-            # Draw triggers with pressure
-            self.draw_image_triggers(painter)
+            # Draw error message
+            painter.setPen(QPen(QColor(255, 0, 0)))
+            painter.drawText(10, 30, f"Error rendering controller: {str(e)}")
     
     def draw_image_analog_sticks(self, painter):
         """Draw analog sticks with images and movement."""
-        stick_released_img = self.images.get('stick_released', {}).get('pixmap')
-        left_pressed_img = self.images.get('left_stick_pressed', {}).get('pixmap')
-        right_pressed_img = self.images.get('right_stick_pressed', {}).get('pixmap')
-        
-        # Skip if missing required images
-        if not stick_released_img or 'left_stick_pressed' not in self.images or 'right_stick_pressed' not in self.images:
-            return
-        
-        # Left stick position from JSON
-        left_base_pos = self.images['left_stick_pressed']['pos']
-        left_x, left_y = self.stick_positions['left']
-        left_offset_x = int(left_x * 15)
-        left_offset_y = int(left_y * 15)
-        
-        if self.button_states.get('left_stick', False) and left_pressed_img:
-            painter.drawPixmap(left_base_pos[0] + 5 + left_offset_x, 
-                             left_base_pos[1] + 5 + left_offset_y, left_pressed_img)
-        elif stick_released_img:
-            painter.drawPixmap(left_base_pos[0] + 5 + left_offset_x, 
-                             left_base_pos[1] + 5 + left_offset_y, stick_released_img)
-        
-        # Right stick position from JSON
-        right_base_pos = self.images['right_stick_pressed']['pos']
-        right_x, right_y = self.stick_positions['right']
-        right_offset_x = int(right_x * 15)
-        right_offset_y = int(right_y * 15)
-        
-        if self.button_states.get('right_stick', False) and right_pressed_img:
-            painter.drawPixmap(right_base_pos[0] + 5 + right_offset_x,
-                             right_base_pos[1] + 5 + right_offset_y, right_pressed_img)
-        elif stick_released_img:
-            painter.drawPixmap(right_base_pos[0] + 5 + right_offset_x,
-                             right_base_pos[1] + 5 + right_offset_y, stick_released_img)
+        try:
+            stick_released_img = self.images.get('stick_released', {}).get('pixmap')
+            left_pressed_img = self.images.get('left_stick_pressed', {}).get('pixmap')
+            right_pressed_img = self.images.get('right_stick_pressed', {}).get('pixmap')
+            
+            # Skip if missing required images or positions
+            if (not stick_released_img or 
+                'left_stick_pressed' not in self.images or 
+                'right_stick_pressed' not in self.images or
+                self.images['left_stick_pressed']['pos'] is None or
+                self.images['right_stick_pressed']['pos'] is None):
+                return
+            
+            # Left stick position from JSON
+            left_base_pos = self.images['left_stick_pressed']['pos']
+            left_x, left_y = self.stick_positions['left']
+            left_offset_x = int(left_x * 15)
+            left_offset_y = int(left_y * 15)
+            
+            if self.button_states.get('left_stick', False) and left_pressed_img:
+                painter.drawPixmap(left_base_pos[0] + left_offset_x, 
+                                left_base_pos[1] + left_offset_y, left_pressed_img)
+            elif stick_released_img:
+                painter.drawPixmap(left_base_pos[0] + left_offset_x, 
+                                left_base_pos[1] + left_offset_y, stick_released_img)
+            
+            # Right stick position from JSON
+            right_base_pos = self.images['right_stick_pressed']['pos']
+            right_x, right_y = self.stick_positions['right']
+            right_offset_x = int(right_x * 15)
+            right_offset_y = int(right_y * 15)
+            
+            if self.button_states.get('right_stick', False) and right_pressed_img:
+                painter.drawPixmap(right_base_pos[0] + right_offset_x,
+                                right_base_pos[1] + right_offset_y, right_pressed_img)
+            elif stick_released_img:
+                painter.drawPixmap(right_base_pos[0] + right_offset_x,
+                                right_base_pos[1] + right_offset_y, stick_released_img)
+        except Exception as e:
+            print(f"Error in draw_image_analog_sticks: {e}")
+            import traceback
+            traceback.print_exc()
     
     def draw_image_triggers(self, painter):
         """Draw triggers with pressure-based transparency."""
-        # Left trigger (L2) with position from JSON
-        left_trigger_value = self.trigger_values['left'] / 32767.0
-        if left_trigger_value > 0.01 and 'left_trigger_pressed' in self.images:
-            trigger_img = self.images['left_trigger_pressed']['pixmap'].copy()
-            pos = self.images['left_trigger_pressed']['pos']
+        try:
+            # Left trigger (L2) with position from JSON
+            left_trigger_value = self.trigger_values['left'] / 32767.0
+            if left_trigger_value > 0.01 and 'left_trigger_pressed' in self.images:
+                trigger_img = self.images['left_trigger_pressed']['pixmap']
+                if trigger_img:
+                    pos = self.images['left_trigger_pressed']['pos']
+                    if pos is not None:
+                        # Create transparent version
+                        temp_pixmap = QPixmap(trigger_img.size())
+                        temp_pixmap.fill(Qt.transparent)
+                        temp_painter = QPainter(temp_pixmap)
+                        temp_painter.setOpacity(left_trigger_value)
+                        temp_painter.drawPixmap(0, 0, trigger_img)
+                        temp_painter.end()
+                        
+                        painter.drawPixmap(pos[0], pos[1], temp_pixmap)
             
-            # Create transparent version
-            temp_pixmap = QPixmap(trigger_img.size())
-            temp_pixmap.fill(Qt.transparent)
-            temp_painter = QPainter(temp_pixmap)
-            temp_painter.setOpacity(left_trigger_value)
-            temp_painter.drawPixmap(0, 0, trigger_img)
-            temp_painter.end()
-            
-            painter.drawPixmap(pos[0] + 5, pos[1] + 5, temp_pixmap)
-        
-        # Right trigger (R2) with position from JSON
-        right_trigger_value = self.trigger_values['right'] / 32767.0
-        if right_trigger_value > 0.01 and 'right_trigger_pressed' in self.images:
-            trigger_img = self.images['right_trigger_pressed']['pixmap'].copy()
-            pos = self.images['right_trigger_pressed']['pos']
-            
-            # Create transparent version
-            temp_pixmap = QPixmap(trigger_img.size())
-            temp_pixmap.fill(Qt.transparent)
-            temp_painter = QPainter(temp_pixmap)
-            temp_painter.setOpacity(right_trigger_value)
-            temp_painter.drawPixmap(0, 0, trigger_img)
-            temp_painter.end()
-            
-            painter.drawPixmap(pos[0] + 5, pos[1] + 5, temp_pixmap)
+            # Right trigger (R2) with position from JSON
+            right_trigger_value = self.trigger_values['right'] / 32767.0
+            if right_trigger_value > 0.01 and 'right_trigger_pressed' in self.images:
+                trigger_img = self.images['right_trigger_pressed']['pixmap']
+                if trigger_img:
+                    pos = self.images['right_trigger_pressed']['pos']
+                    if pos is not None:
+                        # Create transparent version
+                        temp_pixmap = QPixmap(trigger_img.size())
+                        temp_pixmap.fill(Qt.transparent)
+                        temp_painter = QPainter(temp_pixmap)
+                        temp_painter.setOpacity(right_trigger_value)
+                        temp_painter.drawPixmap(0, 0, trigger_img)
+                        temp_painter.end()
+                        
+                        painter.drawPixmap(pos[0], pos[1], temp_pixmap)
+        except Exception as e:
+            print(f"Error in draw_image_triggers: {e}")
+            import traceback
+            traceback.print_exc()
     
     def paint_drawn_mode(self, painter):
         """Paint using drawn shapes (fallback method)."""
-        # Draw controller base
-        painter.setBrush(QBrush(QColor(60, 60, 60)))
-        painter.setPen(QPen(QColor(40, 40, 40), 3))
-        
-        # Main controller body
-        controller_rect = QRect(50, 150, 700, 400)
-        painter.drawRoundedRect(controller_rect, 30, 30)
-        
-        # Draw handles
-        left_handle = QRect(50, 350, 150, 200)
-        right_handle = QRect(600, 350, 150, 200)
-        painter.drawRoundedRect(left_handle, 20, 20)
-        painter.drawRoundedRect(right_handle, 20, 20)
-        
-        # Draw touchpad - Fixed detection
-        touchpad_rect = QRect(300, 180, 200, 100)
-        color = QColor(0, 150, 255) if self.button_states.get('touchpad', False) else QColor(80, 80, 80)
-        painter.setBrush(QBrush(color))
-        painter.drawRoundedRect(touchpad_rect, 5, 5)
-        
-        # Add touchpad label
-        painter.setPen(QPen(QColor(255, 255, 255)))
-        painter.drawText(touchpad_rect.center().x() - 30, touchpad_rect.center().y() + 5, "TOUCHPAD")
-        painter.setPen(QPen(QColor(40, 40, 40), 3))
-        
-        # Draw D-pad
-        self.draw_dpad(painter, 150, 250)
-        
-        # Draw action buttons (Triangle, Circle, X, Square)
-        self.draw_action_buttons(painter, 580, 250)
-        
-        # Draw analog sticks
-        self.draw_analog_stick(painter, 200, 380, 'left')
-        self.draw_analog_stick(painter, 530, 380, 'right')
-        
-        # Draw shoulder buttons
-        self.draw_shoulder_buttons(painter)
-        
-        # Draw triggers
-        self.draw_triggers(painter)
-        
-        # Draw start/select buttons
-        self.draw_start_select(painter)
-        
-        # Draw PS button
-        ps_color = QColor(0, 100, 200) if self.button_states.get('ps', False) else QColor(40, 40, 40)
-        painter.setBrush(QBrush(ps_color))
-        painter.drawEllipse(375, 320, 50, 50)
+        try:
+            # Draw controller base
+            painter.setBrush(QBrush(QColor(60, 60, 60)))
+            painter.setPen(QPen(QColor(40, 40, 40), 3))
+            
+            # Main controller body
+            controller_rect = QRect(50, 150, 700, 400)
+            painter.drawRoundedRect(controller_rect, 30, 30)
+            
+            # Draw handles
+            left_handle = QRect(50, 350, 150, 200)
+            right_handle = QRect(600, 350, 150, 200)
+            painter.drawRoundedRect(left_handle, 20, 20)
+            painter.drawRoundedRect(right_handle, 20, 20)
+            
+            # Draw touchpad - Fixed detection
+            touchpad_rect = QRect(300, 180, 200, 100)
+            color = QColor(0, 150, 255) if self.button_states.get('touchpad', False) else QColor(80, 80, 80)
+            painter.setBrush(QBrush(color))
+            painter.drawRoundedRect(touchpad_rect, 5, 5)
+            
+            # Add touchpad label
+            painter.setPen(QPen(QColor(255, 255, 255)))
+            painter.drawText(touchpad_rect.center().x() - 30, touchpad_rect.center().y() + 5, "TOUCHPAD")
+            painter.setPen(QPen(QColor(40, 40, 40), 3))
+            
+            # Draw D-pad
+            self.draw_dpad(painter, 150, 250)
+            
+            # Draw action buttons (Triangle, Circle, X, Square)
+            self.draw_action_buttons(painter, 580, 250)
+            
+            # Draw analog sticks
+            self.draw_analog_stick(painter, 200, 380, 'left')
+            self.draw_analog_stick(painter, 530, 380, 'right')
+            
+            # Draw shoulder buttons
+            self.draw_shoulder_buttons(painter)
+            
+            # Draw triggers
+            self.draw_triggers(painter)
+            
+            # Draw start/select buttons
+            self.draw_start_select(painter)
+            
+            # Draw PS button
+            ps_color = QColor(0, 100, 200) if self.button_states.get('ps', False) else QColor(40, 40, 40)
+            painter.setBrush(QBrush(ps_color))
+            painter.drawEllipse(375, 320, 50, 50)
+        except Exception as e:
+            print(f"Error in paint_drawn_mode: {e}")
+            import traceback
+            traceback.print_exc()
         
     def draw_dpad(self, painter, x, y):
         """Draw the D-pad with current state."""

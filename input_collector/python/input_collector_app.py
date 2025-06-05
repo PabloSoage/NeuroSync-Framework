@@ -124,6 +124,9 @@ class InputCollectorApp(QMainWindow):
             self.event_processor
         )
 
+        # Add state variables for PS4 edit modes
+        self._ps4_overlay_edit_mode = False
+
     def _create_collector_manager(self) -> CollectorManager:
         """Create and initialize the collector manager."""
         # Create collector manager
@@ -187,6 +190,9 @@ class InputCollectorApp(QMainWindow):
         
         # Connect the new PS4 visualization mode toggle
         self.ui_manager.toggle_ps4_viz_mode.connect(self._toggle_ps4_viz_mode)
+        
+        # Connect PS4 overlay edit button
+        self.ui_manager.toggle_ps4_overlay_edit.connect(self._toggle_ps4_overlay_edit)
         
         # Connect visualizer signals to coordinator
         self.visualizer_manager.key_clicked.connect(self.app_coordinator.handle_key_edit)
@@ -317,6 +323,123 @@ class InputCollectorApp(QMainWindow):
             self.ui_manager.set_csv_path(csv_path)
             self.ui_manager.log_status(f"CSV file path set: {csv_path}")
 
+    def _toggle_ps4_viz_mode(self, mode: str) -> None:
+        """
+        Toggle between PS4 controller visualization modes.
+        
+        Args:
+            mode: The visualization mode to use ("Image" or "Drawn")
+        """
+        ps4_visualizer = self.visualizer_manager.get_ps4_controller_visualizer()
+        if ps4_visualizer:
+            use_image_mode = (mode.lower() == "image")
+            
+            # If switching to drawn mode while in overlay edit mode, disable edit mode first
+            if not use_image_mode and self._ps4_overlay_edit_mode:
+                self._toggle_ps4_overlay_edit(False)
+            
+            # Toggle image mode in the visualizer
+            if hasattr(ps4_visualizer, 'toggle_image_mode'):
+                current_mode = ps4_visualizer.toggle_image_mode()
+                
+                # If the toggle didn't work as expected (e.g., images not loaded), update the UI
+                if current_mode != use_image_mode:
+                    # Block signals to prevent feedback loop
+                    ps4_viz_mode_combo = self.ui_manager.components.get('ps4_viz_mode_combo')
+                    if ps4_viz_mode_combo:
+                        ps4_viz_mode_combo.blockSignals(True)
+                        ps4_viz_mode_combo.setCurrentText("Drawn")
+                        ps4_viz_mode_combo.blockSignals(False)
+                        
+                        # Inform the user
+                        self.ui_manager.log_status(
+                            "Cannot use image mode - images not loaded", 
+                            self.warning_color
+                        )
+                else:
+                    # Log the mode change
+                    self.ui_manager.log_status(
+                        f"PS4 controller visualization mode set to: {mode}",
+                        self.accent_color
+                    )
+
+            # Update overlay edit button state - only enabled in image mode
+            ps4_edit_overlays = self.ui_manager.components.get('ps4_edit_overlays')
+            if ps4_edit_overlays:
+                ps4_edit_overlays.setEnabled(use_image_mode)
+                
+                if use_image_mode:
+                    ps4_edit_overlays.setStyleSheet("")  # Reset to default style
+                else:
+                    ps4_edit_overlays.setStyleSheet("background-color: #555555; color: #999999;")
+
+    def _toggle_ps4_overlay_edit(self, enabled: bool) -> None:
+        """
+        Toggle PS4 controller overlay edit mode.
+        
+        Args:
+            enabled: Whether overlay edit mode is enabled
+        """
+        try:
+            # Print debug info
+            print(f"InputCollectorApp: _toggle_ps4_overlay_edit({enabled}) - Current state: {self._ps4_overlay_edit_mode}")
+            
+            # Can't edit overlays while recording
+            if self.app_coordinator.is_recording and enabled:
+                self.ui_manager.log_status("Cannot edit overlays while recording", self.warning_color)
+                self.ui_manager.update_ps4_overlay_edit_state(False)
+                return
+                
+            # Check if we're in image mode
+            ps4_viz_mode_combo = self.ui_manager.components.get('ps4_viz_mode_combo')
+            if ps4_viz_mode_combo and ps4_viz_mode_combo.currentText() != "Image":
+                self.ui_manager.log_status("Overlay editing only available in Image mode", self.warning_color)
+                self.ui_manager.update_ps4_overlay_edit_state(False)
+                return
+                
+            # Update UI state first
+            self.ui_manager.update_ps4_overlay_edit_state(enabled)
+            
+            # Get PS4 controller visualizer 
+            ps4_controller_viz = self.visualizer_manager.get_ps4_controller_visualizer()
+            if not ps4_controller_viz:
+                print("PS4 controller visualizer not found")
+                self.ui_manager.log_status("PS4 visualizer not available", self.error_color)
+                return
+                
+            # Always use set_edit_mode directly to maintain synchronized state
+            ps4_controller_viz.set_edit_mode(enabled)
+            
+            # Update internal state to match
+            self._ps4_overlay_edit_mode = enabled
+            
+            # Log status
+            if enabled:
+                self.ui_manager.log_status("PS4 overlay edit mode enabled - drag images to reposition", self.success_color)
+            else:
+                self.ui_manager.log_status("PS4 overlay edit mode disabled", self.accent_color)
+                
+            print(f"InputCollectorApp: Overlay edit mode complete, state: {self._ps4_overlay_edit_mode}")
+        
+        except Exception as e:
+            # Log error and recover safely
+            print(f"Error toggling PS4 overlay edit mode: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            # Reset state in UI and app
+            self.ui_manager.update_ps4_overlay_edit_state(False)
+            self._ps4_overlay_edit_mode = False
+            self.ui_manager.log_status(f"Error in overlay edit mode: {str(e)}", self.error_color)
+            
+            # Try to reset visualizer state
+            try:
+                ps4_controller_viz = self.visualizer_manager.get_ps4_controller_visualizer()
+                if ps4_controller_viz:
+                    ps4_controller_viz.set_edit_mode(False)
+            except:
+                pass
+
     def _on_recording_started(self) -> None:
         """Handle recording started event."""
         # Disable and grey out the edit keys button
@@ -327,6 +450,18 @@ class InputCollectorApp(QMainWindow):
             edit_keys_button.setStyleSheet("background-color: #666666; color: #AAAAAA;")
             print("Edit keys button disabled and greyed out")
     
+        # Also disable PS4 edit overlays button
+        ps4_edit_overlays = self.ui_manager.components.get('ps4_edit_overlays')
+        
+        # If we were in overlay edit mode, turn it off
+        if self._ps4_overlay_edit_mode:
+            self._toggle_ps4_overlay_edit(False)
+            
+        # Disable the button
+        if ps4_edit_overlays:
+            ps4_edit_overlays.setEnabled(False)
+            ps4_edit_overlays.setStyleSheet("background-color: #666666; color: #AAAAAA;")
+    
     def _on_recording_stopped(self) -> None:
         """Handle recording stopped event."""
         # Re-enable and restore the edit keys button style
@@ -336,6 +471,20 @@ class InputCollectorApp(QMainWindow):
             # Restore normal style (accent color)
             edit_keys_button.setStyleSheet(f"background-color: {self.accent_color}; color: white;")
             print("Edit keys button re-enabled with normal style")
+
+        # Re-enable PS4 edit overlays button if in image mode
+        ps4_edit_overlays = self.ui_manager.components.get('ps4_edit_overlays')
+        ps4_viz_mode_combo = self.ui_manager.components.get('ps4_viz_mode_combo')
+        
+        if ps4_edit_overlays and ps4_viz_mode_combo:
+            # Only enable overlay editing in image mode
+            is_image_mode = ps4_viz_mode_combo.currentText() == "Image"
+            ps4_edit_overlays.setEnabled(is_image_mode)
+            
+            if is_image_mode:
+                ps4_edit_overlays.setStyleSheet("background-color: #007ACC; color: white;")
+            else:
+                ps4_edit_overlays.setStyleSheet("background-color: #555555; color: #999999;")
 
     def _on_edit_mode_toggled(self, enabled: bool) -> None:
         """Handle edit mode toggle."""
@@ -692,6 +841,10 @@ class InputCollectorApp(QMainWindow):
         if ps4_visualizer:
             use_image_mode = (mode.lower() == "image")
             
+            # If switching to drawn mode while in overlay edit mode, disable edit mode first
+            if not use_image_mode and self._ps4_overlay_edit_mode:
+                self._toggle_ps4_overlay_edit(False)
+            
             # Toggle image mode in the visualizer
             if hasattr(ps4_visualizer, 'toggle_image_mode'):
                 current_mode = ps4_visualizer.toggle_image_mode()
@@ -716,6 +869,16 @@ class InputCollectorApp(QMainWindow):
                         f"PS4 controller visualization mode set to: {mode}",
                         self.accent_color
                     )
+
+            # Update overlay edit button state - only enabled in image mode
+            ps4_edit_overlays = self.ui_manager.components.get('ps4_edit_overlays')
+            if ps4_edit_overlays:
+                ps4_edit_overlays.setEnabled(use_image_mode)
+                
+                if use_image_mode:
+                    ps4_edit_overlays.setStyleSheet("")  # Reset to default style
+                else:
+                    ps4_edit_overlays.setStyleSheet("background-color: #555555; color: #999999;")
 
     def run(self) -> None:
         """Run the application."""
