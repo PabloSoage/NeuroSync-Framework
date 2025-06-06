@@ -23,16 +23,16 @@ class InteractionService:
     _lock = threading.Lock()
 
     @classmethod
-    def get_instance(cls):
+    def get_instance(cls) -> 'InteractionService':
         """Get or create the singleton instance of the service."""
         with cls._lock:
             if cls._instance is None:
                 cls._instance = InteractionService()
             return cls._instance
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the interaction service."""
-        self._components = {}
+        self._components: Dict[str, Any] = {}
         self._last_status = {"success": False, "message": "Service not initialized"}
         self._initialized = False
         logging.info("Interaction service initialized")

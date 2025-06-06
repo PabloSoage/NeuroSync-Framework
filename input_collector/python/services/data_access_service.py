@@ -7,7 +7,7 @@ Provides real-time access to input data with minimal overhead.
 import logging
 import threading
 import time
-from typing import Dict, List, Any, Optional, Tuple, Callable
+from typing import Dict, List, Any, Optional, Tuple, Callable, Set
 
 from ..interfaces.collector_interface import InputData
 
@@ -24,30 +24,30 @@ class DataAccessService:
     _lock = threading.Lock()
 
     @classmethod
-    def get_instance(cls):
+    def get_instance(cls) -> 'DataAccessService':
         """Get the singleton instance of the service."""
         with cls._lock:
             if cls._instance is None:
                 cls._instance = DataAccessService()
             return cls._instance
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the data access service."""
         self._data_lock = threading.Lock()
         self._metadata_lock = threading.Lock()
 
         # Current data - the most recent event
-        self._current_event = None
+        self._current_event: Optional[InputData] = None
 
         # Event history by type
-        self._key_events = []
-        self._mouse_movement_events = []
-        self._mouse_button_events = []
-        self._controller_events = []
+        self._key_events: List[InputData] = []
+        self._mouse_movement_events: List[InputData] = []
+        self._mouse_button_events: List[InputData] = []
+        self._controller_events: List[InputData] = []
 
         # Current state
-        self._active_keys = set()
-        self._mouse_position = (0, 0)
+        self._active_keys: Set[str] = set()
+        self._mouse_position: Tuple[float, float] = (0.0, 0.0)
         self._mouse_buttons = {"left": False, "right": False, "middle": False}
 
         # Input metadata
@@ -61,7 +61,7 @@ class DataAccessService:
         }
 
         # Registered callbacks for data updates
-        self._callbacks = []
+        self._callbacks: List[Optional[Callable[[InputData], None]]] = []
         self._callback_lock = threading.Lock()
 
         # Maximum event history size
@@ -131,7 +131,7 @@ class DataAccessService:
                 and event.mouse_x is not None
                 and event.mouse_y is not None
             ):
-                self._mouse_position = (event.mouse_x, event.mouse_y)
+                self._mouse_position = (float(event.mouse_x), float(event.mouse_y))
 
             # Update mouse button state
             if event.event_type == "mouse_click" and hasattr(event, "button_pressed"):
@@ -175,7 +175,7 @@ class DataAccessService:
         with self._data_lock:
             return self._current_event
 
-    def get_key_events(self, max_count: int = None) -> List[InputData]:
+    def get_key_events(self, max_count: Optional[int] = None) -> List[InputData]:
         """
         Get recent key events.
 
@@ -190,7 +190,7 @@ class DataAccessService:
                 return self._key_events.copy()
             return self._key_events[-max_count:].copy()
 
-    def get_mouse_movement_events(self, max_count: int = None) -> List[InputData]:
+    def get_mouse_movement_events(self, max_count: Optional[int] = None) -> List[InputData]:
         """
         Get recent mouse movement events.
 
@@ -205,7 +205,7 @@ class DataAccessService:
                 return self._mouse_movement_events.copy()
             return self._mouse_movement_events[-max_count:].copy()
 
-    def get_mouse_button_events(self, max_count: int = None) -> List[InputData]:
+    def get_mouse_button_events(self, max_count: Optional[int] = None) -> List[InputData]:
         """
         Get recent mouse button events.
 
@@ -220,7 +220,7 @@ class DataAccessService:
                 return self._mouse_button_events.copy()
             return self._mouse_button_events[-max_count:].copy()
 
-    def get_controller_events(self, max_count: int = None) -> List[InputData]:
+    def get_controller_events(self, max_count: Optional[int] = None) -> List[InputData]:
         """
         Get recent controller events.
 
