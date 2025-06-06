@@ -57,7 +57,7 @@ class InputData:
         None  # Relative position from center (-1.0 to 1.0, joystick-like)
     )
     is_moving: Optional[bool] = None  # Whether the mouse is considered to be in motion
-    active_keys: List[str] = None  # List of all currently active keys
+    active_keys: Optional[List[str]] = None  # List of all currently active keys
 
     # New delta-based tracking fields
     mouse_delta_x: Optional[float] = None  # Raw mouse movement delta X

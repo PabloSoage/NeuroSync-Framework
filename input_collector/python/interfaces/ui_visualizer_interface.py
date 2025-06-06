@@ -18,7 +18,7 @@ class AbstractVisualizerProvider(Protocol):
     concrete visualizer implementations.
     """
 
-    def get_keyboard_visualizer(self):
+    def get_keyboard_visualizer(self) -> Any:
         """
         Get the keyboard visualizer component.
 
@@ -27,7 +27,7 @@ class AbstractVisualizerProvider(Protocol):
         """
         ...
 
-    def get_mouse_visualizer(self):
+    def get_mouse_visualizer(self) -> Any:
         """
         Get the mouse visualizer component.
 
@@ -36,7 +36,7 @@ class AbstractVisualizerProvider(Protocol):
         """
         ...
 
-    def get_mouse_buttons_selector(self):
+    def get_mouse_buttons_selector(self) -> Any:
         """
         Get the mouse buttons selector component.
 
