@@ -31,12 +31,12 @@ class InputCollectorAPI:
     @classmethod
     def initialize(
         cls,
-        app_coordinator,
-        ui_manager,
-        logging_manager,
-        collector_manager,
-        event_processor,
-    ):
+        app_coordinator: Any,
+        ui_manager: Any,
+        logging_manager: Any,
+        collector_manager: Any,
+        event_processor: Any,
+    ) -> None:
         """
         Initialize the API with application components.
 
@@ -272,14 +272,14 @@ class InputCollectorAPI:
         return service.connect_controller(index)
 
     @staticmethod
-    def _parse_bool(val):
+    def _parse_bool(val: Any) -> bool:
         """Convert string 'True'/'False' or numeric to proper bool."""
         if isinstance(val, str):
             return val.lower() in ("true", "1", "yes")
         return bool(val)
 
     @classmethod
-    def get_available_tracking_modes(cls, direction_only: bool = None) -> List[str]:
+    def get_available_tracking_modes(cls, direction_only: Optional[bool] = None) -> List[str]:
         """
         Get available tracking modes based on direction_only setting.
 
