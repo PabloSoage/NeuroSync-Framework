@@ -390,7 +390,7 @@ class InputCollectorApiIntegration:
             method_type = method_info.get("type", "GET").upper()
 
             # Create async wrapper
-            async def endpoint_wrapper(*args, **kwargs):
+            async def endpoint_wrapper(*args: Any, **kwargs: Any) -> Any:
                 result = await handler_function(*args, **kwargs)
                 return result
 
@@ -421,7 +421,7 @@ class InputCollectorApiIntegration:
         # Subscribe to all event types
         for event_type in EventType:
             # Create a handler for this event type
-            handler = lambda data, evnt_type=event_type: self._handle_core_event(
+            handler: Callable[[Any], None] = lambda data, evnt_type=event_type: self._handle_core_event(
                 evnt_type, data
             )
 

@@ -145,6 +145,6 @@ class LoggingManager(QObject):
         self.json_logger.close_log()
         self.csv_logger.close_log()
 
-    def _relay_status_message(self, message: str, color: str = None) -> None:
+    def _relay_status_message(self, message: str, color: Optional[str] = None) -> None:
         """Relay status messages from loggers to the application."""
         self.status_message.emit(message, color)

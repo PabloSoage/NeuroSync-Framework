@@ -148,7 +148,7 @@ class InteractionApiIntegration:
         # Subscribe to all event types
         for event_type in EventType:
             # Create a handler for this event type
-            handler = lambda data, evnt_type=event_type: self._handle_core_event(
+            handler: Callable[[Any], None] = lambda data, evnt_type=event_type: self._handle_core_event(
                 evnt_type, data
             )
 
@@ -1113,7 +1113,7 @@ class InteractionApiIntegration:
             method_type = method_info.get("type", "GET").upper()
 
             # Create async wrapper
-            async def endpoint_wrapper(*args, **kwargs):
+            async def endpoint_wrapper(*args: Any, **kwargs: Any) -> Any:
                 result = await handler_function(*args, **kwargs)
                 return result
 
@@ -1131,7 +1131,7 @@ class InteractionApiIntegration:
                     tags=["Input Collector Control"],
                 )
 
-                logger.info(f"Added fallback route for {method_id} at {path}")
+            logger.info(f"Added fallback route for {method_id} at {path}")
         except Exception as e:
             logger.error(f"Failed to add fallback route for {method_id}: {e}")
 

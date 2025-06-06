@@ -186,20 +186,21 @@ class CSVLogger(QObject):
                 row_data[header] = 0
 
         # Process keyboard keys
-        for key in event.active_keys:
-            # Skip F9/media_play_pause key
-            if key == "Key.media_play_pause":
-                continue
+        if event.active_keys is not None:
+            for key in event.active_keys:
+                # Skip F9/media_play_pause key
+                if key == "Key.media_play_pause":
+                    continue
 
-            # Format the key name for CSV column lookup
-            csv_key_name = key
-            if key.startswith("Key."):
-                csv_key_name = key[4:]  # Remove "Key." prefix
+                # Format the key name for CSV column lookup
+                csv_key_name = key
+                if key.startswith("Key."):
+                    csv_key_name = key[4:]  # Remove "Key." prefix
 
-            key_header = f"key_{csv_key_name}"
+                key_header = f"key_{csv_key_name}"
 
-            if key_header in self.csv_headers:
-                row_data[key_header] = 1
+                if key_header in self.csv_headers:
+                    row_data[key_header] = 1
 
         # Process mouse buttons
         if hasattr(event, "button_pressed") and event.button_pressed:
@@ -286,7 +287,7 @@ class CSVLogger(QObject):
                 row_data[header] = 0
 
         # Process active buttons - with the same formatting as regular keys
-        if hasattr(event, "active_keys") and event.active_keys:
+        if hasattr(event, "active_keys") and event.active_keys is not None:
             for key in event.active_keys:
                 # Skip F9/media_play_pause key
                 if key == "Key.media_play_pause":
