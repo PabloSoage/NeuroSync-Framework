@@ -778,7 +778,7 @@ class UIManager(QObject):
         # Show/hide Status and Active Keys sections based on collector type
         active_keys_group = None
         status_group = None
-        
+
         for component in self.components.values():
             if isinstance(component, QGroupBox):
                 if component.title() == "Active Keys":

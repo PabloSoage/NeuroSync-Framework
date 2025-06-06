@@ -24,7 +24,7 @@ class DataAccessService:
     _lock = threading.Lock()
 
     @classmethod
-    def get_instance(cls) -> 'DataAccessService':
+    def get_instance(cls) -> "DataAccessService":
         """Get the singleton instance of the service."""
         with cls._lock:
             if cls._instance is None:
@@ -190,7 +190,9 @@ class DataAccessService:
                 return self._key_events.copy()
             return self._key_events[-max_count:].copy()
 
-    def get_mouse_movement_events(self, max_count: Optional[int] = None) -> List[InputData]:
+    def get_mouse_movement_events(
+        self, max_count: Optional[int] = None
+    ) -> List[InputData]:
         """
         Get recent mouse movement events.
 
@@ -205,7 +207,9 @@ class DataAccessService:
                 return self._mouse_movement_events.copy()
             return self._mouse_movement_events[-max_count:].copy()
 
-    def get_mouse_button_events(self, max_count: Optional[int] = None) -> List[InputData]:
+    def get_mouse_button_events(
+        self, max_count: Optional[int] = None
+    ) -> List[InputData]:
         """
         Get recent mouse button events.
 

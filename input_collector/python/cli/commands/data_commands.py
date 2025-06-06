@@ -18,7 +18,7 @@ app = typer.Typer()
 
 
 @app.command("active-keys")
-def active_keys():
+def active_keys() -> None:
     """Get list of currently active keys."""
     if headless_mode:
         init_headless_mode()
@@ -38,7 +38,7 @@ def active_keys():
 
 
 @app.command("is-key-active")
-def is_key_active(key: str):
+def is_key_active(key: str) -> None:
     """Check if a specific key is active."""
     if headless_mode:
         init_headless_mode()
@@ -56,7 +56,7 @@ def is_key_active(key: str):
 
 
 @app.command("mouse-position")
-def mouse_position():
+def mouse_position() -> None:
     """Get the current mouse position."""
     if headless_mode:
         init_headless_mode()
@@ -74,7 +74,7 @@ def mouse_button(
     button: str = typer.Argument(
         ..., help="Mouse button to check (left, right, middle)"
     )
-):
+) -> None:
     """Check if a mouse button is pressed."""
     if headless_mode:
         init_headless_mode()
@@ -102,7 +102,7 @@ def mouse_button(
 
 
 @app.command("mouse-direction")
-def mouse_direction():
+def mouse_direction() -> None:
     """Get the current mouse movement direction."""
     if headless_mode:
         init_headless_mode()
@@ -121,7 +121,7 @@ def mouse_direction():
 
 
 @app.command("metadata")
-def metadata():
+def metadata() -> None:
     """Get metadata about the input collection process."""
     if headless_mode:
         init_headless_mode()
@@ -147,7 +147,7 @@ def metadata():
 
 
 @app.command("current-event")
-def current_event():
+def current_event() -> None:
     """Get the most recent input event."""
     if headless_mode:
         init_headless_mode()
@@ -189,7 +189,7 @@ def events(
         ..., help="Event type (key, mouse_movement, mouse_button, controller)"
     ),
     count: int = typer.Option(5, "--count", "-c", help="Number of events to show"),
-):
+) -> None:
     """Get recent events of a specific type."""
     if headless_mode:
         init_headless_mode()
@@ -314,7 +314,7 @@ def events(
 
 
 @app.command("controller-connected")
-def controller_connected():
+def controller_connected() -> None:
     """Check if a controller is connected."""
     if headless_mode:
         init_headless_mode()

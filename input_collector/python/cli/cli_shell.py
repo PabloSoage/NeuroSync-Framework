@@ -15,6 +15,7 @@ from rich.prompt import Prompt
 from rich.syntax import Syntax
 
 from .cli_app import app
+
 # Import shared config instead of from cli_app
 from .cli_config import headless_mode, get_gui_mode, init_headless_mode
 from ..interaction_api import InputCollectorAPI
@@ -22,7 +23,7 @@ from ..interaction_api import InputCollectorAPI
 console = Console()
 
 
-def run_interactive_shell():
+def run_interactive_shell() -> None:
     """Run an interactive shell for the Input Collector CLI."""
     # Initialize headless mode if necessary
     if headless_mode:
@@ -73,7 +74,7 @@ def run_interactive_shell():
             console.print(f"[bold red]Error: {e}[/bold red]")
 
 
-def run_typer_command(args: List[str]):
+def run_typer_command(args: List[str]) -> None:
     """Run a Typer command with the given arguments."""
     try:
         # Create a new sys.argv with the command
@@ -92,7 +93,7 @@ def run_typer_command(args: List[str]):
         console.print(f"[bold red]Error running command: {e}[/bold red]")
 
 
-def show_welcome_message():
+def show_welcome_message() -> None:
     """Show the welcome message for the CLI shell."""
     gui_mode_text = ""
     if get_gui_mode():
@@ -110,7 +111,7 @@ def show_welcome_message():
     )
 
 
-def show_help_message():
+def show_help_message() -> None:
     """Show the help message."""
     # Basic commands help
     basic_commands = """
@@ -200,7 +201,7 @@ data events key --count 5    # Get last 5 keyboard events
     )
 
 
-def show_status():
+def show_status() -> None:
     """Show current application status."""
     try:
         # Get application state
@@ -265,6 +266,6 @@ def show_status():
         console.print(f"[bold red]Error getting status: {e}[/bold red]")
 
 
-def run_shell():
+def run_shell() -> None:
     """Run the interactive shell."""
     run_interactive_shell()

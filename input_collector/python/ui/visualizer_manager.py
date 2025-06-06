@@ -244,7 +244,7 @@ class VisualizerManager(QObject):  # Only inherit from QObject
 class KeyboardEventFilter(QObject):
     """Event filter for keyboard visualizer click handling."""
 
-    def __init__(self, visualizer_manager: 'VisualizerManager') -> None:
+    def __init__(self, visualizer_manager: "VisualizerManager") -> None:
         """
         Initialize the keyboard event filter.
 

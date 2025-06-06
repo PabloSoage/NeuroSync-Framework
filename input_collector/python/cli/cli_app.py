@@ -8,6 +8,7 @@ import atexit
 import signal
 import sys
 import threading
+from typing import Any
 
 import typer
 from rich.console import Console
@@ -19,6 +20,7 @@ from .cli_config import (
     is_cli_running,
     headless_app,
 )
+
 # Import CLI command modules
 from .commands.data_commands import app as data_app
 from .commands.interaction_commands import app as interaction_app
@@ -39,7 +41,7 @@ app.add_typer(interaction_app, name="control", help="Interaction control command
 app.add_typer(monitor_app, name="monitor", help="Real-time monitoring commands")
 
 
-def run_cli():
+def run_cli() -> None:
     """Run the CLI application."""
     try:
         # Set CLI as running
@@ -72,14 +74,14 @@ def run_cli():
         shutdown_cli()
 
 
-def signal_handler(sig, frame):
+def signal_handler(sig: int, frame: Any) -> None:
     """Handle termination signals."""
     console.print("\n[yellow]Signal received, shutting down CLI...[/yellow]")
     shutdown_cli()
     sys.exit(0)
 
 
-def shutdown_cli():
+def shutdown_cli() -> None:
     """Safely shut down the CLI."""
     if not is_cli_running():
         return
@@ -104,9 +106,9 @@ def shutdown_cli():
         try:
             from ..interaction_api_integration import get_interaction_api_integration
 
-            api = get_interaction_api_integration()
-            if api and hasattr(api, "shutdown"):
-                api.shutdown()
+            interaction_api = get_interaction_api_integration()
+            if interaction_api and hasattr(interaction_api, "shutdown"):
+                interaction_api.shutdown()
         except:
             pass
 
@@ -124,7 +126,7 @@ def shutdown_cli():
 
 
 @app.command("version")
-def version():
+def version() -> None:
     """Display the version of the input collector CLI."""
     from . import __version__
 
@@ -132,7 +134,7 @@ def version():
 
 
 @app.command("info")
-def info():
+def info() -> None:
     """Display information about the input collector."""
     # Import here to avoid circular import
     from .cli_config import headless_mode, init_headless_mode

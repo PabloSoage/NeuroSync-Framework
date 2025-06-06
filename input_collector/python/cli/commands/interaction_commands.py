@@ -22,7 +22,7 @@ def recording(
     action: str = typer.Argument(
         ..., help="Action to take (start, stop, toggle, status)"
     )
-):
+) -> None:
     """Control recording state."""
     if headless_mode:
         init_headless_mode()
@@ -80,7 +80,7 @@ def logging(
         None, "--action", "-a", help="Action to take (enable, disable)"
     ),
     filepath: str = typer.Option(None, "--filepath", "-f", help="Path for CSV file"),
-):
+) -> None:
     """Control logging settings."""
     if headless_mode:
         init_headless_mode()
@@ -199,7 +199,7 @@ def collectors(
     controller_index: int = typer.Option(
         None, "--index", "-i", help="Controller index to connect to"
     ),
-):
+) -> None:
     """Manage input collectors."""
     if headless_mode:
         init_headless_mode()
@@ -329,7 +329,7 @@ def mouse(
     angle_grouping: int = typer.Option(
         None, "--angle-grouping", help="Angle grouping in degrees (1-90)"
     ),
-):
+) -> None:
     """Configure mouse tracking."""
     if headless_mode:
         init_headless_mode()
@@ -435,7 +435,7 @@ def keys(
     track: bool = typer.Option(
         None, "--track", "-t", help="Whether to track the button"
     ),
-):
+) -> None:
     """Manage tracked keys and buttons."""
     if headless_mode:
         init_headless_mode()
@@ -523,7 +523,7 @@ def keys(
 
 
 @app.command("fullscreen")
-def fullscreen():
+def fullscreen() -> None:
     """Toggle fullscreen mode."""
     if headless_mode:
         console.print(
@@ -547,7 +547,7 @@ def fullscreen():
 
 
 @app.command("status")
-def status():
+def status() -> None:
     """Get full application status."""
     if headless_mode:
         init_headless_mode()

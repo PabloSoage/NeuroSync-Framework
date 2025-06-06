@@ -20,7 +20,9 @@ class MouseButton(QWidget):
 
     clicked = pyqtSignal(str)  # Signal emitted when button is clicked with button id
 
-    def __init__(self, button_id: str, label: str, parent: Optional[QWidget] = None) -> None:
+    def __init__(
+        self, button_id: str, label: str, parent: Optional[QWidget] = None
+    ) -> None:
         """Initialize the mouse button widget."""
         super().__init__(parent)
         self.button_id = button_id

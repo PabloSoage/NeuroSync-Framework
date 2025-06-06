@@ -16,6 +16,7 @@ from .collectors import CollectorManager
 from .interaction_api import InputCollectorAPI
 from .logging import LoggingManager
 from .processing import EventProcessor
+
 # Import new modular components
 from .ui import UIManager
 from .ui.visualizer_manager import VisualizerManager
@@ -670,7 +671,11 @@ class InputCollectorApp(QMainWindow):
         try:
             # Check if we have an active controller connection
             ps4_collector = self.collector_manager.get_collector("ps4_controller")
-            if ps4_collector and hasattr(ps4_collector, 'controller') and not ps4_collector.controller:
+            if (
+                ps4_collector
+                and hasattr(ps4_collector, "controller")
+                and not ps4_collector.controller
+            ):
                 response = QMessageBox.question(
                     self,
                     "No Controller Connected",
@@ -683,7 +688,10 @@ class InputCollectorApp(QMainWindow):
                     # Explicitly scan for controllers
                     self._scan_controllers()
                     # If we still don't have a controller after scanning, revert to keyboard/mouse
-                    if hasattr(ps4_collector, 'controller') and not ps4_collector.controller:
+                    if (
+                        hasattr(ps4_collector, "controller")
+                        and not ps4_collector.controller
+                    ):
                         self.ui_manager.log_status(
                             "No controller found, reverting to Keyboard & Mouse",
                             self.warning_color,
@@ -713,7 +721,7 @@ class InputCollectorApp(QMainWindow):
     def _scan_controllers(self) -> None:
         """Scan for SDL controllers and show a selection dialog."""
         ps4_collector = self.collector_manager.get_collector("ps4_controller")
-        if not ps4_collector or not hasattr(ps4_collector, 'scan_controllers'):
+        if not ps4_collector or not hasattr(ps4_collector, "scan_controllers"):
             QMessageBox.warning(
                 self,
                 "SDL Not Available",
@@ -770,7 +778,9 @@ class InputCollectorApp(QMainWindow):
             if self.collector_manager.get_current_collector_type() == "ps4_controller":
                 self._force_keyboard_mouse_mode()
 
-    def _handle_controller_selection(self, controllers: List[Dict[str, Any]], ps4_collector: Any) -> None:
+    def _handle_controller_selection(
+        self, controllers: List[Dict[str, Any]], ps4_collector: Any
+    ) -> None:
         """Handle controller selection after scanning."""
         # If we have only one controller, connect to it directly
         if len(controllers) == 1:
@@ -797,7 +807,9 @@ class InputCollectorApp(QMainWindow):
         # If we have multiple controllers, show a selection dialog
         self._show_controller_selection_dialog(controllers, ps4_collector)
 
-    def _show_controller_selection_dialog(self, controllers: List[Dict[str, Any]], ps4_collector: Any) -> None:
+    def _show_controller_selection_dialog(
+        self, controllers: List[Dict[str, Any]], ps4_collector: Any
+    ) -> None:
         """Show dialog for selecting between multiple controllers."""
         from PyQt5.QtWidgets import (
             QDialog,

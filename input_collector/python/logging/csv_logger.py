@@ -249,12 +249,16 @@ class CSVLogger(QObject):
             direction_only = getattr(event, "direction_only", False)
             if direction_only:
                 if "mouse_discrete_angle" in self.csv_headers:
-                    row_data["mouse_discrete_angle"] = getattr(event, "discrete_angle", 0)
+                    row_data["mouse_discrete_angle"] = getattr(
+                        event, "discrete_angle", 0
+                    )
             else:
                 if "mouse_angle" in self.csv_headers:
                     row_data["mouse_angle"] = getattr(event, "mouse_delta_angle", 0.0)
                 if "mouse_magnitude" in self.csv_headers:
-                    row_data["mouse_magnitude"] = getattr(event, "mouse_delta_magnitude", 0.0)
+                    row_data["mouse_magnitude"] = getattr(
+                        event, "mouse_delta_magnitude", 0.0
+                    )
         elif tracking_mode == "axis":
             if "mouse_north" in self.csv_headers:
                 row_data["mouse_north"] = getattr(event, "north", 0.0)
@@ -312,9 +316,11 @@ class CSVLogger(QObject):
                     stick_name = event.key.replace("_X", "").lower()
                     if f"ps4_{stick_name}_x" in self.csv_headers:
                         row_data[f"ps4_{stick_name}_x"] = event.rel_x
-                    if f"ps4_{stick_name}_y" in self.csv_headers and hasattr(
-                        event, "rel_y"
-                    ) and event.rel_y is not None:
+                    if (
+                        f"ps4_{stick_name}_y" in self.csv_headers
+                        and hasattr(event, "rel_y")
+                        and event.rel_y is not None
+                    ):
                         row_data[f"ps4_{stick_name}_y"] = event.rel_y
                 elif "Trigger" in event.key:
                     trigger_name = event.key.lower()

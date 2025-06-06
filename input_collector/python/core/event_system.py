@@ -34,7 +34,7 @@ class EventDispatcher:
     _lock = threading.Lock()
 
     @classmethod
-    def get_instance(cls) -> 'EventDispatcher':
+    def get_instance(cls) -> "EventDispatcher":
         """Get the singleton instance."""
         with cls._lock:
             if cls._instance is None:

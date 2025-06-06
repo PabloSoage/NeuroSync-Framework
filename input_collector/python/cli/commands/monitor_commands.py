@@ -5,7 +5,7 @@ These commands allow monitoring input events in real-time.
 """
 
 import time
-from typing import List, Any
+from typing import List, Any, Dict, Tuple
 
 import typer
 from rich import box
@@ -24,12 +24,18 @@ console = Console()
 app = typer.Typer()
 
 # Store last events for different types
-last_events = {"key": [], "mouse": [], "button": [], "controller": [], "all": []}
+last_events: Dict[str, List[Dict[str, Any]]] = {
+    "key": [],
+    "mouse": [],
+    "button": [],
+    "controller": [],
+    "all": [],
+}
 
 max_events = 10  # Default max events to keep
 
 
-def event_callback(event):
+def event_callback(event: Any) -> None:
     """Callback for processing events."""
     # Skip if event is None
     if event is None:
@@ -64,7 +70,7 @@ def event_callback(event):
             last_events[key] = last_events[key][:max_events]
 
 
-def get_layout(show_types):
+def get_layout(show_types: List[str]) -> Layout:
     """Create the layout for monitoring."""
     layout = Layout()
 
@@ -126,7 +132,7 @@ def get_layout(show_types):
             layout["main"].split_grid(n_rows=2, n_columns=2)
 
             # Add tables to grid
-            positions = [("0-0", "0-1"), ("1-0", "1-1")]
+            grid_positions: List[Tuple[str, str]] = [("0-0", "0-1"), ("1-0", "1-1")]
             for i, (key, table) in enumerate(tables.items()):
                 row, col = divmod(i, 2)
                 layout[f"main-{row}-{col}"].update(table)
@@ -148,14 +154,19 @@ def get_layout(show_types):
             )
 
             # Add up to 4 tables
-            positions = ["top_left", "top_right", "bottom_left", "bottom_right"]
+            layout_positions: List[str] = [
+                "top_left",
+                "top_right",
+                "bottom_left",
+                "bottom_right",
+            ]
             for i, (key, table) in enumerate(list(tables.items())[:4]):
-                layout[f"{positions[i]}"].update(table)
+                layout[layout_positions[i]].update(table)
 
     return layout
 
 
-def create_event_table(title, events):
+def create_event_table(title: str, events: List[Dict[str, Any]]) -> Table:
     """Create a table for displaying events."""
     table = Table(title=title, box=box.ROUNDED)
 
@@ -222,7 +233,7 @@ def create_event_table(title, events):
     return table
 
 
-def core_event_handler(event_type: EventType, data: Any):
+def core_event_handler(event_type: EventType, data: Any) -> None:
     """Handle events from the core event system."""
     # Process the event
     event_callback(data)
@@ -239,7 +250,7 @@ def monitor_events(
     count: int = typer.Option(
         10, "--count", "-c", help="Maximum number of events to display per type"
     ),
-):
+) -> None:
     """Monitor input events in real-time."""
     if headless_mode:
         init_headless_mode()
@@ -250,7 +261,7 @@ def monitor_events(
 
     # Register callback
     callback_id = None
-    event_handlers = []
+    event_handlers: List[Tuple[EventType, Any]] = []
 
     try:
         # Clear previous events
@@ -260,10 +271,10 @@ def monitor_events(
         # Register for events
         if headless_mode:
             # In headless mode, use the core event system
-            for event_type in EventType:
-                handler = lambda data, et=event_type: core_event_handler(et, data)
-                subscribe(event_type, handler)
-                event_handlers.append((event_type, handler))
+            for event_type_enum in EventType:
+                handler = lambda data, et=event_type_enum: core_event_handler(et, data)
+                subscribe(event_type_enum, handler)
+                event_handlers.append((event_type_enum, handler))
         else:
             # In GUI mode, use the API callback mechanism
             callback_id = InputDataAPI.register_event_callback(event_callback)
@@ -299,12 +310,12 @@ def monitor_events(
         if callback_id is not None:
             InputDataAPI.unregister_event_callback(callback_id)
 
-        for event_type, handler in event_handlers:
-            unsubscribe(event_type, handler)
+        for event_type_enum, handler in event_handlers:
+            unsubscribe(event_type_enum, handler)
 
 
 @app.command("active-keys")
-def monitor_active_keys():
+def monitor_active_keys() -> None:
     """Monitor active keys in real-time."""
     if headless_mode:
         init_headless_mode()
@@ -344,7 +355,7 @@ def monitor_active_keys():
 
 
 @app.command("mouse")
-def monitor_mouse():
+def monitor_mouse() -> None:
     """Monitor mouse movement and buttons in real-time."""
     if headless_mode:
         init_headless_mode()
@@ -407,7 +418,7 @@ def monitor_mouse():
 
 
 @app.command("status")
-def monitor_status():
+def monitor_status() -> None:
     """Monitor overall application status in real-time."""
     if headless_mode:
         init_headless_mode()

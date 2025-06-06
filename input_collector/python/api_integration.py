@@ -419,6 +419,7 @@ class InputCollectorApiIntegration:
     def _subscribe_to_core_events(self) -> None:
         """Subscribe to core events from event system."""
         for event_type in EventType:
+
             def handler(data: Any, evnt_type: EventType = event_type) -> None:
                 self._handle_core_event(evnt_type, data)
 
@@ -861,8 +862,12 @@ class InputCollectorApiIntegration:
         right_trigger_val = self._ps4_trigger_states["right"]
 
         # Calculate directions
-        left_direction = self._get_stick_direction(float(left_stick_x), float(left_stick_y))
-        right_direction = self._get_stick_direction(float(right_stick_x), float(right_stick_y))
+        left_direction = self._get_stick_direction(
+            float(left_stick_x), float(left_stick_y)
+        )
+        right_direction = self._get_stick_direction(
+            float(right_stick_x), float(right_stick_y)
+        )
 
         return {
             "active_buttons": list(self._ps4_active_buttons),
@@ -1352,22 +1357,30 @@ class InputCollectorApiIntegration:
         # Convert event object to dictionary
         return self._event_to_dict(event)
 
-    async def _handle_get_key_events(self, max_count: Optional[int] = None) -> List[Dict[str, Any]]:
+    async def _handle_get_key_events(
+        self, max_count: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
         """Handle get_key_events API endpoint."""
         events = InputDataAPI.get_key_events(max_count or 10)
         return [self._event_to_dict(event) for event in events]
 
-    async def _handle_get_mouse_movement_events(self, max_count: Optional[int] = None) -> List[Dict[str, Any]]:
+    async def _handle_get_mouse_movement_events(
+        self, max_count: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
         """Handle get_mouse_movement_events API endpoint."""
         events = InputDataAPI.get_mouse_movement_events(max_count or 10)
         return [self._event_to_dict(event) for event in events]
 
-    async def _handle_get_mouse_button_events(self, max_count: Optional[int] = None) -> List[Dict[str, Any]]:
+    async def _handle_get_mouse_button_events(
+        self, max_count: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
         """Handle get_mouse_button_events API endpoint."""
         events = InputDataAPI.get_mouse_button_events(max_count or 10)
         return [self._event_to_dict(event) for event in events]
 
-    async def _handle_get_controller_events(self, max_count: Optional[int] = None) -> List[Dict[str, Any]]:
+    async def _handle_get_controller_events(
+        self, max_count: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
         """Handle get_controller_events API endpoint."""
         events = InputDataAPI.get_controller_events(max_count or 10)
         return [self._event_to_dict(event) for event in events]
@@ -1385,7 +1398,9 @@ class InputCollectorApiIntegration:
         # This is just a placeholder - actual WebSocket connections are handled separately
         return {"callback_id": 1, "status": "registered"}
 
-    async def _handle_unregister_event_callback(self, callback_id: int) -> Dict[str, Union[bool, str]]:
+    async def _handle_unregister_event_callback(
+        self, callback_id: int
+    ) -> Dict[str, Union[bool, str]]:
         """Handle unregister_event_callback API endpoint."""
         # This is just a placeholder - actual WebSocket connections are handled separately
         return {"success": True, "message": "Callback unregistered"}
@@ -1439,6 +1454,7 @@ class InputCollectorApiIntegration:
             except Exception as e:
                 logger.error(f"Error in broadcast_event: {e}")
                 import traceback
+
                 traceback.print_exc()
 
         # Run the broadcast

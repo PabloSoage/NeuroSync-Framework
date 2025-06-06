@@ -67,7 +67,7 @@ def parse_config() -> Dict[str, Any]:
     return vars(args)
 
 
-def start_cli_in_thread():
+def start_cli_in_thread() -> threading.Thread:
     """Start the CLI in a separate thread."""
     global cli_thread
 
@@ -90,7 +90,7 @@ def start_cli_in_thread():
     return cli_thread
 
 
-def cleanup_cli_thread():
+def cleanup_cli_thread() -> None:
     """Clean up CLI thread on application exit."""
     global cli_thread
     if cli_thread and cli_thread.is_alive():
@@ -112,7 +112,7 @@ def cleanup_cli_thread():
             print(f"Error during CLI thread cleanup: {e}")
 
 
-def main():
+def main() -> None:
     """Run the input collector application."""
     # Parse configuration
     config = parse_config()

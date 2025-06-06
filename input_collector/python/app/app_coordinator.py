@@ -43,7 +43,7 @@ class AppCoordinator(QObject):
 
     def __init__(
         self,
-        collector_manager: 'CollectorManager',
+        collector_manager: "CollectorManager",
         ui_manager: UIManager,
         logging_manager: LoggingManager,
         event_processor: EventProcessor,

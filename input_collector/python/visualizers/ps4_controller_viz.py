@@ -111,7 +111,9 @@ class PS4ControllerVisualizer(BaseVisualizer):
         self.setMinimumSize(1000, 600)
 
         # Snapshot and commit control for edit mode
-        self._snapshot: Dict[str, Optional[Tuple[int, int]]] = {}  # store original positions on enter edit
+        self._snapshot: Dict[str, Optional[Tuple[int, int]]] = (
+            {}
+        )  # store original positions on enter edit
         self._should_commit = True  # control save on exit
 
     def _init_ui(self) -> None:
@@ -541,7 +543,11 @@ class PS4ControllerVisualizer(BaseVisualizer):
                             color="#00AAFF",
                         )
 
-                elif input_data.key == "Left_Trigger" and hasattr(input_data, "rel_x") and input_data.rel_x is not None:
+                elif (
+                    input_data.key == "Left_Trigger"
+                    and hasattr(input_data, "rel_x")
+                    and input_data.rel_x is not None
+                ):
                     self.trigger_values["left"] = int(input_data.rel_x * 32767)
                     # Only log significant changes
                     if input_data.rel_x > 0.2:
@@ -550,7 +556,11 @@ class PS4ControllerVisualizer(BaseVisualizer):
                             color="#FFAA33",
                         )
 
-                elif input_data.key == "Right_Trigger" and hasattr(input_data, "rel_x") and input_data.rel_x is not None:
+                elif (
+                    input_data.key == "Right_Trigger"
+                    and hasattr(input_data, "rel_x")
+                    and input_data.rel_x is not None
+                ):
                     self.trigger_values["right"] = int(input_data.rel_x * 32767)
                     # Only log significant changes
                     if input_data.rel_x > 0.2:

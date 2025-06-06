@@ -143,23 +143,17 @@ class JSONLogger(QObject):
                 event.speed if event.speed is not None else 0.0
             )
         elif tracking_mode == "delta":
-            clean_log["mouse"]["delta_x"] = (
-                getattr(event, "mouse_delta_x", 0.0)
-            )
-            clean_log["mouse"]["delta_y"] = (
-                getattr(event, "mouse_delta_y", 0.0)
-            )
+            clean_log["mouse"]["delta_x"] = getattr(event, "mouse_delta_x", 0.0)
+            clean_log["mouse"]["delta_y"] = getattr(event, "mouse_delta_y", 0.0)
         elif tracking_mode == "angle":
             if getattr(event, "direction_only", False):
-                clean_log["mouse"]["discrete_angle"] = (
-                    getattr(event, "discrete_angle", 0)
+                clean_log["mouse"]["discrete_angle"] = getattr(
+                    event, "discrete_angle", 0
                 )
             else:
-                clean_log["mouse"]["angle"] = (
-                    getattr(event, "mouse_delta_angle", 0.0)
-                )
-                clean_log["mouse"]["magnitude"] = (
-                    getattr(event, "mouse_delta_magnitude", 0.0)
+                clean_log["mouse"]["angle"] = getattr(event, "mouse_delta_angle", 0.0)
+                clean_log["mouse"]["magnitude"] = getattr(
+                    event, "mouse_delta_magnitude", 0.0
                 )
         elif tracking_mode == "axis":
             clean_log["mouse"]["north"] = getattr(event, "north", 0.0)

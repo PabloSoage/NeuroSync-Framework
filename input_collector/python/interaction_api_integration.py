@@ -146,6 +146,7 @@ class InteractionApiIntegration:
     def _subscribe_to_core_events(self) -> None:
         """Subscribe to core events from event system."""
         for event_type in EventType:
+
             def handler(data: Any, evnt_type: EventType = event_type) -> None:
                 self._handle_core_event(evnt_type, data)
 
@@ -568,12 +569,28 @@ class InteractionApiIntegration:
         # Procesamiento de los sticks para incluir porcentajes y direcciones consistentes
         left_stick_data = self._ps4_stick_states["left"]
         right_stick_data = self._ps4_stick_states["right"]
-        
+
         # Extract values and ensure they're floats
-        left_stick_x = float(left_stick_data["x"]) if isinstance(left_stick_data["x"], (int, float)) else 0.0
-        left_stick_y = float(left_stick_data["y"]) if isinstance(left_stick_data["y"], (int, float)) else 0.0
-        right_stick_x = float(right_stick_data["x"]) if isinstance(right_stick_data["x"], (int, float)) else 0.0
-        right_stick_y = float(right_stick_data["y"]) if isinstance(right_stick_data["y"], (int, float)) else 0.0
+        left_stick_x = (
+            float(left_stick_data["x"])
+            if isinstance(left_stick_data["x"], (int, float))
+            else 0.0
+        )
+        left_stick_y = (
+            float(left_stick_data["y"])
+            if isinstance(left_stick_data["y"], (int, float))
+            else 0.0
+        )
+        right_stick_x = (
+            float(right_stick_data["x"])
+            if isinstance(right_stick_data["x"], (int, float))
+            else 0.0
+        )
+        right_stick_y = (
+            float(right_stick_data["y"])
+            if isinstance(right_stick_data["y"], (int, float))
+            else 0.0
+        )
         left_trigger_val = self._ps4_trigger_states["left"]
         right_trigger_val = self._ps4_trigger_states["right"]
 
@@ -855,6 +872,7 @@ class InteractionApiIntegration:
             except Exception as e:
                 logger.error(f"Error in broadcast_event: {e}")
                 import traceback
+
                 traceback.print_exc()
 
         # Run the broadcast
@@ -1106,8 +1124,8 @@ class InteractionApiIntegration:
 
             # Add route directly to app
             if (
-                hasattr(self.explorer, "app") 
-                and self.explorer is not None 
+                hasattr(self.explorer, "app")
+                and self.explorer is not None
                 and hasattr(self.explorer, "app")
             ):
                 self.explorer.app.add_api_route(
@@ -1909,7 +1927,9 @@ class InteractionApiIntegration:
             logger.error(f"Error in remove_tracked_key endpoint: {e}")
             return {"success": False, "status": {"message": f"Error: {str(e)}"}}
 
-    async def _handle_toggle_button_tracking(self, button_id: str, track: bool) -> Dict[str, Any]:
+    async def _handle_toggle_button_tracking(
+        self, button_id: str, track: bool
+    ) -> Dict[str, Any]:
         """Handle toggle_button_tracking API request."""
         try:
             success = InputCollectorAPI.toggle_button_tracking(button_id, track)

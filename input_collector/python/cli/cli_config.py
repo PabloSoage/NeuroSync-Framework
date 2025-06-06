@@ -4,9 +4,15 @@ Configuration module for the CLI.
 This module contains shared configuration and state used across CLI components.
 """
 
+from __future__ import annotations
+
 import threading
+from typing import TYPE_CHECKING
 
 from ..interaction_api import InputCollectorAPI
+
+if TYPE_CHECKING:
+    from ..ui import VisualizerManager
 
 # Global state variables
 headless_mode = False
@@ -14,7 +20,7 @@ headless_app = None
 gui_mode = False
 
 
-def set_gui_mode(enabled: bool):
+def set_gui_mode(enabled: bool) -> None:
     """Set whether CLI is running alongside GUI."""
     global gui_mode
     gui_mode = enabled
@@ -34,7 +40,7 @@ class HeadlessInputCollector:
     without a GUI, making it usable via CLI.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the headless input collector."""
         # Import inside method to avoid circular imports
         from rich.console import Console
@@ -52,7 +58,7 @@ class HeadlessInputCollector:
             "[green]Headless input collector initialized successfully[/green]"
         )
 
-    def _setup_components(self):
+    def _setup_components(self) -> None:
         """Set up the core components needed for the input collector."""
         from ..collectors import CollectorManager
         from ..logging import LoggingManager
@@ -82,7 +88,7 @@ class HeadlessInputCollector:
             self.event_processor,
         )
 
-    def _create_visualizer_manager(self):
+    def _create_visualizer_manager(self) -> VisualizerManager:
         """Create a minimal visualizer manager for headless mode."""
         from ..ui import VisualizerManager
 
@@ -92,7 +98,7 @@ class HeadlessInputCollector:
 
         return visualizer_manager
 
-    def _connect_components(self):
+    def _connect_components(self) -> None:
         """Connect signals between components."""
         # Since we're not using Qt signals in headless mode,
         # we'll use direct method calls where needed
@@ -123,7 +129,7 @@ class HeadlessInputCollector:
         # Initialize app coordinator with tracked keys
         self.app_coordinator.initialize(self.tracked_keys)
 
-    def _initialize_apis(self):
+    def _initialize_apis(self) -> None:
         """Initialize the APIs."""
         # Initialize the interaction API with application components
         InputCollectorAPI.initialize(
@@ -136,7 +142,7 @@ class HeadlessInputCollector:
 
         # Data Access API is automatically initialized with DataAccessService
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """Clean up resources."""
         try:
             # Stop any active collectors
@@ -150,7 +156,7 @@ class HeadlessInputCollector:
             print(f"Error during headless shutdown: {e}")
 
 
-def init_headless_mode():
+def init_headless_mode() -> HeadlessInputCollector:
     """Initialize headless mode for CLI application."""
     global headless_mode, headless_app
 
@@ -165,7 +171,7 @@ def init_headless_mode():
 cli_running = threading.Event()
 
 
-def set_cli_running(running: bool):
+def set_cli_running(running: bool) -> None:
     """Set whether the CLI is currently running."""
     if running:
         cli_running.set()
@@ -178,6 +184,6 @@ def is_cli_running() -> bool:
     return cli_running.is_set()
 
 
-def wait_for_cli_exit(timeout: float = None):
+def wait_for_cli_exit(timeout: float | None = None) -> bool:
     """Wait for the CLI to exit."""
     return not cli_running.wait(timeout)
