@@ -6,7 +6,7 @@ handling high-level business logic while delegating specific responsibilities.
 """
 
 import time
-from typing import List
+from typing import List, TYPE_CHECKING
 
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 
@@ -15,6 +15,9 @@ from ..interfaces import InputData
 from ..logging import LoggingManager
 from ..processing import EventProcessor
 from ..ui import UIManager
+
+if TYPE_CHECKING:
+    from ..collectors import CollectorManager
 
 
 class AppCoordinator(QObject):
@@ -40,7 +43,7 @@ class AppCoordinator(QObject):
 
     def __init__(
         self,
-        collector_manager,
+        collector_manager: 'CollectorManager',
         ui_manager: UIManager,
         logging_manager: LoggingManager,
         event_processor: EventProcessor,
@@ -63,7 +66,7 @@ class AppCoordinator(QObject):
 
         # App state
         self.is_recording = False
-        self.tracked_keys = []
+        self.tracked_keys: List[str] = []
         self.edit_mode = False
         self.f9_key_down = False
 
@@ -255,7 +258,7 @@ class AppCoordinator(QObject):
 
         # Create headers for CSV based on tracked keys and mode
         self.logging_manager.initialize_csv_file(
-            None,  # Let CSV logger generate headers
+            [],  # Empty list for headers, let CSV logger generate them
             self.tracked_keys,
             tracking_mode,
             direction_only,
