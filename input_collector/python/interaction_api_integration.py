@@ -145,17 +145,11 @@ class InteractionApiIntegration:
 
     def _subscribe_to_core_events(self) -> None:
         """Subscribe to core events from event system."""
-        # Subscribe to all event types
         for event_type in EventType:
-            # Create a handler for this event type
-            handler: Callable[[Any], None] = lambda data, evnt_type=event_type: self._handle_core_event(
-                evnt_type, data
-            )
+            def handler(data: Any, evnt_type: EventType = event_type) -> None:
+                self._handle_core_event(evnt_type, data)
 
-            # Subscribe to the event
             subscribe(event_type, handler)
-
-            # Store subscription for cleanup
             self._event_subscriptions.append((event_type, handler))
 
         logger.info("Subscribed to core events for real-time forwarding")
@@ -814,12 +808,6 @@ class InteractionApiIntegration:
 
     def _broadcast_event(self, event_dict: Dict) -> None:
         """Broadcast an event through the WebSocket connection."""
-        if not hasattr(self.explorer, "broadcast_event") or self.explorer is None:
-            logger.warning(
-                "ApiExplorer does not have broadcast_event method, event not sent"
-            )
-            return
-
         # Get or create event loop
         try:
             loop = asyncio.get_event_loop()
@@ -831,7 +819,7 @@ class InteractionApiIntegration:
             asyncio.set_event_loop(loop)
 
         # Create broadcast coroutine
-        async def broadcast():
+        async def broadcast() -> None:
             try:
                 # Add JSON serialization check
                 import json
@@ -867,7 +855,6 @@ class InteractionApiIntegration:
             except Exception as e:
                 logger.error(f"Error in broadcast_event: {e}")
                 import traceback
-
                 traceback.print_exc()
 
         # Run the broadcast
