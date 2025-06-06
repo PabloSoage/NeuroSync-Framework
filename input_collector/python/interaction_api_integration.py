@@ -51,21 +51,21 @@ class InteractionApiIntegration:
     This class exposes the input collector's interaction API methods through the API Explorer.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the API integration."""
-        self.explorer = None
+        self.explorer: Optional[Any] = None
         self.module_id = "input_collector_control"
         self.is_registered = False
 
         # For storing method groups and methods when fallback is used
-        self.fallback_method_groups = {}
-        self.fallback_methods = {}
+        self.fallback_method_groups: Dict[str, Dict[str, Dict[str, Any]]] = {}
+        self.fallback_methods: Dict[str, Dict[str, Dict[str, Dict[str, Any]]]] = {}
 
         # Module registration status flag
         self.module_registered = False
 
         # For tracking event subscriptions
-        self._event_subscriptions = []
+        self._event_subscriptions: List[tuple[EventType, Callable]] = []
         self._pressed_buttons: Set[str] = set()
 
         # Reference to data API integration for reusing event processing functions
@@ -74,7 +74,7 @@ class InteractionApiIntegration:
         # PS4 controller state tracking - same as in api_integration.py
         self._ps4_button_states: Dict[str, bool] = {}
         self._ps4_active_buttons: Set[str] = set()
-        self._ps4_stick_states: Dict[str, Dict[str, float]] = {
+        self._ps4_stick_states: Dict[str, Dict[str, Union[float, str]]] = {
             "left": {"x": 0.0, "y": 0.0, "direction": "center"},
             "right": {"x": 0.0, "y": 0.0, "direction": "center"},
         }
@@ -99,7 +99,8 @@ class InteractionApiIntegration:
 
         try:
             # Get a reference to the ApiExplorer singleton
-            self.explorer = ApiExplorer.get_instance()
+            explorer_instance = ApiExplorer.get_instance()
+            self.explorer = explorer_instance
 
             # Integrate the data module and its methods first
             data_integration = get_api_integration()
@@ -121,6 +122,8 @@ class InteractionApiIntegration:
             if (
                 start_server
                 and hasattr(self.explorer, "start_server")
+                and self.explorer is not None
+                and hasattr(self.explorer, "is_running")
                 and not self.explorer.is_running
             ):
                 self.explorer.start_server(host=host, port=port, block=False)
@@ -135,12 +138,12 @@ class InteractionApiIntegration:
             traceback.print_exc()
             return False
 
-    def _setup_websocket_events(self):
+    def _setup_websocket_events(self) -> None:
         """Set up event handlers for websocket real-time events."""
         # Subscribe to core events for websocket forwarding
         self._subscribe_to_core_events()
 
-    def _subscribe_to_core_events(self):
+    def _subscribe_to_core_events(self) -> None:
         """Subscribe to core events from event system."""
         # Subscribe to all event types
         for event_type in EventType:
@@ -157,7 +160,7 @@ class InteractionApiIntegration:
 
         logger.info("Subscribed to core events for real-time forwarding")
 
-    def _format_mouse_event(self, event_data: Any) -> Dict:
+    def _format_mouse_event(self, event_data: Any) -> Optional[Dict]:
         """
         Format a mouse event based on its tracking mode.
 
@@ -165,7 +168,7 @@ class InteractionApiIntegration:
             event_data: Mouse event data
 
         Returns:
-            Dict: Formatted event for websocket broadcast
+            Dict: Formatted event for websocket broadcast or None if error
         """
         # Reuse data_api_integration's function if available
         if self.data_api_integration and hasattr(
@@ -301,7 +304,7 @@ class InteractionApiIntegration:
         closest = min(directions.keys(), key=lambda k: abs(k - angle))
         return directions[closest]
 
-    def _handle_core_event(self, event_type: EventType, data: Any):
+    def _handle_core_event(self, event_type: EventType, data: Any) -> None:
         """
         Handle events from the core event system.
 
@@ -569,10 +572,14 @@ class InteractionApiIntegration:
             Dict: The current state of all PS4 controls
         """
         # Procesamiento de los sticks para incluir porcentajes y direcciones consistentes
-        left_stick_x = self._ps4_stick_states["left"]["x"]
-        left_stick_y = self._ps4_stick_states["left"]["y"]
-        right_stick_x = self._ps4_stick_states["right"]["x"]
-        right_stick_y = self._ps4_stick_states["right"]["y"]
+        left_stick_data = self._ps4_stick_states["left"]
+        right_stick_data = self._ps4_stick_states["right"]
+        
+        # Extract values and ensure they're floats
+        left_stick_x = float(left_stick_data["x"]) if isinstance(left_stick_data["x"], (int, float)) else 0.0
+        left_stick_y = float(left_stick_data["y"]) if isinstance(left_stick_data["y"], (int, float)) else 0.0
+        right_stick_x = float(right_stick_data["x"]) if isinstance(right_stick_data["x"], (int, float)) else 0.0
+        right_stick_y = float(right_stick_data["y"]) if isinstance(right_stick_data["y"], (int, float)) else 0.0
         left_trigger_val = self._ps4_trigger_states["left"]
         right_trigger_val = self._ps4_trigger_states["right"]
 
@@ -673,7 +680,7 @@ class InteractionApiIntegration:
                 control_name = "right_trigger"
 
         # For stick movement
-        if control_type == "stick":
+        if control_type == "stick" and control_name:
             # Get X and Y values
             x_value = getattr(data, "rel_x", 0)
             y_value = getattr(data, "rel_y", 0)
@@ -714,7 +721,7 @@ class InteractionApiIntegration:
             payload["ps4_state"] = ps4_state
 
         # For trigger movement
-        elif control_type == "trigger":
+        elif control_type == "trigger" and control_name:
             # Get trigger value
             value = getattr(data, "rel_x", 0)
             percentage = f"{int(abs(value) * 100)}%"
@@ -807,7 +814,7 @@ class InteractionApiIntegration:
 
     def _broadcast_event(self, event_dict: Dict) -> None:
         """Broadcast an event through the WebSocket connection."""
-        if not hasattr(self.explorer, "broadcast_event"):
+        if not hasattr(self.explorer, "broadcast_event") or self.explorer is None:
             logger.warning(
                 "ApiExplorer does not have broadcast_event method, event not sent"
             )
@@ -855,7 +862,8 @@ class InteractionApiIntegration:
                 if "timestamp" in event_dict:
                     event_dict["timestamp"] = float(f"{event_dict['timestamp']:.6f}")
 
-                await self.explorer.broadcast_event(self.module_id, event_dict)
+                if self.explorer is not None:
+                    await self.explorer.broadcast_event(self.module_id, event_dict)
             except Exception as e:
                 logger.error(f"Error in broadcast_event: {e}")
                 import traceback
@@ -874,7 +882,7 @@ class InteractionApiIntegration:
     def _register_module(self) -> bool:
         """Register the input collector control module."""
         try:
-            if hasattr(self.explorer, "register_module"):
+            if hasattr(self.explorer, "register_module") and self.explorer is not None:
                 self.explorer.register_module(
                     module_id=self.module_id,
                     name="Input Collector Control",
@@ -907,18 +915,19 @@ class InteractionApiIntegration:
                 )
 
                 # If explorer has an app attribute, add the router directly
-                if hasattr(self.explorer, "app"):
+                if hasattr(self.explorer, "app") and self.explorer is not None:
                     self.explorer.app.include_router(router)
             except Exception as e:
                 logger.error(f"Error creating router: {e}")
 
             # Register module in the modules dict
-            self.explorer.modules[self.module_id] = {
-                "name": "Input Collector Control",
-                "description": "API for controlling the input collector application",
-                "method_groups": {},
-                "router": router,
-            }
+            if self.explorer is not None:
+                self.explorer.modules[self.module_id] = {
+                    "name": "Input Collector Control",
+                    "description": "API for controlling the input collector application",
+                    "method_groups": {},
+                    "router": router,
+                }
 
             logger.info(
                 f"Module '{self.module_id}' registered using fallback mechanism"
@@ -973,7 +982,7 @@ class InteractionApiIntegration:
             )
             return False
 
-        if hasattr(self.explorer, "add_method_group"):
+        if hasattr(self.explorer, "add_method_group") and self.explorer is not None:
             try:
                 self.explorer.add_method_group(module_id, group_id, name)
                 return True
@@ -991,7 +1000,7 @@ class InteractionApiIntegration:
         logger.warning(f"Using fallback method for adding group {group_id}")
 
         # Check if modules attribute exists
-        if hasattr(self.explorer, "modules"):
+        if hasattr(self.explorer, "modules") and self.explorer is not None:
             # Check if our module exists
             if module_id in self.explorer.modules:
                 # Check if method_groups dict exists
@@ -1033,7 +1042,7 @@ class InteractionApiIntegration:
         handler_function: Callable,
     ) -> None:
         """Register a method with fallback support."""
-        if hasattr(self.explorer, "register_method"):
+        if hasattr(self.explorer, "register_method") and self.explorer is not None:
             try:
                 self.explorer.register_method(
                     module_id, group_id, method_id, method_info, handler_function
@@ -1083,7 +1092,7 @@ class InteractionApiIntegration:
         )
 
         # Create fallback endpoint if explorer has routing capability
-        if hasattr(self.explorer, "app"):
+        if hasattr(self.explorer, "app") and self.explorer is not None:
             self._create_fallback_endpoint(
                 module_id, method_id, method_info, handler_function
             )
@@ -1109,15 +1118,20 @@ class InteractionApiIntegration:
                 return result
 
             # Add route directly to app
-            self.explorer.app.add_api_route(
-                path,
-                endpoint_wrapper,
-                methods=[method_type],
-                response_model=None,
-                tags=["Input Collector Control"],
-            )
+            if (
+                hasattr(self.explorer, "app") 
+                and self.explorer is not None 
+                and hasattr(self.explorer, "app")
+            ):
+                self.explorer.app.add_api_route(
+                    path,
+                    endpoint_wrapper,
+                    methods=[method_type],
+                    response_model=None,
+                    tags=["Input Collector Control"],
+                )
 
-            logger.info(f"Added fallback route for {method_id} at {path}")
+                logger.info(f"Added fallback route for {method_id} at {path}")
         except Exception as e:
             logger.error(f"Failed to add fallback route for {method_id}: {e}")
 
@@ -1621,7 +1635,7 @@ class InteractionApiIntegration:
     # API endpoint handlers
     #
 
-    async def _handle_start_recording(self):
+    async def _handle_start_recording(self) -> Dict[str, Any]:
         """Handle start_recording API request."""
         try:
             success = InputCollectorAPI.start_recording()
@@ -1636,7 +1650,7 @@ class InteractionApiIntegration:
             traceback.print_exc()
             return {"success": False, "status": {"message": f"Error: {str(e)}"}}
 
-    async def _handle_stop_recording(self):
+    async def _handle_stop_recording(self) -> Dict[str, Any]:
         """Handle stop_recording API request."""
         try:
             success = InputCollectorAPI.stop_recording()
@@ -1651,7 +1665,7 @@ class InteractionApiIntegration:
             traceback.print_exc()
             return {"success": False, "status": {"message": f"Error: {str(e)}"}}
 
-    async def _handle_toggle_recording(self):
+    async def _handle_toggle_recording(self) -> Dict[str, Any]:
         """Handle toggle_recording API request."""
         try:
             success = InputCollectorAPI.toggle_recording()
@@ -1666,7 +1680,7 @@ class InteractionApiIntegration:
             traceback.print_exc()
             return {"success": False, "status": {"message": f"Error: {str(e)}"}}
 
-    async def _handle_is_recording(self):
+    async def _handle_is_recording(self) -> Dict[str, Any]:
         """Handle is_recording API request."""
         try:
             recording = InputCollectorAPI.is_recording()
@@ -1675,7 +1689,7 @@ class InteractionApiIntegration:
             logger.error(f"Error in is_recording endpoint: {e}")
             return {"recording": False, "error": str(e)}
 
-    async def _handle_enable_json_logging(self, enabled: bool = True):
+    async def _handle_enable_json_logging(self, enabled: bool = True) -> Dict[str, Any]:
         """Handle enable_json_logging API request."""
         try:
             success = InputCollectorAPI.enable_json_logging(enabled)
@@ -1689,7 +1703,7 @@ class InteractionApiIntegration:
 
     async def _handle_enable_csv_logging(
         self, enabled: bool = True, filepath: Optional[str] = None
-    ):
+    ) -> Dict[str, Any]:
         """Handle enable_csv_logging API request."""
         try:
             success = InputCollectorAPI.enable_csv_logging(enabled, filepath)
@@ -1701,7 +1715,7 @@ class InteractionApiIntegration:
             logger.error(f"Error in enable_csv_logging endpoint: {e}")
             return {"success": False, "status": {"message": f"Error: {str(e)}"}}
 
-    async def _handle_set_csv_path(self, filepath: str):
+    async def _handle_set_csv_path(self, filepath: str) -> Dict[str, Any]:
         """Handle set_csv_path API request."""
         try:
             success = InputCollectorAPI.set_csv_path(filepath)
@@ -1713,7 +1727,7 @@ class InteractionApiIntegration:
             logger.error(f"Error in set_csv_path endpoint: {e}")
             return {"success": False, "status": {"message": f"Error: {str(e)}"}}
 
-    async def _handle_get_logging_state(self):
+    async def _handle_get_logging_state(self) -> Dict[str, Any]:
         """Handle get_logging_state API request."""
         try:
             return InputCollectorAPI.get_logging_state()
@@ -1721,7 +1735,7 @@ class InteractionApiIntegration:
             logger.error(f"Error in get_logging_state endpoint: {e}")
             return {"error": str(e)}
 
-    async def _handle_get_available_collectors(self):
+    async def _handle_get_available_collectors(self) -> Dict[str, Any]:
         """Handle get_available_collectors API request."""
         try:
             collectors = InputCollectorAPI.get_available_collectors()
@@ -1730,7 +1744,7 @@ class InteractionApiIntegration:
             logger.error(f"Error in get_available_collectors endpoint: {e}")
             return {"collectors": [], "error": str(e)}
 
-    async def _handle_switch_collector(self, collector_type: str):
+    async def _handle_switch_collector(self, collector_type: str) -> Dict[str, Any]:
         """Handle switch_collector API request."""
         try:
             success = InputCollectorAPI.switch_collector(collector_type)
@@ -1742,7 +1756,7 @@ class InteractionApiIntegration:
             logger.error(f"Error in switch_collector endpoint: {e}")
             return {"success": False, "status": {"message": f"Error: {str(e)}"}}
 
-    async def _handle_get_current_collector(self):
+    async def _handle_get_current_collector(self) -> Dict[str, Any]:
         """Handle get_current_collector API request."""
         try:
             return InputCollectorAPI.get_current_collector()
@@ -1750,7 +1764,7 @@ class InteractionApiIntegration:
             logger.error(f"Error in get_current_collector endpoint: {e}")
             return {"error": str(e)}
 
-    async def _handle_scan_controllers(self):
+    async def _handle_scan_controllers(self) -> Dict[str, Any]:
         """Handle scan_controllers API request."""
         try:
             controllers = InputCollectorAPI.scan_controllers()
@@ -1759,7 +1773,7 @@ class InteractionApiIntegration:
             logger.error(f"Error in scan_controllers endpoint: {e}")
             return {"controllers": [], "error": str(e)}
 
-    async def _handle_connect_controller(self, index: int):
+    async def _handle_connect_controller(self, index: int) -> Dict[str, Any]:
         """Handle connect_controller API request."""
         try:
             success = InputCollectorAPI.connect_controller(index)
@@ -1773,12 +1787,12 @@ class InteractionApiIntegration:
 
     async def _handle_set_mouse_tracking_mode(
         self, mode: str, direction_only: Optional[bool] = None
-    ):
+    ) -> Dict[str, Any]:
         """Handle set_mouse_tracking_mode API request."""
         try:
             # Get available modes first based on requested direction_only
             available_modes = InputCollectorAPI.get_available_tracking_modes(
-                direction_only
+                direction_only if direction_only is not None else False
             )
 
             # Validate mode against available modes
@@ -1795,7 +1809,7 @@ class InteractionApiIntegration:
             success = InputCollectorAPI.set_mouse_tracking_mode(mode, direction_only)
 
             # Get updated available modes after the operation
-            updated_modes = InputCollectorAPI.get_available_tracking_modes(None)
+            updated_modes = InputCollectorAPI.get_available_tracking_modes(False)
             current_settings = InputCollectorAPI.get_mouse_settings()
 
             return {
@@ -1813,7 +1827,7 @@ class InteractionApiIntegration:
         delta_smoothing: Optional[float] = None,
         joystick_sensitivity: Optional[float] = None,
         angle_grouping: Optional[int] = None,
-    ):
+    ) -> Dict[str, Any]:
         """Handle set_mouse_settings API request."""
         try:
             # Input validation is now handled in the InputCollectorAPI class
@@ -1833,7 +1847,7 @@ class InteractionApiIntegration:
             logger.error(f"Error in set_mouse_settings endpoint: {e}")
             return {"success": False, "status": {"message": f"Error: {str(e)}"}}
 
-    async def _handle_get_mouse_settings(self):
+    async def _handle_get_mouse_settings(self) -> Dict[str, Any]:
         """Handle get_mouse_settings API request."""
         try:
             return InputCollectorAPI.get_mouse_settings()
@@ -1843,16 +1857,18 @@ class InteractionApiIntegration:
 
     async def _handle_get_available_tracking_modes(
         self, direction_only: Optional[bool] = None
-    ):
+    ) -> Dict[str, Any]:
         """Handle get_available_tracking_modes API request."""
         try:
-            modes = InputCollectorAPI.get_available_tracking_modes(direction_only)
+            modes = InputCollectorAPI.get_available_tracking_modes(
+                direction_only if direction_only is not None else False
+            )
             return {"modes": modes, "direction_only": direction_only}
         except Exception as e:
             logger.error(f"Error in get_available_tracking_modes endpoint: {e}")
             return {"error": str(e)}
 
-    async def _handle_get_tracked_keys(self):
+    async def _handle_get_tracked_keys(self) -> Dict[str, Any]:
         """Handle get_tracked_keys API request."""
         try:
             keys = InputCollectorAPI.get_tracked_keys()
@@ -1861,7 +1877,7 @@ class InteractionApiIntegration:
             logger.error(f"Error in get_tracked_keys endpoint: {e}")
             return {"keys": [], "error": str(e)}
 
-    async def _handle_toggle_edit_mode(self):
+    async def _handle_toggle_edit_mode(self) -> Dict[str, Any]:
         """Handle toggle_edit_mode API request."""
         try:
             success = InputCollectorAPI.toggle_edit_mode()
@@ -1873,7 +1889,7 @@ class InteractionApiIntegration:
             logger.error(f"Error in toggle_edit_mode endpoint: {e}")
             return {"success": False, "status": {"message": f"Error: {str(e)}"}}
 
-    async def _handle_is_edit_mode(self):
+    async def _handle_is_edit_mode(self) -> Dict[str, Any]:
         """Handle is_edit_mode API request."""
         try:
             edit_mode = InputCollectorAPI.is_edit_mode()
@@ -1882,7 +1898,7 @@ class InteractionApiIntegration:
             logger.error(f"Error in is_edit_mode endpoint: {e}")
             return {"edit_mode": False, "error": str(e)}
 
-    async def _handle_add_tracked_key(self, key: str):
+    async def _handle_add_tracked_key(self, key: str) -> Dict[str, Any]:
         """Handle add_tracked_key API request."""
         try:
             success = InputCollectorAPI.add_tracked_key(key)
@@ -1894,7 +1910,7 @@ class InteractionApiIntegration:
             logger.error(f"Error in add_tracked_key endpoint: {e}")
             return {"success": False, "status": {"message": f"Error: {str(e)}"}}
 
-    async def _handle_remove_tracked_key(self, key: str):
+    async def _handle_remove_tracked_key(self, key: str) -> Dict[str, Any]:
         """Handle remove_tracked_key API request."""
         try:
             success = InputCollectorAPI.remove_tracked_key(key)
@@ -1906,7 +1922,7 @@ class InteractionApiIntegration:
             logger.error(f"Error in remove_tracked_key endpoint: {e}")
             return {"success": False, "status": {"message": f"Error: {str(e)}"}}
 
-    async def _handle_toggle_button_tracking(self, button_id: str, track: bool):
+    async def _handle_toggle_button_tracking(self, button_id: str, track: bool) -> Dict[str, Any]:
         """Handle toggle_button_tracking API request."""
         try:
             success = InputCollectorAPI.toggle_button_tracking(button_id, track)
@@ -1918,7 +1934,7 @@ class InteractionApiIntegration:
             logger.error(f"Error in toggle_button_tracking endpoint: {e}")
             return {"success": False, "status": {"message": f"Error: {str(e)}"}}
 
-    async def _handle_toggle_fullscreen(self):
+    async def _handle_toggle_fullscreen(self) -> Dict[str, Any]:
         """Handle toggle_fullscreen API request."""
         try:
             success = InputCollectorAPI.toggle_fullscreen()
@@ -1930,7 +1946,7 @@ class InteractionApiIntegration:
             logger.error(f"Error in toggle_fullscreen endpoint: {e}")
             return {"success": False, "status": {"message": f"Error: {str(e)}"}}
 
-    async def _handle_get_application_state(self):
+    async def _handle_get_application_state(self) -> Dict[str, Any]:
         """Handle get_application_state API request."""
         try:
             return InputCollectorAPI.get_application_state()
@@ -1945,7 +1961,7 @@ class InteractionApiIntegration:
 _interaction_api_integration = None
 
 
-def get_interaction_api_integration():
+def get_interaction_api_integration() -> InteractionApiIntegration:
     """Get or create the interaction API integration instance."""
     global _interaction_api_integration
     if _interaction_api_integration is None:

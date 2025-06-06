@@ -78,7 +78,7 @@ class UIManager(QObject):
         self.error_color = "#FF5555"
 
         # Store references to key UI components
-        self.components = {}
+        self.components: Dict[str, Any] = {}
 
         # Create UI
         self._set_dark_theme()
@@ -536,7 +536,7 @@ class UIManager(QObject):
         keyboard_viz: KeyboardVisualizer,
         mouse_viz: MouseVisualizer,
         mouse_buttons: MouseButtonsSelector,
-        ps4_controller_viz=None,
+        ps4_controller_viz: Optional[Any] = None,
     ) -> None:
         """
         Add visualizers to the UI layout.
@@ -776,24 +776,15 @@ class UIManager(QObject):
             )
 
         # Show/hide Status and Active Keys sections based on collector type
-        active_keys_group = next(
-            (
-                self.components.get(k)
-                for k in self.components
-                if isinstance(self.components.get(k), QGroupBox)
-                and self.components.get(k).title() == "Active Keys"
-            ),
-            None,
-        )
-        status_group = next(
-            (
-                self.components.get(k)
-                for k in self.components
-                if isinstance(self.components.get(k), QGroupBox)
-                and self.components.get(k).title() == "Status"
-            ),
-            None,
-        )
+        active_keys_group = None
+        status_group = None
+        
+        for component in self.components.values():
+            if isinstance(component, QGroupBox):
+                if component.title() == "Active Keys":
+                    active_keys_group = component
+                elif component.title() == "Status":
+                    status_group = component
 
         if active_keys_group:
             active_keys_group.setVisible(is_keyboard_mouse)
