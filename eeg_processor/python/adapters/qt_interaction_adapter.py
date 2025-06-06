@@ -3,7 +3,8 @@ Qt Interaction Adapter for synchronizing API changes with PyQt5 GUI.
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Any
+
 from PyQt5.QtCore import QObject, QMetaObject, Qt, Q_ARG
 from PyQt5.QtWidgets import QApplication
 

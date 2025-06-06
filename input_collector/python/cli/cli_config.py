@@ -4,15 +4,8 @@ Configuration module for the CLI.
 This module contains shared configuration and state used across CLI components.
 """
 
-import time
-import sys
-import os
-import asyncio
 import threading
-from typing import Optional, List, Dict, Any
 
-from ..core.event_system import EventType, subscribe, unsubscribe
-from ..data_access_api import InputDataAPI
 from ..interaction_api import InputCollectorAPI
 
 # Global state variables
@@ -65,7 +58,7 @@ class HeadlessInputCollector:
         from ..logging import LoggingManager
         from ..processing import EventProcessor
         from ..app import AppCoordinator
-        from ..ui import UIManager, VisualizerManager
+        from ..ui import UIManager
 
         # Create components (similar to GUI version but without actual UI rendering)
         self.collector_manager = CollectorManager()

@@ -5,15 +5,13 @@ This module provides functionality for capturing and processing PS4 controller
 inputs using SDL2, with support for buttons, analog sticks and triggers.
 """
 
-import os
-import sys
 import threading
 import time
-from typing import List, Dict, Any, Callable, Optional, Set
+from typing import List, Dict, Any, Callable, Set
 
 import sdl2
 import sdl2.ext
-from PyQt5.QtCore import QTimer, QObject, pyqtSignal
+from PyQt5.QtCore import QTimer
 
 from ..interfaces import InputData, AbstractInputCollector
 

@@ -5,8 +5,8 @@ This module provides a clean interface for accessing EEG data and metadata
 in real-time with minimal overhead.
 """
 
-from typing import Dict, List, Any, Tuple, Callable, Optional
 import logging
+from typing import Dict, List, Any, Tuple, Callable, Optional
 
 import numpy as np
 

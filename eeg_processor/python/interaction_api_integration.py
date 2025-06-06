@@ -3,7 +3,7 @@ Integration of the interaction API with external API systems.
 """
 
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Dict, Any
 
 from .services.interaction_service import InteractionService
 

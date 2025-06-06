@@ -28,7 +28,7 @@ class CSVLogger(QObject):
         """Initialize the CSV logger."""
         super().__init__()
         self.csv_file: Optional[TextIO] = None
-        self.csv_writer = None
+        self.csv_writer: Optional[csv.writer] = None
         self.csv_headers: List[str] = []
         self.filepath: str = ""
 
@@ -130,8 +130,9 @@ class CSVLogger(QObject):
                     )
 
             # Write headers to CSV
-            self.csv_writer.writerow(self.csv_headers)
-            self.csv_file.flush()
+            if self.csv_writer is not None:
+                self.csv_writer.writerow(self.csv_headers)
+                self.csv_file.flush()
 
             self.status_message.emit(f"CSV logging to: {self.filepath}", "#5FB878")
             return True
@@ -240,53 +241,36 @@ class CSVLogger(QObject):
                 )
         elif tracking_mode == "delta":
             if "mouse_delta_x" in self.csv_headers:
-                row_data["mouse_delta_x"] = (
-                    event.mouse_delta_x if hasattr(event, "mouse_delta_x") else 0.0
-                )
+                row_data["mouse_delta_x"] = getattr(event, "mouse_delta_x", 0.0)
             if "mouse_delta_y" in self.csv_headers:
-                row_data["mouse_delta_y"] = (
-                    event.mouse_delta_y if hasattr(event, "mouse_delta_y") else 0.0
-                )
+                row_data["mouse_delta_y"] = getattr(event, "mouse_delta_y", 0.0)
         elif tracking_mode == "angle":
             direction_only = getattr(event, "direction_only", False)
             if direction_only:
                 if "mouse_discrete_angle" in self.csv_headers:
-                    row_data["mouse_discrete_angle"] = (
-                        event.discrete_angle if hasattr(event, "discrete_angle") else 0
-                    )
+                    row_data["mouse_discrete_angle"] = getattr(event, "discrete_angle", 0)
             else:
                 if "mouse_angle" in self.csv_headers:
-                    row_data["mouse_angle"] = (
-                        event.mouse_delta_angle
-                        if hasattr(event, "mouse_delta_angle")
-                        else 0.0
-                    )
+                    row_data["mouse_angle"] = getattr(event, "mouse_delta_angle", 0.0)
                 if "mouse_magnitude" in self.csv_headers:
-                    row_data["mouse_magnitude"] = (
-                        event.mouse_delta_magnitude
-                        if hasattr(event, "mouse_delta_magnitude")
-                        else 0.0
-                    )
+                    row_data["mouse_magnitude"] = getattr(event, "mouse_delta_magnitude", 0.0)
         elif tracking_mode == "axis":
             if "mouse_north" in self.csv_headers:
-                row_data["mouse_north"] = (
-                    event.north if hasattr(event, "north") else 0.0
-                )
+                row_data["mouse_north"] = getattr(event, "north", 0.0)
             if "mouse_south" in self.csv_headers:
-                row_data["mouse_south"] = (
-                    event.south if hasattr(event, "south") else 0.0
-                )
+                row_data["mouse_south"] = getattr(event, "south", 0.0)
             if "mouse_east" in self.csv_headers:
-                row_data["mouse_east"] = event.east if hasattr(event, "east") else 0.0
+                row_data["mouse_east"] = getattr(event, "east", 0.0)
             if "mouse_west" in self.csv_headers:
-                row_data["mouse_west"] = event.west if hasattr(event, "west") else 0.0
+                row_data["mouse_west"] = getattr(event, "west", 0.0)
 
         # Create row in same order as headers
         row = [row_data.get(header, "") for header in self.csv_headers]
 
         # Write row to CSV
-        self.csv_writer.writerow(row)
-        self.csv_file.flush()
+        if self.csv_writer is not None and self.csv_file is not None:
+            self.csv_writer.writerow(row)
+            self.csv_file.flush()
 
     def _log_ps4_controller_event(self, event: InputData) -> None:
         """Log a PS4 controller event to CSV."""
@@ -318,6 +302,7 @@ class CSVLogger(QObject):
         if event.event_type == "axis_motion":
             if (
                 hasattr(event, "key")
+                and event.key is not None
                 and hasattr(event, "rel_x")
                 and event.rel_x is not None
             ):
@@ -339,5 +324,6 @@ class CSVLogger(QObject):
         row = [row_data.get(header, "") for header in self.csv_headers]
 
         # Write row to CSV
-        self.csv_writer.writerow(row)
-        self.csv_file.flush()
+        if self.csv_writer is not None and self.csv_file is not None:
+            self.csv_writer.writerow(row)
+            self.csv_file.flush()

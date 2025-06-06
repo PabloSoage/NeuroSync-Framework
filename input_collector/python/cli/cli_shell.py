@@ -4,22 +4,19 @@ Interactive CLI shell for Input Collector.
 This module provides an interactive shell for the Input Collector CLI.
 """
 
-import os
-import sys
-import time
 import shlex
-from typing import List, Dict, Any, Optional
+import sys
+from typing import List
 
-import typer
-from rich.console import Console
-from rich.prompt import Prompt
-from rich.panel import Panel
-from rich.syntax import Syntax
 from rich import box
+from rich.console import Console
+from rich.panel import Panel
+from rich.prompt import Prompt
+from rich.syntax import Syntax
 
+from .cli_app import app
 # Import shared config instead of from cli_app
 from .cli_config import headless_mode, get_gui_mode, init_headless_mode
-from .cli_app import app
 from ..interaction_api import InputCollectorAPI
 
 console = Console()

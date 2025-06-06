@@ -4,13 +4,10 @@ Data commands for the CLI application.
 These commands allow interacting with the data access API.
 """
 
-from typing import Optional, List, Dict, Any
-import time
-
 import typer
+from rich import box
 from rich.console import Console
 from rich.table import Table
-from rich import box
 
 # Import shared config instead of from cli_app
 from ..cli_config import headless_mode, init_headless_mode

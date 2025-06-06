@@ -13,12 +13,11 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox,
 
 from .app import AppCoordinator
 from .collectors import CollectorManager
+from .interaction_api import InputCollectorAPI
 from .logging import LoggingManager
 from .processing import EventProcessor
-
 # Import new modular components
 from .ui import UIManager
-from .interaction_api import InputCollectorAPI
 
 # Import PS4 controller with fallback
 try:

@@ -5,11 +5,9 @@ Provides service-layer interfaces for controlling and interacting with
 the input collector application components.
 """
 
-from typing import Dict, List, Optional, Any, Tuple, Callable, Set
-import threading
 import logging
-import time
-from ..core.event_system import EventType, dispatch
+import threading
+from typing import Dict, List, Optional, Any
 
 
 class InteractionService:

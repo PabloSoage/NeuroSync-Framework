@@ -3,7 +3,7 @@ Service for handling interaction API requests.
 """
 
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 
 from ..core.event_system import EventSystem, EventType
 

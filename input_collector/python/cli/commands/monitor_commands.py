@@ -5,22 +5,20 @@ These commands allow monitoring input events in real-time.
 """
 
 import time
-import asyncio
-from typing import Optional, List, Dict, Any
+from typing import List, Any
 
 import typer
-from rich.console import Console
-from rich.live import Live
-from rich.table import Table
-from rich.panel import Panel
-from rich.layout import Layout
 from rich import box
-import keyboard
+from rich.console import Console
+from rich.layout import Layout
+from rich.live import Live
+from rich.panel import Panel
+from rich.table import Table
 
 # Import shared config instead of from cli_app
 from ..cli_config import headless_mode, init_headless_mode
-from ...data_access_api import InputDataAPI
 from ...core.event_system import EventType, subscribe, unsubscribe
+from ...data_access_api import InputDataAPI
 
 console = Console()
 app = typer.Typer()

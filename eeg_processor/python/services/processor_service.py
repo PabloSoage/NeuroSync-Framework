@@ -1,5 +1,6 @@
-from typing import Dict, List, Any, Tuple, Optional
 import logging
+from typing import Dict, List, Any, Tuple, Optional
+
 import numpy as np
 from brainflow.data_filter import WaveletTypes, AggOperations
 

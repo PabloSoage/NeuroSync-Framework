@@ -5,11 +5,24 @@ Provides a widget for visualizing PS4 controller state.
 """
 
 import json
-import time
 import os
+import time
 from pathlib import Path
-from typing import Dict, Optional, Any, List, Tuple
+from typing import Dict, Optional, Any, Tuple
 
+from PyQt5.QtCore import Qt, QRect, QTimer, pyqtSignal, QPoint
+from PyQt5.QtGui import (
+    QPainter,
+    QPen,
+    QBrush,
+    QColor,
+    QPixmap,
+    QTransform,
+    QFont,
+    QTextCursor,
+    QPaintEvent,
+    QMouseEvent,
+)
 from PyQt5.QtWidgets import (
     QWidget,
     QApplication,
@@ -21,23 +34,9 @@ from PyQt5.QtWidgets import (
     QSplitter,
     QGridLayout,
 )
-from PyQt5.QtCore import Qt, QRect, QTimer, pyqtSignal, QPoint, QSize
-from PyQt5.QtGui import (
-    QPainter,
-    QPen,
-    QBrush,
-    QColor,
-    QPixmap,
-    QTransform,
-    QFont,
-    QCursor,
-    QTextCursor,
-    QPaintEvent,
-    QMouseEvent,
-)
 
-from ..interfaces import InputData
 from .visualizer_base import BaseVisualizer
+from ..interfaces import InputData
 
 
 class PS4ControllerVisualizer(BaseVisualizer):

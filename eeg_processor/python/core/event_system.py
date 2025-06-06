@@ -4,9 +4,9 @@ Event system for coordinating interactions between API and GUI components.
 
 import logging
 import threading
-from typing import Dict, List, Callable, Any, Optional
-from enum import Enum
 from dataclasses import dataclass, field
+from enum import Enum
+from typing import Dict, List, Callable, Any, Optional
 
 
 class EventType(Enum):

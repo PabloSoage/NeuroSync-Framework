@@ -5,16 +5,16 @@ Acts as the central coordinator between different components of the application,
 handling high-level business logic while delegating specific responsibilities.
 """
 
-from typing import List
 import time
+from typing import List
 
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 
+from ..core.event_system import EventType, dispatch
 from ..interfaces import InputData
 from ..logging import LoggingManager
 from ..processing import EventProcessor
 from ..ui import UIManager
-from ..core.event_system import EventType, dispatch
 
 
 class AppCoordinator(QObject):

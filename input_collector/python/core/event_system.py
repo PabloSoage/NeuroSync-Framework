@@ -6,9 +6,8 @@ by both UI and API consumers.
 """
 
 import threading
-import time
 from enum import Enum, auto
-from typing import Dict, List, Any, Callable, Set, Optional
+from typing import Dict, Any, Callable, Set
 
 
 class EventType(Enum):

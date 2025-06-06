@@ -7,8 +7,8 @@ Provides functionality for logging input events to JSON format.
 import json
 import os
 import time
-from typing import Optional, TextIO
 from datetime import datetime
+from typing import Optional, TextIO, Dict, Any
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
@@ -118,7 +118,7 @@ class JSONLogger(QObject):
             scroll_value = 1 if event.direction == "up" else -1
 
         # Create a simplified log structure
-        clean_log = {
+        clean_log: Dict[str, Any] = {
             "timestamp": event.timestamp,
             "mode": tracking_mode,
             "keyboard": {"keys": event.active_keys or []},
@@ -144,50 +144,46 @@ class JSONLogger(QObject):
             )
         elif tracking_mode == "delta":
             clean_log["mouse"]["delta_x"] = (
-                event.mouse_delta_x if hasattr(event, "mouse_delta_x") else 0.0
+                getattr(event, "mouse_delta_x", 0.0)
             )
             clean_log["mouse"]["delta_y"] = (
-                event.mouse_delta_y if hasattr(event, "mouse_delta_y") else 0.0
+                getattr(event, "mouse_delta_y", 0.0)
             )
         elif tracking_mode == "angle":
-            if hasattr(event, "direction_only") and event.direction_only:
+            if getattr(event, "direction_only", False):
                 clean_log["mouse"]["discrete_angle"] = (
-                    event.discrete_angle if hasattr(event, "discrete_angle") else 0
+                    getattr(event, "discrete_angle", 0)
                 )
             else:
                 clean_log["mouse"]["angle"] = (
-                    event.mouse_delta_angle
-                    if hasattr(event, "mouse_delta_angle")
-                    else 0.0
+                    getattr(event, "mouse_delta_angle", 0.0)
                 )
                 clean_log["mouse"]["magnitude"] = (
-                    event.mouse_delta_magnitude
-                    if hasattr(event, "mouse_delta_magnitude")
-                    else 0.0
+                    getattr(event, "mouse_delta_magnitude", 0.0)
                 )
         elif tracking_mode == "axis":
-            clean_log["mouse"]["north"] = (
-                event.north if hasattr(event, "north") else 0.0
-            )
-            clean_log["mouse"]["south"] = (
-                event.south if hasattr(event, "south") else 0.0
-            )
-            clean_log["mouse"]["east"] = event.east if hasattr(event, "east") else 0.0
-            clean_log["mouse"]["west"] = event.west if hasattr(event, "west") else 0.0
+            clean_log["mouse"]["north"] = getattr(event, "north", 0.0)
+            clean_log["mouse"]["south"] = getattr(event, "south", 0.0)
+            clean_log["mouse"]["east"] = getattr(event, "east", 0.0)
+            clean_log["mouse"]["west"] = getattr(event, "west", 0.0)
 
         # Write to file and flush
-        self.log_file.write(json.dumps(clean_log) + "\n")
-        self.log_file.flush()
+        if self.log_file is not None:
+            self.log_file.write(json.dumps(clean_log) + "\n")
+            self.log_file.flush()
 
     def _log_ps4_event(self, event: InputData) -> None:
         """Log a PS4 controller event to JSON."""
+        if self.log_file is None:
+            return
+
         try:
             timestamp_str = datetime.fromtimestamp(event.timestamp).strftime(
                 "%Y-%m-%d %H:%M:%S.%f"
             )
 
             # Create base log entry
-            log_entry = {
+            log_entry: Dict[str, Any] = {
                 "timestamp": timestamp_str,
                 "event_type": event.event_type,
                 "collector": "ps4_controller",
@@ -203,12 +199,12 @@ class JSONLogger(QObject):
                 log_entry["pressed"] = event.event_type == "button_press"
 
             elif event.event_type == "axis_motion":
-                if "Stick" in event.key:
+                if event.key is not None and "Stick" in event.key:
                     # Analog stick movement
                     log_entry["stick"] = event.key.replace("_X", "")
                     log_entry["x"] = event.rel_x
                     log_entry["y"] = event.rel_y
-                elif "Trigger" in event.key:
+                elif event.key is not None and "Trigger" in event.key:
                     # Trigger movement
                     log_entry["trigger"] = event.key
                     log_entry["value"] = event.rel_x

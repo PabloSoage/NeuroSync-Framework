@@ -6,10 +6,10 @@ board connection, data processing, recording, and visualization.
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any
 
-from .services.data_access_service import DataAccessService
 from .core.event_system import EventSystem, EventType
+from .services.data_access_service import DataAccessService
 
 
 class EEGProcessorInteractionAPI:

@@ -1,8 +1,9 @@
 import logging
-from typing import Dict, List, Any, Optional, Tuple, Union
-import numpy as np
 import threading
 import time
+from typing import Dict, List, Any, Optional, Tuple, Union
+
+import numpy as np
 
 from .data_access_service import DataAccessService
 from ..collectors.board_configuration import BoardConfiguration

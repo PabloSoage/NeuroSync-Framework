@@ -6,28 +6,19 @@ This module provides a Typer CLI application for interacting with the Input Coll
 
 import atexit
 import signal
-import threading
-import time
 import sys
-import os
-import asyncio
-from typing import Optional, List, Dict, Any
+import threading
 
 import typer
 from rich.console import Console
-import keyboard
 
 # Import configuration and shared state
 from .cli_config import (
     headless_mode,
-    set_gui_mode,
-    get_gui_mode,
-    init_headless_mode,
     set_cli_running,
     is_cli_running,
     headless_app,
 )
-
 # Import CLI command modules
 from .commands.data_commands import app as data_app
 from .commands.interaction_commands import app as interaction_app

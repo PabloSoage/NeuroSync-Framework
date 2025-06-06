@@ -5,22 +5,20 @@ This module provides an adapter that bridges between the UI framework (PyQt5)
 and the framework-independent interaction service layer.
 """
 
+import logging
+import threading
 from typing import (
     Dict,
     List,
     Any,
     Optional,
     Tuple,
-    Set,
     Callable,
     TypeVar,
-    Generic,
     cast,
 )
 
-from PyQt5.QtCore import QMetaObject, Qt, QObject, pyqtSlot, QTimer, QEventLoop
-import threading
-import logging
+from PyQt5.QtCore import QTimer
 
 T = TypeVar("T")  # Define a type variable for _execute_safely return type
 

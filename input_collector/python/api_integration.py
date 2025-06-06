@@ -7,11 +7,11 @@ registering its methods and handling API requests.
 
 import asyncio
 import logging
+import math
 import os
 import socket
 import sys
 import time
-import math
 from typing import Optional, Dict, List, Any, Callable, Union, Set
 
 # Configure logging
@@ -50,22 +50,22 @@ class InputCollectorApiIntegration:
     This class exposes the input collector's API methods through the API Explorer.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the API integration."""
-        self.explorer = None
+        self.explorer: Optional[Any] = None
         self.module_id = "input_collector"
         self.is_registered = False
-        self.event_callback_id = None
+        self.event_callback_id: Optional[int] = None
 
         # For storing method groups and methods when fallback is used
-        self.fallback_method_groups = {}
-        self.fallback_methods = {}
+        self.fallback_method_groups: Dict[str, Dict[str, Any]] = {}
+        self.fallback_methods: Dict[str, Dict[str, Any]] = {}
 
         # Module registration status flag
         self.module_registered = False
 
         # For tracking event subscriptions
-        self._event_subscriptions = []
+        self._event_subscriptions: List[tuple[EventType, Callable]] = []
         self._pressed_buttons: Set[str] = set()
 
         # PS4 controller state tracking
@@ -73,7 +73,7 @@ class InputCollectorApiIntegration:
             {}
         )  # Maps button name to pressed state (True/False)
         self._ps4_active_buttons: Set[str] = set()  # Set of currently pressed buttons
-        self._ps4_stick_states: Dict[str, Dict[str, float]] = (
+        self._ps4_stick_states: Dict[str, Dict[str, Union[float, str]]] = (
             {  # Maps stick name to position data
                 "left": {"x": 0.0, "y": 0.0, "direction": "center"},
                 "right": {"x": 0.0, "y": 0.0, "direction": "center"},
@@ -163,7 +163,7 @@ class InputCollectorApiIntegration:
     def _register_module(self) -> bool:
         """Register the input collector module."""
         try:
-            if hasattr(self.explorer, "register_module"):
+            if self.explorer is not None and hasattr(self.explorer, "register_module"):
                 self.explorer.register_module(
                     module_id=self.module_id,
                     name="Input Collector",
@@ -183,7 +183,7 @@ class InputCollectorApiIntegration:
         logger.warning("Using fallback module registration")
         try:
             # Create modules dict if it doesn't exist
-            if not hasattr(self.explorer, "modules"):
+            if self.explorer is not None and not hasattr(self.explorer, "modules"):
                 setattr(self.explorer, "modules", {})
 
             # Create a router for this module
@@ -196,18 +196,19 @@ class InputCollectorApiIntegration:
                 )
 
                 # If explorer has an app attribute, add the router directly
-                if hasattr(self.explorer, "app"):
+                if self.explorer is not None and hasattr(self.explorer, "app"):
                     self.explorer.app.include_router(router)
             except Exception as e:
                 logger.error(f"Error creating router: {e}")
 
             # Register module in the modules dict
-            self.explorer.modules[self.module_id] = {
-                "name": "Input Collector",
-                "description": "API for accessing real-time input data with minimal overhead",
-                "method_groups": {},
-                "router": router,
-            }
+            if self.explorer is not None and hasattr(self.explorer, "modules"):
+                self.explorer.modules[self.module_id] = {
+                    "name": "Input Collector",
+                    "description": "API for accessing real-time input data with minimal overhead",
+                    "method_groups": {},
+                    "router": router,
+                }
 
             logger.info(
                 f"Module '{self.module_id}' registered using fallback mechanism"
@@ -258,7 +259,7 @@ class InputCollectorApiIntegration:
             )
             return False
 
-        if hasattr(self.explorer, "add_method_group"):
+        if self.explorer is not None and hasattr(self.explorer, "add_method_group"):
             try:
                 self.explorer.add_method_group(module_id, group_id, name)
                 return True
@@ -276,7 +277,7 @@ class InputCollectorApiIntegration:
         logger.warning(f"Using fallback method for adding group {group_id}")
 
         # Check if modules attribute exists
-        if hasattr(self.explorer, "modules"):
+        if self.explorer is not None and hasattr(self.explorer, "modules"):
             # Check if our module exists
             if module_id in self.explorer.modules:
                 # Check if method_groups dict exists
@@ -318,7 +319,7 @@ class InputCollectorApiIntegration:
         handler_function: Callable,
     ) -> None:
         """Register a method with fallback support."""
-        if hasattr(self.explorer, "register_method"):
+        if self.explorer is not None and hasattr(self.explorer, "register_method"):
             try:
                 self.explorer.register_method(
                     module_id, group_id, method_id, method_info, handler_function
@@ -368,7 +369,7 @@ class InputCollectorApiIntegration:
         )
 
         # Create fallback endpoint if explorer has routing capability
-        if hasattr(self.explorer, "app"):
+        if self.explorer is not None and hasattr(self.explorer, "app"):
             self._create_fallback_endpoint(
                 module_id, method_id, method_info, handler_function
             )
@@ -394,19 +395,20 @@ class InputCollectorApiIntegration:
                 return result
 
             # Add route directly to app
-            self.explorer.app.add_api_route(
-                path,
-                endpoint_wrapper,
-                methods=[method_type],
-                response_model=None,
-                tags=["Input Collector"],
-            )
+            if self.explorer is not None and hasattr(self.explorer, "app"):
+                self.explorer.app.add_api_route(
+                    path,
+                    endpoint_wrapper,
+                    methods=[method_type],
+                    response_model=None,
+                    tags=["Input Collector"],
+                )
 
             logger.info(f"Added fallback route for {method_id} at {path}")
         except Exception as e:
             logger.error(f"Failed to add fallback route for {method_id}: {e}")
 
-    def _setup_websocket_events(self):
+    def _setup_websocket_events(self) -> None:
         """Set up event handlers for websocket real-time events."""
         # Subscribe to core events for websocket forwarding
         self._subscribe_to_core_events()
@@ -414,7 +416,7 @@ class InputCollectorApiIntegration:
         # Legacy: still register event callback for backward compatibility
         self._register_for_events()
 
-    def _subscribe_to_core_events(self):
+    def _subscribe_to_core_events(self) -> None:
         """Subscribe to core events from event system."""
         # Subscribe to all event types
         for event_type in EventType:
@@ -431,7 +433,7 @@ class InputCollectorApiIntegration:
 
         logger.info("Subscribed to core events for real-time forwarding")
 
-    def _format_mouse_event(self, event_data: Any) -> Dict:
+    def _format_mouse_event(self, event_data: Any) -> Optional[Dict]:
         """
         Format a mouse event based on its tracking mode.
 
@@ -561,7 +563,7 @@ class InputCollectorApiIntegration:
         closest = min(directions.keys(), key=lambda k: abs(k - angle))
         return directions[closest]
 
-    def _handle_core_event(self, event_type: EventType, data: Any):
+    def _handle_core_event(self, event_type: EventType, data: Any) -> None:
         """
         Handle events from the core event system.
 
@@ -865,8 +867,8 @@ class InputCollectorApiIntegration:
         right_trigger_val = self._ps4_trigger_states["right"]
 
         # Calculate directions
-        left_direction = self._get_stick_direction(left_stick_x, left_stick_y)
-        right_direction = self._get_stick_direction(right_stick_x, right_stick_y)
+        left_direction = self._get_stick_direction(float(left_stick_x), float(left_stick_y))
+        right_direction = self._get_stick_direction(float(right_stick_x), float(right_stick_y))
 
         return {
             "active_buttons": list(self._ps4_active_buttons),
@@ -875,15 +877,15 @@ class InputCollectorApiIntegration:
                     "x": left_stick_x,
                     "y": left_stick_y,
                     "direction": left_direction,
-                    "percentage_x": f"{int(abs(left_stick_x) * 100)}%",
-                    "percentage_y": f"{int(abs(left_stick_y) * 100)}%",
+                    "percentage_x": f"{int(abs(float(left_stick_x)) * 100)}%",
+                    "percentage_y": f"{int(abs(float(left_stick_y)) * 100)}%",
                 },
                 "right": {
                     "x": right_stick_x,
                     "y": right_stick_y,
                     "direction": right_direction,
-                    "percentage_x": f"{int(abs(right_stick_x) * 100)}%",
-                    "percentage_y": f"{int(abs(right_stick_y) * 100)}%",
+                    "percentage_x": f"{int(abs(float(right_stick_x)) * 100)}%",
+                    "percentage_y": f"{int(abs(float(right_stick_y)) * 100)}%",
                 },
             },
             "triggers": {
@@ -938,21 +940,21 @@ class InputCollectorApiIntegration:
 
         if hasattr(data, "key"):
             key = data.key
-            if "Left_Stick" in key:
+            if key and "Left_Stick" in key:
                 control_type = "stick"
                 control_name = "left_stick"
-            elif "Right_Stick" in key:
+            elif key and "Right_Stick" in key:
                 control_type = "stick"
                 control_name = "right_stick"
-            elif "Left_Trigger" in key:
+            elif key and "Left_Trigger" in key:
                 control_type = "trigger"
                 control_name = "left_trigger"
-            elif "Right_Trigger" in key:
+            elif key and "Right_Trigger" in key:
                 control_type = "trigger"
                 control_name = "right_trigger"
 
         # For stick movement
-        if control_type == "stick":
+        if control_type == "stick" and control_name:
             # Get X and Y values
             x_value = getattr(data, "rel_x", 0)
             y_value = getattr(data, "rel_y", 0)
@@ -973,20 +975,22 @@ class InputCollectorApiIntegration:
             }
 
             # Update stick state in the ps4_state - use simplified name for indexing
-            stick_name = control_name.split("_")[0]  # Extract "left" or "right" part
-            ps4_state["sticks"][stick_name] = {
-                "x": x_value,
-                "y": y_value,
-                "direction": direction,
-                "percentage_x": f"{int(abs(x_value) * 100)}%",
-                "percentage_y": f"{int(abs(y_value) * 100)}%",
-            }
+            stick_name_parts = control_name.split("_")
+            if len(stick_name_parts) > 0:
+                stick_name = stick_name_parts[0]  # Extract "left" or "right" part
+                ps4_state["sticks"][stick_name] = {
+                    "x": x_value,
+                    "y": y_value,
+                    "direction": direction,
+                    "percentage_x": f"{int(abs(x_value) * 100)}%",
+                    "percentage_y": f"{int(abs(y_value) * 100)}%",
+                }
 
             # Update PS4 state in the payload
             payload["ps4_state"] = ps4_state
 
         # For trigger movement
-        elif control_type == "trigger":
+        elif control_type == "trigger" and control_name:
             # Get trigger value
             value = getattr(data, "rel_x", 0)
             percentage = f"{int(abs(value) * 100)}%"
@@ -1003,11 +1007,13 @@ class InputCollectorApiIntegration:
             }
 
             # Update trigger state in the ps4_state - use simplified name for indexing
-            trigger_name = control_name.split("_")[0]  # Extract "left" or "right" part
-            ps4_state["triggers"][trigger_name] = {
-                "value": value,
-                "percentage": percentage,
-            }
+            trigger_name_parts = control_name.split("_")
+            if len(trigger_name_parts) > 0:
+                trigger_name = trigger_name_parts[0]  # Extract "left" or "right" part
+                ps4_state["triggers"][trigger_name] = {
+                    "value": value,
+                    "percentage": percentage,
+                }
 
             # Update PS4 state in the payload
             payload["ps4_state"] = ps4_state
@@ -1315,36 +1321,36 @@ class InputCollectorApiIntegration:
     # API endpoint handlers
     #
 
-    async def _handle_get_active_keys(self):
+    async def _handle_get_active_keys(self) -> List[str]:
         """Handle get_active_keys API endpoint."""
         return InputDataAPI.get_active_keys()
 
-    async def _handle_is_key_active(self, key: str):
+    async def _handle_is_key_active(self, key: str) -> Dict[str, bool]:
         """Handle is_key_active API endpoint."""
         return {"active": InputDataAPI.is_key_active(key)}
 
-    async def _handle_get_mouse_position(self):
+    async def _handle_get_mouse_position(self) -> Dict[str, Union[int, float]]:
         """Handle get_mouse_position API endpoint."""
         x, y = InputDataAPI.get_mouse_position()
-        return {"x": x, "y": y}
+        return {"x": float(x), "y": float(y)}
 
-    async def _handle_get_mouse_button_state(self, button: str):
+    async def _handle_get_mouse_button_state(self, button: str) -> Dict[str, bool]:
         """Handle get_mouse_button_state API endpoint."""
         return {"pressed": InputDataAPI.get_mouse_button_state(button)}
 
-    async def _handle_is_mouse_moving(self):
+    async def _handle_is_mouse_moving(self) -> Dict[str, bool]:
         """Handle is_mouse_moving API endpoint."""
         return {"moving": InputDataAPI.is_mouse_moving()}
 
-    async def _handle_get_mouse_direction(self):
+    async def _handle_get_mouse_direction(self) -> Dict[str, Optional[str]]:
         """Handle get_mouse_direction API endpoint."""
         return {"direction": InputDataAPI.get_mouse_direction()}
 
-    async def _handle_get_metadata(self):
+    async def _handle_get_metadata(self) -> Dict[str, Any]:
         """Handle get_metadata API endpoint."""
         return InputDataAPI.get_metadata()
 
-    async def _handle_get_current_event(self):
+    async def _handle_get_current_event(self) -> Optional[Dict[str, Any]]:
         """Handle get_current_event API endpoint."""
         event = InputDataAPI.get_current_event()
         if event is None:
@@ -1352,47 +1358,47 @@ class InputCollectorApiIntegration:
         # Convert event object to dictionary
         return self._event_to_dict(event)
 
-    async def _handle_get_key_events(self, max_count: Optional[int] = None):
+    async def _handle_get_key_events(self, max_count: Optional[int] = None) -> List[Dict[str, Any]]:
         """Handle get_key_events API endpoint."""
-        events = InputDataAPI.get_key_events(max_count)
+        events = InputDataAPI.get_key_events(max_count or 10)
         return [self._event_to_dict(event) for event in events]
 
-    async def _handle_get_mouse_movement_events(self, max_count: Optional[int] = None):
+    async def _handle_get_mouse_movement_events(self, max_count: Optional[int] = None) -> List[Dict[str, Any]]:
         """Handle get_mouse_movement_events API endpoint."""
-        events = InputDataAPI.get_mouse_movement_events(max_count)
+        events = InputDataAPI.get_mouse_movement_events(max_count or 10)
         return [self._event_to_dict(event) for event in events]
 
-    async def _handle_get_mouse_button_events(self, max_count: Optional[int] = None):
+    async def _handle_get_mouse_button_events(self, max_count: Optional[int] = None) -> List[Dict[str, Any]]:
         """Handle get_mouse_button_events API endpoint."""
-        events = InputDataAPI.get_mouse_button_events(max_count)
+        events = InputDataAPI.get_mouse_button_events(max_count or 10)
         return [self._event_to_dict(event) for event in events]
 
-    async def _handle_get_controller_events(self, max_count: Optional[int] = None):
+    async def _handle_get_controller_events(self, max_count: Optional[int] = None) -> List[Dict[str, Any]]:
         """Handle get_controller_events API endpoint."""
-        events = InputDataAPI.get_controller_events(max_count)
+        events = InputDataAPI.get_controller_events(max_count or 10)
         return [self._event_to_dict(event) for event in events]
 
-    async def _handle_is_controller_connected(self):
+    async def _handle_is_controller_connected(self) -> Dict[str, bool]:
         """Handle is_controller_connected API endpoint."""
         return {"connected": InputDataAPI.is_controller_connected()}
 
-    async def _handle_get_controller_name(self):
+    async def _handle_get_controller_name(self) -> Dict[str, Optional[str]]:
         """Handle get_controller_name API endpoint."""
         return {"name": InputDataAPI.get_controller_name()}
 
-    async def _handle_register_event_callback(self):
+    async def _handle_register_event_callback(self) -> Dict[str, Union[int, str]]:
         """Handle register_event_callback API endpoint."""
         # This is just a placeholder - actual WebSocket connections are handled separately
         return {"callback_id": 1, "status": "registered"}
 
-    async def _handle_unregister_event_callback(self, callback_id: int):
+    async def _handle_unregister_event_callback(self, callback_id: int) -> Dict[str, Union[bool, str]]:
         """Handle unregister_event_callback API endpoint."""
         # This is just a placeholder - actual WebSocket connections are handled separately
         return {"success": True, "message": "Callback unregistered"}
 
     def _broadcast_event(self, event_dict: Dict) -> None:
         """Broadcast an event through the WebSocket connection."""
-        if not hasattr(self.explorer, "broadcast_event"):
+        if self.explorer is None or not hasattr(self.explorer, "broadcast_event"):
             logger.warning(
                 "ApiExplorer does not have broadcast_event method, event not sent"
             )
@@ -1434,7 +1440,8 @@ class InputCollectorApiIntegration:
                 if "timestamp" in event_dict:
                     event_dict["timestamp"] = float(f"{event_dict['timestamp']:.6f}")
 
-                await self.explorer.broadcast_event(self.module_id, event_dict)
+                if self.explorer is not None:
+                    await self.explorer.broadcast_event(self.module_id, event_dict)
             except Exception as e:
                 logger.error(f"Error in broadcast_event: {e}")
                 import traceback
@@ -1450,7 +1457,7 @@ class InputCollectorApiIntegration:
         except Exception as e:
             logger.error(f"Error in event loop: {e}")
 
-    def _create_simple_event(self, event_data: Any) -> Dict:
+    def _create_simple_event(self, event_data: Any) -> Optional[Dict]:
         """
         Create a simplified event for websocket broadcast.
 
@@ -1505,8 +1512,9 @@ class InputCollectorApiIntegration:
     def _register_for_events(self) -> None:
         """Register for real-time events from the input collector (legacy method)."""
         callback_id = InputDataAPI.register_event_callback(self._event_callback)
-        self.event_callback_id = callback_id
-        logger.info(f"Registered for input events with callback ID {callback_id}")
+        if callback_id is not None:
+            self.event_callback_id = callback_id
+            logger.info(f"Registered for input events with callback ID {callback_id}")
 
     def _event_callback(self, event: Any) -> None:
         """
@@ -1564,7 +1572,7 @@ class InputCollectorApiIntegration:
 _api_integration = None
 
 
-def get_api_integration():
+def get_api_integration() -> InputCollectorApiIntegration:
     """Get or create the API integration instance."""
     global _api_integration
     if _api_integration is None:

@@ -5,10 +5,8 @@ This provides a clean interface for controlling the input collector application.
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Callable
+from typing import Dict, List, Any, Optional
 
-from .core.event_system import EventType, subscribe, unsubscribe
-from .interfaces import InputData
 from .services.interaction_service import InteractionService
 
 # Configure logging
