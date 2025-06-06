@@ -28,14 +28,14 @@ class CollectorManager:
     as well as coordinating the flow of input events to the appropriate visualizers.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the collector manager."""
-        self.collectors = {}
-        self.current_collector = None
-        self.current_collector_type = None
-        self.visualizers = []
-        self.tracked_keys = []
-        self.event_callbacks = []
+        self.collectors: Dict[str, AbstractInputCollector] = {}
+        self.current_collector: Optional[AbstractInputCollector] = None
+        self.current_collector_type: Optional[str] = None
+        self.visualizers: List[Any] = []
+        self.tracked_keys: List[str] = []
+        self.event_callbacks: List[Callable[[InputData], None]] = []
 
         # Get data access service instance
         self.data_access_service = DataAccessService.get_instance()
@@ -100,7 +100,7 @@ class CollectorManager:
             self.current_collector = self.collectors[collector_type]
 
             # Update tracked keys
-            if self.tracked_keys:
+            if self.tracked_keys and self.current_collector:
                 self.current_collector.set_supported_keys(self.tracked_keys)
 
             # Update visualizers for the new collector
@@ -112,6 +112,7 @@ class CollectorManager:
                     "collector_type": collector_type,
                     "controller_connected": collector_type == "ps4_controller"
                     and hasattr(self.current_collector, "controller")
+                    and self.current_collector is not None
                     and self.current_collector.controller is not None,
                     "controller_name": (
                         self._get_controller_name()
@@ -173,7 +174,7 @@ class CollectorManager:
         if self.current_collector:
             self.current_collector.stop_capture()
 
-    def register_visualizer(self, visualizer) -> None:
+    def register_visualizer(self, visualizer: Any) -> None:
         """
         Register a visualizer to receive updates from the collectors.
 
@@ -186,7 +187,7 @@ class CollectorManager:
         # Update the visualizer with the current collector's capabilities
         self._update_visualizer(visualizer)
 
-    def unregister_visualizer(self, visualizer) -> None:
+    def unregister_visualizer(self, visualizer: Any) -> None:
         """
         Unregister a visualizer.
 
@@ -201,7 +202,7 @@ class CollectorManager:
         for visualizer in self.visualizers:
             self._update_visualizer(visualizer)
 
-    def _update_visualizer(self, visualizer) -> None:
+    def _update_visualizer(self, visualizer: Any) -> None:
         """
         Update a single visualizer with the current collector's information.
 

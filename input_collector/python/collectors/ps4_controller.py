@@ -7,7 +7,7 @@ inputs using SDL2, with support for buttons, analog sticks and triggers.
 
 import threading
 import time
-from typing import List, Dict, Any, Callable, Set
+from typing import List, Dict, Any, Callable, Set, Optional
 
 import sdl2
 import sdl2.ext
@@ -16,7 +16,7 @@ from PyQt5.QtCore import QTimer
 from ..interfaces import InputData, AbstractInputCollector
 
 
-def is_sdl2_available():
+def is_sdl2_available() -> bool:
     """Check if SDL2 is properly installed and initialized."""
     try:
         # Try to initialize SDL2 with video subsystem which is less problematic
@@ -64,10 +64,10 @@ class PS4ControllerCollector(AbstractInputCollector):
         self.trigger_values: Dict[str, float] = {"left": 0, "right": 0}
 
         # Polling timer
-        self.polling_timer = None
+        self.polling_timer: Optional[QTimer] = None
 
         # Update rate limit
-        self.last_update_time = 0
+        self.last_update_time: float = 0
         self.update_interval = 1 / 60  # 60 Hz update rate
 
         # Max events and tracked keys

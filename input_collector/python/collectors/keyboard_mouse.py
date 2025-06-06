@@ -774,8 +774,6 @@ class KeyboardMouseCollector(AbstractInputCollector):
                 is_moving=self.mouse_state["is_moving"],
                 active_keys=active_keys,
             )
-            # expose raw button for release tracking
-            event.button = button_str
 
             # Process event
             self._process_event(event)

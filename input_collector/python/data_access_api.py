@@ -30,7 +30,7 @@ class InputDataAPI:
         return data_access.get_current_event()
 
     @staticmethod
-    def get_key_events(max_count: int = None) -> List[InputData]:
+    def get_key_events(max_count: Optional[int] = None) -> List[InputData]:
         """
         Get recent key events.
 
@@ -44,7 +44,7 @@ class InputDataAPI:
         return data_access.get_key_events(max_count)
 
     @staticmethod
-    def get_mouse_movement_events(max_count: int = None) -> List[InputData]:
+    def get_mouse_movement_events(max_count: Optional[int] = None) -> List[InputData]:
         """
         Get recent mouse movement events.
 
@@ -58,7 +58,7 @@ class InputDataAPI:
         return data_access.get_mouse_movement_events(max_count)
 
     @staticmethod
-    def get_mouse_button_events(max_count: int = None) -> List[InputData]:
+    def get_mouse_button_events(max_count: Optional[int] = None) -> List[InputData]:
         """
         Get recent mouse button events.
 
@@ -72,7 +72,7 @@ class InputDataAPI:
         return data_access.get_mouse_button_events(max_count)
 
     @staticmethod
-    def get_controller_events(max_count: int = None) -> List[InputData]:
+    def get_controller_events(max_count: Optional[int] = None) -> List[InputData]:
         """
         Get recent controller events.
 

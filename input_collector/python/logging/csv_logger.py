@@ -7,7 +7,7 @@ Provides functionality for logging input events to CSV format.
 import csv
 import os
 import time
-from typing import List, Optional, TextIO
+from typing import List, Optional, TextIO, Any
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
@@ -28,7 +28,7 @@ class CSVLogger(QObject):
         """Initialize the CSV logger."""
         super().__init__()
         self.csv_file: Optional[TextIO] = None
-        self.csv_writer: Optional[csv.writer] = None
+        self.csv_writer: Optional[Any] = None
         self.csv_headers: List[str] = []
         self.filepath: str = ""
 
@@ -313,7 +313,7 @@ class CSVLogger(QObject):
                         row_data[f"ps4_{stick_name}_x"] = event.rel_x
                     if f"ps4_{stick_name}_y" in self.csv_headers and hasattr(
                         event, "rel_y"
-                    ):
+                    ) and event.rel_y is not None:
                         row_data[f"ps4_{stick_name}_y"] = event.rel_y
                 elif "Trigger" in event.key:
                     trigger_name = event.key.lower()

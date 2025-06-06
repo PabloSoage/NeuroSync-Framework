@@ -6,7 +6,7 @@ logging keyboard and mouse inputs in real-time with a graphical user interface u
 """
 
 import sys
-from typing import List, Dict
+from typing import List, Dict, Any
 
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QAction
@@ -18,6 +18,7 @@ from .logging import LoggingManager
 from .processing import EventProcessor
 # Import new modular components
 from .ui import UIManager
+from .ui.visualizer_manager import VisualizerManager
 
 # Import PS4 controller with fallback
 try:
@@ -172,10 +173,8 @@ class InputCollectorApp(QMainWindow):
 
         return collector_manager
 
-    def _create_visualizer_manager(self) -> "VisualizerManager":
+    def _create_visualizer_manager(self) -> VisualizerManager:
         """Create and initialize the visualizer manager."""
-        from .ui import VisualizerManager
-
         # Create visualizer manager
         visualizer_manager = VisualizerManager(self)
 
@@ -671,7 +670,7 @@ class InputCollectorApp(QMainWindow):
         try:
             # Check if we have an active controller connection
             ps4_collector = self.collector_manager.get_collector("ps4_controller")
-            if ps4_collector and not ps4_collector.controller:
+            if ps4_collector and hasattr(ps4_collector, 'controller') and not ps4_collector.controller:
                 response = QMessageBox.question(
                     self,
                     "No Controller Connected",
@@ -684,7 +683,7 @@ class InputCollectorApp(QMainWindow):
                     # Explicitly scan for controllers
                     self._scan_controllers()
                     # If we still don't have a controller after scanning, revert to keyboard/mouse
-                    if not ps4_collector.controller:
+                    if hasattr(ps4_collector, 'controller') and not ps4_collector.controller:
                         self.ui_manager.log_status(
                             "No controller found, reverting to Keyboard & Mouse",
                             self.warning_color,
@@ -714,7 +713,7 @@ class InputCollectorApp(QMainWindow):
     def _scan_controllers(self) -> None:
         """Scan for SDL controllers and show a selection dialog."""
         ps4_collector = self.collector_manager.get_collector("ps4_controller")
-        if not ps4_collector:
+        if not ps4_collector or not hasattr(ps4_collector, 'scan_controllers'):
             QMessageBox.warning(
                 self,
                 "SDL Not Available",
@@ -771,7 +770,7 @@ class InputCollectorApp(QMainWindow):
             if self.collector_manager.get_current_collector_type() == "ps4_controller":
                 self._force_keyboard_mouse_mode()
 
-    def _handle_controller_selection(self, controllers, ps4_collector) -> None:
+    def _handle_controller_selection(self, controllers: List[Dict[str, Any]], ps4_collector: Any) -> None:
         """Handle controller selection after scanning."""
         # If we have only one controller, connect to it directly
         if len(controllers) == 1:
@@ -798,7 +797,7 @@ class InputCollectorApp(QMainWindow):
         # If we have multiple controllers, show a selection dialog
         self._show_controller_selection_dialog(controllers, ps4_collector)
 
-    def _show_controller_selection_dialog(self, controllers, ps4_collector) -> None:
+    def _show_controller_selection_dialog(self, controllers: List[Dict[str, Any]], ps4_collector: Any) -> None:
         """Show dialog for selecting between multiple controllers."""
         from PyQt5.QtWidgets import (
             QDialog,
@@ -954,66 +953,11 @@ class InputCollectorApp(QMainWindow):
         # Force update to refresh the visualization
         self.visualizer_manager.force_update()
 
-    # Add a new method to handle the PS4 visualization mode toggle
-    def _toggle_ps4_viz_mode(self, mode: str) -> None:
-        """
-        Toggle between PS4 controller visualization modes.
-
-        Args:
-            mode: The visualization mode to use ("Image" or "Drawn")
-        """
-        ps4_visualizer = self.visualizer_manager.get_ps4_controller_visualizer()
-        if ps4_visualizer:
-            use_image_mode = mode.lower() == "image"
-
-            # If switching to drawn mode while in overlay edit mode, disable edit mode first
-            if not use_image_mode and self._ps4_overlay_edit_mode:
-                self._toggle_ps4_overlay_edit(False)
-
-            # Toggle image mode in the visualizer
-            if hasattr(ps4_visualizer, "toggle_image_mode"):
-                current_mode = ps4_visualizer.toggle_image_mode()
-
-                # If the toggle didn't work as expected (e.g., images not loaded), update the UI
-                if current_mode != use_image_mode:
-                    # Block signals to prevent feedback loop
-                    ps4_viz_mode_combo = self.ui_manager.components.get(
-                        "ps4_viz_mode_combo"
-                    )
-                    if ps4_viz_mode_combo:
-                        ps4_viz_mode_combo.blockSignals(True)
-                        ps4_viz_mode_combo.setCurrentText("Drawn")
-                        ps4_viz_mode_combo.blockSignals(False)
-
-                        # Inform the user
-                        self.ui_manager.log_status(
-                            "Cannot use image mode - images not loaded",
-                            self.warning_color,
-                        )
-                else:
-                    # Log the mode change
-                    self.ui_manager.log_status(
-                        f"PS4 controller visualization mode set to: {mode}",
-                        self.accent_color,
-                    )
-
-            # Update overlay edit button state - only enabled in image mode
-            ps4_edit_overlays = self.ui_manager.components.get("ps4_edit_overlays")
-            if ps4_edit_overlays:
-                ps4_edit_overlays.setEnabled(use_image_mode)
-
-                if use_image_mode:
-                    ps4_edit_overlays.setStyleSheet("")  # Reset to default style
-                else:
-                    ps4_edit_overlays.setStyleSheet(
-                        "background-color: #555555; color: #999999;"
-                    )
-
     def run(self) -> None:
         """Run the application."""
         self.show()
 
-    def closeEvent(self, event) -> None:
+    def closeEvent(self, event: Any) -> None:
         """Handle application close event."""
         # Stop collectors
         self.collector_manager.stop_capture()
