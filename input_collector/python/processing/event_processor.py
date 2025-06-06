@@ -177,13 +177,13 @@ class EventProcessor(QObject):
 
     def _has_button_press(self, event: InputData) -> bool:
         """Check if event has button press information."""
-        return (event.event_type == "mouse_click" and event.button_pressed) or (
-            hasattr(event, "button_pressed") and event.button_pressed
+        return (event.event_type == "mouse_click" and bool(event.button_pressed)) or (
+            hasattr(event, "button_pressed") and bool(event.button_pressed)
         )
 
     def _has_scroll_event(self, event: InputData) -> bool:
         """Check if event has scroll information."""
-        return event.event_type == "mouse_scroll" and event.direction
+        return event.event_type == "mouse_scroll" and bool(event.direction)
 
     def _add_movement_info(
         self, mouse_parts: List[str], event: InputData, tracking_mode: str
@@ -267,18 +267,19 @@ class EventProcessor(QObject):
         value = event.rel_x if event.rel_x is not None else event.rel_y
 
         if value is not None:
-            if "Trigger" in event.key:
+            if event.key and "Trigger" in event.key:
                 # Format trigger value as percentage
                 return f"Controller: {event.key} at {value*100:.0f}% | Active: {', '.join(active_keys)}"
             else:
                 # Process joystick axis motion
                 return self._format_joystick_axis(event, active_keys)
 
-        return f"Controller: {event.key} motion | Active: {', '.join(active_keys)}"
+        key_name = event.key if event.key else "Unknown"
+        return f"Controller: {key_name} motion | Active: {', '.join(active_keys)}"
 
     def _format_joystick_axis(self, event: InputData, active_keys: List[str]) -> str:
         """Format joystick axis motion text."""
-        if "X" in event.key:
+        if event.key and "X" in event.key:
             base_name = event.key.replace("_X", "")
             y_key = f"{base_name}_Y"
             y_value = 0.0
@@ -303,4 +304,5 @@ class EventProcessor(QObject):
         else:
             # Single axis value
             value = event.rel_x if event.rel_x is not None else 0.0
-            return f"Controller: {event.key} at {value:.2f} | Active: {', '.join(active_keys)}"
+            key_name = event.key if event.key else "Unknown"
+            return f"Controller: {key_name} at {value:.2f} | Active: {', '.join(active_keys)}"

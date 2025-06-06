@@ -34,14 +34,14 @@ class EventDispatcher:
     _lock = threading.Lock()
 
     @classmethod
-    def get_instance(cls):
+    def get_instance(cls) -> 'EventDispatcher':
         """Get the singleton instance."""
         with cls._lock:
             if cls._instance is None:
                 cls._instance = EventDispatcher()
             return cls._instance
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the event dispatcher."""
         # Dict of event type -> set of subscribers
         self._subscribers: Dict[EventType, Set[Callable]] = {
@@ -111,7 +111,7 @@ class EventDispatcher:
 
 
 # Convenience functions
-def get_dispatcher():
+def get_dispatcher() -> EventDispatcher:
     """Get the event dispatcher instance."""
     return EventDispatcher.get_instance()
 
