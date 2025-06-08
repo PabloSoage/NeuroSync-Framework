@@ -18,13 +18,13 @@ class CollectorService:
     streaming data, and managing the collector state.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the collector service."""
-        self.collector = None
+        self.collector: Optional[EEGCollector] = None
         self.is_streaming = False
 
         # Background data fetch thread
-        self._data_thread = None
+        self._data_thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
 
     def connect_to_board(
@@ -47,11 +47,10 @@ class CollectorService:
 
             # Create collector
             self.collector = EEGCollector(board_id, board_params, preset)
-            self.collector.prepare_session()
-            logging.info(f"Connected to board {board_id}")
-
-            # Add this code after successful connection
             if self.collector:
+                self.collector.prepare_session()
+                logging.info(f"Connected to board {board_id}")
+
                 # Update metadata in DataAccessService
                 data_access = DataAccessService.get_instance()
 
@@ -396,7 +395,7 @@ class CollectorService:
         # Ensure background thread is stopped
         self._stop_event.set()
 
-    def _data_loop(self):
+    def _data_loop(self) -> None:
         """Background loop to fetch data and update DataAccessService."""
         data_access = DataAccessService.get_instance()
         # Determine sampling rate once
@@ -418,7 +417,7 @@ class CollectorService:
             except Exception:
                 break
 
-    def _reset_connection_state(self):
+    def _reset_connection_state(self) -> bool:
         """
         Reset internal connection state forcefully.
         Used as a backup mechanism to ensure disconnection is properly reflected.
@@ -432,7 +431,7 @@ class CollectorService:
             logging.error(f"Error resetting collector state: {e}")
             return False
 
-    def _reset_internal_state(self):
+    def _reset_internal_state(self) -> None:
         """Reset all internal state variables to disconnected values."""
         try:
             # Reset any internal state variables

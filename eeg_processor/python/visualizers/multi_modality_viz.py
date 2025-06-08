@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 import numpy as np
 import pyqtgraph as pg
@@ -16,7 +16,7 @@ class MultiModalityVisualizer:
     This class provides real-time visualization for various types of biosignals.
     """
 
-    def __init__(self, collector: EEGCollector):
+    def __init__(self, collector: EEGCollector) -> None:
         """
         Initialize the multi-modality visualizer.
 
@@ -33,15 +33,15 @@ class MultiModalityVisualizer:
         self.time_vector = np.linspace(0, self.window_size, self.num_points)
 
         # Track modal windows
-        self.windows = {}
+        self.windows: Dict[str, Any] = {}
 
         # Initialize available channel types
-        self.channel_types = {}
+        self.channel_types: Dict[str, Dict[str, Any]] = {}
         self._init_channel_types()
 
         logging.info("Multi-modality visualizer initialized")
 
-    def _init_channel_types(self):
+    def _init_channel_types(self) -> None:
         """Initialize channel type data."""
         # Define colors and labels for different channel types
         type_colors = {
@@ -86,7 +86,7 @@ class MultiModalityVisualizer:
                         f"Ch{i}" for i in channels
                     ]
 
-    def create_visualization(self, channel_type: str):
+    def create_visualization(self, channel_type: str) -> None:
         """
         Create a visualization window for a specific channel type.
 
@@ -185,9 +185,9 @@ class MultiModalityVisualizer:
         self,
         channel_type: str,
         channels: List[int],
-        curves: List,
-        fft_curves: Optional[List] = None,
-    ):
+        curves: List[Any],
+        fft_curves: Optional[List[Any]] = None,
+    ) -> None:
         """Update plots for a specific channel type."""
         try:
             # Get the latest data
@@ -237,7 +237,7 @@ class MultiModalityVisualizer:
         except Exception as e:
             logging.error(f"Error in update_plots: {e}")
 
-    def close_all(self):
+    def close_all(self) -> None:
         """Close all visualization windows."""
         for window_type, window in self.windows.items():
             try:

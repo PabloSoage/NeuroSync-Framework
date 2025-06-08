@@ -19,7 +19,7 @@ class QtInteractionAdapter(QObject):
     the corresponding Qt GUI elements.
     """
 
-    def __init__(self, main_app):
+    def __init__(self, main_app: Any) -> None:
         """
         Initialize the Qt interaction adapter.
 
@@ -35,7 +35,7 @@ class QtInteractionAdapter(QObject):
 
         logging.info("Qt interaction adapter initialized")
 
-    def _subscribe_to_events(self):
+    def _subscribe_to_events(self) -> None:
         """Subscribe to events that need GUI updates."""
         # Connection events
         self.event_system.subscribe(EventType.BOARD_CONNECT, self._handle_board_connect)
@@ -70,7 +70,7 @@ class QtInteractionAdapter(QObject):
             EventType.UI_UPDATE_CONTROLS, self._handle_ui_update_controls
         )
 
-    def _safe_qt_call(self, method, *args):
+    def _safe_qt_call(self, method: Any, *args: Any) -> None:
         """
         Safely call a Qt method from any thread.
 
@@ -92,7 +92,7 @@ class QtInteractionAdapter(QObject):
         except Exception as e:
             logging.error(f"Error in Qt call: {e}")
 
-    def _handle_board_connect(self, event: Event):
+    def _handle_board_connect(self, event: Event) -> None:
         """Handle board connection events."""
         try:
             board_id = event.data.get("board_id")
@@ -128,7 +128,7 @@ class QtInteractionAdapter(QObject):
         except Exception as e:
             logging.error(f"Error handling board connect event: {e}")
 
-    def _handle_board_disconnect(self, event: Event):
+    def _handle_board_disconnect(self, event: Event) -> None:
         """Handle board disconnection events."""
         try:
             # Extraer datos adicionales del evento
@@ -185,7 +185,7 @@ class QtInteractionAdapter(QObject):
         except Exception as e:
             logging.error(f"Error handling board disconnect event: {e}")
 
-    def _handle_stream_start(self, event: Event):
+    def _handle_stream_start(self, event: Event) -> None:
         """Handle stream start events."""
         try:
             # Update connection panel
@@ -208,7 +208,7 @@ class QtInteractionAdapter(QObject):
         except Exception as e:
             logging.error(f"Error handling stream start event: {e}")
 
-    def _handle_stream_stop(self, event: Event):
+    def _handle_stream_stop(self, event: Event) -> None:
         """Handle stream stop events."""
         try:
             # Update connection panel
@@ -233,7 +233,7 @@ class QtInteractionAdapter(QObject):
         except Exception as e:
             logging.error(f"Error handling stream stop event: {e}")
 
-    def _handle_filter_apply(self, event: Event):
+    def _handle_filter_apply(self, event: Event) -> None:
         """Handle filter application events."""
         try:
             filter_config = event.data.get("filter_config", {})
@@ -249,7 +249,7 @@ class QtInteractionAdapter(QObject):
         except Exception as e:
             logging.error(f"Error handling filter apply event: {e}")
 
-    def _handle_visualization_start(self, event: Event):
+    def _handle_visualization_start(self, event: Event) -> None:
         """Handle visualization start events."""
         try:
             viz_type = event.data.get("viz_type", "eeg")
@@ -265,7 +265,7 @@ class QtInteractionAdapter(QObject):
         except Exception as e:
             logging.error(f"Error handling visualization start event: {e}")
 
-    def _handle_visualization_stop(self, event: Event):
+    def _handle_visualization_stop(self, event: Event) -> None:
         """Handle visualization stop events."""
         try:
             # Update connection panel visualization button
@@ -279,7 +279,7 @@ class QtInteractionAdapter(QObject):
         except Exception as e:
             logging.error(f"Error handling visualization stop event: {e}")
 
-    def _handle_recording_start(self, event: Event):
+    def _handle_recording_start(self, event: Event) -> None:
         """Handle recording start events."""
         try:
             filename = event.data.get("filename", "")
@@ -298,7 +298,7 @@ class QtInteractionAdapter(QObject):
         except Exception as e:
             logging.error(f"Error handling recording start event: {e}")
 
-    def _handle_recording_stop(self, event: Event):
+    def _handle_recording_stop(self, event: Event) -> None:
         """Handle recording stop events."""
         try:
             # Update recording panel
@@ -312,7 +312,7 @@ class QtInteractionAdapter(QObject):
         except Exception as e:
             logging.error(f"Error handling recording stop event: {e}")
 
-    def _handle_ui_update_status(self, event: Event):
+    def _handle_ui_update_status(self, event: Event) -> None:
         """Handle UI status update events."""
         try:
             message = event.data.get("message", "")
@@ -326,7 +326,7 @@ class QtInteractionAdapter(QObject):
         except Exception as e:
             logging.error(f"Error handling UI status update: {e}")
 
-    def _handle_ui_update_controls(self, event: Event):
+    def _handle_ui_update_controls(self, event: Event) -> None:
         """Handle UI controls update events."""
         try:
             control_updates = event.data.get("controls", {})
@@ -340,7 +340,7 @@ class QtInteractionAdapter(QObject):
         except Exception as e:
             logging.error(f"Error handling UI controls update: {e}")
 
-    def _set_combo_by_data(self, combo, data_value):
+    def _set_combo_by_data(self, combo: Any, data_value: Any) -> None:
         """Set combo box selection by data value."""
         try:
             for i in range(combo.count()):
@@ -350,7 +350,7 @@ class QtInteractionAdapter(QObject):
         except Exception as e:
             logging.error(f"Error setting combo value: {e}")
 
-    def _update_control_value(self, control_path: str, value: Any):
+    def _update_control_value(self, control_path: str, value: Any) -> None:
         """
         Update a specific control value.
 

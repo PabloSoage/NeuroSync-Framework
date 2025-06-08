@@ -12,15 +12,18 @@ from PyQt5.QtWidgets import (
     QTabWidget,
     QMessageBox,
 )
+from PyQt5.QtGui import QCloseEvent
 from brainflow.board_shim import BoardShim
 
 # Import adapters
 from .adapters.qt_interaction_adapter import QtInteractionAdapter
+
 # Import services
 from .services.collector_service import CollectorService
 from .services.processor_service import ProcessorService
 from .services.recording_service import RecordingService
 from .services.visualization_service import VisualizationService
+
 # Import UI components
 from .ui.advanced_panel import AdvancedProcessingPanel
 from .ui.connection_panel import ConnectionPanel
@@ -28,6 +31,7 @@ from .ui.mne_panel import MNEPanel
 from .ui.processing_panel import ProcessingPanel
 from .ui.recording_panel import RecordingPanel
 from .ui.streaming_panel import StreamingPanel
+
 # Import utils
 from .utils.help_system import show_eeg_concepts_help
 from .utils.theme_manager import ThemeManager
@@ -41,7 +45,7 @@ class EEGProcessorApp(QMainWindow):
     responsibilities to specialized classes.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the EEG processor application."""
         super().__init__()
 
@@ -78,7 +82,7 @@ class EEGProcessorApp(QMainWindow):
 
         logging.info("EEG Processor application initialized")
 
-    def setup_ui(self):
+    def setup_ui(self) -> None:
         """Set up the user interface."""
         # Main widget and layout
         central_widget = QWidget()
@@ -147,7 +151,7 @@ class EEGProcessorApp(QMainWindow):
         # Status bar for showing current status
         self.statusBar().showMessage("Ready")
 
-    def connect_panel_signals(self):
+    def connect_panel_signals(self) -> None:
         """Connect signals from UI components to handle application state."""
         # Connection panel signals
         self.connection_panel.stream_started.connect(self.on_stream_started)
@@ -175,7 +179,7 @@ class EEGProcessorApp(QMainWindow):
             self.mne_panel.status_message.connect(self.show_status_message)
             self.mne_panel.error_message.connect(self.show_error_message)
 
-    def update_status(self):
+    def update_status(self) -> None:
         """Update status information periodically."""
         # Get status from recording service
         if self.recording_service.is_recording():
@@ -190,7 +194,7 @@ class EEGProcessorApp(QMainWindow):
         elif self.visualization_service.visualization_visible() and self.is_streaming:
             self.connection_panel.update_visualization_button(False)
 
-    def on_stream_started(self):
+    def on_stream_started(self) -> None:
         """Handle stream started event."""
         self.is_streaming = True
         self.recording_panel.enable_recording(True)
@@ -199,7 +203,7 @@ class EEGProcessorApp(QMainWindow):
         if hasattr(self, "mne_panel"):
             self.mne_panel.enable_processing(True)
 
-    def on_stream_stopped(self):
+    def on_stream_stopped(self) -> None:
         """Handle stream stopped event."""
         self.is_streaming = False
         self.recording_panel.enable_recording(False)
@@ -208,13 +212,13 @@ class EEGProcessorApp(QMainWindow):
         if hasattr(self, "mne_panel"):
             self.mne_panel.enable_processing(False)
 
-    def on_board_connected(self):
+    def on_board_connected(self) -> None:
         """Handle board connected event."""
         # Enable streaming controls but not recording yet
         self.connection_panel.enable_streaming(True)
         self.streaming_panel.enable_streaming(True)
 
-    def on_board_disconnected(self):
+    def on_board_disconnected(self) -> None:
         """Handle board disconnected event."""
         self.is_streaming = False
         # Disable all controls that need a board connection
@@ -226,23 +230,23 @@ class EEGProcessorApp(QMainWindow):
         if hasattr(self, "mne_panel"):
             self.mne_panel.enable_processing(False)
 
-    def on_recording_started(self):
+    def on_recording_started(self) -> None:
         """Handle recording started event."""
         pass  # Any app-level changes needed when recording starts
 
-    def on_recording_stopped(self):
+    def on_recording_stopped(self) -> None:
         """Handle recording stopped event."""
         pass  # Any app-level changes needed when recording stops
 
-    def show_status_message(self, message):
+    def show_status_message(self, message: str) -> None:
         """Show a status message."""
         self.statusBar().showMessage(message)
 
-    def show_error_message(self, title, message):
+    def show_error_message(self, title: str, message: str) -> None:
         """Show an error message box."""
         QMessageBox.critical(self, title, message)
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QCloseEvent) -> None:
         """Handle application close event."""
         # Clean up resources
         self.collector_service.cleanup()

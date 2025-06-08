@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 import numpy as np
 import pyqtgraph as pg
@@ -17,7 +18,7 @@ class EEGVisualizer:
     This class provides real-time visualization of EEG data with various display options.
     """
 
-    def __init__(self, collector: EEGCollector, processor: SignalProcessor):
+    def __init__(self, collector: EEGCollector, processor: SignalProcessor) -> None:
         """
         Initialize the EEG visualizer.
 
@@ -49,7 +50,7 @@ class EEGVisualizer:
 
         logging.info("EEG visualizer initialized")
 
-    def setup_ui(self):
+    def setup_ui(self) -> None:
         """Set up the user interface for the visualizer."""
         self.win = pg.GraphicsLayoutWidget(title="EEG Data Visualization")
         self.win.resize(1000, 600)
@@ -181,7 +182,7 @@ class EEGVisualizer:
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.update_plots)
 
-    def handle_close_event(self, event):
+    def handle_close_event(self, event: Any) -> None:
         """Handle window close event to signal the app that visualization was closed."""
         self.stop()  # Stop the timer
         # Emit signal or notify that window was closed
@@ -189,18 +190,18 @@ class EEGVisualizer:
         # Accept the close event
         event.accept()
 
-    def start(self):
+    def start(self) -> None:
         """Start updating the visualizer."""
         self.timer.start(self.update_speed_ms)
         self.win.show()  # Make sure window is visible
         logging.info("EEG visualizer started")
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop updating the visualizer."""
         self.timer.stop()
         logging.info("EEG visualizer stopped")
 
-    def update_plots(self):
+    def update_plots(self) -> None:
         """Update all plots with new data."""
         try:
             # Get the latest data from central DataAccessService
@@ -382,7 +383,7 @@ class EEGVisualizer:
 
     def set_bandpass_filter(
         self, enabled: bool, low_freq: float = 1.0, high_freq: float = 30.0
-    ):
+    ) -> None:
         """
         Set bandpass filter parameters.
 
@@ -395,7 +396,7 @@ class EEGVisualizer:
         self.bandpass_low = low_freq
         self.bandpass_high = high_freq
 
-    def set_notch_filter(self, enabled: bool):
+    def set_notch_filter(self, enabled: bool) -> None:
         """
         Set notch filter for power line noise.
 
@@ -404,7 +405,7 @@ class EEGVisualizer:
         """
         self.apply_notch = enabled
 
-    def set_detrend(self, enabled: bool):
+    def set_detrend(self, enabled: bool) -> None:
         """
         Set detrending option.
 
@@ -413,14 +414,14 @@ class EEGVisualizer:
         """
         self.apply_detrend = enabled
 
-    def set_frequency_range(self, min_freq: float, max_freq: float):
+    def set_frequency_range(self, min_freq: float, max_freq: float) -> None:
         """Set the frequency range for the FFT plot."""
         self.fft_plot.setXRange(min_freq, max_freq)
 
-    def set_log_mode(self, use_log: bool):
+    def set_log_mode(self, use_log: bool) -> None:
         """Set whether to use logarithmic scale for power spectrum."""
         self.fft_plot.setLogMode(x=False, y=use_log)
 
-    def is_visible(self):
+    def is_visible(self) -> bool:
         """Check if the visualization window is visible."""
         return self.win.isVisible()

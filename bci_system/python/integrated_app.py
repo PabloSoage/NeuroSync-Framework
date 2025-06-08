@@ -8,6 +8,7 @@ synchronized application for brain-computer interface research.
 import logging
 import os
 import sys
+from typing import Any, Optional
 import time
 
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
@@ -73,7 +74,7 @@ class IntegratedBCIApp(QMainWindow):
     recording_started = pyqtSignal()
     recording_stopped = pyqtSignal()
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the integrated application."""
         super().__init__()
 
@@ -91,6 +92,7 @@ class IntegratedBCIApp(QMainWindow):
         self.eeg_ready = False
         self.input_ready = True  # Input is always ready initially
         self.is_synchronized = False
+        self.session_start_time: float = 0.0  # Changed from int to float
 
         # Define app theme colors
         self.dark_bg = "#2D2D30"
@@ -133,7 +135,7 @@ class IntegratedBCIApp(QMainWindow):
 
         logging.info("Integrated BCI application initialized")
 
-    def _set_dark_theme(self):
+    def _set_dark_theme(self) -> None:
         """Set the application to use a dark theme."""
         palette = QPalette()
 
@@ -263,7 +265,7 @@ class IntegratedBCIApp(QMainWindow):
         """
         )
 
-    def _init_ui(self):
+    def _init_ui(self) -> None:
         """Initialize user interface components."""
         # Main widget
         main_widget = QWidget()
@@ -290,7 +292,7 @@ class IntegratedBCIApp(QMainWindow):
         # Status bar
         self.statusBar().showMessage("Ready")
 
-    def _create_shared_controls(self, parent_layout):
+    def _create_shared_controls(self, parent_layout: Any) -> None:
         """Create shared controls that affect both modules."""
         control_group = QGroupBox("BCI System Controls")
         control_layout = QVBoxLayout(control_group)
@@ -428,7 +430,7 @@ class IntegratedBCIApp(QMainWindow):
 
         parent_layout.addWidget(control_group)
 
-    def browse_record_path(self):
+    def browse_record_path(self) -> None:
         """Browse for a directory to save recordings."""
         # Get directory for saving session
         directory = QFileDialog.getExistingDirectory(
@@ -446,7 +448,7 @@ class IntegratedBCIApp(QMainWindow):
             logging.info(f"Recording directory set to: {directory}")
             logging.info(f"Recording base filename: {os.path.basename(default_path)}")
 
-    def _create_eeg_tab(self):
+    def _create_eeg_tab(self) -> None:
         """Create the EEG processor tab with scrollability."""
         # Create the EEG processor app instance first
         self.eeg_processor_app = EEGProcessorApp()
@@ -497,7 +499,7 @@ class IntegratedBCIApp(QMainWindow):
                 elif isinstance(child, QRadioButton):
                     child.setVisible(False)
 
-    def _create_input_tab(self):
+    def _create_input_tab(self) -> None:
         """Create the input collector tab with scrollability."""
         # Create the input collector app instance first
         self.input_collector_app = InputCollectorApp()
@@ -568,7 +570,7 @@ class IntegratedBCIApp(QMainWindow):
             if isinstance(child, QLabel) and "Path:" in child.text():
                 child.setVisible(False)
 
-    def _create_integrated_tab(self):
+    def _create_integrated_tab(self) -> None:
         """Create the integrated view tab."""
         self.integrated_container = QWidget()
         integrated_layout = QVBoxLayout(self.integrated_container)
@@ -620,7 +622,7 @@ class IntegratedBCIApp(QMainWindow):
         # Add to tabs
         self.tabs.addTab(self.integrated_container, "Integrated View")
 
-    def _create_synchronization_tab(self):
+    def _create_synchronization_tab(self) -> None:
         """Create the LSL synchronization tab."""
         self.sync_container = QWidget()
         sync_layout = QVBoxLayout(self.sync_container)
@@ -678,7 +680,7 @@ class IntegratedBCIApp(QMainWindow):
         # Add to tabs
         self.tabs.addTab(self.sync_container, "LSL Synchronization")
 
-    def _update_sync_mode(self):
+    def _update_sync_mode(self) -> None:
         """Update synchronization mode based on radio button selection."""
         if self.realtime_sync_radio.isChecked():
             logging.info("Switching to real-time synchronization mode")
@@ -691,7 +693,7 @@ class IntegratedBCIApp(QMainWindow):
             if hasattr(self.lsl_sync_widget, "set_realtime_mode"):
                 self.lsl_sync_widget.set_realtime_mode(False)
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         """Connect signals between components."""
         # Connect signals from the EEG processor app
         if hasattr(self.eeg_processor_app, "connect_btn"):
@@ -761,7 +763,7 @@ class IntegratedBCIApp(QMainWindow):
                     f"Connected LSL publisher to active collector input events"
                 )
 
-    def _on_input_event(self, input_data):
+    def _on_input_event(self, input_data: Any) -> None:
         """Handle input events from collectors and send to LSL stream."""
         if self.input_publisher and self.is_synchronized:
             try:
@@ -813,7 +815,7 @@ class IntegratedBCIApp(QMainWindow):
 
                 traceback.print_exc()
 
-    def _update_status(self):
+    def _update_status(self) -> None:
         """Update status information."""
         # Update EEG status
         is_eeg_connected = False
@@ -886,7 +888,7 @@ class IntegratedBCIApp(QMainWindow):
                 "Recording has been stopped because EEG stream was disconnected.",
             )
 
-    def _initialize_eeg_publisher(self):
+    def _initialize_eeg_publisher(self) -> None:
         """Initialize the EEG publisher for LSL synchronization."""
         try:
             if (
@@ -969,7 +971,9 @@ class IntegratedBCIApp(QMainWindow):
                             self.eeg_processor_app.processor_service.apply_all_filters
                         )
 
-                        def intercepted_apply_filters(data, filters_config):
+                        def intercepted_apply_filters(
+                            data: Any, filters_config: Any
+                        ) -> Any:
                             result = original_apply_all_filters(data, filters_config)
                             # Send processed data to LSL
                             try:
@@ -987,10 +991,10 @@ class IntegratedBCIApp(QMainWindow):
                                 )
                             return result
 
-                        # Replace the original method with our interceptor
-                        self.eeg_processor_app.processor_service.apply_all_filters = (
-                            intercepted_apply_filters
-                        )
+                        # Store reference to the original method on this instance to avoid losing it
+                        self._original_apply_all_filters = original_apply_all_filters
+                        # Replace the original method with our interceptor using setattr
+                        setattr(self.eeg_processor_app.processor_service, 'apply_all_filters', intercepted_apply_filters)
                         logging.info(
                             "Intercepted filter application for LSL publishing"
                         )
@@ -1009,6 +1013,9 @@ class IntegratedBCIApp(QMainWindow):
                     self.eeg_data_timer.timeout.connect(self._fetch_and_send_eeg_data)
                     self.eeg_data_timer.start(timer_interval_ms)
 
+                    # Initialize logging timestamp
+                    self._last_eeg_log_time: float = time.time()
+
                     logging.info(
                         f"Established EEG data timer for LSL streaming at {1000/timer_interval_ms:.1f} Hz"
                     )
@@ -1024,7 +1031,7 @@ class IntegratedBCIApp(QMainWindow):
 
             traceback.print_exc()
 
-    def _fetch_and_send_eeg_data(self):
+    def _fetch_and_send_eeg_data(self) -> None:
         """Periodically fetch and send EEG data to the LSL stream."""
         if not self.is_synchronized or not self.eeg_publisher:
             return
@@ -1128,7 +1135,7 @@ class IntegratedBCIApp(QMainWindow):
             # Log errors but don't crash
             logging.error(f"Error in EEG data timer: {e}")
 
-    def _on_eeg_data(self, data, timestamp=None):
+    def _on_eeg_data(self, data: Any, timestamp: Optional[Any] = None) -> None:
         """Callback for EEG data to send to LSL."""
         if self.eeg_publisher and self.is_synchronized:
             try:
@@ -1147,7 +1154,7 @@ class IntegratedBCIApp(QMainWindow):
 
                 traceback.print_exc()
 
-    def toggle_recording(self):
+    def toggle_recording(self) -> None:
         """Toggle recording state for both EEG and input collection."""
         if not self.is_recording:
             # Start recording
@@ -1173,7 +1180,7 @@ class IntegratedBCIApp(QMainWindow):
             self.record_status_label.setText("RECORDING")
 
             # Start session timer
-            self.session_start_time = time.time()
+            self.session_start_time = time.time()  # Removed type annotation since already defined
             self.session_timer.start()
 
             # Emit signal to start recording in both modules
@@ -1204,7 +1211,7 @@ class IntegratedBCIApp(QMainWindow):
                     f"Recordings have been saved to:\n{self.session_dir}",
                 )
 
-    def _start_eeg_recording(self):
+    def _start_eeg_recording(self) -> None:
         """Start recording in the EEG processor app."""
         if not self.save_eeg_check.isChecked():
             logging.info("EEG recording disabled by user")
@@ -1271,7 +1278,7 @@ class IntegratedBCIApp(QMainWindow):
 
             traceback.print_exc()
 
-    def _stop_eeg_recording(self):
+    def _stop_eeg_recording(self) -> None:
         """Stop recording in the EEG processor app."""
         try:
             # Stop recording using the collector directly
@@ -1294,7 +1301,7 @@ class IntegratedBCIApp(QMainWindow):
 
             traceback.print_exc()
 
-    def _start_input_recording(self):
+    def _start_input_recording(self) -> None:
         """Start recording in the input collector app."""
         if not self.save_input_check.isChecked():
             logging.info("Input recording disabled by user")
@@ -1376,7 +1383,7 @@ class IntegratedBCIApp(QMainWindow):
 
             traceback.print_exc()
 
-    def _stop_input_recording(self):
+    def _stop_input_recording(self) -> None:
         """Stop recording in the input collector app."""
         try:
             # Stop recording in input collector
@@ -1415,7 +1422,7 @@ class IntegratedBCIApp(QMainWindow):
 
             traceback.print_exc()
 
-    def _start_lsl_synchronization(self):
+    def _start_lsl_synchronization(self) -> None:
         """Start LSL synchronization for recording."""
         try:
             # Set synchronization flag
@@ -1445,7 +1452,7 @@ class IntegratedBCIApp(QMainWindow):
             logging.error(f"Error starting LSL synchronization: {e}")
             self.is_synchronized = False
 
-    def _stop_lsl_synchronization(self):
+    def _stop_lsl_synchronization(self) -> None:
         """Stop LSL synchronization and export synchronized dataset."""
         try:
             # Create a marker indicating recording stop
@@ -1543,7 +1550,7 @@ class IntegratedBCIApp(QMainWindow):
 
             traceback.print_exc()
 
-    def _ensure_input_log_file(self):
+    def _ensure_input_log_file(self) -> None:
         """Ensure that the input collector has a log file open."""
         try:
             if (
@@ -1566,7 +1573,7 @@ class IntegratedBCIApp(QMainWindow):
 
             traceback.print_exc()
 
-    def _update_session_time(self):
+    def _update_session_time(self) -> None:
         """Update the session timer display."""
         if self.is_recording and self.session_start_time > 0:
             elapsed = int(time.time() - self.session_start_time)
@@ -1575,21 +1582,21 @@ class IntegratedBCIApp(QMainWindow):
             seconds = elapsed % 60
             self.session_timer_label.setText(f"{hours:02d}:{minutes:02d}:{seconds:02d}")
 
-    def _on_eeg_connection_change(self):
+    def _on_eeg_connection_change(self) -> None:
         """Handle changes in the EEG connection state."""
         # Just trigger a status update
         QTimer.singleShot(100, self._update_status)
 
-    def _on_eeg_stream_change(self):
+    def _on_eeg_stream_change(self) -> None:
         """Handle changes in the EEG streaming state."""
         # Just trigger a status update
         QTimer.singleShot(100, self._update_status)
 
-    def show_status_message(self, message):
+    def show_status_message(self, message: str) -> None:
         """Show a status message in the status bar."""
         self.statusBar().showMessage(message)
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: Any) -> None:
         """Handle application close event."""
         # Stop recording if active
         if self.is_recording:

@@ -4,7 +4,7 @@ import os
 import socket
 import sys
 import time
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional, Tuple, Union
 
 # Configure logging
 logging.basicConfig(
@@ -37,21 +37,21 @@ from .interaction_api_integration import EEGProcessorInteractionApiIntegration
 class EEGProcessorApiIntegration:
     """Direct integration with EEG processor services and data."""
 
-    _instance = None
+    _instance: Optional['EEGProcessorApiIntegration'] = None
 
     @classmethod
-    def get_instance(cls):
+    def get_instance(cls) -> 'EEGProcessorApiIntegration':
         if cls._instance is None:
             cls._instance = EEGProcessorApiIntegration()
         return cls._instance
 
-    def __init__(self):
-        self.explorer = None
+    def __init__(self) -> None:
+        self.explorer: Optional[Any] = None
         self.module_id = "eeg_processor"
         self.data_service = DataAccessService.get_instance()
 
         # Get collector service directly for access to board/collector info
-        self.collector_service = None
+        self.collector_service: Optional[CollectorService] = None
         try:
             self.collector_service = CollectorService()
         except Exception as e:
@@ -63,10 +63,10 @@ class EEGProcessorApiIntegration:
         )
 
         # Callback registration for streaming data
-        self.callback_id = None
+        self.callback_id: Optional[Union[str, int]] = None
 
         # Timer to periodically pull data from the collector
-        self.update_timer = None
+        self.update_timer: Optional[Any] = None
 
     #
     # Main API Registration Methods
@@ -107,7 +107,7 @@ class EEGProcessorApiIntegration:
 
         return True
 
-    def _register_all_method_groups(self):
+    def _register_all_method_groups(self) -> None:
         """Register all method groups and their endpoints."""
         self._register_method_groups()
         self._register_status_methods()
@@ -118,10 +118,14 @@ class EEGProcessorApiIntegration:
         self._register_event_methods()
 
         # Register interaction API methods
-        self.interaction_integration.register_api_methods(self.explorer)
+        if self.explorer is not None:
+            self.interaction_integration.register_api_methods(self.explorer)
 
-    def _register_method_groups(self):
+    def _register_method_groups(self) -> None:
         """Register all method groups."""
+        if self.explorer is None:
+            return
+            
         groups = [
             ("status", "Status Methods"),
             ("device", "Device Methods"),
@@ -394,13 +398,13 @@ class EEGProcessorApiIntegration:
                         board_id = connection_panel.board_type_combo.currentData()
                         if board_id is not None:
                             # Get the selected preset
-                            preset = None
+                            preset: Optional[int] = None
                             if hasattr(connection_panel, "preset_combo"):
                                 preset = connection_panel.preset_combo.currentData()
 
                             # Get board description from BoardConfiguration
                             board_desc = BoardConfiguration.get_board_description(
-                                board_id, preset
+                                board_id, preset or 0
                             )
                             if board_desc:
                                 # Get connection status
@@ -500,8 +504,11 @@ class EEGProcessorApiIntegration:
     # Method registration for API endpoints
     #
 
-    def _register_status_methods(self):
+    def _register_status_methods(self) -> None:
         """Register methods for checking stream status."""
+        if self.explorer is None:
+            return
+            
         self.explorer.register_method(
             self.module_id,
             "status",
@@ -541,8 +548,11 @@ class EEGProcessorApiIntegration:
             self._handle_get_sampling_rate,
         )
 
-    def _register_device_methods(self):
+    def _register_device_methods(self) -> None:
         """Register methods for accessing device information."""
+        if self.explorer is None:
+            return
+            
         self.explorer.register_method(
             self.module_id,
             "device",
@@ -569,8 +579,11 @@ class EEGProcessorApiIntegration:
             self._handle_get_preset,
         )
 
-    def _register_data_methods(self):
+    def _register_data_methods(self) -> None:
         """Register methods for accessing EEG data."""
+        if self.explorer is None:
+            return
+            
         self.explorer.register_method(
             self.module_id,
             "data",
@@ -609,8 +622,11 @@ class EEGProcessorApiIntegration:
             self._handle_get_eeg_data,
         )
 
-    def _register_channel_methods(self):
+    def _register_channel_methods(self) -> None:
         """Register methods for accessing channel information."""
+        if self.explorer is None:
+            return
+            
         self.explorer.register_method(
             self.module_id,
             "channels",
@@ -685,8 +701,11 @@ class EEGProcessorApiIntegration:
             self._handle_get_channel_by_name,
         )
 
-    def _register_quality_methods(self):
+    def _register_quality_methods(self) -> None:
         """Register methods for signal quality assessment."""
+        if self.explorer is None:
+            return
+            
         self.explorer.register_method(
             self.module_id,
             "quality",
@@ -719,8 +738,11 @@ class EEGProcessorApiIntegration:
             self._handle_get_all_channels_quality,
         )
 
-    def _register_event_methods(self):
+    def _register_event_methods(self) -> None:
         """Register methods for event handling."""
+        if self.explorer is None:
+            return
+            
         self.explorer.register_method(
             self.module_id,
             "events",
@@ -738,7 +760,7 @@ class EEGProcessorApiIntegration:
     # API endpoint handlers
     #
 
-    async def _handle_is_streaming(self):
+    async def _handle_is_streaming(self) -> Dict[str, Any]:
         """Handle is_streaming endpoint."""
         is_streaming = EEGDataAPI.is_streaming()
 
@@ -752,7 +774,7 @@ class EEGProcessorApiIntegration:
 
         return {"streaming": is_streaming}
 
-    async def _handle_get_metadata(self):
+    async def _handle_get_metadata(self) -> Dict[str, Any]:
         """Handle get_metadata endpoint with enhanced data."""
         metadata = EEGDataAPI.get_metadata()
 
@@ -773,7 +795,7 @@ class EEGProcessorApiIntegration:
 
         return metadata
 
-    async def _handle_get_sampling_rate(self):
+    async def _handle_get_sampling_rate(self) -> Dict[str, Any]:
         """Handle get_sampling_rate endpoint."""
         rate = EEGDataAPI.get_sampling_rate()
 
@@ -783,7 +805,7 @@ class EEGProcessorApiIntegration:
 
         return {"sampling_rate": rate}
 
-    async def _handle_get_board_info(self):
+    async def _handle_get_board_info(self) -> Dict[str, Any]:
         """Handle get_board_info endpoint."""
         board_info = self._get_board_info_direct()
 
@@ -803,7 +825,7 @@ class EEGProcessorApiIntegration:
 
         return board_info
 
-    async def _handle_get_preset(self):
+    async def _handle_get_preset(self) -> Dict[str, Any]:
         """Handle get_preset endpoint."""
         board_id, preset = self._get_board_id_and_preset()
 
@@ -817,7 +839,7 @@ class EEGProcessorApiIntegration:
             "board_id": board_id if board_id is not None else -1,
         }
 
-    async def _handle_get_current_data(self, max_samples: Optional[int] = None):
+    async def _handle_get_current_data(self, max_samples: Optional[int] = None) -> Dict[str, Any]:
         """Handle get_current_data endpoint."""
         data, timestamps = EEGDataAPI.get_current_data()
 
@@ -836,7 +858,7 @@ class EEGProcessorApiIntegration:
             "shape": [len(data), len(timestamps)] if isinstance(data, list) else [],
         }
 
-    async def _handle_get_eeg_data(self, max_samples: Optional[int] = None):
+    async def _handle_get_eeg_data(self, max_samples: Optional[int] = None) -> Dict[str, Any]:
         """Handle get_eeg_data endpoint (EEG channels only)."""
         data, timestamps = EEGDataAPI.get_current_data()
 
@@ -916,7 +938,7 @@ class EEGProcessorApiIntegration:
             "error": "No data available",
         }
 
-    async def _handle_get_channel_names(self):
+    async def _handle_get_channel_names(self) -> Dict[str, Any]:
         """Handle get_channel_names endpoint."""
         names = EEGDataAPI.get_channel_names()
 
@@ -926,7 +948,7 @@ class EEGProcessorApiIntegration:
 
         return {"channel_names": names}
 
-    async def _handle_get_eeg_channels(self):
+    async def _handle_get_eeg_channels(self) -> Dict[str, Any]:
         """Handle get_eeg_channels endpoint."""
         channels = self._get_eeg_channels_direct()
 
@@ -950,7 +972,7 @@ class EEGProcessorApiIntegration:
 
     async def _handle_get_channel_data(
         self, channel_index: int, max_samples: Optional[int] = None
-    ):
+    ) -> Dict[str, Any]:
         """Handle get_channel_data endpoint."""
         data, timestamps = EEGDataAPI.get_channel_data(channel_index)
 
@@ -967,7 +989,7 @@ class EEGProcessorApiIntegration:
 
     async def _handle_get_channel_by_name(
         self, channel_name: str, max_samples: Optional[int] = None
-    ):
+    ) -> Dict[str, Any]:
         """Handle get_channel_by_name endpoint."""
         data, timestamps = EEGDataAPI.get_channel_by_name(channel_name)
 
@@ -982,7 +1004,7 @@ class EEGProcessorApiIntegration:
 
         return {"channel_name": channel_name, "data": data, "timestamps": timestamps}
 
-    async def _handle_get_signal_quality(self, channel_index: int):
+    async def _handle_get_signal_quality(self, channel_index: int) -> Dict[str, Any]:
         """Handle get_signal_quality endpoint."""
         # Try to import the SignalProcessor
         try:
@@ -1001,7 +1023,7 @@ class EEGProcessorApiIntegration:
             logger.error(f"Error calculating signal quality: {e}")
             return {"channel_index": channel_index, "quality": 0, "error": str(e)}
 
-    async def _handle_get_all_channels_quality(self):
+    async def _handle_get_all_channels_quality(self) -> Dict[str, Any]:
         """Handle get_all_channels_quality endpoint."""
         try:
             from .processors.signal_processor import SignalProcessor
@@ -1033,7 +1055,7 @@ class EEGProcessorApiIntegration:
             processor = SignalProcessor(sampling_rate)
 
             # Get quality for all channels
-            quality_by_index = {}
+            quality_by_index: Dict[int, float] = {}
             for ch in eeg_channels:
                 try:
                     # Ensure channel index is valid
@@ -1050,14 +1072,14 @@ class EEGProcessorApiIntegration:
                     quality_by_index[ch] = 0.0
 
             # Add channel names if available
-            quality_by_name = {}
+            quality_by_name: Dict[str, float] = {}
             if channel_names:
                 for i, ch in enumerate(eeg_channels):
                     if i < len(channel_names):
                         channel_name = channel_names[i]
                         quality_by_name[channel_name] = quality_by_index.get(ch, 0.0)
 
-            result = {"quality_by_index": quality_by_index}
+            result: Dict[str, Any] = {"quality_by_index": quality_by_index}
             if quality_by_name:
                 result["quality_by_name"] = quality_by_name
 
@@ -1067,7 +1089,7 @@ class EEGProcessorApiIntegration:
             logger.error(f"Error calculating all channel quality: {e}")
             return {"error": str(e), "quality_by_index": {}}
 
-    async def _handle_register_data_callback(self):
+    async def _handle_register_data_callback(self) -> Dict[str, Any]:
         """Handle register_data_callback endpoint."""
         # This is just a placeholder for the WebSocket connection
         return {"status": "Use WebSocket connection for real-time updates"}
@@ -1076,7 +1098,7 @@ class EEGProcessorApiIntegration:
     # WebSocket data handling
     #
 
-    def _handle_data_callback(self, data, timestamps):
+    def _handle_data_callback(self, data: Any, timestamps: Any) -> None:
         """Handle incoming data for WebSocket broadcasting."""
         if not self.explorer:
             return
@@ -1090,7 +1112,7 @@ class EEGProcessorApiIntegration:
         except Exception as e:
             logger.error(f"Error in data callback: {e}")
 
-    def _create_visualization_payload(self, data, timestamps):
+    def _create_visualization_payload(self, data: Any, timestamps: Any) -> Dict[str, Any]:
         """Create a structured payload for data visualization."""
         # Get metadata for channel information
         metadata = self.data_service.get_metadata()
@@ -1100,7 +1122,7 @@ class EEGProcessorApiIntegration:
         eeg_channels = self._get_eeg_channels_direct()
 
         # Get additional channel types if available
-        channel_types = {}
+        channel_types: Dict[str, List[int]] = {}
         for channel_type in [
             "eeg",
             "emg",
@@ -1123,7 +1145,7 @@ class EEGProcessorApiIntegration:
 
         if data.size > 0 and samples_to_send > 0:
             # Prepare visualization data - both raw values and time series
-            viz_data = {
+            viz_data: Dict[str, Any] = {
                 "list_view": [],  # For raw list visualization
                 "chart_data": {},  # For chart visualization
                 "timestamps": [],
@@ -1210,17 +1232,21 @@ class EEGProcessorApiIntegration:
 
         return payload
 
-    def _broadcast_event(self, payload):
+    def _broadcast_event(self, payload: Dict[str, Any]) -> None:
         """Broadcast event through WebSocket."""
+        if self.explorer is None:
+            return
+            
         try:
             loop = asyncio.get_event_loop()
         except RuntimeError:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
-        async def _broadcast():
+        async def _broadcast() -> None:
             try:
-                await self.explorer.broadcast_event(self.module_id, payload)
+                if self.explorer is not None:
+                    await self.explorer.broadcast_event(self.module_id, payload)
             except Exception as e:
                 logger.error(f"Error broadcasting event: {e}")
 
@@ -1235,7 +1261,7 @@ class EEGProcessorApiIntegration:
 #
 
 
-def get_api_integration():
+def get_api_integration() -> EEGProcessorApiIntegration:
     """Get the API integration singleton instance."""
     return EEGProcessorApiIntegration.get_instance()
 

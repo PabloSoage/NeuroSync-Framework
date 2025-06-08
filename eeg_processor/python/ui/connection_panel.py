@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import (
     QScrollArea,
     QWidget,
 )
+from typing import Optional, Dict, Any
 
 from .base_panel import BasePanel
 from ..collectors.board_configuration import BoardConfiguration
@@ -27,7 +28,12 @@ class ConnectionPanel(BasePanel):
     stream_started = pyqtSignal()
     stream_stopped = pyqtSignal()
 
-    def __init__(self, collector_service, visualization_service, parent=None):
+    def __init__(
+        self,
+        collector_service: Any,
+        visualization_service: Any,
+        parent: Optional[Any] = None,
+    ) -> None:
         """Initialize the connection panel."""
         super().__init__(parent)
         self.collector_service = collector_service
@@ -41,7 +47,7 @@ class ConnectionPanel(BasePanel):
         # Initially update visible parameters based on selected board
         self.on_board_type_changed()
 
-    def setup_visualization_control(self):
+    def setup_visualization_control(self) -> None:
         """Set up visualization control group."""
         visualization_group = QGroupBox("Visualization Control")
         visualization_layout = QVBoxLayout(visualization_group)
@@ -59,7 +65,7 @@ class ConnectionPanel(BasePanel):
         # Add to main layout
         self.layout.addWidget(visualization_group)
 
-    def setup_board_selection(self):
+    def setup_board_selection(self) -> None:
         """Set up board selection group."""
         board_group = QGroupBox("Board Selection")
         board_layout = QVBoxLayout(board_group)
@@ -240,7 +246,7 @@ class ConnectionPanel(BasePanel):
         # Add board group to main layout
         self.layout.addWidget(board_group)
 
-    def setup_board_info(self):
+    def setup_board_info(self) -> None:
         """Set up board information group."""
         info_group = QGroupBox("Board Information")
         info_layout = QVBoxLayout(info_group)
@@ -262,7 +268,7 @@ class ConnectionPanel(BasePanel):
         # Add to main layout
         self.layout.addWidget(info_group)
 
-    def on_board_type_changed(self):
+    def on_board_type_changed(self) -> None:
         """Handle board type selection changes."""
         board_id = self.board_type_combo.currentData()
         if board_id is None:
@@ -332,7 +338,7 @@ class ConnectionPanel(BasePanel):
                 "Board Selection Error", f"Error updating board parameters: {str(e)}"
             )
 
-    def filter_boards(self):
+    def filter_boards(self) -> None:
         """Filter the boards in the dropdown based on search text."""
         filter_text = self.filter_edit.text().lower()
         self.board_type_combo.clear()
@@ -345,7 +351,7 @@ class ConnectionPanel(BasePanel):
         if self.board_type_combo.count() == 0:
             self.board_type_combo.addItem("No matching boards", -1)
 
-    def browse_file(self):
+    def browse_file(self) -> None:
         """Browse for a file for playback board."""
         filename, _ = QFileDialog.getOpenFileName(
             self, "Select Data File", "", "CSV files (*.csv);; All Files (*)"
@@ -353,7 +359,7 @@ class ConnectionPanel(BasePanel):
         if filename:
             self.param_fields["file"].setText(filename)
 
-    def connect_board(self):
+    def connect_board(self) -> None:
         """Connect to the selected EEG board."""
         try:
             board_id = self.board_type_combo.currentData()
@@ -417,7 +423,7 @@ class ConnectionPanel(BasePanel):
         except Exception as e:
             self.show_error("Connection Error", f"Failed to connect to board: {str(e)}")
 
-    def disconnect_board(self):
+    def disconnect_board(self) -> None:
         """Disconnect from the EEG board."""
         try:
             if self.collector_service.is_streaming_active():
@@ -449,7 +455,7 @@ class ConnectionPanel(BasePanel):
                 "Disconnection Error", f"Error during disconnection: {str(e)}"
             )
 
-    def start_stream(self):
+    def start_stream(self) -> None:
         """Start streaming data from the board."""
         try:
             success = self.collector_service.start_stream()
@@ -464,21 +470,22 @@ class ConnectionPanel(BasePanel):
                         from ..services.processor_service import ProcessorService
 
                         # Initialize processor service
-                        processor_service = (
-                            self.processor_service
-                            if hasattr(self, "processor_service")
+                        processor_service: Optional[ProcessorService] = (
+                            getattr(self, 'processor_service', None)
+                            if hasattr(self, 'processor_service')
                             else ProcessorService()
                         )
-                        processor_service.initialize_processor(sampling_rate)
+                        if processor_service is not None:
+                            processor_service.initialize_processor(sampling_rate)
 
-                        # Create visualizer with the processor
-                        self.visualization_service.create_eeg_visualizer(
-                            self.collector_service.collector,
-                            processor_service.processor,
-                        )
+                            # Create visualizer with the processor
+                            self.visualization_service.create_eeg_visualizer(
+                                self.collector_service.collector,
+                                processor_service.processor,
+                            )
 
-                        # Save processor service for future use
-                        self.processor_service = processor_service
+                            # Save processor service for future use
+                            self.processor_service = processor_service
                     except Exception as e:
                         # Fallback approach - create visualizer without processor
                         self.show_status(
@@ -510,7 +517,7 @@ class ConnectionPanel(BasePanel):
         except Exception as e:
             self.show_error("Streaming Error", f"Error starting stream: {str(e)}")
 
-    def stop_stream(self):
+    def stop_stream(self) -> None:
         """Stop streaming data from the board."""
         try:
             success = self.collector_service.stop_stream()
@@ -533,7 +540,7 @@ class ConnectionPanel(BasePanel):
         except Exception as e:
             self.show_error("Streaming Error", f"Error stopping stream: {str(e)}")
 
-    def show_visualization(self):
+    def show_visualization(self) -> None:
         """Show the EEG visualization if it was closed."""
         try:
             if self.visualization_service.visualization_closed():
@@ -557,7 +564,7 @@ class ConnectionPanel(BasePanel):
                 "Visualization Error", f"Error showing visualization: {str(e)}"
             )
 
-    def update_visualization_button(self, enabled):
+    def update_visualization_button(self, enabled: bool) -> None:
         """Update the state of the visualization button."""
         self.show_viz_btn.setEnabled(enabled)
         if enabled:
@@ -567,13 +574,13 @@ class ConnectionPanel(BasePanel):
         else:
             self.show_viz_btn.setStyleSheet("font-weight: bold; padding: 6px;")
 
-    def enable_streaming(self, enabled):
+    def enable_streaming(self, enabled: bool) -> None:
         """Enable or disable streaming controls."""
         self.start_stream_btn.setEnabled(enabled)
         self.stop_stream_btn.setEnabled(False)
 
     # Add methods for API interaction
-    def _update_connection_state(self, connected):
+    def _update_connection_state(self, connected: bool) -> bool:
         """Update connection state from API call."""
         try:
             self.connect_btn.setEnabled(not connected)
@@ -587,7 +594,7 @@ class ConnectionPanel(BasePanel):
             self.show_error("Connection State Update Error", str(e))
             return False
 
-    def _update_streaming_state(self, streaming):
+    def _update_streaming_state(self, streaming: bool) -> bool:
         """Update streaming state from API call."""
         try:
             self.start_stream_btn.setEnabled(not streaming)
@@ -605,7 +612,7 @@ class ConnectionPanel(BasePanel):
             self.show_error("Streaming State Update Error", str(e))
             return False
 
-    def _update_params_from_dict(self, params):
+    def _update_params_from_dict(self, params: Dict[str, Any]) -> bool:
         """Update connection parameters from dictionary."""
         try:
             # Set field values if they exist in the params dictionary
@@ -631,7 +638,7 @@ class ConnectionPanel(BasePanel):
             self.show_error("Parameter Update Error", str(e))
             return False
 
-    def get_connection_settings(self):
+    def get_connection_settings(self) -> Dict[str, Any]:
         """Get current connection settings."""
         settings = {
             "board_id": self.board_type_combo.currentData(),

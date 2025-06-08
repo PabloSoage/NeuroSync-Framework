@@ -18,6 +18,7 @@ from typing import Dict, List, Optional, Union
 import h5py
 import numpy as np
 from PyQt5.QtCore import QTimer, pyqtSignal, Qt
+
 # For visualization
 from PyQt5.QtWidgets import (
     QWidget,
@@ -27,6 +28,7 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QComboBox,
 )
+
 # Fixed import - remove LostError which doesn't exist in pylsl
 from pylsl import StreamInfo, StreamOutlet, StreamInlet, resolve_streams, local_clock
 

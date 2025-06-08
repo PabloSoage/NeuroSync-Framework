@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+from typing import Dict, Tuple, List, Any, Optional
 
 import numpy as np
 
@@ -12,8 +13,11 @@ try:
 except ImportError:
     # When run directly, use absolute imports
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from collectors.eeg_collector import EEGCollector
-    from processors.signal_processor import SignalProcessor
+    from collectors.eeg_collector import EEGCollector as EEGCollectorImport
+    from processors.signal_processor import SignalProcessor as SignalProcessorImport
+
+    EEGCollector = EEGCollectorImport
+    SignalProcessor = SignalProcessorImport
 
 import pyqtgraph as pg
 from PyQt5.QtCore import Qt, QTimer, QPointF
@@ -28,7 +32,7 @@ class BrainMapVisualizer:
     represents signal quality with color indicators.
     """
 
-    def __init__(self, collector: EEGCollector, processor: SignalProcessor):
+    def __init__(self, collector: EEGCollector, processor: SignalProcessor) -> None:
         """
         Initialize the brain map visualizer.
 
@@ -61,9 +65,9 @@ class BrainMapVisualizer:
 
         # Indicadores para depuración
         self.update_count = 0
-        self.last_quality_values = {}
+        self.last_quality_values: Dict[str, float] = {}
 
-        self.timer = None
+        self.timer: Optional[QTimer] = None
 
         # Add window size to match EEGVisualizer
         self.window_size = 4  # Display 4 seconds of data like EEGVisualizer
@@ -87,7 +91,7 @@ class BrainMapVisualizer:
 
         logging.info("Brain map visualizer initialized")
 
-    def setup_ui(self):
+    def setup_ui(self) -> None:
         """Set up the user interface."""
         # Create window
         self.win = pg.GraphicsLayoutWidget()
@@ -125,14 +129,14 @@ class BrainMapVisualizer:
         # Draw quality legend
         self.add_quality_legend()
 
-    def handle_close_event(self, event):
+    def handle_close_event(self, event: Any) -> None:
         """Handle window close event to properly stop updates when closed."""
         self.stop()  # Stop the timer
         self.was_closed = True  # Flag to track if window was closed by user
         logging.info("Brain map visualization window closed by user")
         event.accept()
 
-    def add_quality_legend(self):
+    def add_quality_legend(self) -> None:
         """Add a legend for signal quality."""
         # Move legend to the bottom at y=-1.4
         legend_rect = pg.QtWidgets.QGraphicsRectItem(0.6, -1.4, 0.7, 0.45)
@@ -184,7 +188,7 @@ class BrainMapVisualizer:
             text.setColor(QColor(255, 255, 255))
             self.view.addItem(text)
 
-    def draw_brain_outlines(self):
+    def draw_brain_outlines(self) -> None:
         """Draw head and brain region outlines."""
         # Create a clean head outline (circle)
         head_circle = pg.QtWidgets.QGraphicsEllipseItem(-1, -1, 2, 2)
@@ -218,7 +222,7 @@ class BrainMapVisualizer:
         self.add_orientation_label("Left", -1.25, 0)
         self.add_orientation_label("Right", 1.25, 0)
 
-    def create_brain_regions(self):
+    def create_brain_regions(self) -> None:
         """Create the different brain regions with appropriate coloring."""
         # Define major regions - each with a list of points to define the shape
 
@@ -288,7 +292,12 @@ class BrainMapVisualizer:
         self.view.addItem(occipital_item)
         self.region_items.append(occipital_item)
 
-    def create_region_item(self, points, fill_color, border_color):
+    def create_region_item(
+        self,
+        points: List[Tuple[float, float]],
+        fill_color: QColor,
+        border_color: QColor,
+    ) -> Any:
         """Create a QGraphicsPathItem for a brain region."""
         # Create a path for the region
         path = QPainterPath()
@@ -315,14 +324,14 @@ class BrainMapVisualizer:
 
         return item
 
-    def add_orientation_label(self, text, x, y):
+    def add_orientation_label(self, text: str, x: float, y: float) -> None:
         """Add an orientation label at the specified position."""
         label = pg.TextItem(text, anchor=(0.5, 0.5))
         label.setPos(x, y)
         label.setColor(QColor(200, 200, 200))
         self.view.addItem(label)
 
-    def identify_electrode_positions(self):
+    def identify_electrode_positions(self) -> None:
         """Identify electrode positions based on channel names from the collector."""
         # Create standard electrode positions based on international 10-20/10-10 system
         self.standard_positions = self.create_standard_positions()
@@ -445,7 +454,7 @@ class BrainMapVisualizer:
             # Create default positions as a fallback
             self._create_default_positions()
 
-    def create_standard_positions(self):
+    def create_standard_positions(self) -> Dict[str, Tuple[float, float]]:
         """Create standardized electrode positions based on the 10-20/10-10 systems."""
         # Define positions matching the reference image layout
         positions = {
@@ -560,7 +569,7 @@ class BrainMapVisualizer:
 
         return positions
 
-    def _map_gtec_channel(self, channel_num):
+    def _map_gtec_channel(self, channel_num: int) -> str:
         """Map g.tec channel numbers to standard positions."""
         # Common mapping for g.tec Unicorn
         mapping = {
@@ -619,7 +628,7 @@ class BrainMapVisualizer:
 
         return ""
 
-    def start(self):
+    def start(self) -> None:
         """Start the visualizer."""
         try:
             # Make sure we have at least some electrode positions
@@ -649,22 +658,22 @@ class BrainMapVisualizer:
         except Exception as e:
             logging.error(f"Error starting brain map visualizer: {e}", exc_info=True)
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the visualizer."""
         if self.timer:
             self.timer.stop()
         logging.info("Brain map visualizer stopped")
 
-    def is_visible(self):
+    def is_visible(self) -> bool:
         """Check if the visualization window is visible."""
         return self.win.isVisible()
 
-    def close(self):
+    def close(self) -> None:
         """Close the visualization window."""
         self.stop()
         self.win.close()
 
-    def update_quality_map(self):
+    def update_quality_map(self) -> None:
         """Update the signal quality map."""
         try:
             # Only update if window is visible
@@ -799,7 +808,7 @@ class BrainMapVisualizer:
         except Exception as e:
             logging.error(f"Error in update_quality_map: {e}", exc_info=True)
 
-    def update_electrode_display(self):
+    def update_electrode_display(self) -> None:
         """Update the electrode visualization with quality indicators."""
         try:
             # Clear previous labels
@@ -888,7 +897,7 @@ class BrainMapVisualizer:
         except Exception as e:
             logging.error(f"Error in update_electrode_display: {e}", exc_info=True)
 
-    def _create_default_positions(self):
+    def _create_default_positions(self) -> None:
         """Create default electrode positions when detection fails."""
         logging.info("Creating default electrode positions")
         # Standard 10-20 positions for common setups
@@ -941,7 +950,7 @@ class BrainMapVisualizer:
     # Add methods to configure filters similar to EEGVisualizer
     def set_bandpass_filter(
         self, enabled: bool, low_freq: float = 1.0, high_freq: float = 30.0
-    ):
+    ) -> None:
         """
         Set bandpass filter parameters.
 
@@ -954,7 +963,7 @@ class BrainMapVisualizer:
         self.bandpass_low = low_freq
         self.bandpass_high = high_freq
 
-    def set_notch_filter(self, enabled: bool):
+    def set_notch_filter(self, enabled: bool) -> None:
         """
         Set notch filter for power line noise.
 
@@ -963,7 +972,7 @@ class BrainMapVisualizer:
         """
         self.apply_notch = enabled
 
-    def set_detrend(self, enabled: bool):
+    def set_detrend(self, enabled: bool) -> None:
         """
         Set detrending option.
 

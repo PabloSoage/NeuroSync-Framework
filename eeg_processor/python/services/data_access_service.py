@@ -1,6 +1,6 @@
 import logging
 import threading
-from typing import Dict, List, Any, Tuple, Callable
+from typing import Dict, List, Any, Tuple, Callable, Optional, Union
 
 import numpy as np
 
@@ -14,26 +14,26 @@ class DataAccessService:
     _lock = threading.Lock()
 
     @classmethod
-    def get_instance(cls):
+    def get_instance(cls) -> 'DataAccessService':
         """Get the singleton instance of the service."""
         with cls._lock:
             if cls._instance is None:
                 cls._instance = DataAccessService()
             return cls._instance
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the data access service."""
         self._data_lock = threading.Lock()
         self._metadata_lock = threading.Lock()
 
         # Current data buffer: 2D array (channels x samples), start empty
         self._current_data = np.zeros((0, 0))
-        self._timestamps = []
+        self._timestamps: List[int] = []
         # Maximum number of samples to keep (set after sampling_rate known)
-        self._buffer_max_samples = None
+        self._buffer_max_samples: Optional[int] = None
 
         # Reference to collector service for direct access when needed
-        self._collector_service = None
+        self._collector_service: Optional[Any] = None
 
         # Board and stream metadata
         self._metadata = {
@@ -48,7 +48,7 @@ class DataAccessService:
         }
 
         # Registered callbacks for data updates
-        self._callbacks = []
+        self._callbacks: List[Optional[Callable[[np.ndarray, List[int]], None]]] = []
         self._callback_lock = threading.Lock()
 
         # Initialize collector reference (will be set properly when collector starts)
@@ -56,7 +56,7 @@ class DataAccessService:
 
         logging.info("Data access service initialized")
 
-    def _init_collector_reference(self):
+    def _init_collector_reference(self) -> None:
         """Initialize reference to collector service (if available)."""
         try:
             from .collector_service import CollectorService
@@ -101,7 +101,8 @@ class DataAccessService:
             sr = self._metadata.get("sampling_rate", 0)
             if sr and not self._buffer_max_samples:
                 # Keep 10 seconds of data by default
-                self._buffer_max_samples = int(sr * 10)
+                if isinstance(sr, (int, float)):
+                    self._buffer_max_samples = int(sr) * 10
 
     def get_current_data(self) -> Tuple[np.ndarray, List[int]]:
         """Get the current data and timestamps."""
@@ -174,7 +175,7 @@ class DataAccessService:
         except Exception as e:
             logging.debug(f"Error updating metadata from collector: {e}")
 
-    def _get_active_collector(self):
+    def _get_active_collector(self) -> Optional[Any]:
         """Get the active collector from collector service."""
         if not self._collector_service:
             return None
@@ -213,18 +214,24 @@ class DataAccessService:
     def get_channel_names(self) -> List[str]:
         """Get names of all channels."""
         with self._metadata_lock:
-            names = self._metadata.get("channel_names", []).copy()
+            names = self._metadata.get("channel_names", [])
+            if isinstance(names, list):
+                names = names.copy()
+            else:
+                names = []
 
             # If names are empty, try to get from collector
             if not names:
                 collector = self._get_active_collector()
                 if collector and hasattr(collector, "eeg_names"):
-                    names = collector.eeg_names
+                    eeg_names = collector.eeg_names
+                    if isinstance(eeg_names, list):
+                        names = eeg_names
 
                 # If still empty, try to generate generic names based on channels
                 if not names:
                     eeg_channels = self._metadata.get("eeg_channels", [])
-                    if eeg_channels:
+                    if eeg_channels and isinstance(eeg_channels, list):
                         names = [f"CH{i+1}" for i in range(len(eeg_channels))]
 
             return names
@@ -233,31 +240,37 @@ class DataAccessService:
         """Get the sampling rate."""
         with self._metadata_lock:
             rate = self._metadata.get("sampling_rate", 0)
+            if not isinstance(rate, (int, float)):
+                rate = 0
 
             # If rate is 0, try to get directly from collector
             if rate == 0:
                 collector = self._get_active_collector()
                 if collector and hasattr(collector, "sampling_rate"):
-                    rate = collector.sampling_rate
+                    collector_rate = collector.sampling_rate
+                    if isinstance(collector_rate, (int, float)):
+                        rate = float(collector_rate)
+                        # Update metadata for future calls
+                        self._metadata["sampling_rate"] = rate
 
-                    # Update metadata for future calls
-                    self._metadata["sampling_rate"] = rate
-
-            return rate
+            return float(rate)
 
     def is_streaming(self) -> bool:
         """Check if streaming is active."""
         with self._metadata_lock:
             streaming = self._metadata.get("streaming", False)
+            if not isinstance(streaming, bool):
+                streaming = False
 
             # If not streaming according to metadata, check directly
             if not streaming:
                 collector = self._get_active_collector()
                 if collector and hasattr(collector, "is_streaming"):
-                    streaming = collector.is_streaming
-
-                    # Update metadata
-                    self._metadata["streaming"] = streaming
+                    collector_streaming = collector.is_streaming
+                    if isinstance(collector_streaming, bool):
+                        streaming = collector_streaming
+                        # Update metadata
+                        self._metadata["streaming"] = streaming
 
             return streaming
 

@@ -10,10 +10,12 @@ import sys
 from PyQt5.QtWidgets import QApplication
 
 import eeg_processor.python.eeg_processor_app as eeg_processor_app
+
 # Import from both modules
 import input_collector.python.input_collector_app as input_collector_app
 from .app.unified_app_coordinator import UnifiedAppCoordinator
 from .services.integration_service import IntegrationService
+
 # Import the unified components
 from .ui.main_window import UnifiedMainWindow
 
@@ -25,7 +27,7 @@ class UnifiedApplication:
     This class initializes both modules and sets up the integration layer.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the unified application."""
         # Create Qt application
         self.app = QApplication(sys.argv)
@@ -53,7 +55,7 @@ class UnifiedApplication:
         # Connect the coordinator to the UI
         self.coordinator.set_main_window(self.main_window)
 
-    def _initialize_services(self):
+    def _initialize_services(self) -> None:
         """Initialize services from both modules."""
         # Initialize Input Collector components
         self.input_collector_components = self._initialize_input_collector()
@@ -61,7 +63,7 @@ class UnifiedApplication:
         # Initialize EEG Processor components
         self.eeg_processor_components = self._initialize_eeg_processor()
 
-    def _initialize_input_collector(self):
+    def _initialize_input_collector(self) -> dict:
         """
         Initialize input collector components.
 
@@ -81,7 +83,7 @@ class UnifiedApplication:
             "event_processor": input_app.event_processor,
         }
 
-    def _initialize_eeg_processor(self):
+    def _initialize_eeg_processor(self) -> dict:
         """
         Initialize EEG processor components.
 
@@ -100,7 +102,7 @@ class UnifiedApplication:
             "recording_service": eeg_app.recording_service,
         }
 
-    def run(self):
+    def run(self) -> int:
         """
         Run the unified application.
 

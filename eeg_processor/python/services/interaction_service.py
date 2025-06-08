@@ -19,13 +19,13 @@ class InteractionService:
     _instance = None
 
     @classmethod
-    def get_instance(cls):
+    def get_instance(cls) -> 'InteractionService':
         """Get the singleton instance."""
         if cls._instance is None:
             cls._instance = InteractionService()
         return cls._instance
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the interaction service."""
         self.event_system = EventSystem.get_instance()
 
@@ -321,19 +321,26 @@ class InteractionService:
             True if data saved successfully, False otherwise
         """
         try:
-            from ..services.collector_service import CollectorService
+            from ..interaction_api import EEGProcessorInteractionAPI
 
-            collector_service = CollectorService()
-            collector_service.save_data(filename, data_type)
+            # Use the recording functionality to save current data
+            result = EEGProcessorInteractionAPI.start_recording(filename, data_type)
+            
+            if result.get("success", False):
+                # Stop recording immediately to save current data
+                stop_result = EEGProcessorInteractionAPI.stop_recording()
+                
+                # Publish event for UI updates
+                self.event_system.publish_event(
+                    EventType.UI_UPDATE_STATUS,
+                    {"message": f"Data saved to {filename}"},
+                    source="interaction_service",
+                )
+                
+                return stop_result.get("success", False)
+            else:
+                return False
 
-            # Publish event for UI updates
-            self.event_system.publish_event(
-                EventType.UI_UPDATE_STATUS,
-                {"message": f"Data saved to {filename}"},
-                source="interaction_service",
-            )
-
-            return True
         except Exception as e:
             logging.error(f"Error saving data: {e}")
             return False

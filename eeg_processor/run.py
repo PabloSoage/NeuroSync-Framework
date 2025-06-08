@@ -19,7 +19,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from eeg_processor.python.eeg_processor_app import EEGProcessorApp
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser()
     p.add_argument("--enable-web-api", action="store_true")
     p.add_argument("--api-host", default="127.0.0.1")
@@ -38,7 +38,7 @@ def parse_args():
     return p.parse_args()
 
 
-def main():
+def main() -> None:
     """Run the EEG Processor application."""
     args = parse_args()
 
@@ -64,7 +64,9 @@ def main():
 
         if initialize_api(host=args.api_host, port=args.api_port):
             intg = get_api_integration()
-            port = intg.explorer.server_port or args.api_port
+            port = (intg.explorer.server_port 
+                   if intg.explorer is not None and intg.explorer.server_port is not None 
+                   else args.api_port)
             print(f"Web API EEG Processor en http://{args.api_host}:{port}")
         else:
             print("Fallo inicializando Web API EEG Processor")

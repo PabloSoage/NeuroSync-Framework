@@ -1,4 +1,5 @@
 import logging
+from typing import Any, Optional
 
 from ..visualizers.brain_map_viz import BrainMapVisualizer
 from ..visualizers.eeg_viz import EEGVisualizer
@@ -12,12 +13,12 @@ class VisualizationService:
     and brain maps.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the visualization service."""
-        self.eeg_visualizer = None
-        self.brain_map_visualizer = None
+        self.eeg_visualizer: Optional[EEGVisualizer] = None
+        self.brain_map_visualizer: Optional[BrainMapVisualizer] = None
 
-    def create_eeg_visualizer(self, collector, processor) -> bool:
+    def create_eeg_visualizer(self, collector: Any, processor: Any) -> bool:
         """
         Create an EEG visualizer.
 
@@ -53,7 +54,7 @@ class VisualizationService:
             logging.error(f"EEG visualizer creation error: {e}")
             return False
 
-    def create_brain_map_visualizer(self, collector, processor) -> bool:
+    def create_brain_map_visualizer(self, collector: Any, processor: Any) -> bool:
         """
         Create a brain map visualizer.
 

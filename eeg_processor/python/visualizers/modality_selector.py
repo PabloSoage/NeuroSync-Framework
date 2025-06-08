@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
@@ -9,6 +10,7 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QListWidget,
     QListWidgetItem,
+    QWidget,
 )
 
 from .multi_modality_viz import MultiModalityVisualizer
@@ -23,7 +25,9 @@ class ModalitySelector(QDialog):
     for different signal modalities (EEG, EMG, ECG, etc.).
     """
 
-    def __init__(self, collector: EEGCollector, parent=None):
+    def __init__(
+        self, collector: EEGCollector, parent: Optional[QWidget] = None
+    ) -> None:
         """
         Initialize the modality selector dialog.
 
@@ -40,7 +44,7 @@ class ModalitySelector(QDialog):
 
         self.setup_ui()
 
-    def setup_ui(self):
+    def setup_ui(self) -> None:
         """Set up the user interface."""
         layout = QVBoxLayout(self)
 
@@ -72,7 +76,7 @@ class ModalitySelector(QDialog):
 
         layout.addLayout(button_layout)
 
-    def populate_modality_list(self):
+    def populate_modality_list(self) -> None:
         """Populate the list with available modalities."""
         self.modality_list.clear()
 
@@ -104,7 +108,7 @@ class ModalitySelector(QDialog):
 
             self.modality_list.addItem(item)
 
-    def visualize_selected(self):
+    def visualize_selected(self) -> None:
         """Visualize selected modalities."""
         for i in range(self.modality_list.count()):
             item = self.modality_list.item(i)
@@ -131,7 +135,7 @@ class ModalitySelector(QDialog):
         # Update the list to reflect current state
         self.populate_modality_list()
 
-    def close_all_windows(self):
+    def close_all_windows(self) -> None:
         """Close all visualization windows."""
         self.visualizer.close_all()
         self.populate_modality_list()  # Update list
