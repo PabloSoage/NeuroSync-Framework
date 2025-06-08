@@ -6,7 +6,9 @@ and input collector modules.
 """
 
 from typing import Any
+
 from PyQt5.QtCore import Qt, QTimer, pyqtSlot
+from PyQt5.QtGui import QCloseEvent
 from PyQt5.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -17,7 +19,6 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QSplitter,
 )
-from PyQt5.QtGui import QCloseEvent
 
 from .recording_panel import UnifiedRecordingPanel
 from .sync_visualization_panel import SynchronizedDataVisualization

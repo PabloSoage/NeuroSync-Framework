@@ -5,6 +5,7 @@ This module provides a unified recording control panel for both EEG and input da
 """
 
 from typing import Optional, Any
+
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,

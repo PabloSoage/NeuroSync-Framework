@@ -4,9 +4,10 @@ Synchronized data visualization panel.
 This module provides a UI component for visualizing synchronized EEG and input data.
 """
 
+from typing import Optional, List, Dict, Any, Tuple
+
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import Optional, List, Dict, Any, Union, Tuple
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import (
     QWidget,

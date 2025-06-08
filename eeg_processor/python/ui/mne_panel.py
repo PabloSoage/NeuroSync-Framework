@@ -1,3 +1,5 @@
+from typing import Any, Optional, Dict
+
 from PyQt5.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
@@ -8,7 +10,6 @@ from PyQt5.QtWidgets import (
 )
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from typing import Any, Optional, Dict
 
 from .base_panel import BasePanel
 from ..utils.help_system import HelpButton

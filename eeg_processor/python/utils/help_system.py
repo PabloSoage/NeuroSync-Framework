@@ -6,6 +6,7 @@ of EEG data collection, processing, and visualization.
 """
 
 from typing import Optional
+
 from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (

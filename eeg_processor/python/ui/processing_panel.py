@@ -1,3 +1,5 @@
+from typing import Any, Optional, Dict
+
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import (
     QVBoxLayout,
@@ -9,7 +11,6 @@ from PyQt5.QtWidgets import (
     QCheckBox,
     QDoubleSpinBox,
 )
-from typing import Any, Optional, Dict
 
 from .base_panel import BasePanel
 from ..utils.help_system import HelpButton

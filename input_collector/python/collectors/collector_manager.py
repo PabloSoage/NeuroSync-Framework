@@ -8,7 +8,6 @@ from typing import Dict, List, Optional, Callable, Any
 
 from .keyboard_mouse import KeyboardMouseCollector
 from ..interfaces import InputData, AbstractInputCollector
-
 # Import services (add this new import)
 from ..services.data_access_service import DataAccessService
 

@@ -20,7 +20,6 @@ from .cli_config import (
     is_cli_running,
     headless_app,
 )
-
 # Import CLI command modules
 from .commands.data_commands import app as data_app
 from .commands.interaction_commands import app as interaction_app

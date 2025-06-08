@@ -7,7 +7,7 @@ input collector applications.
 
 import os
 import time
-from typing import Dict, Any, Optional, List, Union
+from typing import Dict, Any, Union
 
 import numpy as np
 from PyQt5.QtCore import QObject, pyqtSignal, QTimer

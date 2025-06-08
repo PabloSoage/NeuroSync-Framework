@@ -7,7 +7,7 @@ using Lab Streaming Layer (LSL) for millisecond-precision timing.
 
 import threading
 import time
-from typing import Dict, List, Optional, Tuple, Any, Union
+from typing import Dict, List, Optional, Tuple, Any
 
 from PyQt5.QtCore import QObject, pyqtSignal
 

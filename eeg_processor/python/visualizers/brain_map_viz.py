@@ -1,7 +1,7 @@
 import logging
 import os
 import sys
-from typing import Dict, Tuple, List, Any, Optional, Type, Union
+from typing import Dict, Tuple, List, Any, Optional
 
 import numpy as np
 
@@ -19,7 +19,6 @@ except ImportError:
 import pyqtgraph as pg
 from PyQt5.QtCore import Qt, QTimer, QPointF
 from PyQt5.QtGui import QFont, QColor, QPainterPath
-from pyqtgraph.Qt import QtWidgets
 
 
 class BrainMapVisualizer:

@@ -8,8 +8,8 @@ synchronized application for brain-computer interface research.
 import logging
 import os
 import sys
-from typing import Any, Optional
 import time
+from typing import Any, Optional
 
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QColor, QPalette

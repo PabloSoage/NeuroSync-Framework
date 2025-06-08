@@ -15,7 +15,6 @@ from rich.prompt import Prompt
 from rich.syntax import Syntax
 
 from .cli_app import app
-
 # Import shared config instead of from cli_app
 from .cli_config import headless_mode, get_gui_mode, init_headless_mode
 from ..interaction_api import InputCollectorAPI

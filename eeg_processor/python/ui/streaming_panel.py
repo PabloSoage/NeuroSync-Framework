@@ -1,3 +1,5 @@
+from typing import Any, Optional, List, Dict
+
 from PyQt5.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
@@ -8,7 +10,6 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QTextEdit,
 )
-from typing import Any, Optional, List, Dict
 
 from .base_panel import BasePanel
 from ..utils.help_system import HelpButton

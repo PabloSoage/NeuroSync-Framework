@@ -4,7 +4,7 @@ import queue
 import sys
 import threading
 import time
-from typing import Dict, List, Any, Optional, Tuple, Union, TextIO
+from typing import Dict, List, Any, Optional, Tuple, TextIO
 
 import numpy as np
 

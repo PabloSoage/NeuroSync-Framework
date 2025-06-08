@@ -1,6 +1,7 @@
+from typing import Optional
+
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea
-from typing import Optional
 
 
 class BasePanel(QWidget):

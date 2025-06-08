@@ -1,3 +1,5 @@
+from typing import Optional, Dict, Any
+
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import (
     QVBoxLayout,
@@ -12,7 +14,6 @@ from PyQt5.QtWidgets import (
     QScrollArea,
     QWidget,
 )
-from typing import Optional, Dict, Any
 
 from .base_panel import BasePanel
 from ..collectors.board_configuration import BoardConfiguration

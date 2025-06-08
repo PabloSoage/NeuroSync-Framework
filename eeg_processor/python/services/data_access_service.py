@@ -1,6 +1,6 @@
 import logging
 import threading
-from typing import Dict, List, Any, Tuple, Callable, Optional, Union
+from typing import Dict, List, Any, Tuple, Callable, Optional
 
 import numpy as np
 

@@ -16,7 +16,6 @@ from .collectors import CollectorManager
 from .interaction_api import InputCollectorAPI
 from .logging import LoggingManager
 from .processing import EventProcessor
-
 # Import new modular components
 from .ui import UIManager
 from .ui.visualizer_manager import VisualizerManager
