@@ -67,14 +67,14 @@ class EventSystem:
     _lock = threading.Lock()
 
     @classmethod
-    def get_instance(cls):
+    def get_instance(cls) -> 'EventSystem':
         """Get the singleton instance."""
         with cls._lock:
             if cls._instance is None:
                 cls._instance = EventSystem()
             return cls._instance
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the event system."""
         self._subscribers: Dict[EventType, List[Callable]] = {}
         self._lock = threading.Lock()
@@ -149,7 +149,7 @@ class EventSystem:
     def publish_event(
         self,
         event_type: EventType,
-        data: Dict[str, Any] = None,
+        data: Optional[Dict[str, Any]] = None,
         source: str = "unknown",
     ) -> None:
         """

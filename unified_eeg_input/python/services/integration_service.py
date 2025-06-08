@@ -7,6 +7,7 @@ input collector applications.
 
 import os
 import time
+from typing import Dict, Any, Optional, List, Union
 
 import numpy as np
 from PyQt5.QtCore import QObject, pyqtSignal, QTimer
@@ -24,7 +25,11 @@ class IntegrationService(QObject):
 
     status_message = pyqtSignal(str, str)  # message, color
 
-    def __init__(self, input_collector_components, eeg_processor_components):
+    def __init__(
+        self,
+        input_collector_components: Dict[str, Any],
+        eeg_processor_components: Dict[str, Any],
+    ) -> None:
         """Initialize the integration service."""
         super().__init__()
 
@@ -32,7 +37,7 @@ class IntegrationService(QObject):
         self.eeg_processor = eeg_processor_components
 
         # Recording state
-        self.recording_start_time = 0
+        self.recording_start_time: float = 0.0
         self.recording_directory = ""
 
         # Create LSL synchronization service
@@ -52,7 +57,7 @@ class IntegrationService(QObject):
         # Data forwarding setup
         self.setup_data_forwarding()
 
-    def _initialize_lsl(self):
+    def _initialize_lsl(self) -> None:
         """Initialize LSL streams."""
         # Get EEG device info for stream configuration
         collector_service = self.eeg_processor["collector_service"]
@@ -77,7 +82,7 @@ class IntegrationService(QObject):
         # Start LSL synchronization
         self.lsl_sync.start_sync()
 
-    def setup_data_forwarding(self):
+    def setup_data_forwarding(self) -> None:
         """Set up data forwarding from EEG and input collector to LSL."""
         # Connect to EEG data stream
         try:
@@ -99,7 +104,7 @@ class IntegrationService(QObject):
                 f"Error connecting to input event stream: {str(e)}", "warning"
             )
 
-    def _forward_eeg_data(self, eeg_data):
+    def _forward_eeg_data(self, eeg_data: Union[np.ndarray, Any]) -> None:
         """
         Forward EEG data to LSL stream.
 
@@ -121,7 +126,7 @@ class IntegrationService(QObject):
         # Push to LSL
         self.lsl_sync.push_eeg_data(sample)
 
-    def _forward_input_event(self, input_event):
+    def _forward_input_event(self, input_event: Any) -> None:
         """
         Forward input event to LSL stream.
 
@@ -200,7 +205,7 @@ class IntegrationService(QObject):
         # Push to LSL
         self.lsl_sync.push_input_data(input_data)
 
-    def check_components_status(self):
+    def check_components_status(self) -> None:
         """Periodically check the status of both components."""
         # Check if EEG board is connected and update LSL if needed
         eeg_connected = self.eeg_processor["collector_service"].is_connected()
@@ -217,7 +222,7 @@ class IntegrationService(QObject):
         if eeg_connected and not self.lsl_sync.eeg_outlet:
             self._initialize_lsl()
 
-    def start_recording(self, config):
+    def start_recording(self, config: Dict[str, Any]) -> bool:
         """
         Start recording on both modules if enabled.
 
@@ -261,7 +266,7 @@ class IntegrationService(QObject):
 
         return success
 
-    def _start_input_recording(self, config, directory):
+    def _start_input_recording(self, config: Dict[str, Any], directory: str) -> bool:
         """
         Start input collector recording.
 
@@ -309,7 +314,7 @@ class IntegrationService(QObject):
             )
             return False
 
-    def _start_eeg_recording(self, config, directory):
+    def _start_eeg_recording(self, config: Dict[str, Any], directory: str) -> bool:
         """
         Start EEG recording.
 
@@ -349,7 +354,7 @@ class IntegrationService(QObject):
             self.status_message.emit(f"Error starting EEG recording: {str(e)}", "error")
             return False
 
-    def stop_recording(self):
+    def stop_recording(self) -> bool:
         """
         Stop recording on both modules.
 
@@ -391,7 +396,7 @@ class IntegrationService(QObject):
 
         return success
 
-    def _stop_input_recording(self):
+    def _stop_input_recording(self) -> bool:
         """
         Stop input collector recording.
 
@@ -415,7 +420,7 @@ class IntegrationService(QObject):
             )
             return False
 
-    def _stop_eeg_recording(self):
+    def _stop_eeg_recording(self) -> bool:
         """
         Stop EEG recording.
 
@@ -441,7 +446,7 @@ class IntegrationService(QObject):
             self.status_message.emit(f"Error stopping EEG recording: {str(e)}", "error")
             return False
 
-    def add_marker(self, marker_value):
+    def add_marker(self, marker_value: Any) -> bool:
         """
         Add a marker to both recordings.
 
@@ -472,7 +477,7 @@ class IntegrationService(QObject):
 
         return success
 
-    def is_ready_for_recording(self):
+    def is_ready_for_recording(self) -> bool:
         """
         Check if the system is ready for recording.
 
@@ -491,7 +496,7 @@ class IntegrationService(QObject):
         # System is ready if at least one component is ready
         return eeg_ready or input_ready
 
-    def get_recording_time(self):
+    def get_recording_time(self) -> float:
         """
         Get the current recording time in seconds.
 
@@ -502,7 +507,7 @@ class IntegrationService(QObject):
             return time.time() - self.recording_start_time
         return 0
 
-    def get_eeg_ready_state(self):
+    def get_eeg_ready_state(self) -> bool:
         """
         Get the ready state of the EEG processor.
 
@@ -514,7 +519,7 @@ class IntegrationService(QObject):
             collector_service.is_connected() and collector_service.is_streaming_active()
         )
 
-    def get_input_ready_state(self):
+    def get_input_ready_state(self) -> bool:
         """
         Get the ready state of the input collector.
 
@@ -524,7 +529,7 @@ class IntegrationService(QObject):
         # Input collector is always ready for recording
         return True
 
-    def get_synchronized_data(self, max_samples=100):
+    def get_synchronized_data(self, max_samples: int = 100) -> Dict[str, Any]:
         """
         Get synchronized data for visualization.
 
@@ -537,7 +542,7 @@ class IntegrationService(QObject):
         # Get dataset preview from LSL sync service
         return self.lsl_sync.get_dataset_preview(max_samples)
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         """Clean up resources."""
         # Clean up LSL sync service
         self.lsl_sync.cleanup()

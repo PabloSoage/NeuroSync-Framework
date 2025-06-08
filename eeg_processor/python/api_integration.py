@@ -1049,7 +1049,10 @@ class EEGProcessorApiIntegration:
                 eeg_channels = list(range(min(8, data.shape[0])))
 
             # Get channel names
-            channel_names = EEGDataAPI.get_channel_names()
+            channel_names: List[str] = []
+            channel_names_result = EEGDataAPI.get_channel_names()
+            if channel_names_result is not None:
+                channel_names = list(channel_names_result)  # Ensure it's a List[str]
 
             # Instantiate processor
             processor = SignalProcessor(sampling_rate)
@@ -1172,7 +1175,7 @@ class EEGProcessorApiIntegration:
                 else:
                     # Generate generic names
                     channel_names = [
-                        f"{ch_type.upper()}_{i}" for i in range(len(channels))
+                        f"{ch_type.upper()}_" for i in range(len(channels))
                     ]
 
                 # Slice to ensure we have valid names

@@ -6,7 +6,7 @@ board connection, data processing, recording, and visualization.
 """
 
 import logging
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 
 from .core.event_system import EventSystem, EventType
 from .services.data_access_service import DataAccessService
@@ -68,7 +68,7 @@ class EEGProcessorInteractionAPI:
 
     @staticmethod
     def connect_to_board(
-        board_id: int, params: Dict[str, Any] = None, preset: int = 0
+        board_id: int, params: Optional[Dict[str, Any]] = None, preset: int = 0
     ) -> Dict[str, Any]:
         """
         Connect to an EEG board.
@@ -362,7 +362,7 @@ class EEGProcessorInteractionAPI:
                     )
                 success = viz_service.start_eeg_visualization()
             elif viz_type == "brain_map":
-                if not viz_service.brain - map_visualizer:
+                if not viz_service.brain_map_visualizer:
                     viz_service.create_brain_map_visualizer(
                         collector_service, processor_service
                     )

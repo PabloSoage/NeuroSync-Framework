@@ -4,6 +4,7 @@ Unified recording panel.
 This module provides a unified recording control panel for both EEG and input data.
 """
 
+from typing import Optional, Any
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -28,7 +29,7 @@ class UnifiedRecordingPanel(QWidget):
     EEG and input data with configurable options.
     """
 
-    def __init__(self, coordinator, parent=None):
+    def __init__(self, coordinator: Any, parent: Optional[QWidget] = None) -> None:
         """Initialize the recording panel."""
         super().__init__(parent)
 
@@ -42,7 +43,7 @@ class UnifiedRecordingPanel(QWidget):
         self.update_recording_state(False)
         self.update_ready_state(False, True)
 
-    def _create_ui(self):
+    def _create_ui(self) -> None:
         """Create the user interface."""
         # Main layout
         layout = QVBoxLayout(self)
@@ -214,7 +215,7 @@ class UnifiedRecordingPanel(QWidget):
         # Add recording group to main layout
         layout.addWidget(recording_group)
 
-    def browse_save_directory(self):
+    def browse_save_directory(self) -> None:
         """Open a dialog to select a save directory."""
         directory = QFileDialog.getExistingDirectory(
             self,
@@ -226,14 +227,14 @@ class UnifiedRecordingPanel(QWidget):
         if directory:
             self.save_dir_edit.setText(directory)
 
-    def toggle_recording(self):
+    def toggle_recording(self) -> None:
         """Toggle recording state."""
         if not self.recording:
             self.start_recording()
         else:
             self.stop_recording()
 
-    def start_recording(self):
+    def start_recording(self) -> None:
         """Start recording with current settings."""
         # Get recording configuration
         config = {
@@ -305,7 +306,7 @@ class UnifiedRecordingPanel(QWidget):
                 QMessageBox.Ok,
             )
 
-    def stop_recording(self):
+    def stop_recording(self) -> None:
         """Stop current recording."""
         try:
             success = self.coordinator.stop_recording()
@@ -326,7 +327,7 @@ class UnifiedRecordingPanel(QWidget):
             # Reset the UI state in case of error
             self.update_recording_state(False)
 
-    def add_marker(self):
+    def add_marker(self) -> None:
         """Add a marker to the recording."""
         marker_value = self.marker_value.value()
         self.coordinator.add_marker(marker_value)
@@ -334,7 +335,7 @@ class UnifiedRecordingPanel(QWidget):
         # Increment marker value for convenience
         self.marker_value.setValue(marker_value + 1)
 
-    def update_recording_state(self, is_recording):
+    def update_recording_state(self, is_recording: bool) -> None:
         """
         Update the UI to reflect recording state.
 
@@ -391,7 +392,7 @@ class UnifiedRecordingPanel(QWidget):
             self.save_dir_edit.setEnabled(True)
             self.browse_btn.setEnabled(True)
 
-    def update_recording_time(self, seconds):
+    def update_recording_time(self, seconds: float) -> None:
         """
         Update the displayed recording time.
 
@@ -402,7 +403,7 @@ class UnifiedRecordingPanel(QWidget):
         secs = int(seconds % 60)
         self.recording_time.setText(f"{minutes:02d}:{secs:02d}")
 
-    def update_ready_state(self, eeg_ready, input_ready):
+    def update_ready_state(self, eeg_ready: bool, input_ready: bool) -> None:
         """
         Update ready state indicators.
 
@@ -460,7 +461,7 @@ class UnifiedRecordingPanel(QWidget):
                     "font-weight: bold; font-size: 16px; background-color: #666666; color: #AAAAAA; min-height: 40px;"
                 )
 
-    def check_ready_state(self):
+    def check_ready_state(self) -> None:
         """Check ready state when checkboxes change."""
         # Get current ready states from coordinator/integration service
         eeg_ready = (
@@ -477,7 +478,7 @@ class UnifiedRecordingPanel(QWidget):
         # Update UI with current state
         self.update_ready_state(eeg_ready, input_ready)
 
-    def add_help_button(self, help_button):
+    def add_help_button(self, help_button: Any) -> None:
         """Add help button from EEG processor to the data type selection."""
         if help_button and self.eeg_help_layout:
             self.eeg_help_layout.addWidget(help_button)

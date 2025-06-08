@@ -2,7 +2,7 @@ import os
 import shutil
 
 
-def delete_pycache(base_path):
+def delete_pycache(base_path: str) -> None:
     for root, dirs, files in os.walk(base_path):
         # Ignorar directorios .venv
         if ".venv" in root.split(os.sep):

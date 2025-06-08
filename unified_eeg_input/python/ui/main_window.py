@@ -5,6 +5,7 @@ This module provides the main application window that integrates the EEG process
 and input collector modules.
 """
 
+from typing import Any
 from PyQt5.QtCore import Qt, QTimer, pyqtSlot
 from PyQt5.QtWidgets import (
     QMainWindow,
@@ -16,6 +17,7 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QSplitter,
 )
+from PyQt5.QtGui import QCloseEvent
 
 from .recording_panel import UnifiedRecordingPanel
 from .sync_visualization_panel import SynchronizedDataVisualization
@@ -30,7 +32,9 @@ class UnifiedMainWindow(QMainWindow):
     applications with unified recording controls.
     """
 
-    def __init__(self, coordinator, integration_service, input_app, eeg_app):
+    def __init__(
+        self, coordinator: Any, integration_service: Any, input_app: Any, eeg_app: Any
+    ) -> None:
         """Initialize the main window."""
         super().__init__()
 
@@ -65,7 +69,7 @@ class UnifiedMainWindow(QMainWindow):
         # Initial UI update
         self.update_ui_state()
 
-    def _hide_original_recording_controls(self):
+    def _hide_original_recording_controls(self) -> None:
         """Hide recording controls in original modules."""
         # Hide Input Collector recording controls
         if hasattr(self.input_app, "ui_manager") and hasattr(
@@ -79,7 +83,7 @@ class UnifiedMainWindow(QMainWindow):
         # Get help button from recording panel and add to our unified recording panel
         self._move_help_button_to_unified_panel()
 
-    def _hide_eeg_processor_recording_tab(self):
+    def _hide_eeg_processor_recording_tab(self) -> None:
         """Hide the recording tab from EEG processor."""
         if hasattr(self.eeg_app, "tabs"):
             # Find the "Recording" tab
@@ -89,7 +93,7 @@ class UnifiedMainWindow(QMainWindow):
                     self.eeg_app.tabs.removeTab(i)
                     break
 
-    def _move_help_button_to_unified_panel(self):
+    def _move_help_button_to_unified_panel(self) -> None:
         """Move help button from EEG processor's recording panel to unified panel."""
         if hasattr(self.eeg_app, "recording_panel") and hasattr(
             self.eeg_app.recording_panel, "help_button"
@@ -101,7 +105,7 @@ class UnifiedMainWindow(QMainWindow):
                 # Add it to our recording panel's info section
                 self.recording_panel.add_help_button(help_button)
 
-    def _create_ui(self):
+    def _create_ui(self) -> None:
         """Create the user interface."""
         # Main widget
         main_widget = QWidget()
@@ -185,7 +189,7 @@ class UnifiedMainWindow(QMainWindow):
         # Status bar
         self.statusBar().showMessage("Ready")
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         """Connect signals to slots."""
         # Connect tab change signal
         self.tabs.currentChanged.connect(self.coordinator.handle_tab_change)
@@ -196,7 +200,7 @@ class UnifiedMainWindow(QMainWindow):
         self.coordinator.recording_stopped.connect(self.on_recording_stopped)
 
     @pyqtSlot(str, str)
-    def show_status(self, message, color="default"):
+    def show_status(self, message: str, color: str = "default") -> None:
         """
         Show a status message.
 
@@ -219,17 +223,17 @@ class UnifiedMainWindow(QMainWindow):
 
         self.status_label.setText(message)
 
-    def on_recording_started(self):
+    def on_recording_started(self) -> None:
         """Handle recording started event."""
         # Update recording panel
         self.recording_panel.update_recording_state(True)
 
-    def on_recording_stopped(self):
+    def on_recording_stopped(self) -> None:
         """Handle recording stopped event."""
         # Update recording panel
         self.recording_panel.update_recording_state(False)
 
-    def update_ui_state(self):
+    def update_ui_state(self) -> None:
         """Update the UI state based on current system status."""
         # Update recording time if recording
         if self.coordinator.is_recording:
@@ -241,7 +245,7 @@ class UnifiedMainWindow(QMainWindow):
         input_ready = self.integration_service.get_input_ready_state()
         self.recording_panel.update_ready_state(eeg_ready, input_ready)
 
-    def update_recording_controls(self, is_recording, is_ready):
+    def update_recording_controls(self, is_recording: bool, is_ready: bool) -> None:
         """
         Update recording controls.
 
@@ -255,7 +259,7 @@ class UnifiedMainWindow(QMainWindow):
             self.integration_service.get_input_ready_state(),
         )
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QCloseEvent) -> None:
         """Handle window close event."""
         # Stop recording if active
         if self.coordinator.is_recording:

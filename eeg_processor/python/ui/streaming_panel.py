@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QTextEdit,
 )
+from typing import Any, Optional, List, Dict
 
 from .base_panel import BasePanel
 from ..utils.help_system import HelpButton
@@ -16,7 +17,7 @@ from ..utils.help_system import HelpButton
 class StreamingPanel(BasePanel):
     """Panel for managing data streaming options."""
 
-    def __init__(self, collector_service, parent=None):
+    def __init__(self, collector_service: Any, parent: Optional[Any] = None) -> None:
         """Initialize the streaming panel."""
         super().__init__(parent)
         self.collector_service = collector_service
@@ -28,7 +29,7 @@ class StreamingPanel(BasePanel):
         # Add stretch to push everything to the top
         self.layout.addStretch()
 
-    def setup_streamer_configuration(self):
+    def setup_streamer_configuration(self) -> None:
         """Set up streamer configuration group."""
         streamer_group = QGroupBox("Streamer Configuration")
         streamer_layout = QVBoxLayout(streamer_group)
@@ -98,7 +99,7 @@ class StreamingPanel(BasePanel):
 
         self.layout.addWidget(streamer_group)
 
-    def setup_board_configuration(self):
+    def setup_board_configuration(self) -> None:
         """Set up board configuration section."""
         config_group = QGroupBox("Board Configuration")
         config_layout = QVBoxLayout(config_group)
@@ -130,7 +131,7 @@ class StreamingPanel(BasePanel):
 
         self.layout.addWidget(config_group)
 
-    def add_streamer(self, streamer_params):
+    def add_streamer(self, streamer_params: str) -> None:
         """Add a streamer to the board."""
         if not streamer_params:
             self.show_error("Streamer Error", "No streamer parameters specified")
@@ -147,7 +148,7 @@ class StreamingPanel(BasePanel):
         except Exception as e:
             self.show_error("Streamer Error", f"Error adding streamer: {str(e)}")
 
-    def delete_selected_streamer(self):
+    def delete_selected_streamer(self) -> None:
         """Delete the selected streamer."""
         selected = self.streamers_list.currentItem()
         if not selected:
@@ -166,7 +167,7 @@ class StreamingPanel(BasePanel):
         except Exception as e:
             self.show_error("Streamer Error", f"Error removing streamer: {str(e)}")
 
-    def send_board_config(self):
+    def send_board_config(self) -> None:
         """Send configuration to the board."""
         config_cmd = self.config_cmd_edit.text()
         if not config_cmd:
@@ -180,13 +181,13 @@ class StreamingPanel(BasePanel):
         except Exception as e:
             self.show_error("Config Error", f"Error sending configuration: {str(e)}")
 
-    def enable_streaming(self, enabled):
+    def enable_streaming(self, enabled: bool) -> None:
         """Enable or disable streaming controls."""
         # Enable/disable all buttons and inputs related to streaming
         self.send_config_btn.setEnabled(enabled)
 
     # Add methods for API interaction
-    def update_streamer_list(self, streamers_list):
+    def update_streamer_list(self, streamers_list: List[str]) -> bool:
         """Update the list of streamers from the API."""
         try:
             self.streamers_list.clear()
@@ -197,7 +198,7 @@ class StreamingPanel(BasePanel):
             self.show_error("Streamer List Update Error", str(e))
             return False
 
-    def update_config_response(self, response_text):
+    def update_config_response(self, response_text: str) -> bool:
         """Update the configuration response text from the API."""
         try:
             self.config_response_text.setText(response_text)
@@ -206,7 +207,7 @@ class StreamingPanel(BasePanel):
             self.show_error("Config Response Update Error", str(e))
             return False
 
-    def get_streamer_params(self):
+    def get_streamer_params(self) -> Dict[str, str]:
         """Get currently configured streamer parameters."""
         return {
             "file": self.file_streamer_path.text(),
@@ -214,7 +215,7 @@ class StreamingPanel(BasePanel):
             "custom": self.custom_streamer_path.text(),
         }
 
-    def get_active_streamers(self):
+    def get_active_streamers(self) -> List[str]:
         """Get list of currently active streamers."""
         streamers = []
         for i in range(self.streamers_list.count()):

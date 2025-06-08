@@ -10,7 +10,7 @@ import sys
 from python.unified_app import UnifiedApplication
 
 
-def main():
+def main() -> None:
     """Run the unified application."""
     app = UnifiedApplication()
     sys.exit(app.run())

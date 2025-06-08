@@ -7,6 +7,7 @@ using Lab Streaming Layer (LSL) for millisecond-precision timing.
 
 import threading
 import time
+from typing import Dict, List, Optional, Tuple, Any, Union
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
@@ -41,7 +42,7 @@ class LSLSyncService(QObject):
         float
     )  # Emitted when synchronization delay exceeds tolerance
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the LSL synchronization service."""
         super().__init__()
 
@@ -54,17 +55,17 @@ class LSLSyncService(QObject):
             return
 
         # LSL outlets and inlets
-        self.eeg_outlet = None
-        self.input_outlet = None
-        self.marker_outlet = None
-        self.eeg_inlet = None
-        self.input_inlet = None
-        self.marker_inlet = None
+        self.eeg_outlet: Optional[Any] = None
+        self.input_outlet: Optional[Any] = None
+        self.marker_outlet: Optional[Any] = None
+        self.eeg_inlet: Optional[Any] = None
+        self.input_inlet: Optional[Any] = None
+        self.marker_inlet: Optional[Any] = None
 
         # Data buffers for visualization and recording
-        self.eeg_buffer = []
-        self.input_buffer = []
-        self.marker_buffer = []
+        self.eeg_buffer: List[Tuple[List[float], float]] = []
+        self.input_buffer: List[Tuple[List[float], float]] = []
+        self.marker_buffer: List[Tuple[int, float]] = []
 
         # Maximum buffer sizes
         self.max_buffer_size = 1000  # Store last 1000 samples for each stream
@@ -74,7 +75,7 @@ class LSLSyncService(QObject):
         self.last_sync_delay = 0.0  # Last measured synchronization delay
 
         # Synchronized dataset
-        self.dataset = {"eeg": [], "input": [], "markers": [], "timestamps": []}
+        self.dataset: Dict[str, List[Any]] = {"eeg": [], "input": [], "markers": [], "timestamps": []}
 
         # Recording state
         self.is_recording = False
@@ -82,15 +83,15 @@ class LSLSyncService(QObject):
 
         # Thread for pulling data from LSL
         self.running = False
-        self.pull_thread = None
+        self.pull_thread: Optional[threading.Thread] = None
 
     def initialize_streams(
         self,
-        eeg_channels=8,
-        eeg_sample_rate=250,
-        input_channels=20,
-        input_sample_rate=60,
-    ):
+        eeg_channels: int = 8,
+        eeg_sample_rate: int = 250,
+        input_channels: int = 20,
+        input_sample_rate: int = 60,
+    ) -> bool:
         """
         Initialize LSL streams for EEG and input data.
 
@@ -167,7 +168,7 @@ class LSLSyncService(QObject):
             )
             return False
 
-    def discover_streams(self, timeout=2.0):
+    def discover_streams(self, timeout: float = 2.0) -> Dict[str, List[Dict[str, Any]]]:
         """
         Discover available LSL streams on the network.
 
@@ -185,7 +186,7 @@ class LSLSyncService(QObject):
             streams = pylsl.resolve_streams(timeout)
 
             # Group by stream type
-            result = {}
+            result: Dict[str, List[Dict[str, Any]]] = {}
             for stream in streams:
                 stream_type = stream.type()
                 if stream_type not in result:
@@ -211,11 +212,11 @@ class LSLSyncService(QObject):
 
     def connect_to_streams(
         self,
-        eeg_source_id=None,
-        input_source_id=None,
-        marker_source_id=None,
-        timeout=5.0,
-    ):
+        eeg_source_id: Optional[str] = None,
+        input_source_id: Optional[str] = None,
+        marker_source_id: Optional[str] = None,
+        timeout: float = 5.0,
+    ) -> bool:
         """
         Connect to specific LSL streams by source ID or find by type.
 
@@ -296,7 +297,7 @@ class LSLSyncService(QObject):
             )
             return False
 
-    def _close_inlets(self):
+    def _close_inlets(self) -> None:
         """Close any open LSL inlets."""
         if self.eeg_inlet:
             self.eeg_inlet.close_stream()
@@ -310,7 +311,7 @@ class LSLSyncService(QObject):
             self.marker_inlet.close_stream()
             self.marker_inlet = None
 
-    def start_sync(self):
+    def start_sync(self) -> bool:
         """
         Start synchronizing and collecting data from LSL streams.
 
@@ -348,7 +349,7 @@ class LSLSyncService(QObject):
             self.running = False
             return False
 
-    def stop_sync(self):
+    def stop_sync(self) -> bool:
         """
         Stop synchronizing data.
 
@@ -374,23 +375,29 @@ class LSLSyncService(QObject):
             )
             return False
 
-    def _pull_data_thread(self):
+    def _pull_data_thread(self) -> None:
         """Thread function for pulling data from LSL streams."""
         while self.running:
             try:
                 # Pull EEG samples with a timeout
-                eeg_samples, eeg_timestamps = self.eeg_inlet.pull_chunk(
-                    timeout=0.1, max_samples=100
-                )
+                eeg_samples: List[List[float]] = []
+                eeg_timestamps: List[float] = []
+                if self.eeg_inlet is not None:
+                    eeg_samples, eeg_timestamps = self.eeg_inlet.pull_chunk(
+                        timeout=0.1, max_samples=100
+                    )
 
                 # Pull input samples with a timeout
-                input_samples, input_timestamps = self.input_inlet.pull_chunk(
-                    timeout=0.1, max_samples=100
-                )
+                input_samples: List[List[float]] = []
+                input_timestamps: List[float] = []
+                if self.input_inlet is not None:
+                    input_samples, input_timestamps = self.input_inlet.pull_chunk(
+                        timeout=0.1, max_samples=100
+                    )
 
                 # Pull marker samples with a timeout
-                marker_samples = []
-                marker_timestamps = []
+                marker_samples: List[int] = []
+                marker_timestamps: List[float] = []
                 if self.marker_inlet:
                     markers, marker_ts = self.marker_inlet.pull_chunk(
                         timeout=0.1, max_samples=10
@@ -418,13 +425,13 @@ class LSLSyncService(QObject):
 
     def _process_new_samples(
         self,
-        eeg_samples,
-        eeg_timestamps,
-        input_samples,
-        input_timestamps,
-        marker_samples,
-        marker_timestamps,
-    ):
+        eeg_samples: List[List[float]],
+        eeg_timestamps: List[float],
+        input_samples: List[List[float]],
+        input_timestamps: List[float],
+        marker_samples: List[int],
+        marker_timestamps: List[float],
+    ) -> None:
         """
         Process new samples from all streams.
 
@@ -491,7 +498,7 @@ class LSLSyncService(QObject):
         # Emit signal with latest data for visualization
         self._emit_sync_update()
 
-    def _emit_sync_update(self):
+    def _emit_sync_update(self) -> None:
         """Emit signal with latest synchronized data for visualization."""
         if not (self.eeg_buffer and self.input_buffer):
             return
@@ -506,7 +513,7 @@ class LSLSyncService(QObject):
         # Emit signal
         self.sync_update.emit(update_data)
 
-    def _find_closest_timestamp(self, timestamp, timestamps_list):
+    def _find_closest_timestamp(self, timestamp: float, timestamps_list: List[float]) -> Optional[int]:
         """
         Find the index of the closest timestamp in a list within tolerance.
 
@@ -544,7 +551,7 @@ class LSLSyncService(QObject):
 
         return closest_idx
 
-    def set_sync_tolerance(self, tolerance_ms):
+    def set_sync_tolerance(self, tolerance_ms: float) -> bool:
         """
         Set synchronization tolerance in milliseconds.
 
@@ -565,7 +572,7 @@ class LSLSyncService(QObject):
         )
         return True
 
-    def get_sync_tolerance(self):
+    def get_sync_tolerance(self) -> float:
         """
         Get current synchronization tolerance.
 
@@ -574,7 +581,7 @@ class LSLSyncService(QObject):
         """
         return self.sync_tolerance
 
-    def get_last_sync_delay(self):
+    def get_last_sync_delay(self) -> float:
         """
         Get the last measured synchronization delay.
 
@@ -583,7 +590,7 @@ class LSLSyncService(QObject):
         """
         return self.last_sync_delay
 
-    def start_recording(self):
+    def start_recording(self) -> bool:
         """
         Start recording synchronized data.
 
@@ -613,7 +620,7 @@ class LSLSyncService(QObject):
         self.status_message.emit("Dataset recording started", "success")
         return True
 
-    def stop_recording(self):
+    def stop_recording(self) -> bool:
         """
         Stop recording synchronized data.
 
@@ -634,13 +641,13 @@ class LSLSyncService(QObject):
 
     def _add_samples_to_dataset(
         self,
-        eeg_samples,
-        eeg_timestamps,
-        input_samples,
-        input_timestamps,
-        marker_samples,
-        marker_timestamps,
-    ):
+        eeg_samples: List[List[float]],
+        eeg_timestamps: List[float],
+        input_samples: List[List[float]],
+        input_timestamps: List[float],
+        marker_samples: List[int],
+        marker_timestamps: List[float],
+    ) -> None:
         """
         Add new samples to the synchronized dataset.
 
@@ -724,84 +731,7 @@ class LSLSyncService(QObject):
                 # Emit signal for real-time dataset monitoring
                 self.new_dataset_sample.emit(sample_dict)
 
-    def _find_closest_timestamp(self, timestamp, timestamps_list):
-        """
-        Find the index of the closest timestamp in a list within tolerance.
-
-        Args:
-            timestamp: Target timestamp to find
-            timestamps_list: List of timestamps to search in
-
-        Returns:
-            int: Index of the closest timestamp, or None if list is empty or no match within tolerance
-        """
-        if not timestamps_list:
-            return None
-
-        # Find the closest timestamp
-        closest_idx = 0
-        min_diff = abs(timestamp - timestamps_list[0])
-
-        for i, ts in enumerate(timestamps_list):
-            diff = abs(timestamp - ts)
-            if diff < min_diff:
-                min_diff = diff
-                closest_idx = i
-
-        # Check if the match is within tolerance (convert tolerance from ms to seconds)
-        tolerance_seconds = self.sync_tolerance / 1000.0
-        if min_diff > tolerance_seconds:
-            # If recording, we still use the closest match but log a warning
-            if (
-                self.is_recording and int(time.time()) % 10 == 0
-            ):  # Limit warning frequency
-                self.status_message.emit(
-                    f"Timestamp match exceeds tolerance: {min_diff*1000:.2f} ms > {self.sync_tolerance:.2f} ms",
-                    "warning",
-                )
-
-        return closest_idx
-
-    def set_sync_tolerance(self, tolerance_ms):
-        """
-        Set synchronization tolerance in milliseconds.
-
-        Args:
-            tolerance_ms: Tolerance in milliseconds
-
-        Returns:
-            bool: True if set successfully
-        """
-        if tolerance_ms < 0.1:
-            tolerance_ms = 0.1  # Set minimum tolerance to 0.1 ms
-        elif tolerance_ms > 1000:
-            tolerance_ms = 1000  # Set maximum tolerance to 1000 ms (1 second)
-
-        self.sync_tolerance = tolerance_ms
-        self.status_message.emit(
-            f"Sync tolerance set to {tolerance_ms:.2f} ms", "success"
-        )
-        return True
-
-    def get_sync_tolerance(self):
-        """
-        Get current synchronization tolerance.
-
-        Returns:
-            float: Tolerance in milliseconds
-        """
-        return self.sync_tolerance
-
-    def get_last_sync_delay(self):
-        """
-        Get the last measured synchronization delay.
-
-        Returns:
-            float: Delay in milliseconds
-        """
-        return self.last_sync_delay
-
-    def export_dataset(self, format_type, filename):
+    def export_dataset(self, format_type: str, filename: str) -> bool:
         """
         Export the synchronized dataset to a file.
 
@@ -837,7 +767,7 @@ class LSLSyncService(QObject):
             self.status_message.emit(f"Error exporting dataset: {str(e)}", "error")
             return False
 
-    def _export_to_csv(self, filename):
+    def _export_to_csv(self, filename: str) -> None:
         """
         Export dataset to CSV files.
 
@@ -950,7 +880,7 @@ class LSLSyncService(QObject):
             "success",
         )
 
-    def _export_to_hdf5(self, filename):
+    def _export_to_hdf5(self, filename: str) -> None:
         """
         Export dataset to HDF5 format.
 
@@ -1040,7 +970,7 @@ class LSLSyncService(QObject):
                 "error",
             )
 
-    def _export_to_edf(self, filename):
+    def _export_to_edf(self, filename: str) -> None:
         """
         Export dataset to EDF format.
 
@@ -1107,7 +1037,7 @@ class LSLSyncService(QObject):
                 "error",
             )
 
-    def _export_to_bids(self, filename):
+    def _export_to_bids(self, filename: str) -> None:
         """
         Export dataset to BIDS format.
 
@@ -1222,7 +1152,7 @@ class LSLSyncService(QObject):
                 "error",
             )
 
-    def push_eeg_data(self, eeg_data):
+    def push_eeg_data(self, eeg_data: List[float]) -> bool:
         """
         Push EEG data to LSL stream.
 
@@ -1242,7 +1172,7 @@ class LSLSyncService(QObject):
             self.status_message.emit(f"Error pushing EEG data: {str(e)}", "error")
             return False
 
-    def push_input_data(self, input_data):
+    def push_input_data(self, input_data: List[float]) -> bool:
         """
         Push input data to LSL stream.
 
@@ -1262,7 +1192,7 @@ class LSLSyncService(QObject):
             self.status_message.emit(f"Error pushing input data: {str(e)}", "error")
             return False
 
-    def push_marker(self, marker_value):
+    def push_marker(self, marker_value: int) -> bool:
         """
         Push marker to LSL stream.
 
@@ -1282,7 +1212,7 @@ class LSLSyncService(QObject):
             self.status_message.emit(f"Error pushing marker: {str(e)}", "error")
             return False
 
-    def get_dataset_preview(self, max_samples=100):
+    def get_dataset_preview(self, max_samples: int = 100) -> Dict[str, Any]:
         """
         Get a preview of the dataset for UI display.
 
@@ -1325,7 +1255,7 @@ class LSLSyncService(QObject):
             },
         }
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         """Clean up resources."""
         self.stop_sync()
         self._close_inlets()

@@ -4,7 +4,7 @@ import queue
 import sys
 import threading
 import time
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional, Tuple, Union, TextIO
 
 import numpy as np
 
@@ -69,7 +69,7 @@ class BrainFlowCollector(
         self.start_time = 0
         self.raw_data = None
         self.processed_data = None
-        self.timestamps = []
+        self.timestamps: List[int] = []
 
         # Setup the data manager for continuous recording
         self.data_manager = BrainFlowDataManager(self)
@@ -77,7 +77,7 @@ class BrainFlowCollector(
         # Initialize board information
         self._initialize_board_info()
 
-    def _initialize_board_info(self):
+    def _initialize_board_info(self) -> None:
         """Initialize board-related information and channel properties."""
         try:
             # Get available presets for this board
@@ -162,7 +162,7 @@ class BrainFlowCollector(
         )
         logging.info(f"EEG channels: {self.eeg_channels}")
 
-    def _get_channels_safely(self, channel_func, channel_type: str) -> List[int]:
+    def _get_channels_safely(self, channel_func: Any, channel_type: str) -> List[int]:
         """
         Safely get channels of a specific type, handling exceptions.
 
@@ -527,7 +527,7 @@ class BrainFlowDataManager:
     This class handles the recording thread and file operations.
     """
 
-    def __init__(self, collector):
+    def __init__(self, collector: 'BrainFlowCollector') -> None:
         """
         Initialize the data manager.
 
@@ -536,12 +536,12 @@ class BrainFlowDataManager:
         """
         self.collector = collector
         self.recording = False
-        self.recording_file = None
-        self.processed_recording_file = None
-        self.recording_thread = None
-        self.recording_queue = queue.Queue()
+        self.recording_file: Optional[TextIO] = None
+        self.processed_recording_file: Optional[TextIO] = None
+        self.recording_thread: Optional[threading.Thread] = None
+        self.recording_queue: queue.Queue = queue.Queue()
         self.total_recorded_samples = 0
-        self.recording_start_time = 0
+        self.recording_start_time: float = 0
         self.last_data_count = 0
         self.data_type = "raw"
         self.is_recording_both = False
@@ -820,7 +820,7 @@ class BrainFlowDataManager:
             self.recording_thread = None
             self.recording_queue = queue.Queue()
 
-    def _finalize_recording_file(self, file_handle, recording_duration):
+    def _finalize_recording_file(self, file_handle: TextIO, recording_duration: float) -> None:
         """
         Finalize a recording file by updating its metadata.
 
@@ -856,7 +856,7 @@ class BrainFlowFileWriter:
     Handles file writing operations for BrainFlow data.
     """
 
-    def __init__(self, collector):
+    def __init__(self, collector: 'BrainFlowCollector') -> None:
         """
         Initialize the file writer.
 
@@ -966,10 +966,14 @@ class BrainFlowFileWriter:
                 )
                 column_names.append(f"ACCEL_{axis_name}")
             elif i in self.collector.channel_types.get("gyro", []):
-                gyro_index = self.collector.channel_types.get("gyro").index(i)
-                gyro_names = ["X", "Y", "Z"]
-                axis_name = gyro_names[gyro_index % 3] if gyro_index < 3 else gyro_index
-                column_names.append(f"GYRO_{axis_name}")
+                gyro_channels = self.collector.channel_types.get("gyro")
+                if gyro_channels is not None:
+                    gyro_index = gyro_channels.index(i)
+                    gyro_names = ["X", "Y", "Z"]
+                    axis_name = gyro_names[gyro_index % 3] if gyro_index < 3 else gyro_index
+                    column_names.append(f"GYRO_{axis_name}")
+                else:
+                    column_names.append(f"CH_{i}")
             elif i in self.collector.channel_types.get("temperature", []):
                 temp_index = self.collector.channel_types["temperature"].index(i)
                 column_names.append(f"TEMP_{temp_index}")

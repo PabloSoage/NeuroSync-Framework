@@ -5,6 +5,7 @@ This module provides contextual help information about various aspects
 of EEG data collection, processing, and visualization.
 """
 
+from typing import Optional
 from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (
@@ -542,7 +543,7 @@ HELP_CONTENT = {
 class HelpDialog(QDialog):
     """Dialog window that displays contextual help information."""
 
-    def __init__(self, title: str, content: str, parent=None):
+    def __init__(self, title: str, content: str, parent: Optional[QWidget] = None) -> None:
         """
         Initialize the help dialog with title and content.
 
@@ -556,7 +557,7 @@ class HelpDialog(QDialog):
         self.setMinimumSize(600, 400)
         self.setup_ui(content)
 
-    def setup_ui(self, content: str):
+    def setup_ui(self, content: str) -> None:
         """Set up the dialog UI."""
         layout = QVBoxLayout(self)
 
@@ -584,7 +585,7 @@ class HelpDialog(QDialog):
 class HelpButton(QPushButton):
     """Custom help button that shows contextual help when clicked."""
 
-    def __init__(self, help_key: str, parent=None):
+    def __init__(self, help_key: str, parent: Optional[QWidget] = None) -> None:
         """
         Initialize the help button.
 
@@ -617,7 +618,7 @@ class HelpButton(QPushButton):
 
         self.clicked.connect(self.show_help)
 
-    def show_help(self):
+    def show_help(self) -> None:
         """Show help dialog with content for this button's help key."""
         if self.help_key in HELP_CONTENT:
             help_item = HELP_CONTENT[self.help_key]
@@ -630,14 +631,14 @@ class HelpButton(QPushButton):
 class EEGConceptsHelpDialog(QDialog):
     """Dialog with comprehensive help on EEG concepts and application usage."""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         """Initialize the comprehensive help dialog."""
         super().__init__(parent)
         self.setWindowTitle("EEG Processor Help")
         self.setMinimumSize(800, 600)
         self.setup_ui()
 
-    def setup_ui(self):
+    def setup_ui(self) -> None:
         """Set up the comprehensive help UI with tabs."""
         layout = QVBoxLayout(self)
 
@@ -670,7 +671,7 @@ class EEGConceptsHelpDialog(QDialog):
 
         layout.addLayout(button_layout)
 
-    def add_tab(self, tab_name: str, help_keys: list):
+    def add_tab(self, tab_name: str, help_keys: list[str]) -> None:
         """Add a tab with specified help content."""
         tab = QWidget()
         tab_layout = QVBoxLayout(tab)
@@ -706,7 +707,7 @@ class EEGConceptsHelpDialog(QDialog):
         self.tabs.addTab(tab, tab_name)
 
 
-def show_help_topic(key: str, parent=None):
+def show_help_topic(key: str, parent: Optional[QWidget] = None) -> None:
     """
     Show help dialog for a specific topic.
 
@@ -722,7 +723,7 @@ def show_help_topic(key: str, parent=None):
         print(f"Help content not found for key: {key}")
 
 
-def show_eeg_concepts_help(parent=None):
+def show_eeg_concepts_help(parent: Optional[QWidget] = None) -> None:
     """
     Show comprehensive EEG concepts help dialog.
 

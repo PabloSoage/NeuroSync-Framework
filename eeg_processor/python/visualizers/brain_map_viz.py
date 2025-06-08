@@ -1,7 +1,7 @@
 import logging
 import os
 import sys
-from typing import Dict, Tuple, List, Any, Optional
+from typing import Dict, Tuple, List, Any, Optional, Type, Union
 
 import numpy as np
 
@@ -13,15 +13,13 @@ try:
 except ImportError:
     # When run directly, use absolute imports
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from collectors.eeg_collector import EEGCollector as EEGCollectorImport
-    from processors.signal_processor import SignalProcessor as SignalProcessorImport
-
-    EEGCollector = EEGCollectorImport
-    SignalProcessor = SignalProcessorImport
+    from collectors.eeg_collector import EEGCollector
+    from processors.signal_processor import SignalProcessor
 
 import pyqtgraph as pg
 from PyQt5.QtCore import Qt, QTimer, QPointF
 from PyQt5.QtGui import QFont, QColor, QPainterPath
+from pyqtgraph.Qt import QtWidgets
 
 
 class BrainMapVisualizer:
@@ -114,14 +112,14 @@ class BrainMapVisualizer:
         self.view = self.plot.getViewBox()
 
         # For brain regions
-        self.region_items = []
+        self.region_items: List[pg.QtWidgets.QGraphicsPathItem] = []
 
         # For electrodes
         self.scatter = pg.ScatterPlotItem()
         self.plot.addItem(self.scatter)
 
         # For electrode labels
-        self.labels = []
+        self.labels: List[pg.TextItem] = []
 
         # Draw brain outline first (bottom layer)
         self.draw_brain_outlines()

@@ -14,6 +14,7 @@ from brainflow.data_filter import (
     WindowOperations,
     WaveletTypes,
 )
+from typing import Any, Optional, Dict, List
 
 from .base_panel import BasePanel
 from ..utils.help_system import HelpButton
@@ -22,7 +23,9 @@ from ..utils.help_system import HelpButton
 class AdvancedProcessingPanel(BasePanel):
     """Panel for advanced signal processing operations."""
 
-    def __init__(self, collector_service, processor_service, parent=None):
+    def __init__(
+        self, collector_service: Any, processor_service: Any, parent: Optional[Any] = None
+    ) -> None:
         """Initialize the advanced processing panel."""
         super().__init__(parent)
         self.collector_service = collector_service
@@ -37,7 +40,7 @@ class AdvancedProcessingPanel(BasePanel):
         # Add stretch to push everything to the top
         self.layout.addStretch()
 
-    def setup_ica_section(self):
+    def setup_ica_section(self) -> None:
         """Set up ICA section."""
         ica_group = QGroupBox("Independent Component Analysis (ICA)")
         ica_layout = QVBoxLayout(ica_group)
@@ -81,7 +84,7 @@ class AdvancedProcessingPanel(BasePanel):
 
         self.layout.addWidget(ica_group)
 
-    def setup_wavelet_section(self):
+    def setup_wavelet_section(self) -> None:
         """Set up wavelet transform section."""
         wavelet_group = QGroupBox("Wavelet Transforms")
         wavelet_layout = QVBoxLayout(wavelet_group)
@@ -134,7 +137,7 @@ class AdvancedProcessingPanel(BasePanel):
 
         self.layout.addWidget(wavelet_group)
 
-    def setup_downsampling_section(self):
+    def setup_downsampling_section(self) -> None:
         """Set up downsampling section."""
         downsample_group = QGroupBox("Downsampling")
         downsample_layout = QVBoxLayout(downsample_group)
@@ -175,7 +178,7 @@ class AdvancedProcessingPanel(BasePanel):
 
         self.layout.addWidget(downsample_group)
 
-    def setup_advanced_filtering_section(self):
+    def setup_advanced_filtering_section(self) -> None:
         """Set up advanced filtering section."""
         adv_filter_group = QGroupBox("Advanced Filtering Options")
         adv_filter_layout = QVBoxLayout(adv_filter_group)
@@ -215,7 +218,7 @@ class AdvancedProcessingPanel(BasePanel):
 
         self.layout.addWidget(adv_filter_group)
 
-    def compute_ica(self):
+    def compute_ica(self) -> None:
         """Compute ICA components."""
         try:
             # Implementation of ICA computation
@@ -225,7 +228,7 @@ class AdvancedProcessingPanel(BasePanel):
         except Exception as e:
             self.show_error("ICA Error", f"Error computing ICA: {str(e)}")
 
-    def view_ica_components(self):
+    def view_ica_components(self) -> None:
         """View ICA components."""
         try:
             # Implementation of ICA component visualization
@@ -233,7 +236,7 @@ class AdvancedProcessingPanel(BasePanel):
         except Exception as e:
             self.show_error("ICA Error", f"Error displaying ICA components: {str(e)}")
 
-    def compute_wavelet(self):
+    def compute_wavelet(self) -> None:
         """Compute wavelet transform."""
         try:
             # Implementation of wavelet transform
@@ -244,7 +247,7 @@ class AdvancedProcessingPanel(BasePanel):
                 "Wavelet Error", f"Error computing wavelet transform: {str(e)}"
             )
 
-    def apply_inverse_wavelet(self):
+    def apply_inverse_wavelet(self) -> None:
         """Apply inverse wavelet transform."""
         try:
             # Implementation of inverse wavelet transform
@@ -254,7 +257,7 @@ class AdvancedProcessingPanel(BasePanel):
                 "Wavelet Error", f"Error applying inverse wavelet: {str(e)}"
             )
 
-    def apply_downsampling(self):
+    def apply_downsampling(self) -> None:
         """Apply downsampling to data."""
         try:
             # Implementation of downsampling
@@ -264,7 +267,7 @@ class AdvancedProcessingPanel(BasePanel):
                 "Downsampling Error", f"Error applying downsampling: {str(e)}"
             )
 
-    def apply_advanced_filters(self):
+    def apply_advanced_filters(self) -> None:
         """Apply advanced filters."""
         try:
             # Implementation of advanced filtering
@@ -275,14 +278,14 @@ class AdvancedProcessingPanel(BasePanel):
             )
 
     # Add methods for API interaction
-    def get_ica_settings(self):
+    def get_ica_settings(self) -> Dict[str, Any]:
         """Get current ICA settings."""
         return {
             "components": self.ica_components_spin.value(),
             "channel": self.ica_channel_combo.currentData(),
         }
 
-    def get_wavelet_settings(self):
+    def get_wavelet_settings(self) -> Dict[str, Any]:
         """Get current wavelet settings."""
         return {
             "type": self.wavelet_type_combo.currentData(),
@@ -290,21 +293,21 @@ class AdvancedProcessingPanel(BasePanel):
             "channel": self.wavelet_channel_combo.currentData(),
         }
 
-    def get_downsample_settings(self):
+    def get_downsample_settings(self) -> Dict[str, Any]:
         """Get current downsample settings."""
         return {
             "factor": self.downsample_factor_spin.value(),
             "aggregation": self.downsample_agg_combo.currentData(),
         }
 
-    def get_advanced_filter_settings(self):
+    def get_advanced_filter_settings(self) -> Dict[str, Any]:
         """Get current advanced filter settings."""
         return {
             "filter_type": self.filter_type_combo.currentData(),
             "window_function": self.window_function_combo.currentData(),
         }
 
-    def update_channel_lists(self, channel_names):
+    def update_channel_lists(self, channel_names: List[str]) -> bool:
         """Update channel selection dropdowns from API call."""
         try:
             current_ica_ch = self.ica_channel_combo.currentData()
@@ -340,7 +343,7 @@ class AdvancedProcessingPanel(BasePanel):
             self.show_error("Channel List Update Error", str(e))
             return False
 
-    def enable_processing(self, enabled):
+    def enable_processing(self, enabled: bool) -> None:
         """Enable or disable advanced processing controls."""
         self.compute_ica_btn.setEnabled(enabled)
         self.compute_wavelet_btn.setEnabled(enabled)

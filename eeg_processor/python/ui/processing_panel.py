@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (
     QCheckBox,
     QDoubleSpinBox,
 )
+from typing import Any, Optional, Dict
 
 from .base_panel import BasePanel
 from ..utils.help_system import HelpButton
@@ -18,8 +19,8 @@ class ProcessingPanel(BasePanel):
     """Panel for signal processing operations."""
 
     def __init__(
-        self, collector_service, processor_service, visualization_service, parent=None
-    ):
+        self, collector_service: Any, processor_service: Any, visualization_service: Any, parent: Optional[Any] = None
+    ) -> None:
         """Initialize the processing panel."""
         super().__init__(parent)
         self.collector_service = collector_service
@@ -37,7 +38,7 @@ class ProcessingPanel(BasePanel):
         # Add stretch to push everything to the top
         self.layout.addStretch()
 
-    def setup_filter_options(self):
+    def setup_filter_options(self) -> None:
         """Set up filtering options group."""
         filter_group = QGroupBox("Filtering Options")
         filter_layout = QVBoxLayout(filter_group)
@@ -113,7 +114,7 @@ class ProcessingPanel(BasePanel):
 
         self.layout.addWidget(filter_group)
 
-    def setup_metrics_section(self):
+    def setup_metrics_section(self) -> None:
         """Set up EEG metrics section."""
         metrics_group = QGroupBox("EEG Metrics")
         metrics_layout = QVBoxLayout(metrics_group)
@@ -139,7 +140,7 @@ class ProcessingPanel(BasePanel):
 
         self.layout.addWidget(metrics_group)
 
-    def setup_brain_map_section(self):
+    def setup_brain_map_section(self) -> None:
         """Set up brain map visualization section."""
         # Add brain map button
         brain_map_layout = QHBoxLayout()
@@ -156,7 +157,7 @@ class ProcessingPanel(BasePanel):
         self.brain_map_timer.timeout.connect(self.check_brain_map_status)
         self.brain_map_timer.start(1000)  # Check every second
 
-    def check_brain_map_status(self):
+    def check_brain_map_status(self) -> None:
         """Check if brain map visualizer needs to be restarted."""
         # Only enable the button when streaming and brain map was closed
         if (
@@ -174,7 +175,7 @@ class ProcessingPanel(BasePanel):
             self.brain_map_btn.setText("Show Brain Map Visualization")
             self.brain_map_btn.setEnabled(True)
 
-    def apply_filters(self):
+    def apply_filters(self) -> None:
         """Apply or remove the selected filters to visualization."""
         try:
             if not self.filters_applied:
@@ -214,7 +215,7 @@ class ProcessingPanel(BasePanel):
         except Exception as e:
             self.show_error("Filter Error", f"Error applying filters: {str(e)}")
 
-    def on_filter_option_changed(self):
+    def on_filter_option_changed(self) -> None:
         """Actualizar los filtros dinámicamente cuando se cambian las opciones y los filtros están aplicados."""
         # Solo actualizar si los filtros ya están aplicados
         if hasattr(self, "filters_applied") and self.filters_applied:
@@ -237,7 +238,7 @@ class ProcessingPanel(BasePanel):
             except Exception as e:
                 self.show_error("Filter Error", f"Error updating filters: {str(e)}")
 
-    def calculate_metrics(self):
+    def calculate_metrics(self) -> None:
         """Calculate EEG metrics from current data."""
         try:
             # Get data from collector service
@@ -284,7 +285,7 @@ class ProcessingPanel(BasePanel):
         except Exception as e:
             self.show_error("Metrics Error", f"Failed to calculate metrics: {str(e)}")
 
-    def show_brain_map(self):
+    def show_brain_map(self) -> None:
         """Show brain map visualization."""
         try:
             # Make sure processor is initialized before creating brain map
@@ -318,7 +319,7 @@ class ProcessingPanel(BasePanel):
         except Exception as e:
             self.show_error("Visualization Error", f"Error showing brain map: {e}")
 
-    def enable_processing(self, enabled):
+    def enable_processing(self, enabled: bool) -> None:
         """Enable or disable processing controls."""
         self.processing_enabled = enabled  # Store the state for brain map checks
         self.apply_filters_btn.setEnabled(enabled)
@@ -339,7 +340,7 @@ class ProcessingPanel(BasePanel):
             self.brain_map_btn.setEnabled(enabled)
 
     # Add methods for API interaction
-    def _update_filter_controls(self, filter_config):
+    def _update_filter_controls(self, filter_config: Dict[str, Any]) -> bool:
         """Update filter controls from API call."""
         try:
             # Update bandpass filter controls
@@ -384,7 +385,7 @@ class ProcessingPanel(BasePanel):
             self.show_error("Filter Controls Update Error", str(e))
             return False
 
-    def get_filter_settings(self):
+    def get_filter_settings(self) -> Dict[str, Any]:
         """Get current filter settings."""
         return {
             "bandpass": {
@@ -400,7 +401,7 @@ class ProcessingPanel(BasePanel):
             "applied": self.filters_applied,
         }
 
-    def update_metrics_display(self, metrics_text):
+    def update_metrics_display(self, metrics_text: str) -> bool:
         """Update the metrics display from API call."""
         try:
             self.metrics_label.setText(metrics_text)

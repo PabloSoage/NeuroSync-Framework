@@ -4,6 +4,7 @@ Unified application coordinator.
 This module coordinates between the EEG processor and input collector applications.
 """
 
+from typing import Dict, Any, Optional
 from PyQt5.QtCore import QObject, pyqtSignal
 
 
@@ -20,7 +21,7 @@ class UnifiedAppCoordinator(QObject):
     recording_stopped = pyqtSignal()
     status_message = pyqtSignal(str, str)  # message, color
 
-    def __init__(self, integration_service):
+    def __init__(self, integration_service: Any) -> None:
         """Initialize the unified app coordinator."""
         super().__init__()
         self.integration_service = integration_service
@@ -32,11 +33,11 @@ class UnifiedAppCoordinator(QObject):
         # Connect signals from integration service
         self.integration_service.status_message.connect(self.status_message)
 
-    def set_main_window(self, main_window):
+    def set_main_window(self, main_window: Any) -> None:
         """Set the main window reference."""
         self.main_window = main_window
 
-    def start_recording(self, record_config):
+    def start_recording(self, record_config: Dict[str, Any]) -> None:
         """
         Start recording on both modules if enabled.
 
@@ -57,7 +58,7 @@ class UnifiedAppCoordinator(QObject):
         else:
             self.status_message.emit("Failed to start recording", "error")
 
-    def stop_recording(self):
+    def stop_recording(self) -> None:
         """Stop recording on both modules."""
         if not self.is_recording:
             self.status_message.emit("Not recording", "warning")
@@ -73,7 +74,7 @@ class UnifiedAppCoordinator(QObject):
         else:
             self.status_message.emit("Failed to stop recording", "error")
 
-    def add_marker(self, marker_value):
+    def add_marker(self, marker_value: Any) -> None:
         """
         Add a marker to both recordings.
 
@@ -91,7 +92,7 @@ class UnifiedAppCoordinator(QObject):
         else:
             self.status_message.emit("Failed to add marker", "error")
 
-    def handle_tab_change(self, index):
+    def handle_tab_change(self, index: int) -> None:
         """
         Handle tab change event.
 
@@ -101,7 +102,7 @@ class UnifiedAppCoordinator(QObject):
         # Any actions needed when switching between tabs
         pass
 
-    def is_ready_for_recording(self):
+    def is_ready_for_recording(self) -> bool:
         """
         Check if the system is ready for recording.
 
@@ -110,7 +111,7 @@ class UnifiedAppCoordinator(QObject):
         """
         return self.integration_service.is_ready_for_recording()
 
-    def update_recording_controls(self):
+    def update_recording_controls(self) -> None:
         """Update recording controls in the UI."""
         if self.main_window:
             self.main_window.update_recording_controls(

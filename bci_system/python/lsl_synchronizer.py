@@ -13,7 +13,7 @@ import logging
 import queue
 import threading
 import time
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 
 import h5py
 import numpy as np
@@ -48,7 +48,7 @@ class LSLStreamPublisher:
         channel_count: int,
         sampling_rate: float,
         channel_format: str = "float32",
-        source_id: str = None,
+        source_id: Optional[str] = None,
     ):
         """
         Initialize an LSL stream publisher.
@@ -131,7 +131,7 @@ class LSLInputPublisher:
     This class handles the specifics of publishing input events to LSL.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the input event publisher."""
         # Create a stream for input events
         # Channel format is string for event markers
@@ -162,12 +162,12 @@ class LSLInputPublisher:
 
     def send_mouse_event(
         self,
-        button: str = None,
-        pressed: bool = None,
-        x: float = None,
-        y: float = None,
-        scroll_x: float = None,
-        scroll_y: float = None,
+        button: Optional[str] = None,
+        pressed: Optional[bool] = None,
+        x: Optional[float] = None,
+        y: Optional[float] = None,
+        scroll_x: Optional[float] = None,
+        scroll_y: Optional[float] = None,
     ) -> None:
         """
         Send a mouse event to the LSL stream.
@@ -230,7 +230,7 @@ class LSLEEGPublisher:
         channel_count: int,
         sampling_rate: float,
         channel_names: Optional[List[str]] = None,
-    ):
+    ) -> None:
         """
         Initialize the EEG data publisher.
 
@@ -298,7 +298,7 @@ class LSLMarkerPublisher:
     This class handles the specifics of publishing marker data to LSL.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the marker publisher."""
         self.publisher = LSLStreamPublisher(
             stream_name="ExperimentMarkers",
@@ -341,17 +341,17 @@ class LSLDataReceiver:
             resolve_timeout: Timeout for resolving streams in seconds
         """
         self.stream_types = stream_types
-        self.inlets = []
-        self.stream_names = []
-        self.stream_info = []
+        self.inlets: List[StreamInlet] = []
+        self.stream_names: List[str] = []
+        self.stream_info: List[Any] = []
         self.resolve_timeout = resolve_timeout
 
         self.running = False
-        self.buffer = {}  # Buffer for synchronized data
+        self.buffer: Dict[str, Dict[str, List[Any]]] = {}  # Buffer for synchronized data
 
         # Thread for continuous data collection
-        self.collection_thread = None
-        self.data_queue = queue.Queue()
+        self.collection_thread: Optional[threading.Thread] = None
+        self.data_queue: queue.Queue[tuple] = queue.Queue()
 
     def resolve_streams(self) -> bool:
         """
@@ -498,9 +498,15 @@ class LSLDataReceiver:
                         if result[0] is not None:
                             sample, timestamp = result
 
-                            # Add to buffer
-                            self.buffer[name]["timestamps"].append(timestamp)
-                            self.buffer[name]["data"].append(sample)
+                            # Add to buffer - cast to list to fix type issue
+                            timestamps_list = list(self.buffer[name]["timestamps"])
+                            data_list = list(self.buffer[name]["data"])
+                            
+                            timestamps_list.append(timestamp)
+                            data_list.append(sample)
+                            
+                            self.buffer[name]["timestamps"] = timestamps_list
+                            self.buffer[name]["data"] = data_list
 
                             # Add to queue for real-time processing
                             self.data_queue.put((name, sample, timestamp))
@@ -645,7 +651,7 @@ class DatasetExporter:
     to various standard formats like HDF5, EDF+, and BIDS.
     """
 
-    def __init__(self, receiver: LSLDataReceiver):
+    def __init__(self, receiver: LSLDataReceiver) -> None:
         """
         Initialize the dataset exporter.
 
@@ -880,7 +886,7 @@ class LSLSynchronizerWidget(QWidget):
 
     status_message = pyqtSignal(str)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         """Initialize the LSL synchronizer widget."""
         super().__init__(parent)
 
@@ -891,9 +897,9 @@ class LSLSynchronizerWidget(QWidget):
         self.receiver = LSLDataReceiver()
         self.exporter = DatasetExporter(self.receiver)
 
-        # Stream status tracking
-        self.stream_status = {}  # To track the status of each stream
-        self.stream_status_widgets = {}  # To hold the status label widgets
+        # Stream status tracking - add proper type annotations
+        self.stream_status: Dict[str, Dict[str, Any]] = {}  # To track the status of each stream
+        self.stream_status_widgets: Dict[str, Dict[str, QWidget]] = {}  # To hold the status label widgets
 
         # UI setup
         self.setup_ui()
@@ -905,7 +911,7 @@ class LSLSynchronizerWidget(QWidget):
 
         logging.info("LSL Synchronizer Widget initialized")
 
-    def setup_ui(self):
+    def setup_ui(self) -> None:
         """Set up the user interface."""
         main_layout = QVBoxLayout(self)
 
@@ -987,7 +993,7 @@ class LSLSynchronizerWidget(QWidget):
         self.message_label = QLabel("")
         main_layout.addWidget(self.message_label)
 
-    def start_synchronization(self):
+    def start_synchronization(self) -> None:
         """Start LSL synchronization."""
         try:
             # Start the receiver if not already running
@@ -1005,7 +1011,7 @@ class LSLSynchronizerWidget(QWidget):
             logging.error(f"Error starting synchronization: {e}")
             self.show_status(f"Error: {str(e)}", error=True)
 
-    def stop_synchronization(self):
+    def stop_synchronization(self) -> None:
         """Stop LSL synchronization."""
         try:
             if self.receiver.running:
@@ -1018,7 +1024,7 @@ class LSLSynchronizerWidget(QWidget):
             logging.error(f"Error stopping synchronization: {e}")
             self.show_status(f"Error: {str(e)}", error=True)
 
-    def refresh_streams(self):
+    def refresh_streams(self) -> None:
         """Refresh available LSL streams."""
         try:
             success = self.receiver.resolve_streams()
@@ -1042,7 +1048,7 @@ class LSLSynchronizerWidget(QWidget):
             logging.error(f"Error refreshing streams: {e}")
             self.show_status(f"Error: {str(e)}", error=True)
 
-    def _update_stream_status_display(self):
+    def _update_stream_status_display(self) -> None:
         """Update the UI with status indicators for each stream."""
         # Clear existing status widgets
         self._clear_stream_status_display()
@@ -1092,7 +1098,7 @@ class LSLSynchronizerWidget(QWidget):
                 "has_data": False,
             }
 
-    def _clear_stream_status_display(self):
+    def _clear_stream_status_display(self) -> None:
         """Clear all stream status widgets."""
         # Remove all stream status widgets
         for stream_name, widgets in self.stream_status_widgets.items():
@@ -1104,7 +1110,7 @@ class LSLSynchronizerWidget(QWidget):
         self.stream_status_widgets.clear()
         self.stream_status.clear()
 
-    def export_dataset(self):
+    def export_dataset(self) -> None:
         """Export synchronized data to the selected format."""
         try:
             if not self.receiver.running and not self.receiver.buffer:
@@ -1152,7 +1158,7 @@ class LSLSynchronizerWidget(QWidget):
             logging.error(f"Error exporting dataset: {e}")
             self.show_status(f"Export error: {str(e)}", error=True)
 
-    def update_status(self):
+    def update_status(self) -> None:
         """Update status information."""
         if not self.receiver.running:
             return
@@ -1232,7 +1238,7 @@ class LSLSynchronizerWidget(QWidget):
                     f"Streams: {len(self.receiver.stream_names)} | Waiting for data..."
                 )
 
-    def show_status(self, message, error=False):
+    def show_status(self, message: str, error: bool = False) -> None:
         """Show a status message."""
         self.message_label.setText(message)
         if error:
@@ -1244,7 +1250,7 @@ class LSLSynchronizerWidget(QWidget):
         self.status_message.emit(message)
 
 
-def create_eeg_publisher(device_name, board_id, num_channels, sampling_rate):
+def create_eeg_publisher(device_name: str, board_id: int, num_channels: int, sampling_rate: float) -> LSLEEGPublisher:
     """
     Create an EEG publisher with device-specific configuration.
 
@@ -1268,7 +1274,7 @@ def create_eeg_publisher(device_name, board_id, num_channels, sampling_rate):
     return publisher
 
 
-def create_input_publisher():
+def create_input_publisher() -> LSLInputPublisher:
     """
     Create an input event publisher.
 
@@ -1278,7 +1284,7 @@ def create_input_publisher():
     return LSLInputPublisher()
 
 
-def create_marker_publisher():
+def create_marker_publisher() -> LSLMarkerPublisher:
     """
     Create a marker/annotation publisher.
 

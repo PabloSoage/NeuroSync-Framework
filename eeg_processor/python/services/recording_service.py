@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+from typing import Any
 
 
 class RecordingService:
@@ -10,14 +11,16 @@ class RecordingService:
     This service handles recording start/stop and status tracking.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the recording service."""
         self.recording = False
-        self.start_time = 0
+        self.start_time: float = 0
         self.filename = ""
         self.data_type = "raw"
 
-    def start_recording(self, collector, filename: str, data_type: str = "raw") -> bool:
+    def start_recording(
+        self, collector: Any, filename: str, data_type: str = "raw"
+    ) -> bool:
         """
         Start recording data to a file.
 
@@ -55,7 +58,7 @@ class RecordingService:
             logging.error(f"Recording start error: {e}")
             return False
 
-    def stop_recording(self, collector) -> bool:
+    def stop_recording(self, collector: Any) -> bool:
         """
         Stop recording and save data to file.
 
@@ -91,7 +94,7 @@ class RecordingService:
             logging.error(f"Recording stop error: {e}")
             return False
 
-    def insert_marker(self, collector, marker_value: float) -> bool:
+    def insert_marker(self, collector: Any, marker_value: float) -> bool:
         """
         Insert a marker into the data stream during recording.
 

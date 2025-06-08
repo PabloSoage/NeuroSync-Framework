@@ -1,5 +1,6 @@
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea
+from typing import Optional
 
 
 class BasePanel(QWidget):
@@ -13,7 +14,7 @@ class BasePanel(QWidget):
     status_message = pyqtSignal(str)
     error_message = pyqtSignal(str, str)  # title, message
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         """Initialize the base panel."""
         super().__init__(parent)
 

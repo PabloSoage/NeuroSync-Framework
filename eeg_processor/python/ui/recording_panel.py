@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (
     QSpinBox,
     QLineEdit,
 )
+from typing import Any, Optional, Dict
 
 from .base_panel import BasePanel
 from ..utils.help_system import HelpButton
@@ -22,7 +23,9 @@ class RecordingPanel(BasePanel):
     recording_started = pyqtSignal()
     recording_stopped = pyqtSignal()
 
-    def __init__(self, collector_service, recording_service, parent=None):
+    def __init__(
+        self, collector_service: Any, recording_service: Any, parent: Optional[Any] = None
+    ) -> None:
         """Initialize the recording panel."""
         super().__init__(parent)
         self.collector_service = collector_service
@@ -34,7 +37,7 @@ class RecordingPanel(BasePanel):
         # Add stretch to push everything to the top
         self.layout.addStretch()
 
-    def setup_recording_options(self):
+    def setup_recording_options(self) -> None:
         """Set up recording options group."""
         self.record_group = QGroupBox("Recording Options")
         record_layout = QVBoxLayout(self.record_group)
@@ -115,7 +118,7 @@ class RecordingPanel(BasePanel):
 
         self.layout.addWidget(self.record_group)
 
-    def browse_record_file(self):
+    def browse_record_file(self) -> None:
         """Browse for a file to save the recording."""
         filename, _ = QFileDialog.getSaveFileName(
             self, "Save Recording File", "", "CSV files (*.csv);; All Files (*)"
@@ -123,7 +126,7 @@ class RecordingPanel(BasePanel):
         if filename:
             self.record_file_edit.setText(filename)
 
-    def start_recording(self):
+    def start_recording(self) -> None:
         """Start recording data to file."""
         try:
             filename = self.record_file_edit.text()
@@ -161,7 +164,7 @@ class RecordingPanel(BasePanel):
         except Exception as e:
             self.show_error("Recording Error", f"Failed to start recording: {str(e)}")
 
-    def stop_recording(self):
+    def stop_recording(self) -> None:
         """Stop recording and save data to file."""
         try:
             success = self.recording_service.stop_recording(
@@ -184,7 +187,7 @@ class RecordingPanel(BasePanel):
         except Exception as e:
             self.show_error("Recording Error", f"Failed to stop recording: {str(e)}")
 
-    def add_marker(self):
+    def add_marker(self) -> None:
         """Add a marker to the data stream."""
         try:
             marker_value = self.marker_value_spin.value()
@@ -199,7 +202,7 @@ class RecordingPanel(BasePanel):
         except Exception as e:
             self.show_error("Marker Error", f"Failed to add marker: {str(e)}")
 
-    def save_current_data(self):
+    def save_current_data(self) -> None:
         """Save current data to file."""
         try:
             filename, _ = QFileDialog.getSaveFileName(
@@ -213,17 +216,19 @@ class RecordingPanel(BasePanel):
         except Exception as e:
             self.show_error("Save Error", f"Failed to save data: {str(e)}")
 
-    def enable_recording(self, enabled):
+    def enable_recording(self, enabled: bool) -> None:
         """Enable or disable recording controls."""
         self.start_record_btn.setEnabled(enabled)
         self.save_data_btn.setEnabled(enabled)
 
-    def update_recording_status(self, status_text):
+    def update_recording_status(self, status_text: str) -> None:
         """Update the recording status label."""
         self.recording_status_label.setText(status_text)
 
     # Add methods for API interaction
-    def _update_recording_state(self, is_recording, filename=None, data_type=None):
+    def _update_recording_state(
+        self, is_recording: bool, filename: Optional[str] = None, data_type: Optional[str] = None
+    ) -> bool:
         """Update recording state from API call."""
         try:
             if is_recording:
@@ -255,7 +260,7 @@ class RecordingPanel(BasePanel):
             self.show_error("Recording State Update Error", str(e))
             return False
 
-    def get_recording_settings(self):
+    def get_recording_settings(self) -> Dict[str, str]:
         """Get current recording settings."""
         data_type = "raw"
         if self.processed_radio.isChecked():
@@ -265,6 +270,6 @@ class RecordingPanel(BasePanel):
 
         return {"filename": self.record_file_edit.text(), "data_type": data_type}
 
-    def get_current_marker_value(self):
+    def get_current_marker_value(self) -> int:
         """Get the current marker value."""
         return self.marker_value_spin.value()

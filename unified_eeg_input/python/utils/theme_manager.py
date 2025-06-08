@@ -5,6 +5,7 @@ This module provides theme management for the unified application UI.
 """
 
 from PyQt5.QtGui import QColor, QPalette
+from PyQt5.QtWidgets import QWidget
 
 
 class UnifiedThemeManager:
@@ -14,7 +15,7 @@ class UnifiedThemeManager:
     This class provides methods to set and manage different application themes.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the theme manager with default colors."""
         # Define theme colors
         self.dark_bg = "#2D2D30"
@@ -25,7 +26,7 @@ class UnifiedThemeManager:
         self.warning_color = "#FFAA33"
         self.error_color = "#FF5555"
 
-    def apply_dark_theme(self, widget):
+    def apply_dark_theme(self, widget: QWidget) -> None:
         """
         Apply the dark theme to the specified widget.
 

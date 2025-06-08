@@ -6,6 +6,7 @@ This module provides a UI component for visualizing synchronized EEG and input d
 
 import matplotlib.pyplot as plt
 import numpy as np
+from typing import Optional, List, Dict, Any, Union, Tuple
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import (
     QWidget,
@@ -33,7 +34,7 @@ from matplotlib.figure import Figure
 class HelpButton(QPushButton):
     """Custom button for showing help tooltips."""
 
-    def __init__(self, help_topic, parent=None):
+    def __init__(self, help_topic: str, parent: Optional[QWidget] = None) -> None:
         """
         Initialize help button.
 
@@ -65,7 +66,7 @@ class HelpButton(QPushButton):
         # Connect the clicked signal to show help
         self.clicked.connect(self.show_help)
 
-    def show_help(self):
+    def show_help(self) -> None:
         """Show help dialog with help text."""
         # Create a non-modal dialog to avoid alert sound
         dialog = QDialog(self.parent())
@@ -97,7 +98,7 @@ class HelpButton(QPushButton):
         dialog.setModal(False)
         dialog.show()
 
-    def _get_help_content(self, topic):
+    def _get_help_content(self, topic: str) -> str:
         """
         Get help content based on topic.
 
@@ -202,28 +203,28 @@ class SynchronizedDataVisualization(QWidget):
     allowing users to see the correlation between brain activity and user actions.
     """
 
-    def __init__(self, integration_service, parent=None):
+    def __init__(self, integration_service: Any, parent: Optional[QWidget] = None) -> None:
         """Initialize the visualization panel."""
         super().__init__(parent)
 
         self.integration_service = integration_service
 
         # Buffer for visualization data
-        self.eeg_data_buffer = []
-        self.eeg_timestamps = []
-        self.input_data_buffer = []
-        self.input_timestamps = []
-        self.marker_data = []
-        self.marker_timestamps = []
+        self.eeg_data_buffer: List[Tuple[List[float], float]] = []
+        self.eeg_timestamps: List[float] = []
+        self.input_data_buffer: List[Tuple[List[float], float]] = []
+        self.input_timestamps: List[float] = []
+        self.marker_data: List[Tuple[str, float]] = []
+        self.marker_timestamps: List[float] = []
 
         # Maximum buffer size for visualization
         self.max_buffer_size = 1000
 
         # EEG channel names (will be updated based on data)
-        self.eeg_channel_names = []
+        self.eeg_channel_names: List[str] = []
 
         # Channel selection (which channels to display)
-        self.visible_channels = []
+        self.visible_channels: List[int] = []
 
         # Scale factor for EEG amplitude
         self.eeg_scale_factor = 1.0
@@ -259,7 +260,7 @@ class SynchronizedDataVisualization(QWidget):
         self.update_timer.timeout.connect(self.update_plots)
         self.update_timer.start(100)  # Update every 100ms
 
-    def _create_ui(self):
+    def _create_ui(self) -> None:
         """Create the user interface."""
         # Main layout
         layout = QVBoxLayout(self)
@@ -432,7 +433,7 @@ class SynchronizedDataVisualization(QWidget):
         layout.addWidget(self.channel_selection_group)
         self.channel_selection_group.setVisible(False)  # Start collapsed
 
-    def toggle_channel_selection_panel(self):
+    def toggle_channel_selection_panel(self) -> None:
         """Toggle visibility of the channel selection panel."""
         self.channel_selection_group.setVisible(
             not self.channel_selection_group.isVisible()
@@ -444,11 +445,11 @@ class SynchronizedDataVisualization(QWidget):
         else:
             self.toggle_channel_selection_btn.setText("Channel Selection")
 
-    def setup_channel_selection(self):
+    def setup_channel_selection(self) -> None:
         """Set up channel selection UI elements."""
         self.channel_selection_group = QGroupBox("Channel Selection")
         self.channel_selection_layout = QGridLayout()
-        self.channel_checkboxes = []
+        self.channel_checkboxes: List[QCheckBox] = []
 
         # Will be populated with checkboxes when channel names are available
         scroll_area = QScrollArea()
@@ -484,19 +485,19 @@ class SynchronizedDataVisualization(QWidget):
         channel_selection_main_layout.addLayout(channel_button_layout)
         self.channel_selection_group.setLayout(channel_selection_main_layout)
 
-    def select_all_channels(self):
+    def select_all_channels(self) -> None:
         """Select all channels."""
         for checkbox in self.channel_checkboxes:
             checkbox.setChecked(True)
         self.update_visible_channels()
 
-    def clear_all_channels(self):
+    def clear_all_channels(self) -> None:
         """Clear all channel selections."""
         for checkbox in self.channel_checkboxes:
             checkbox.setChecked(False)
         self.update_visible_channels()
 
-    def update_visible_channels(self):
+    def update_visible_channels(self) -> None:
         """Update which channels are visible based on checkbox selection."""
         self.visible_channels = []
         for i, checkbox in enumerate(self.channel_checkboxes):
@@ -510,7 +511,7 @@ class SynchronizedDataVisualization(QWidget):
 
         self.update_plots()
 
-    def update_sync_tolerance(self, value):
+    def update_sync_tolerance(self, value: float) -> None:
         """Update the synchronization tolerance value."""
         self.sync_tolerance = value
 
@@ -520,7 +521,7 @@ class SynchronizedDataVisualization(QWidget):
         ):
             self.integration_service.lsl_sync.set_sync_tolerance(value)
 
-    def on_sync_tolerance_exceeded(self, delay_ms):
+    def on_sync_tolerance_exceeded(self, delay_ms: float) -> None:
         """Handle event when sync tolerance is exceeded."""
         # Update delay value
         self.sync_delay = delay_ms
@@ -538,7 +539,7 @@ class SynchronizedDataVisualization(QWidget):
             self.sync_status_label,
         )
 
-    def setup_plots(self):
+    def setup_plots(self) -> None:
         """Set up the matplotlib plots."""
         # Clear any existing plots
         self.figure.clear()
@@ -560,9 +561,9 @@ class SynchronizedDataVisualization(QWidget):
         self.ax2.grid(True)
 
         # Initialize empty plots
-        self.eeg_lines = []
-        self.input_lines = []
-        self.marker_lines = []
+        self.eeg_lines: List[Any] = []
+        self.input_lines: List[Any] = []
+        self.marker_lines: List[Any] = []
 
         # Create initial empty lines
         # These will be replaced when actual data is available
@@ -579,7 +580,6 @@ class SynchronizedDataVisualization(QWidget):
             "Mouse X",
             "Mouse Y",
         ]
-        self.input_lines = []
 
         for name in input_channel_names:
             (line,) = self.ax2.plot([], [], label=name)
@@ -595,7 +595,7 @@ class SynchronizedDataVisualization(QWidget):
         # Draw the canvas
         self.canvas.draw()
 
-    def update_scale_factor(self, scale_text):
+    def update_scale_factor(self, scale_text: str) -> None:
         """Update the EEG amplitude scale factor."""
         scale_map = {
             "0.1x": 0.1,
@@ -610,7 +610,7 @@ class SynchronizedDataVisualization(QWidget):
         self.eeg_scale_factor = scale_map.get(scale_text, 1.0)
         self.update_plots()
 
-    def update_channel_mode(self, mode_text):
+    def update_channel_mode(self, mode_text: str) -> None:
         """Update how channels are displayed."""
         if mode_text == "Stacked":
             self.channel_offset = 100.0
@@ -619,12 +619,12 @@ class SynchronizedDataVisualization(QWidget):
 
         self.update_plots()
 
-    def update_channel_selection(self, selection):
+    def update_channel_selection(self, selection: Any) -> None:
         """Update channel selection based on dropdown."""
         # This method now only handles updating visible channels from checkboxes
         self.update_visible_channels()
 
-    def update_visualization_data(self, data):
+    def update_visualization_data(self, data: Dict[str, Any]) -> None:
         """
         Update visualization data from LSL streams.
 
@@ -702,7 +702,7 @@ class SynchronizedDataVisualization(QWidget):
             )
             self.marker_legend_label.setText(marker_text)
 
-    def _update_eeg_channel_names(self):
+    def _update_eeg_channel_names(self) -> None:
         """Update EEG channel names from multiple possible sources."""
         # First try to directly get channel names from LSL stream info
         if hasattr(self.integration_service, "lsl_sync") and hasattr(
@@ -785,7 +785,7 @@ class SynchronizedDataVisualization(QWidget):
         self._update_channel_selection_ui()
         self._update_plot_lines()
 
-    def _update_channel_selection_ui(self):
+    def _update_channel_selection_ui(self) -> None:
         """Update the channel selection UI based on available data."""
         # Clear existing checkboxes
         for i in reversed(range(self.channel_selection_layout.count())):
@@ -819,7 +819,7 @@ class SynchronizedDataVisualization(QWidget):
                 self.channel_selection_group.setVisible(True)
                 self.toggle_channel_selection_btn.setText("Hide Channel Selection")
 
-    def _update_plot_lines(self):
+    def _update_plot_lines(self) -> None:
         """Update plot lines based on current channel names."""
         # Clear the figure and recreate
         self.figure.clear()
@@ -893,7 +893,7 @@ class SynchronizedDataVisualization(QWidget):
         # Draw the canvas
         self.canvas.draw()
 
-    def apply_simple_filter(self, data):
+    def apply_simple_filter(self, data: np.ndarray) -> np.ndarray:
         """
         Apply a simple filter to EEG data to remove noise.
 
@@ -916,7 +916,7 @@ class SynchronizedDataVisualization(QWidget):
 
         return filtered_data
 
-    def update_plots(self):
+    def update_plots(self) -> None:
         """Update the plots with current data."""
         # Skip if no data
         if not self.eeg_data_buffer and not self.input_data_buffer:
@@ -1055,7 +1055,7 @@ class SynchronizedDataVisualization(QWidget):
             timestamps = [ts - start_ts for _, ts in input_data_filtered]
 
             # Extract relevant input channels: event type, key code, mouse x, mouse y
-            input_data_arrays = [[], [], [], [], []]
+            input_data_arrays: List[List[float]] = [[], [], [], [], []]
 
             for sample, _ in input_data_filtered:
                 # Extract data for the first 5 channels (timestamp, event, key, x, y)
@@ -1142,7 +1142,7 @@ class SynchronizedDataVisualization(QWidget):
         self.figure.tight_layout()
         self.canvas.draw()
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: Any) -> None:
         """Handle close event."""
         # Stop the update timer
         self.update_timer.stop()

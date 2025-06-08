@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (
 )
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+from typing import Any, Optional, Dict
 
 from .base_panel import BasePanel
 from ..utils.help_system import HelpButton
@@ -24,7 +25,9 @@ except ImportError:
 class MNEPanel(BasePanel):
     """Panel for MNE integration and analysis."""
 
-    def __init__(self, collector_service, processor_service, parent=None):
+    def __init__(
+        self, collector_service: Any, processor_service: Any, parent: Optional[Any] = None
+    ) -> None:
         """Initialize the MNE panel."""
         super().__init__(parent)
         self.collector_service = collector_service
@@ -41,7 +44,7 @@ class MNEPanel(BasePanel):
         # Add stretch to push everything to the top
         self.layout.addStretch()
 
-    def setup_mne_not_available(self):
+    def setup_mne_not_available(self) -> None:
         """Show warning when MNE is not installed."""
         warning_label = QLabel(
             "MNE package is not installed. Please install it using: pip install mne"
@@ -49,7 +52,7 @@ class MNEPanel(BasePanel):
         warning_label.setStyleSheet("color: #FFAA33; font-weight: bold;")
         self.layout.addWidget(warning_label)
 
-    def setup_mne_conversion(self):
+    def setup_mne_conversion(self) -> None:
         """Set up MNE conversion section."""
         mne_group = QGroupBox("Convert to MNE Format")
         mne_layout = QVBoxLayout(mne_group)
@@ -88,7 +91,7 @@ class MNEPanel(BasePanel):
 
         self.layout.addWidget(mne_group)
 
-    def setup_mne_visualization(self):
+    def setup_mne_visualization(self) -> None:
         """Set up MNE visualization section."""
         mne_viz_group = QGroupBox("MNE Visualization")
         mne_viz_layout = QVBoxLayout(mne_viz_group)
@@ -118,7 +121,7 @@ class MNEPanel(BasePanel):
 
         self.layout.addWidget(mne_viz_group)
 
-    def convert_to_mne(self):
+    def convert_to_mne(self) -> None:
         """Convert BrainFlow data to MNE format."""
         if not MNE_AVAILABLE:
             self.show_error("MNE Error", "MNE package is not installed")
@@ -135,7 +138,7 @@ class MNEPanel(BasePanel):
         except Exception as e:
             self.show_error("MNE Error", f"Error converting to MNE format: {str(e)}")
 
-    def plot_mne_visualization(self, plot_type):
+    def plot_mne_visualization(self, plot_type: str) -> None:
         """Plot MNE visualizations."""
         if not MNE_AVAILABLE:
             return
@@ -172,7 +175,7 @@ class MNEPanel(BasePanel):
         except Exception as e:
             self.show_error("MNE Error", f"Error creating visualization: {str(e)}")
 
-    def enable_processing(self, enabled):
+    def enable_processing(self, enabled: bool) -> None:
         """Enable or disable MNE processing controls."""
         self.convert_to_mne_btn.setEnabled(enabled)
 
@@ -182,7 +185,7 @@ class MNEPanel(BasePanel):
             self.plot_mne_topomap_btn.setEnabled(False)
 
     # Add methods for API interaction
-    def get_mne_settings(self):
+    def get_mne_settings(self) -> Dict[str, Any]:
         """Get current MNE settings."""
         if not MNE_AVAILABLE:
             return {"available": False}
@@ -196,7 +199,7 @@ class MNEPanel(BasePanel):
             ),
         }
 
-    def update_mne_plot(self, plot_data):
+    def update_mne_plot(self, plot_data: Dict[str, Any]) -> bool:
         """Update MNE plot from API call."""
         if not MNE_AVAILABLE:
             return False

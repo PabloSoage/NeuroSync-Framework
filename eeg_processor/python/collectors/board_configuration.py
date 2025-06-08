@@ -3,7 +3,7 @@ import os
 
 # Import the interface
 import sys
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from interfaces.board_interface import BoardInterface
@@ -21,7 +21,7 @@ class BrainFlowBoardConfiguration(BoardInterface):
     BrainFlow implementation of board configuration management.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initialize the BrainFlow board configuration manager.
         """
@@ -86,7 +86,7 @@ class BrainFlowBoardConfiguration(BoardInterface):
         all_boards = self.get_all_boards()
 
         # Define groups
-        groups = {
+        groups: Dict[str, List[Tuple[str, int]]] = {
             "Special/Synthetic": [],
             "OpenBCI": [],
             "Muse": [],
@@ -267,7 +267,7 @@ class BrainFlowBoardConfiguration(BoardInterface):
             BrainFlowPresets.ANCILLARY_PRESET.value: "Ancillary data (PPG, temperature, etc.)",
         }
 
-    def get_board_description(self, board_id: int, preset: int = None) -> Dict:
+    def get_board_description(self, board_id: int, preset: Optional[int] = None) -> Dict:
         """
         Get detailed description of a board.
 
