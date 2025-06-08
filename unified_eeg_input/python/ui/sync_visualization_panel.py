@@ -204,7 +204,9 @@ class SynchronizedDataVisualization(QWidget):
     allowing users to see the correlation between brain activity and user actions.
     """
 
-    def __init__(self, integration_service: Any, parent: Optional[QWidget] = None) -> None:
+    def __init__(
+        self, integration_service: Any, parent: Optional[QWidget] = None
+    ) -> None:
         """Initialize the visualization panel."""
         super().__init__(parent)
 

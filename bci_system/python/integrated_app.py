@@ -994,7 +994,11 @@ class IntegratedBCIApp(QMainWindow):
                         # Store reference to the original method on this instance to avoid losing it
                         self._original_apply_all_filters = original_apply_all_filters
                         # Replace the original method with our interceptor using setattr
-                        setattr(self.eeg_processor_app.processor_service, 'apply_all_filters', intercepted_apply_filters)
+                        setattr(
+                            self.eeg_processor_app.processor_service,
+                            "apply_all_filters",
+                            intercepted_apply_filters,
+                        )
                         logging.info(
                             "Intercepted filter application for LSL publishing"
                         )
@@ -1180,7 +1184,9 @@ class IntegratedBCIApp(QMainWindow):
             self.record_status_label.setText("RECORDING")
 
             # Start session timer
-            self.session_start_time = time.time()  # Removed type annotation since already defined
+            self.session_start_time = (
+                time.time()
+            )  # Removed type annotation since already defined
             self.session_timer.start()
 
             # Emit signal to start recording in both modules

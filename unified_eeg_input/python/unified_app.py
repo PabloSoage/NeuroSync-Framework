@@ -10,10 +10,12 @@ import sys
 from PyQt5.QtWidgets import QApplication
 
 import eeg_processor.python.eeg_processor_app as eeg_processor_app
+
 # Import from both modules
 import input_collector.python.input_collector_app as input_collector_app
 from .app.unified_app_coordinator import UnifiedAppCoordinator
 from .services.integration_service import IntegrationService
+
 # Import the unified components
 from .ui.main_window import UnifiedMainWindow
 

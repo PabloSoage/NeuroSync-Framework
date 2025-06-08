@@ -472,8 +472,8 @@ class ConnectionPanel(BasePanel):
 
                         # Initialize processor service
                         processor_service: Optional[ProcessorService] = (
-                            getattr(self, 'processor_service', None)
-                            if hasattr(self, 'processor_service')
+                            getattr(self, "processor_service", None)
+                            if hasattr(self, "processor_service")
                             else ProcessorService()
                         )
                         if processor_service is not None:

@@ -20,7 +20,11 @@ class ProcessingPanel(BasePanel):
     """Panel for signal processing operations."""
 
     def __init__(
-        self, collector_service: Any, processor_service: Any, visualization_service: Any, parent: Optional[Any] = None
+        self,
+        collector_service: Any,
+        processor_service: Any,
+        visualization_service: Any,
+        parent: Optional[Any] = None,
     ) -> None:
         """Initialize the processing panel."""
         super().__init__(parent)

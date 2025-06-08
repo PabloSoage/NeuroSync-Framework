@@ -37,10 +37,15 @@ from .interaction_api_integration import EEGProcessorInteractionApiIntegration
 class EEGProcessorApiIntegration:
     """Direct integration with EEG processor services and data."""
 
-    _instance: Optional['EEGProcessorApiIntegration'] = None
+    _instance: Optional["EEGProcessorApiIntegration"] = None
 
     @classmethod
-    def get_instance(cls) -> 'EEGProcessorApiIntegration':
+    def get_instance(cls) -> "EEGProcessorApiIntegration":
+        """Get or create the singleton instance of EEGProcessorApiIntegration.
+
+        Returns:
+            EEGProcessorApiIntegration: The singleton instance.
+        """
         if cls._instance is None:
             cls._instance = EEGProcessorApiIntegration()
         return cls._instance
@@ -125,7 +130,7 @@ class EEGProcessorApiIntegration:
         """Register all method groups."""
         if self.explorer is None:
             return
-            
+
         groups = [
             ("status", "Status Methods"),
             ("device", "Device Methods"),
@@ -508,7 +513,7 @@ class EEGProcessorApiIntegration:
         """Register methods for checking stream status."""
         if self.explorer is None:
             return
-            
+
         self.explorer.register_method(
             self.module_id,
             "status",
@@ -552,7 +557,7 @@ class EEGProcessorApiIntegration:
         """Register methods for accessing device information."""
         if self.explorer is None:
             return
-            
+
         self.explorer.register_method(
             self.module_id,
             "device",
@@ -583,7 +588,7 @@ class EEGProcessorApiIntegration:
         """Register methods for accessing EEG data."""
         if self.explorer is None:
             return
-            
+
         self.explorer.register_method(
             self.module_id,
             "data",
@@ -626,7 +631,7 @@ class EEGProcessorApiIntegration:
         """Register methods for accessing channel information."""
         if self.explorer is None:
             return
-            
+
         self.explorer.register_method(
             self.module_id,
             "channels",
@@ -705,7 +710,7 @@ class EEGProcessorApiIntegration:
         """Register methods for signal quality assessment."""
         if self.explorer is None:
             return
-            
+
         self.explorer.register_method(
             self.module_id,
             "quality",
@@ -742,7 +747,7 @@ class EEGProcessorApiIntegration:
         """Register methods for event handling."""
         if self.explorer is None:
             return
-            
+
         self.explorer.register_method(
             self.module_id,
             "events",
@@ -839,7 +844,9 @@ class EEGProcessorApiIntegration:
             "board_id": board_id if board_id is not None else -1,
         }
 
-    async def _handle_get_current_data(self, max_samples: Optional[int] = None) -> Dict[str, Any]:
+    async def _handle_get_current_data(
+        self, max_samples: Optional[int] = None
+    ) -> Dict[str, Any]:
         """Handle get_current_data endpoint."""
         data, timestamps = EEGDataAPI.get_current_data()
 
@@ -858,7 +865,9 @@ class EEGProcessorApiIntegration:
             "shape": [len(data), len(timestamps)] if isinstance(data, list) else [],
         }
 
-    async def _handle_get_eeg_data(self, max_samples: Optional[int] = None) -> Dict[str, Any]:
+    async def _handle_get_eeg_data(
+        self, max_samples: Optional[int] = None
+    ) -> Dict[str, Any]:
         """Handle get_eeg_data endpoint (EEG channels only)."""
         data, timestamps = EEGDataAPI.get_current_data()
 
@@ -1052,7 +1061,7 @@ class EEGProcessorApiIntegration:
             channel_names: List[str] = []
             channel_names_result = EEGDataAPI.get_channel_names()
             if channel_names_result is not None:
-                channel_names = list(channel_names_result)  # Ensure it's a List[str]
+                channel_names = list(channel_names_result)
 
             # Instantiate processor
             processor = SignalProcessor(sampling_rate)
@@ -1115,7 +1124,9 @@ class EEGProcessorApiIntegration:
         except Exception as e:
             logger.error(f"Error in data callback: {e}")
 
-    def _create_visualization_payload(self, data: Any, timestamps: Any) -> Dict[str, Any]:
+    def _create_visualization_payload(
+        self, data: Any, timestamps: Any
+    ) -> Dict[str, Any]:
         """Create a structured payload for data visualization."""
         # Get metadata for channel information
         metadata = self.data_service.get_metadata()
@@ -1168,14 +1179,14 @@ class EEGProcessorApiIntegration:
                 if not channels:
                     continue
 
-                # Get channel names if available
-                channel_names = []
-                if ch_type == "eeg" and metadata.get("channel_names"):
-                    channel_names = metadata.get("channel_names")
+                # Prepare channel_names only once
+                channel_names: List[Any]
+                metadata_names = metadata.get("channel_names")
+                if ch_type == "eeg" and isinstance(metadata_names, list):
+                    channel_names = metadata_names  # type: ignore
                 else:
-                    # Generate generic names
                     channel_names = [
-                        f"{ch_type.upper()}_" for i in range(len(channels))
+                        f"{ch_type.upper()}_{i}" for i in range(len(channels))
                     ]
 
                 # Slice to ensure we have valid names
@@ -1239,7 +1250,7 @@ class EEGProcessorApiIntegration:
         """Broadcast event through WebSocket."""
         if self.explorer is None:
             return
-            
+
         try:
             loop = asyncio.get_event_loop()
         except RuntimeError:

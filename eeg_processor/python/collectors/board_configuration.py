@@ -267,7 +267,9 @@ class BrainFlowBoardConfiguration(BoardInterface):
             BrainFlowPresets.ANCILLARY_PRESET.value: "Ancillary data (PPG, temperature, etc.)",
         }
 
-    def get_board_description(self, board_id: int, preset: Optional[int] = None) -> Dict:
+    def get_board_description(
+        self, board_id: int, preset: Optional[int] = None
+    ) -> Dict:
         """
         Get detailed description of a board.
 

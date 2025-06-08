@@ -67,7 +67,7 @@ class EventSystem:
     _lock = threading.Lock()
 
     @classmethod
-    def get_instance(cls) -> 'EventSystem':
+    def get_instance(cls) -> "EventSystem":
         """Get the singleton instance."""
         with cls._lock:
             if cls._instance is None:

@@ -25,7 +25,10 @@ class RecordingPanel(BasePanel):
     recording_stopped = pyqtSignal()
 
     def __init__(
-        self, collector_service: Any, recording_service: Any, parent: Optional[Any] = None
+        self,
+        collector_service: Any,
+        recording_service: Any,
+        parent: Optional[Any] = None,
     ) -> None:
         """Initialize the recording panel."""
         super().__init__(parent)
@@ -228,7 +231,10 @@ class RecordingPanel(BasePanel):
 
     # Add methods for API interaction
     def _update_recording_state(
-        self, is_recording: bool, filename: Optional[str] = None, data_type: Optional[str] = None
+        self,
+        is_recording: bool,
+        filename: Optional[str] = None,
+        data_type: Optional[str] = None,
     ) -> bool:
         """Update recording state from API call."""
         try:

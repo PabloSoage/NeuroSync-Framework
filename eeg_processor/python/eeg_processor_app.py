@@ -17,11 +17,13 @@ from brainflow.board_shim import BoardShim
 
 # Import adapters
 from .adapters.qt_interaction_adapter import QtInteractionAdapter
+
 # Import services
 from .services.collector_service import CollectorService
 from .services.processor_service import ProcessorService
 from .services.recording_service import RecordingService
 from .services.visualization_service import VisualizationService
+
 # Import UI components
 from .ui.advanced_panel import AdvancedProcessingPanel
 from .ui.connection_panel import ConnectionPanel
@@ -29,6 +31,7 @@ from .ui.mne_panel import MNEPanel
 from .ui.processing_panel import ProcessingPanel
 from .ui.recording_panel import RecordingPanel
 from .ui.streaming_panel import StreamingPanel
+
 # Import utils
 from .utils.help_system import show_eeg_concepts_help
 from .utils.theme_manager import ThemeManager

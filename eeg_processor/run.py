@@ -20,6 +20,11 @@ from eeg_processor.python.eeg_processor_app import EEGProcessorApp
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse command line arguments for the EEG Processor application.
+
+    Returns:
+        argparse.Namespace: Parsed command line arguments including API configuration options.
+    """
     p = argparse.ArgumentParser()
     p.add_argument("--enable-web-api", action="store_true")
     p.add_argument("--api-host", default="127.0.0.1")
@@ -64,9 +69,11 @@ def main() -> None:
 
         if initialize_api(host=args.api_host, port=args.api_port):
             intg = get_api_integration()
-            port = (intg.explorer.server_port 
-                   if intg.explorer is not None and intg.explorer.server_port is not None 
-                   else args.api_port)
+            port = (
+                intg.explorer.server_port
+                if intg.explorer is not None and intg.explorer.server_port is not None
+                else args.api_port
+            )
             print(f"Web API EEG Processor en http://{args.api_host}:{port}")
         else:
             print("Fallo inicializando Web API EEG Processor")

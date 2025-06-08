@@ -18,6 +18,7 @@ from typing import Dict, List, Optional, Union, Any
 import h5py
 import numpy as np
 from PyQt5.QtCore import QTimer, pyqtSignal, Qt
+
 # For visualization
 from PyQt5.QtWidgets import (
     QWidget,
@@ -27,6 +28,7 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QComboBox,
 )
+
 # Fixed import - remove LostError which doesn't exist in pylsl
 from pylsl import StreamInfo, StreamOutlet, StreamInlet, resolve_streams, local_clock
 
@@ -345,7 +347,9 @@ class LSLDataReceiver:
         self.resolve_timeout = resolve_timeout
 
         self.running = False
-        self.buffer: Dict[str, Dict[str, List[Any]]] = {}  # Buffer for synchronized data
+        self.buffer: Dict[str, Dict[str, List[Any]]] = (
+            {}
+        )  # Buffer for synchronized data
 
         # Thread for continuous data collection
         self.collection_thread: Optional[threading.Thread] = None
@@ -467,7 +471,7 @@ class LSLDataReceiver:
         for name in self.stream_names:
             self.buffer[name]["timestamps"] = []  # Explicit empty list
             self.buffer[name]["data"] = []  # Explicit empty list
-            
+
         self.buffer_duration = buffer_duration
 
         # Start collection thread
@@ -504,16 +508,16 @@ class LSLDataReceiver:
                             # Add to buffer - explicitly create new mutable lists with proper typing
                             timestamps_list: List[float] = []
                             data_list: List[Any] = []
-                            
+
                             # Use list() to ensure we have mutable lists
                             if self.buffer[name]["timestamps"]:
                                 timestamps_list = list(self.buffer[name]["timestamps"])
                             if self.buffer[name]["data"]:
                                 data_list = list(self.buffer[name]["data"])
-                            
+
                             timestamps_list.append(timestamp)
                             data_list.append(sample)
-                            
+
                             self.buffer[name]["timestamps"] = timestamps_list
                             self.buffer[name]["data"] = data_list
 
@@ -549,8 +553,12 @@ class LSLDataReceiver:
 
                         # Trim buffer if needed - ensure we operate on lists
                         if cutoff_idx > 0:
-                            self.buffer[name]["timestamps"] = list(timestamps[cutoff_idx:])
-                            self.buffer[name]["data"] = list(self.buffer[name]["data"][cutoff_idx:])
+                            self.buffer[name]["timestamps"] = list(
+                                timestamps[cutoff_idx:]
+                            )
+                            self.buffer[name]["data"] = list(
+                                self.buffer[name]["data"][cutoff_idx:]
+                            )
 
                 # Sleep briefly to avoid high CPU usage
                 time.sleep(0.001)
@@ -647,7 +655,7 @@ class LSLDataReceiver:
                 # Convert to a mutable list if it's not
                 if not isinstance(sync_events, list):
                     sync_data["synchronized_events"] = []
-                
+
                 sync_data["synchronized_events"].append(
                     {"reference_idx": i, "reference_time": ref_time, "events": events}
                 )
@@ -910,8 +918,12 @@ class LSLSynchronizerWidget(QWidget):
         self.exporter = DatasetExporter(self.receiver)
 
         # Stream status tracking - add proper type annotations
-        self.stream_status: Dict[str, Dict[str, Any]] = {}  # To track the status of each stream
-        self.stream_status_widgets: Dict[str, Dict[str, QWidget]] = {}  # To hold the status label widgets
+        self.stream_status: Dict[str, Dict[str, Any]] = (
+            {}
+        )  # To track the status of each stream
+        self.stream_status_widgets: Dict[str, Dict[str, QWidget]] = (
+            {}
+        )  # To hold the status label widgets
 
         # UI setup
         self.setup_ui()
@@ -1262,7 +1274,9 @@ class LSLSynchronizerWidget(QWidget):
         self.status_message.emit(message)
 
 
-def create_eeg_publisher(device_name: str, board_id: int, num_channels: int, sampling_rate: float) -> LSLEEGPublisher:
+def create_eeg_publisher(
+    device_name: str, board_id: int, num_channels: int, sampling_rate: float
+) -> LSLEEGPublisher:
     """
     Create an EEG publisher with device-specific configuration.
 

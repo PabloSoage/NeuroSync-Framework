@@ -527,7 +527,7 @@ class BrainFlowDataManager:
     This class handles the recording thread and file operations.
     """
 
-    def __init__(self, collector: 'BrainFlowCollector') -> None:
+    def __init__(self, collector: "BrainFlowCollector") -> None:
         """
         Initialize the data manager.
 
@@ -820,7 +820,9 @@ class BrainFlowDataManager:
             self.recording_thread = None
             self.recording_queue = queue.Queue()
 
-    def _finalize_recording_file(self, file_handle: TextIO, recording_duration: float) -> None:
+    def _finalize_recording_file(
+        self, file_handle: TextIO, recording_duration: float
+    ) -> None:
         """
         Finalize a recording file by updating its metadata.
 
@@ -856,7 +858,7 @@ class BrainFlowFileWriter:
     Handles file writing operations for BrainFlow data.
     """
 
-    def __init__(self, collector: 'BrainFlowCollector') -> None:
+    def __init__(self, collector: "BrainFlowCollector") -> None:
         """
         Initialize the file writer.
 
@@ -970,7 +972,9 @@ class BrainFlowFileWriter:
                 if gyro_channels is not None:
                     gyro_index = gyro_channels.index(i)
                     gyro_names = ["X", "Y", "Z"]
-                    axis_name = gyro_names[gyro_index % 3] if gyro_index < 3 else gyro_index
+                    axis_name = (
+                        gyro_names[gyro_index % 3] if gyro_index < 3 else gyro_index
+                    )
                     column_names.append(f"GYRO_{axis_name}")
                 else:
                     column_names.append(f"CH_{i}")

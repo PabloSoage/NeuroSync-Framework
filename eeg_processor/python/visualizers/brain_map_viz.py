@@ -5,16 +5,9 @@ from typing import Dict, Tuple, List, Any, Optional
 
 import numpy as np
 
-# Fix imports to work both when imported and when run directly
-try:
-    # When imported as part of the package
-    from ..collectors.eeg_collector import EEGCollector
-    from ..processors.signal_processor import SignalProcessor
-except ImportError:
-    # When run directly, use absolute imports
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from collectors.eeg_collector import EEGCollector
-    from processors.signal_processor import SignalProcessor
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from collectors.eeg_collector import EEGCollector
+from processors.signal_processor import SignalProcessor
 
 import pyqtgraph as pg
 from PyQt5.QtCore import Qt, QTimer, QPointF

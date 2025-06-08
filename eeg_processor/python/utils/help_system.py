@@ -544,7 +544,9 @@ HELP_CONTENT = {
 class HelpDialog(QDialog):
     """Dialog window that displays contextual help information."""
 
-    def __init__(self, title: str, content: str, parent: Optional[QWidget] = None) -> None:
+    def __init__(
+        self, title: str, content: str, parent: Optional[QWidget] = None
+    ) -> None:
         """
         Initialize the help dialog with title and content.
 

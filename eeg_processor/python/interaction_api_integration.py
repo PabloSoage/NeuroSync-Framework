@@ -16,10 +16,10 @@ class EEGProcessorInteractionApiIntegration:
     frameworks to enable remote control of the EEG processor.
     """
 
-    _instance: Optional['EEGProcessorInteractionApiIntegration'] = None
+    _instance: Optional["EEGProcessorInteractionApiIntegration"] = None
 
     @classmethod
-    def get_instance(cls) -> 'EEGProcessorInteractionApiIntegration':
+    def get_instance(cls) -> "EEGProcessorInteractionApiIntegration":
         """Get the singleton instance."""
         if cls._instance is None:
             cls._instance = EEGProcessorInteractionApiIntegration()
@@ -446,7 +446,9 @@ class EEGProcessorInteractionApiIntegration:
         self, board_id: int, params: Optional[Dict[str, Any]] = None, preset: int = 0
     ) -> Dict[str, Any]:
         """Handle connect_to_board."""
-        result = self.interaction_service.connect_to_board(board_id, params or {}, preset)
+        result = self.interaction_service.connect_to_board(
+            board_id, params or {}, preset
+        )
         if isinstance(result, dict):
             return result
         else:
@@ -552,7 +554,9 @@ class EEGProcessorInteractionApiIntegration:
                 ),
             }
 
-    async def _handle_apply_filters(self, filter_config: Dict[str, Any]) -> Dict[str, Any]:
+    async def _handle_apply_filters(
+        self, filter_config: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Handle apply_filters."""
         result = self.interaction_service.apply_filters(filter_config)
         if isinstance(result, dict):
@@ -568,7 +572,9 @@ class EEGProcessorInteractionApiIntegration:
                 ),
             }
 
-    async def _handle_start_recording(self, filename: str, data_type: str = "raw") -> Dict[str, Any]:
+    async def _handle_start_recording(
+        self, filename: str, data_type: str = "raw"
+    ) -> Dict[str, Any]:
         """Handle start_recording."""
         result = self.interaction_service.start_recording(filename, data_type)
         if isinstance(result, dict):
@@ -622,7 +628,9 @@ class EEGProcessorInteractionApiIntegration:
 
         return EEGProcessorInteractionAPI.get_recording_status()
 
-    async def _handle_start_visualization(self, viz_type: str = "eeg") -> Dict[str, Any]:
+    async def _handle_start_visualization(
+        self, viz_type: str = "eeg"
+    ) -> Dict[str, Any]:
         """Handle start_visualization."""
         result = self.interaction_service.start_visualization(viz_type)
         if isinstance(result, dict):
@@ -664,9 +672,7 @@ class EEGProcessorInteractionApiIntegration:
             return {
                 "success": success,
                 "message": (
-                    "ICA performed successfully"
-                    if success
-                    else "Failed to perform ICA"
+                    "ICA performed successfully" if success else "Failed to perform ICA"
                 ),
             }
 

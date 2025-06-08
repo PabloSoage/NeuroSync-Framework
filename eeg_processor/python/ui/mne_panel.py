@@ -27,7 +27,10 @@ class MNEPanel(BasePanel):
     """Panel for MNE integration and analysis."""
 
     def __init__(
-        self, collector_service: Any, processor_service: Any, parent: Optional[Any] = None
+        self,
+        collector_service: Any,
+        processor_service: Any,
+        parent: Optional[Any] = None,
     ) -> None:
         """Initialize the MNE panel."""
         super().__init__(parent)

@@ -14,7 +14,7 @@ class DataAccessService:
     _lock = threading.Lock()
 
     @classmethod
-    def get_instance(cls) -> 'DataAccessService':
+    def get_instance(cls) -> "DataAccessService":
         """Get the singleton instance of the service."""
         with cls._lock:
             if cls._instance is None:

@@ -75,7 +75,12 @@ class LSLSyncService(QObject):
         self.last_sync_delay = 0.0  # Last measured synchronization delay
 
         # Synchronized dataset
-        self.dataset: Dict[str, List[Any]] = {"eeg": [], "input": [], "markers": [], "timestamps": []}
+        self.dataset: Dict[str, List[Any]] = {
+            "eeg": [],
+            "input": [],
+            "markers": [],
+            "timestamps": [],
+        }
 
         # Recording state
         self.is_recording = False
@@ -513,7 +518,9 @@ class LSLSyncService(QObject):
         # Emit signal
         self.sync_update.emit(update_data)
 
-    def _find_closest_timestamp(self, timestamp: float, timestamps_list: List[float]) -> Optional[int]:
+    def _find_closest_timestamp(
+        self, timestamp: float, timestamps_list: List[float]
+    ) -> Optional[int]:
         """
         Find the index of the closest timestamp in a list within tolerance.
 

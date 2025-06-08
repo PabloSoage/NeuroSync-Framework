@@ -19,7 +19,7 @@ class InteractionService:
     _instance = None
 
     @classmethod
-    def get_instance(cls) -> 'InteractionService':
+    def get_instance(cls) -> "InteractionService":
         """Get the singleton instance."""
         if cls._instance is None:
             cls._instance = InteractionService()
@@ -325,18 +325,18 @@ class InteractionService:
 
             # Use the recording functionality to save current data
             result = EEGProcessorInteractionAPI.start_recording(filename, data_type)
-            
+
             if result.get("success", False):
                 # Stop recording immediately to save current data
                 stop_result = EEGProcessorInteractionAPI.stop_recording()
-                
+
                 # Publish event for UI updates
                 self.event_system.publish_event(
                     EventType.UI_UPDATE_STATUS,
                     {"message": f"Data saved to {filename}"},
                     source="interaction_service",
                 )
-                
+
                 return stop_result.get("success", False)
             else:
                 return False

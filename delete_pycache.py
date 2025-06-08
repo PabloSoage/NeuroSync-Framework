@@ -3,6 +3,14 @@ import shutil
 
 
 def delete_pycache(base_path: str) -> None:
+    """
+    Delete all __pycache__ directories recursively from the given base path.
+
+    Ignores directories inside .venv folders to avoid affecting virtual environments.
+
+    Args:
+        base_path (str): The root directory path to search for __pycache__ folders.
+    """
     for root, dirs, files in os.walk(base_path):
         # Ignorar directorios .venv
         if ".venv" in root.split(os.sep):
