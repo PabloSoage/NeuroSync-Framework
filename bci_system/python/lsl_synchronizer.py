@@ -18,7 +18,6 @@ from typing import Dict, List, Optional, Union, Any
 import h5py
 import numpy as np
 from PyQt5.QtCore import QTimer, pyqtSignal, Qt
-
 # For visualization
 from PyQt5.QtWidgets import (
     QWidget,
@@ -28,7 +27,6 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QComboBox,
 )
-
 # Fixed import - remove LostError which doesn't exist in pylsl
 from pylsl import StreamInfo, StreamOutlet, StreamInlet, resolve_streams, local_clock
 
@@ -461,10 +459,15 @@ class LSLDataReceiver:
             logging.warning("Data collection is already running")
             return True
 
-        # Initialize buffer for each stream
+        # Initialize buffer for each stream - explicit typing for lists
         self.buffer = {
             name: {"timestamps": [], "data": []} for name in self.stream_names
         }
+        # Ensure proper typing for buffer collections
+        for name in self.stream_names:
+            self.buffer[name]["timestamps"] = []  # Explicit empty list
+            self.buffer[name]["data"] = []  # Explicit empty list
+            
         self.buffer_duration = buffer_duration
 
         # Start collection thread
@@ -498,9 +501,15 @@ class LSLDataReceiver:
                         if result[0] is not None:
                             sample, timestamp = result
 
-                            # Add to buffer - cast to list to fix type issue
-                            timestamps_list = list(self.buffer[name]["timestamps"])
-                            data_list = list(self.buffer[name]["data"])
+                            # Add to buffer - explicitly create new mutable lists with proper typing
+                            timestamps_list: List[float] = []
+                            data_list: List[Any] = []
+                            
+                            # Use list() to ensure we have mutable lists
+                            if self.buffer[name]["timestamps"]:
+                                timestamps_list = list(self.buffer[name]["timestamps"])
+                            if self.buffer[name]["data"]:
+                                data_list = list(self.buffer[name]["data"])
                             
                             timestamps_list.append(timestamp)
                             data_list.append(sample)
@@ -538,12 +547,10 @@ class LSLDataReceiver:
                                 cutoff_idx = i
                                 break
 
-                        # Trim buffer if needed
+                        # Trim buffer if needed - ensure we operate on lists
                         if cutoff_idx > 0:
-                            self.buffer[name]["timestamps"] = timestamps[cutoff_idx:]
-                            self.buffer[name]["data"] = self.buffer[name]["data"][
-                                cutoff_idx:
-                            ]
+                            self.buffer[name]["timestamps"] = list(timestamps[cutoff_idx:])
+                            self.buffer[name]["data"] = list(self.buffer[name]["data"][cutoff_idx:])
 
                 # Sleep briefly to avoid high CPU usage
                 time.sleep(0.001)
@@ -602,17 +609,17 @@ class LSLDataReceiver:
         if not self.buffer[reference_stream]["timestamps"]:
             return {}
 
-        # Create synchronized data structure
-        sync_data = {
+        # Create synchronized data structure with explicit typing
+        sync_data: Dict[str, Any] = {
             "reference_stream": reference_stream,
-            "reference_timestamps": self.buffer[reference_stream]["timestamps"],
-            "reference_data": self.buffer[reference_stream]["data"],
+            "reference_timestamps": list(self.buffer[reference_stream]["timestamps"]),
+            "reference_data": list(self.buffer[reference_stream]["data"]),
             "synchronized_events": [],
         }
 
         # For each timestamp in the reference stream, find synchronized events
         for i, ref_time in enumerate(sync_data["reference_timestamps"]):
-            events = []
+            events: List[Dict[str, Any]] = []
 
             # Look for events in other streams within the sync window
             for name in self.stream_names:
@@ -636,6 +643,11 @@ class LSLDataReceiver:
 
             # Only add to synchronized events if there are any matching events
             if events:
+                sync_events = sync_data["synchronized_events"]
+                # Convert to a mutable list if it's not
+                if not isinstance(sync_events, list):
+                    sync_data["synchronized_events"] = []
+                
                 sync_data["synchronized_events"].append(
                     {"reference_idx": i, "reference_time": ref_time, "events": events}
                 )
