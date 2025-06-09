@@ -145,9 +145,9 @@ control collectors scan      # Scan for controllers
     monitor_commands = """
 # Monitoring
 monitor events               # Monitor all input events in real-time
-monitor events --type key    # Monitor only keyboard events
 monitor active-keys          # Monitor active keys
 monitor mouse                # Monitor mouse movement and buttons
+monitor controller           # Monitor PS4 controller events
 monitor status               # Monitor application status
     """
 
