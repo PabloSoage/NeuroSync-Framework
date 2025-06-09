@@ -602,3 +602,222 @@ def status() -> None:
 
     except Exception as e:
         console.print(f"[bold red]Error getting application status: {e}[/bold red]")
+
+
+@app.command("recording-start")
+def recording_start() -> None:
+    """Start recording."""
+    InputCollectorAPI.start_recording()
+    typer.echo("Recording started")
+
+
+@app.command("recording-stop")
+def recording_stop() -> None:
+    """Stop recording."""
+    InputCollectorAPI.stop_recording()
+    typer.echo("Recording stopped")
+
+
+@app.command("recording-toggle")
+def recording_toggle() -> None:
+    """Toggle recording state."""
+    InputCollectorAPI.toggle_recording()
+    typer.echo(
+        f"Recording is now {'ON' if InputCollectorAPI.is_recording() else 'OFF'}"
+    )
+
+
+@app.command("recording-status")
+def recording_status() -> None:
+    """Check recording status."""
+    status = InputCollectorAPI.is_recording()
+    typer.echo(f"Recording: {'ON' if status else 'OFF'}")
+
+
+#
+# Logging configuration
+#
+@app.command("logging-json")
+def logging_json(
+    action: str = typer.Option(..., "--action", "-a", help="enable|disable")
+) -> None:
+    """Enable or disable JSON logging."""
+    enable = action.lower() == "enable"
+    InputCollectorAPI.enable_json_logging(enable)
+    typer.echo(f"JSON logging {'enabled' if enable else 'disabled'}")
+
+
+@app.command("logging-csv")
+def logging_csv(
+    action: str = typer.Option(..., "--action", "-a", help="enable|disable"),
+    filepath: str = typer.Option(None, "--filepath", "-f", help="CSV file path"),
+) -> None:
+    """Enable or disable CSV logging (and set file)."""
+    enable = action.lower() == "enable"
+    if enable and filepath:
+        InputCollectorAPI.set_csv_path(filepath)
+    InputCollectorAPI.enable_csv_logging(enable, filepath or "")
+    typer.echo(f"CSV logging {'enabled' if enable else 'disabled'}")
+
+
+@app.command("logging-status")
+def logging_status() -> None:
+    """Check logging configuration."""
+    state = InputCollectorAPI.get_logging_state()
+    typer.echo(
+        f"JSON: {state['json_enabled']}, CSV: {state['csv_enabled']}, Path: {state.get('csv_path','')}"
+    )
+
+
+#
+# Collector management
+#
+@app.command("collectors-list")
+def collectors_list() -> None:
+    """List available collectors."""
+    for c in InputCollectorAPI.get_available_collectors():
+        typer.echo(f"{c['type']}: {c['name']}")
+
+
+@app.command("collectors-current")
+def collectors_current() -> None:
+    """Show current collector."""
+    cur = InputCollectorAPI.get_current_collector()
+    typer.echo(f"{cur['type']}: {cur['name']}")
+
+
+@app.command("collectors-switch")
+def collectors_switch(
+    collector: str = typer.Option(..., "--type", "-t", help="collector type")
+) -> None:
+    """Switch to a different collector."""
+    InputCollectorAPI.switch_collector(collector)
+    typer.echo(f"Switched to {collector}")
+
+
+@app.command("collectors-scan")
+def collectors_scan() -> None:
+    """Scan for controllers."""
+    lst = InputCollectorAPI.scan_controllers()
+    typer.echo("Found controllers:")
+    for c in lst:
+        typer.echo(f"- {c['index']}: {c['name']}")
+
+
+@app.command("connect-controller")
+def connect_controller(
+    index: int = typer.Argument(..., help="controller index")
+) -> None:
+    """Connect to a specific controller."""
+    success = InputCollectorAPI.connect_controller(index)
+    typer.echo("Connected" if success else "Failed")
+
+
+#
+# Mouse tracking configuration
+#
+@app.command("set-mouse-tracking-mode")
+def set_mouse_tracking_mode(
+    mode: str = typer.Argument(..., help="joystick|delta|angle|axis"),
+    direction_only: bool = typer.Option(False, "--direction-only", "-d"),
+) -> None:
+    """Set mouse tracking mode."""
+    InputCollectorAPI.set_mouse_tracking_mode(mode, direction_only)
+    typer.echo(f"Mode set to {mode}, direction_only={direction_only}")
+
+
+@app.command("get-available-tracking-modes")
+def get_available_tracking_modes(
+    direction_only: bool = typer.Option(False, "--direction-only", "-d")
+) -> None:
+    """List valid tracking modes."""
+    modes = InputCollectorAPI.get_available_tracking_modes(direction_only)
+    typer.echo("Available modes: " + ", ".join(modes))
+
+
+@app.command("set-mouse-settings")
+def set_mouse_settings(
+    delta_smoothing: int = typer.Option(..., "--delta-smoothing", help="0–90"),
+    joystick_sensitivity: int = typer.Option(
+        ..., "--joystick-sensitivity", help="10–200"
+    ),
+    angle_grouping: int = typer.Option(..., "--angle-grouping", help="1–90"),
+) -> None:
+    """Configure mouse smoothing, sensitivity, grouping."""
+    InputCollectorAPI.set_mouse_settings(
+        delta_smoothing, joystick_sensitivity, angle_grouping
+    )
+    typer.echo("Mouse settings updated")
+
+
+@app.command("get-mouse-settings")
+def get_mouse_settings() -> None:
+    """Get current mouse settings."""
+    s = InputCollectorAPI.get_mouse_settings()
+    typer.echo(
+        f"Delta smoothing: {s['delta_smoothing']}, Joystick sensitivity: {s['joystick_sensitivity']}, Angle grouping: {s['angle_grouping']}"
+    )
+
+
+#
+# Key tracking management
+#
+@app.command("get-tracked-keys")
+def get_tracked_keys() -> None:
+    """List currently tracked keys/buttons."""
+    keys = InputCollectorAPI.get_tracked_keys()
+    typer.echo(", ".join(keys))
+
+
+@app.command("toggle-edit-mode")
+def toggle_edit_mode() -> None:
+    """Enable/disable edit mode."""
+    InputCollectorAPI.toggle_edit_mode()
+    typer.echo(f"Edit mode: {InputCollectorAPI.is_edit_mode()}")
+
+
+@app.command("is-edit-mode")
+def is_edit_mode() -> None:
+    """Check if edit mode is active."""
+    typer.echo(f"{InputCollectorAPI.is_edit_mode()}")
+
+
+@app.command("add-tracked-key")
+def add_tracked_key(key: str = typer.Argument(..., help="key identifier")) -> None:
+    """Add a key to tracking."""
+    InputCollectorAPI.add_tracked_key(key)
+    typer.echo(f"Added {key}")
+
+
+@app.command("remove-tracked-key")
+def remove_tracked_key(key: str = typer.Argument(..., help="key identifier")) -> None:
+    """Remove a key from tracking."""
+    InputCollectorAPI.remove_tracked_key(key)
+    typer.echo(f"Removed {key}")
+
+
+@app.command("toggle-button-tracking")
+def toggle_button_tracking(
+    button_id: str = typer.Argument(..., help="Button.*"),
+    track: bool = typer.Option(..., "--track/--no-track", help="enable or disable"),
+) -> None:
+    """Toggle mouse button tracking."""
+    InputCollectorAPI.toggle_button_tracking(button_id, track)
+    typer.echo(f"Button {button_id} tracking {'enabled' if track else 'disabled'}")
+
+
+#
+# UI control
+#
+@app.command("toggle-fullscreen")
+def toggle_fullscreen() -> None:
+    """Toggle fullscreen state."""
+    InputCollectorAPI.toggle_fullscreen()
+    typer.echo("Fullscreen toggled")
+
+
+@app.command("get-application-state")
+def get_application_state() -> None:
+    """Retrieve full application state."""
+    state = InputCollectorAPI.get_application_state()
+    typer.echo(state)

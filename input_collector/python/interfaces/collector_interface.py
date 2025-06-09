@@ -25,6 +25,7 @@ class InputData:
         mouse_x: X-coordinate of mouse position (optional)
         mouse_y: Y-coordinate of mouse position (optional)
         button_pressed: Mouse button that was pressed, e.g. 'Button.left' (optional)
+        button: Raw button name for internal use (optional)
         direction: Direction of movement or scroll ('X+', 'Y-', 'up', 'down', etc.)
         speed: Overall movement speed in pixels per second (optional)
         speed_x: Speed along X axis in pixels per second (optional)
@@ -43,6 +44,7 @@ class InputData:
     button_pressed: Optional[str] = (
         None  # 'Button.left', 'Button.right', 'Button.middle', etc.
     )
+    button: Optional[str] = None  # Raw button name for internal use
     direction: Optional[str] = (
         None  # For mouse movement: 'X+', 'X-', 'Y+', 'Y-', or combinations; For scroll: 'up', 'down'
     )

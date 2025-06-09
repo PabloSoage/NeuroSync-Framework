@@ -774,7 +774,7 @@ class KeyboardMouseCollector(AbstractInputCollector):
                 is_moving=self.mouse_state["is_moving"],
                 active_keys=active_keys,
             )
-            # expose the raw button name so releases can be discarded internally
+            # Set the raw button name for CLI compatibility
             event.button = button_str
             # Process event
             self._process_event(event)

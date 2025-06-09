@@ -124,21 +124,40 @@ exit                         # Exit the CLI shell
     # Common commands for controlling the application
     control_commands = """
 # Recording control
-control recording start      # Start recording
-control recording stop       # Stop recording
-control recording toggle     # Toggle recording state
-control recording status     # Check recording status
+control recording-start      # Start recording
+control recording-stop       # Stop recording
+control recording-toggle     # Toggle recording
+control recording-status     # Check recording status
 
-# Logging control
-control logging csv --action enable --filepath "data.csv"    # Enable CSV logging
-control logging json --action enable                        # Enable JSON logging
-control logging status                                      # Check logging status
+# Logging configuration
+control logging-json --action enable|disable [--filepath PATH]
+control logging-csv  --action enable|disable [--filepath PATH]
+control logging-status
 
 # Collector management
-control collectors list      # List available collectors
-control collectors current   # Show current collector
-control collectors switch --type keyboard_mouse    # Switch to keyboard & mouse
-control collectors scan      # Scan for controllers
+control collectors-list      # List available collectors
+control collectors-current   # Show current collector
+control collectors-switch    # Switch to another collector
+control collectors-scan      # Scan for controllers
+control connect-controller   # Connect to a PS4 controller
+
+# Mouse tracking configuration
+control set-mouse-tracking-mode <mode> [--direction-only]
+control get-available-tracking-modes [--direction-only]
+control set-mouse-settings --delta-smoothing VAL --joystick-sensitivity VAL --angle-grouping N
+control get-mouse-settings
+
+# Key tracking management
+control get-tracked-keys
+control toggle-edit-mode
+control is-edit-mode
+control add-tracked-key <key>
+control remove-tracked-key <key>
+control toggle-button-tracking <button_id> --track/--no-track
+
+# UI control
+control toggle-fullscreen
+control get-application-state
     """
 
     # Commands for monitoring
