@@ -1,8 +1,11 @@
 """
 Interfaces package for input collector.
 
-Provides the core interfaces used throughout the application to ensure
-proper abstraction, loose coupling and maintainability.
+Provides the core interfaces and data structures used throughout the application
+to ensure proper abstraction, loose coupling and maintainability. Contains
+abstract base classes for input collectors, visualizers, and UI components,
+along with the primary data structures for representing input events and
+managing communication between different layers of the application.
 """
 
 from .collector_interface import InputData, AbstractInputCollector
