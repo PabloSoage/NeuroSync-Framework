@@ -1,6 +1,6 @@
 # Input Collector - Arquitectura y Documentación Técnica
 
-## Resumen Ejecutivo
+## Resumen
 
 Input Collector es una aplicación integral diseñada para capturar, procesar, visualizar y registrar eventos de entrada en tiempo real desde múltiples dispositivos (teclado, ratón, controladores PS4). La aplicación implementa una arquitectura modular basada en eventos que soporta múltiples interfaces de usuario (GUI, CLI, Web API) y proporciona capacidades extensibles para diferentes tipos de colectores y modos de visualización.
 
