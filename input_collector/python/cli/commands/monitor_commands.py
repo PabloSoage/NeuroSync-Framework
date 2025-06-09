@@ -6,6 +6,8 @@ These commands allow monitoring input events in real-time.
 
 import time
 from typing import List, Any, Dict, Tuple
+import threading
+import sys
 
 import typer
 from rich import box
@@ -248,70 +250,76 @@ def monitor_events(
         help="Event types to monitor (all, key, mouse, button, controller)",
     ),
     count: int = typer.Option(
-        10, "--count", "-c", help="Maximum number of events to display per type"
+        10, "--count", "-c", help="(Ignorado) número máximo de eventos"
     ),
 ) -> None:
-    """Monitor input events in real-time."""
+    """Monitor input events en tiempo real, igual que el WebSocket."""
     if headless_mode:
         init_headless_mode()
 
-    # Update max events
-    global max_events
-    max_events = count
+    import json
+    from ...interaction_api_integration import get_interaction_api_integration
+    from ...core.event_system import EventType, subscribe, unsubscribe
 
-    # Register callback
-    callback_id = None
-    event_handlers: List[Tuple[EventType, Any]] = []
+    # 1) Preparamos el integrador y parcheamos broadcast para imprimir JSON
+    integration = get_interaction_api_integration()
+    original_broadcast = integration._broadcast_event
+    integration._broadcast_event = lambda payload: print(json.dumps(payload, default=str))
 
-    try:
-        # Clear previous events
-        for key in last_events:
-            last_events[key] = []
+    # 2) Nos suscribimos a todos los eventos del bus
+    handlers = []
+    for evnt in EventType:
+        handler = lambda data, evnt_type=evnt: integration._handle_core_event(evnt_type, data)
+        subscribe(evnt, handler)
+        handlers.append((evnt, handler))
 
-        # Register for events
-        if headless_mode:
-            # In headless mode, use the core event system
-            for event_type_enum in EventType:
-                handler = lambda data, et=event_type_enum: core_event_handler(et, data)
-                subscribe(event_type_enum, handler)
-                event_handlers.append((event_type_enum, handler))
+    # 3) Set up exit mechanism with just key detection
+    exit_event = threading.Event()
+
+    # Start background listener for ESC/Q with minimal CPU usage
+    def _key_listener():
+        if sys.platform == "win32":
+            import msvcrt
+            while not exit_event.is_set():
+                if msvcrt.kbhit():  # Check if key pressed without blocking
+                    ch = msvcrt.getch()
+                    if ch in (b"\x1b", b"q", b"Q"):  # ESC, q or Q
+                        exit_event.set()
+                        break
+                time.sleep(0.01)  # Small sleep to prevent CPU hogging
         else:
-            # In GUI mode, use the API callback mechanism
-            callback_id = InputDataAPI.register_event_callback(event_callback)
-
-        # Validate event types
-        valid_types = ["all", "key", "mouse", "button", "controller"]
-        for event_type in event_types:
-            if event_type not in valid_types:
-                console.print(
-                    f"[bold red]Invalid event type: {event_type}. Must be one of: {', '.join(valid_types)}[/bold red]"
-                )
-                raise typer.Exit(1)
-
-        console.print(
-            f"[green]Monitoring input events... Press [bold cyan]Ctrl+C[/bold cyan] to exit.[/green]"
-        )
-
-        # Start the live display
-        with Live(get_layout(event_types), refresh_per_second=10) as live:
+            import termios, tty, select
+            fd = sys.stdin.fileno()
+            old = termios.tcgetattr(fd)
             try:
-                while True:
-                    # Update the display
-                    live.update(get_layout(event_types))
-                    time.sleep(0.1)
-            except KeyboardInterrupt:
-                # Exit on Ctrl+C
-                pass
+                tty.setcbreak(fd)
+                while not exit_event.is_set():
+                    # Use select with a short timeout for non-blocking check
+                    dr, _, _ = select.select([sys.stdin], [], [], 0.1)
+                    if dr:
+                        ch = sys.stdin.read(1)
+                        if ch in ("\x1b", "q", "Q"):  # ESC, q or Q
+                            exit_event.set()
+                            break
+            finally:
+                # Restore terminal settings
+                termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
-    except Exception as e:
-        console.print(f"[bold red]Error monitoring events: {e}[/bold red]")
+    # Start key listener thread as daemon (will terminate when main thread exits)
+    listener_thread = threading.Thread(target=_key_listener, daemon=True)
+    listener_thread.start()
+
+    print("⏺️  Monitoring events… Press ESC or Q to stop.")
+    try:
+        # Wait for exit_event with minimal CPU usage
+        while not exit_event.is_set():
+            time.sleep(0.01)
+        print("\n🛑  Stopped monitoring.")
     finally:
-        # Clean up
-        if callback_id is not None:
-            InputDataAPI.unregister_event_callback(callback_id)
-
-        for event_type_enum, handler in event_handlers:
-            unsubscribe(event_type_enum, handler)
+        # Clean up subscriptions and restore original broadcast
+        for evnt, handler in handlers:
+            unsubscribe(evnt, handler)
+        integration._broadcast_event = original_broadcast
 
 
 @app.command("active-keys")
