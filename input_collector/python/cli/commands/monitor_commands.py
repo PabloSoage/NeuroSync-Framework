@@ -4,244 +4,21 @@ Monitoring commands for the CLI application.
 These commands allow monitoring input events in real-time.
 """
 
-import json
 import sys
 import threading
 import time
-from typing import List, Any, Dict, Tuple, Optional
-
+from typing import List
 import typer
-from rich import box
 from rich.console import Console
-from rich.layout import Layout
-from rich.table import Table
-from rich.text import Text
 from rich.panel import Panel
-from rich.columns import Columns
-from rich.style import Style
+from rich import box
 
 # Import shared config instead of from cli_app
 from ..cli_config import headless_mode, init_headless_mode
 from ...core.event_system import EventType, subscribe, unsubscribe
-from ...data_access_api import InputDataAPI
+from ...interaction_api_integration import get_interaction_api_integration
 
-console = Console()
 app = typer.Typer()
-
-# Store last events for different types
-last_events: Dict[str, List[Dict[str, Any]]] = {
-    "key": [],
-    "mouse": [],
-    "button": [],
-    "controller": [],
-    "all": [],
-}
-
-max_events = 10  # Default max events to keep
-
-
-def event_callback(event: Any) -> None:
-    """Callback for processing events."""
-    # Skip if event is None
-    if event is None:
-        return
-
-    # Convert event to dictionary if not already
-    if hasattr(event, "to_dict"):
-        event_dict = event.to_dict()
-    elif hasattr(event, "__dict__"):
-        event_dict = {k: v for k, v in vars(event).items() if not k.startswith("_")}
-    else:
-        event_dict = {"raw": str(event)}
-
-    # Always add to all events
-    last_events["all"].insert(0, event_dict)
-
-    # Add to specific event type list
-    event_type = event_dict.get("event_type", "")
-
-    if "key" in event_type:
-        last_events["key"].insert(0, event_dict)
-    elif "mouse_move" in event_type:
-        last_events["mouse"].insert(0, event_dict)
-    elif "mouse_click" in event_type or "scroll" in event_type:
-        last_events["button"].insert(0, event_dict)
-    elif "button" in event_type or "axis" in event_type:
-        last_events["controller"].insert(0, event_dict)
-
-    # Limit the number of events
-    for key in last_events:
-        if len(last_events[key]) > max_events:
-            last_events[key] = last_events[key][:max_events]
-
-
-def get_layout(show_types: List[str]) -> Layout:
-    """Create the layout for monitoring."""
-    layout = Layout()
-
-    # Create tables for different event types
-    tables = {}
-
-    if "all" in show_types:
-        tables["all"] = create_event_table("All Events", last_events["all"])
-
-    if "key" in show_types:
-        tables["key"] = create_event_table("Keyboard Events", last_events["key"])
-
-    if "mouse" in show_types:
-        tables["mouse"] = create_event_table(
-            "Mouse Movement Events", last_events["mouse"]
-        )
-
-    if "button" in show_types:
-        tables["button"] = create_event_table(
-            "Mouse Button Events", last_events["button"]
-        )
-
-    if "controller" in show_types:
-        tables["controller"] = create_event_table(
-            "Controller Events", last_events["controller"]
-        )
-
-    # Configure layout based on the number of tables
-    if len(tables) == 1:
-        # Just show the one table
-        layout.update(list(tables.values())[0])
-    elif len(tables) == 2:
-        # Two tables side by side
-        layout.split_row(
-            Layout(name="left", ratio=1),
-            Layout(name="right", ratio=1),
-        )
-        keys = list(tables.keys())
-        layout["left"].update(tables[keys[0]])
-        layout["right"].update(tables[keys[1]])
-    else:
-        # More complex layout for 3+ tables
-        layout.split(
-            Layout(name="header", size=3),
-            Layout(name="main", ratio=1),
-        )
-
-        # Footer with exit instructions
-        layout["header"].update(
-            Panel(
-                "Press [bold red]Ctrl+C[/bold red] to exit monitoring",
-                style="white on blue",
-            )
-        )
-
-        # Arrange the main content
-        if len(tables) <= 4:
-            # Create a grid layout
-            layout["main"].split_grid(n_rows=2, n_columns=2)
-
-            # Add tables to grid
-            grid_positions: List[Tuple[str, str]] = [("0-0", "0-1"), ("1-0", "1-1")]
-            for i, (key, table) in enumerate(tables.items()):
-                row, col = divmod(i, 2)
-                layout[f"main-{row}-{col}"].update(table)
-        else:
-            # Just show the first 4 tables
-            layout["main"].split_row(
-                Layout(name="left_column", ratio=1),
-                Layout(name="right_column", ratio=1),
-            )
-
-            layout["left_column"].split_column(
-                Layout(name="top_left", ratio=1),
-                Layout(name="bottom_left", ratio=1),
-            )
-
-            layout["right_column"].split_column(
-                Layout(name="top_right", ratio=1),
-                Layout(name="bottom_right", ratio=1),
-            )
-
-            # Add up to 4 tables
-            layout_positions: List[str] = [
-                "top_left",
-                "top_right",
-                "bottom_left",
-                "bottom_right",
-            ]
-            for i, (key, table) in enumerate(list(tables.items())[:4]):
-                layout[layout_positions[i]].update(table)
-
-    return layout
-
-
-def create_event_table(title: str, events: List[Dict[str, Any]]) -> Table:
-    """Create a table for displaying events."""
-    table = Table(title=title, box=box.ROUNDED)
-
-    # Add columns
-    table.add_column("Time", style="cyan", width=10)
-    table.add_column("Type", style="green", width=15)
-    table.add_column("Details", style="yellow")
-
-    # Add rows for events
-    for event in events:
-        # Format time as HH:MM:SS.mmm
-        timestamp = event.get("timestamp", time.time())
-        time_str = time.strftime("%H:%M:%S", time.localtime(timestamp))
-        time_str += f".{int((timestamp % 1) * 1000):03d}"
-
-        # Get event type
-        event_type = event.get("event_type", "unknown")
-
-        # Build details string based on event type
-        details = []
-
-        if "key_press" in event_type and "key" in event:
-            details.append(f"Key: {event['key']}")
-            if "active_keys" in event and event["active_keys"]:
-                details.append(f"Active: {', '.join(event['active_keys'])}")
-
-        elif "mouse_move" in event_type:
-            if "rel_x" in event and "rel_y" in event:
-                details.append(
-                    f"X: {event.get('rel_x', 0):.2f}, Y: {event.get('rel_y', 0):.2f}"
-                )
-            if "direction" in event:
-                details.append(f"Dir: {event.get('direction', 'none')}")
-            if "mouse_tracking_mode" in event:
-                details.append(f"Mode: {event.get('mouse_tracking_mode', 'unknown')}")
-
-        elif "mouse_click" in event_type:
-            details.append(f"Button: {event.get('button', 'unknown')}")
-            details.append(f"Pressed: {event.get('button_pressed', False)}")
-
-        elif "mouse_scroll" in event_type:
-            details.append(f"Direction: {event.get('direction', 'unknown')}")
-
-        elif "button_press" in event_type or "button_release" in event_type:
-            details.append(f"Button: {event.get('key', 'unknown')}")
-
-        elif "axis_motion" in event_type:
-            control = event.get("key", "unknown")
-            details.append(f"Control: {control}")
-            if "rel_x" in event:
-                details.append(f"X: {event.get('rel_x', 0):.2f}")
-            if "rel_y" in event:
-                details.append(f"Y: {event.get('rel_y', 0):.2f}")
-
-        # Generic fallback - show a few important keys
-        if not details:
-            for key in ["key", "button", "value", "direction", "active_keys"]:
-                if key in event and event[key]:
-                    details.append(f"{key.capitalize()}: {event[key]}")
-
-        # Add the row
-        table.add_row(time_str, event_type, ", ".join(details))
-
-    return table
-
-
-def core_event_handler(event_type: EventType, data: Any) -> None:
-    """Handle events from the core event system."""
-    # Process the event
-    event_callback(data)
 
 
 @app.command("events")
@@ -260,243 +37,98 @@ def monitor_events(
     if headless_mode:
         init_headless_mode()
 
-    import json
-    from ...interaction_api_integration import get_interaction_api_integration
-    from ...core.event_system import EventType, subscribe, unsubscribe
-
-    # Crear una consola rich para formateo
     console = Console()
-    
-    # Header informativo
-    console.print(Panel(
-        "[bold cyan]Input Collector Event Monitor[/bold cyan]\n"
-        "[yellow]Displaying events in real-time. Press [bold red]ESC[/bold red] or [bold red]Q[/bold red] to stop.[/yellow]",
-        box=box.ROUNDED,
-        expand=False
-    ))
-    
-    # Flag para control de salida
-    exit_flag = threading.Event()
-    
-    # 1) Preparar el integrador y reemplazar _broadcast_event con nuestra función de formato
+    console.print(
+        Panel(
+            "[bold cyan]Input Collector Event Monitor[/bold cyan]\n"
+            "[yellow]Press ESC or Q to stop.[/yellow]",
+            box=box.ROUNDED,
+            expand=False,
+        )
+    )
+
+    # 1) Interceptamos el broadcast original para formatear y mostrar cada evento
     integration = get_interaction_api_integration()
     original_broadcast = integration._broadcast_event
 
-    # Función personalizada de formateo que reemplaza a _broadcast_event
-    def format_and_print_event(payload):
+    def format_and_print(payload: dict) -> None:
         try:
-            # Obtener campos comunes
-            timestamp = payload.get("timestamp", time.time())
-            time_str = time.strftime("%H:%M:%S", time.localtime(timestamp))
-            time_str += f".{int((timestamp % 1) * 1000):03d}"
-            
-            event_type = payload.get("event_type", payload.get("type", "UNKNOWN"))
-            
-            # Detectar eventos del sistema
-            is_system_event = event_type in ["STATE_CHANGE", "RECORDING_STARTED", "RECORDING_STOPPED", "TRACKED_KEYS_CHANGED"]
-            
-            if is_system_event:
-                # Formatear eventos del sistema con estilo distinto
-                if event_type == "RECORDING_STARTED":
-                    panel = Panel(
-                        f"[bold green]RECORDING STARTED[/bold green]", 
-                        border_style="green", 
-                        title=time_str, 
-                        title_align="left"
-                    )
-                    console.print(panel)
-                
-                elif event_type == "RECORDING_STOPPED":
-                    panel = Panel(
-                        f"[bold red]RECORDING STOPPED[/bold red]", 
-                        border_style="red", 
-                        title=time_str, 
-                        title_align="left"
-                    )
-                    console.print(panel)
-                    
-                elif event_type == "STATE_CHANGE":
-                    data = payload.get("data", {})
-                    if isinstance(data, dict):
-                        content = []
-                        for k, v in data.items():
-                            content.append(f"{k}: [cyan]{v}[/cyan]")
-                        panel = Panel(
-                            "\n".join(content), 
-                            border_style="blue", 
-                            title=f"{time_str} STATE_CHANGE", 
-                            title_align="left"
-                        )
-                        console.print(panel)
-                    else:
-                        console.print(f"[blue]{time_str} STATE_CHANGE:[/blue] {data}")
-                
-                elif event_type == "TRACKED_KEYS_CHANGED":
-                    keys = payload.get("data", [])
-                    if isinstance(keys, list):
-                        key_text = ", ".join(keys[:15])
-                        if len(keys) > 15:
-                            key_text += f" +{len(keys) - 15} more"
-                        console.print(f"[yellow]{time_str} KEYS CHANGED:[/yellow] {key_text}")
-                    else:
-                        console.print(f"[yellow]{time_str} KEYS CHANGED:[/yellow] {keys}")
-            else:
-                # Formatear eventos normales (mouse/teclado/controlador)
-                
-                # 1. Campos de teclado
-                keys_info = ""
-                active_keys = payload.get("keys", [])
-                if "key" in payload and isinstance(payload["key"], dict) and "pressed" in payload["key"]:
-                    key_pressed = payload["key"]["pressed"]
-                    keys_info = f"[bold green]{key_pressed}[/bold green]"
-                    if active_keys:
-                        other_keys = [k for k in active_keys if k != key_pressed]
-                        if other_keys:
-                            keys_info += f" + {', '.join(other_keys)}"
-                elif active_keys:
-                    keys_info = ", ".join(active_keys)
-                
-                # 2. Movimiento del ratón
-                mouse_info = ""
-                if "movement" in payload and isinstance(payload["movement"], dict):
-                    movement = payload["movement"]
-                    status = movement.get("status", "")
-                    
-                    if "direction" in movement:
-                        mouse_info = f"Direction: [cyan]{movement['direction']}[/cyan]"
-                    elif status:
-                        # Añadir valores de dirección si están presentes
-                        directions = []
-                        if "north" in movement and movement["north"] > 0.1:
-                            directions.append(f"N:{movement['north']:.2f}")
-                        if "south" in movement and movement["south"] > 0.1:
-                            directions.append(f"S:{movement['south']:.2f}")
-                        if "east" in movement and movement["east"] > 0.1:
-                            directions.append(f"E:{movement['east']:.2f}")
-                        if "west" in movement and movement["west"] > 0.1:
-                            directions.append(f"W:{movement['west']:.2f}")
-                        
-                        if directions:
-                            mouse_info = f"[bold]{status}[/bold] ({' '.join(directions)})"
-                        else:
-                            mouse_info = f"{status}"
-                    elif "rel_x" in movement and "rel_y" in movement:
-                        mouse_info = f"X:[cyan]{movement['rel_x']:.2f}[/cyan] Y:[cyan]{movement['rel_y']:.2f}[/cyan]"
-                
-                # 3. Información de botones
-                button_info = ""
-                if "click" in payload and "buttons" in payload["click"]:
-                    buttons = payload["click"]["buttons"]
-                    if buttons:
-                        # Limpiar nombres de botones (quitar Button. prefix)
-                        clean_buttons = []
-                        for btn in buttons:
-                            if isinstance(btn, str) and btn.startswith("Button."):
-                                clean_buttons.append(btn[7:])
-                            else:
-                                clean_buttons.append(str(btn))
-                        button_info = f"[magenta]{', '.join(clean_buttons)}[/magenta]"
-                
-                # 4. Información de scroll
-                scroll_info = ""
-                if "scroll" in payload and isinstance(payload["scroll"], dict) and "direction" in payload["scroll"]:
-                    scroll_info = f"Scroll: [cyan]{payload['scroll']['direction']}[/cyan]"
-                
-                # PS4 controller info
-                ps4_info = ""
-                if "ps4_state" in payload:
-                    ps4state = payload.get("ps4_state", {})
-                    active_btns = ps4state.get("active_buttons", [])
-                    if active_btns:
-                        ps4_info = f"Buttons: [cyan]{', '.join(active_btns)}[/cyan]"
-                
-                # Motion event info
-                if "motion_event" in payload:
-                    motion = payload.get("motion_event", {})
-                    control = motion.get("control_name", "unknown")
-                    if "x" in motion and "y" in motion:
-                        ps4_info = f"{control}: X:[cyan]{motion['x']:.2f}[/cyan] Y:[cyan]{motion['y']:.2f}[/cyan]"
-                    elif "value" in motion:
-                        ps4_info = f"{control}: [cyan]{motion['value']:.2f}[/cyan]"
-                
-                # Crear una línea con las partes que tenemos información
-                parts = []
-                parts.append(f"[dim]{time_str}[/dim]")
-                parts.append(f"[green]{event_type}[/green]")
-                
-                if keys_info:
-                    parts.append(keys_info)
-                if mouse_info:
-                    parts.append(mouse_info)
-                if button_info:
-                    parts.append(button_info)
-                if scroll_info:
-                    parts.append(scroll_info)
-                if ps4_info:
-                    parts.append(ps4_info)
-                
-                # Imprimir la línea completa
-                console.print(" | ".join(parts))
-        
+            # Timestamp
+            ts = payload.get("timestamp", time.time())
+            tstr = time.strftime("%H:%M:%S", time.localtime(ts)) + f".{int((ts%1)*1000):03d}"
+
+            # Tipo de evento
+            et = payload.get("event_type", payload.get("type", "UNKNOWN"))
+
+            # Teclas
+            keys = payload.get("keys", [])
+            keys_str = f"[yellow]Keys:[/yellow] {','.join(keys)}" if keys else ""
+
+            # Movimiento del ratón
+            mv = payload.get("movement", {})
+            mv_status = mv.get("status", "")
+            mv_str = f"[cyan]Mouse:[/cyan] {mv_status}" if mv_status else ""
+
+            # Botones
+            btns = payload.get("click", {}).get("buttons", [])
+            btns_str = f"[magenta]Buttons:[/magenta] {','.join(btns)}" if btns else ""
+
+            # Montar línea
+            parts = [f"[dim]{tstr}[/dim]", f"[green]{et}[/green]"]
+            for p in (keys_str, mv_str, btns_str):
+                if p:
+                    parts.append(p)
+            console.print(" | ".join(parts))
         except Exception as e:
-            # Si hay algún error en el formateo, mostrar el evento en JSON plano
-            console.print(f"[bold red]Error formateando evento:[/bold red] {str(e)}")
-            console.print(json.dumps(payload, default=str, indent=2))
+            console.print(f"[red]Format error:[/red] {e}")
+            console.print(payload)
 
-    # Reemplazar la función broadcast con nuestra función de formateo
-    integration._broadcast_event = format_and_print_event
-    
-    # 2) Suscribirnos a todos los eventos del bus central
+    integration._broadcast_event = format_and_print
+
+    # 2) Suscribirnos a todos los eventos
     handlers = []
-    for evnt in EventType:
-        handler = lambda data, evnt_type=evnt: integration._handle_core_event(evnt_type, data)
-        subscribe(evnt, handler)
-        handlers.append((evnt, handler))
+    for ev in EventType:
+        h = lambda data, et=ev: integration._handle_core_event(et, data)
+        subscribe(ev, h)
+        handlers.append((ev, h))
 
-    # 3) Configurar mecanismo de salida con detección de teclas
+    # 3) Listener de ESC/Q para salir
+    stop = threading.Event()
+
     def key_listener():
         if sys.platform == "win32":
             import msvcrt
-            while not exit_flag.is_set():
-                if msvcrt.kbhit():
-                    ch = msvcrt.getch()
-                    if ch in (b"\x1b", b"q", b"Q"):  # ESC, q o Q
-                        exit_flag.set()
-                        break
+            while not stop.is_set():
+                if msvcrt.kbhit() and msvcrt.getch() in (b"\x1b", b"q", b"Q"):
+                    stop.set()
                 time.sleep(0.01)
         else:
-            import termios, tty, select
+            import tty, termios, select
             fd = sys.stdin.fileno()
             old = termios.tcgetattr(fd)
             try:
                 tty.setcbreak(fd)
-                while not exit_flag.is_set():
-                    dr, _, _ = select.select([sys.stdin], [], [], 0.1)
-                    if dr:
-                        ch = sys.stdin.read(1)
-                        if ch in ("\x1b", "q", "Q"):  # ESC, q o Q
-                            exit_flag.set()
-                            break
+                while not stop.is_set():
+                    dr,_,_ = select.select([sys.stdin],[],[],0.1)
+                    if dr and sys.stdin.read(1) in ("\x1b","q","Q"):
+                        stop.set()
             finally:
                 termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
-    # Iniciar thread de escucha de teclas
-    listener_thread = threading.Thread(target=key_listener, daemon=True)
-    listener_thread.start()
+    threading.Thread(target=key_listener, daemon=True).start()
 
+    # 4) Esperar hasta tecla de salida
     try:
-        # Bucle principal - esperar a que el usuario pulse ESC o Q
-        while not exit_flag.is_set():
+        while not stop.is_set():
             time.sleep(0.01)
     except KeyboardInterrupt:
-        exit_flag.set()
+        pass
     finally:
-        # Limpiar recursos
-        for evnt, handler in handlers:
-            unsubscribe(evnt, handler)
-        # Restaurar broadcast original
+        # Limpieza
+        for ev,h in handlers:
+            unsubscribe(ev, h)
         integration._broadcast_event = original_broadcast
-        console.print("[bold red]🛑 Stopped monitoring.[/bold red]")
+        console.print("[bold red]🛑 Stopped monitoring[/bold red]")
 
 
 @app.command("active-keys")
