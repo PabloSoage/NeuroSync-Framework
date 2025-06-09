@@ -4,18 +4,21 @@ Monitoring commands for the CLI application.
 These commands allow monitoring input events in real-time.
 """
 
-import time
-from typing import List, Any, Dict, Tuple
-import threading
+import json
 import sys
+import threading
+import time
+from typing import List, Any, Dict, Tuple, Optional
 
 import typer
 from rich import box
 from rich.console import Console
 from rich.layout import Layout
-from rich.live import Live
-from rich.panel import Panel
 from rich.table import Table
+from rich.text import Text
+from rich.panel import Panel
+from rich.columns import Columns
+from rich.style import Style
 
 # Import shared config instead of from cli_app
 from ..cli_config import headless_mode, init_headless_mode
@@ -253,7 +256,7 @@ def monitor_events(
         10, "--count", "-c", help="(Ignorado) número máximo de eventos"
     ),
 ) -> None:
-    """Monitor input events en tiempo real, igual que el WebSocket."""
+    """Monitor input events en tiempo real, con formato elegante."""
     if headless_mode:
         init_headless_mode()
 
@@ -261,65 +264,239 @@ def monitor_events(
     from ...interaction_api_integration import get_interaction_api_integration
     from ...core.event_system import EventType, subscribe, unsubscribe
 
-    # 1) Preparamos el integrador y parcheamos broadcast para imprimir JSON
+    # Crear una consola rich para formateo
+    console = Console()
+    
+    # Header informativo
+    console.print(Panel(
+        "[bold cyan]Input Collector Event Monitor[/bold cyan]\n"
+        "[yellow]Displaying events in real-time. Press [bold red]ESC[/bold red] or [bold red]Q[/bold red] to stop.[/yellow]",
+        box=box.ROUNDED,
+        expand=False
+    ))
+    
+    # Flag para control de salida
+    exit_flag = threading.Event()
+    
+    # 1) Preparar el integrador y reemplazar _broadcast_event con nuestra función de formato
     integration = get_interaction_api_integration()
     original_broadcast = integration._broadcast_event
-    integration._broadcast_event = lambda payload: print(json.dumps(payload, default=str))
 
-    # 2) Nos suscribimos a todos los eventos del bus
+    # Función personalizada de formateo que reemplaza a _broadcast_event
+    def format_and_print_event(payload):
+        try:
+            # Obtener campos comunes
+            timestamp = payload.get("timestamp", time.time())
+            time_str = time.strftime("%H:%M:%S", time.localtime(timestamp))
+            time_str += f".{int((timestamp % 1) * 1000):03d}"
+            
+            event_type = payload.get("event_type", payload.get("type", "UNKNOWN"))
+            
+            # Detectar eventos del sistema
+            is_system_event = event_type in ["STATE_CHANGE", "RECORDING_STARTED", "RECORDING_STOPPED", "TRACKED_KEYS_CHANGED"]
+            
+            if is_system_event:
+                # Formatear eventos del sistema con estilo distinto
+                if event_type == "RECORDING_STARTED":
+                    panel = Panel(
+                        f"[bold green]RECORDING STARTED[/bold green]", 
+                        border_style="green", 
+                        title=time_str, 
+                        title_align="left"
+                    )
+                    console.print(panel)
+                
+                elif event_type == "RECORDING_STOPPED":
+                    panel = Panel(
+                        f"[bold red]RECORDING STOPPED[/bold red]", 
+                        border_style="red", 
+                        title=time_str, 
+                        title_align="left"
+                    )
+                    console.print(panel)
+                    
+                elif event_type == "STATE_CHANGE":
+                    data = payload.get("data", {})
+                    if isinstance(data, dict):
+                        content = []
+                        for k, v in data.items():
+                            content.append(f"{k}: [cyan]{v}[/cyan]")
+                        panel = Panel(
+                            "\n".join(content), 
+                            border_style="blue", 
+                            title=f"{time_str} STATE_CHANGE", 
+                            title_align="left"
+                        )
+                        console.print(panel)
+                    else:
+                        console.print(f"[blue]{time_str} STATE_CHANGE:[/blue] {data}")
+                
+                elif event_type == "TRACKED_KEYS_CHANGED":
+                    keys = payload.get("data", [])
+                    if isinstance(keys, list):
+                        key_text = ", ".join(keys[:15])
+                        if len(keys) > 15:
+                            key_text += f" +{len(keys) - 15} more"
+                        console.print(f"[yellow]{time_str} KEYS CHANGED:[/yellow] {key_text}")
+                    else:
+                        console.print(f"[yellow]{time_str} KEYS CHANGED:[/yellow] {keys}")
+            else:
+                # Formatear eventos normales (mouse/teclado/controlador)
+                
+                # 1. Campos de teclado
+                keys_info = ""
+                active_keys = payload.get("keys", [])
+                if "key" in payload and isinstance(payload["key"], dict) and "pressed" in payload["key"]:
+                    key_pressed = payload["key"]["pressed"]
+                    keys_info = f"[bold green]{key_pressed}[/bold green]"
+                    if active_keys:
+                        other_keys = [k for k in active_keys if k != key_pressed]
+                        if other_keys:
+                            keys_info += f" + {', '.join(other_keys)}"
+                elif active_keys:
+                    keys_info = ", ".join(active_keys)
+                
+                # 2. Movimiento del ratón
+                mouse_info = ""
+                if "movement" in payload and isinstance(payload["movement"], dict):
+                    movement = payload["movement"]
+                    status = movement.get("status", "")
+                    
+                    if "direction" in movement:
+                        mouse_info = f"Direction: [cyan]{movement['direction']}[/cyan]"
+                    elif status:
+                        # Añadir valores de dirección si están presentes
+                        directions = []
+                        if "north" in movement and movement["north"] > 0.1:
+                            directions.append(f"N:{movement['north']:.2f}")
+                        if "south" in movement and movement["south"] > 0.1:
+                            directions.append(f"S:{movement['south']:.2f}")
+                        if "east" in movement and movement["east"] > 0.1:
+                            directions.append(f"E:{movement['east']:.2f}")
+                        if "west" in movement and movement["west"] > 0.1:
+                            directions.append(f"W:{movement['west']:.2f}")
+                        
+                        if directions:
+                            mouse_info = f"[bold]{status}[/bold] ({' '.join(directions)})"
+                        else:
+                            mouse_info = f"{status}"
+                    elif "rel_x" in movement and "rel_y" in movement:
+                        mouse_info = f"X:[cyan]{movement['rel_x']:.2f}[/cyan] Y:[cyan]{movement['rel_y']:.2f}[/cyan]"
+                
+                # 3. Información de botones
+                button_info = ""
+                if "click" in payload and "buttons" in payload["click"]:
+                    buttons = payload["click"]["buttons"]
+                    if buttons:
+                        # Limpiar nombres de botones (quitar Button. prefix)
+                        clean_buttons = []
+                        for btn in buttons:
+                            if isinstance(btn, str) and btn.startswith("Button."):
+                                clean_buttons.append(btn[7:])
+                            else:
+                                clean_buttons.append(str(btn))
+                        button_info = f"[magenta]{', '.join(clean_buttons)}[/magenta]"
+                
+                # 4. Información de scroll
+                scroll_info = ""
+                if "scroll" in payload and isinstance(payload["scroll"], dict) and "direction" in payload["scroll"]:
+                    scroll_info = f"Scroll: [cyan]{payload['scroll']['direction']}[/cyan]"
+                
+                # PS4 controller info
+                ps4_info = ""
+                if "ps4_state" in payload:
+                    ps4state = payload.get("ps4_state", {})
+                    active_btns = ps4state.get("active_buttons", [])
+                    if active_btns:
+                        ps4_info = f"Buttons: [cyan]{', '.join(active_btns)}[/cyan]"
+                
+                # Motion event info
+                if "motion_event" in payload:
+                    motion = payload.get("motion_event", {})
+                    control = motion.get("control_name", "unknown")
+                    if "x" in motion and "y" in motion:
+                        ps4_info = f"{control}: X:[cyan]{motion['x']:.2f}[/cyan] Y:[cyan]{motion['y']:.2f}[/cyan]"
+                    elif "value" in motion:
+                        ps4_info = f"{control}: [cyan]{motion['value']:.2f}[/cyan]"
+                
+                # Crear una línea con las partes que tenemos información
+                parts = []
+                parts.append(f"[dim]{time_str}[/dim]")
+                parts.append(f"[green]{event_type}[/green]")
+                
+                if keys_info:
+                    parts.append(keys_info)
+                if mouse_info:
+                    parts.append(mouse_info)
+                if button_info:
+                    parts.append(button_info)
+                if scroll_info:
+                    parts.append(scroll_info)
+                if ps4_info:
+                    parts.append(ps4_info)
+                
+                # Imprimir la línea completa
+                console.print(" | ".join(parts))
+        
+        except Exception as e:
+            # Si hay algún error en el formateo, mostrar el evento en JSON plano
+            console.print(f"[bold red]Error formateando evento:[/bold red] {str(e)}")
+            console.print(json.dumps(payload, default=str, indent=2))
+
+    # Reemplazar la función broadcast con nuestra función de formateo
+    integration._broadcast_event = format_and_print_event
+    
+    # 2) Suscribirnos a todos los eventos del bus central
     handlers = []
     for evnt in EventType:
         handler = lambda data, evnt_type=evnt: integration._handle_core_event(evnt_type, data)
         subscribe(evnt, handler)
         handlers.append((evnt, handler))
 
-    # 3) Set up exit mechanism with just key detection
-    exit_event = threading.Event()
-
-    # Start background listener for ESC/Q with minimal CPU usage
-    def _key_listener():
+    # 3) Configurar mecanismo de salida con detección de teclas
+    def key_listener():
         if sys.platform == "win32":
             import msvcrt
-            while not exit_event.is_set():
-                if msvcrt.kbhit():  # Check if key pressed without blocking
+            while not exit_flag.is_set():
+                if msvcrt.kbhit():
                     ch = msvcrt.getch()
-                    if ch in (b"\x1b", b"q", b"Q"):  # ESC, q or Q
-                        exit_event.set()
+                    if ch in (b"\x1b", b"q", b"Q"):  # ESC, q o Q
+                        exit_flag.set()
                         break
-                time.sleep(0.01)  # Small sleep to prevent CPU hogging
+                time.sleep(0.01)
         else:
             import termios, tty, select
             fd = sys.stdin.fileno()
             old = termios.tcgetattr(fd)
             try:
                 tty.setcbreak(fd)
-                while not exit_event.is_set():
-                    # Use select with a short timeout for non-blocking check
+                while not exit_flag.is_set():
                     dr, _, _ = select.select([sys.stdin], [], [], 0.1)
                     if dr:
                         ch = sys.stdin.read(1)
-                        if ch in ("\x1b", "q", "Q"):  # ESC, q or Q
-                            exit_event.set()
+                        if ch in ("\x1b", "q", "Q"):  # ESC, q o Q
+                            exit_flag.set()
                             break
             finally:
-                # Restore terminal settings
                 termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
-    # Start key listener thread as daemon (will terminate when main thread exits)
-    listener_thread = threading.Thread(target=_key_listener, daemon=True)
+    # Iniciar thread de escucha de teclas
+    listener_thread = threading.Thread(target=key_listener, daemon=True)
     listener_thread.start()
 
-    print("⏺️  Monitoring events… Press ESC or Q to stop.")
     try:
-        # Wait for exit_event with minimal CPU usage
-        while not exit_event.is_set():
+        # Bucle principal - esperar a que el usuario pulse ESC o Q
+        while not exit_flag.is_set():
             time.sleep(0.01)
-        print("\n🛑  Stopped monitoring.")
+    except KeyboardInterrupt:
+        exit_flag.set()
     finally:
-        # Clean up subscriptions and restore original broadcast
+        # Limpiar recursos
         for evnt, handler in handlers:
             unsubscribe(evnt, handler)
+        # Restaurar broadcast original
         integration._broadcast_event = original_broadcast
+        console.print("[bold red]🛑 Stopped monitoring.[/bold red]")
 
 
 @app.command("active-keys")
