@@ -62,16 +62,16 @@ class PS4ControllerCollector(AbstractInputCollector):
         # Trigger values
         self.trigger_values: Dict[str, float] = {"left": 0, "right": 0}
 
-        # Threading for polling
-        self.polling_thread: Optional[threading.Thread] = None
-        self.polling_stop_event: threading.Event = threading.Event()
+        # Previous values to track threshold crossings
+        self.previous_trigger_values = {"left": 0, "right": 0}
+        self.previous_stick_positions = {"left": (0, 0), "right": (0, 0)}
+
+        # Threading for event processing
+        self.event_thread: Optional[threading.Thread] = None
+        self.event_stop_event: threading.Event = threading.Event()
         
         # Thread safety
         self.event_lock: threading.Lock = threading.Lock()
-
-        # Update rate limit
-        self.last_update_time: float = 0
-        self.update_interval = 1 / 60  # 60 Hz update rate
 
         # Max events and tracked keys
         self.max_events = 50
@@ -110,11 +110,17 @@ class PS4ControllerCollector(AbstractInputCollector):
                 sdl2.SDL_INIT_JOYSTICK
                 | sdl2.SDL_INIT_GAMECONTROLLER
                 | sdl2.SDL_INIT_HAPTIC
+                | sdl2.SDL_INIT_EVENTS
             )
             if result != 0:
                 error = sdl2.SDL_GetError().decode()
                 print(f"Error initializing SDL2: {error}")
                 return False
+            
+            # Enable controller events
+            sdl2.SDL_GameControllerEventState(sdl2.SDL_ENABLE)
+            sdl2.SDL_JoystickEventState(sdl2.SDL_ENABLE)
+            
             return True
         except Exception as e:
             print(f"Exception initializing SDL2: {e}")
@@ -135,11 +141,11 @@ class PS4ControllerCollector(AbstractInputCollector):
         if not self.controller:
             self.connect_to_first_available()
 
-        # Start polling thread if not started
-        if not self.polling_thread or not self.polling_thread.is_alive():
-            self.polling_stop_event.clear()
-            self.polling_thread = threading.Thread(target=self._polling_loop, daemon=True)
-            self.polling_thread.start()
+        # Start event processing thread if not started
+        if not self.event_thread or not self.event_thread.is_alive():
+            self.event_stop_event.clear()
+            self.event_thread = threading.Thread(target=self._event_loop, daemon=True)
+            self.event_thread.start()
 
         print("PS4 controller capture started")
 
@@ -154,306 +160,249 @@ class PS4ControllerCollector(AbstractInputCollector):
 
         self.is_capturing = False
 
-        # Stop polling thread
-        if self.polling_thread and self.polling_thread.is_alive():
-            self.polling_stop_event.set()
+        # Stop event thread
+        if self.event_thread and self.event_thread.is_alive():
+            self.event_stop_event.set()
             # Give the thread a moment to stop gracefully
-            self.polling_thread.join(timeout=1.0)
+            self.event_thread.join(timeout=1.0)
 
         print("PS4 controller capture stopped")
 
-    def _polling_loop(self) -> None:
-        """Main polling loop that runs in a separate thread."""
-        while not self.polling_stop_event.is_set() and self.is_capturing:
+    def _event_loop(self) -> None:
+        """Main event loop that processes SDL2 events."""
+        while not self.event_stop_event.is_set() and self.is_capturing:
             try:
-                self.poll_events()
-                # Sleep for the update interval (16ms for ~60fps)
-                time.sleep(self.update_interval)
+                # Process SDL events
+                event = sdl2.SDL_Event()
+                
+                # Wait for events with timeout
+                if sdl2.SDL_WaitEventTimeout(event, 16):  # 16ms timeout (~60Hz)
+                    self._process_sdl_event(event)
+                else:
+                    # Timeout occurred, check for controller disconnection
+                    if self.controller and not sdl2.SDL_GameControllerGetAttached(self.controller):
+                        self._on_controller_disconnected()
+                    elif not self.controller:
+                        # Try to reconnect if no controller
+                        self.connect_to_first_available()
+                        
             except Exception as e:
-                print(f"Error in polling loop: {e}")
+                print(f"Error in event loop: {e}")
                 # Brief pause before continuing to avoid tight error loops
                 time.sleep(0.1)
 
-    def poll_events(self) -> None:
-        """Poll for controller events and update state."""
-        # Skip if not capturing
-        if not self.is_capturing:
-            return
+    def _process_sdl_event(self, event: sdl2.SDL_Event) -> None:
+        """Process a single SDL2 event."""
+        if event.type == sdl2.SDL_CONTROLLERBUTTONDOWN:
+            self._handle_button_event(event.cbutton, True)
+        elif event.type == sdl2.SDL_CONTROLLERBUTTONUP:
+            self._handle_button_event(event.cbutton, False)
+        elif event.type == sdl2.SDL_CONTROLLERAXISMOTION:
+            self._handle_axis_event(event.caxis)
+        elif event.type == sdl2.SDL_CONTROLLERDEVICEADDED:
+            print(f"Controller device added: {event.cdevice.which}")
+            if not self.controller:
+                self.connect_to_controller(event.cdevice.which)
+        elif event.type == sdl2.SDL_CONTROLLERDEVICEREMOVED:
+            print(f"Controller device removed: {event.cdevice.which}")
+            if self.controller and event.cdevice.which == self.controller_index:
+                self._on_controller_disconnected()
+        elif event.type == sdl2.SDL_JOYBUTTONDOWN:
+            # Handle touchpad and other special buttons
+            self._handle_joystick_button_event(event.jbutton, True)
+        elif event.type == sdl2.SDL_JOYBUTTONUP:
+            self._handle_joystick_button_event(event.jbutton, False)
 
-        # Rate limit updates
-        current_time = time.time()
-        if current_time - self.last_update_time < self.update_interval:
-            return
-        self.last_update_time = current_time
-
-        # Process SDL events
-        sdl2.SDL_PumpEvents()
-
-        # Check if controller is still connected
-        if self.controller and not sdl2.SDL_GameControllerGetAttached(self.controller):
-            self._on_controller_disconnected()
-            return
-
-        # Try to reconnect if no controller
-        if not self.controller:
-            if not self.connect_to_first_available():
-                return
-
-        # Process controller inputs
-        self._process_button_inputs()
-        self._process_stick_inputs()
-        self._process_trigger_inputs()
-
-    def _process_button_inputs(self) -> None:
-        """Process button inputs and emit events for changes."""
+    def _handle_button_event(self, button_event, is_pressed: bool) -> None:
+        """Handle controller button events."""
         if not self.controller:
             return
-
+            
+        # Map SDL button codes to our button names
         button_mapping = {
-            "triangle": sdl2.SDL_CONTROLLER_BUTTON_Y,
-            "circle": sdl2.SDL_CONTROLLER_BUTTON_B,
-            "cross": sdl2.SDL_CONTROLLER_BUTTON_A,
-            "square": sdl2.SDL_CONTROLLER_BUTTON_X,
-            "dpad_up": sdl2.SDL_CONTROLLER_BUTTON_DPAD_UP,
-            "dpad_down": sdl2.SDL_CONTROLLER_BUTTON_DPAD_DOWN,
-            "dpad_left": sdl2.SDL_CONTROLLER_BUTTON_DPAD_LEFT,
-            "dpad_right": sdl2.SDL_CONTROLLER_BUTTON_DPAD_RIGHT,
-            "l1": sdl2.SDL_CONTROLLER_BUTTON_LEFTSHOULDER,
-            "r1": sdl2.SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,
-            "share": sdl2.SDL_CONTROLLER_BUTTON_BACK,
-            "options": sdl2.SDL_CONTROLLER_BUTTON_START,
-            "left_stick": sdl2.SDL_CONTROLLER_BUTTON_LEFTSTICK,
-            "right_stick": sdl2.SDL_CONTROLLER_BUTTON_RIGHTSTICK,
-            "ps": sdl2.SDL_CONTROLLER_BUTTON_GUIDE,
+            sdl2.SDL_CONTROLLER_BUTTON_Y: "triangle",
+            sdl2.SDL_CONTROLLER_BUTTON_B: "circle", 
+            sdl2.SDL_CONTROLLER_BUTTON_A: "cross",
+            sdl2.SDL_CONTROLLER_BUTTON_X: "square",
+            sdl2.SDL_CONTROLLER_BUTTON_DPAD_UP: "dpad_up",
+            sdl2.SDL_CONTROLLER_BUTTON_DPAD_DOWN: "dpad_down",
+            sdl2.SDL_CONTROLLER_BUTTON_DPAD_LEFT: "dpad_left",
+            sdl2.SDL_CONTROLLER_BUTTON_DPAD_RIGHT: "dpad_right",
+            sdl2.SDL_CONTROLLER_BUTTON_LEFTSHOULDER: "l1",
+            sdl2.SDL_CONTROLLER_BUTTON_RIGHTSHOULDER: "r1",
+            sdl2.SDL_CONTROLLER_BUTTON_BACK: "share",
+            sdl2.SDL_CONTROLLER_BUTTON_START: "options",
+            sdl2.SDL_CONTROLLER_BUTTON_LEFTSTICK: "left_stick",
+            sdl2.SDL_CONTROLLER_BUTTON_RIGHTSTICK: "right_stick",
+            sdl2.SDL_CONTROLLER_BUTTON_GUIDE: "ps",
         }
-
-        for button_name, sdl_button in button_mapping.items():
-            current_state = bool(
-                sdl2.SDL_GameControllerGetButton(self.controller, sdl_button)
-            )
-            previous_state = self.button_states.get(button_name, False)
-
-            # If state changed, create an event
-            if current_state != previous_state:
-                self.button_states[button_name] = current_state
-
-                # Create event
-                event = InputData(
-                    timestamp=time.time(),
-                    event_type="button_press" if current_state else "button_release",
-                    key=button_name,
-                    active_keys=self.get_active_keys(),
-                )
-
-                # Process event
-                self._process_event(event)
-
-        # Process touchpad button with special handling
-        self._process_touchpad_button()
-
-    def _process_touchpad_button(self) -> None:
-        """Detect touchpad press using various methods."""
-        if not self.controller or not self.joystick:
-            return
-
-        touchpad_pressed = False
-
-        # Method 1: Try MISC1 button (common for PS4 touchpad)
-        try:
-            touchpad_pressed = bool(
-                sdl2.SDL_GameControllerGetButton(
-                    self.controller, sdl2.SDL_CONTROLLER_BUTTON_MISC1
-                )
-            )
-        except:
-            pass
-
-        # Method 2: Try raw joystick access for common touchpad button indices
-        if not touchpad_pressed:
-            num_buttons = sdl2.SDL_JoystickNumButtons(self.joystick)
-            for button_idx in [13, 14, 15, 16, 17, 18]:
-                if button_idx < num_buttons:
-                    try:
-                        if sdl2.SDL_JoystickGetButton(self.joystick, button_idx):
-                            # Check this isn't a d-pad false positive
-                            dpad_conflict = any(
-                                [
-                                    self.button_states.get("dpad_up", False),
-                                    self.button_states.get("dpad_down", False),
-                                    self.button_states.get("dpad_left", False),
-                                    self.button_states.get("dpad_right", False),
-                                ]
-                            )
-
-                            if not dpad_conflict:
-                                touchpad_pressed = True
-                                break
-                    except:
-                        pass
-
-        # Method 3: Try constant index 15 (sometimes used for touchpad)
-        if not touchpad_pressed:
-            try:
-                touchpad_pressed = bool(
-                    sdl2.SDL_GameControllerGetButton(self.controller, 15)
-                )
-            except:
-                pass
-
-        # Update state and emit event if changed
-        previous_state = self.button_states.get("touchpad", False)
-        if touchpad_pressed != previous_state:
-            self.button_states["touchpad"] = touchpad_pressed
-
+        
+        button_name = button_mapping.get(button_event.button)
+        if button_name:
+            # Update button state
+            self.button_states[button_name] = is_pressed
+            
             # Create event
             event = InputData(
                 timestamp=time.time(),
-                event_type="button_press" if touchpad_pressed else "button_release",
-                key="touchpad",
+                event_type="button_press" if is_pressed else "button_release",
+                key=button_name,
                 active_keys=self.get_active_keys(),
             )
-
+            
             # Process event
             self._process_event(event)
 
-    def _process_stick_inputs(self) -> None:
-        """Process analog stick inputs."""
+    def _handle_joystick_button_event(self, button_event, is_pressed: bool) -> None:
+        """Handle joystick button events (for touchpad and other special buttons)."""
+        if not self.joystick:
+            return
+            
+        # Check for touchpad button on common indices
+        if button_event.button in [13, 14, 15, 16, 17, 18]:
+            # Verify this isn't a d-pad conflict
+            dpad_conflict = any([
+                self.button_states.get("dpad_up", False),
+                self.button_states.get("dpad_down", False),
+                self.button_states.get("dpad_left", False),
+                self.button_states.get("dpad_right", False),
+            ])
+            
+            if not dpad_conflict:
+                # Update touchpad state
+                self.button_states["touchpad"] = is_pressed
+                
+                # Create event
+                event = InputData(
+                    timestamp=time.time(),
+                    event_type="button_press" if is_pressed else "button_release",
+                    key="touchpad",
+                    active_keys=self.get_active_keys(),
+                )
+                
+                # Process event
+                self._process_event(event)
+
+    def _handle_axis_event(self, axis_event) -> None:
+        """Handle controller axis motion events."""
         if not self.controller:
             return
-
-        # Get left stick position
-        left_x = (
-            sdl2.SDL_GameControllerGetAxis(
-                self.controller, sdl2.SDL_CONTROLLER_AXIS_LEFTX
-            )
-            / 32767.0
-        )
-        left_y = (
-            sdl2.SDL_GameControllerGetAxis(
-                self.controller, sdl2.SDL_CONTROLLER_AXIS_LEFTY
-            )
-            / 32767.0
-        )
-
-        # Get right stick position
-        right_x = (
-            sdl2.SDL_GameControllerGetAxis(
-                self.controller, sdl2.SDL_CONTROLLER_AXIS_RIGHTX
-            )
-            / 32767.0
-        )
-        right_y = (
-            sdl2.SDL_GameControllerGetAxis(
-                self.controller, sdl2.SDL_CONTROLLER_AXIS_RIGHTY
-            )
-            / 32767.0
-        )
-
+            
         # Apply deadzone
         def apply_deadzone(value, deadzone=0.15):
-            if abs(value) < deadzone:
+            normalized = value / 32767.0
+            if abs(normalized) < deadzone:
                 return 0.0
-            return value
-
-        left_x = apply_deadzone(left_x)
-        left_y = apply_deadzone(left_y)
-        right_x = apply_deadzone(right_x)
-        right_y = apply_deadzone(right_y)
-
-        # Check for significant changes
-        prev_left = self.stick_positions["left"]
-        prev_right = self.stick_positions["right"]
-
-        # Left stick changed significantly
-        if abs(left_x - prev_left[0]) > 0.05 or abs(left_y - prev_left[1]) > 0.05:
-            self.stick_positions["left"] = (left_x, left_y)
-
-            # Create event - only X axis for consistency with InputData structure
-            event = InputData(
-                timestamp=time.time(),
-                event_type="axis_motion",
-                key="Left_Stick_X",
-                rel_x=left_x,
-                rel_y=left_y,
-                active_keys=self.get_active_keys(),
-            )
-
-            # Process event
-            self._process_event(event)
-
-        # Right stick changed significantly
-        if abs(right_x - prev_right[0]) > 0.05 or abs(right_y - prev_right[1]) > 0.05:
-            self.stick_positions["right"] = (right_x, right_y)
-
-            # Create event - only X axis for consistency with InputData structure
-            event = InputData(
-                timestamp=time.time(),
-                event_type="axis_motion",
-                key="Right_Stick_X",
-                rel_x=right_x,
-                rel_y=right_y,
-                active_keys=self.get_active_keys(),
-            )
-
-            # Process event
-            self._process_event(event)
-
-    def _process_trigger_inputs(self) -> None:
-        """Process trigger inputs."""
-        if not self.controller:
-            return
-
-        # Get trigger values
-        left_trigger = sdl2.SDL_GameControllerGetAxis(
-            self.controller, sdl2.SDL_CONTROLLER_AXIS_TRIGGERLEFT
-        )
-        right_trigger = sdl2.SDL_GameControllerGetAxis(
-            self.controller, sdl2.SDL_CONTROLLER_AXIS_TRIGGERRIGHT
-        )
-
-        # Apply deadzone
-        def apply_deadzone(value, deadzone=1000):
+            return normalized
+            
+        def apply_trigger_deadzone(value, deadzone=500):
             if value < deadzone:
                 return 0
             return value
 
-        left_trigger = apply_deadzone(left_trigger)
-        right_trigger = apply_deadzone(right_trigger)
-
-        # Check for significant changes
-        prev_left = self.trigger_values["left"]
-        prev_right = self.trigger_values["right"]
-
-        # Left trigger changed significantly
-        if abs(left_trigger - prev_left) > 1000:
-            self.trigger_values["left"] = left_trigger
-
-            # Create event
+        # Handle different axis types
+        if axis_event.axis == sdl2.SDL_CONTROLLER_AXIS_LEFTX:
+            # Left stick X
+            normalized_value = apply_deadzone(axis_event.value)
+            old_pos = self.stick_positions["left"]
+            self.stick_positions["left"] = (normalized_value, old_pos[1])
+            
+            # Create event for any movement (no threshold for events)
+            event = InputData(
+                timestamp=time.time(),
+                event_type="axis_motion", 
+                key="Left_Stick_X",
+                rel_x=normalized_value,
+                rel_y=old_pos[1],
+                active_keys=self.get_active_keys(),
+            )
+            self._process_event(event)
+            
+        elif axis_event.axis == sdl2.SDL_CONTROLLER_AXIS_LEFTY:
+            # Left stick Y
+            normalized_value = apply_deadzone(axis_event.value)
+            old_pos = self.stick_positions["left"]
+            self.stick_positions["left"] = (old_pos[0], normalized_value)
+            
+            # Create event for any movement (no threshold for events)
+            event = InputData(
+                timestamp=time.time(),
+                event_type="axis_motion",
+                key="Left_Stick_X",  # Keep consistent with existing format
+                rel_x=old_pos[0],
+                rel_y=normalized_value,
+                active_keys=self.get_active_keys(),
+            )
+            self._process_event(event)
+            
+        elif axis_event.axis == sdl2.SDL_CONTROLLER_AXIS_RIGHTX:
+            # Right stick X
+            normalized_value = apply_deadzone(axis_event.value)
+            old_pos = self.stick_positions["right"]
+            self.stick_positions["right"] = (normalized_value, old_pos[1])
+            
+            # Create event for any movement (no threshold for events)
+            event = InputData(
+                timestamp=time.time(),
+                event_type="axis_motion",
+                key="Right_Stick_X",
+                rel_x=normalized_value,
+                rel_y=old_pos[1],
+                active_keys=self.get_active_keys(),
+            )
+            self._process_event(event)
+            
+        elif axis_event.axis == sdl2.SDL_CONTROLLER_AXIS_RIGHTY:
+            # Right stick Y
+            normalized_value = apply_deadzone(axis_event.value)
+            old_pos = self.stick_positions["right"]
+            self.stick_positions["right"] = (old_pos[0], normalized_value)
+            
+            # Create event for any movement (no threshold for events)
+            event = InputData(
+                timestamp=time.time(),
+                event_type="axis_motion",
+                key="Right_Stick_X",  # Keep consistent with existing format
+                rel_x=old_pos[0],
+                rel_y=normalized_value,
+                active_keys=self.get_active_keys(),
+            )
+            self._process_event(event)
+            
+        elif axis_event.axis == sdl2.SDL_CONTROLLER_AXIS_TRIGGERLEFT:
+            # Left trigger with "return to zero" detection
+            filtered_value = apply_trigger_deadzone(axis_event.value)
+            normalized_value = filtered_value / 32767.0
+            previous_normalized = self.trigger_values["left"] / 32767.0
+            
+            self.trigger_values["left"] = filtered_value
+            
+            # Always create event, but check for threshold crossing for special logging
             event = InputData(
                 timestamp=time.time(),
                 event_type="axis_motion",
                 key="Left_Trigger",
-                rel_x=left_trigger / 32767.0,
+                rel_x=normalized_value,
                 active_keys=self.get_active_keys(),
             )
-
-            # Process event
             self._process_event(event)
-
-        # Right trigger changed significantly
-        if abs(right_trigger - prev_right) > 1000:
-            self.trigger_values["right"] = right_trigger
-
-            # Create event
+            
+        elif axis_event.axis == sdl2.SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
+            # Right trigger with "return to zero" detection
+            filtered_value = apply_trigger_deadzone(axis_event.value)
+            normalized_value = filtered_value / 32767.0
+            previous_normalized = self.trigger_values["right"] / 32767.0
+            
+            self.trigger_values["right"] = filtered_value
+            
+            # Always create event, but check for threshold crossing for special logging
             event = InputData(
                 timestamp=time.time(),
                 event_type="axis_motion",
                 key="Right_Trigger",
-                rel_x=right_trigger / 32767.0,
+                rel_x=normalized_value,
                 active_keys=self.get_active_keys(),
             )
-
-            # Process event
             self._process_event(event)
 
     def scan_controllers(self) -> List[Dict[str, Any]]:

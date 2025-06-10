@@ -537,13 +537,31 @@ class PS4ControllerVisualizer(BaseVisualizer):
                     and input_data.rel_x is not None
                     and input_data.rel_y is not None
                 ):
+                    prev_pos = self.stick_positions["left"]
                     self.stick_positions["left"] = (input_data.rel_x, input_data.rel_y)
-                    # Only log significant movements to avoid spamming
-                    if abs(input_data.rel_x) > 0.2 or abs(input_data.rel_y) > 0.2:
-                        self.log_event(
-                            f"Left stick: x={input_data.rel_x:.2f} ({int(abs(input_data.rel_x)*100)}%), y={input_data.rel_y:.2f} ({int(abs(input_data.rel_y)*100)}%)",
-                            color="#00AAFF",
-                        )
+                    
+                    # Enhanced logging with "return to zero" detection
+                    current_magnitude = abs(input_data.rel_x) + abs(input_data.rel_y)
+                    prev_magnitude = abs(prev_pos[0]) + abs(prev_pos[1])
+                    
+                    # Log if: significant movement OR crossing back to zero
+                    should_log = (
+                        current_magnitude > 0.02 or  # Significant movement
+                        (prev_magnitude > 0.02 and current_magnitude == 0.0)  # Return to zero
+                    )
+                    
+                    if should_log:
+                        if current_magnitude == 0.0:
+                            # Special message for return to zero
+                            self.log_event(
+                                f"Left stick: returned to center (0%, 0%)",
+                                color="#00AAFF",
+                            )
+                        else:
+                            self.log_event(
+                                f"Left stick: x={input_data.rel_x:.3f} ({int(abs(input_data.rel_x)*100)}%), y={input_data.rel_y:.3f} ({int(abs(input_data.rel_y)*100)}%)",
+                                color="#00AAFF",
+                            )
 
                 elif (
                     input_data.key == "Right_Stick_X"
@@ -552,39 +570,85 @@ class PS4ControllerVisualizer(BaseVisualizer):
                     and input_data.rel_x is not None
                     and input_data.rel_y is not None
                 ):
+                    prev_pos = self.stick_positions["right"]
                     self.stick_positions["right"] = (input_data.rel_x, input_data.rel_y)
-                    # Only log significant movements
-                    if abs(input_data.rel_x) > 0.2 or abs(input_data.rel_y) > 0.2:
-                        self.log_event(
-                            f"Right stick: x={input_data.rel_x:.2f} ({int(abs(input_data.rel_x)*100)}%), y={input_data.rel_y:.2f} ({int(abs(input_data.rel_y)*100)}%)",
-                            color="#00AAFF",
-                        )
+                    
+                    # Enhanced logging with "return to zero" detection
+                    current_magnitude = abs(input_data.rel_x) + abs(input_data.rel_y)
+                    prev_magnitude = abs(prev_pos[0]) + abs(prev_pos[1])
+                    
+                    # Log if: significant movement OR crossing back to zero
+                    should_log = (
+                        current_magnitude > 0.02 or  # Significant movement
+                        (prev_magnitude > 0.02 and current_magnitude == 0.0)  # Return to zero
+                    )
+                    
+                    if should_log:
+                        if current_magnitude == 0.0:
+                            # Special message for return to zero
+                            self.log_event(
+                                f"Right stick: returned to center (0%, 0%)",
+                                color="#00AAFF",
+                            )
+                        else:
+                            self.log_event(
+                                f"Right stick: x={input_data.rel_x:.3f} ({int(abs(input_data.rel_x)*100)}%), y={input_data.rel_y:.3f} ({int(abs(input_data.rel_y)*100)}%)",
+                                color="#00AAFF",
+                            )
 
                 elif (
                     input_data.key == "Left_Trigger"
                     and hasattr(input_data, "rel_x")
                     and input_data.rel_x is not None
                 ):
+                    prev_value = self.trigger_values["left"] / 32767.0
                     self.trigger_values["left"] = int(input_data.rel_x * 32767)
-                    # Only log significant changes
-                    if input_data.rel_x > 0.2:
-                        self.log_event(
-                            f"Left trigger: {input_data.rel_x:.2f} ({int(input_data.rel_x*100)}%)",
-                            color="#FFAA33",
-                        )
+                    
+                    # Enhanced logging with "return to zero" detection
+                    should_log = (
+                        input_data.rel_x > 0.01 or  # Significant pressure
+                        (prev_value > 0.01 and input_data.rel_x == 0.0)  # Return to zero
+                    )
+                    
+                    if should_log:
+                        if input_data.rel_x == 0.0:
+                            # Special message for return to zero
+                            self.log_event(
+                                f"Left trigger: released (0%)",
+                                color="#FFAA33",
+                            )
+                        else:
+                            self.log_event(
+                                f"Left trigger: {input_data.rel_x:.3f} ({int(input_data.rel_x*100)}%)",
+                                color="#FFAA33",
+                            )
 
                 elif (
                     input_data.key == "Right_Trigger"
                     and hasattr(input_data, "rel_x")
                     and input_data.rel_x is not None
                 ):
+                    prev_value = self.trigger_values["right"] / 32767.0
                     self.trigger_values["right"] = int(input_data.rel_x * 32767)
-                    # Only log significant changes
-                    if input_data.rel_x > 0.2:
-                        self.log_event(
-                            f"Right trigger: {input_data.rel_x:.2f} ({int(input_data.rel_x*100)}%)",
-                            color="#FFAA33",
-                        )
+                    
+                    # Enhanced logging with "return to zero" detection
+                    should_log = (
+                        input_data.rel_x > 0.01 or  # Significant pressure
+                        (prev_value > 0.01 and input_data.rel_x == 0.0)  # Return to zero
+                    )
+                    
+                    if should_log:
+                        if input_data.rel_x == 0.0:
+                            # Special message for return to zero
+                            self.log_event(
+                                f"Right trigger: released (0%)",
+                                color="#FFAA33",
+                            )
+                        else:
+                            self.log_event(
+                                f"Right trigger: {input_data.rel_x:.3f} ({int(input_data.rel_x*100)}%)",
+                                color="#FFAA33",
+                            )
 
         # Store a set of active buttons for display
         self._ps4_active_buttons = {
