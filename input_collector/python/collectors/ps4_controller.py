@@ -11,7 +11,6 @@ from typing import List, Dict, Any, Callable, Set, Optional
 
 import sdl2
 import sdl2.ext
-from PyQt5.QtCore import QTimer
 
 from ..interfaces import InputData, AbstractInputCollector
 
@@ -63,8 +62,12 @@ class PS4ControllerCollector(AbstractInputCollector):
         # Trigger values
         self.trigger_values: Dict[str, float] = {"left": 0, "right": 0}
 
-        # Polling timer
-        self.polling_timer: Optional[QTimer] = None
+        # Threading for polling
+        self.polling_thread: Optional[threading.Thread] = None
+        self.polling_stop_event: threading.Event = threading.Event()
+        
+        # Thread safety
+        self.event_lock: threading.Lock = threading.Lock()
 
         # Update rate limit
         self.last_update_time: float = 0
@@ -132,12 +135,11 @@ class PS4ControllerCollector(AbstractInputCollector):
         if not self.controller:
             self.connect_to_first_available()
 
-        # Start polling timer if not started
-        if not self.polling_timer:
-            self.polling_timer = QTimer()
-            self.polling_timer.setInterval(16)  # ~60 fps
-            self.polling_timer.timeout.connect(self.poll_events)
-            self.polling_timer.start()
+        # Start polling thread if not started
+        if not self.polling_thread or not self.polling_thread.is_alive():
+            self.polling_stop_event.clear()
+            self.polling_thread = threading.Thread(target=self._polling_loop, daemon=True)
+            self.polling_thread.start()
 
         print("PS4 controller capture started")
 
@@ -152,12 +154,25 @@ class PS4ControllerCollector(AbstractInputCollector):
 
         self.is_capturing = False
 
-        # Stop polling timer
-        if self.polling_timer:
-            self.polling_timer.stop()
-            self.polling_timer = None
+        # Stop polling thread
+        if self.polling_thread and self.polling_thread.is_alive():
+            self.polling_stop_event.set()
+            # Give the thread a moment to stop gracefully
+            self.polling_thread.join(timeout=1.0)
 
         print("PS4 controller capture stopped")
+
+    def _polling_loop(self) -> None:
+        """Main polling loop that runs in a separate thread."""
+        while not self.polling_stop_event.is_set() and self.is_capturing:
+            try:
+                self.poll_events()
+                # Sleep for the update interval (16ms for ~60fps)
+                time.sleep(self.update_interval)
+            except Exception as e:
+                print(f"Error in polling loop: {e}")
+                # Brief pause before continuing to avoid tight error loops
+                time.sleep(0.1)
 
     def poll_events(self) -> None:
         """Poll for controller events and update state."""
@@ -615,38 +630,56 @@ class PS4ControllerCollector(AbstractInputCollector):
 
     def _process_event(self, event: InputData) -> None:
         """
-        Process a controller event.
+        Process a controller event with thread safety.
 
         Args:
             event: The controller event to process
         """
-        # Add to event history
-        self.controller_events.append(event)
-        if len(self.controller_events) > self.max_events:
-            self.controller_events = self.controller_events[-self.max_events :]
+        # Thread-safe event processing
+        with self.event_lock:
+            # Add to event history
+            self.controller_events.append(event)
+            if len(self.controller_events) > self.max_events:
+                self.controller_events = self.controller_events[-self.max_events :]
 
-        # Notify callbacks
-        for callback in self.event_callbacks:
+        # Notify callbacks - do this outside the lock to avoid deadlocks
+        # Make a copy of callbacks to avoid issues if list is modified during iteration
+        callbacks_copy = list(self.event_callbacks)
+        for callback in callbacks_copy:
             try:
-                callback(event)
+                # Use threading to ensure callback doesn't block the polling thread
+                threading.Thread(target=self._safe_callback, args=(callback, event), daemon=True).start()
             except Exception as e:
-                print(f"Error in event callback: {e}")
+                print(f"Error starting callback thread: {e}")
+
+    def _safe_callback(self, callback: Callable[[InputData], None], event: InputData) -> None:
+        """
+        Execute callback safely in a separate thread.
+        
+        Args:
+            callback: The callback function to execute
+            event: The event to pass to the callback
+        """
+        try:
+            callback(event)
+        except Exception as e:
+            print(f"Error in event callback: {e}")
 
     def get_input_event(self) -> InputData:
         """
-        Get the most recent input event.
+        Get the most recent input event with thread safety.
 
         Returns:
             InputData: The most recent input event, or a placeholder event if no events exist
         """
-        if not self.controller_events:
-            return InputData(
-                timestamp=time.time(),
-                event_type="none",
-                active_keys=self.get_active_keys(),
-            )
-
-        return self.controller_events[-1]
+        with self.event_lock:
+            if not self.controller_events:
+                return InputData(
+                    timestamp=time.time(),
+                    event_type="none",
+                    active_keys=self.get_active_keys(),
+                )
+            return self.controller_events[-1]
 
     def on_event(self, callback: Callable[[InputData], None]) -> None:
         """
@@ -670,7 +703,7 @@ class PS4ControllerCollector(AbstractInputCollector):
 
     def get_events_since(self, timestamp: float) -> List[InputData]:
         """
-        Get all events since a specific timestamp.
+        Get all events since a specific timestamp with thread safety.
 
         Args:
             timestamp: Time (in seconds since epoch) to retrieve events from
@@ -678,11 +711,13 @@ class PS4ControllerCollector(AbstractInputCollector):
         Returns:
             List[InputData]: List of input events that occurred since the given timestamp
         """
-        return [e for e in self.controller_events if e.timestamp >= timestamp]
+        with self.event_lock:
+            return [e for e in self.controller_events if e.timestamp >= timestamp]
 
     def clear_events(self) -> None:
-        """Clear all stored events."""
-        self.controller_events.clear()
+        """Clear all stored events with thread safety."""
+        with self.event_lock:
+            self.controller_events.clear()
 
     def get_active_keys(self) -> List[str]:
         """
@@ -734,9 +769,7 @@ class PS4ControllerCollector(AbstractInputCollector):
         """Clean up SDL2 resources."""
         try:
             # Stop polling
-            if self.polling_timer:
-                self.polling_timer.stop()
-                self.polling_timer = None
+            self.stop_capture()
 
             # Close controller
             if self.controller:

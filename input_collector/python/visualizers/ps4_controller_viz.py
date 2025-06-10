@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 from typing import Dict, Optional, Any, Tuple
 
-from PyQt5.QtCore import Qt, QRect, QTimer, pyqtSignal, QPoint
+from PyQt5.QtCore import Qt, QRect, QTimer, pyqtSignal, QPoint, QObject, QMetaObject, Q_ARG
 from PyQt5.QtGui import (
     QPainter,
     QPen,
@@ -49,6 +49,9 @@ class PS4ControllerVisualizer(BaseVisualizer):
 
     # Signal for edit mode
     key_clicked = pyqtSignal(str)
+    
+    # Signal for thread-safe updates
+    update_requested = pyqtSignal(object)  # InputData object
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         """Initialize the PS4 controller visualizer."""
@@ -58,6 +61,9 @@ class PS4ControllerVisualizer(BaseVisualizer):
         self.button_states: Dict[str, bool] = {}
         self.stick_positions = {"left": (0.0, 0.0), "right": (0.0, 0.0)}
         self.trigger_values = {"left": 0, "right": 0}
+
+        # Connect the signal to the slot for thread-safe updates
+        self.update_requested.connect(self._thread_safe_update, Qt.QueuedConnection)
 
         # Visualization settings
         self.image_mode = True  # Use images vs drawn controller
@@ -485,15 +491,26 @@ class PS4ControllerVisualizer(BaseVisualizer):
     def update(self, input_data: Optional[InputData] = None) -> None:
         """
         Update the visualization based on input data.
+        This method is thread-safe and can be called from any thread.
 
         Args:
             input_data: Input event data containing controller state information
         """
         if not input_data:
-            # Just repaint with current state
-            self.controller_widget.update()
+            # Just repaint with current state - ensure this runs on main thread
+            QMetaObject.invokeMethod(self.controller_widget, "update", Qt.QueuedConnection)
             return
 
+        # Emit signal for thread-safe processing
+        self.update_requested.emit(input_data)
+
+    def _thread_safe_update(self, input_data: InputData) -> None:
+        """
+        Thread-safe update method that runs on the main thread.
+        
+        Args:
+            input_data: Input event data containing controller state information
+        """
         # Only process events from PS4 controller
         if input_data.event_type in ["button_press", "button_release"]:
             # Update button state
@@ -1296,8 +1313,27 @@ class PS4ControllerVisualizer(BaseVisualizer):
 
     def log_event(self, event_data: Any, color: Optional[str] = None) -> None:
         """
-        Add an event to the log panel.
+        Add an event to the log panel in a thread-safe manner.
 
+        Args:
+            event_data: The event data to log
+            color: Optional color for the log entry
+        """
+        # Ensure logging happens on the main thread
+        if not self.thread() == QApplication.instance().thread():
+            QMetaObject.invokeMethod(
+                self, "_log_event_main_thread", Qt.QueuedConnection,
+                Q_ARG("PyQt_PyObject", event_data),
+                Q_ARG("PyQt_PyObject", color)
+            )
+            return
+        
+        self._log_event_main_thread(event_data, color)
+
+    def _log_event_main_thread(self, event_data: Any, color: Optional[str] = None) -> None:
+        """
+        Internal method to log events on the main thread.
+        
         Args:
             event_data: The event data to log
             color: Optional color for the log entry
@@ -1346,5 +1382,4 @@ class PS4ControllerVisualizer(BaseVisualizer):
         except Exception as e:
             print(f"Error logging event: {e}")
             import traceback
-
             traceback.print_exc()
