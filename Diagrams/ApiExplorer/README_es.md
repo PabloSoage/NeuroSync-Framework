@@ -194,7 +194,7 @@ function connectWebSocket(moduleId) {
 - **Actualizaciones Dinámicas**: Modificación en tiempo de ejecución de configuración de módulos
 - **Serialización**: Serialización JSON completa para transmisión a cliente
 
-### 2. **MethodInfo** 
+### 2. **MethodInfo**
 **Propósito**: Metadatos detallados de métodos y configuración de ejecución.
 
 #### Atributos:
@@ -353,7 +353,7 @@ def start_recording_handler(duracion: float):
     # Implementación
     return {"status": "iniciado", "duracion": duracion}
 
-explorer.register_method("mi_modulo", "control", "iniciar_grabacion", 
+explorer.register_method("mi_modulo", "control", "iniciar_grabacion",
                         method_info, start_recording_handler)
 ```
 
@@ -387,13 +387,13 @@ Integración con aplicaciones existentes:
 # Iniciar API Explorer junto con aplicación existente
 def initialize_api_integration():
     explorer = ApiExplorer.get_instance()
-    
+
     # Registrar módulo
     setup_module_registration(explorer)
-    
+
     # Iniciar servidor en hilo separado
     explorer.start_server(host="localhost", port=8000, block=False)
-    
+
     return explorer
 
 # Cierre limpio

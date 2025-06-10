@@ -6,7 +6,7 @@ classDiagram
     class run {
         <<module>>
         +cli_thread: Optional[threading.Thread]
-        
+
         +parse_config() Dict[str, Any]
         +start_cli_in_thread() threading.Thread
         +cleanup_cli_thread() void
@@ -32,7 +32,7 @@ classDiagram
         +app_coordinator: AppCoordinator
         +update_timer: QTimer
         +_ps4_overlay_edit_mode: bool
-        
+
         +__init__() void
         +run() void
         +closeEvent(event: Any) void
@@ -45,7 +45,7 @@ classDiagram
     class InputCollectorAPI {
         <<interaction API>>
         +MOUSE_SETTING_RANGES: Dict[str, Tuple[int, int]]
-        
+
         +initialize(...)$ void
         +get_last_operation_status()$ Dict[str, Any]
         +start_recording()$ bool
@@ -126,7 +126,7 @@ classDiagram
         +south: Optional[float]
         +east: Optional[float]
         +west: Optional[float]
-        
+
         +__post_init__() void
         +to_dict() Dict[str, Any]
     }
@@ -181,7 +181,7 @@ classDiagram
         -tracked_keys: List[str]
         -event_callbacks: List[Callable]
         -data_access_service: DataAccessService
-        
+
         +__init__() void
         +add_collector(collector_type: str, collector: AbstractInputCollector) void
         +set_current_collector(collector_type: str) bool
@@ -213,7 +213,7 @@ classDiagram
         -mouse_tracking_mode: str
         -direction_only: bool
         -angle_grouping: int
-        
+
         +__init__() void
         +start_listeners() void
         +stop_listeners() void
@@ -240,7 +240,7 @@ classDiagram
         -trigger_values: Dict[str, float]
         -polling_timer: Optional[QTimer]
         -supported_keys: List[str]
-        
+
         +__init__() void
         +initialize_sdl() bool
         +poll_events() void
@@ -256,7 +256,7 @@ classDiagram
         +capabilities: Dict[str, Any]
         +edit_mode: bool
         +supported_collectors: List[str]
-        
+
         +__init__(parent: Optional[QWidget]) void
         +update(input_data: Optional[InputData]) void
         +force_update() void
@@ -276,7 +276,7 @@ classDiagram
         -tracked_keys: Set[str]
         -key_mappings: Dict[str, str]
         -key_rects: Dict[str, QRect]
-        
+
         +__init__(parent: Optional[QWidget]) void
         +set_tracked_keys(keys: List[str]) void
         +get_key_at_position(x: int, y: int) Optional[str]
@@ -290,7 +290,7 @@ classDiagram
         -info_label: QLabel
         -button_label: QLabel
         -canvas: Canvas
-        
+
         +__init__(parent: Optional[QWidget]) void
         +update(input_data: Optional[Any]) void
         +force_update() void
@@ -303,7 +303,7 @@ classDiagram
         -left_button: MouseButton
         -right_button: MouseButton
         -scroll_button: MouseButton
-        
+
         +__init__(parent: Optional[QWidget]) void
         +setTrackedButtons(button_ids: List[str]) void
         +setActiveButtons(active_buttons: List[str]) void
@@ -330,7 +330,7 @@ classDiagram
         -right_panel: QWidget
         -log_text: QTextEdit
         -state_update_timer: QTimer
-        
+
         +__init__(parent: Optional[QWidget]) void
         +load_images() void
         +toggle_edit_mode() bool
@@ -355,7 +355,7 @@ classDiagram
         -csv_logger: CSVLogger
         -log_to_json: bool
         -log_to_csv: bool
-        
+
         +__init__() void
         +set_json_logging(enabled: bool) bool
         +set_csv_logging(enabled: bool, filepath: Optional[str]) bool
@@ -369,7 +369,7 @@ classDiagram
     class JSONLogger {
         +status_message: pyqtSignal
         -log_file: Optional[TextIO]
-        
+
         +__init__() void
         +open_log() bool
         +close_log() void
@@ -384,7 +384,7 @@ classDiagram
         -csv_writer: Optional[Any]
         -csv_headers: List[str]
         -filepath: str
-        
+
         +__init__() void
         +set_filepath(filepath: str) void
         +initialize(headers: List[str], tracked_keys: List[str], tracking_mode: str, direction_only: bool) bool
@@ -411,13 +411,13 @@ classDiagram
         +toggle_ps4_viz_mode: pyqtSignal
         +toggle_ps4_overlay_edit: pyqtSignal
         +toggle_ps4_overlay_discard: pyqtSignal
-        
+
         -main_window: QMainWindow
         -components: Dict[str, Any]
         -main_layout: QVBoxLayout
         -left_viz_layout: QVBoxLayout
         -in_unified_mode: bool
-        
+
         +__init__(main_window: QMainWindow) void
         +set_visualizers(...) void
         +update_recording_state(is_recording: bool) void
@@ -444,14 +444,14 @@ classDiagram
     class VisualizerManager {
         +key_clicked: pyqtSignal
         +button_toggled: pyqtSignal
-        
+
         -edit_mode_enabled: bool
         -keyboard_viz: KeyboardVisualizer
         -mouse_viz: MouseVisualizer
         -mouse_buttons_selector: MouseButtonsSelector
         -ps4_controller_viz: PS4ControllerVisualizer
         -keyboard_event_filter: KeyboardEventFilter
-        
+
         +__init__(parent: Optional[QWidget]) void
         +get_keyboard_visualizer() KeyboardVisualizer
         +get_mouse_visualizer() MouseVisualizer
@@ -466,7 +466,7 @@ classDiagram
 
     class KeyboardEventFilter {
         -visualizer_manager: VisualizerManager
-        
+
         +__init__(visualizer_manager: VisualizerManager) void
         +eventFilter(obj: QObject, event: QEvent) bool
     }
@@ -477,7 +477,7 @@ classDiagram
     class EventProcessor {
         +toggle_recording_requested: pyqtSignal
         -f9_key_down: bool
-        
+
         +__init__() void
         +process_event(event: InputData, collector_type: str) Dict[str, Any]
         -_is_special_event(event: InputData) bool
@@ -509,7 +509,7 @@ classDiagram
         +edit_mode_toggled: pyqtSignal
         +collector_switched: pyqtSignal
         +tracked_keys_changed: pyqtSignal
-        
+
         -collector_manager: CollectorManager
         -ui_manager: UIManager
         -logging_manager: LoggingManager
@@ -518,7 +518,7 @@ classDiagram
         -tracked_keys: List[str]
         -edit_mode: bool
         -f9_key_down: bool
-        
+
         +__init__(collector_manager: CollectorManager, ui_manager: UIManager, logging_manager: LoggingManager, event_processor: EventProcessor) void
         +initialize(tracked_keys: List[str]) void
         +on_collector_event(event: InputData) void
@@ -541,7 +541,7 @@ classDiagram
         -_components: Dict[str, Any]
         -_last_status: Dict[str, Any]
         -_initialized: bool
-        
+
         +get_instance()$ InteractionService
         +__init__() void
         +register_component(component_name: str, component: Any) void
@@ -580,7 +580,7 @@ classDiagram
         -_metadata: Dict[str, Any]
         -_callbacks: List[Optional[Callable]]
         -_max_history: int
-        
+
         +get_instance()$ DataAccessService
         +__init__() void
         +update_data(event: InputData) void
@@ -609,7 +609,7 @@ classDiagram
         -collector_manager: Optional[Any]
         -event_processor: Optional[Any]
         -_lock: threading.Lock
-        
+
         +__init__() void
         +initialize(app_coordinator: Any, ui_manager: Any, logging_manager: Any, collector_manager: Any, event_processor: Any) bool
         +start_recording() bool
@@ -652,7 +652,7 @@ classDiagram
         -_subscribers: Dict[EventType, Set[Callable]]
         -_last_events: Dict[EventType, Any]
         -_subscribers_lock: threading.Lock
-        
+
         +get_instance()$ EventDispatcher
         +__init__() void
         +subscribe(event_type: EventType, callback: Callable) void
@@ -667,7 +667,7 @@ classDiagram
         <<module>>
         +app: typer.Typer
         +console: Console
-        
+
         +run_cli() void
         +signal_handler(sig: int, frame: Any) void
         +shutdown_cli() void
@@ -678,7 +678,7 @@ classDiagram
     class CLIShell {
         <<module>>
         +console: Console
-        
+
         +run_interactive_shell() void
         +run_typer_command(args: List[str]) void
         +show_welcome_message() void
@@ -693,7 +693,7 @@ classDiagram
         +headless_app: Optional[HeadlessInputCollector]
         +gui_mode: bool
         +cli_running: threading.Event
-        
+
         +set_gui_mode(enabled: bool) void
         +get_gui_mode() bool
         +init_headless_mode() HeadlessInputCollector
@@ -711,7 +711,7 @@ classDiagram
         +visualizer_manager: VisualizerManager
         +app_coordinator: AppCoordinator
         +tracked_keys: List[str]
-        
+
         +__init__() void
         +shutdown() void
     }
@@ -771,7 +771,7 @@ classDiagram
         +_ps4_active_buttons: Set[str]
         +_ps4_stick_states: Dict[str, Dict[str, Union[float, str]]]
         +_ps4_trigger_states: Dict[str, float]
-        
+
         +__init__() void
         +register_api(start_server: bool, host: str, port: int) bool
         +shutdown() void
@@ -793,7 +793,7 @@ classDiagram
         +_ps4_active_buttons: Set[str]
         +_ps4_stick_states: Dict[str, Dict[str, Union[float, str]]]
         +_ps4_trigger_states: Dict[str, float]
-        
+
         +__init__() void
         +register_api(start_server: bool, host: str, port: int) bool
         +shutdown() void
@@ -840,7 +840,7 @@ classDiagram
     %% ================================================================================
     %% MAIN RELATIONSHIPS
     %% ================================================================================
-    
+
     %% Entry Point Relationships
     run --> InputCollectorApp : creates and runs
     run --> CLIApp : starts CLI thread

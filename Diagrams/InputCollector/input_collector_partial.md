@@ -4,7 +4,7 @@ classDiagram
     class run {
         <<module>>
         +cli_thread: Optional[threading.Thread]
-        
+
         +parse_config() Dict[str, Any]
         +start_cli_in_thread() threading.Thread
         +cleanup_cli_thread() void
@@ -30,7 +30,7 @@ classDiagram
         +app_coordinator: AppCoordinator
         +update_timer: QTimer
         +_ps4_overlay_edit_mode: bool
-        
+
         +__init__() void
         +run() void
         +closeEvent(event: Any) void
@@ -66,7 +66,7 @@ classDiagram
     class InputCollectorAPI {
         <<interaction API>>
         +MOUSE_SETTING_RANGES: Dict[str, Tuple[int, int]]
-        
+
         +initialize(app_coordinator: Any, ui_manager: Any, logging_manager: Any, collector_manager: Any, event_processor: Any)$ void
         +get_last_operation_status()$ Dict[str, Any]
         +start_recording()$ bool
@@ -133,7 +133,7 @@ classDiagram
         +_ps4_active_buttons: Set[str]
         +_ps4_stick_states: Dict[str, Dict[str, Union[float, str]]]
         +_ps4_trigger_states: Dict[str, float]
-        
+
         +__init__() void
         +register_api(start_server: bool, host: str, port: int) bool
         +shutdown() void
@@ -174,7 +174,7 @@ classDiagram
         +_ps4_active_buttons: Set[str]
         +_ps4_stick_states: Dict[str, Dict[str, Union[float, str]]]
         +_ps4_trigger_states: Dict[str, float]
-        
+
         +__init__() void
         +register_api(start_server: bool, host: str, port: int) bool
         +shutdown() void

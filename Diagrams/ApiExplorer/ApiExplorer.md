@@ -21,7 +21,7 @@ classDiagram
         -is_running: bool
         -server_port: Optional[int]
         -server_host: Optional[str]
-        
+
         +get_instance()$ ApiExplorer
         +__init__() void
         +start_server(host: str, port: int, block: bool) void
@@ -102,7 +102,7 @@ classDiagram
         +api_explorer_tabs: List[Tab]
         +real_time_tabs: List[Tab]
         +file_browser_modal: Modal
-        
+
         +render_module_list() str
         +render_method_cards() str
         +render_real_time_events() str
@@ -117,7 +117,7 @@ classDiagram
         +responsive_layout: Dict[str, str]
         +graph_container_styles: Dict[str, str]
         +modal_styles: Dict[str, str]
-        
+
         +apply_dark_mode() void
         +apply_light_mode() void
         +style_components() void
@@ -133,7 +133,7 @@ classDiagram
         +currentBrowseTargetId: str
         +currentBrowseDefaultExt: str
         +currentBrowsePath: str
-        
+
         +initDarkMode() void
         +toggleMethod(moduleId: str, methodId: str) void
         +executeMethod(moduleId: str, methodId: str) Promise[void]
@@ -164,7 +164,7 @@ classDiagram
         +show_data_table: bool
         +method_groups: Dict[str, MethodGroup]
         +router: APIRouter
-        
+
         +to_dict() Dict[str, Any]
         +add_method_group(group_id: str, group: MethodGroup) void
     }
@@ -174,7 +174,7 @@ classDiagram
         +group_id: str
         +name: str
         +methods: Dict[str, MethodInfo]
-        
+
         +add_method(method_id: str, method: MethodInfo) void
         +to_dict() Dict[str, Any]
     }
@@ -187,7 +187,7 @@ classDiagram
         +type: str
         +params: Dict[str, ParameterInfo]
         +handler_function: Callable
-        
+
         +to_dict() Dict[str, Any]
         +validate_params(input_params: Dict) bool
     }
@@ -207,7 +207,7 @@ classDiagram
         +file_filter: Optional[str]
         +default_extension: Optional[str]
         +save_mode: Optional[bool]
-        
+
         +validate_value(value: Any) bool
         +to_dict() Dict[str, Any]
     }
@@ -218,7 +218,7 @@ classDiagram
         +module_id: str
         +connected_at: datetime
         +last_ping: datetime
-        
+
         +send_event(event_data: Dict) Promise[void]
         +is_alive() bool
         +disconnect() void
@@ -231,7 +231,7 @@ classDiagram
         +module_id: str
         +data: Dict[str, Any]
         +visualization_data: Optional[Dict]
-        
+
         +to_json() str
         +format_for_display() str
     }
@@ -245,7 +245,7 @@ classDiagram
         +tabs: List[Tab]
         +api_explorer_panel: APIExplorerPanel
         +real_time_panel: RealTimePanel
-        
+
         +render() str
         +toggle_visibility() void
     }
@@ -254,7 +254,7 @@ classDiagram
         <<UI component>>
         +method_list: MethodList
         +method_details: MethodDetails
-        
+
         +render_methods() str
         +execute_method(method_id: str) void
     }
@@ -265,7 +265,7 @@ classDiagram
         +event_display: EventDisplay
         +graph_container: GraphContainer
         +data_table: DataTable
-        
+
         +connect_websocket() void
         +update_display(event: EventData) void
     }
@@ -274,7 +274,7 @@ classDiagram
         <<UI component>>
         +methods: List[MethodInfo]
         +selected_method: Optional[str]
-        
+
         +render_list() str
         +select_method(method_id: str) void
     }
@@ -284,7 +284,7 @@ classDiagram
         +method: MethodInfo
         +parameter_forms: List[ParameterForm]
         +response_display: ResponseDisplay
-        
+
         +render_form() str
         +execute() Promise[void]
     }
@@ -294,7 +294,7 @@ classDiagram
         +parameter: ParameterInfo
         +input_element: HTMLElement
         +validation_state: bool
-        
+
         +render() str
         +get_value() Any
         +validate() bool
@@ -306,7 +306,7 @@ classDiagram
         +type_filters: TypeFilters
         +channel_data: Dict[str, List[float]]
         +separate_channels_mode: bool
-        
+
         +init_chart(module_id: str) void
         +update_data(data: Dict) void
         +toggle_separate_mode() void
@@ -318,7 +318,7 @@ classDiagram
         +rows: List[Dict[str, Any]]
         +sort_column: Optional[str]
         +sort_direction: str
-        
+
         +update_data(data: List[Dict]) void
         +sort_by_column(column: str) void
         +render() str
@@ -331,7 +331,7 @@ classDiagram
         +path_input: HTMLInputElement
         +file_prefix_input: HTMLInputElement
         +target_input_id: str
-        
+
         +open(target_id: str) void
         +navigate_to(path: str) void
         +select_file() void
@@ -345,7 +345,7 @@ classDiagram
         <<external library>>
         +Chart: Class
         +defaults: ChartDefaults
-        
+
         +new Chart(canvas: HTMLCanvasElement, config: ChartConfig) Chart
     }
 
@@ -354,7 +354,7 @@ classDiagram
         +data: ChartData
         +options: ChartOptions
         +canvas: HTMLCanvasElement
-        
+
         +update(mode: str) void
         +destroy() void
         +resize() void
@@ -364,7 +364,7 @@ classDiagram
         <<chart data>>
         +labels: List[str]
         +datasets: List[Dataset]
-        
+
         +add_data_point(value: float) void
         +remove_oldest_point() void
     }
@@ -379,7 +379,7 @@ classDiagram
         +pointRadius: float
         +tension: float
         +hidden: bool
-        
+
         +update_data(values: List[float]) void
         +toggle_visibility() void
     }
@@ -424,14 +424,14 @@ classDiagram
     %% ================================================================================
     %% RELATIONSHIPS
     %% ================================================================================
-    
+
     %% Singleton Pattern
     ApiExplorer --|> ApiExplorer : singleton instance
-    
+
     %% Main Module Dependencies
     MainModule --> ApiExplorer : creates and manages
     MainModule --> uvicorn : uses for server execution
-    
+
     %% Framework Integration
     ApiExplorer "1" --> "1" FastAPI : manages
     ApiExplorer --> Jinja2Templates : uses for templating
@@ -439,7 +439,7 @@ classDiagram
     ApiExplorer --> uvicornServer : runs server
     ApiExplorer "1" --> "*" APIRouter : manages module routers
     ApiExplorer "1" --> "*" WebSocket : manages connections
-    
+
     %% Data Structure Management
     ApiExplorer "1" --> "*" ModuleInfo : manages modules
     ModuleInfo "1" --> "*" MethodGroup : contains groups
@@ -447,7 +447,7 @@ classDiagram
     MethodInfo "1" --> "*" ParameterInfo : defines parameters
     ApiExplorer "1" --> "*" WebSocketConnection : manages connections
     ApiExplorer --> EventData : broadcasts events
-    
+
     %% Frontend Structure
     HTMLTemplate --> ModuleSection : renders sections
     ModuleSection "1" --> "1" APIExplorerPanel : contains
@@ -457,60 +457,60 @@ classDiagram
     MethodDetails "1" --> "*" ParameterForm : contains forms
     RealTimePanel "1" --> "1" GraphContainer : contains
     RealTimePanel "1" --> "1" DataTable : contains
-    
+
     %% JavaScript Module Management
     JavaScriptModule --> ChartJS : uses for visualization
     JavaScriptModule "1" --> "*" Chart : manages charts
     Chart "1" --> "1" ChartData : contains data
     ChartData "1" --> "*" Dataset : contains datasets
     JavaScriptModule --> FileModal : manages file browser
-    
+
     %% CSS and Styling
     CSSStyles --> HTMLTemplate : styles components
     CSSStyles --> ModuleSection : applies themes
     CSSStyles --> FileModal : styles modal
-    
+
     %% Event Flow
     ApiExplorer --> WebSocket : broadcasts via
     WebSocket --> JavaScriptModule : receives events
     JavaScriptModule --> GraphContainer : updates charts
     JavaScriptModule --> DataTable : updates data
-    
+
     %% File System Integration
     ApiExplorer --> os : accesses file system
     FileModal --> ApiExplorer : requests file listings
-    
+
     %% Standard Library Usage
     ApiExplorer --> threading : uses for concurrency
     ApiExplorer --> json : uses for serialization
     ApiExplorer --> logging : uses for debugging
     ApiExplorer --> os : uses for file operations
-    
+
     %% HTTP Request Handling
     FastAPI --> MethodInfo : routes to handlers
     APIRouter --> MethodInfo : contains route handlers
     ParameterInfo --> ParameterForm : defines form fields
-    
+
     %% Real-time Communication
     WebSocketConnection --> EventData : transmits events
     EventData --> JavaScriptModule : updates frontend
     JavaScriptModule --> GraphContainer : updates visualizations
-    
+
     %% Module Registration Flow
     note for ApiExplorer "Module Registration Flow:\n1. register_module() creates router\n2. add_method_group() organizes methods\n3. register_method() adds endpoints\n4. Routes automatically available in UI\n5. WebSocket events broadcast to clients"
-    
+
     %% Frontend Architecture
     note for JavaScriptModule "Frontend Architecture:\n• Event-driven UI updates\n• Real-time chart visualization\n• WebSocket communication\n• Dynamic form generation\n• File browser integration\n• Dark/light mode theming"
-    
+
     %% Chart Visualization
     note for GraphContainer "Chart Features:\n• Real-time data streaming\n• Multiple chart types\n• Channel separation mode\n• Type filtering (EEG, EMG, etc.)\n• Auto-scaling axes\n• Dark mode support"
-    
+
     %% WebSocket Communication
     note for WebSocketConnection "WebSocket Features:\n• Per-module event routing\n• Automatic reconnection\n• Ping/pong keepalive\n• JSON event formatting\n• Connection status tracking"
-    
+
     %% File Browser
     note for FileModal "File Browser Features:\n• Server-side directory listing\n• Path navigation\n• File prefix input\n• Extension filtering\n• Save/load mode support\n• Cross-platform paths"
-    
+
     %% System Architecture
     note "API Explorer Architecture:\n• Singleton pattern for global access\n• Dynamic module registration\n• FastAPI backend with WebSocket support\n• Bootstrap + Chart.js frontend\n• File system integration\n• Real-time event streaming\n• Responsive dark/light theming\n• Cross-platform compatibility"
 ```

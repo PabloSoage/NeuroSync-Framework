@@ -113,7 +113,7 @@ dispatch(EventType.INPUT, {"key": "A", "timestamp": time.time()})
 # Mouse tracking modes
 TRACKING_MODES = {
     "delta": "Raw movement deltas",
-    "angle": "Direction and angle", 
+    "angle": "Direction and angle",
     "axis": "Cardinal directions (N/S/E/W)",
     "joystick": "Direction and speed"
 }
@@ -344,7 +344,7 @@ TRACKING_MODES = {
 
 ```
 1. Input Device → Collector → InputData
-2. InputData → EventProcessor → ProcessingResult  
+2. InputData → EventProcessor → ProcessingResult
 3. ProcessingResult → AppCoordinator → Coordination
 4. Coordination → {UI Update, Logging, Core Events}
 5. Core Events → {API Broadcasts, CLI Monitoring}
