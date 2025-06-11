@@ -1023,11 +1023,30 @@ class ApiExplorer:
             )
 
             @router.post(f"/{method_id}")
-            async def endpoint(request_data: Any = Body(...)) -> Any:
-                # Convert to dict and pass to handler
-                data_dict = {
-                    k: v for k, v in request_data.dict().items() if v is not None
-                }
+            async def endpoint(request_data: RequestModel) -> Any:
+                # Handle both Pydantic model and dict objects
+                if hasattr(request_data, 'dict'):
+                    # Pydantic model - use .dict() method
+                    data_dict = {
+                        k: v for k, v in request_data.dict().items() if v is not None
+                    }
+                elif isinstance(request_data, dict):
+                    # Already a dictionary
+                    data_dict = {
+                        k: v for k, v in request_data.items() if v is not None
+                    }
+                else:
+                    # Try to convert to dict using model_dump for newer Pydantic versions
+                    try:
+                        data_dict = {
+                            k: v for k, v in request_data.model_dump().items() if v is not None
+                        }
+                    except AttributeError:
+                        # Fallback: convert object attributes to dict
+                        data_dict = {
+                            k: v for k, v in vars(request_data).items() if v is not None
+                        }
+                
                 return await handler_function(**data_dict)
 
     def register_module(
