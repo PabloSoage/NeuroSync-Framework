@@ -9,6 +9,10 @@ import json
 import logging
 import os
 import threading
+import time
+import asyncio
+import queue
+import random  # Add this import
 from typing import Dict, List, Optional, Callable, Any, Type, Union, Set
 
 import uvicorn
@@ -19,6 +23,162 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+
+
+class WebSocketManager:
+    """Manages WebSocket connections with thread-safe message queuing."""
+    
+    def __init__(self):
+        self.connections: Dict[str, List[WebSocket]] = {}
+        self.message_queues: Dict[str, queue.Queue] = {}
+        self.worker_tasks: Dict[str, asyncio.Task] = {}
+        self.shutdown_events: Dict[str, asyncio.Event] = {}
+        
+    async def add_connection(self, module_id: str, websocket: WebSocket):
+        """Add a WebSocket connection for a module."""
+        if module_id not in self.connections:
+            self.connections[module_id] = []
+            # Increase queue size for high-frequency data
+            self.message_queues[module_id] = queue.Queue(maxsize=20000)
+            self.shutdown_events[module_id] = asyncio.Event()
+            
+            # Start message worker for this module
+            self.worker_tasks[module_id] = asyncio.create_task(
+                self._message_worker(module_id)
+            )
+            
+        self.connections[module_id].append(websocket)
+        
+    async def remove_connection(self, module_id: str, websocket: WebSocket):
+        """Remove a WebSocket connection."""
+        if module_id in self.connections:
+            if websocket in self.connections[module_id]:
+                self.connections[module_id].remove(websocket)
+                
+            # If no more connections, stop the worker
+            if not self.connections[module_id]:
+                if module_id in self.shutdown_events:
+                    self.shutdown_events[module_id].set()
+                if module_id in self.worker_tasks:
+                    self.worker_tasks[module_id].cancel()
+                    try:
+                        await self.worker_tasks[module_id]
+                    except asyncio.CancelledError:
+                        pass
+                    del self.worker_tasks[module_id]
+                del self.connections[module_id]
+                del self.message_queues[module_id]
+                del self.shutdown_events[module_id]
+                
+    def queue_message(self, module_id: str, message: str) -> bool:
+        """Queue a message for sending to all connections of a module."""
+        if module_id not in self.message_queues:
+            return False
+            
+        try:
+            # Use put_nowait to avoid blocking
+            self.message_queues[module_id].put_nowait(message)
+            return True
+        except queue.Full:
+            # If queue is full, drop oldest messages
+            try:
+                # Remove old messages
+                for _ in range(100):  # Remove up to 100 old messages
+                    self.message_queues[module_id].get_nowait()
+                # Try to add the new message
+                self.message_queues[module_id].put_nowait(message)
+                return True
+            except queue.Empty:
+                # Queue became empty, try adding the message again
+                try:
+                    self.message_queues[module_id].put_nowait(message)
+                    return True
+                except queue.Full:
+                    return False
+            except:
+                return False
+                
+    async def _message_worker(self, module_id: str):
+        """Worker task that processes messages for a module with optimized batching."""
+        message_queue = self.message_queues[module_id]
+        shutdown_event = self.shutdown_events[module_id]
+        last_send_time = time.time()
+        
+        while not shutdown_event.is_set():
+            try:
+                messages_to_send = []
+                current_time = time.time()
+                
+                # Adaptive batch size based on queue depth
+                queue_size = message_queue.qsize()
+                if queue_size > 1000:
+                    # High load - larger batches, less frequent sends
+                    max_batch_size = 200
+                    min_send_interval = 0.05  # 20 FPS max
+                elif queue_size > 100:
+                    # Medium load
+                    max_batch_size = 100
+                    min_send_interval = 0.02  # 50 FPS max  
+                else:
+                    # Low load - smaller batches, more frequent sends
+                    max_batch_size = 50
+                    min_send_interval = 0.001  # Near real-time
+                
+                # Collect messages for batch
+                for _ in range(max_batch_size):
+                    try:
+                        message = message_queue.get_nowait()
+                        messages_to_send.append(message)
+                    except queue.Empty:
+                        break
+                
+                # Send if we have messages and enough time has passed
+                if messages_to_send and (current_time - last_send_time >= min_send_interval):
+                    await self._send_messages_to_connections(module_id, messages_to_send)
+                    last_send_time = current_time
+                elif messages_to_send:
+                    # Put messages back if we're not ready to send
+                    for msg in reversed(messages_to_send):
+                        try:
+                            message_queue.put_nowait(msg)
+                        except queue.Full:
+                            break  # Drop messages if queue is full
+                
+                # Adaptive sleep based on load
+                if queue_size > 500:
+                    await asyncio.sleep(0.001)  # Very short sleep for high load
+                elif queue_size > 50:
+                    await asyncio.sleep(0.005)  # Short sleep for medium load
+                else:
+                    await asyncio.sleep(0.01)   # Longer sleep for low load
+                    
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logging.error(f"Error in message worker for {module_id}: {e}")
+                await asyncio.sleep(0.1)  # Longer sleep on error
+                
+    async def _send_messages_to_connections(self, module_id: str, messages: List[str]):
+        """Send multiple messages to all connections of a module."""
+        if module_id not in self.connections:
+            return
+            
+        connections = self.connections[module_id][:]  # Copy to avoid modification during iteration
+        dead_connections = []
+        
+        for connection in connections:
+            try:
+                # Send all messages for this batch
+                for message in messages:
+                    await connection.send_text(message)
+            except Exception as e:
+                logging.error(f"Error sending to WebSocket: {e}")
+                dead_connections.append(connection)
+                
+        # Remove dead connections
+        for dead_conn in dead_connections:
+            if dead_conn in self.connections[module_id]:
+                self.connections[module_id].remove(dead_conn)
 
 
 class ApiExplorer:
@@ -81,8 +241,8 @@ class ApiExplorer:
         # Module registry - stores information about registered modules
         self.modules: Dict[str, Dict[str, Any]] = {}
 
-        # WebSocket connections
-        self.active_connections: List[WebSocket] = []
+        # WebSocket manager instead of direct connection list
+        self.websocket_manager = WebSocketManager()
 
         # Callback registry
         self.callback_registry: Dict[str, Dict[int, Callable]] = {}
@@ -99,6 +259,9 @@ class ApiExplorer:
         self.server_port: Optional[int] = None
         self.server_host: Optional[str] = None
 
+        # Message rate limiter
+        self._message_throttle: Dict[str, Dict[str, Any]] = {}
+        
         # Setup basic routes
         self._setup_routes()
 
@@ -168,14 +331,14 @@ class ApiExplorer:
                 {"request": request, "modules": modules_list, "base_browse_path": cwd},
             )
 
-        # WebSocket endpoint for real-time events
+        # WebSocket endpoint for real-time events - updated for better connection handling
         @self.app.websocket("/ws/{module_id}")
         async def websocket_endpoint(websocket: WebSocket, module_id: str) -> None:
             await websocket.accept()
-            # Add connection info with module ID for routing
             print(f"WebSocket connection established for module: {module_id}")
-            websocket.scope["module_id"] = module_id
-            self.active_connections.append(websocket)
+            
+            # Add to WebSocket manager
+            await self.websocket_manager.add_connection(module_id, websocket)
 
             try:
                 # Acknowledge connection
@@ -196,13 +359,12 @@ class ApiExplorer:
                         pass
             except WebSocketDisconnect:
                 print(f"WebSocket disconnected for module: {module_id}")
-                if websocket in self.active_connections:
-                    self.active_connections.remove(websocket)
+            except Exception as e:
+                print(f"WebSocket error: {str(e)}")
             finally:
                 # Ensure cleanup happens
                 print(f"WebSocket connection cleaned up for module: {module_id}")
-                if websocket in self.active_connections:
-                    self.active_connections.remove(websocket)
+                await self.websocket_manager.remove_connection(module_id, websocket)
 
         # --- Add directory‐listing endpoint for file browser ---
         from fastapi import Query, HTTPException
@@ -224,6 +386,19 @@ class ApiExplorer:
                 items.append({"name": name, "path": full})
             return {"items": items}
 
+    def _sanitize_for_json(self, obj: Any) -> Any:
+        """Sanitize data to make it JSON serializable."""
+        if isinstance(obj, dict):
+            return {k: self._sanitize_for_json(v) for k, v in obj.items()}
+        elif isinstance(obj, (list, tuple)):
+            return [self._sanitize_for_json(item) for item in obj]
+        elif isinstance(obj, (int, float, str, bool)) or obj is None:
+            return obj
+        elif hasattr(obj, '__dict__'):
+            return self._sanitize_for_json(obj.__dict__)
+        else:
+            return str(obj)
+
     async def broadcast_event(self, module_id: str, event_data: Dict[str, Any]) -> None:
         """
         Broadcast an event to all WebSocket clients for a specific module.
@@ -232,35 +407,165 @@ class ApiExplorer:
             module_id: ID of the module the event belongs to
             event_data: Event data to broadcast
         """
-        # Print debug information
-        print(
-            f"Broadcasting event for module {module_id}: {event_data.get('event_type', 'unknown')}"
-        )
+        # Implement more aggressive throttling for very high-frequency events (>1000Hz)
+        current_time = time.time()
+        if module_id not in self._message_throttle:
+            self._message_throttle[module_id] = {
+                "last_log_time": 0,
+                "event_count": 0,
+                "last_rate_time": current_time,
+                "rate": 0,
+                "message_batch": {},
+                "last_send_time": 0,
+                "high_frequency_mode": False,
+                "drop_counter": 0,
+                "last_important_event": 0
+            }
+        
+        throttle_data = self._message_throttle[module_id]
+        
+        # Count events for rate calculation
+        throttle_data["event_count"] += 1
+        
+        # Calculate rate every 500ms
+        if current_time - throttle_data["last_rate_time"] >= 0.5:
+            elapsed = current_time - throttle_data["last_rate_time"]
+            if elapsed > 0:
+                throttle_data["rate"] = int(throttle_data["event_count"] / elapsed)
+            throttle_data["event_count"] = 0
+            throttle_data["last_rate_time"] = current_time
+            
+            # Enable high frequency mode if rate is very high
+            if throttle_data["rate"] > 500:  # More than 500 events/sec
+                throttle_data["high_frequency_mode"] = True
+            elif throttle_data["rate"] < 100:  # Less than 100 events/sec
+                throttle_data["high_frequency_mode"] = False
+            
+            # Log rate information periodically (every 10 seconds in high frequency mode)
+            log_interval = 10.0 if throttle_data["high_frequency_mode"] else 5.0
+            if current_time - throttle_data["last_log_time"] >= log_interval:
+                mode_str = " (HIGH FREQ MODE)" if throttle_data["high_frequency_mode"] else ""
+                dropped_str = f", dropped: {throttle_data['drop_counter']}" if throttle_data['drop_counter'] > 0 else ""
+                print(f"Broadcasting events for module {module_id} (rate: ~{throttle_data['rate']}/sec{dropped_str}){mode_str}")
+                throttle_data["last_log_time"] = current_time
+                throttle_data["drop_counter"] = 0  # Reset drop counter
 
-        # Notify callbacks for this module
+        # In high frequency mode, implement intelligent event filtering
+        if throttle_data["high_frequency_mode"]:
+            # Check if this is an important event that should never be dropped
+            is_important = self._is_important_event(event_data)
+            
+            if not is_important:
+                # For non-important events, implement statistical sampling
+                # Sample rate depends on current frequency (higher frequency = lower sample rate)
+                sample_rate = max(0.02, min(0.1, 50.0 / throttle_data["rate"]))  # 2-10% sampling
+                
+                if random.random() > sample_rate:
+                    throttle_data["drop_counter"] += 1
+                    return  # Drop this event
+            else:
+                throttle_data["last_important_event"] = current_time
+
+        # Notify callbacks for this module - do this synchronously but only for important callbacks
         if module_id in self.callback_registry:
             for callback in self.callback_registry[module_id].values():
                 if callback is not None:
                     try:
-                        callback(event_data)
+                        # In high frequency mode, only call callback for important events or periodically
+                        if (not throttle_data["high_frequency_mode"] or 
+                           self._is_important_event(event_data) or 
+                           current_time - throttle_data.get("last_callback_time", 0) > 0.1):
+                            callback(event_data)
+                            throttle_data["last_callback_time"] = current_time
                     except Exception as e:
                         logging.error(f"Error in {module_id} callback: {e}")
 
-        # Send to all connected WebSockets for this module
-        active_count = 0
-        for connection in self.active_connections:
-            if connection.scope.get("module_id") == module_id:
+        # Serialize once for all connections
+        try:
+            # In high frequency mode, use more compact serialization
+            if throttle_data["high_frequency_mode"]:
+                # Create a more compact version of the event data
+                compact_data = self._create_compact_event_data(event_data)
+                serialized_data = json.dumps(compact_data, separators=(',', ':'))  # No spaces
+            else:
+                # Use normal serialization
                 try:
-                    await connection.send_json(event_data)
-                    active_count += 1
-                except Exception as e:
-                    logging.error(f"Error sending to WebSocket: {e}")
+                    serialized_data = json.dumps(event_data)
+                except TypeError as e:
+                    sanitized_data = self._sanitize_for_json(event_data)
+                    serialized_data = json.dumps(sanitized_data)
+                    logging.warning(f"Had to sanitize event data for JSON serialization: {e}")
+            
+            # Queue the message for sending (non-blocking)
+            success = self.websocket_manager.queue_message(module_id, serialized_data)
+            if not success:
+                throttle_data["drop_counter"] += 1
+                
+        except Exception as e:
+            logging.error(f"Error in broadcast_event: {e}")
 
-        # Print how many connections received the event
-        if active_count > 0:
-            print(f"Event broadcast to {active_count} active connections")
-        else:
-            print("No active connections to receive event")
+    def _is_important_event(self, event_data: Dict[str, Any]) -> bool:
+        """Determine if an event is important and should not be dropped."""
+        event_type = event_data.get('event_type', event_data.get('type', ''))
+        
+        # Always keep connection/disconnection events
+        if any(keyword in event_type.lower() for keyword in 
+               ['connect', 'disconnect', 'error', 'state_change', 'start', 'stop']):
+            return True
+        
+        # Keep button press/release events
+        if any(keyword in event_type.lower() for keyword in 
+               ['button_press', 'button_release', 'key_down', 'key_up']):
+            return True
+        
+        # For visualization data, check if it contains significant changes
+        if 'visualization_data' in event_data:
+            vis_data = event_data['visualization_data']
+            if isinstance(vis_data, dict) and 'list_view' in vis_data:
+                # This is sensor data - consider it important if it's the first in a while
+                # or if values show significant change
+                return True  # For now, keep all visualization data
+        
+        return False
+
+    def _create_compact_event_data(self, event_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a more compact version of event data for high-frequency transmission."""
+        compact = {}
+        
+        # Always include these essential fields
+        essential_fields = ['event_type', 'type', 'timestamp', 'visualization_data']
+        
+        for field in essential_fields:
+            if field in event_data:
+                if field == 'visualization_data':
+                    # Compact visualization data
+                    vis_data = event_data[field]
+                    if isinstance(vis_data, dict) and 'list_view' in vis_data:
+                        # Round numeric values to reduce precision
+                        compact_list = []
+                        for item in vis_data['list_view']:
+                            compact_item = {
+                                'channel': item.get('channel'),
+                                'type': item.get('type'),
+                                'value': round(float(item.get('value', 0)), 3)  # 3 decimal places
+                            }
+                            compact_list.append(compact_item)
+                        compact[field] = {'list_view': compact_list}
+                    else:
+                        compact[field] = vis_data
+                elif field == 'timestamp':
+                    # Round timestamp to milliseconds
+                    compact[field] = round(event_data[field], 3)
+                else:
+                    compact[field] = event_data[field]
+        
+        # Add other important fields if they exist and are small
+        other_fields = ['key', 'button', 'state']
+        for field in other_fields:
+            if field in event_data and len(str(event_data[field])) < 50:
+                compact[field] = event_data[field]
+        
+        return compact
 
     def start_server(
         self, host: str = "127.0.0.1", port: int = 8000, block: bool = False
