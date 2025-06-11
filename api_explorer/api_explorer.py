@@ -12,8 +12,10 @@ import threading
 import time
 import asyncio
 import queue
-import random  # Add this import
+import random
 from typing import Dict, List, Optional, Callable, Any, Type, Union, Set
+from dataclasses import dataclass
+from concurrent.futures import ThreadPoolExecutor
 
 import uvicorn
 
@@ -24,27 +26,355 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+# Try to import orjson for faster JSON serialization
+try:
+    import orjson
+    HAS_ORJSON = True
+    print("Using orjson for high-performance JSON serialization")
+except ImportError:
+    HAS_ORJSON = False
+    print("orjson not available, using standard json with optimizations")
+
+class FastJSONSerializer:
+    """Optimized JSON serializer with caching and performance optimizations."""
+    
+    def __init__(self):
+        self._template_cache = {}
+        self._field_cache = {}
+        
+    def serialize_event(self, event_data: Dict[str, Any], compact: bool = False) -> str:
+        """Serialize event data with optimizations."""
+        try:
+            if HAS_ORJSON:
+                return self._serialize_with_orjson(event_data, compact)
+            else:
+                return self._serialize_with_stdlib(event_data, compact)
+        except Exception as e:
+            logging.error(f"JSON serialization error: {e}")
+            # Fallback to safe serialization
+            return self._safe_serialize(event_data)
+    
+    def _serialize_with_orjson(self, data: Dict[str, Any], compact: bool) -> str:
+        """Serialize using orjson (fastest option)."""
+        if compact:
+            # Use orjson's compact option for minimal size
+            return orjson.dumps(data, option=orjson.OPT_SERIALIZE_NUMPY).decode()
+        else:
+            return orjson.dumps(data).decode()
+    
+    def _serialize_with_stdlib(self, data: Dict[str, Any], compact: bool) -> str:
+        """Optimized stdlib JSON serialization."""
+        if compact:
+            # Minimal separators for smaller output
+            return json.dumps(data, separators=(',', ':'), ensure_ascii=False)
+        else:
+            # Standard format
+            return json.dumps(data, ensure_ascii=False)
+    
+    def _safe_serialize(self, data: Any) -> str:
+        """Safe fallback serialization that handles any data type."""
+        try:
+            # Sanitize data first
+            clean_data = self._sanitize_for_json(data)
+            return json.dumps(clean_data, separators=(',', ':'), ensure_ascii=False)
+        except Exception:
+            # Last resort: convert to string
+            return json.dumps({"error": "serialization_failed", "data": str(data)})
+    
+    def _sanitize_for_json(self, obj: Any) -> Any:
+        """Sanitize data to make it JSON serializable."""
+        if isinstance(obj, dict):
+            return {k: self._sanitize_for_json(v) for k, v in obj.items()}
+        elif isinstance(obj, (list, tuple)):
+            return [self._sanitize_for_json(item) for item in obj]
+        elif isinstance(obj, (int, float, str, bool)) or obj is None:
+            return obj
+        elif hasattr(obj, '__dict__'):
+            return self._sanitize_for_json(obj.__dict__)
+        else:
+            return str(obj)
+    
+    def precompile_template(self, template_name: str, template_structure: Dict[str, Any]):
+        """Precompile common JSON templates for even faster serialization."""
+        self._template_cache[template_name] = template_structure
+    
+    def serialize_from_template(self, template_name: str, data: Dict[str, Any]) -> str:
+        """Serialize using a precompiled template."""
+        if template_name not in self._template_cache:
+            return self.serialize_event(data, compact=True)
+        
+        # Use template for structure, fill with data
+        template = self._template_cache[template_name].copy()
+        self._fill_template(template, data)
+        
+        return self.serialize_event(template, compact=True)
+    
+    def _fill_template(self, template: Any, data: Dict[str, Any]):
+        """Fill template with actual data."""
+        if isinstance(template, dict):
+            for key, value in template.items():
+                if isinstance(value, str) and value.startswith('${') and value.endswith('}'):
+                    # Template variable
+                    var_name = value[2:-1]
+                    template[key] = data.get(var_name, None)
+                elif isinstance(value, (dict, list)):
+                    self._fill_template(value, data)
+        elif isinstance(template, list):
+            for item in template:
+                self._fill_template(item, data)
+
+@dataclass
+class WorkerStats:
+    """Statistics for a worker."""
+    messages_processed: int = 0
+    total_processing_time: float = 0.0
+    last_activity: float = 0.0
+    queue_size: int = 0
+    
+    @property
+    def avg_processing_time(self) -> float:
+        return self.total_processing_time / max(1, self.messages_processed)
+
+class WebSocketWorkerPool:
+    """Pool of workers for processing WebSocket messages."""
+    
+    def __init__(self, pool_size: int = None):
+        # Auto-detect optimal pool size if not specified
+        if pool_size is None:
+            import multiprocessing
+            pool_size = min(8, max(2, multiprocessing.cpu_count() - 1))
+        
+        self.pool_size = pool_size
+        self.workers: List[asyncio.Task] = []
+        self.worker_queues: List[queue.Queue] = []
+        self.worker_stats: List[WorkerStats] = []
+        self.shutdown_event = asyncio.Event()
+        self.round_robin_index = 0
+        self.load_balancer_lock = asyncio.Lock()
+        
+        print(f"Initializing WebSocket worker pool with {pool_size} workers")
+        
+        # Initialize queues and stats for each worker
+        for i in range(pool_size):
+            self.worker_queues.append(queue.Queue(maxsize=5000))
+            self.worker_stats.append(WorkerStats())
+    
+    async def start_workers(self, module_id: str, connections: List):
+        """Start all worker tasks."""
+        for i in range(self.pool_size):
+            worker_task = asyncio.create_task(
+                self._worker_loop(i, module_id, connections)
+            )
+            self.workers.append(worker_task)
+    
+    async def stop_workers(self):
+        """Stop all workers gracefully."""
+        self.shutdown_event.set()
+        
+        # Cancel all worker tasks
+        for worker in self.workers:
+            worker.cancel()
+        
+        # Wait for all workers to finish
+        try:
+            await asyncio.gather(*self.workers, return_exceptions=True)
+        except Exception as e:
+            logging.error(f"Error stopping workers: {e}")
+        
+        self.workers.clear()
+    
+    def distribute_message(self, message: str) -> bool:
+        """Distribute message to the least loaded worker."""
+        try:
+            # Find the worker with the smallest queue
+            best_worker_idx = 0
+            min_queue_size = self.worker_queues[0].qsize()
+            
+            for i in range(1, self.pool_size):
+                queue_size = self.worker_queues[i].qsize()
+                if queue_size < min_queue_size:
+                    min_queue_size = queue_size
+                    best_worker_idx = i
+            
+            # Try to add to the best worker's queue
+            self.worker_queues[best_worker_idx].put_nowait(message)
+            self.worker_stats[best_worker_idx].queue_size = self.worker_queues[best_worker_idx].qsize()
+            return True
+            
+        except queue.Full:
+            # If all queues are full, try round-robin with dropping
+            for i in range(self.pool_size):
+                worker_idx = (self.round_robin_index + i) % self.pool_size
+                try:
+                    # Try to make space by removing old messages
+                    worker_queue = self.worker_queues[worker_idx]
+                    if worker_queue.full():
+                        # Remove up to 10 old messages
+                        for _ in range(min(10, worker_queue.qsize())):
+                            try:
+                                worker_queue.get_nowait()
+                            except queue.Empty:
+                                break
+                    
+                    worker_queue.put_nowait(message)
+                    self.worker_stats[worker_idx].queue_size = worker_queue.qsize()
+                    self.round_robin_index = (worker_idx + 1) % self.pool_size
+                    return True
+                except queue.Full:
+                    continue
+            
+            return False
+    
+    async def _worker_loop(self, worker_id: int, module_id: str, connections: List):
+        """Main loop for a worker."""
+        worker_queue = self.worker_queues[worker_id]
+        worker_stats = self.worker_stats[worker_id]
+        
+        print(f"Worker {worker_id} started for module {module_id}")
+        
+        while not self.shutdown_event.is_set():
+            try:
+                messages_to_send = []
+                start_time = time.time()
+                
+                # Collect messages in batch
+                batch_size = 50  # Process up to 50 messages at once
+                for _ in range(batch_size):
+                    try:
+                        message = worker_queue.get_nowait()
+                        messages_to_send.append(message)
+                    except queue.Empty:
+                        break
+                
+                if messages_to_send:
+                    # Send messages to all connections
+                    await self._send_batch_to_connections(
+                        worker_id, messages_to_send, connections
+                    )
+                    
+                    # Update worker statistics
+                    processing_time = time.time() - start_time
+                    worker_stats.messages_processed += len(messages_to_send)
+                    worker_stats.total_processing_time += processing_time
+                    worker_stats.last_activity = time.time()
+                    worker_stats.queue_size = worker_queue.qsize()
+                else:
+                    # No messages, sleep briefly
+                    await asyncio.sleep(0.001)
+                    
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logging.error(f"Error in worker {worker_id}: {e}")
+                await asyncio.sleep(0.01)
+        
+        print(f"Worker {worker_id} stopped")
+    
+    async def _send_batch_to_connections(
+        self, worker_id: int, messages: List[str], connections: List
+    ):
+        """Send a batch of messages to all connections."""
+        if not connections:
+            return
+        
+        # Make a copy to avoid modification during iteration
+        current_connections = connections[:]
+        dead_connections = []
+        
+        for connection in current_connections:
+            try:
+                # Send all messages in the batch
+                for message in messages:
+                    await connection.send_text(message)
+            except Exception as e:
+                logging.error(f"Worker {worker_id}: Error sending to WebSocket: {e}")
+                dead_connections.append(connection)
+        
+        # Remove dead connections from the original list
+        for dead_conn in dead_connections:
+            if dead_conn in connections:
+                connections.remove(dead_conn)
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Get statistics for all workers."""
+        stats = {
+            "pool_size": self.pool_size,
+            "workers": []
+        }
+        
+        total_processed = 0
+        total_queue_size = 0
+        
+        for i, worker_stats in enumerate(self.worker_stats):
+            worker_data = {
+                "worker_id": i,
+                "messages_processed": worker_stats.messages_processed,
+                "avg_processing_time_ms": worker_stats.avg_processing_time * 1000,
+                "queue_size": worker_stats.queue_size,
+                "last_activity": worker_stats.last_activity
+            }
+            stats["workers"].append(worker_data)
+            total_processed += worker_stats.messages_processed
+            total_queue_size += worker_stats.queue_size
+        
+        stats["total_messages_processed"] = total_processed
+        stats["total_queue_size"] = total_queue_size
+        stats["avg_queue_size"] = total_queue_size / self.pool_size if self.pool_size > 0 else 0
+        
+        return stats
 
 class WebSocketManager:
-    """Manages WebSocket connections with thread-safe message queuing."""
+    """Manages WebSocket connections with thread-safe message queuing and worker pools."""
     
     def __init__(self):
         self.connections: Dict[str, List[WebSocket]] = {}
-        self.message_queues: Dict[str, queue.Queue] = {}
-        self.worker_tasks: Dict[str, asyncio.Task] = {}
+        self.worker_pools: Dict[str, WebSocketWorkerPool] = {}
         self.shutdown_events: Dict[str, asyncio.Event] = {}
         
+        # Initialize fast JSON serializer
+        self.json_serializer = FastJSONSerializer()
+        
+        # Precompile common templates
+        self._setup_json_templates()
+        
+        # Statistics tracking
+        self.stats_last_update = time.time()
+        self.stats_update_interval = 30.0  # Update stats every 30 seconds
+
+    def _setup_json_templates(self):
+        """Setup precompiled JSON templates for common event types."""
+        # Template for visualization data events
+        vis_template = {
+            "event_type": "${event_type}",
+            "timestamp": "${timestamp}",
+            "visualization_data": {
+                "list_view": "${list_view}"
+            }
+        }
+        self.json_serializer.precompile_template("visualization", vis_template)
+        
+        # Template for simple events
+        simple_template = {
+            "event_type": "${event_type}",
+            "timestamp": "${timestamp}",
+            "key": "${key}",
+            "value": "${value}"
+        }
+        self.json_serializer.precompile_template("simple", simple_template)
+
     async def add_connection(self, module_id: str, websocket: WebSocket):
         """Add a WebSocket connection for a module."""
         if module_id not in self.connections:
             self.connections[module_id] = []
-            # Increase queue size for high-frequency data
-            self.message_queues[module_id] = queue.Queue(maxsize=20000)
             self.shutdown_events[module_id] = asyncio.Event()
             
-            # Start message worker for this module
-            self.worker_tasks[module_id] = asyncio.create_task(
-                self._message_worker(module_id)
+            # Create worker pool for this module
+            pool_size = self._determine_pool_size(module_id)
+            self.worker_pools[module_id] = WebSocketWorkerPool(pool_size)
+            
+            # Start workers
+            await self.worker_pools[module_id].start_workers(
+                module_id, self.connections[module_id]
             )
             
         self.connections[module_id].append(websocket)
@@ -55,131 +385,92 @@ class WebSocketManager:
             if websocket in self.connections[module_id]:
                 self.connections[module_id].remove(websocket)
                 
-            # If no more connections, stop the worker
+            # If no more connections, stop the worker pool
             if not self.connections[module_id]:
                 if module_id in self.shutdown_events:
                     self.shutdown_events[module_id].set()
-                if module_id in self.worker_tasks:
-                    self.worker_tasks[module_id].cancel()
-                    try:
-                        await self.worker_tasks[module_id]
-                    except asyncio.CancelledError:
-                        pass
-                    del self.worker_tasks[module_id]
+                
+                if module_id in self.worker_pools:
+                    await self.worker_pools[module_id].stop_workers()
+                    del self.worker_pools[module_id]
+                
                 del self.connections[module_id]
-                del self.message_queues[module_id]
                 del self.shutdown_events[module_id]
-                
+    
+    def _determine_pool_size(self, module_id: str) -> int:
+        """Determine optimal pool size based on module characteristics."""
+        # You can customize this based on known module characteristics
+        # For now, use a default that scales with expected load
+        
+        # High-frequency modules get more workers
+        high_freq_modules = ["eeg", "emg", "sensor_data", "biosignals"]
+        if any(keyword in module_id.lower() for keyword in high_freq_modules):
+            return 6  # More workers for high-frequency data
+        
+        # Medium frequency modules
+        medium_freq_modules = ["controller", "input", "audio"]
+        if any(keyword in module_id.lower() for keyword in medium_freq_modules):
+            return 4  # Medium number of workers
+        
+        # Default for other modules
+        return 2
+    
     def queue_message(self, module_id: str, message: str) -> bool:
-        """Queue a message for sending to all connections of a module."""
-        if module_id not in self.message_queues:
+        """Queue a message for sending via worker pool."""
+        if module_id not in self.worker_pools:
             return False
-            
-        try:
-            # Use put_nowait to avoid blocking
-            self.message_queues[module_id].put_nowait(message)
-            return True
-        except queue.Full:
-            # If queue is full, drop oldest messages
-            try:
-                # Remove old messages
-                for _ in range(100):  # Remove up to 100 old messages
-                    self.message_queues[module_id].get_nowait()
-                # Try to add the new message
-                self.message_queues[module_id].put_nowait(message)
-                return True
-            except queue.Empty:
-                # Queue became empty, try adding the message again
-                try:
-                    self.message_queues[module_id].put_nowait(message)
-                    return True
-                except queue.Full:
-                    return False
-            except:
-                return False
-                
-    async def _message_worker(self, module_id: str):
-        """Worker task that processes messages for a module with optimized batching."""
-        message_queue = self.message_queues[module_id]
-        shutdown_event = self.shutdown_events[module_id]
-        last_send_time = time.time()
         
-        while not shutdown_event.is_set():
-            try:
-                messages_to_send = []
-                current_time = time.time()
-                
-                # Adaptive batch size based on queue depth
-                queue_size = message_queue.qsize()
-                if queue_size > 1000:
-                    # High load - larger batches, less frequent sends
-                    max_batch_size = 200
-                    min_send_interval = 0.05  # 20 FPS max
-                elif queue_size > 100:
-                    # Medium load
-                    max_batch_size = 100
-                    min_send_interval = 0.02  # 50 FPS max  
-                else:
-                    # Low load - smaller batches, more frequent sends
-                    max_batch_size = 50
-                    min_send_interval = 0.001  # Near real-time
-                
-                # Collect messages for batch
-                for _ in range(max_batch_size):
-                    try:
-                        message = message_queue.get_nowait()
-                        messages_to_send.append(message)
-                    except queue.Empty:
-                        break
-                
-                # Send if we have messages and enough time has passed
-                if messages_to_send and (current_time - last_send_time >= min_send_interval):
-                    await self._send_messages_to_connections(module_id, messages_to_send)
-                    last_send_time = current_time
-                elif messages_to_send:
-                    # Put messages back if we're not ready to send
-                    for msg in reversed(messages_to_send):
-                        try:
-                            message_queue.put_nowait(msg)
-                        except queue.Full:
-                            break  # Drop messages if queue is full
-                
-                # Adaptive sleep based on load
-                if queue_size > 500:
-                    await asyncio.sleep(0.001)  # Very short sleep for high load
-                elif queue_size > 50:
-                    await asyncio.sleep(0.005)  # Short sleep for medium load
-                else:
-                    await asyncio.sleep(0.01)   # Longer sleep for low load
-                    
-            except asyncio.CancelledError:
-                break
-            except Exception as e:
-                logging.error(f"Error in message worker for {module_id}: {e}")
-                await asyncio.sleep(0.1)  # Longer sleep on error
-                
-    async def _send_messages_to_connections(self, module_id: str, messages: List[str]):
-        """Send multiple messages to all connections of a module."""
-        if module_id not in self.connections:
-            return
-            
-        connections = self.connections[module_id][:]  # Copy to avoid modification during iteration
-        dead_connections = []
+        return self.worker_pools[module_id].distribute_message(message)
+    
+    def get_module_stats(self, module_id: str) -> Optional[Dict[str, Any]]:
+        """Get statistics for a specific module's worker pool."""
+        if module_id in self.worker_pools:
+            return self.worker_pools[module_id].get_stats()
+        return None
+    
+    def get_all_stats(self) -> Dict[str, Any]:
+        """Get statistics for all modules."""
+        current_time = time.time()
         
-        for connection in connections:
-            try:
-                # Send all messages for this batch
-                for message in messages:
-                    await connection.send_text(message)
-            except Exception as e:
-                logging.error(f"Error sending to WebSocket: {e}")
-                dead_connections.append(connection)
+        stats = {
+            "timestamp": current_time,
+            "modules": {}
+        }
+        
+        for module_id, worker_pool in self.worker_pools.items():
+            stats["modules"][module_id] = worker_pool.get_stats()
+        
+        # Log stats periodically
+        if current_time - self.stats_last_update > self.stats_update_interval:
+            self._log_performance_stats(stats)
+            self.stats_last_update = current_time
+        
+        return stats
+    
+    def _log_performance_stats(self, stats: Dict[str, Any]):
+        """Log performance statistics."""
+        print("\n=== WebSocket Worker Pool Statistics ===")
+        
+        for module_id, module_stats in stats["modules"].items():
+            total_processed = module_stats["total_messages_processed"]
+            avg_queue_size = module_stats["avg_queue_size"]
+            pool_size = module_stats["pool_size"]
+            
+            print(f"Module {module_id}:")
+            print(f"  Pool size: {pool_size} workers")
+            print(f"  Total processed: {total_processed}")
+            print(f"  Avg queue size: {avg_queue_size:.1f}")
+            
+            # Show per-worker stats
+            for worker in module_stats["workers"]:
+                worker_id = worker["worker_id"]
+                processed = worker["messages_processed"]
+                queue_size = worker["queue_size"]
+                avg_time = worker["avg_processing_time_ms"]
                 
-        # Remove dead connections
-        for dead_conn in dead_connections:
-            if dead_conn in self.connections[module_id]:
-                self.connections[module_id].remove(dead_conn)
-
+                print(f"    Worker {worker_id}: {processed} msgs, queue: {queue_size}, avg: {avg_time:.2f}ms")
+        
+        print("=" * 45)
 
 class ApiExplorer:
     """
@@ -243,6 +534,9 @@ class ApiExplorer:
 
         # WebSocket manager instead of direct connection list
         self.websocket_manager = WebSocketManager()
+
+        # Initialize fast JSON serializer
+        self.json_serializer = FastJSONSerializer()
 
         # Callback registry
         self.callback_registry: Dict[str, Dict[int, Callable]] = {}
@@ -480,23 +774,20 @@ class ApiExplorer:
                     except Exception as e:
                         logging.error(f"Error in {module_id} callback: {e}")
 
-        # Serialize once for all connections
+        # Serialize once for all connections using optimized serializer
         try:
-            # In high frequency mode, use more compact serialization
+            # Determine serialization strategy based on event type and frequency
             if throttle_data["high_frequency_mode"]:
-                # Create a more compact version of the event data
-                compact_data = self._create_compact_event_data(event_data)
-                serialized_data = json.dumps(compact_data, separators=(',', ':'))  # No spaces
+                # Use compact serialization and templates for high frequency
+                if 'visualization_data' in event_data:
+                    serialized_data = self.json_serializer.serialize_from_template("visualization", event_data)
+                else:
+                    serialized_data = self.json_serializer.serialize_from_template("simple", event_data)
             else:
-                # Use normal serialization
-                try:
-                    serialized_data = json.dumps(event_data)
-                except TypeError as e:
-                    sanitized_data = self._sanitize_for_json(event_data)
-                    serialized_data = json.dumps(sanitized_data)
-                    logging.warning(f"Had to sanitize event data for JSON serialization: {e}")
+                # Use standard fast serialization for normal frequency
+                serialized_data = self.json_serializer.serialize_event(event_data, compact=False)
             
-            # Queue the message for sending (non-blocking)
+            # Queue the message for worker pool processing (non-blocking)
             success = self.websocket_manager.queue_message(module_id, serialized_data)
             if not success:
                 throttle_data["drop_counter"] += 1
@@ -504,68 +795,9 @@ class ApiExplorer:
         except Exception as e:
             logging.error(f"Error in broadcast_event: {e}")
 
-    def _is_important_event(self, event_data: Dict[str, Any]) -> bool:
-        """Determine if an event is important and should not be dropped."""
-        event_type = event_data.get('event_type', event_data.get('type', ''))
-        
-        # Always keep connection/disconnection events
-        if any(keyword in event_type.lower() for keyword in 
-               ['connect', 'disconnect', 'error', 'state_change', 'start', 'stop']):
-            return True
-        
-        # Keep button press/release events
-        if any(keyword in event_type.lower() for keyword in 
-               ['button_press', 'button_release', 'key_down', 'key_up']):
-            return True
-        
-        # For visualization data, check if it contains significant changes
-        if 'visualization_data' in event_data:
-            vis_data = event_data['visualization_data']
-            if isinstance(vis_data, dict) and 'list_view' in vis_data:
-                # This is sensor data - consider it important if it's the first in a while
-                # or if values show significant change
-                return True  # For now, keep all visualization data
-        
-        return False
-
-    def _create_compact_event_data(self, event_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Create a more compact version of event data for high-frequency transmission."""
-        compact = {}
-        
-        # Always include these essential fields
-        essential_fields = ['event_type', 'type', 'timestamp', 'visualization_data']
-        
-        for field in essential_fields:
-            if field in event_data:
-                if field == 'visualization_data':
-                    # Compact visualization data
-                    vis_data = event_data[field]
-                    if isinstance(vis_data, dict) and 'list_view' in vis_data:
-                        # Round numeric values to reduce precision
-                        compact_list = []
-                        for item in vis_data['list_view']:
-                            compact_item = {
-                                'channel': item.get('channel'),
-                                'type': item.get('type'),
-                                'value': round(float(item.get('value', 0)), 3)  # 3 decimal places
-                            }
-                            compact_list.append(compact_item)
-                        compact[field] = {'list_view': compact_list}
-                    else:
-                        compact[field] = vis_data
-                elif field == 'timestamp':
-                    # Round timestamp to milliseconds
-                    compact[field] = round(event_data[field], 3)
-                else:
-                    compact[field] = event_data[field]
-        
-        # Add other important fields if they exist and are small
-        other_fields = ['key', 'button', 'state']
-        for field in other_fields:
-            if field in event_data and len(str(event_data[field])) < 50:
-                compact[field] = event_data[field]
-        
-        return compact
+    def get_websocket_stats(self) -> Dict[str, Any]:
+        """Get WebSocket performance statistics."""
+        return self.websocket_manager.get_all_stats()
 
     def start_server(
         self, host: str = "127.0.0.1", port: int = 8000, block: bool = False
@@ -820,3 +1052,66 @@ class ApiExplorer:
             "router": router,
             "show_data_table": show_data_table,
         }
+
+    def _is_important_event(self, event_data: Dict[str, Any]) -> bool:
+        """Determine if an event is important and should not be dropped."""
+        event_type = event_data.get('event_type', event_data.get('type', ''))
+        
+        # Always keep connection/disconnection events
+        if any(keyword in event_type.lower() for keyword in 
+               ['connect', 'disconnect', 'error', 'state_change', 'start', 'stop']):
+            return True
+        
+        # Keep button press/release events
+        if any(keyword in event_type.lower() for keyword in 
+               ['button_press', 'button_release', 'key_down', 'key_up']):
+            return True
+        
+        # For visualization data, check if it contains significant changes
+        if 'visualization_data' in event_data:
+            vis_data = event_data['visualization_data']
+            if isinstance(vis_data, dict) and 'list_view' in vis_data:
+                # This is sensor data - consider it important if it's the first in a while
+                # or if values show significant change
+                return True  # For now, keep all visualization data
+        
+        return False
+
+    def _create_compact_event_data(self, event_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a more compact version of event data for high-frequency transmission."""
+        compact = {}
+        
+        # Always include these essential fields
+        essential_fields = ['event_type', 'type', 'timestamp', 'visualization_data']
+        
+        for field in essential_fields:
+            if field in event_data:
+                if field == 'visualization_data':
+                    # Compact visualization data
+                    vis_data = event_data[field]
+                    if isinstance(vis_data, dict) and 'list_view' in vis_data:
+                        # Round numeric values to reduce precision
+                        compact_list = []
+                        for item in vis_data['list_view']:
+                            compact_item = {
+                                'channel': item.get('channel'),
+                                'type': item.get('type'),
+                                'value': round(float(item.get('value', 0)), 3)  # 3 decimal places
+                            }
+                            compact_list.append(compact_item)
+                        compact[field] = {'list_view': compact_list}
+                    else:
+                        compact[field] = vis_data
+                elif field == 'timestamp':
+                    # Round timestamp to milliseconds
+                    compact[field] = round(event_data[field], 3)
+                else:
+                    compact[field] = event_data[field]
+        
+        # Add other important fields if they exist and are small
+        other_fields = ['key', 'button', 'state']
+        for field in other_fields:
+            if field in event_data and len(str(event_data[field])) < 50:
+                compact[field] = event_data[field]
+        
+        return compact
