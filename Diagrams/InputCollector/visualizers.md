@@ -115,6 +115,7 @@ classDiagram
     %% PS4 Controller Visualizer
     class PS4ControllerVisualizer {
         +key_clicked: pyqtSignal
+        +update_requested: pyqtSignal
         -button_states: Dict[str, bool]
         -stick_positions: Dict[str, tuple]
         -trigger_values: Dict[str, float]
@@ -123,15 +124,27 @@ classDiagram
         -images: Dict[str, Dict[str, Any]]
         -base_image: Optional[QPixmap]
         -positions_file: Path
-        -edit_mode: bool
+        -_edit_mode: bool
         -selected_item: Optional[str]
+        -drag_start: Optional[QPoint]
         -element_groups: Dict[str, List[str]]
         -controller_widget: QWidget
         -right_panel: QWidget
         -log_text: QTextEdit
         -state_update_timer: QTimer
+        -splitter: QSplitter
+        -state_panel: QWidget
+        -active_buttons_display: QTextEdit
+        -left_x_value: QLabel
+        -right_x_value: QLabel
+        -left_trigger_value: QLabel
+        -right_trigger_value: QLabel
+        -_snapshot: Dict[str, Optional[Tuple[int, int]]]
+        -_should_commit: bool
+        -_ps4_active_buttons: Set[str]
 
         +__init__(parent: Optional[QWidget]) void
+        +_init_ui() void
         +load_images() void
         +toggle_edit_mode() bool
         +set_edit_mode(enabled: bool) void
@@ -144,24 +157,26 @@ classDiagram
         +mousePressEvent(event: QMouseEvent) void
         +mouseMoveEvent(event: QMouseEvent) void
         +mouseReleaseEvent(event: QMouseEvent) void
-        -_init_ui() void
-        -load_positions_from_json() Dict[str, Any]
-        -get_default_positions() Dict[str, Dict[str, Any]]
-        -save_positions_to_json() bool
-        -find_group_for_item(item_key: str) Optional[str]
-        -move_group(group_name: str, delta_x: int, delta_y: int) void
-        -_paint_controller(event: QPaintEvent) void
-        -paint_edit_overlays(painter: QPainter) void
-        -paint_image_mode(painter: QPainter) void
-        -paint_drawn_mode(painter: QPainter) void
-        -draw_image_analog_sticks(painter: QPainter) void
-        -draw_image_triggers(painter: QPainter) void
-        -draw_dpad(painter: QPainter, x: int, y: int) void
-        -draw_action_buttons(painter: QPainter, x: int, y: int) void
-        -draw_analog_stick(painter: QPainter, x: int, y: int, stick: str) void
-        -draw_shoulder_buttons(painter: QPainter) void
-        -draw_triggers(painter: QPainter) void
-        -draw_start_select(painter: QPainter) void
+        +_paint_controller(event: QPaintEvent) void
+        +paintEvent(event: QPaintEvent) void
+        +paint_edit_overlays(painter: QPainter) void
+        +paint_image_mode(painter: QPainter) void
+        +paint_drawn_mode(painter: QPainter) void
+        +draw_image_analog_sticks(painter: QPainter) void
+        +draw_image_triggers(painter: QPainter) void
+        +draw_dpad(painter: QPainter, x: int, y: int) void
+        +draw_action_buttons(painter: QPainter, x: int, y: int) void
+        +draw_analog_stick(painter: QPainter, x: int, y: int, stick: str) void
+        +draw_shoulder_buttons(painter: QPainter) void
+        +draw_triggers(painter: QPainter) void
+        +draw_start_select(painter: QPainter) void
+        +_thread_safe_update(input_data: InputData) void
+        +_log_event_main_thread(event_data: Any, color: Optional[str]) void
+        +load_positions_from_json() Dict[str, Any]
+        +get_default_positions() Dict[str, Dict[str, Any]]
+        +save_positions_to_json() bool
+        +find_group_for_item(item_key: str) Optional[str]
+        +move_group(group_name: str, delta_x: int, delta_y: int) void
     }
 
     %% Data Classes
@@ -192,6 +207,10 @@ classDiagram
         <<Qt>>
     }
 
+    class QSplitter {
+        <<Qt>>
+    }
+
     %% Relationships
     QWidget <|-- BaseVisualizer : inherits
     BaseVisualizer <|-- KeyboardVisualizer : extends
@@ -207,6 +226,9 @@ classDiagram
     PS4ControllerVisualizer "1" --> "1" QWidget : controller_widget
     PS4ControllerVisualizer "1" --> "1" QTextEdit : log_text
     PS4ControllerVisualizer "1" --> "1" QTimer : state_update_timer
+    PS4ControllerVisualizer "1" --> "1" QSplitter : splitter
+    PS4ControllerVisualizer "1" --> "1" QWidget : state_panel
+    PS4ControllerVisualizer "1" --> "1" QWidget : right_panel
 
     KeyboardVisualizer --> InputData : processes
     MouseVisualizer --> InputData : processes
@@ -217,6 +239,6 @@ classDiagram
     note for BaseVisualizer "Base class implementing AbstractVisualizer\ninterface without direct inheritance\nto avoid metaclass conflicts"
     note for KeyboardVisualizer "Virtual keyboard with key highlighting\nSupports edit mode for key selection"
     note for MouseVisualizer "Joystick-like mouse movement visualization\nSupports multiple tracking modes"
-    note for PS4ControllerVisualizer "Controller visualization with image overlay\nSupports edit mode for position adjustment"
+    note for PS4ControllerVisualizer "Controller visualization with image overlay\nSupports edit mode for position adjustment\nThread-safe updates via signals/slots\nSplit panel interface with real-time logging"
     note for Canvas "Internal widget for mouse movement rendering\nHandles joystick-style visualization"
 ```

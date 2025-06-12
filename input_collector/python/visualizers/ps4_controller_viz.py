@@ -10,7 +10,16 @@ import time
 from pathlib import Path
 from typing import Dict, Optional, Any, Tuple
 
-from PyQt5.QtCore import Qt, QRect, QTimer, pyqtSignal, QPoint, QObject, QMetaObject, Q_ARG
+from PyQt5.QtCore import (
+    Qt,
+    QRect,
+    QTimer,
+    pyqtSignal,
+    QPoint,
+    QObject,
+    QMetaObject,
+    Q_ARG,
+)
 from PyQt5.QtGui import (
     QPainter,
     QPen,
@@ -49,7 +58,7 @@ class PS4ControllerVisualizer(BaseVisualizer):
 
     # Signal for edit mode
     key_clicked = pyqtSignal(str)
-    
+
     # Signal for thread-safe updates
     update_requested = pyqtSignal(object)  # InputData object
 
@@ -498,7 +507,9 @@ class PS4ControllerVisualizer(BaseVisualizer):
         """
         if not input_data:
             # Just repaint with current state - ensure this runs on main thread
-            QMetaObject.invokeMethod(self.controller_widget, "update", Qt.QueuedConnection)
+            QMetaObject.invokeMethod(
+                self.controller_widget, "update", Qt.QueuedConnection
+            )
             return
 
         # Emit signal for thread-safe processing
@@ -507,7 +518,7 @@ class PS4ControllerVisualizer(BaseVisualizer):
     def _thread_safe_update(self, input_data: InputData) -> None:
         """
         Thread-safe update method that runs on the main thread.
-        
+
         Args:
             input_data: Input event data containing controller state information
         """
@@ -539,17 +550,16 @@ class PS4ControllerVisualizer(BaseVisualizer):
                 ):
                     prev_pos = self.stick_positions["left"]
                     self.stick_positions["left"] = (input_data.rel_x, input_data.rel_y)
-                    
+
                     # Enhanced logging with "return to zero" detection
                     current_magnitude = abs(input_data.rel_x) + abs(input_data.rel_y)
                     prev_magnitude = abs(prev_pos[0]) + abs(prev_pos[1])
-                    
+
                     # Log if: significant movement OR crossing back to zero
-                    should_log = (
-                        current_magnitude > 0.02 or  # Significant movement
-                        (prev_magnitude > 0.02 and current_magnitude == 0.0)  # Return to zero
-                    )
-                    
+                    should_log = current_magnitude > 0.02 or (  # Significant movement
+                        prev_magnitude > 0.02 and current_magnitude == 0.0
+                    )  # Return to zero
+
                     if should_log:
                         if current_magnitude == 0.0:
                             # Special message for return to zero
@@ -572,17 +582,16 @@ class PS4ControllerVisualizer(BaseVisualizer):
                 ):
                     prev_pos = self.stick_positions["right"]
                     self.stick_positions["right"] = (input_data.rel_x, input_data.rel_y)
-                    
+
                     # Enhanced logging with "return to zero" detection
                     current_magnitude = abs(input_data.rel_x) + abs(input_data.rel_y)
                     prev_magnitude = abs(prev_pos[0]) + abs(prev_pos[1])
-                    
+
                     # Log if: significant movement OR crossing back to zero
-                    should_log = (
-                        current_magnitude > 0.02 or  # Significant movement
-                        (prev_magnitude > 0.02 and current_magnitude == 0.0)  # Return to zero
-                    )
-                    
+                    should_log = current_magnitude > 0.02 or (  # Significant movement
+                        prev_magnitude > 0.02 and current_magnitude == 0.0
+                    )  # Return to zero
+
                     if should_log:
                         if current_magnitude == 0.0:
                             # Special message for return to zero
@@ -603,13 +612,12 @@ class PS4ControllerVisualizer(BaseVisualizer):
                 ):
                     prev_value = self.trigger_values["left"] / 32767.0
                     self.trigger_values["left"] = int(input_data.rel_x * 32767)
-                    
+
                     # Enhanced logging with "return to zero" detection
-                    should_log = (
-                        input_data.rel_x > 0.01 or  # Significant pressure
-                        (prev_value > 0.01 and input_data.rel_x == 0.0)  # Return to zero
-                    )
-                    
+                    should_log = input_data.rel_x > 0.01 or (  # Significant pressure
+                        prev_value > 0.01 and input_data.rel_x == 0.0
+                    )  # Return to zero
+
                     if should_log:
                         if input_data.rel_x == 0.0:
                             # Special message for return to zero
@@ -630,13 +638,12 @@ class PS4ControllerVisualizer(BaseVisualizer):
                 ):
                     prev_value = self.trigger_values["right"] / 32767.0
                     self.trigger_values["right"] = int(input_data.rel_x * 32767)
-                    
+
                     # Enhanced logging with "return to zero" detection
-                    should_log = (
-                        input_data.rel_x > 0.01 or  # Significant pressure
-                        (prev_value > 0.01 and input_data.rel_x == 0.0)  # Return to zero
-                    )
-                    
+                    should_log = input_data.rel_x > 0.01 or (  # Significant pressure
+                        prev_value > 0.01 and input_data.rel_x == 0.0
+                    )  # Return to zero
+
                     if should_log:
                         if input_data.rel_x == 0.0:
                             # Special message for return to zero
@@ -1386,18 +1393,22 @@ class PS4ControllerVisualizer(BaseVisualizer):
         # Ensure logging happens on the main thread
         if not self.thread() == QApplication.instance().thread():
             QMetaObject.invokeMethod(
-                self, "_log_event_main_thread", Qt.QueuedConnection,
+                self,
+                "_log_event_main_thread",
+                Qt.QueuedConnection,
                 Q_ARG("PyQt_PyObject", event_data),
-                Q_ARG("PyQt_PyObject", color)
+                Q_ARG("PyQt_PyObject", color),
             )
             return
-        
+
         self._log_event_main_thread(event_data, color)
 
-    def _log_event_main_thread(self, event_data: Any, color: Optional[str] = None) -> None:
+    def _log_event_main_thread(
+        self, event_data: Any, color: Optional[str] = None
+    ) -> None:
         """
         Internal method to log events on the main thread.
-        
+
         Args:
             event_data: The event data to log
             color: Optional color for the log entry
@@ -1446,4 +1457,5 @@ class PS4ControllerVisualizer(BaseVisualizer):
         except Exception as e:
             print(f"Error logging event: {e}")
             import traceback
+
             traceback.print_exc()

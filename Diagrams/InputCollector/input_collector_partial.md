@@ -226,6 +226,8 @@ classDiagram
     class AppSubmodule {
         <<submodule>>
         +AppCoordinator
+        +EventCoordination
+        +ComponentOrchestration
     }
 
     class CollectorsSubmodule {
@@ -233,6 +235,10 @@ classDiagram
         +CollectorManager
         +KeyboardMouseCollector
         +PS4ControllerCollector
+        +ThreadSafeEventProcessing
+        +SDL2EventLoop
+        +AutomaticReconnection
+        +is_sdl2_available
     }
 
     class InterfacesSubmodule {
@@ -242,6 +248,7 @@ classDiagram
         +AbstractVisualizer
         +AbstractVisualizerProvider
         +AbstractVisualizerController
+        +ContractDefinitions
     }
 
     class VisualizersSubmodule {
@@ -251,6 +258,10 @@ classDiagram
         +MouseButtonsSelector
         +PS4ControllerVisualizer
         +BaseVisualizer
+        +ThreadSafeUpdates
+        +SplitPanelInterface
+        +RealTimeStateLogging
+        +EnhancedEditMode
     }
 
     class LoggingSubmodule {
@@ -258,28 +269,37 @@ classDiagram
         +LoggingManager
         +CSVLogger
         +JSONLogger
+        +MultiformatLogging
     }
 
     class UISubmodule {
         <<submodule>>
         +UIManager
         +VisualizerManager
+        +DarkThemeSupport
+        +ResponsiveLayout
     }
 
     class ProcessingSubmodule {
         <<submodule>>
         +EventProcessor
+        +EventFiltering
+        +SpecialEventDetection
     }
 
     class ServicesSubmodule {
         <<submodule>>
         +InteractionService
         +DataAccessService
+        +SingletonServices
+        +ThreadSafeOperations
     }
 
     class AdaptersSubmodule {
         <<submodule>>
         +QtInteractionAdapter
+        +ThreadSafeAdaptation
+        +FrameworkIsolation
     }
 
     class CoreSubmodule {
@@ -287,6 +307,8 @@ classDiagram
         +EventSystem
         +EventType
         +EventDispatcher
+        +DecoupledCommunication
+        +ThreadSafeEventDelivery
     }
 
     class CLISubmodule {
@@ -294,7 +316,14 @@ classDiagram
         +CLIApp
         +CLIShell
         +CLIConfig
-        +Commands
+        +DataCommands
+        +InteractionCommands
+        +MonitorCommands
+        +PS4ControllerMonitor
+        +CoreEventSystemIntegration
+        +CrossPlatformSupport
+        +RichConsoleInterface
+        +EventDrivenMonitoring
     }
 
     %% Qt Framework Components
@@ -360,6 +389,7 @@ classDiagram
         <<stdlib>>
         +Thread
         +Event
+        +Lock
         +current_thread() Thread
         +main_thread() Thread
     }
@@ -417,12 +447,33 @@ classDiagram
     InputCollectorApiIntegration --> InterfacesSubmodule : processes InputData
     InteractionApiIntegration --> InterfacesSubmodule : handles InputData
 
+    %% Enhanced Core Event System Integration
+    CLISubmodule --> CoreSubmodule : uses EventSystem for monitoring
+    CollectorsSubmodule --> CoreSubmodule : dispatches events via EventSystem
+    VisualizersSubmodule --> CoreSubmodule : receives thread-safe updates
+    ProcessingSubmodule --> CoreSubmodule : coordinates via EventDispatcher
+    AppSubmodule --> CoreSubmodule : orchestrates through EventSystem
+
+    %% Thread-Safe Communication
+    CollectorsSubmodule --> VisualizersSubmodule : thread-safe UI updates
+    CLISubmodule --> CollectorsSubmodule : event-driven monitoring
+    VisualizersSubmodule --> UISubmodule : split panel interfaces
+
     %% Framework Integration
     InputCollectorApp --> QApplication : requires for GUI
     run --> argparse : parses command line
     run --> sys : manages paths and exit
 
-    %% Notes
+    %% Enhanced Submodule Notes
+    note for CLISubmodule "Enhanced CLI with event-driven monitoring:\n• PS4 controller real-time display\n• Cross-platform key detection (ESC/Q)\n• Rich console interface with tables/panels\n• Core event system integration\n• Smart collector-specific monitoring\n• Thread-safe operations with cleanup"
+
+    note for CollectorsSubmodule "Thread-safe event processing:\n• SDL2 event loop architecture\n• Automatic reconnection capabilities\n• Enhanced PS4 controller support\n• Event-driven state management\n• Core event system integration"
+
+    note for VisualizersSubmodule "Thread-safe UI updates:\n• Split panel PS4 interface\n• Real-time state logging\n• Enhanced edit mode capabilities\n• Signal/slot based updates\n• Professional dark theme support"
+
+    note for CoreSubmodule "Centralized event system:\n• Framework-independent communication\n• Thread-safe event delivery\n• Decoupled component interaction\n• Subscribe/unsubscribe patterns\n• Event type enumeration"
+
+    %% Main Application Notes
     note for run "Main entry point script\nParses configuration from command line\nStarts GUI, CLI, and web APIs as configured\nManages thread coordination and cleanup"
 
     note for InputCollectorApp "Main GUI application class\nIntegrates all submodules into cohesive app\nManages Qt widgets and event handling\nCoordinates between UI, collectors, and logging"
@@ -435,9 +486,9 @@ classDiagram
 
     note for InteractionApiIntegration "Web API integration for application control\nRegisters control methods with API Explorer\nProvides comprehensive remote control\nReuses utilities from data API integration"
 
-    %% Module Architecture Documentation
-    note "Module Architecture:\n• run.py: Entry point with configuration\n• InputCollectorApp: Main GUI application\n• APIs: Static facades over service layer\n• Integrations: Web API exposures via API Explorer\n• Submodules: Specialized functionality domains\n• Clear separation between GUI, CLI, and web interfaces"
+    %% Architecture Overview
+    note "Enhanced Module Architecture:\n• Event-driven communication via CoreSubmodule\n• Thread-safe operations across all components\n• Enhanced PS4 controller support with real-time monitoring\n• Rich CLI interface with cross-platform compatibility\n• Split panel visualizer interfaces\n• Core event system for decoupled communication\n• Improved error handling and recovery mechanisms"
 
     %% Execution Flow
-    note "Execution Flow:\n1. run.py parses configuration\n2. Initializes web APIs if enabled\n3. Starts CLI thread if requested\n4. Creates and runs InputCollectorApp\n5. App initializes all submodule components\n6. Connects signals between components\n7. Shows GUI and enters Qt event loop\n8. Cleanup on exit coordinates all threads"
+    note "Enhanced Execution Flow:\n1. run.py parses configuration and initializes components\n2. Core event system establishes communication channels\n3. Collectors initialize with thread-safe event processing\n4. CLI starts with event-driven monitoring capabilities\n5. GUI initializes with enhanced visualizers\n6. All components communicate via core event system\n7. Thread-safe updates and real-time state synchronization\n8. Coordinated cleanup with proper thread management"
 ```

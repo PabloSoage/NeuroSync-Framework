@@ -60,22 +60,39 @@ classDiagram
         -button_states: Dict[str, bool]
         -stick_positions: Dict[str, tuple]
         -trigger_values: Dict[str, float]
-        -polling_timer: Optional[QTimer]
+        -previous_trigger_values: Dict[str, float]
+        -previous_stick_positions: Dict[str, tuple]
+        -event_thread: Optional[threading.Thread]
+        -event_stop_event: threading.Event
+        -event_lock: threading.Lock
+        -max_events: int
+        -tracked_keys_set: Set[str]
         -supported_keys: List[str]
 
         +__init__() void
         +initialize_sdl() bool
-        +poll_events() void
+        +start_capture() void
+        +stop_capture() void
         +scan_controllers() List[Dict[str, Any]]
         +connect_to_first_available() bool
         +connect_to_controller(controller_index: int) bool
-        -_process_button_inputs() void
-        -_process_touchpad_button() void
-        -_process_stick_inputs() void
-        -_process_trigger_inputs() void
+        +get_input_event() InputData
+        +on_event(callback: Callable) void
+        +set_supported_keys(keys: List[str]) void
+        +get_events_since(timestamp: float) List[InputData]
+        +clear_events() void
+        +get_active_keys() List[str]
+        +get_collector_type() str
+        +get_capabilities() Dict[str, Any]
+        -_process_sdl_event(event: sdl2.SDL_Event) void
+        -_handle_button_event(button_event: sdl2.SDL_ControllerButtonEvent, is_pressed: bool) void
+        -_handle_joystick_button_event(button_event: sdl2.SDL_JoyButtonEvent, is_pressed: bool) void
+        -_handle_axis_event(axis_event: sdl2.SDL_ControllerAxisEvent) void
         -_on_controller_disconnected() void
         -_try_reconnect() void
         -_process_event(event: InputData) void
+        -_safe_callback(callback: Callable[[InputData], None], event: InputData) void
+        -_event_loop() void
     }
 
     class CollectorManager {

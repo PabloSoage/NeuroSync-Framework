@@ -15,7 +15,15 @@ from typing import Dict, List, Optional, Callable, Any, Type, Union, Set
 import uvicorn
 
 # FastAPI imports
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, APIRouter, Request, Query, HTTPException
+from fastapi import (
+    FastAPI,
+    WebSocket,
+    WebSocketDisconnect,
+    APIRouter,
+    Request,
+    Query,
+    HTTPException,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -101,7 +109,7 @@ class ApiExplorer:
         self.is_running = False
         self.server_port: Optional[int] = None
         self.server_host: Optional[str] = None
-        
+
         # Setup basic routes
         self._setup_routes()
 
@@ -170,14 +178,16 @@ class ApiExplorer:
                 module_data["method_groups"].append(group_data)
 
             modules_list.append(module_data)
-        
+
         return modules_list
 
-    async def _handle_websocket_connection(self, websocket: WebSocket, module_id: str):
+    async def _handle_websocket_connection(
+        self, websocket: WebSocket, module_id: str
+    ) -> None:
         """Handle WebSocket connection lifecycle."""
         await websocket.accept()
         print(f"WebSocket connection established for module: {module_id}")
-        
+
         await self.websocket_manager.add_connection(module_id, websocket)
 
         try:
@@ -237,7 +247,9 @@ class ApiExplorer:
 
         # Serialize and queue message
         try:
-            serialized_data = self.websocket_manager.serialize_event(event_data, module_id)
+            serialized_data = self.websocket_manager.serialize_event(
+                event_data, module_id
+            )
             success = self.websocket_manager.queue_message(module_id, serialized_data)
             if not success:
                 logging.warning(f"Failed to queue message for module {module_id}")
@@ -315,6 +327,7 @@ class ApiExplorer:
         """Check if a port is already in use."""
         try:
             import socket
+
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(1)
             result = sock.connect_ex((host, port))
@@ -384,11 +397,17 @@ class ApiExplorer:
 
         self._register_endpoint(router, method_id, method_info, handler_function)
 
-    def _register_endpoint(self, router: APIRouter, method_id: str, method_info: Dict[str, Any], handler_function: Callable[..., Any]):
+    def _register_endpoint(
+        self,
+        router: APIRouter,
+        method_id: str,
+        method_info: Dict[str, Any],
+        handler_function: Callable[..., Any],
+    ) -> None:
         """Register an individual endpoint with the router."""
         import inspect
         from fastapi import Query, Depends, Body
-        from pydantic import create_model
+        from pydantic import create_model, BaseModel
 
         method_type = method_info.get("type", "GET").upper()
         sig = inspect.signature(handler_function)
@@ -396,9 +415,11 @@ class ApiExplorer:
 
         if method_type == "GET":
             if len(param_names) == 0:
+
                 @router.get(f"/{method_id}")
                 async def endpoint() -> Any:
                     return await handler_function()
+
             else:
                 param_dict: Dict[str, Any] = {}
                 for param_id, param_info in method_info.get("params", {}).items():
@@ -418,6 +439,7 @@ class ApiExplorer:
                         k: v for k, v in query.dict().items() if v is not None
                     }
                     return await handler_function(**param_dict)
+
         else:
             # POST requests
             param_fields: Dict[str, Any] = {}
@@ -438,23 +460,26 @@ class ApiExplorer:
             )
 
             @router.post(f"/{method_id}")
-            async def endpoint(request_data: RequestModel) -> Any:
-                if hasattr(request_data, 'dict'):
-                    data_dict = {
-                        k: v for k, v in request_data.dict().items() if v is not None
-                    }
-                elif isinstance(request_data, dict):
-                    data_dict = {
-                        k: v for k, v in request_data.items() if v is not None
-                    }
-                else:
-                    try:
+            async def endpoint(request_data: BaseModel) -> Any:
+                # Handle different ways to access model data
+                try:
+                    if hasattr(request_data, "model_dump"):
                         data_dict = {
-                            k: v for k, v in request_data.model_dump().items() if v is not None
+                            k: v
+                            for k, v in request_data.model_dump().items()
+                            if v is not None
                         }
-                    except AttributeError:
+                    elif hasattr(request_data, "dict"):
+                        data_dict = {
+                            k: v
+                            for k, v in request_data.dict().items()
+                            if v is not None
+                        }
+                    else:
                         data_dict = {
                             k: v for k, v in vars(request_data).items() if v is not None
                         }
-                
+                except AttributeError:
+                    data_dict = {}
+
                 return await handler_function(**data_dict)

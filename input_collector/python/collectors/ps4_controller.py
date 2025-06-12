@@ -69,7 +69,7 @@ class PS4ControllerCollector(AbstractInputCollector):
         # Threading for event processing
         self.event_thread: Optional[threading.Thread] = None
         self.event_stop_event: threading.Event = threading.Event()
-        
+
         # Thread safety
         self.event_lock: threading.Lock = threading.Lock()
 
@@ -116,11 +116,11 @@ class PS4ControllerCollector(AbstractInputCollector):
                 error = sdl2.SDL_GetError().decode()
                 print(f"Error initializing SDL2: {error}")
                 return False
-            
+
             # Enable controller events
             sdl2.SDL_GameControllerEventState(sdl2.SDL_ENABLE)
             sdl2.SDL_JoystickEventState(sdl2.SDL_ENABLE)
-            
+
             return True
         except Exception as e:
             print(f"Exception initializing SDL2: {e}")
@@ -174,18 +174,20 @@ class PS4ControllerCollector(AbstractInputCollector):
             try:
                 # Process SDL events
                 event = sdl2.SDL_Event()
-                
+
                 # Wait for events with timeout
                 if sdl2.SDL_WaitEventTimeout(event, 16):  # 16ms timeout (~60Hz)
                     self._process_sdl_event(event)
                 else:
                     # Timeout occurred, check for controller disconnection
-                    if self.controller and not sdl2.SDL_GameControllerGetAttached(self.controller):
+                    if self.controller and not sdl2.SDL_GameControllerGetAttached(
+                        self.controller
+                    ):
                         self._on_controller_disconnected()
                     elif not self.controller:
                         # Try to reconnect if no controller
                         self.connect_to_first_available()
-                        
+
             except Exception as e:
                 print(f"Error in event loop: {e}")
                 # Brief pause before continuing to avoid tight error loops
@@ -213,15 +215,17 @@ class PS4ControllerCollector(AbstractInputCollector):
         elif event.type == sdl2.SDL_JOYBUTTONUP:
             self._handle_joystick_button_event(event.jbutton, False)
 
-    def _handle_button_event(self, button_event, is_pressed: bool) -> None:
+    def _handle_button_event(
+        self, button_event: sdl2.SDL_ControllerButtonEvent, is_pressed: bool
+    ) -> None:
         """Handle controller button events."""
         if not self.controller:
             return
-            
+
         # Map SDL button codes to our button names
         button_mapping = {
             sdl2.SDL_CONTROLLER_BUTTON_Y: "triangle",
-            sdl2.SDL_CONTROLLER_BUTTON_B: "circle", 
+            sdl2.SDL_CONTROLLER_BUTTON_B: "circle",
             sdl2.SDL_CONTROLLER_BUTTON_A: "cross",
             sdl2.SDL_CONTROLLER_BUTTON_X: "square",
             sdl2.SDL_CONTROLLER_BUTTON_DPAD_UP: "dpad_up",
@@ -236,12 +240,12 @@ class PS4ControllerCollector(AbstractInputCollector):
             sdl2.SDL_CONTROLLER_BUTTON_RIGHTSTICK: "right_stick",
             sdl2.SDL_CONTROLLER_BUTTON_GUIDE: "ps",
         }
-        
+
         button_name = button_mapping.get(button_event.button)
         if button_name:
             # Update button state
             self.button_states[button_name] = is_pressed
-            
+
             # Create event
             event = InputData(
                 timestamp=time.time(),
@@ -249,29 +253,33 @@ class PS4ControllerCollector(AbstractInputCollector):
                 key=button_name,
                 active_keys=self.get_active_keys(),
             )
-            
+
             # Process event
             self._process_event(event)
 
-    def _handle_joystick_button_event(self, button_event, is_pressed: bool) -> None:
+    def _handle_joystick_button_event(
+        self, button_event: sdl2.SDL_JoyButtonEvent, is_pressed: bool
+    ) -> None:
         """Handle joystick button events (for touchpad and other special buttons)."""
         if not self.joystick:
             return
-            
+
         # Check for touchpad button on common indices
         if button_event.button in [13, 14, 15, 16, 17, 18]:
             # Verify this isn't a d-pad conflict
-            dpad_conflict = any([
-                self.button_states.get("dpad_up", False),
-                self.button_states.get("dpad_down", False),
-                self.button_states.get("dpad_left", False),
-                self.button_states.get("dpad_right", False),
-            ])
-            
+            dpad_conflict = any(
+                [
+                    self.button_states.get("dpad_up", False),
+                    self.button_states.get("dpad_down", False),
+                    self.button_states.get("dpad_left", False),
+                    self.button_states.get("dpad_right", False),
+                ]
+            )
+
             if not dpad_conflict:
                 # Update touchpad state
                 self.button_states["touchpad"] = is_pressed
-                
+
                 # Create event
                 event = InputData(
                     timestamp=time.time(),
@@ -279,22 +287,22 @@ class PS4ControllerCollector(AbstractInputCollector):
                     key="touchpad",
                     active_keys=self.get_active_keys(),
                 )
-                
+
                 # Process event
                 self._process_event(event)
 
-    def _handle_axis_event(self, axis_event) -> None:
+    def _handle_axis_event(self, axis_event: sdl2.SDL_ControllerAxisEvent) -> None:
         """Handle controller axis motion events."""
         if not self.controller:
             return
-            
+
         # Apply deadzone
         def apply_deadzone(value, deadzone=0.15):
             normalized = value / 32767.0
             if abs(normalized) < deadzone:
                 return 0.0
             return normalized
-            
+
         def apply_trigger_deadzone(value, deadzone=500):
             if value < deadzone:
                 return 0
@@ -306,24 +314,24 @@ class PS4ControllerCollector(AbstractInputCollector):
             normalized_value = apply_deadzone(axis_event.value)
             old_pos = self.stick_positions["left"]
             self.stick_positions["left"] = (normalized_value, old_pos[1])
-            
+
             # Create event for any movement (no threshold for events)
             event = InputData(
                 timestamp=time.time(),
-                event_type="axis_motion", 
+                event_type="axis_motion",
                 key="Left_Stick_X",
                 rel_x=normalized_value,
                 rel_y=old_pos[1],
                 active_keys=self.get_active_keys(),
             )
             self._process_event(event)
-            
+
         elif axis_event.axis == sdl2.SDL_CONTROLLER_AXIS_LEFTY:
             # Left stick Y
             normalized_value = apply_deadzone(axis_event.value)
             old_pos = self.stick_positions["left"]
             self.stick_positions["left"] = (old_pos[0], normalized_value)
-            
+
             # Create event for any movement (no threshold for events)
             event = InputData(
                 timestamp=time.time(),
@@ -334,13 +342,13 @@ class PS4ControllerCollector(AbstractInputCollector):
                 active_keys=self.get_active_keys(),
             )
             self._process_event(event)
-            
+
         elif axis_event.axis == sdl2.SDL_CONTROLLER_AXIS_RIGHTX:
             # Right stick X
             normalized_value = apply_deadzone(axis_event.value)
             old_pos = self.stick_positions["right"]
             self.stick_positions["right"] = (normalized_value, old_pos[1])
-            
+
             # Create event for any movement (no threshold for events)
             event = InputData(
                 timestamp=time.time(),
@@ -351,13 +359,13 @@ class PS4ControllerCollector(AbstractInputCollector):
                 active_keys=self.get_active_keys(),
             )
             self._process_event(event)
-            
+
         elif axis_event.axis == sdl2.SDL_CONTROLLER_AXIS_RIGHTY:
             # Right stick Y
             normalized_value = apply_deadzone(axis_event.value)
             old_pos = self.stick_positions["right"]
             self.stick_positions["right"] = (old_pos[0], normalized_value)
-            
+
             # Create event for any movement (no threshold for events)
             event = InputData(
                 timestamp=time.time(),
@@ -368,15 +376,15 @@ class PS4ControllerCollector(AbstractInputCollector):
                 active_keys=self.get_active_keys(),
             )
             self._process_event(event)
-            
+
         elif axis_event.axis == sdl2.SDL_CONTROLLER_AXIS_TRIGGERLEFT:
             # Left trigger with "return to zero" detection
             filtered_value = apply_trigger_deadzone(axis_event.value)
             normalized_value = filtered_value / 32767.0
             previous_normalized = self.trigger_values["left"] / 32767.0
-            
+
             self.trigger_values["left"] = filtered_value
-            
+
             # Always create event, but check for threshold crossing for special logging
             event = InputData(
                 timestamp=time.time(),
@@ -386,15 +394,15 @@ class PS4ControllerCollector(AbstractInputCollector):
                 active_keys=self.get_active_keys(),
             )
             self._process_event(event)
-            
+
         elif axis_event.axis == sdl2.SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
             # Right trigger with "return to zero" detection
             filtered_value = apply_trigger_deadzone(axis_event.value)
             normalized_value = filtered_value / 32767.0
             previous_normalized = self.trigger_values["right"] / 32767.0
-            
+
             self.trigger_values["right"] = filtered_value
-            
+
             # Always create event, but check for threshold crossing for special logging
             event = InputData(
                 timestamp=time.time(),
@@ -597,14 +605,18 @@ class PS4ControllerCollector(AbstractInputCollector):
         for callback in callbacks_copy:
             try:
                 # Use threading to ensure callback doesn't block the polling thread
-                threading.Thread(target=self._safe_callback, args=(callback, event), daemon=True).start()
+                threading.Thread(
+                    target=self._safe_callback, args=(callback, event), daemon=True
+                ).start()
             except Exception as e:
                 print(f"Error starting callback thread: {e}")
 
-    def _safe_callback(self, callback: Callable[[InputData], None], event: InputData) -> None:
+    def _safe_callback(
+        self, callback: Callable[[InputData], None], event: InputData
+    ) -> None:
         """
         Execute callback safely in a separate thread.
-        
+
         Args:
             callback: The callback function to execute
             event: The event to pass to the callback

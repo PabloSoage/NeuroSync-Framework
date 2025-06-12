@@ -17,3 +17,6 @@ uvicorn[standard]
 # Optional dependencies for advanced features
 mne
 scipy
+
+#Optional dependencies for performance improvements
+orjson>=3.9.0  # Much faster JSON serialization (2-5x speedup)
