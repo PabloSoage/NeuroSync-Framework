@@ -82,7 +82,7 @@ subscribe(EventType.RECORDING_STARTED, on_recording_started)
 
 # Dispatch with structured data
 dispatch(EventType.INPUT, {
-    "key": "A", 
+    "key": "A",
     "timestamp": time.time(),
     "collector_type": "keyboard_mouse"
 })
@@ -436,7 +436,7 @@ input-collector monitor controller  # Auto-detects PS4
 ```
 1. Input Device → Collector (thread-safe) → InputData
 2. InputData → Core Event System → Multiple Subscribers
-3. InputData → EventProcessor → ProcessingResult  
+3. InputData → EventProcessor → ProcessingResult
 4. ProcessingResult → AppCoordinator → UI + Logging
 5. Core Events → {API WebSocket, CLI Monitor, External Systems}
 6. Thread-safe Updates → {GUI Panels, CLI Display, Web Clients}
