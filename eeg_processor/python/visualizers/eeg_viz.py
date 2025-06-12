@@ -4,7 +4,7 @@ from typing import Any
 import numpy as np
 import pyqtgraph as pg
 from brainflow.data_filter import DataFilter, WindowOperations
-from pyqtgraph.Qt import QtCore
+from pyqtgraph.Qt import QtCore, QtGui
 
 from ..collectors.eeg_collector import EEGCollector
 from ..processors.signal_processor import SignalProcessor
@@ -59,7 +59,17 @@ class EEGVisualizer:
         # Set up close event handler
         self.win.closeEvent = self.handle_close_event
 
-        # Create plots for each EEG channel
+        # Add sample rate display (NEW)
+        self.sample_rate_label = pg.LabelItem(justify="left")
+        self.sample_rate_label.setText(
+            '<span style="font-family: Arial; font-size: 12pt; font-weight: bold;">'
+            "Sample Rate: --- Hz</span>"
+        )
+
+        # Add header plot for labels and info (NEW)
+        self.win.addItem(self.sample_rate_label, row=0, col=0, colspan=2)
+
+        # Create plots for each EEG channel - shift down by 1 for header
         self.plots = []
         self.curves = []
 
@@ -76,7 +86,7 @@ class EEGVisualizer:
         ]
 
         for i in range(self.num_channels):
-            plot = self.win.addPlot(row=i, col=0)
+            plot = self.win.addPlot(row=i + 1, col=0)  # Offset by 1 for header
             plot.showAxis("left", True)
             plot.setMenuEnabled("left", False)
 
@@ -113,8 +123,8 @@ class EEGVisualizer:
             plot.addItem(quality_indicator)
             self.quality_indicators.append(quality_indicator)
 
-        # Add FFT plot
-        self.fft_plot = self.win.addPlot(row=0, col=1, rowspan=self.num_channels // 2)
+        # Add FFT plot - also offset by 1
+        self.fft_plot = self.win.addPlot(row=1, col=1, rowspan=self.num_channels // 2)
         self.fft_plot.setTitle("Power Spectrum")
         self.fft_plot.setLabel("bottom", "Frequency", "Hz")
         self.fft_plot.setLabel("left", "Power", "µV²/Hz")
@@ -155,9 +165,9 @@ class EEGVisualizer:
 
             self.fft_legend.addItem(curve, legend_name)
 
-        # Add band power indicator
+        # Add band power indicator - also offset by 1
         self.band_plot = self.win.addPlot(
-            row=self.num_channels // 2, col=1, rowspan=self.num_channels // 2
+            row=self.num_channels // 2 + 1, col=1, rowspan=self.num_channels // 2
         )
         self.band_plot.setTitle("Band Powers")
         self.band_plot.setLabel("bottom", "Band")
@@ -206,6 +216,28 @@ class EEGVisualizer:
         try:
             # Get the latest data from central DataAccessService
             data, timestamps = DataAccessService.get_instance().get_current_data()
+
+            # Get metadata including sample rate (NEW)
+            metadata = DataAccessService.get_instance().get_metadata()
+            actual_sample_rate = metadata.get("actual_sample_rate", 0)
+            expected_sample_rate = metadata.get("sampling_rate", 250)
+
+            # Update sample rate display (NEW)
+            if actual_sample_rate > 0:
+                efficiency = (actual_sample_rate / expected_sample_rate) * 100
+                if efficiency >= 90:
+                    color = "green"
+                elif efficiency >= 70:
+                    color = "orange"
+                else:
+                    color = "red"
+
+                self.sample_rate_label.setText(
+                    f'<span style="font-family: Arial; font-size: 12pt; font-weight: bold;">'
+                    f'Expected: {expected_sample_rate} Hz | '
+                    f'<span style="color:{color}">Actual: {actual_sample_rate:.1f} Hz ({efficiency:.1f}%)</span>'
+                    f'</span>'
+                )
 
             if data.size == 0 or len(self.eeg_channels) == 0:
                 return
