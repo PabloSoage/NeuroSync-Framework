@@ -76,11 +76,21 @@ class EEGProcessorApiIntegration:
     #
     # Main API Registration Methods
     #
+        self.include_interaction_methods = False
 
-    def register_api(self, host: str = "127.0.0.1", port: int = 8000) -> bool:
-        """Register all EEG data endpoints with the API Explorer."""
+    def register_api(self, host: str = "127.0.0.1", port: int = 8000, include_interaction: bool = False) -> bool:
+        """Register all EEG data endpoints with the API Explorer.
+        
+        Args:
+            host: Host to bind the server to
+            port: Port to bind the server to  
+            include_interaction: Whether to include interaction methods (default: False)
+        """
         if not explorer_available:
             return False
+
+        # Store the flag
+        self.include_interaction_methods = include_interaction
 
         # Find available port
         while self._port_in_use(host, port):
@@ -114,6 +124,7 @@ class EEGProcessorApiIntegration:
 
     def _register_all_method_groups(self) -> None:
         """Register all method groups and their endpoints."""
+        # Always register data access method groups
         self._register_method_groups()
         self._register_status_methods()
         self._register_device_methods()
@@ -122,9 +133,12 @@ class EEGProcessorApiIntegration:
         self._register_quality_methods()
         self._register_event_methods()
 
-        # Register interaction API methods
-        if self.explorer is not None:
+        # Only register interaction API methods if explicitly requested
+        if self.include_interaction_methods and self.explorer is not None:
+            logger.info("Registering interaction API methods")
             self.interaction_integration.register_api_methods(self.explorer)
+        else:
+            logger.info("Skipping interaction API methods (data access only)")
 
     def _register_method_groups(self) -> None:
         """Register all method groups."""
@@ -1281,15 +1295,22 @@ def get_api_integration() -> EEGProcessorApiIntegration:
 
 
 def initialize_api(
-    enable: bool = True, host: str = "127.0.0.1", port: int = 8000
+    enable: bool = True, host: str = "127.0.0.1", port: int = 8000, include_interaction: bool = False
 ) -> bool:
-    """Initialize the EEG Processor API."""
+    """Initialize the EEG Processor API.
+    
+    Args:
+        enable: Whether to enable the API
+        host: Host to bind to
+        port: Port to bind to
+        include_interaction: Whether to include interaction methods (default: False)
+    """
     if not enable:
         return False
 
     try:
         integration = get_api_integration()
-        success = integration.register_api(host=host, port=port)
+        success = integration.register_api(host=host, port=port, include_interaction=include_interaction)
         return success
     except Exception as e:
         logger.error(f"Error initializing API: {e}")

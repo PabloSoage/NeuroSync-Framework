@@ -1,25 +1,31 @@
 """
 Qt Interaction Adapter for synchronizing API changes with PyQt5 GUI.
+
+This adapter bridges between the core event system and Qt GUI components,
+ensuring thread-safe updates and maintaining consistency between API calls
+and GUI state. It follows the same pattern as the input_collector module.
 """
 
 import logging
-from typing import Any
+import threading
+from typing import Any, Callable, Optional, TypeVar, Dict
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 
-from PyQt5.QtCore import QObject, QMetaObject, Qt, Q_ARG
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtCore import QObject, QTimer, QThread
+from PyQt5.QtWidgets import QApplication, QComboBox, QSpinBox, QLineEdit, QCheckBox
 
-from ..core.event_system import EventSystem, EventType, Event
+T = TypeVar('T')
 
 
 class QtInteractionAdapter(QObject):
     """
     Adapter to synchronize API interactions with Qt GUI components.
-
-    This class listens to events from the event system and updates
-    the corresponding Qt GUI elements.
+    
+    This class provides thread-safe communication between the core services
+    and the PyQt5 GUI, similar to the pattern used in input_collector.
     """
 
-    def __init__(self, main_app: Any) -> None:
+    def __init__(self, main_app: Optional[Any] = None) -> None:
         """
         Initialize the Qt interaction adapter.
 
@@ -28,318 +34,520 @@ class QtInteractionAdapter(QObject):
         """
         super().__init__()
         self.main_app = main_app
-        self.event_system = EventSystem.get_instance()
-
-        # Subscribe to relevant events
-        self._subscribe_to_events()
-
+        self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="QtAdapter")
+        
         logging.info("Qt interaction adapter initialized")
 
-    def _subscribe_to_events(self) -> None:
-        """Subscribe to events that need GUI updates."""
-        # Connection events
-        self.event_system.subscribe(EventType.BOARD_CONNECT, self._handle_board_connect)
-        self.event_system.subscribe(
-            EventType.BOARD_DISCONNECT, self._handle_board_disconnect
-        )
-        self.event_system.subscribe(EventType.STREAM_START, self._handle_stream_start)
-        self.event_system.subscribe(EventType.STREAM_STOP, self._handle_stream_stop)
-
-        # Processing events
-        self.event_system.subscribe(EventType.FILTER_APPLY, self._handle_filter_apply)
-        self.event_system.subscribe(
-            EventType.VISUALIZATION_START, self._handle_visualization_start
-        )
-        self.event_system.subscribe(
-            EventType.VISUALIZATION_STOP, self._handle_visualization_stop
-        )
-
-        # Recording events
-        self.event_system.subscribe(
-            EventType.RECORDING_START, self._handle_recording_start
-        )
-        self.event_system.subscribe(
-            EventType.RECORDING_STOP, self._handle_recording_stop
-        )
-
-        # UI update events
-        self.event_system.subscribe(
-            EventType.UI_UPDATE_STATUS, self._handle_ui_update_status
-        )
-        self.event_system.subscribe(
-            EventType.UI_UPDATE_CONTROLS, self._handle_ui_update_controls
-        )
-
-    def _safe_qt_call(self, method: Any, *args: Any) -> None:
+    def _execute_safely(self, func: Callable[..., T], *args: Any, **kwargs: Any) -> T:
         """
-        Safely call a Qt method from any thread.
-
+        Execute a function safely with proper thread handling.
+        
         Args:
-            method: Method to call
-            *args: Arguments for the method
+            func: Function to execute
+            *args: Function arguments
+            **kwargs: Function keyword arguments
+            
+        Returns:
+            Function result
+            
+        Raises:
+            Exception: If execution fails or times out
         """
-        try:
-            if QApplication.instance() and hasattr(method, "__self__"):
-                QMetaObject.invokeMethod(
-                    method.__self__,
-                    method.__name__,
-                    Qt.QueuedConnection,
-                    *[Q_ARG(type(arg), arg) for arg in args],
-                )
-            else:
-                # Fallback for simple calls
-                method(*args)
-        except Exception as e:
-            logging.error(f"Error in Qt call: {e}")
+        if QApplication.instance() is None:
+            raise RuntimeError("No QApplication instance available")
+            
+        # Check if we're in the main thread
+        if QThread.currentThread() == QApplication.instance().thread():
+            # Execute directly in main thread
+            return func(*args, **kwargs)
+        else:
+            # Execute in main thread using QTimer
+            result = None
+            exception = None
+            finished = threading.Event()
+            
+            def execute_in_main_thread():
+                nonlocal result, exception
+                try:
+                    result = func(*args, **kwargs)
+                except Exception as e:
+                    exception = e
+                finally:
+                    finished.set()
+            
+            # Schedule execution in main thread
+            QTimer.singleShot(0, execute_in_main_thread)
+            
+            # Wait for completion with timeout
+            if not finished.wait(timeout=5.0):
+                raise TimeoutError("Qt operation timed out")
+                
+            if exception is not None:
+                raise exception
+                
+            return result
 
-    def _handle_board_connect(self, event: Event) -> None:
-        """Handle board connection events."""
+    # Connection Panel Methods
+    def connect_board(self, board_id: int, params: Dict[str, Any], preset: int = 0) -> bool:
+        """Connect to an EEG board via API."""
         try:
-            board_id = event.data.get("board_id")
-            params = event.data.get("params", {})
-            preset = event.data.get("preset", 0)
-
-            # Update connection panel
-            if hasattr(self.main_app, "connection_panel"):
+            def _connect():
+                if not hasattr(self.main_app, 'connection_panel'):
+                    return False
+                    
                 panel = self.main_app.connection_panel
-
-                # Update board selection if provided
-                if board_id is not None and hasattr(panel, "board_type_combo"):
-                    self._safe_qt_call(
-                        self._set_combo_by_data, panel.board_type_combo, board_id
-                    )
-
-                # Update preset if provided
-                if hasattr(panel, "preset_combo"):
-                    self._safe_qt_call(
-                        self._set_combo_by_data, panel.preset_combo, preset
-                    )
-
-                # Update connection parameters
-                if params and hasattr(panel, "_update_params_from_dict"):
-                    self._safe_qt_call(panel._update_params_from_dict, params)
-
-                # Update button states
-                if hasattr(panel, "_update_connection_state"):
-                    self._safe_qt_call(panel._update_connection_state, True)
-
-            logging.info(f"GUI updated for board connection: {board_id}")
-
+                
+                # Update board selection
+                if hasattr(panel, 'board_type_combo'):
+                    self._set_combo_by_data(panel.board_type_combo, board_id)
+                
+                # Update preset
+                if hasattr(panel, 'preset_combo'):
+                    self._set_combo_by_data(panel.preset_combo, preset)
+                
+                # Update parameters
+                if hasattr(panel, '_update_params_from_dict'):
+                    panel._update_params_from_dict(params)
+                
+                # Trigger connection
+                if hasattr(panel, 'connect_board'):
+                    panel.connect_board()
+                    return True
+                return False
+            
+            return self._execute_safely(_connect)
+            
         except Exception as e:
-            logging.error(f"Error handling board connect event: {e}")
+            logging.error(f"Error connecting board via API: {e}")
+            return False
 
-    def _handle_board_disconnect(self, event: Event) -> None:
-        """Handle board disconnection events."""
+    def disconnect_board(self, force_ui_update: bool = False) -> bool:
+        """Disconnect from EEG board via API."""
         try:
-            # Extraer datos adicionales del evento
-            force_update = event.data.get("force_ui_update", False)
-
-            # Update connection panel
-            if hasattr(self.main_app, "connection_panel"):
+            def _disconnect():
+                if not hasattr(self.main_app, 'connection_panel'):
+                    return False
+                    
                 panel = self.main_app.connection_panel
-
-                # Siempre actualizar los controles
-                if hasattr(panel, "_update_connection_state"):
-                    self._safe_qt_call(panel._update_connection_state, False)
-
-                # Forzar actualización adicional si se solicita
-                if force_update and hasattr(panel, "disconnect_board"):
-                    # Enviar una señal board_disconnected directamente
-                    if hasattr(panel, "board_disconnected"):
-                        self._safe_qt_call(lambda: panel.board_disconnected.emit())
-
-                    # También actualizar texto de información de la placa
-                    if hasattr(panel, "board_info_label"):
-                        self._safe_qt_call(
-                            panel.board_info_label.setText, "No board connected"
-                        )
-
-                # Asegurarnos que los botones de streaming estén en el estado correcto
-                if hasattr(panel, "start_stream_btn"):
-                    self._safe_qt_call(panel.start_stream_btn.setEnabled, False)
-                if hasattr(panel, "stop_stream_btn"):
-                    self._safe_qt_call(panel.stop_stream_btn.setEnabled, False)
-
-            # También desactivar los paneles que dependen de la conexión
-            if hasattr(self.main_app, "processing_panel"):
-                self._safe_qt_call(
-                    self.main_app.processing_panel.enable_processing, False
-                )
-
-            if hasattr(self.main_app, "recording_panel"):
-                self._safe_qt_call(
-                    self.main_app.recording_panel.enable_recording, False
-                )
-
-            # Actualizar el estado en collector_service de nuevo por si acaso
-            try:
-                from ..services.collector_service import CollectorService
-
-                collector_service = CollectorService()
-                collector_service._reset_connection_state()  # Llamar a un nuevo método que añadiremos
-            except Exception as e_collector:
-                logging.error(f"Error resetting collector state: {e_collector}")
-
-            logging.info("GUI updated for board disconnection")
-
+                
+                if hasattr(panel, 'disconnect_board'):
+                    panel.disconnect_board()
+                    
+                # Force additional UI updates if requested
+                if force_ui_update:
+                    self._update_all_panels_connection_state(False)
+                    
+                return True
+            
+            return self._execute_safely(_disconnect)
+            
         except Exception as e:
-            logging.error(f"Error handling board disconnect event: {e}")
+            logging.error(f"Error disconnecting board via API: {e}")
+            return False
 
-    def _handle_stream_start(self, event: Event) -> None:
-        """Handle stream start events."""
+    def start_stream(self) -> bool:
+        """Start streaming via API."""
         try:
-            # Update connection panel
-            if hasattr(self.main_app, "connection_panel"):
+            def _start_stream():
+                if not hasattr(self.main_app, 'connection_panel'):
+                    return False
+                    
                 panel = self.main_app.connection_panel
-                if hasattr(panel, "_update_streaming_state"):
-                    self._safe_qt_call(panel._update_streaming_state, True)
-
-            # Enable other panels
-            if hasattr(self.main_app, "processing_panel"):
-                self._safe_qt_call(
-                    self.main_app.processing_panel.enable_processing, True
-                )
-
-            if hasattr(self.main_app, "recording_panel"):
-                self._safe_qt_call(self.main_app.recording_panel.enable_recording, True)
-
-            logging.info("GUI updated for stream start")
-
+                
+                if hasattr(panel, 'start_stream'):
+                    panel.start_stream()
+                    return True
+                return False
+            
+            return self._execute_safely(_start_stream)
+            
         except Exception as e:
-            logging.error(f"Error handling stream start event: {e}")
+            logging.error(f"Error starting stream via API: {e}")
+            return False
 
-    def _handle_stream_stop(self, event: Event) -> None:
-        """Handle stream stop events."""
+    def stop_stream(self) -> bool:
+        """Stop streaming via API."""
         try:
-            # Update connection panel
-            if hasattr(self.main_app, "connection_panel"):
+            def _stop_stream():
+                if not hasattr(self.main_app, 'connection_panel'):
+                    return False
+                    
                 panel = self.main_app.connection_panel
-                if hasattr(panel, "_update_streaming_state"):
-                    self._safe_qt_call(panel._update_streaming_state, False)
-
-            # Disable other panels
-            if hasattr(self.main_app, "processing_panel"):
-                self._safe_qt_call(
-                    self.main_app.processing_panel.enable_processing, False
-                )
-
-            if hasattr(self.main_app, "recording_panel"):
-                self._safe_qt_call(
-                    self.main_app.recording_panel.enable_recording, False
-                )
-
-            logging.info("GUI updated for stream stop")
-
+                
+                if hasattr(panel, 'stop_stream'):
+                    panel.stop_stream()
+                    return True
+                return False
+            
+            return self._execute_safely(_stop_stream)
+            
         except Exception as e:
-            logging.error(f"Error handling stream stop event: {e}")
+            logging.error(f"Error stopping stream via API: {e}")
+            return False
 
-    def _handle_filter_apply(self, event: Event) -> None:
-        """Handle filter application events."""
+    # Processing Panel Methods
+    def apply_filters(self, filter_config: Dict[str, Any]) -> bool:
+        """Apply filters via API."""
         try:
-            filter_config = event.data.get("filter_config", {})
-
-            # Update processing panel
-            if hasattr(self.main_app, "processing_panel"):
+            def _apply_filters():
+                if not hasattr(self.main_app, 'processing_panel'):
+                    return False
+                    
                 panel = self.main_app.processing_panel
-                if hasattr(panel, "_update_filter_controls"):
-                    self._safe_qt_call(panel._update_filter_controls, filter_config)
-
-            logging.info("GUI updated for filter application")
-
+                
+                # Update filter controls
+                if hasattr(panel, '_update_filter_controls'):
+                    panel._update_filter_controls(filter_config)
+                
+                # Apply filters if specified
+                if filter_config.get('apply', False) and hasattr(panel, 'apply_filters'):
+                    panel.apply_filters()
+                    
+                return True
+            
+            return self._execute_safely(_apply_filters)
+            
         except Exception as e:
-            logging.error(f"Error handling filter apply event: {e}")
+            logging.error(f"Error applying filters via API: {e}")
+            return False
 
-    def _handle_visualization_start(self, event: Event) -> None:
-        """Handle visualization start events."""
+    def calculate_metrics(self) -> bool:
+        """Calculate EEG metrics via API."""
         try:
-            viz_type = event.data.get("viz_type", "eeg")
-
-            # Update connection panel visualization button
-            if hasattr(self.main_app, "connection_panel"):
-                panel = self.main_app.connection_panel
-                if hasattr(panel, "update_visualization_button"):
-                    self._safe_qt_call(panel.update_visualization_button, False)
-
-            logging.info(f"GUI updated for {viz_type} visualization start")
-
+            def _calculate_metrics():
+                if not hasattr(self.main_app, 'processing_panel'):
+                    return False
+                    
+                panel = self.main_app.processing_panel
+                
+                if hasattr(panel, 'calculate_metrics'):
+                    panel.calculate_metrics()
+                    return True
+                return False
+            
+            return self._execute_safely(_calculate_metrics)
+            
         except Exception as e:
-            logging.error(f"Error handling visualization start event: {e}")
+            logging.error(f"Error calculating metrics via API: {e}")
+            return False
 
-    def _handle_visualization_stop(self, event: Event) -> None:
-        """Handle visualization stop events."""
+    def show_brain_map(self) -> bool:
+        """Show brain map visualization via API."""
         try:
-            # Update connection panel visualization button
-            if hasattr(self.main_app, "connection_panel"):
-                panel = self.main_app.connection_panel
-                if hasattr(panel, "update_visualization_button"):
-                    self._safe_qt_call(panel.update_visualization_button, True)
-
-            logging.info("GUI updated for visualization stop")
-
+            def _show_brain_map():
+                if not hasattr(self.main_app, 'processing_panel'):
+                    return False
+                    
+                panel = self.main_app.processing_panel
+                
+                if hasattr(panel, 'show_brain_map'):
+                    panel.show_brain_map()
+                    return True
+                return False
+            
+            return self._execute_safely(_show_brain_map)
+            
         except Exception as e:
-            logging.error(f"Error handling visualization stop event: {e}")
+            logging.error(f"Error showing brain map via API: {e}")
+            return False
 
-    def _handle_recording_start(self, event: Event) -> None:
-        """Handle recording start events."""
+    # Recording Panel Methods
+    def start_recording(self, filename: str, data_type: str = "raw") -> bool:
+        """Start recording via API."""
         try:
-            filename = event.data.get("filename", "")
-            data_type = event.data.get("data_type", "raw")
-
-            # Update recording panel
-            if hasattr(self.main_app, "recording_panel"):
+            def _start_recording():
+                if not hasattr(self.main_app, 'recording_panel'):
+                    return False
+                    
                 panel = self.main_app.recording_panel
-                if hasattr(panel, "_update_recording_state"):
-                    self._safe_qt_call(
-                        panel._update_recording_state, True, filename, data_type
-                    )
-
-            logging.info("GUI updated for recording start")
-
+                
+                # Update recording settings
+                if hasattr(panel, 'record_file_edit'):
+                    panel.record_file_edit.setText(filename)
+                
+                # Set data type
+                if hasattr(panel, 'raw_radio') and hasattr(panel, 'processed_radio') and hasattr(panel, 'both_radio'):
+                    if data_type == "processed":
+                        panel.processed_radio.setChecked(True)
+                    elif data_type == "both":
+                        panel.both_radio.setChecked(True)
+                    else:
+                        panel.raw_radio.setChecked(True)
+                
+                # Start recording
+                if hasattr(panel, 'start_recording'):
+                    panel.start_recording()
+                    return True
+                return False
+            
+            return self._execute_safely(_start_recording)
+            
         except Exception as e:
-            logging.error(f"Error handling recording start event: {e}")
+            logging.error(f"Error starting recording via API: {e}")
+            return False
 
-    def _handle_recording_stop(self, event: Event) -> None:
-        """Handle recording stop events."""
+    def stop_recording(self) -> bool:
+        """Stop recording via API."""
         try:
-            # Update recording panel
-            if hasattr(self.main_app, "recording_panel"):
+            def _stop_recording():
+                if not hasattr(self.main_app, 'recording_panel'):
+                    return False
+                    
                 panel = self.main_app.recording_panel
-                if hasattr(panel, "_update_recording_state"):
-                    self._safe_qt_call(panel._update_recording_state, False)
-
-            logging.info("GUI updated for recording stop")
-
+                
+                if hasattr(panel, 'stop_recording'):
+                    panel.stop_recording()
+                    return True
+                return False
+            
+            return self._execute_safely(_stop_recording)
+            
         except Exception as e:
-            logging.error(f"Error handling recording stop event: {e}")
+            logging.error(f"Error stopping recording via API: {e}")
+            return False
 
-    def _handle_ui_update_status(self, event: Event) -> None:
-        """Handle UI status update events."""
+    def add_marker(self, marker_value: int) -> bool:
+        """Add marker via API."""
         try:
-            message = event.data.get("message", "")
-
-            # Update main app status
-            if hasattr(self.main_app, "show_status_message"):
-                self._safe_qt_call(self.main_app.show_status_message, message)
-
-            logging.debug(f"Status updated: {message}")
-
+            def _add_marker():
+                if not hasattr(self.main_app, 'recording_panel'):
+                    return False
+                    
+                panel = self.main_app.recording_panel
+                
+                # Set marker value
+                if hasattr(panel, 'marker_value_spin'):
+                    panel.marker_value_spin.setValue(marker_value)
+                
+                # Add marker
+                if hasattr(panel, 'add_marker'):
+                    panel.add_marker()
+                    return True
+                return False
+            
+            return self._execute_safely(_add_marker)
+            
         except Exception as e:
-            logging.error(f"Error handling UI status update: {e}")
+            logging.error(f"Error adding marker via API: {e}")
+            return False
 
-    def _handle_ui_update_controls(self, event: Event) -> None:
-        """Handle UI controls update events."""
+    # Streaming Panel Methods
+    def add_streamer(self, streamer_params: str) -> bool:
+        """Add streamer via API."""
         try:
-            control_updates = event.data.get("controls", {})
-
-            # Apply control updates
-            for control_path, value in control_updates.items():
-                self._update_control_value(control_path, value)
-
-            logging.debug("Controls updated")
-
+            def _add_streamer():
+                if not hasattr(self.main_app, 'streaming_panel'):
+                    return False
+                    
+                panel = self.main_app.streaming_panel
+                
+                if hasattr(panel, 'add_streamer'):
+                    panel.add_streamer(streamer_params)
+                    return True
+                return False
+            
+            return self._execute_safely(_add_streamer)
+            
         except Exception as e:
-            logging.error(f"Error handling UI controls update: {e}")
+            logging.error(f"Error adding streamer via API: {e}")
+            return False
 
+    def remove_streamer(self, streamer_params: str) -> bool:
+        """Remove streamer via API."""
+        try:
+            def _remove_streamer():
+                if not hasattr(self.main_app, 'streaming_panel'):
+                    return False
+                    
+                panel = self.main_app.streaming_panel
+                
+                # Find and select the streamer in the list
+                if hasattr(panel, 'streamers_list'):
+                    for i in range(panel.streamers_list.count()):
+                        if panel.streamers_list.item(i).text() == streamer_params:
+                            panel.streamers_list.setCurrentRow(i)
+                            break
+                
+                # Remove streamer
+                if hasattr(panel, 'delete_selected_streamer'):
+                    panel.delete_selected_streamer()
+                    return True
+                return False
+            
+            return self._execute_safely(_remove_streamer)
+            
+        except Exception as e:
+            logging.error(f"Error removing streamer via API: {e}")
+            return False
+
+    def send_board_config(self, config_cmd: str) -> bool:
+        """Send board configuration via API."""
+        try:
+            def _send_config():
+                if not hasattr(self.main_app, 'streaming_panel'):
+                    return False
+                    
+                panel = self.main_app.streaming_panel
+                
+                # Set config command
+                if hasattr(panel, 'config_cmd_edit'):
+                    panel.config_cmd_edit.setText(config_cmd)
+                
+                # Send config
+                if hasattr(panel, 'send_board_config'):
+                    panel.send_board_config()
+                    return True
+                return False
+            
+            return self._execute_safely(_send_config)
+            
+        except Exception as e:
+            logging.error(f"Error sending board config via API: {e}")
+            return False
+
+    # MNE Panel Methods
+    def convert_to_mne(self, duration: int = 5) -> bool:
+        """Convert data to MNE format via API."""
+        try:
+            def _convert_to_mne():
+                if not hasattr(self.main_app, 'mne_panel'):
+                    return False
+                    
+                panel = self.main_app.mne_panel
+                
+                # Set duration
+                if hasattr(panel, 'mne_duration_spin'):
+                    panel.mne_duration_spin.setValue(duration)
+                
+                # Convert to MNE
+                if hasattr(panel, 'convert_to_mne'):
+                    panel.convert_to_mne()
+                    return True
+                return False
+            
+            return self._execute_safely(_convert_to_mne)
+            
+        except Exception as e:
+            logging.error(f"Error converting to MNE via API: {e}")
+            return False
+
+    def plot_mne_visualization(self, plot_type: str) -> bool:
+        """Plot MNE visualization via API."""
+        try:
+            def _plot_visualization():
+                if not hasattr(self.main_app, 'mne_panel'):
+                    return False
+                    
+                panel = self.main_app.mne_panel
+                
+                if hasattr(panel, 'plot_mne_visualization'):
+                    panel.plot_mne_visualization(plot_type)
+                    return True
+                return False
+            
+            return self._execute_safely(_plot_visualization)
+            
+        except Exception as e:
+            logging.error(f"Error plotting MNE visualization via API: {e}")
+            return False
+
+    # Advanced Panel Methods
+    def compute_ica(self, components: int, channel: int = -1) -> bool:
+        """Compute ICA via API."""
+        try:
+            def _compute_ica():
+                if not hasattr(self.main_app, 'advanced_panel'):
+                    return False
+                    
+                panel = self.main_app.advanced_panel
+                
+                # Set parameters
+                if hasattr(panel, 'ica_components_spin'):
+                    panel.ica_components_spin.setValue(components)
+                
+                if hasattr(panel, 'ica_channel_combo'):
+                    self._set_combo_by_data(panel.ica_channel_combo, channel)
+                
+                # Compute ICA
+                if hasattr(panel, 'compute_ica'):
+                    panel.compute_ica()
+                    return True
+                return False
+            
+            return self._execute_safely(_compute_ica)
+            
+        except Exception as e:
+            logging.error(f"Error computing ICA via API: {e}")
+            return False
+
+    def compute_wavelet(self, wavelet_type: int, level: int, channel: int) -> bool:
+        """Compute wavelet transform via API."""
+        try:
+            def _compute_wavelet():
+                if not hasattr(self.main_app, 'advanced_panel'):
+                    return False
+                    
+                panel = self.main_app.advanced_panel
+                
+                # Set parameters
+                if hasattr(panel, 'wavelet_type_combo'):
+                    self._set_combo_by_data(panel.wavelet_type_combo, wavelet_type)
+                
+                if hasattr(panel, 'wavelet_level_spin'):
+                    panel.wavelet_level_spin.setValue(level)
+                
+                if hasattr(panel, 'wavelet_channel_combo'):
+                    self._set_combo_by_data(panel.wavelet_channel_combo, channel)
+                
+                # Compute wavelet
+                if hasattr(panel, 'compute_wavelet'):
+                    panel.compute_wavelet()
+                    return True
+                return False
+            
+            return self._execute_safely(_compute_wavelet)
+            
+        except Exception as e:
+            logging.error(f"Error computing wavelet via API: {e}")
+            return False
+
+    # Status and State Methods
+    def show_status_message(self, message: str) -> bool:
+        """Show status message via API."""
+        try:
+            def _show_status():
+                if hasattr(self.main_app, 'show_status_message'):
+                    self.main_app.show_status_message(message)
+                    return True
+                return False
+            
+            return self._execute_safely(_show_status)
+            
+        except Exception as e:
+            logging.error(f"Error showing status message via API: {e}")
+            return False
+
+    def update_visualization_button(self, enabled: bool) -> bool:
+        """Update visualization button state via API."""
+        try:
+            def _update_viz_button():
+                if not hasattr(self.main_app, 'connection_panel'):
+                    return False
+                    
+                panel = self.main_app.connection_panel
+                
+                if hasattr(panel, 'update_visualization_button'):
+                    panel.update_visualization_button(enabled)
+                    return True
+                return False
+            
+            return self._execute_safely(_update_viz_button)
+            
+        except Exception as e:
+            logging.error(f"Error updating visualization button via API: {e}")
+            return False
+
+    # Utility Methods
     def _set_combo_by_data(self, combo: Any, data_value: Any) -> None:
         """Set combo box selection by data value."""
         try:
@@ -350,40 +558,109 @@ class QtInteractionAdapter(QObject):
         except Exception as e:
             logging.error(f"Error setting combo value: {e}")
 
-    def _update_control_value(self, control_path: str, value: Any) -> None:
-        """
-        Update a specific control value.
-
-        Args:
-            control_path: Path to the control (e.g., "connection_panel.board_type_combo")
-            value: New value for the control
-        """
+    def _update_all_panels_connection_state(self, connected: bool) -> None:
+        """Update connection state across all panels."""
         try:
-            # Parse control path
-            parts = control_path.split(".")
-            obj = self.main_app
+            # Update connection panel
+            if hasattr(self.main_app, 'connection_panel'):
+                panel = self.main_app.connection_panel
+                if hasattr(panel, '_update_connection_state'):
+                    panel._update_connection_state(connected)
 
-            # Navigate to the control
-            for part in parts[:-1]:
-                obj = getattr(obj, part, None)
-                if obj is None:
-                    return
+            # Update processing panel
+            if hasattr(self.main_app, 'processing_panel'):
+                panel = self.main_app.processing_panel
+                if hasattr(panel, 'enable_processing'):
+                    panel.enable_processing(connected)
 
-            control_name = parts[-1]
-            control = getattr(obj, control_name, None)
+            # Update recording panel
+            if hasattr(self.main_app, 'recording_panel'):
+                panel = self.main_app.recording_panel
+                if hasattr(panel, 'enable_recording'):
+                    panel.enable_recording(connected)
 
-            if control is None:
-                return
+            # Update streaming panel
+            if hasattr(self.main_app, 'streaming_panel'):
+                panel = self.main_app.streaming_panel
+                if hasattr(panel, 'enable_streaming'):
+                    panel.enable_streaming(connected)
 
-            # Update control based on type
-            if hasattr(control, "setChecked"):
-                self._safe_qt_call(control.setChecked, bool(value))
-            elif hasattr(control, "setValue"):
-                self._safe_qt_call(control.setValue, value)
-            elif hasattr(control, "setText"):
-                self._safe_qt_call(control.setText, str(value))
-            elif hasattr(control, "setCurrentData"):
-                self._safe_qt_call(control.setCurrentData, value)
+            # Update MNE panel
+            if hasattr(self.main_app, 'mne_panel'):
+                panel = self.main_app.mne_panel
+                if hasattr(panel, 'enable_processing'):
+                    panel.enable_processing(connected)
+
+            # Update advanced panel
+            if hasattr(self.main_app, 'advanced_panel'):
+                panel = self.main_app.advanced_panel
+                if hasattr(panel, 'enable_processing'):
+                    panel.enable_processing(connected)
 
         except Exception as e:
-            logging.error(f"Error updating control {control_path}: {e}")
+            logging.error(f"Error updating panel states: {e}")
+
+    def get_connection_settings(self) -> Dict[str, Any]:
+        """Get current connection settings."""
+        try:
+            def _get_settings():
+                if not hasattr(self.main_app, 'connection_panel'):
+                    return {}
+                    
+                panel = self.main_app.connection_panel
+                
+                if hasattr(panel, 'get_connection_settings'):
+                    return panel.get_connection_settings()
+                return {}
+            
+            return self._execute_safely(_get_settings)
+            
+        except Exception as e:
+            logging.error(f"Error getting connection settings: {e}")
+            return {}
+
+    def get_filter_settings(self) -> Dict[str, Any]:
+        """Get current filter settings."""
+        try:
+            def _get_settings():
+                if not hasattr(self.main_app, 'processing_panel'):
+                    return {}
+                    
+                panel = self.main_app.processing_panel
+                
+                if hasattr(panel, 'get_filter_settings'):
+                    return panel.get_filter_settings()
+                return {}
+            
+            return self._execute_safely(_get_settings)
+            
+        except Exception as e:
+            logging.error(f"Error getting filter settings: {e}")
+            return {}
+
+    def get_recording_settings(self) -> Dict[str, Any]:
+        """Get current recording settings."""
+        try:
+            def _get_settings():
+                if not hasattr(self.main_app, 'recording_panel'):
+                    return {}
+                    
+                panel = self.main_app.recording_panel
+                
+                if hasattr(panel, 'get_recording_settings'):
+                    return panel.get_recording_settings()
+                return {}
+            
+            return self._execute_safely(_get_settings)
+            
+        except Exception as e:
+            logging.error(f"Error getting recording settings: {e}")
+            return {}
+
+    def __del__(self) -> None:
+        """Cleanup when adapter is destroyed."""
+        try:
+            if hasattr(self, '_executor'):
+                self._executor.shutdown(wait=False)
+        except Exception:
+            pass  # Ignore cleanup errors

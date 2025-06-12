@@ -61,50 +61,44 @@ def main() -> None:
     ex.show()
 
     # Initialize data access API after the main application has started
+    # Only include interaction methods if control API is NOT being used separately
     if args.enable_web_api and not args.control_api_only:
         from eeg_processor.python.api_integration import (
             initialize_api,
             get_api_integration,
         )
 
-        if initialize_api(host=args.api_host, port=args.api_port):
+        # Include interaction methods only if control API is not enabled separately
+        include_interaction = not args.enable_control_api
+
+        if initialize_api(host=args.api_host, port=args.api_port, include_interaction=include_interaction):
             intg = get_api_integration()
             port = (
                 intg.explorer.server_port
                 if intg.explorer is not None and intg.explorer.server_port is not None
                 else args.api_port
             )
-            print(f"Web API EEG Processor en http://{args.api_host}:{port}")
+            api_type = "data + control" if include_interaction else "data access only"
+            print(f"Web API EEG Processor ({api_type}) en http://{args.api_host}:{port}")
         else:
             print("Fallo inicializando Web API EEG Processor")
 
     # Initialize control API if enabled
     if args.enable_control_api:
         try:
-            # Import API Explorer for control API
-            from api_explorer import ApiExplorer
+            # For control API, use the same api_integration but with interaction methods enabled
+            from eeg_processor.python.api_integration import initialize_api
 
-            # Get a new API Explorer instance for control API
-            control_explorer = ApiExplorer()
-
-            # Initialize and register control API
-            from eeg_processor.python.interaction_api_integration import (
-                EEGProcessorInteractionApiIntegration,
-            )
-
-            control_integration = EEGProcessorInteractionApiIntegration.get_instance()
-
-            # Register the control API module (includes both control and data access methods)
-            control_integration.register_api_methods(control_explorer)
-
-            # Start the control API server
-            control_explorer.start_server(
-                host=args.control_api_host, port=args.control_api_port, block=False
-            )
-
-            print(
-                f"Control API EEG Processor en http://{args.control_api_host}:{args.control_api_port}"
-            )
+            # Initialize control API with both data access and interaction methods
+            if initialize_api(
+                enable=True,
+                host=args.control_api_host, 
+                port=args.control_api_port, 
+                include_interaction=True  # Always include interaction methods in control API
+            ):
+                print(f"Control API EEG Processor (data + control) en http://{args.control_api_host}:{args.control_api_port}")
+            else:
+                print("Fallo inicializando Control API EEG Processor")
 
         except ImportError:
             print("API Explorer no disponible. Control API deshabilitado.")

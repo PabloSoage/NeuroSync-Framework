@@ -1,11 +1,16 @@
 """
 Integration of the interaction API with external API systems.
+
+This module provides integration with external API frameworks following
+the same pattern as the input_collector module. It delegates to api_integration.py
+to avoid code duplication and ensures all methods appear in a single module.
 """
 
 import logging
 from typing import Dict, Any, Optional
 
 from .services.interaction_service import InteractionService
+from .interaction_api import EEGProcessorInteractionAPI
 
 
 class EEGProcessorInteractionApiIntegration:
@@ -13,7 +18,8 @@ class EEGProcessorInteractionApiIntegration:
     Integration class for exposing interaction API through external systems.
 
     This class provides methods that can be registered with external API
-    frameworks to enable remote control of the EEG processor.
+    frameworks to enable remote control of the EEG processor. It follows
+    the same delegation pattern as input_collector to avoid code duplication.
     """
 
     _instance: Optional["EEGProcessorInteractionApiIntegration"] = None
@@ -29,6 +35,7 @@ class EEGProcessorInteractionApiIntegration:
         """Initialize the interaction API integration."""
         self.interaction_service = InteractionService.get_instance()
         self.module_id = "eeg_processor_interaction"
+        self._target_module_id: Optional[str] = None
 
         logging.info("EEG Processor interaction API integration initialized")
 
@@ -39,17 +46,22 @@ class EEGProcessorInteractionApiIntegration:
         Args:
             api_explorer: API explorer instance to register methods with
         """
-        # Register module
-        api_explorer.register_module(
-            module_id=self.module_id,
-            name="EEG Processor Interaction",
-            description="Remote control interface for EEG processor operations",
-        )
+        # Determine which module to use based on what's available
+        self._determine_target_module(api_explorer)
 
-        # Register method groups
+        # If we need to create our own module, do it now
+        if self._target_module_id == "eeg_processor_control":
+            api_explorer.register_module(
+                module_id="eeg_processor_control",
+                name="EEG Processor Control",
+                description="Remote control interface for EEG processor operations",
+            )
+            logging.info("Created separate control module for interaction methods")
+
+        # Register method groups for interaction methods
         self._register_method_groups(api_explorer)
 
-        # Register all methods
+        # Register all interaction methods
         self._register_connection_methods(api_explorer)
         self._register_streaming_methods(api_explorer)
         self._register_processing_methods(api_explorer)
@@ -58,10 +70,31 @@ class EEGProcessorInteractionApiIntegration:
         self._register_advanced_methods(api_explorer)
         self._register_status_methods(api_explorer)
 
-        logging.info("Interaction API methods registered")
+        logging.info(f"Interaction API methods registered in module: {self._target_module_id}")
+
+    def _determine_target_module(self, api_explorer: Any) -> None:
+        """Determine which module ID to use for registering methods."""
+        try:
+            # Check if main EEG processor module exists
+            if hasattr(api_explorer, '_modules') and "eeg_processor" in api_explorer._modules:
+                # Use main module (delegated from api_integration.py)
+                self._target_module_id = "eeg_processor"
+                logging.info("Using existing main EEG processor module")
+            elif hasattr(api_explorer, 'modules') and "eeg_processor" in api_explorer.modules:
+                # Alternative attribute name
+                self._target_module_id = "eeg_processor"
+                logging.info("Using existing main EEG processor module (alt)")
+            else:
+                # Create separate control module (standalone control API)
+                self._target_module_id = "eeg_processor_control"
+                logging.info("Will create separate control module")
+        except Exception as e:
+            # Fallback to separate control module
+            self._target_module_id = "eeg_processor_control"
+            logging.warning(f"Error determining target module, using fallback: {e}")
 
     def _register_method_groups(self, api_explorer: Any) -> None:
-        """Register method groups."""
+        """Register method groups for interaction methods."""
         groups = [
             ("connection", "Board Connection"),
             ("streaming", "Data Streaming"),
@@ -69,17 +102,17 @@ class EEGProcessorInteractionApiIntegration:
             ("recording", "Data Recording"),
             ("visualization", "Data Visualization"),
             ("advanced", "Advanced Processing"),
-            ("status", "System Status"),
+            ("interaction_status", "Interaction Status"),
         ]
 
         for group_id, group_name in groups:
-            api_explorer.add_method_group(self.module_id, group_id, group_name)
+            api_explorer.add_method_group(self._target_module_id, group_id, group_name)
 
     def _register_connection_methods(self, api_explorer: Any) -> None:
         """Register connection-related methods."""
         # Get available boards
         api_explorer.register_method(
-            self.module_id,
+            self._target_module_id,
             "connection",
             "get_available_boards",
             {
@@ -93,7 +126,7 @@ class EEGProcessorInteractionApiIntegration:
 
         # Connect to board
         api_explorer.register_method(
-            self.module_id,
+            self._target_module_id,
             "connection",
             "connect_to_board",
             {
@@ -123,7 +156,7 @@ class EEGProcessorInteractionApiIntegration:
 
         # Disconnect from board
         api_explorer.register_method(
-            self.module_id,
+            self._target_module_id,
             "connection",
             "disconnect_from_board",
             {
@@ -137,7 +170,7 @@ class EEGProcessorInteractionApiIntegration:
 
         # Get board requirements
         api_explorer.register_method(
-            self.module_id,
+            self._target_module_id,
             "connection",
             "get_board_requirements",
             {
@@ -159,7 +192,7 @@ class EEGProcessorInteractionApiIntegration:
         """Register streaming-related methods."""
         # Start stream
         api_explorer.register_method(
-            self.module_id,
+            self._target_module_id,
             "streaming",
             "start_stream",
             {
@@ -179,7 +212,7 @@ class EEGProcessorInteractionApiIntegration:
 
         # Stop stream
         api_explorer.register_method(
-            self.module_id,
+            self._target_module_id,
             "streaming",
             "stop_stream",
             {
@@ -193,7 +226,7 @@ class EEGProcessorInteractionApiIntegration:
 
         # Add streamer
         api_explorer.register_method(
-            self.module_id,
+            self._target_module_id,
             "streaming",
             "add_streamer",
             {
@@ -213,7 +246,7 @@ class EEGProcessorInteractionApiIntegration:
 
         # Remove streamer
         api_explorer.register_method(
-            self.module_id,
+            self._target_module_id,
             "streaming",
             "remove_streamer",
             {
@@ -231,11 +264,31 @@ class EEGProcessorInteractionApiIntegration:
             self._handle_remove_streamer,
         )
 
+        # Send board config
+        api_explorer.register_method(
+            self._target_module_id,
+            "streaming",
+            "send_board_config",
+            {
+                "name": "send_board_config(config_cmd)",
+                "description": "Send configuration command to board",
+                "type": "POST",
+                "params": {
+                    "config_cmd": {
+                        "type": "text",
+                        "description": "Configuration command",
+                        "required": True,
+                    }
+                },
+            },
+            self._handle_send_board_config,
+        )
+
     def _register_processing_methods(self, api_explorer: Any) -> None:
         """Register processing-related methods."""
         # Apply filters
         api_explorer.register_method(
-            self.module_id,
+            self._target_module_id,
             "processing",
             "apply_filters",
             {
@@ -253,11 +306,25 @@ class EEGProcessorInteractionApiIntegration:
             self._handle_apply_filters,
         )
 
+        # Get EEG metrics
+        api_explorer.register_method(
+            self._target_module_id,
+            "processing",
+            "get_eeg_metrics",
+            {
+                "name": "get_eeg_metrics()",
+                "description": "Calculate EEG metrics from current data",
+                "type": "GET",
+                "params": {},
+            },
+            self._handle_get_eeg_metrics,
+        )
+
     def _register_recording_methods(self, api_explorer: Any) -> None:
         """Register recording-related methods."""
         # Start recording
         api_explorer.register_method(
-            self.module_id,
+            self._target_module_id,
             "recording",
             "start_recording",
             {
@@ -282,7 +349,7 @@ class EEGProcessorInteractionApiIntegration:
 
         # Stop recording
         api_explorer.register_method(
-            self.module_id,
+            self._target_module_id,
             "recording",
             "stop_recording",
             {
@@ -296,7 +363,7 @@ class EEGProcessorInteractionApiIntegration:
 
         # Insert marker
         api_explorer.register_method(
-            self.module_id,
+            self._target_module_id,
             "recording",
             "insert_marker",
             {
@@ -316,7 +383,7 @@ class EEGProcessorInteractionApiIntegration:
 
         # Get recording status
         api_explorer.register_method(
-            self.module_id,
+            self._target_module_id,
             "recording",
             "get_recording_status",
             {
@@ -328,11 +395,36 @@ class EEGProcessorInteractionApiIntegration:
             self._handle_get_recording_status,
         )
 
+        # Save current data
+        api_explorer.register_method(
+            self._target_module_id,
+            "recording",
+            "save_current_data",
+            {
+                "name": "save_current_data(filename, data_type)",
+                "description": "Save current data to file",
+                "type": "POST",
+                "params": {
+                    "filename": {
+                        "type": "text",
+                        "description": "Filename to save to",
+                        "required": True,
+                    },
+                    "data_type": {
+                        "type": "text",
+                        "description": "Type of data to save (raw, processed)",
+                        "required": False,
+                    },
+                },
+            },
+            self._handle_save_current_data,
+        )
+
     def _register_visualization_methods(self, api_explorer: Any) -> None:
         """Register visualization-related methods."""
         # Start visualization
         api_explorer.register_method(
-            self.module_id,
+            self._target_module_id,
             "visualization",
             "start_visualization",
             {
@@ -352,7 +444,7 @@ class EEGProcessorInteractionApiIntegration:
 
         # Stop visualization
         api_explorer.register_method(
-            self.module_id,
+            self._target_module_id,
             "visualization",
             "stop_visualization",
             {
@@ -374,7 +466,7 @@ class EEGProcessorInteractionApiIntegration:
         """Register advanced processing methods."""
         # Perform ICA
         api_explorer.register_method(
-            self.module_id,
+            self._target_module_id,
             "advanced",
             "perform_ica",
             {
@@ -392,26 +484,82 @@ class EEGProcessorInteractionApiIntegration:
             self._handle_perform_ica,
         )
 
-        # Get EEG metrics
+        # Convert to MNE
         api_explorer.register_method(
-            self.module_id,
+            self._target_module_id,
             "advanced",
-            "get_eeg_metrics",
+            "convert_to_mne",
             {
-                "name": "get_eeg_metrics()",
-                "description": "Calculate EEG metrics from current data",
-                "type": "GET",
-                "params": {},
+                "name": "convert_to_mne(duration)",
+                "description": "Convert data to MNE format",
+                "type": "POST",
+                "params": {
+                    "duration": {
+                        "type": "number",
+                        "description": "Duration in seconds for conversion",
+                        "required": False,
+                    }
+                },
             },
-            self._handle_get_eeg_metrics,
+            self._handle_convert_to_mne,
+        )
+
+        # Plot MNE visualization
+        api_explorer.register_method(
+            self._target_module_id,
+            "advanced",
+            "plot_mne_visualization",
+            {
+                "name": "plot_mne_visualization(plot_type)",
+                "description": "Plot MNE visualization",
+                "type": "POST",
+                "params": {
+                    "plot_type": {
+                        "type": "text",
+                        "description": "Type of MNE plot",
+                        "required": True,
+                    }
+                },
+            },
+            self._handle_plot_mne_visualization,
+        )
+
+        # Compute wavelet
+        api_explorer.register_method(
+            self._target_module_id,
+            "advanced",
+            "compute_wavelet",
+            {
+                "name": "compute_wavelet(wavelet_type, level, channel)",
+                "description": "Compute wavelet transform",
+                "type": "POST",
+                "params": {
+                    "wavelet_type": {
+                        "type": "number",
+                        "description": "Type of wavelet",
+                        "required": True,
+                    },
+                    "level": {
+                        "type": "number",
+                        "description": "Decomposition level",
+                        "required": True,
+                    },
+                    "channel": {
+                        "type": "number",
+                        "description": "Channel to process",
+                        "required": True,
+                    },
+                },
+            },
+            self._handle_compute_wavelet,
         )
 
     def _register_status_methods(self, api_explorer: Any) -> None:
         """Register status-related methods."""
         # Get connection status
         api_explorer.register_method(
-            self.module_id,
-            "status",
+            self._target_module_id,
+            "interaction_status",
             "get_connection_status",
             {
                 "name": "get_connection_status()",
@@ -424,8 +572,8 @@ class EEGProcessorInteractionApiIntegration:
 
         # Get system status
         api_explorer.register_method(
-            self.module_id,
-            "status",
+            self._target_module_id,
+            "interaction_status",
             "get_system_status",
             {
                 "name": "get_system_status()",
@@ -436,261 +584,114 @@ class EEGProcessorInteractionApiIntegration:
             self._handle_get_system_status,
         )
 
-    # Method handlers
+    # Method handlers - these delegate to the EEGProcessorInteractionAPI
+    # (mantener todos los handlers sin cambios)
     async def _handle_get_available_boards(self) -> Dict[str, Any]:
         """Handle get_available_boards."""
-        boards = self.interaction_service.get_available_boards()
+        boards = EEGProcessorInteractionAPI.get_available_boards()
         return {"boards": boards}
 
     async def _handle_connect_to_board(
         self, board_id: int, params: Optional[Dict[str, Any]] = None, preset: int = 0
     ) -> Dict[str, Any]:
         """Handle connect_to_board."""
-        result = self.interaction_service.connect_to_board(
-            board_id, params or {}, preset
-        )
-        if isinstance(result, dict):
-            return result
-        else:
-            success = bool(result)
-            return {
-                "success": success,
-                "message": (
-                    "Board connected successfully"
-                    if success
-                    else "Failed to connect to board"
-                ),
-            }
+        return EEGProcessorInteractionAPI.connect_to_board(board_id, params, preset)
 
     async def _handle_disconnect_from_board(self) -> Dict[str, Any]:
         """Handle disconnect_from_board."""
-        result = self.interaction_service.disconnect_from_board()
-
-        # Asegurar que siempre devolvemos un diccionario JSON bien formado
-        if isinstance(result, dict):
-            return result
-        else:
-            # Si el resultado no es un diccionario (por ejemplo, es un booleano),
-            # convertirlo a un formato JSON adecuado
-            success = bool(result)
-            return {
-                "success": success,
-                "message": (
-                    "Board disconnected successfully"
-                    if success
-                    else "Failed to disconnect from board"
-                ),
-            }
+        return EEGProcessorInteractionAPI.disconnect_from_board()
 
     async def _handle_get_board_requirements(self, board_id: int) -> Dict[str, Any]:
         """Handle get_board_requirements."""
-        from .interaction_api import EEGProcessorInteractionAPI
-
-        return {
-            "requirements": EEGProcessorInteractionAPI.get_board_requirements(board_id)
-        }
+        requirements = EEGProcessorInteractionAPI.get_board_requirements(board_id)
+        return {"requirements": requirements}
 
     async def _handle_start_stream(self, buffer_size: int = 450000) -> Dict[str, Any]:
         """Handle start_stream."""
-        result = self.interaction_service.start_stream(buffer_size)
-        if isinstance(result, dict):
-            return result
-        else:
-            success = bool(result)
-            return {
-                "success": success,
-                "message": (
-                    "Stream started successfully"
-                    if success
-                    else "Failed to start stream"
-                ),
-            }
+        return EEGProcessorInteractionAPI.start_stream(buffer_size)
 
     async def _handle_stop_stream(self) -> Dict[str, Any]:
         """Handle stop_stream."""
-        result = self.interaction_service.stop_stream()
-        if isinstance(result, dict):
-            return result
-        else:
-            success = bool(result)
-            return {
-                "success": success,
-                "message": (
-                    "Stream stopped successfully"
-                    if success
-                    else "Failed to stop stream"
-                ),
-            }
+        return EEGProcessorInteractionAPI.stop_stream()
 
     async def _handle_add_streamer(self, streamer_params: str) -> Dict[str, Any]:
         """Handle add_streamer."""
-        result = self.interaction_service.add_streamer(streamer_params)
-        if isinstance(result, dict):
-            return result
-        else:
-            success = bool(result)
-            return {
-                "success": success,
-                "message": (
-                    "Streamer added successfully"
-                    if success
-                    else "Failed to add streamer"
-                ),
-            }
+        return EEGProcessorInteractionAPI.add_streamer(streamer_params)
 
     async def _handle_remove_streamer(self, streamer_params: str) -> Dict[str, Any]:
         """Handle remove_streamer."""
-        result = self.interaction_service.remove_streamer(streamer_params)
-        if isinstance(result, dict):
-            return result
-        else:
-            success = bool(result)
-            return {
-                "success": success,
-                "message": (
-                    "Streamer removed successfully"
-                    if success
-                    else "Failed to remove streamer"
-                ),
-            }
+        return EEGProcessorInteractionAPI.remove_streamer(streamer_params)
+
+    async def _handle_send_board_config(self, config_cmd: str) -> Dict[str, Any]:
+        """Handle send_board_config."""
+        return EEGProcessorInteractionAPI.send_board_config(config_cmd)
 
     async def _handle_apply_filters(
         self, filter_config: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Handle apply_filters."""
-        result = self.interaction_service.apply_filters(filter_config)
-        if isinstance(result, dict):
-            return result
-        else:
-            success = bool(result)
-            return {
-                "success": success,
-                "message": (
-                    "Filters applied successfully"
-                    if success
-                    else "Failed to apply filters"
-                ),
-            }
+        return EEGProcessorInteractionAPI.apply_filters(filter_config)
+
+    async def _handle_get_eeg_metrics(self) -> Dict[str, Any]:
+        """Handle get_eeg_metrics."""
+        return EEGProcessorInteractionAPI.get_eeg_metrics()
 
     async def _handle_start_recording(
         self, filename: str, data_type: str = "raw"
     ) -> Dict[str, Any]:
         """Handle start_recording."""
-        result = self.interaction_service.start_recording(filename, data_type)
-        if isinstance(result, dict):
-            return result
-        else:
-            success = bool(result)
-            return {
-                "success": success,
-                "message": (
-                    "Recording started successfully"
-                    if success
-                    else "Failed to start recording"
-                ),
-            }
+        return EEGProcessorInteractionAPI.start_recording(filename, data_type)
 
     async def _handle_stop_recording(self) -> Dict[str, Any]:
         """Handle stop_recording."""
-        result = self.interaction_service.stop_recording()
-        if isinstance(result, dict):
-            return result
-        else:
-            success = bool(result)
-            return {
-                "success": success,
-                "message": (
-                    "Recording stopped successfully"
-                    if success
-                    else "Failed to stop recording"
-                ),
-            }
+        return EEGProcessorInteractionAPI.stop_recording()
 
     async def _handle_insert_marker(self, marker_value: float) -> Dict[str, Any]:
         """Handle insert_marker."""
-        result = self.interaction_service.insert_marker(marker_value)
-        if isinstance(result, dict):
-            return result
-        else:
-            success = bool(result)
-            return {
-                "success": success,
-                "message": (
-                    "Marker inserted successfully"
-                    if success
-                    else "Failed to insert marker"
-                ),
-            }
+        return EEGProcessorInteractionAPI.insert_marker(marker_value)
 
     async def _handle_get_recording_status(self) -> Dict[str, Any]:
         """Handle get_recording_status."""
-        from .interaction_api import EEGProcessorInteractionAPI
-
         return EEGProcessorInteractionAPI.get_recording_status()
+
+    async def _handle_save_current_data(
+        self, filename: str, data_type: str = "raw"
+    ) -> Dict[str, Any]:
+        """Handle save_current_data."""
+        return EEGProcessorInteractionAPI.save_current_data(filename, data_type)
 
     async def _handle_start_visualization(
         self, viz_type: str = "eeg"
     ) -> Dict[str, Any]:
         """Handle start_visualization."""
-        result = self.interaction_service.start_visualization(viz_type)
-        if isinstance(result, dict):
-            return result
-        else:
-            success = bool(result)
-            return {
-                "success": success,
-                "message": (
-                    "Visualization started successfully"
-                    if success
-                    else "Failed to start visualization"
-                ),
-            }
+        return EEGProcessorInteractionAPI.start_visualization(viz_type)
 
     async def _handle_stop_visualization(self, viz_type: str = "eeg") -> Dict[str, Any]:
         """Handle stop_visualization."""
-        result = self.interaction_service.stop_visualization(viz_type)
-        if isinstance(result, dict):
-            return result
-        else:
-            success = bool(result)
-            return {
-                "success": success,
-                "message": (
-                    "Visualization stopped successfully"
-                    if success
-                    else "Failed to stop visualization"
-                ),
-            }
+        return EEGProcessorInteractionAPI.stop_visualization(viz_type)
 
     async def _handle_perform_ica(self, num_components: int) -> Dict[str, Any]:
         """Handle perform_ica."""
-        result = self.interaction_service.perform_ica(num_components)
-        if isinstance(result, dict):
-            return result
-        else:
-            success = bool(result)
-            return {
-                "success": success,
-                "message": (
-                    "ICA performed successfully" if success else "Failed to perform ICA"
-                ),
-            }
+        return EEGProcessorInteractionAPI.perform_ica(num_components)
 
-    async def _handle_get_eeg_metrics(self) -> Dict[str, Any]:
-        """Handle get_eeg_metrics."""
-        result = self.interaction_service.get_eeg_metrics()
-        if isinstance(result, dict):
-            return result
-        else:
-            # If result is not a dict, wrap it
-            return {"metrics": result}
+    async def _handle_convert_to_mne(self, duration: int = 5) -> Dict[str, Any]:
+        """Handle convert_to_mne."""
+        return EEGProcessorInteractionAPI.convert_to_mne(duration)
+
+    async def _handle_plot_mne_visualization(self, plot_type: str) -> Dict[str, Any]:
+        """Handle plot_mne_visualization."""
+        return EEGProcessorInteractionAPI.plot_mne_visualization(plot_type)
+
+    async def _handle_compute_wavelet(
+        self, wavelet_type: int, level: int, channel: int
+    ) -> Dict[str, Any]:
+        """Handle compute_wavelet."""
+        return EEGProcessorInteractionAPI.compute_wavelet(wavelet_type, level, channel)
 
     async def _handle_get_connection_status(self) -> Dict[str, Any]:
         """Handle get_connection_status."""
-        from .interaction_api import EEGProcessorInteractionAPI
-
         return EEGProcessorInteractionAPI.get_connection_status()
 
     async def _handle_get_system_status(self) -> Dict[str, Any]:
         """Handle get_system_status."""
-        return self.interaction_service.get_system_status()
+        return EEGProcessorInteractionAPI.get_system_status()
