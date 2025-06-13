@@ -368,7 +368,7 @@ class SignalProcessor:
             )
             feature_vector = bands[0]
 
-            # Crear diccionario para almacenar métricas
+            # Create dictionary to store metrics
             metrics = {}
 
             # Calculate mindfulness
@@ -379,7 +379,7 @@ class SignalProcessor:
             mindfulness_model = MLModel(mindfulness_params)
             mindfulness_model.prepare()
             metrics["mindfulness"] = mindfulness_model.predict(feature_vector)
-            # Usar el mismo valor para concentration
+            # Use the same value for concentration
             metrics["concentration"] = metrics["mindfulness"]
             mindfulness_model.release()
 
@@ -391,7 +391,7 @@ class SignalProcessor:
             restfulness_model = MLModel(restfulness_params)
             restfulness_model.prepare()
             metrics["restfulness"] = restfulness_model.predict(feature_vector)
-            # Usar el mismo valor para relaxation
+            # Use the same value for relaxation
             metrics["relaxation"] = metrics["restfulness"]
             restfulness_model.release()
 

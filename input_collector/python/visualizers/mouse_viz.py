@@ -37,18 +37,18 @@ class MouseVisualizer(BaseVisualizer):
         self.accent_color = QColor("#007ACC")
         self.highlight_color = QColor("#3E3E42")
 
-        # Set size policy and minimum size - aumentar el tamaño mínimo para evitar recortes
+        # Set size policy and minimum size
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.setMinimumSize(300, 300)  # Aumentar la altura mínima
+        self.setMinimumSize(300, 300)
 
         # Create layout
         layout = QVBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)
         layout.setSpacing(5)
 
-        # Canvas takes most of the space - aumentar la proporción
+        # Canvas takes most of the space
         self.canvas = Canvas(self)
-        layout.addWidget(self.canvas, 5)  # Aumentar proporción
+        layout.addWidget(self.canvas, 5)
 
         # Info label
         self.info_label = QLabel("Mouse: Not moving")
@@ -170,7 +170,7 @@ class Canvas(QWidget):
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.setMinimumSize(300, 270)  # Aumentado a 270 para mejor visualización
+        self.setMinimumSize(300, 270)
 
         # Define dark theme colors
         self.dark_bg = QColor("#1E1E1E")

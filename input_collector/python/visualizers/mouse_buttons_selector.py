@@ -29,7 +29,7 @@ class MouseButton(QWidget):
         self.label = label
         self.tracked = False
         self.active = False
-        self.edit_mode = False  # Añadir flag para modo edición
+        self.edit_mode = False
 
         # Define colors
         self.dark_bg = QColor("#2D2D30")
@@ -75,7 +75,7 @@ class MouseButton(QWidget):
         """Handle mouse press events."""
         if (
             event.button() == Qt.LeftButton and self.edit_mode
-        ):  # Solo responder en modo edición
+        ):  # Only respond in edit mode
             self.clicked.emit(self.button_id)
 
     def setTracked(self, tracked: bool) -> None:
@@ -137,10 +137,10 @@ class MouseButtonsSelector(BaseVisualizer):
         self.left_button.setTracked(True)
         self.right_button.setTracked(True)
 
-        # Set size policy and make el widget más compacto
+        # Set size policy and make the widget more compact
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         self.setMinimumHeight(60)
-        self.setMaximumHeight(70)  # Limitar altura máxima
+        self.setMaximumHeight(70)  # Limit maximum height
 
         # Set which collectors this visualizer supports
         self.supported_collectors = ["keyboard_mouse"]
@@ -193,7 +193,7 @@ class MouseButtonsSelector(BaseVisualizer):
 
     def setEditMode(self, edit_mode: bool) -> None:
         """Enable or disable edit mode."""
-        # Propagar el modo de edición a todos los botones
+        # Propagate edit mode to all buttons
         self.left_button.setEditMode(edit_mode)
         self.right_button.setEditMode(edit_mode)
         self.scroll_button.setEditMode(edit_mode)

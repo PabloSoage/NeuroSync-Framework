@@ -1068,9 +1068,6 @@ class UIManager(QObject):
             else:
                 print(f"Warning: Control '{control_key}' not found in components")
 
-        # Remove the direct attribute access section since these don't exist as attributes
-        # ... existing code ...
-
     def update_ps4_overlay_edit_state(self, edit_mode: bool) -> None:
         """
         Update the state of the PS4 edit overlays button.
@@ -1078,7 +1075,7 @@ class UIManager(QObject):
         Args:
             edit_mode: Whether overlay edit mode is enabled
         """
-        # --- GUARDAR POSICIÓN DEL SCROLL ---
+        # --- SAVE SCROLL POSITION ---
         scrollbar = getattr(self, "main_scroll", None)
         scrollbar = scrollbar.verticalScrollBar() if scrollbar else None
         prev_pos = scrollbar.value() if scrollbar else None
@@ -1103,10 +1100,10 @@ class UIManager(QObject):
         if ps4_discard := self.components.get("ps4_discard_overlays"):
             ps4_discard.setVisible(edit_mode)
 
-        # Desactivar la combobox de PS4 Viz en modo edición
+        # Disable the PS4 Viz combobox in edit mode
         if ps4_combo := self.components.get("ps4_viz_mode_combo"):
             ps4_combo.setEnabled(not edit_mode)
 
-        # --- RESTAURAR POSICIÓN DEL SCROLL ---
+        # --- RESTORE SCROLL POSITION ---
         if scrollbar and prev_pos is not None:
             scrollbar.setValue(prev_pos)

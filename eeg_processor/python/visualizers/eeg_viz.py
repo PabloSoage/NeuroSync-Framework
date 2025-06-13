@@ -26,11 +26,11 @@ class EEGVisualizer:
             collector: EEG data collector (for metadata only)
             processor: Signal processor for data filtering
         """
-        # CAMBIO: Solo usar collector para metadatos, no para datos
+        # Only use collector for metadata, not for data
         self.collector = collector
         self.processor = processor
         
-        # CAMBIO: Obtener datos del DataAccessService
+        # Get data from DataAccessService
         self.data_service = DataAccessService.get_instance()
         
         # Get metadata from collector
@@ -137,7 +137,7 @@ class EEGVisualizer:
         self.fft_plot.setLogMode(x=False, y=True)  # Log scale for power
         self.fft_curves = []
 
-        # Determinar número de columnas para la leyenda en función del número de canales
+        # Determine number of columns for the legend based on number of channels
         legend_columns = 1
         if self.num_channels > 8:
             legend_columns = 2
@@ -149,12 +149,10 @@ class EEGVisualizer:
             offset=(-10, 10), colCount=legend_columns
         )
 
-        # Aumentamos el número máximo de canales en el espectro (hasta 16 en lugar de 4)
-        max_fft_channels = min(
-            self.num_channels, 16
-        )  # Mostrar hasta 16 canales en lugar de 4
+        # Increase the maximum number of channels in the spectrum (up to 16)
+        max_fft_channels = min(self.num_channels, 16)
 
-        for i in range(max_fft_channels):  # Ahora mostramos más canales
+        for i in range(max_fft_channels):
             color = pg.mkPen(
                 color=(i * 50 % 255, 255 - i * 30 % 255, i * 20 % 255), width=2
             )
@@ -220,7 +218,7 @@ class EEGVisualizer:
     def update_plots(self) -> None:
         """Update all plots with new data."""
         try:
-            # CAMBIO PRINCIPAL: Obtener datos del DataAccessService en lugar del collector
+            # Get data from DataAccessService instead of collector
             data, timestamps = self.data_service.get_current_data()
             metadata = self.data_service.get_metadata()
             
@@ -268,9 +266,6 @@ class EEGVisualizer:
             quality_scores = self.processor.get_all_channels_quality(
                 data_to_plot, self.eeg_channels
             )
-
-            # ELIMINADO: Ya no necesitamos actualizar DataAccessService aquí
-            # porque los datos ya vienen de ahí
 
             # Update time series plots
             for i, channel in enumerate(self.eeg_channels):

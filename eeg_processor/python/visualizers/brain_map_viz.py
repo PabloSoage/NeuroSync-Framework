@@ -50,10 +50,10 @@ class BrainMapVisualizer:
         logging.info(f"Collector has get_data: {has_get_data}")
         logging.info(f"Processor has get_all_channels_quality: {has_quality_method}")
 
-        # Aumentar la frecuencia de actualización para que sea más rápido que el EEGVisualizer
-        self.update_speed_ms = 100  # Más rápido que antes (200ms)
+        # Increase the update frequency to be faster than EEGVisualizer
+        self.update_speed_ms = 100  # Faster than before (200ms)
 
-        # Indicadores para depuración
+        # Indicators for debugging
         self.update_count = 0
         self.last_quality_values: Dict[str, float] = {}
 
@@ -640,7 +640,7 @@ class BrainMapVisualizer:
             self.timer.timeout.connect(self.update_quality_map)
             self.timer.start(self.update_speed_ms)
 
-            # Forzar una actualización inmediata
+            # Force an immediate update
             # Important: Call this manually to ensure first update works
             QTimer.singleShot(500, self.update_quality_map)
 
@@ -670,7 +670,7 @@ class BrainMapVisualizer:
             if not self.is_visible():
                 return
 
-            # Incrementar contador para debug
+            # Increment counter for debugging
             self.update_count += 1
             logging.info(f"Brain Map update #{self.update_count} started")
 
@@ -743,21 +743,21 @@ class BrainMapVisualizer:
                     return
 
             # Original method if both methods exist
-            # Verificar precondiciones
+            # Check preconditions
             if not hasattr(self.collector, "get_data") or not hasattr(
                 self.processor, "get_all_channels_quality"
             ):
                 logging.warning("Collector or processor missing required methods")
                 return
 
-            # Obtener datos
+            # Get data
             data, _ = self.collector.get_data(self.num_points)
 
             if data.size == 0:
                 logging.warning("No data available for brain map update")
                 return
 
-            # Procesar datos exactamente como en EEGVisualizer
+            # Process data exactly as in EEGVisualizer
             data_copy = data.copy()
 
             if self.apply_bandpass:
@@ -769,30 +769,30 @@ class BrainMapVisualizer:
             if self.apply_detrend:
                 data_copy = self.processor.detrend(data_copy)
 
-            # Calcular calidad directamente como lo hace EEGVisualizer
+            # Calculate quality directly as EEGVisualizer does
             quality_dict = self.processor.get_all_channels_quality(
                 data_copy, self.eeg_channels
             )
 
-            # Mostrar los valores de calidad calculados
+            # Show the calculated quality values
             logging.info(f"BrainMap - Calculated quality values: {quality_dict}")
 
-            # Actualizar calidades de electrodos directamente
+            # Update electrode qualities directly
             for i, ch_idx in enumerate(self.eeg_channels):
                 if i < len(self.collector.eeg_names):
                     ch_name = self.collector.eeg_names[i].upper()
                     if ch_name in self.electrode_positions:
                         quality = quality_dict.get(ch_idx, 0.0)
-                        # Actualizar directamente
+                        # Update directly
                         self.electrode_quality[ch_name] = quality
                         logging.info(
                             f"Updated electrode {ch_name} quality to {quality}"
                         )
 
-            # Actualizar visualización
+            # Update visualization
             self.update_electrode_display()
 
-            # Forzar repintado
+            # Force redraw
             self.plot.update()
 
         except Exception as e:

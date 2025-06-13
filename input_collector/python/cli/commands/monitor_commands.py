@@ -409,7 +409,7 @@ def _run_monitor(allowed: List[str], show_keys: bool = True) -> None:
                 keys = event_dict.get("keys", [])
                 keys_str = f"[yellow]Keys:[/yellow] {','.join(keys)}" if keys else ""
 
-            # Movimiento del ratón
+            # Mouse movement
             mv = event_dict.get("movement", {})
             mv_status = mv.get("status", "")
             mv_str = f"[cyan]Mouse:[/cyan] {mv_status}" if mv_status else ""
@@ -418,7 +418,7 @@ def _run_monitor(allowed: List[str], show_keys: bool = True) -> None:
             btns = event_dict.get("click", {}).get("buttons", [])
             btns_str = f"[magenta]Buttons:[/magenta] {','.join(btns)}" if btns else ""
 
-            # Montar línea
+            # Build output line
             parts = [f"[dim]{tstr}[/dim]", f"[green]{et_disp}[/green]"]
             for p in (keys_str, mv_str, btns_str):
                 if p:

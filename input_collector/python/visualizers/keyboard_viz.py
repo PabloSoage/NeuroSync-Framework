@@ -70,12 +70,12 @@ class KeyboardVisualizer(BaseVisualizer):
         self.key_mappings: Dict[str, str] = {}
         self._create_key_mappings()
 
-        # Almacenar información de posición de las teclas para interacción
+        # Store position information of keys for interaction
         self.key_rects: Dict[str, QRect] = {}
 
         # Set size policy and minimum size
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        self.setMinimumSize(400, 200)  # Aumentado desde 180 a 200 para más altura
+        self.setMinimumSize(400, 200)
 
         # Set which collectors we support
         self.supported_collectors = ["keyboard_mouse"]
@@ -164,23 +164,23 @@ class KeyboardVisualizer(BaseVisualizer):
             str or None: The key name at the position, or None if no key is at that position
         """
         try:
-            # Asegurarse de que el diccionario key_rects existe
+            # Ensure the key_rects dictionary exists
             if not hasattr(self, "key_rects"):
-                print("Warning: key_rects no está inicializado")
+                print("Warning: key_rects is not initialized")
                 return None
 
-            # Asegurarse de que el diccionario no está vacío
+            # Ensure the dictionary is not empty
             if not self.key_rects:
-                print("Warning: key_rects está vacío")
+                print("Warning: key_rects is empty")
                 return None
 
-            # Verificar cada rectángulo de tecla
+            # Check each key rectangle
             for key, rect in self.key_rects.items():
-                # Verificar que rect es un objeto QRect válido con método contains
+                # Verify that rect is a valid QRect object with contains method
                 if not hasattr(rect, "contains"):
                     continue
 
-                # Comprobar si el punto está dentro del rectángulo
+                # Check if the point is inside the rectangle
                 if rect.contains(x, y):
                     return key
         except Exception as e:
@@ -209,46 +209,38 @@ class KeyboardVisualizer(BaseVisualizer):
             width = self.width()
             height = self.height()
 
-            # Ajustar el tamaño para evitar que se corte
-            width_padding = (
-                width * 0.025
-            )  # Reducido desde 0.03 para dar más espacio horizontal
-            height_padding = (
-                height * 0.05
-            )  # Reducido desde 0.06 para dar más espacio vertical
+            # Adjust size to avoid cutting off
+            width_padding = width * 0.025
+            height_padding = height * 0.05
             effective_width = width - (2 * width_padding)
             effective_height = height - (2 * height_padding)
 
-            # Escalar la visualización del teclado - aumentar ancho general
-            scale_factor = 0.95  # Aumentado desde 0.92 para hacer el teclado más grande
+            # Scale keyboard display - increase overall width
+            scale_factor = 0.95
             effective_width *= scale_factor
 
             # Scale font and key sizes based on available space
-            font_size = max(
-                7, min(10, int(effective_width / 60))
-            )  # Aumentado ligeramente
+            font_size = max(7, min(10, int(effective_width / 60)))
             font = QFont("Segoe UI", font_size)
             painter.setFont(font)
 
-            # Determinar dimensiones de las teclas
+            # Determine key dimensions
             num_rows = len(self.DEFAULT_KEYBOARD_LAYOUT)
             max_keys_in_row = max(len(row) for row in self.DEFAULT_KEYBOARD_LAYOUT)
 
-            # Calcular el ancho y alto base de las teclas
+            # Calculate base width and height of keys
             base_key_width = effective_width / (max_keys_in_row + 2)
-            # Reducir la altura de las teclas, pero no tanto como antes
-            base_key_height = min(
-                effective_height / (num_rows + 0.6), base_key_width * 0.85
-            )  # Aumentado desde 0.8
+            # Reduce key height, but not as much as before
+            base_key_height = min(effective_height / (num_rows + 0.6), base_key_width * 0.85)
 
-            # Limpiar el diccionario de rectángulos de teclas
+            # Clear the key rectangles dictionary
             self.key_rects = {}
 
-            # Dibujar el teclado, centrado en el widget
+            # Draw the keyboard, centered in the widget
             y_offset = height_padding
 
             for row_idx, row in enumerate(self.DEFAULT_KEYBOARD_LAYOUT):
-                # Calcular el ancho total de esta fila
+                # Calculate total width of this row
                 total_row_width = sum(
                     [
                         base_key_width
@@ -257,11 +249,7 @@ class KeyboardVisualizer(BaseVisualizer):
                             if key == "Space"
                             else (
                                 2.0
-                                if key
-                                in [
-                                    "Backspace",
-                                    "Enter",
-                                ]  # Increased width for these keys
+                                if key in ["Backspace", "Enter"]
                                 else 1.5 if key in ["Shift", "Tab"] else 1
                             )
                         )
@@ -269,27 +257,23 @@ class KeyboardVisualizer(BaseVisualizer):
                     ]
                 )
 
-                # Añadir espaciado entre teclas
-                total_row_width += (
-                    base_key_width * 0.15 * (len(row) - 1)
-                )  # Reduced spacing between keys
+                # Add spacing between keys
+                total_row_width += base_key_width * 0.15 * (len(row) - 1)
 
-                # Centrar la fila
+                # Center the row
                 x_offset = (width - total_row_width) / 2
 
                 for key_label in row:
-                    # Determinar ancho de esta tecla
+                    # Determine width of this key
                     key_width_actual = base_key_width
                     if key_label == "Space":
                         key_width_actual = base_key_width * 4
                     elif key_label in ["Backspace", "Enter"]:
-                        key_width_actual = (
-                            base_key_width * 2.0
-                        )  # Increased from 1.8 to 2.0
+                        key_width_actual = base_key_width * 2.0
                     elif key_label in ["Shift", "Tab"]:
                         key_width_actual = base_key_width * 1.5
 
-                    # Definir rectángulo de la tecla
+                    # Define key rectangle
                     key_rect = QRect(
                         int(x_offset),
                         int(y_offset),
@@ -297,24 +281,24 @@ class KeyboardVisualizer(BaseVisualizer):
                         int(base_key_height),
                     )
 
-                    # Guardar el rectángulo para detección de clics
+                    # Save the rectangle for click detection
                     self.key_rects[key_label] = key_rect
 
-                    # Determinar color de la tecla
+                    # Determine key color
                     key_lower = key_label.lower()
 
-                    # Color predeterminado
+                    # Default color
                     key_color = self.key_bg
 
-                    # Manejo especial para la barra espaciadora
+                    # Special handling for spacebar
                     if key_lower == "space":
                         key_color = QColor("#464649")
 
-                    # Manejo especial para F9/tecla de grabación
+                    # Special handling for F9/record key
                     if key_lower == "f9":
                         key_color = self.record_key_bg
 
-                    # Verificar si la tecla está siendo tracked
+                    # Check if the key is being tracked
                     for tracked_key in self.tracked_keys:
                         if (
                             tracked_key.lower() == key_lower
@@ -328,12 +312,12 @@ class KeyboardVisualizer(BaseVisualizer):
                             key_color = self.tracked_key_bg
                             break
 
-                    # Verificar si la tecla está activa
+                    # Check if the key is active
                     is_active = False
                     for active_key in self.active_keys:
                         active_key_lower = active_key.lower()
 
-                        # Manejar la barra espaciadora
+                        # Handle spacebar
                         if (
                             active_key_lower in ["key.space", "space", " "]
                             and key_lower == "space"
@@ -341,7 +325,7 @@ class KeyboardVisualizer(BaseVisualizer):
                             key_color = self.active_key_bg
                             is_active = True
                             break
-                        # Manejar la tecla shift
+                        # Handle shift key
                         elif (
                             active_key_lower
                             in ["key.shift", "key.shift_l", "key.shift_r"]
@@ -350,17 +334,15 @@ class KeyboardVisualizer(BaseVisualizer):
                             key_color = self.active_key_bg
                             is_active = True
                             break
-                        # Manejar la tecla de media play/pause (F9)
+                        # Handle media play/pause key (F9)
                         elif (
                             active_key_lower == "key.media_play_pause"
                             and key_lower == "f9"
                         ):
-                            key_color = QColor(
-                                "#FF5555"
-                            )  # Rojo más brillante para estado activo
+                            key_color = QColor("#FF5555")  # Brighter red for active state
                             is_active = True
                             break
-                        # Manejar teclas normales
+                        # Handle normal keys
                         elif active_key_lower == key_lower:
                             is_tracked = key_lower in self.tracked_keys
                             key_color = (
@@ -371,10 +353,10 @@ class KeyboardVisualizer(BaseVisualizer):
                             is_active = True
                             break
 
-                    # Dibujar la tecla
+                    # Draw the key
                     pen = QPen(Qt.NoPen)
                     if is_active:
-                        # Usar efecto hundido para teclas activas
+                        # Use sunken effect for active keys
                         offset = 1
                         shadow_rect = key_rect.adjusted(offset, offset, 0, 0)
                         painter.fillRect(shadow_rect, QColor(0, 0, 0, 70))
@@ -383,24 +365,22 @@ class KeyboardVisualizer(BaseVisualizer):
                     painter.setBrush(QBrush(key_color))
                     painter.drawRect(key_rect)
 
-                    # Dibujar texto de la tecla
+                    # Draw key text
                     painter.setPen(QPen(self.key_text))
 
-                    # Manejo especial para la tecla F9
+                    # Special handling for F9 key
                     if key_lower == "f9":
-                        # Dibujar texto F9 con indicación de REC
+                        # Draw F9 text with REC indication
                         painter.drawText(key_rect, Qt.AlignCenter, "F9\n(REC)")
                     else:
-                        # Dibujar texto normal
+                        # Draw normal text
                         painter.drawText(key_rect, Qt.AlignCenter, key_label)
 
-                    # Moverse a la siguiente posición
-                    x_offset += key_width_actual + (
-                        base_key_width * 0.15
-                    )  # Reduced spacing from 0.2 to 0.15
+                    # Move to next position
+                    x_offset += key_width_actual + (base_key_width * 0.15)
 
-                # Moverse a la siguiente fila con menos espaciado
-                y_offset += base_key_height * 1.05  # Reduced from 1.1 to 1.05
+                # Move to next row with less spacing
+                y_offset += base_key_height * 1.05
         except Exception as e:
             print(f"Error in keyboard visualization: {e}")
             import traceback
@@ -409,13 +389,11 @@ class KeyboardVisualizer(BaseVisualizer):
 
     def sizeHint(self) -> QSize:
         """Suggested size for the widget"""
-        return QSize(500, 280)  # Aumentado desde 480,260 para sugerir un tamaño mayor
+        return QSize(500, 280)
 
     def minimumSizeHint(self) -> QSize:
         """Minimum suggested size for the widget"""
-        return QSize(
-            400, 200
-        )  # Aumentado desde 400,180 para asegurar suficiente altura
+        return QSize(400, 200)
 
     def force_update(self) -> None:
         """Force a redraw of the keyboard"""

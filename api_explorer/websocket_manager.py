@@ -150,7 +150,7 @@ class WebSocketManager:
             is_important = self._is_important_event(event_data)
 
             if not is_important:
-                sample_rate = max(0.05, min(0.2, 100.0 / throttle_data["rate"]))  # Menos agresivo
+                sample_rate = max(0.05, min(0.2, 100.0 / throttle_data["rate"]))  # Less aggressive
 
                 if random.random() > sample_rate:
                     throttle_data["drop_counter"] += 1

@@ -585,7 +585,6 @@ class EEGProcessorInteractionApiIntegration:
         )
 
     # Method handlers - these delegate to the EEGProcessorInteractionAPI
-    # (mantener todos los handlers sin cambios)
     async def _handle_get_available_boards(self) -> Dict[str, Any]:
         """Handle get_available_boards."""
         boards = EEGProcessorInteractionAPI.get_available_boards()

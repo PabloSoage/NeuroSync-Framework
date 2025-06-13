@@ -130,7 +130,6 @@ class InputCollectorAPI:
         # Parse boolean parameter to handle string values like "True"/"False" from web API
         enabled = cls._parse_bool(enabled)
 
-        # Llamada original
         success = service.enable_json_logging(enabled)
 
         if success:
@@ -142,7 +141,7 @@ class InputCollectorAPI:
                 ui_manager.components["log_checkbox"].setChecked(enabled)
                 ui_manager.components["log_checkbox"].blockSignals(False)
 
-        # Ajustar mensaje según el parámetro
+        # Adjust message based on parameter
         service._set_status(
             success, f"JSON logging {'enabled' if enabled else 'disabled'}"
         )
@@ -167,7 +166,7 @@ class InputCollectorAPI:
         # Parse boolean parameter to handle string values like "True"/"False" from web API
         enabled = cls._parse_bool(enabled)
 
-        # Llamada original
+        # Original call
         success = service.enable_csv_logging(enabled, filepath)
 
         if success:
@@ -179,7 +178,7 @@ class InputCollectorAPI:
                 ui_manager.components["csv_checkbox"].setChecked(enabled)
                 ui_manager.components["csv_checkbox"].blockSignals(False)
 
-        # Ajustar mensaje según el parámetro
+        # Adjust message based on parameter
         service._set_status(
             success, f"CSV logging {'enabled' if enabled else 'disabled'}"
         )
@@ -632,7 +631,7 @@ class InputCollectorAPI:
             service._set_status(False, "App coordinator not available")
             return False
 
-        # Sólo en modo edición
+        # Only in edit mode
         if not app_coordinator.edit_mode:
             service._set_status(False, "Cannot add key: edit mode is disabled")
             return False
@@ -717,7 +716,7 @@ class InputCollectorAPI:
             service._set_status(False, "App coordinator not available")
             return False
 
-        # Sólo en modo edición
+        # Only in edit mode
         if not app_coordinator.edit_mode:
             service._set_status(False, "Cannot remove key: edit mode is disabled")
             return False

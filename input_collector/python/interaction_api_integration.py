@@ -308,7 +308,7 @@ class InteractionApiIntegration:
             data: Event data
         """
         try:
-            # 1) Actualizar estado de botones antes de filtrar release
+            # 1) Update button state before filtering release
             if (
                 event_type == EventType.INPUT
                 and getattr(data, "event_type", "") == "mouse_click"
@@ -362,7 +362,7 @@ class InteractionApiIntegration:
             ):
                 return
 
-            # 4) Unificar InputData en payload
+            # 4) Unify InputData in payload
             if event_type == EventType.INPUT and hasattr(data, "event_type"):
                 # Create unified payload structure
                 payload = {
@@ -462,7 +462,7 @@ class InteractionApiIntegration:
                     ):
                         payload["key"] = {"pressed": data.key}
 
-                # 5) Filtrar campos vacíos y agregar ID para todos los eventos
+                # 5) Filter empty fields and add ID for all events
                 self._filter_empty_fields(payload)
                 payload["event_id"] = (
                     f"{str(time.time()).replace('.', '')}_{id(payload)}"
@@ -566,7 +566,7 @@ class InteractionApiIntegration:
         Returns:
             Dict: The current state of all PS4 controls
         """
-        # Procesamiento de los sticks para incluir porcentajes y direcciones consistentes
+        # Process sticks to include percentages and consistent directions
         left_stick_data = self._ps4_stick_states["left"]
         right_stick_data = self._ps4_stick_states["right"]
 

@@ -853,7 +853,7 @@ class InputCollectorApiIntegration:
         Returns:
             Dict: The current state of all PS4 controls
         """
-        # Procesamiento de los sticks para incluir porcentajes y direcciones consistentes
+        # Process sticks to include percentages and consistent directions
         left_stick_x = self._ps4_stick_states["left"]["x"]
         left_stick_y = self._ps4_stick_states["left"]["y"]
         right_stick_x = self._ps4_stick_states["right"]["x"]

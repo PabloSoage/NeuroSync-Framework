@@ -52,7 +52,7 @@ class ProcessingPanel(BasePanel):
         bandpass_layout = QHBoxLayout()
         self.bandpass_check = QCheckBox("Bandpass Filter")
         self.bandpass_check.setChecked(True)
-        # Conectar cambios a la función de actualización dinámica
+        # Connect changes to the dynamic update function
         self.bandpass_check.toggled.connect(self.on_filter_option_changed)
 
         bandpass_low_label = QLabel("Low Cut:")
@@ -60,7 +60,7 @@ class ProcessingPanel(BasePanel):
         self.bandpass_low_spin.setRange(0.1, 100.0)
         self.bandpass_low_spin.setValue(1.0)
         self.bandpass_low_spin.setSuffix(" Hz")
-        # Conectar cambios a la función de actualización dinámica
+        # Connect changes to the dynamic update function
         self.bandpass_low_spin.valueChanged.connect(self.on_filter_option_changed)
 
         bandpass_high_label = QLabel("High Cut:")
@@ -68,7 +68,7 @@ class ProcessingPanel(BasePanel):
         self.bandpass_high_spin.setRange(0.1, 200.0)
         self.bandpass_high_spin.setValue(50.0)
         self.bandpass_high_spin.setSuffix(" Hz")
-        # Conectar cambios a la función de actualización dinámica
+        # Connect changes to the dynamic update function
         self.bandpass_high_spin.valueChanged.connect(self.on_filter_option_changed)
 
         bandpass_layout.addWidget(self.bandpass_check)
@@ -83,14 +83,14 @@ class ProcessingPanel(BasePanel):
         notch_layout = QHBoxLayout()
         self.notch_check = QCheckBox("Notch Filter")
         self.notch_check.setChecked(True)
-        # Conectar cambios a la función de actualización dinámica
+        # Connect changes to the dynamic update function
         self.notch_check.toggled.connect(self.on_filter_option_changed)
 
         notch_type_label = QLabel("Type:")
         self.notch_type_combo = QComboBox()
         self.notch_type_combo.addItem("50 Hz", "50")
         self.notch_type_combo.addItem("60 Hz", "60")
-        # Conectar cambios a la función de actualización dinámica
+        # Connect changes to the dynamic update function
         self.notch_type_combo.currentIndexChanged.connect(self.on_filter_option_changed)
 
         notch_layout.addWidget(self.notch_check)
@@ -103,7 +103,7 @@ class ProcessingPanel(BasePanel):
         detrend_layout = QHBoxLayout()
         self.detrend_check = QCheckBox("Detrend")
         self.detrend_check.setChecked(True)
-        # Conectar cambios a la función de actualización dinámica
+        # Connect changes to the dynamic update function
         self.detrend_check.toggled.connect(self.on_filter_option_changed)
         detrend_layout.addWidget(self.detrend_check)
         detrend_layout.addWidget(HelpButton("detrend", self))
@@ -221,11 +221,11 @@ class ProcessingPanel(BasePanel):
             self.show_error("Filter Error", f"Error applying filters: {str(e)}")
 
     def on_filter_option_changed(self) -> None:
-        """Actualizar los filtros dinámicamente cuando se cambian las opciones y los filtros están aplicados."""
-        # Solo actualizar si los filtros ya están aplicados
+        """Update filters dynamically when options change and filters are applied."""
+        # Only update if filters are already applied
         if hasattr(self, "filters_applied") and self.filters_applied:
             try:
-                # Aplicar los mismos filtros que en apply_filters, pero sin cambiar estado del botón
+                # Apply the same filters as in apply_filters, but without changing button state
                 self.visualization_service.set_bandpass_filter(
                     self.bandpass_check.isChecked(),
                     self.bandpass_low_spin.value(),
