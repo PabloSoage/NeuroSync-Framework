@@ -1,8 +1,10 @@
 import logging
 import threading
 import time
+import multiprocessing as mp
 from typing import Dict, List, Any, Optional, Tuple, Union, Deque
 from collections import deque
+import queue
 
 import numpy as np
 
@@ -28,14 +30,162 @@ class CollectorService:
         self._data_thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
         
-        # Sample rate metrics - REDISEÑADO COMPLETAMENTE
-        self._sample_window_size = 5.0  # Ventana de 5 segundos para calcular la tasa media
-        self._samples_timestamps: Deque[float] = deque(maxlen=1000)  # Marca de tiempo de las últimas 1000 muestras
+        self._use_multiprocessing = False
+        self._data_queue: Optional[mp.Queue] = None
+        self._process_pool: Optional[mp.Pool] = None
+        self._worker_processes: List[mp.Process] = []
+        self._processed_data_queue: Optional[mp.Queue] = None
+        
+        # Sample rate metrics
+        self._sample_window_size = 5.0
+        self._samples_timestamps: Deque[float] = deque(maxlen=1000)
         self._last_sample_count = 0
         self._current_sample_rate = 0.0
         self._last_timestamp = 0
         self._last_reported_time = 0
-        self._report_interval = 0.5  # Actualizar la tasa cada 0.5 segundos
+        self._report_interval = 0.5
+
+    def enable_high_performance_mode(self, enable: bool = True) -> None:
+        """
+        Enable/disable high performance mode with multiprocessing.
+        
+        Args:
+            enable: Whether to enable high performance mode
+        """
+        if enable and not self._use_multiprocessing:
+            self._use_multiprocessing = True
+            self._setup_multiprocessing()
+            logging.info("High performance mode enabled with multiprocessing")
+        elif not enable and self._use_multiprocessing:
+            self._use_multiprocessing = False
+            self._cleanup_multiprocessing()
+            logging.info("High performance mode disabled")
+
+    def _setup_multiprocessing(self) -> None:
+        """Setup multiprocessing components."""
+        try:
+            # Create queues for inter-process communication
+            self._data_queue = mp.Queue(maxsize=1000)
+            self._processed_data_queue = mp.Queue(maxsize=500)
+            
+            # Determine number of workers based on CPU
+            num_workers = max(2, min(4, mp.cpu_count() - 1))
+            
+            # Create process pool for data processing
+            self._process_pool = mp.Pool(
+                processes=num_workers,
+                initializer=self._worker_init,
+                initargs=(self._data_queue, self._processed_data_queue)
+            )
+            
+            logging.info(f"Multiprocessing setup complete with {num_workers} workers")
+            
+        except Exception as e:
+            logging.error(f"Error setting up multiprocessing: {e}")
+            self._use_multiprocessing = False
+
+    def _cleanup_multiprocessing(self) -> None:
+        """Cleanup multiprocessing components."""
+        try:
+            if self._process_pool:
+                self._process_pool.terminate()
+                self._process_pool.join()
+                self._process_pool = None
+                
+            if self._data_queue:
+                try:
+                    while not self._data_queue.empty():
+                        self._data_queue.get_nowait()
+                except:
+                    pass
+                self._data_queue = None
+                
+            if self._processed_data_queue:
+                try:
+                    while not self._processed_data_queue.empty():
+                        self._processed_data_queue.get_nowait()
+                except:
+                    pass
+                self._processed_data_queue = None
+                
+            logging.info("Multiprocessing cleanup complete")
+            
+        except Exception as e:
+            logging.error(f"Error cleaning up multiprocessing: {e}")
+
+    @staticmethod
+    def _worker_init(data_queue: mp.Queue, processed_queue: mp.Queue) -> None:
+        """Initialize worker process."""
+        import signal
+        signal.signal(signal.SIGINT, signal.SIG_IGN)  # Ignore keyboard interrupt
+        
+        # Worker loop
+        while True:
+            try:
+                # Get data from queue with timeout
+                try:
+                    data_package = data_queue.get(timeout=1.0)
+                except queue.Empty:
+                    continue
+                    
+                if data_package is None:  # Shutdown signal
+                    break
+                    
+                # Process data
+                processed_data = CollectorService._process_data_chunk(data_package)
+                
+                # Send processed data back
+                try:
+                    processed_queue.put_nowait(processed_data)
+                except queue.Full:
+                    # Skip if queue is full to avoid blocking
+                    pass
+                    
+            except Exception as e:
+                logging.error(f"Error in worker process: {e}")
+
+    @staticmethod
+    def _process_data_chunk(data_package: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Process a chunk of data in worker process.
+        
+        Args:
+            data_package: Package containing data and metadata
+            
+        Returns:
+            Processed data package
+        """
+        try:
+            data = data_package['data']
+            timestamps = data_package['timestamps']
+            metadata = data_package.get('metadata', {})
+
+            # TODO: Here we can add intensive processing implementations like:
+            #  - Signal filtering (bandpass, notch, etc.)
+            #  - Artifact detection (eye blinks, muscle activity, electrode issues)
+            #  - Data compression for transmission optimization
+            #  - Real-time spectral analysis (FFT, PSD, band powers)
+            #  - Signal quality assessment
+            #  - Feature extraction for BCI applications
+            #  - Real-time event detection
+            #  - Adaptive filtering based on signal characteristics
+            
+            processed_data = data.copy()
+            
+            # Optimization: reduce precision if necessary to save bandwidth
+            if processed_data.dtype == np.float64:
+                processed_data = processed_data.astype(np.float32)
+            
+            return {
+                'data': processed_data,
+                'timestamps': timestamps,
+                'metadata': metadata,
+                'processed_at': time.time()
+            }
+            
+        except Exception as e:
+            logging.error(f"Error processing data chunk: {e}")
+            return data_package
 
     def connect_to_board(
         self, board_id: int, params: Dict[str, Any], preset: int
@@ -152,6 +302,9 @@ class CollectorService:
             return False
 
         try:
+            if self._use_multiprocessing:
+                self._cleanup_multiprocessing()
+
             self.collector.stop_stream()
             self.is_streaming = False
 
@@ -425,146 +578,92 @@ class CollectorService:
         self._last_timestamp = time.time()
         self._last_reported_time = self._last_timestamp
         
-        # Variables para el procesamiento de datos
-        min_event_interval = 0.04  # 40ms (~25Hz update rate)
+        # Variables for data processing
+        min_event_interval = 0.04 if not self._use_multiprocessing else 0.02
         last_event_time = 0
         accumulated_data = None
         accumulated_timestamps = []
         
-        # Conseguir la información del muestreo
+        # Get sampling information
         expected_sampling_rate = 0
         if self.collector:
             try:
                 expected_sampling_rate = self.collector.sampling_rate
             except:
-                expected_sampling_rate = 250  # Default fallback
+                expected_sampling_rate = 250
 
         while not self._stop_event.is_set() and self.collector and self.is_streaming:
             try:
                 current_time = time.time()
                 
-                # Obtener datos disponibles
+                # Process data from workers if in HP mode
+                if self._use_multiprocessing and self._processed_data_queue:
+                    self._process_worker_results(data_access, current_time, last_event_time, min_event_interval)
+                
+                # Get available data
                 try:
-                    # Esto devuelve el número de muestras en el buffer interno
                     available_count = self.collector.get_board_data_count()
                 except Exception as e:
                     logging.debug(f"Error getting board data count: {e}")
                     available_count = 0
                 
-                # Procesar datos solo si hay nuevos disponibles
+                # Process data only if new data is available
                 if available_count > self._last_sample_count:
-                    # Solo capturar las nuevas muestras (no todas las del buffer)
                     new_samples = available_count - self._last_sample_count
                     self._last_sample_count = available_count
                     
-                    # Obtener los nuevos datos
+                    # Get new data
                     data, timestamps = self.collector.get_data(new_samples)
                     
                     if data.size > 0 and data.shape[1] > 0:
-                        # Actualizar las métricas de frecuencia de muestreo
-                        samples_received = data.shape[1]
+                        # Update sampling rate metrics
+                        self._update_sample_metrics(data, current_time)
                         
-                        # Registrar la marca de tiempo para cada nueva muestra (aproximado)
-                        now = time.time()
-                        interval = (now - self._last_timestamp) / samples_received if samples_received > 0 else 0
-                        
-                        for i in range(samples_received):
-                            self._samples_timestamps.append(now - (samples_received - i - 1) * interval)
-                        
-                        self._last_timestamp = now
-                        
-                        # Calcular tasa de muestreo real - solo actualizar cada _report_interval segundos
-                        if current_time - self._last_reported_time >= self._report_interval:
-                            self._update_sample_rate(current_time)
-                            self._last_reported_time = current_time
-                        
-                        # Actualizar el servicio de datos
-                        data_access.update_data(data, timestamps)
-                        
-                        # Acumular datos para envío de eventos
-                        if accumulated_data is None:
-                            accumulated_data = data
-                            accumulated_timestamps = timestamps
+                        # Use multiprocessing if enabled
+                        if self._use_multiprocessing and self._data_queue:
+                            self._queue_data_for_processing(data, timestamps)
                         else:
-                            # Concatenar solo si las formas son compatibles
-                            if data.shape[0] == accumulated_data.shape[0]:
-                                accumulated_data = np.concatenate((accumulated_data, data), axis=1)
-                                accumulated_timestamps.extend(timestamps)
-                            else:
-                                # Si las formas no coinciden, usar solo los nuevos datos
-                                accumulated_data = data
-                                accumulated_timestamps = timestamps
-                        
-                        # Enviar evento con los datos acumulados (limitado por frecuencia)
-                        if current_time - last_event_time >= min_event_interval and accumulated_data is not None:
-                            try:
-                                from ..core.event_system import dispatch_throttled, EventType
-                                
-                                dispatch_throttled(
-                                    EventType.DATA_UPDATED,
-                                    {"data": accumulated_data, "timestamps": accumulated_timestamps},
-                                    source="collector_service",
-                                    min_interval=min_event_interval,
-                                )
-                                
-                                # Reiniciar buffers después de enviar
-                                accumulated_data = None
-                                accumulated_timestamps = []
-                                last_event_time = current_time
-                            except Exception as e:
-                                logging.debug(f"Error dispatching data event: {e}")
+                            # Traditional processing
+                            self._process_data_traditional(data, timestamps, data_access, current_time, last_event_time, min_event_interval)
                 
-                # Determinar tiempo de espera dinámico basado en la tasa de muestreo
-                sleep_time = 0.01  # Valor base: 10ms
-                
-                if expected_sampling_rate > 0:
-                    # Ajustar tiempo de espera basado en la tasa esperada
-                    # Si esperamos 250Hz, son 4ms por muestra, esperar ~2ms
-                    ideal_sleep = 2.0 / expected_sampling_rate
-                    
-                    if available_count > new_samples * 2:  # Si estamos acumulando muchas muestras
-                        sleep_time = min(0.001, ideal_sleep * 0.25)  # Dormir menos - máximo 1ms
-                    elif new_samples > 0:  # Si hay nuevas muestras, usar tiempo ideal
-                        sleep_time = ideal_sleep * 0.5  # La mitad del intervalo ideal
-                    else:  # Si no hay nuevas muestras
-                        sleep_time = ideal_sleep  # Esperar un intervalo completo
-                
+                # Adjust wait time based on mode
+                sleep_time = self._calculate_sleep_time(expected_sampling_rate, new_samples if 'new_samples' in locals() else 0, available_count)
                 time.sleep(sleep_time)
                     
             except Exception as e:
                 logging.error(f"Error in data loop: {e}")
-                time.sleep(0.1)  # Esperar más tiempo en caso de error
-    
+                time.sleep(0.1)
+
     def _update_sample_rate(self, current_time: float) -> None:
         """
-        Actualiza la tasa de muestreo basada en las marcas de tiempo registradas.
+        Update sampling rate based on recorded timestamps.
         
         Args:
-            current_time: Tiempo actual para calcular la ventana
+            current_time: Current time to calculate the window
         """
-        # Necesitamos al menos dos muestras para calcular una tasa
+        # We need at least two samples to calculate a rate
         if len(self._samples_timestamps) < 2:
             self._current_sample_rate = 0.0
             return
         
-        # Encontrar muestras dentro de la ventana de tiempo
+        # Find samples within the time window
         window_start = current_time - self._sample_window_size
         samples_in_window = [ts for ts in self._samples_timestamps if ts >= window_start]
         
-        # Calcular tasa basada en muestras dentro de la ventana
+        # Calculate rate based on samples within the window
         if len(samples_in_window) >= 2:
-            # Calcular usando la primera y última muestra en la ventana
+            # Calculate using the first and last sample in the window
             time_span = samples_in_window[-1] - samples_in_window[0]
             if time_span > 0:
-                # Restar 1 porque necesitamos el número de intervalos, no de puntos
+                # Subtract 1 because we need the number of intervals, not points
                 sample_count = len(samples_in_window) - 1
                 rate = sample_count / time_span
                 
-                # Limitar a valores razonables (1-1000Hz)
+                # Limit to reasonable values (1-1000Hz)
                 rate = max(1.0, min(1000.0, rate))
                 self._current_sample_rate = rate
                 
-                # Actualizar los metadatos
+                # Update metadata
                 try:
                     DataAccessService.get_instance().update_metadata({
                         "actual_sample_rate": self._current_sample_rate
@@ -574,31 +673,127 @@ class CollectorService:
                 
                 logging.debug(f"Sample rate: {self._current_sample_rate:.2f} Hz ({len(samples_in_window)} samples in {time_span:.2f}s)")
         else:
-            # No hay suficientes muestras en la ventana
+            # Not enough samples in the window
             self._current_sample_rate = 0.0
-    
-    def _reset_connection_state(self) -> bool:
-        """
-        Reset internal connection state forcefully.
-        Used as a backup mechanism to ensure disconnection is properly reflected.
-        """
-        try:
-            self.collector = None
-            self._reset_internal_state()
-            logging.info("Collector service connection state reset")
-            return True
-        except Exception as e:
-            logging.error(f"Error resetting collector state: {e}")
-            return False
 
-    def _reset_internal_state(self) -> None:
-        """Reset all internal state variables to disconnected values."""
+    def _process_worker_results(self, data_access: DataAccessService, current_time: float, last_event_time: float, min_event_interval: float) -> None:
+        """Process results from worker processes."""
         try:
-            # Reset any internal state variables
-            if hasattr(self, "_active_collector_id"):
-                self._active_collector_id = None
-            if hasattr(self, "_collectors") and isinstance(self._collectors, dict):
-                self._collectors.clear()
-            # Add any otras variables de estado internas que necesiten ser reiniciadas
+            while not self._processed_data_queue.empty():
+                try:
+                    processed_package = self._processed_data_queue.get_nowait()
+                    
+                    data = processed_package['data']
+                    timestamps = processed_package['timestamps']
+                    
+                    # Update data service
+                    data_access.update_data(data, timestamps)
+                    
+                    # Send event if enough time has passed
+                    if current_time - last_event_time >= min_event_interval:
+                        try:
+                            from ..core.event_system import dispatch_throttled, EventType
+                            
+                            dispatch_throttled(
+                                EventType.DATA_UPDATED,
+                                {"data": data, "timestamps": timestamps},
+                                source="collector_service_mp",
+                                min_interval=min_event_interval,
+                            )
+                            
+                            last_event_time = current_time
+                        except Exception as e:
+                            logging.debug(f"Error dispatching MP data event: {e}")
+                            
+                except queue.Empty:
+                    break
+                    
         except Exception as e:
-            logging.error(f"Error resetting internal state: {e}")
+            logging.error(f"Error processing worker results: {e}")
+
+    def _queue_data_for_processing(self, data: np.ndarray, timestamps: List[int]) -> None:
+        """Queue data for multiprocessing."""
+        try:
+            data_package = {
+                'data': data,
+                'timestamps': timestamps,
+                'metadata': {
+                    'timestamp': time.time(),
+                    'sampling_rate': self.get_sampling_rate()
+                }
+            }
+            
+            # Attempt to send to queue without blocking
+            try:
+                self._data_queue.put_nowait(data_package)
+            except queue.Full:
+                # If queue is full, discard older data
+                try:
+                    self._data_queue.get_nowait()  # Remove old data
+                    self._data_queue.put_nowait(data_package)  # Add new data
+                except queue.Empty:
+                    pass
+                    
+        except Exception as e:
+            logging.error(f"Error queuing data for processing: {e}")
+
+    def _process_data_traditional(self, data: np.ndarray, timestamps: List[int], data_access: DataAccessService, current_time: float, last_event_time: float, min_event_interval: float) -> None:
+        """Traditional single-threaded data processing."""
+        # Update data service
+        data_access.update_data(data, timestamps)
+        
+        # Send event with throttling
+        if current_time - last_event_time >= min_event_interval:
+            try:
+                from ..core.event_system import dispatch_throttled, EventType
+                
+                dispatch_throttled(
+                    EventType.DATA_UPDATED,
+                    {"data": data, "timestamps": timestamps},
+                    source="collector_service",
+                    min_interval=min_event_interval,
+                )
+                
+                last_event_time = current_time
+            except Exception as e:
+                logging.debug(f"Error dispatching data event: {e}")
+
+    def _update_sample_metrics(self, data: np.ndarray, current_time: float) -> None:
+        """Update sample rate metrics."""
+        samples_received = data.shape[1]
+        
+        # Record timestamp for each new sample
+        now = time.time()
+        interval = (now - self._last_timestamp) / samples_received if samples_received > 0 else 0
+        
+        for i in range(samples_received):
+            self._samples_timestamps.append(now - (samples_received - i - 1) * interval)
+        
+        self._last_timestamp = now
+        
+        # Calculate actual sampling rate
+        if current_time - self._last_reported_time >= self._report_interval:
+            self._update_sample_rate(current_time)
+            self._last_reported_time = current_time
+
+    def _calculate_sleep_time(self, expected_sampling_rate: int, new_samples: int, available_count: int) -> float:
+        """Calculate optimal sleep time based on performance mode and data flow."""
+        if self._use_multiprocessing:
+            # In high performance mode, sleep less
+            base_sleep = 0.005  # 5ms base
+        else:
+            base_sleep = 0.01  # 10ms base
+        
+        if expected_sampling_rate > 0:
+            ideal_sleep = 1.0 / expected_sampling_rate
+            
+            if available_count > new_samples * 2:
+                sleep_time = min(0.001, ideal_sleep * 0.1)
+            elif new_samples > 0:
+                sleep_time = ideal_sleep * 0.3
+            else:
+                sleep_time = ideal_sleep
+                
+            return min(base_sleep, sleep_time)
+        
+        return base_sleep

@@ -114,6 +114,13 @@ class EEGProcessorApiIntegration:
         # Start server
         self.explorer.start_server(host=host, port=port, block=False)
 
+        if self.collector_service:
+            try:
+                self.collector_service.enable_high_performance_mode(True)
+                logger.info("High performance mode enabled for EEG data collection")
+            except Exception as e:
+                logger.warning(f"Could not enable high performance mode: {e}")
+
         # Register data callback
         self.callback_id = EEGDataAPI.register_data_callback(self._handle_data_callback)
 

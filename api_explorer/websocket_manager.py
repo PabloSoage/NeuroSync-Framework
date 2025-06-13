@@ -8,6 +8,7 @@ import logging
 import asyncio
 from typing import Dict, List, Any, Callable, Optional
 from fastapi import WebSocket
+import multiprocessing as mp
 
 from .worker_pool import WebSocketWorkerPool
 from .serialization import FastJSONSerializer
@@ -81,13 +82,13 @@ class WebSocketManager:
         """Determine optimal pool size based on module characteristics."""
         high_freq_modules = ["eeg", "emg", "sensor_data", "biosignals"]
         if any(keyword in module_id.lower() for keyword in high_freq_modules):
-            return 6
+            return min(12, max(8, mp.cpu_count()))  # 8-12 workers
 
         medium_freq_modules = ["controller", "input", "audio"]
         if any(keyword in module_id.lower() for keyword in medium_freq_modules):
-            return 4
+            return min(8, max(4, mp.cpu_count() // 2))  # 4-8 workers
 
-        return 2
+        return min(4, max(2, mp.cpu_count() // 4))  # 2-4 workers
 
     def queue_message(self, module_id: str, message: str) -> bool:
         """Queue a message for sending via worker pool."""
@@ -123,9 +124,9 @@ class WebSocketManager:
             throttle_data["event_count"] = 0
             throttle_data["last_rate_time"] = current_time
 
-            if throttle_data["rate"] > 500:
+            if throttle_data["rate"] > 800:
                 throttle_data["high_frequency_mode"] = True
-            elif throttle_data["rate"] < 100:
+            elif throttle_data["rate"] < 200:
                 throttle_data["high_frequency_mode"] = False
 
             log_interval = 10.0 if throttle_data["high_frequency_mode"] else 5.0
@@ -149,7 +150,7 @@ class WebSocketManager:
             is_important = self._is_important_event(event_data)
 
             if not is_important:
-                sample_rate = max(0.02, min(0.1, 50.0 / throttle_data["rate"]))
+                sample_rate = max(0.05, min(0.2, 100.0 / throttle_data["rate"]))  # Menos agresivo
 
                 if random.random() > sample_rate:
                     throttle_data["drop_counter"] += 1
