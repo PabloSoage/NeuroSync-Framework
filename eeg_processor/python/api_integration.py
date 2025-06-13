@@ -1177,6 +1177,7 @@ class EEGProcessorApiIntegration:
                 "list_view": [],  # For raw list visualization
                 "chart_data": {},  # For chart visualization
                 "timestamps": [],
+                "samples_per_event": samples_to_send,  # NEW: Inform frontend about samples count
             }
 
             # Get the last N timestamps (convert to relative time if needed)
@@ -1221,16 +1222,15 @@ class EEGProcessorApiIntegration:
                         # Get the last N samples for this channel
                         channel_data = data[ch_idx, -samples_to_send:].tolist()
 
-                        # Add to list view (last value only)
+                        # CAMBIO PRINCIPAL: Add to list view with ALL samples, not just last value
                         if channel_data:
                             viz_data["list_view"].append(
                                 {
                                     "channel": ch_name,
                                     "type": ch_type,
-                                    "value": channel_data[-1],
-                                    "values": channel_data[
-                                        -5:
-                                    ],  # Last 5 values for brief history
+                                    "value": channel_data[-1],  # Keep last value for compatibility
+                                    "values": channel_data,  # NUEVO: All samples from this event
+                                    "samples_count": len(channel_data),  # NUEVO: Number of samples
                                     "index": ch_idx,
                                 }
                             )
@@ -1248,7 +1248,7 @@ class EEGProcessorApiIntegration:
             "timestamp": time.time(),
             "sampling_rate": self._get_sampling_rate_direct(),
             "visualization_data": viz_data,
-            "samples_count": samples_to_send,
+            "samples_count": samples_to_send,  # This now represents total samples in event
             "visualization_modes": ["list", "chart"],
             "channel_types": list(channel_types.keys()),
             "metadata": {

@@ -586,3 +586,64 @@ body.dark-mode .range-value-display {
         gap: 5px;
     }
 }
+
+/* Estabilizar tabla de datos */
+#eeg_processor-data-table {
+    table-layout: fixed; /* Fija el layout de la tabla */
+    width: 100%;
+}
+
+#eeg_processor-data-table th:nth-child(1),
+#eeg_processor-data-table td:nth-child(1) {
+    width: 40%; /* Canal */
+}
+
+#eeg_processor-data-table th:nth-child(2),
+#eeg_processor-data-table td:nth-child(2) {
+    width: 20%; /* Tipo */
+}
+
+#eeg_processor-data-table th:nth-child(3),
+#eeg_processor-data-table td:nth-child(3) {
+    width: 40%; /* Valor */
+}
+
+/* Prevenir que el contenido de las celdas cambie el ancho */
+#eeg_processor-data-table td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Efecto visual para celdas actualizadas */
+.cell-updated {
+    background-color: var(--success-color) !important;
+    transition: background-color 0.15s ease-out;
+}
+
+/* Aplicar a todas las tablas de datos */
+[id$="-data-table"] {
+    table-layout: fixed;
+    width: 100%;
+}
+
+[id$="-data-table"] th:nth-child(1),
+[id$="-data-table"] td:nth-child(1) {
+    width: 40%;
+}
+
+[id$="-data-table"] th:nth-child(2),
+[id$="-data-table"] td:nth-child(2) {
+    width: 20%;
+}
+
+[id$="-data-table"] th:nth-child(3),
+[id$="-data-table"] td:nth-child(3) {
+    width: 40%;
+}
+
+[id$="-data-table"] td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

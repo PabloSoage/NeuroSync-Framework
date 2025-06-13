@@ -2,6 +2,7 @@ export class EventDisplayManager {
     constructor() {
         this.graphToggleCallbacks = [];
         this.separateChannelsCallbacks = [];
+        this.lastTableData = {}; // NUEVO: Cache de los últimos datos de la tabla
     }
 
     initializeModule(moduleId) {
@@ -62,19 +63,74 @@ export class EventDisplayManager {
         this.updateDataTable.lastUpdate[moduleId] = now;
 
         const tableBody = document.querySelector(`#${moduleId}-data-table tbody`);
-        if (tableBody) {
-            tableBody.innerHTML = '';
+        if (!tableBody) return;
 
-            data.visualization_data.list_view.forEach(item => {
+        // NUEVO: Usar actualización incremental en lugar de recrear toda la tabla
+        this.updateTableIncremental(moduleId, tableBody, data.visualization_data.list_view);
+    }
+
+    updateTableIncremental(moduleId, tableBody, listViewData) {
+        // Crear un mapa de los nuevos datos por canal
+        const newDataMap = new Map();
+        listViewData.forEach(item => {
+            let valueDisplay = item.value.toFixed(2);
+            if (item.samples_count && item.samples_count > 1) {
+                valueDisplay += ` (${item.samples_count} samples)`;
+            }
+            
+            newDataMap.set(item.channel, {
+                channel: item.channel,
+                type: item.type,
+                value: valueDisplay
+            });
+        });
+
+        // Obtener filas existentes
+        const existingRows = Array.from(tableBody.querySelectorAll('tr'));
+        const existingChannels = new Set();
+
+        // Actualizar filas existentes
+        existingRows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            if (cells.length >= 3) {
+                const channelName = cells[0].textContent;
+                existingChannels.add(channelName);
+
+                if (newDataMap.has(channelName)) {
+                    const newData = newDataMap.get(channelName);
+                    
+                    // Solo actualizar si el contenido ha cambiado
+                    if (cells[1].textContent !== newData.type) {
+                        cells[1].textContent = newData.type;
+                    }
+                    if (cells[2].textContent !== newData.value) {
+                        cells[2].textContent = newData.value;
+                        // OPCIONAL: Añadir efecto visual de actualización
+                        cells[2].classList.add('cell-updated');
+                        setTimeout(() => cells[2].classList.remove('cell-updated'), 150);
+                    }
+                } else {
+                    // Remover fila si el canal ya no existe
+                    row.remove();
+                }
+            }
+        });
+
+        // Añadir nuevas filas para canales que no existían
+        newDataMap.forEach((data, channelName) => {
+            if (!existingChannels.has(channelName)) {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${item.channel}</td>
-                    <td>${item.type}</td>
-                    <td>${item.value.toFixed(2)}</td>
+                    <td>${data.channel}</td>
+                    <td>${data.type}</td>
+                    <td>${data.value}</td>
                 `;
                 tableBody.appendChild(tr);
-            });
-        }
+            }
+        });
+
+        // Actualizar cache
+        this.lastTableData[moduleId] = newDataMap;
     }
 
     clearEvents(moduleId) {

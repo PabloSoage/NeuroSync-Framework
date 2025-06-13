@@ -39,7 +39,10 @@ export class ChartManager {
         data.visualization_data.list_view.forEach(item => {
             const channelId = item.channel;
             const type = item.type;
-            const value = parseFloat(item.value) || 0;
+            
+            // CAMBIO PRINCIPAL: Usar todas las muestras del evento, no solo una
+            const allValues = item.values || [item.value]; // Usar 'values' si está disponible, sino 'value'
+            const samplesCount = item.samples_count || allValues.length;
 
             hasNewData = true;
             updatedChannels.add(channelId);
@@ -47,13 +50,19 @@ export class ChartManager {
             if (!this.channelData[moduleId][channelId]) {
                 this.channelData[moduleId][channelId] = {
                     type: type,
-                    values: Array(100).fill(value)
+                    values: Array(100).fill(allValues[0] || 0)
                 };
             }
 
-            this.channelData[moduleId][channelId].values.push(value);
+            // NUEVO: Añadir todas las muestras del evento
+            allValues.forEach(value => {
+                const numValue = parseFloat(value) || 0;
+                this.channelData[moduleId][channelId].values.push(numValue);
+            });
 
-            if (this.channelData[moduleId][channelId].values.length > 100) {
+            // Mantener el límite del buffer
+            const bufferLimit = 100;
+            while (this.channelData[moduleId][channelId].values.length > bufferLimit) {
                 this.channelData[moduleId][channelId].values.shift();
             }
         });
