@@ -48,6 +48,7 @@ class EEGProcessorInteractionAPI:
         """
         try:
             from .collectors.board_configuration import BoardConfiguration
+
             return BoardConfiguration.get_board_requirements(board_id)
         except Exception as e:
             logging.error(f"Error getting board requirements: {e}")
@@ -150,7 +151,7 @@ class EEGProcessorInteractionAPI:
         try:
             service = InteractionService.get_instance()
             system_status = service.get_system_status()
-            
+
             if system_status.get("success", False):
                 status = system_status.get("status", {})
                 return {
@@ -166,15 +167,11 @@ class EEGProcessorInteractionAPI:
                 return {
                     "connected": False,
                     "streaming": False,
-                    "error": system_status.get("error", "Unknown error")
+                    "error": system_status.get("error", "Unknown error"),
                 }
         except Exception as e:
             logging.error(f"Error getting connection status: {e}")
-            return {
-                "connected": False, 
-                "streaming": False, 
-                "error": str(e)
-            }
+            return {"connected": False, "streaming": False, "error": str(e)}
 
     @staticmethod
     def apply_filters(filter_config: Dict[str, Any]) -> Dict[str, Any]:
@@ -295,33 +292,32 @@ class EEGProcessorInteractionAPI:
         try:
             service = InteractionService.get_instance()
             system_status = service.get_system_status()
-            
+
             if system_status.get("success", False):
                 status = system_status.get("status", {})
                 result = {
                     "recording": status.get("recording", False),
                 }
-                
+
                 # Add recording details if recording is active
                 if status.get("recording", False):
-                    result.update({
-                        "duration": status.get("recording_duration", 0),
-                        "filename": status.get("recording_filename", ""),
-                        "data_type": status.get("recording_data_type", "raw"),
-                    })
-                
+                    result.update(
+                        {
+                            "duration": status.get("recording_duration", 0),
+                            "filename": status.get("recording_filename", ""),
+                            "data_type": status.get("recording_data_type", "raw"),
+                        }
+                    )
+
                 return result
             else:
                 return {
                     "recording": False,
-                    "error": system_status.get("error", "Unknown error")
+                    "error": system_status.get("error", "Unknown error"),
                 }
         except Exception as e:
             logging.error(f"Error getting recording status: {e}")
-            return {
-                "recording": False, 
-                "error": str(e)
-            }
+            return {"recording": False, "error": str(e)}
 
     @staticmethod
     def insert_marker(marker_value: float) -> Dict[str, Any]:
@@ -469,7 +465,7 @@ class EEGProcessorInteractionAPI:
             return {
                 "success": False,
                 "message": "MNE conversion not yet implemented",
-                "error": "Feature not available"
+                "error": "Feature not available",
             }
         except Exception as e:
             logging.error(f"Error converting to MNE: {e}")
@@ -496,7 +492,7 @@ class EEGProcessorInteractionAPI:
             return {
                 "success": False,
                 "message": "MNE plotting not yet implemented",
-                "error": "Feature not available"
+                "error": "Feature not available",
             }
         except Exception as e:
             logging.error(f"Error plotting MNE visualization: {e}")
@@ -525,7 +521,7 @@ class EEGProcessorInteractionAPI:
             return {
                 "success": False,
                 "message": "Wavelet computation not yet implemented",
-                "error": "Feature not available"
+                "error": "Feature not available",
             }
         except Exception as e:
             logging.error(f"Error computing wavelet: {e}")
@@ -574,5 +570,5 @@ class EEGProcessorInteractionAPI:
             return {
                 "success": False,
                 "error": str(e),
-                "timestamp": __import__("time").time()
+                "timestamp": __import__("time").time(),
             }

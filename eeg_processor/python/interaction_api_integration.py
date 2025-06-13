@@ -70,17 +70,25 @@ class EEGProcessorInteractionApiIntegration:
         self._register_advanced_methods(api_explorer)
         self._register_status_methods(api_explorer)
 
-        logging.info(f"Interaction API methods registered in module: {self._target_module_id}")
+        logging.info(
+            f"Interaction API methods registered in module: {self._target_module_id}"
+        )
 
     def _determine_target_module(self, api_explorer: Any) -> None:
         """Determine which module ID to use for registering methods."""
         try:
             # Check if main EEG processor module exists
-            if hasattr(api_explorer, '_modules') and "eeg_processor" in api_explorer._modules:
+            if (
+                hasattr(api_explorer, "_modules")
+                and "eeg_processor" in api_explorer._modules
+            ):
                 # Use main module (delegated from api_integration.py)
                 self._target_module_id = "eeg_processor"
                 logging.info("Using existing main EEG processor module")
-            elif hasattr(api_explorer, 'modules') and "eeg_processor" in api_explorer.modules:
+            elif (
+                hasattr(api_explorer, "modules")
+                and "eeg_processor" in api_explorer.modules
+            ):
                 # Alternative attribute name
                 self._target_module_id = "eeg_processor"
                 logging.info("Using existing main EEG processor module (alt)")

@@ -380,7 +380,7 @@ export class WebSocketManager {
         const now = Date.now();
         if (now - stats.lastRateUpdate > 500) {
             const elapsed = (now - stats.lastRateUpdate) / 1000;
-            
+
             // Calculate events per second
             stats.eventsPerSecond = Math.round(stats.receivedSinceLastUpdate / elapsed);
             stats.receivedSinceLastUpdate = 0;
@@ -390,7 +390,7 @@ export class WebSocketManager {
             if (stats.hasSampleData) {
                 stats.samplesPerSecond = Math.round(stats.samplesReceivedSinceLastUpdate / elapsed);
                 stats.samplesReceivedSinceLastUpdate = 0;
-                
+
                 // Calculate average samples per event
                 if (stats.eventsPerSecond > 0) {
                     stats.avgSamplesPerEvent = Math.round(stats.samplesPerSecond / stats.eventsPerSecond * 10) / 10;
@@ -403,7 +403,7 @@ export class WebSocketManager {
 
     updateStatsDisplay(moduleId) {
         const stats = this.eventStats[moduleId];
-        
+
         // Update events/sec display
         const statsEl = document.querySelector(`#${moduleId}-event-stats .event-rate`);
         if (statsEl) {
@@ -415,13 +415,13 @@ export class WebSocketManager {
         if (sampleRateEl && stats.hasSampleData) {
             sampleRateEl.style.display = 'block';
             let sampleText = `Samples/sec: ${stats.samplesPerSecond}`;
-            
+
             // Add efficiency indicator for EEG modules
             if (moduleId.toLowerCase().includes('eeg')) {
                 const targetRate = 250; // Common EEG sampling rate
                 const efficiency = stats.samplesPerSecond > 0 ? (stats.samplesPerSecond / targetRate) * 100 : 0;
                 let efficiencyIndicator = '';
-                
+
                 if (efficiency > 0) {
                     if (efficiency >= 95 && efficiency <= 105) {
                         efficiencyIndicator = ' ✅';
@@ -431,15 +431,15 @@ export class WebSocketManager {
                         efficiencyIndicator = ` ❌ (${efficiency.toFixed(1)}%)`;
                     }
                 }
-                
+
                 sampleText += efficiencyIndicator;
             }
-            
+
             // Add samples per event info
             if (stats.avgSamplesPerEvent > 0) {
                 sampleText += ` | ~${stats.avgSamplesPerEvent} samples/event`;
             }
-            
+
             sampleRateEl.textContent = sampleText;
         }
 

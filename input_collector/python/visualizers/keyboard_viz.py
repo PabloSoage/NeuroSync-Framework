@@ -231,7 +231,9 @@ class KeyboardVisualizer(BaseVisualizer):
             # Calculate base width and height of keys
             base_key_width = effective_width / (max_keys_in_row + 2)
             # Reduce key height, but not as much as before
-            base_key_height = min(effective_height / (num_rows + 0.6), base_key_width * 0.85)
+            base_key_height = min(
+                effective_height / (num_rows + 0.6), base_key_width * 0.85
+            )
 
             # Clear the key rectangles dictionary
             self.key_rects = {}
@@ -339,7 +341,9 @@ class KeyboardVisualizer(BaseVisualizer):
                             active_key_lower == "key.media_play_pause"
                             and key_lower == "f9"
                         ):
-                            key_color = QColor("#FF5555")  # Brighter red for active state
+                            key_color = QColor(
+                                "#FF5555"
+                            )  # Brighter red for active state
                             is_active = True
                             break
                         # Handle normal keys

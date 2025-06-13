@@ -39,7 +39,7 @@ export class ChartManager {
         data.visualization_data.list_view.forEach(item => {
             const channelId = item.channel;
             const type = item.type;
-            
+
             // CAMBIO PRINCIPAL: Usar todas las muestras del evento, no solo una
             const allValues = item.values || [item.value]; // Usar 'values' si está disponible, sino 'value'
             const samplesCount = item.samples_count || allValues.length;

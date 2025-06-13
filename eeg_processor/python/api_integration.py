@@ -73,17 +73,22 @@ class EEGProcessorApiIntegration:
         # Timer to periodically pull data from the collector
         self.update_timer: Optional[Any] = None
 
-    #
-    # Main API Registration Methods
-    #
+        #
+        # Main API Registration Methods
+        #
         self.include_interaction_methods = False
 
-    def register_api(self, host: str = "127.0.0.1", port: int = 8000, include_interaction: bool = False) -> bool:
+    def register_api(
+        self,
+        host: str = "127.0.0.1",
+        port: int = 8000,
+        include_interaction: bool = False,
+    ) -> bool:
         """Register all EEG data endpoints with the API Explorer.
-        
+
         Args:
             host: Host to bind the server to
-            port: Port to bind the server to  
+            port: Port to bind the server to
             include_interaction: Whether to include interaction methods (default: False)
         """
         if not explorer_available:
@@ -1235,9 +1240,13 @@ class EEGProcessorApiIntegration:
                                 {
                                     "channel": ch_name,
                                     "type": ch_type,
-                                    "value": channel_data[-1],  # Keep last value for compatibility
+                                    "value": channel_data[
+                                        -1
+                                    ],  # Keep last value for compatibility
                                     "values": channel_data,  # NUEVO: All samples from this event
-                                    "samples_count": len(channel_data),  # NUEVO: Number of samples
+                                    "samples_count": len(
+                                        channel_data
+                                    ),  # NUEVO: Number of samples
                                     "index": ch_idx,
                                 }
                             )
@@ -1302,10 +1311,13 @@ def get_api_integration() -> EEGProcessorApiIntegration:
 
 
 def initialize_api(
-    enable: bool = True, host: str = "127.0.0.1", port: int = 8000, include_interaction: bool = False
+    enable: bool = True,
+    host: str = "127.0.0.1",
+    port: int = 8000,
+    include_interaction: bool = False,
 ) -> bool:
     """Initialize the EEG Processor API.
-    
+
     Args:
         enable: Whether to enable the API
         host: Host to bind to
@@ -1317,7 +1329,9 @@ def initialize_api(
 
     try:
         integration = get_api_integration()
-        success = integration.register_api(host=host, port=port, include_interaction=include_interaction)
+        success = integration.register_api(
+            host=host, port=port, include_interaction=include_interaction
+        )
         return success
     except Exception as e:
         logger.error(f"Error initializing API: {e}")

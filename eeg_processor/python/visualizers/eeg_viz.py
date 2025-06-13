@@ -29,10 +29,10 @@ class EEGVisualizer:
         # Only use collector for metadata, not for data
         self.collector = collector
         self.processor = processor
-        
+
         # Get data from DataAccessService
         self.data_service = DataAccessService.get_instance()
-        
+
         # Get metadata from collector
         self.sampling_rate = collector.sampling_rate
         self.eeg_channels = collector.get_eeg_channels()
@@ -221,7 +221,7 @@ class EEGVisualizer:
             # Get data from DataAccessService instead of collector
             data, timestamps = self.data_service.get_current_data()
             metadata = self.data_service.get_metadata()
-            
+
             # Get sample rate info from metadata
             actual_sample_rate = metadata.get("actual_sample_rate", 0)
             expected_sample_rate = metadata.get("sampling_rate", 250)
@@ -238,9 +238,9 @@ class EEGVisualizer:
 
                 self.sample_rate_label.setText(
                     f'<span style="font-family: Arial; font-size: 12pt; font-weight: bold;">'
-                    f'Expected: {expected_sample_rate} Hz | '
+                    f"Expected: {expected_sample_rate} Hz | "
                     f'<span style="color:{color}">Actual: {actual_sample_rate:.1f} Hz ({efficiency:.1f}%)</span>'
-                    f'</span>'
+                    f"</span>"
                 )
 
             if data.size == 0 or len(self.eeg_channels) == 0:
@@ -292,7 +292,7 @@ class EEGVisualizer:
                                     int(quality * len(self.quality_colors)),
                                     len(self.quality_colors) - 1,
                                 )
-                                color = self.quality_colors[color_idx]
+                                color_tuple = self.quality_colors[color_idx]
 
                                 # Set size based on quality (better quality = smaller dot)
                                 size = 12 - (quality * 5)  # Size between 7-12px
@@ -302,7 +302,7 @@ class EEGVisualizer:
                                     [x],
                                     [y],
                                     size=size,
-                                    brush=pg.mkBrush(color),
+                                    brush=pg.mkBrush(color_tuple),
                                     pxMode=True,
                                 )
 

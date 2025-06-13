@@ -71,7 +71,11 @@ def main() -> None:
         # Include interaction methods only if control API is not enabled separately
         include_interaction = not args.enable_control_api
 
-        if initialize_api(host=args.api_host, port=args.api_port, include_interaction=include_interaction):
+        if initialize_api(
+            host=args.api_host,
+            port=args.api_port,
+            include_interaction=include_interaction,
+        ):
             intg = get_api_integration()
             port = (
                 intg.explorer.server_port
@@ -79,7 +83,9 @@ def main() -> None:
                 else args.api_port
             )
             api_type = "data + control" if include_interaction else "data access only"
-            print(f"Web API EEG Processor ({api_type}) en http://{args.api_host}:{port}")
+            print(
+                f"Web API EEG Processor ({api_type}) en http://{args.api_host}:{port}"
+            )
         else:
             print("Fallo inicializando Web API EEG Processor")
 
@@ -92,11 +98,13 @@ def main() -> None:
             # Initialize control API with both data access and interaction methods
             if initialize_api(
                 enable=True,
-                host=args.control_api_host, 
-                port=args.control_api_port, 
-                include_interaction=True  # Always include interaction methods in control API
+                host=args.control_api_host,
+                port=args.control_api_port,
+                include_interaction=True,  # Always include interaction methods in control API
             ):
-                print(f"Control API EEG Processor (data + control) en http://{args.control_api_host}:{args.control_api_port}")
+                print(
+                    f"Control API EEG Processor (data + control) en http://{args.control_api_host}:{args.control_api_port}"
+                )
             else:
                 print("Fallo inicializando Control API EEG Processor")
 

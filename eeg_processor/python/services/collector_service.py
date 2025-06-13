@@ -29,26 +29,26 @@ class CollectorService:
         # Background data fetch thread
         self._data_thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
-        
+
         self._use_multiprocessing = False
         self._data_queue: Optional[mp.Queue] = None
-        self._process_pool: Optional[mp.Pool] = None
+        self._process_pool: Optional[mp.pool.Pool] = None
         self._worker_processes: List[mp.Process] = []
         self._processed_data_queue: Optional[mp.Queue] = None
-        
+
         # Sample rate metrics
         self._sample_window_size = 5.0
         self._samples_timestamps: Deque[float] = deque(maxlen=1000)
         self._last_sample_count = 0
         self._current_sample_rate = 0.0
-        self._last_timestamp = 0
-        self._last_reported_time = 0
+        self._last_timestamp = 0.0
+        self._last_reported_time = 0.0
         self._report_interval = 0.5
 
     def enable_high_performance_mode(self, enable: bool = True) -> None:
         """
         Enable/disable high performance mode with multiprocessing.
-        
+
         Args:
             enable: Whether to enable high performance mode
         """
@@ -67,19 +67,19 @@ class CollectorService:
             # Create queues for inter-process communication
             self._data_queue = mp.Queue(maxsize=1000)
             self._processed_data_queue = mp.Queue(maxsize=500)
-            
+
             # Determine number of workers based on CPU
             num_workers = max(2, min(4, mp.cpu_count() - 1))
-            
+
             # Create process pool for data processing
             self._process_pool = mp.Pool(
                 processes=num_workers,
                 initializer=self._worker_init,
-                initargs=(self._data_queue, self._processed_data_queue)
+                initargs=(self._data_queue, self._processed_data_queue),
             )
-            
+
             logging.info(f"Multiprocessing setup complete with {num_workers} workers")
-            
+
         except Exception as e:
             logging.error(f"Error setting up multiprocessing: {e}")
             self._use_multiprocessing = False
@@ -91,7 +91,7 @@ class CollectorService:
                 self._process_pool.terminate()
                 self._process_pool.join()
                 self._process_pool = None
-                
+
             if self._data_queue:
                 try:
                     while not self._data_queue.empty():
@@ -99,7 +99,7 @@ class CollectorService:
                 except:
                     pass
                 self._data_queue = None
-                
+
             if self._processed_data_queue:
                 try:
                     while not self._processed_data_queue.empty():
@@ -107,9 +107,9 @@ class CollectorService:
                 except:
                     pass
                 self._processed_data_queue = None
-                
+
             logging.info("Multiprocessing cleanup complete")
-            
+
         except Exception as e:
             logging.error(f"Error cleaning up multiprocessing: {e}")
 
@@ -117,8 +117,9 @@ class CollectorService:
     def _worker_init(data_queue: mp.Queue, processed_queue: mp.Queue) -> None:
         """Initialize worker process."""
         import signal
+
         signal.signal(signal.SIGINT, signal.SIG_IGN)  # Ignore keyboard interrupt
-        
+
         # Worker loop
         while True:
             try:
@@ -127,20 +128,20 @@ class CollectorService:
                     data_package = data_queue.get(timeout=1.0)
                 except queue.Empty:
                     continue
-                    
+
                 if data_package is None:  # Shutdown signal
                     break
-                    
+
                 # Process data
                 processed_data = CollectorService._process_data_chunk(data_package)
-                
+
                 # Send processed data back
                 try:
                     processed_queue.put_nowait(processed_data)
                 except queue.Full:
                     # Skip if queue is full to avoid blocking
                     pass
-                    
+
             except Exception as e:
                 logging.error(f"Error in worker process: {e}")
 
@@ -148,17 +149,17 @@ class CollectorService:
     def _process_data_chunk(data_package: Dict[str, Any]) -> Dict[str, Any]:
         """
         Process a chunk of data in worker process.
-        
+
         Args:
             data_package: Package containing data and metadata
-            
+
         Returns:
             Processed data package
         """
         try:
-            data = data_package['data']
-            timestamps = data_package['timestamps']
-            metadata = data_package.get('metadata', {})
+            data = data_package["data"]
+            timestamps = data_package["timestamps"]
+            metadata = data_package.get("metadata", {})
 
             # TODO: Here we can add intensive processing implementations like:
             #  - Signal filtering (bandpass, notch, etc.)
@@ -169,20 +170,20 @@ class CollectorService:
             #  - Feature extraction for BCI applications
             #  - Real-time event detection
             #  - Adaptive filtering based on signal characteristics
-            
+
             processed_data = data.copy()
-            
+
             # Optimization: reduce precision if necessary to save bandwidth
             if processed_data.dtype == np.float64:
                 processed_data = processed_data.astype(np.float32)
-            
+
             return {
-                'data': processed_data,
-                'timestamps': timestamps,
-                'metadata': metadata,
-                'processed_at': time.time()
+                "data": processed_data,
+                "timestamps": timestamps,
+                "metadata": metadata,
+                "processed_at": time.time(),
             }
-            
+
         except Exception as e:
             logging.error(f"Error processing data chunk: {e}")
             return data_package
@@ -577,13 +578,13 @@ class CollectorService:
         self._samples_timestamps.clear()
         self._last_timestamp = time.time()
         self._last_reported_time = self._last_timestamp
-        
+
         # Variables for data processing
         min_event_interval = 0.04 if not self._use_multiprocessing else 0.02
-        last_event_time = 0
+        last_event_time = 0.0
         accumulated_data = None
-        accumulated_timestamps = []
-        
+        accumulated_timestamps: List[int] = []
+
         # Get sampling information
         expected_sampling_rate = 0
         if self.collector:
@@ -595,41 +596,54 @@ class CollectorService:
         while not self._stop_event.is_set() and self.collector and self.is_streaming:
             try:
                 current_time = time.time()
-                
+
                 # Process data from workers if in HP mode
                 if self._use_multiprocessing and self._processed_data_queue:
-                    self._process_worker_results(data_access, current_time, last_event_time, min_event_interval)
-                
+                    self._process_worker_results(
+                        data_access, current_time, last_event_time, min_event_interval
+                    )
+
                 # Get available data
                 try:
                     available_count = self.collector.get_board_data_count()
                 except Exception as e:
                     logging.debug(f"Error getting board data count: {e}")
                     available_count = 0
-                
+
                 # Process data only if new data is available
                 if available_count > self._last_sample_count:
                     new_samples = available_count - self._last_sample_count
                     self._last_sample_count = available_count
-                    
+
                     # Get new data
                     data, timestamps = self.collector.get_data(new_samples)
-                    
+
                     if data.size > 0 and data.shape[1] > 0:
                         # Update sampling rate metrics
                         self._update_sample_metrics(data, current_time)
-                        
+
                         # Use multiprocessing if enabled
                         if self._use_multiprocessing and self._data_queue:
                             self._queue_data_for_processing(data, timestamps)
                         else:
                             # Traditional processing
-                            self._process_data_traditional(data, timestamps, data_access, current_time, last_event_time, min_event_interval)
-                
+                            self._process_data_traditional(
+                                data,
+                                timestamps,
+                                data_access,
+                                current_time,
+                                last_event_time,
+                                min_event_interval,
+                            )
+
                 # Adjust wait time based on mode
-                sleep_time = self._calculate_sleep_time(expected_sampling_rate, new_samples if 'new_samples' in locals() else 0, available_count)
+                sleep_time = self._calculate_sleep_time(
+                    expected_sampling_rate,
+                    new_samples if "new_samples" in locals() else 0,
+                    available_count,
+                )
                 time.sleep(sleep_time)
-                    
+
             except Exception as e:
                 logging.error(f"Error in data loop: {e}")
                 time.sleep(0.1)
@@ -637,7 +651,7 @@ class CollectorService:
     def _update_sample_rate(self, current_time: float) -> None:
         """
         Update sampling rate based on recorded timestamps.
-        
+
         Args:
             current_time: Current time to calculate the window
         """
@@ -645,11 +659,13 @@ class CollectorService:
         if len(self._samples_timestamps) < 2:
             self._current_sample_rate = 0.0
             return
-        
+
         # Find samples within the time window
         window_start = current_time - self._sample_window_size
-        samples_in_window = [ts for ts in self._samples_timestamps if ts >= window_start]
-        
+        samples_in_window = [
+            ts for ts in self._samples_timestamps if ts >= window_start
+        ]
+
         # Calculate rate based on samples within the window
         if len(samples_in_window) >= 2:
             # Calculate using the first and last sample in the window
@@ -658,102 +674,118 @@ class CollectorService:
                 # Subtract 1 because we need the number of intervals, not points
                 sample_count = len(samples_in_window) - 1
                 rate = sample_count / time_span
-                
+
                 # Limit to reasonable values (1-1000Hz)
                 rate = max(1.0, min(1000.0, rate))
                 self._current_sample_rate = rate
-                
+
                 # Update metadata
                 try:
-                    DataAccessService.get_instance().update_metadata({
-                        "actual_sample_rate": self._current_sample_rate
-                    })
+                    DataAccessService.get_instance().update_metadata(
+                        {"actual_sample_rate": self._current_sample_rate}
+                    )
                 except Exception as e:
                     logging.debug(f"Error updating sample rate metadata: {e}")
-                
-                logging.debug(f"Sample rate: {self._current_sample_rate:.2f} Hz ({len(samples_in_window)} samples in {time_span:.2f}s)")
+
+                logging.debug(
+                    f"Sample rate: {self._current_sample_rate:.2f} Hz ({len(samples_in_window)} samples in {time_span:.2f}s)"
+                )
         else:
             # Not enough samples in the window
             self._current_sample_rate = 0.0
 
-    def _process_worker_results(self, data_access: DataAccessService, current_time: float, last_event_time: float, min_event_interval: float) -> None:
+    def _process_worker_results(
+        self,
+        data_access: DataAccessService,
+        current_time: float,
+        last_event_time: float,
+        min_event_interval: float,
+    ) -> None:
         """Process results from worker processes."""
         try:
-            while not self._processed_data_queue.empty():
-                try:
-                    processed_package = self._processed_data_queue.get_nowait()
-                    
-                    data = processed_package['data']
-                    timestamps = processed_package['timestamps']
-                    
-                    # Update data service
-                    data_access.update_data(data, timestamps)
-                    
-                    # Send event if enough time has passed
-                    if current_time - last_event_time >= min_event_interval:
-                        try:
-                            from ..core.event_system import dispatch_throttled, EventType
-                            
-                            dispatch_throttled(
-                                EventType.DATA_UPDATED,
-                                {"data": data, "timestamps": timestamps},
-                                source="collector_service_mp",
-                                min_interval=min_event_interval,
-                            )
-                            
-                            last_event_time = current_time
-                        except Exception as e:
-                            logging.debug(f"Error dispatching MP data event: {e}")
-                            
-                except queue.Empty:
-                    break
-                    
+            if self._processed_data_queue is not None:
+                while not self._processed_data_queue.empty():
+                    try:
+                        processed_package = self._processed_data_queue.get_nowait()
+
+                        data = processed_package["data"]
+                        timestamps = processed_package["timestamps"]
+
+                        # Update data service
+                        data_access.update_data(data, timestamps)
+
+                        # Send event if enough time has passed
+                        if current_time - last_event_time >= min_event_interval:
+                            try:
+                                from ..core.event_system import EventType, dispatch
+
+                                dispatch(
+                                    EventType.DATA_UPDATED,
+                                    {"data": data, "timestamps": timestamps},
+                                    source="collector_service_mp",
+                                )
+                                last_event_time = current_time
+                            except Exception as e:
+                                logging.debug(f"Error dispatching MP data event: {e}")
+
+                    except queue.Empty:
+                        break
+
         except Exception as e:
             logging.error(f"Error processing worker results: {e}")
 
-    def _queue_data_for_processing(self, data: np.ndarray, timestamps: List[int]) -> None:
+    def _queue_data_for_processing(
+        self, data: np.ndarray, timestamps: List[int]
+    ) -> None:
         """Queue data for multiprocessing."""
         try:
             data_package = {
-                'data': data,
-                'timestamps': timestamps,
-                'metadata': {
-                    'timestamp': time.time(),
-                    'sampling_rate': self.get_sampling_rate()
-                }
+                "data": data,
+                "timestamps": timestamps,
+                "metadata": {
+                    "timestamp": time.time(),
+                    "sampling_rate": self.get_sampling_rate(),
+                },
             }
-            
+
             # Attempt to send to queue without blocking
-            try:
-                self._data_queue.put_nowait(data_package)
-            except queue.Full:
-                # If queue is full, discard older data
+            if self._data_queue is not None:
                 try:
-                    self._data_queue.get_nowait()  # Remove old data
-                    self._data_queue.put_nowait(data_package)  # Add new data
-                except queue.Empty:
-                    pass
-                    
+                    self._data_queue.put_nowait(data_package)
+                except queue.Full:
+                    # If queue is full, discard older data
+                    try:
+                        self._data_queue.get_nowait()  # Remove old data
+                        self._data_queue.put_nowait(data_package)  # Add new data
+                    except queue.Empty:
+                        pass
+
         except Exception as e:
             logging.error(f"Error queuing data for processing: {e}")
 
-    def _process_data_traditional(self, data: np.ndarray, timestamps: List[int], data_access: DataAccessService, current_time: float, last_event_time: float, min_event_interval: float) -> None:
+    def _process_data_traditional(
+        self,
+        data: np.ndarray,
+        timestamps: List[int],
+        data_access: DataAccessService,
+        current_time: float,
+        last_event_time: float,
+        min_event_interval: float,
+    ) -> None:
         """Traditional single-threaded data processing."""
         # Update data service
         data_access.update_data(data, timestamps)
-        
+
         # Send event with throttling
         if current_time - last_event_time >= min_event_interval:
             try:
-                from ..core.event_system import dispatch_throttled, EventType
-                
-                dispatch_throttled(
+                from ..core.event_system import EventType, dispatch
+
+                dispatch(
                     EventType.DATA_UPDATED,
                     {"data": data, "timestamps": timestamps},
                     source="collector_service",
-                    min_interval=min_event_interval,
                 )
-                
                 last_event_time = current_time
             except Exception as e:
                 logging.debug(f"Error dispatching data event: {e}")
@@ -761,39 +793,45 @@ class CollectorService:
     def _update_sample_metrics(self, data: np.ndarray, current_time: float) -> None:
         """Update sample rate metrics."""
         samples_received = data.shape[1]
-        
+
         # Record timestamp for each new sample
         now = time.time()
-        interval = (now - self._last_timestamp) / samples_received if samples_received > 0 else 0
-        
+        interval = (
+            (now - self._last_timestamp) / samples_received
+            if samples_received > 0
+            else 0
+        )
+
         for i in range(samples_received):
             self._samples_timestamps.append(now - (samples_received - i - 1) * interval)
-        
+
         self._last_timestamp = now
-        
+
         # Calculate actual sampling rate
         if current_time - self._last_reported_time >= self._report_interval:
             self._update_sample_rate(current_time)
             self._last_reported_time = current_time
 
-    def _calculate_sleep_time(self, expected_sampling_rate: int, new_samples: int, available_count: int) -> float:
+    def _calculate_sleep_time(
+        self, expected_sampling_rate: int, new_samples: int, available_count: int
+    ) -> float:
         """Calculate optimal sleep time based on performance mode and data flow."""
         if self._use_multiprocessing:
             # In high performance mode, sleep less
             base_sleep = 0.005  # 5ms base
         else:
             base_sleep = 0.01  # 10ms base
-        
+
         if expected_sampling_rate > 0:
             ideal_sleep = 1.0 / expected_sampling_rate
-            
+
             if available_count > new_samples * 2:
                 sleep_time = min(0.001, ideal_sleep * 0.1)
             elif new_samples > 0:
                 sleep_time = ideal_sleep * 0.3
             else:
                 sleep_time = ideal_sleep
-                
+
             return min(base_sleep, sleep_time)
-        
+
         return base_sleep

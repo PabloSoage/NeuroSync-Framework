@@ -123,7 +123,7 @@ class EventDispatcher:
         """Initialize the event dispatcher."""
         if EventDispatcher._instance is not None:
             raise RuntimeError("EventDispatcher is a singleton. Use get_instance()")
-        
+
         self._subscribers: Dict[EventType, Set[Callable]] = {}
         self._event_history: List[Event] = []
         self._max_history = 1000
@@ -199,9 +199,7 @@ class EventDispatcher:
             try:
                 callback(event)
             except Exception as e:
-                logging.error(
-                    f"Error in event callback for {event.event_type}: {e}"
-                )
+                logging.error(f"Error in event callback for {event.event_type}: {e}")
 
         logging.debug(f"Dispatched event {event.event_type}")
 
@@ -290,6 +288,7 @@ class EventDispatcher:
 # Legacy class name for compatibility
 class EventSystem(EventDispatcher):
     """Legacy alias for EventDispatcher."""
+
     pass
 
 

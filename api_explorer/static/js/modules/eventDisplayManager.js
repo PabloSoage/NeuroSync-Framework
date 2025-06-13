@@ -77,7 +77,7 @@ export class EventDisplayManager {
             if (item.samples_count && item.samples_count > 1) {
                 valueDisplay += ` (${item.samples_count} samples)`;
             }
-            
+
             newDataMap.set(item.channel, {
                 channel: item.channel,
                 type: item.type,
@@ -98,7 +98,7 @@ export class EventDisplayManager {
 
                 if (newDataMap.has(channelName)) {
                     const newData = newDataMap.get(channelName);
-                    
+
                     // Solo actualizar si el contenido ha cambiado
                     if (cells[1].textContent !== newData.type) {
                         cells[1].textContent = newData.type;
