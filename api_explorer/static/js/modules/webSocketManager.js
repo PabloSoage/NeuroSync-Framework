@@ -58,7 +58,7 @@ export class WebSocketManager {
 
             // Update event counter
             this.updateEventCounter(moduleId);
-            this.updateEventStats(moduleId);
+            this.updateEventStats(moduleId, data); // Pass data to extract samples
             this.bufferEvent(moduleId, data);
             this.notifyDataCallbacks(moduleId, data);
 
@@ -95,7 +95,14 @@ export class WebSocketManager {
             eventsPerSecond: 0,
             lastRateUpdate: Date.now(),
             receivedSinceLastUpdate: 0,
-            eventCount: 0
+            eventCount: 0,
+            // New: Add samples tracking
+            samplesPerSecond: 0,
+            totalSamples: 0,
+            samplesReceivedSinceLastUpdate: 0,
+            lastSampleRateUpdate: Date.now(),
+            avgSamplesPerEvent: 0,
+            hasSampleData: false
         };
     }
 
@@ -137,12 +144,13 @@ export class WebSocketManager {
     setupStatsDisplay(moduleId) {
         const eventsContainer = document.getElementById(`${moduleId}-events-container`);
 
-        // Add stats display elements
+        // Add stats display elements with samples info
         const statsContainer = document.createElement('div');
         statsContainer.id = `${moduleId}-event-stats`;
         statsContainer.className = 'event-stats';
         statsContainer.innerHTML = `
             <div class="event-rate">Events/sec: 0</div>
+            <div class="sample-rate" style="display: none;">Samples/sec: 0</div>
             <div class="buffer-status">Buffer: 0/0</div>
             <div class="display-latency">Display lag: 0ms</div>
         `;
@@ -339,28 +347,103 @@ export class WebSocketManager {
         }
     }
 
-    updateEventStats(moduleId) {
+    updateEventStats(moduleId, data = null) {
         const stats = this.eventStats[moduleId];
         stats.totalReceived++;
         stats.receivedSinceLastUpdate++;
 
+        // Extract samples count if available
+        let samplesCount = 0;
+        if (data) {
+            // Check various possible locations for samples count
+            if (data.samples_count) {
+                samplesCount = data.samples_count;
+                stats.hasSampleData = true;
+            } else if (data.visualization_data?.list_view) {
+                // For visualization data, count the number of samples
+                samplesCount = data.visualization_data.list_view.length;
+                stats.hasSampleData = true;
+            } else if (data.eeg_data?.length) {
+                samplesCount = data.eeg_data.length;
+                stats.hasSampleData = true;
+            } else if (Array.isArray(data.samples)) {
+                samplesCount = data.samples.length;
+                stats.hasSampleData = true;
+            }
+        }
+
+        if (samplesCount > 0) {
+            stats.totalSamples += samplesCount;
+            stats.samplesReceivedSinceLastUpdate += samplesCount;
+        }
+
         const now = Date.now();
         if (now - stats.lastRateUpdate > 500) {
             const elapsed = (now - stats.lastRateUpdate) / 1000;
+            
+            // Calculate events per second
             stats.eventsPerSecond = Math.round(stats.receivedSinceLastUpdate / elapsed);
             stats.receivedSinceLastUpdate = 0;
             stats.lastRateUpdate = now;
+
+            // Calculate samples per second if we have sample data
+            if (stats.hasSampleData) {
+                stats.samplesPerSecond = Math.round(stats.samplesReceivedSinceLastUpdate / elapsed);
+                stats.samplesReceivedSinceLastUpdate = 0;
+                
+                // Calculate average samples per event
+                if (stats.eventsPerSecond > 0) {
+                    stats.avgSamplesPerEvent = Math.round(stats.samplesPerSecond / stats.eventsPerSecond * 10) / 10;
+                }
+            }
 
             this.updateStatsDisplay(moduleId);
         }
     }
 
     updateStatsDisplay(moduleId) {
+        const stats = this.eventStats[moduleId];
+        
+        // Update events/sec display
         const statsEl = document.querySelector(`#${moduleId}-event-stats .event-rate`);
         if (statsEl) {
-            statsEl.textContent = `Events/sec: ${this.eventStats[moduleId].eventsPerSecond}`;
+            statsEl.textContent = `Events/sec: ${stats.eventsPerSecond}`;
         }
 
+        // Update samples/sec display if we have sample data
+        const sampleRateEl = document.querySelector(`#${moduleId}-event-stats .sample-rate`);
+        if (sampleRateEl && stats.hasSampleData) {
+            sampleRateEl.style.display = 'block';
+            let sampleText = `Samples/sec: ${stats.samplesPerSecond}`;
+            
+            // Add efficiency indicator for EEG modules
+            if (moduleId.toLowerCase().includes('eeg')) {
+                const targetRate = 250; // Common EEG sampling rate
+                const efficiency = stats.samplesPerSecond > 0 ? (stats.samplesPerSecond / targetRate) * 100 : 0;
+                let efficiencyIndicator = '';
+                
+                if (efficiency > 0) {
+                    if (efficiency >= 95 && efficiency <= 105) {
+                        efficiencyIndicator = ' ✅';
+                    } else if (efficiency >= 80 && efficiency <= 120) {
+                        efficiencyIndicator = ` ⚠️ (${efficiency.toFixed(1)}%)`;
+                    } else {
+                        efficiencyIndicator = ` ❌ (${efficiency.toFixed(1)}%)`;
+                    }
+                }
+                
+                sampleText += efficiencyIndicator;
+            }
+            
+            // Add samples per event info
+            if (stats.avgSamplesPerEvent > 0) {
+                sampleText += ` | ~${stats.avgSamplesPerEvent} samples/event`;
+            }
+            
+            sampleRateEl.textContent = sampleText;
+        }
+
+        // Update buffer status
         const bufferStatusEl = document.querySelector(`#${moduleId}-event-stats .buffer-status`);
         if (bufferStatusEl) {
             bufferStatusEl.textContent = `Buffer: ${this.eventBuffers[moduleId].length}/${this.EVENT_BUFFER_LIMIT}`;

@@ -542,3 +542,47 @@ body.dark-mode .btn-outline-secondary {
 body.dark-mode .range-value-display {
     color: #f8f9fa;
 }
+
+.event-stats {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    margin-bottom: 10px;
+    font-size: 0.9em;
+}
+
+.event-stats > div {
+    white-space: nowrap;
+}
+
+.sample-rate {
+    color: var(--success-color);
+    font-weight: 500;
+}
+
+.event-rate {
+    color: var(--info-color);
+    font-weight: 500;
+}
+
+.buffer-status {
+    color: var(--warning-color);
+}
+
+.display-latency {
+    color: var(--text-muted);
+}
+
+/* Responsive design for stats */
+@media (max-width: 768px) {
+    .event-stats {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+}

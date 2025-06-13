@@ -23,11 +23,17 @@ class EEGVisualizer:
         Initialize the EEG visualizer.
 
         Args:
-            collector: EEG data collector
+            collector: EEG data collector (for metadata only)
             processor: Signal processor for data filtering
         """
+        # CAMBIO: Solo usar collector para metadatos, no para datos
         self.collector = collector
         self.processor = processor
+        
+        # CAMBIO: Obtener datos del DataAccessService
+        self.data_service = DataAccessService.get_instance()
+        
+        # Get metadata from collector
         self.sampling_rate = collector.sampling_rate
         self.eeg_channels = collector.get_eeg_channels()
         self.num_channels = len(self.eeg_channels)
@@ -42,13 +48,13 @@ class EEGVisualizer:
         self.apply_bandpass = False
         self.bandpass_low = 1.0
         self.bandpass_high = 30.0
-        self.apply_notch = False  # Changed from True to False
-        self.apply_detrend = False  # Changed from True to False
+        self.apply_notch = False
+        self.apply_detrend = False
 
         # Setup UI elements
         self.setup_ui()
 
-        logging.info("EEG visualizer initialized")
+        logging.info("EEG visualizer initialized (using DataAccessService)")
 
     def setup_ui(self) -> None:
         """Set up the user interface for the visualizer."""
@@ -214,15 +220,15 @@ class EEGVisualizer:
     def update_plots(self) -> None:
         """Update all plots with new data."""
         try:
-            # Get the latest data from central DataAccessService
-            data, timestamps = DataAccessService.get_instance().get_current_data()
-
-            # Get metadata including sample rate (NEW)
-            metadata = DataAccessService.get_instance().get_metadata()
+            # CAMBIO PRINCIPAL: Obtener datos del DataAccessService en lugar del collector
+            data, timestamps = self.data_service.get_current_data()
+            metadata = self.data_service.get_metadata()
+            
+            # Get sample rate info from metadata
             actual_sample_rate = metadata.get("actual_sample_rate", 0)
             expected_sample_rate = metadata.get("sampling_rate", 250)
 
-            # Update sample rate display (NEW)
+            # Update sample rate display
             if actual_sample_rate > 0:
                 efficiency = (actual_sample_rate / expected_sample_rate) * 100
                 if efficiency >= 90:
@@ -263,9 +269,8 @@ class EEGVisualizer:
                 data_to_plot, self.eeg_channels
             )
 
-            # Update DataAccessService with the latest data
-            data_access = DataAccessService.get_instance()
-            data_access.update_data(data, timestamps)
+            # ELIMINADO: Ya no necesitamos actualizar DataAccessService aquí
+            # porque los datos ya vienen de ahí
 
             # Update time series plots
             for i, channel in enumerate(self.eeg_channels):
