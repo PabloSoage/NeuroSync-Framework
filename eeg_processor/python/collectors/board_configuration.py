@@ -156,41 +156,120 @@ class BrainFlowBoardConfiguration(BoardInterface):
             "master_board": False,
         }
 
-        # Define requirements for special boards
+        # Define requirements based on supported_boards.txt documentation
         if board_id == BoardIds.SYNTHETIC_BOARD.value:
             # Synthetic board doesn't need any parameters
             return requirements
 
         if board_id == BoardIds.PLAYBACK_FILE_BOARD.value:
-            requirements["file"] = True
-            requirements["master_board"] = True
+            requirements["file"] = True  # Required: full path to recorded file
+            requirements["master_board"] = True  # Required: board ID of device used to create files
             return requirements
 
         if board_id == BoardIds.STREAMING_BOARD.value:
-            requirements["ip_address"] = True
-            requirements["ip_port"] = True
-            requirements["master_board"] = True
+            requirements["ip_address"] = True  # Required: multicast address
+            requirements["ip_port"] = True  # Required: port number
+            requirements["master_board"] = True  # Required: board ID of the device
             return requirements
 
-        # Try to determine requirements based on board name or ID for other boards
+        # Try to determine requirements based on board name or ID
         try:
             board_name = BoardShim.get_device_name(board_id).lower()
 
-            # OpenBCI boards
-            if "cyton" in board_name or "ganglion" in board_name:
-                if "wifi" in board_name:
-                    requirements["ip_address"] = True
-                    requirements["ip_port"] = True
-                else:
-                    requirements["serial_port"] = True
+            # OpenBCI Cyton boards - serial_port required
+            if "cyton" in board_name and "wifi" not in board_name and "daisy" not in board_name:
+                requirements["serial_port"] = True
 
-            # Bluetooth boards
-            if "bled" in board_name or "muse" in board_name:
-                requirements["mac_address"] = True
+            # OpenBCI Cyton Daisy - serial_port required  
+            elif "cyton" in board_name and "daisy" in board_name and "wifi" not in board_name:
+                requirements["serial_port"] = True
 
-            # Unicorn board
-            if "unicorn" in board_name:
-                requirements["serial_number"] = True
+            # OpenBCI Ganglion (with dongle) - serial_port required
+            elif "ganglion" in board_name and "native" not in board_name and "wifi" not in board_name:
+                requirements["serial_port"] = True
+                # mac_address is optional but helpful
+
+            # OpenBCI Ganglion Native - no required parameters (auto-discovery)
+            elif "ganglion" in board_name and "native" in board_name:
+                # Both mac_address and serial_number are optional
+                pass
+
+            # OpenBCI WiFi boards - ip_port required, ip_address optional
+            elif ("ganglion" in board_name or "cyton" in board_name) and "wifi" in board_name:
+                requirements["ip_port"] = True
+                # ip_address is optional (can use SSDP discovery)
+
+            # BrainBit - no required parameters (auto-discovery)
+            elif "brainbit" in board_name and "bled" not in board_name:
+                # serial_number is optional but important for multiple devices
+                pass
+
+            # BrainBit BLED - serial_port required for dongle
+            elif "brainbit" in board_name and "bled" in board_name:
+                requirements["serial_port"] = True
+                # mac_address is optional but important for multiple devices
+
+            # Callibri boards - no required parameters
+            elif "callibri" in board_name:
+                # other_info is optional for ExternalSwitchInputMioUSB
+                pass
+
+            # Unicorn - no required parameters
+            elif "unicorn" in board_name:
+                # serial_number is optional, important for multiple devices
+                pass
+
+            # Neurosity boards (Notion 1, Notion 2, Crown) - no required parameters
+            elif "notion" in board_name or "crown" in board_name:
+                # serial_number is optional, important for multiple devices
+                pass
+
+            # gForce boards - no required parameters
+            elif "gforce" in board_name:
+                pass
+
+            # FreeEEG boards - serial_port required
+            elif "freeeeg" in board_name:
+                requirements["serial_port"] = True
+
+            # Muse BLED boards - serial_port required for dongle
+            elif "muse" in board_name and "bled" in board_name:
+                requirements["serial_port"] = True
+                # serial_number is optional
+
+            # Muse native boards - no required parameters (auto-discovery)
+            elif "muse" in board_name and "bled" not in board_name:
+                # Both mac_address and serial_number are optional
+                pass
+
+            # ANT Neuro boards - no required parameters
+            elif "ant" in board_name or "eego" in board_name:
+                pass
+
+            # Enophone - no required parameters (can auto-discover paired devices)
+            elif "enophone" in board_name:
+                # mac_address is optional (required only on Linux)
+                pass
+
+            # BrainAlive - no required parameters (auto-discovery)
+            elif "brainalive" in board_name:
+                # Both mac_address and serial_number are optional
+                pass
+
+            # Mentalab Explore boards - no required parameters (can auto-discover paired devices)
+            elif "explore" in board_name:
+                # mac_address is optional (required only on Linux)
+                pass
+
+            # EmotiBit - no required parameters (auto-discovery)
+            elif "emotibit" in board_name:
+                # ip_address and serial_number are optional
+                pass
+
+            # PiEEG - no required parameters (has defaults)
+            elif "pieeg" in board_name:
+                # serial_port is optional (has default /dev/spidev0.0)
+                pass
 
         except Exception as e:
             logging.warning(
