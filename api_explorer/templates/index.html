@@ -97,7 +97,7 @@
                                                                             </option>
                                                                         {% endfor %}
                                                                     </select>
-                                                                {% elif param_info.type == 'json_template' %}
+                                                                {% elif param_info.type == 'json_template' or param_info.ui_type == 'json_template' %}
                                                                     <div class="json-template-container">
                                                                         <textarea class="form-control json-template-textarea" 
                                                                                 id="{{ module.id }}-{{ method.id }}_param_{{ param_id }}"
@@ -105,14 +105,7 @@
                                                                                 data-template-source="{{ param_info.template_source }}"
                                                                                 data-module-id="{{ module.id }}"
                                                                                 data-method-id="{{ method.id }}"
-                                                                                placeholder="{{ param_info.placeholder|default('{}') }}">{% if param_info.default %}{{ param_info.default }}{% else %}{
-  "_INSTRUCTIONS": [
-    "1. Select a board from the dropdown above",
-    "2. Click 'Load Template' to populate parameters",
-    "3. Fill in required values",
-    "4. Remove this _INSTRUCTIONS field before executing"
-  ]
-}{% endif %}</textarea>
+                                                                                placeholder="{{ param_info.placeholder|default('{}') }}">{% if param_info.default %}{{ param_info.default }}{% else %}{}{% endif %}</textarea>
                                                                         <div class="mt-2">
                                                                             <button type="button" class="btn btn-sm btn-secondary load-template-btn"
                                                                                     data-target="{{ module.id }}-{{ method.id }}_param_{{ param_id }}"
@@ -314,6 +307,13 @@
       </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="/static/js/script.js"></script>
+</body>
+</html>
+    <script type="module" src="/static/js/script.js"></script>
+</body>
+</html>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="/static/js/script.js"></script>
 </body>

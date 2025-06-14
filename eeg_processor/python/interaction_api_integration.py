@@ -161,11 +161,12 @@ class EEGProcessorInteractionApiIntegration:
                         "options": board_options,
                     },
                     "params": {
-                        "type": "dict",  # Changed from "json_template" to "dict"
+                        "type": "object",  # Changed to "object" for FastAPI compatibility while keeping template functionality
                         "description": "Connection parameters (will be populated based on selected board)",
                         "required": False,
                         "template_source": "board_id",
                         "placeholder": "Parameters will appear based on board selection",
+                        "ui_type": "json_template",  # Add UI hint for template functionality
                     },
                     "preset": {
                         "type": "select",
