@@ -408,6 +408,7 @@ class ApiExplorer:
         import inspect
         from fastapi import Query, Depends, Body
         from pydantic import create_model, BaseModel
+        from typing import Any, Dict, List, Union, Optional
 
         method_type = method_info.get("type", "GET").upper()
         sig = inspect.signature(handler_function)
@@ -415,16 +416,19 @@ class ApiExplorer:
 
         if method_type == "GET":
             if len(param_names) == 0:
-
                 @router.get(f"/{method_id}")
                 async def endpoint() -> Any:
                     return await handler_function()
-
             else:
                 param_dict: Dict[str, Any] = {}
                 for param_id, param_info in method_info.get("params", {}).items():
-                    if param_info.get("type") == "number":
+                    param_type = param_info.get("type", "string").lower()
+                    if param_type in ["number", "float"]:
+                        param_dict[param_id] = (Optional[float], Query(None))
+                    elif param_type in ["integer", "int"]:
                         param_dict[param_id] = (Optional[int], Query(None))
+                    elif param_type in ["boolean", "bool"]:
+                        param_dict[param_id] = (Optional[bool], Query(None))
                     else:
                         param_dict[param_id] = (Optional[str], Query(None))
 
@@ -441,11 +445,22 @@ class ApiExplorer:
                     return await handler_function(**param_dict)
 
         else:
-            # POST requests
+            # POST requests - Improved handling
             param_fields: Dict[str, Any] = {}
             for param_id, param_info in method_info.get("params", {}).items():
-                if param_info.get("type") == "number":
-                    field_type: Type[Union[int, str]] = int
+                param_type = param_info.get("type", "string").lower()
+                
+                # Map API types to Python types
+                if param_type in ["number", "float"]:
+                    field_type = float
+                elif param_type in ["integer", "int"]:
+                    field_type = int
+                elif param_type in ["boolean", "bool"]:
+                    field_type = bool
+                elif param_type in ["dict", "object"]:
+                    field_type = Dict[str, Any]
+                elif param_type in ["list", "array"]:
+                    field_type = List[Any]
                 else:
                     field_type = str
 
@@ -454,32 +469,31 @@ class ApiExplorer:
                 else:
                     param_fields[param_id] = (Optional[field_type], None)
 
+            # Create the Pydantic model properly
             RequestModel = create_model(
                 f"{method_id.capitalize()}Request",
+                __base__=BaseModel,  # Ensure it inherits from BaseModel
                 **param_fields,
             )
 
             @router.post(f"/{method_id}")
-            async def endpoint(request_data: BaseModel) -> Any:
-                # Handle different ways to access model data
+            async def endpoint(request_data: RequestModel) -> Any:  # Use the specific model type
+                # Safely extract data from the Pydantic model
                 try:
                     if hasattr(request_data, "model_dump"):
-                        data_dict = {
-                            k: v
-                            for k, v in request_data.model_dump().items()
-                            if v is not None
-                        }
+                        # Pydantic v2
+                        data_dict = request_data.model_dump(exclude_unset=True, exclude_none=True)
                     elif hasattr(request_data, "dict"):
-                        data_dict = {
-                            k: v
-                            for k, v in request_data.dict().items()
-                            if v is not None
-                        }
+                        # Pydantic v1
+                        data_dict = request_data.dict(exclude_unset=True, exclude_none=True)
                     else:
+                        # Fallback
                         data_dict = {
-                            k: v for k, v in vars(request_data).items() if v is not None
+                            k: v for k, v in vars(request_data).items() 
+                            if v is not None and not k.startswith('_')
                         }
-                except AttributeError:
+                except Exception as e:
+                    logging.error(f"Error extracting data from request model: {e}")
                     data_dict = {}
 
                 return await handler_function(**data_dict)
