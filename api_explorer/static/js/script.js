@@ -68,11 +68,27 @@ class APIExplorer {
 
 // Global functions for backwards compatibility
 window.toggleMethod = (moduleId, methodId) => {
-    APIExplorer.instance.apiMethodsManager.toggleMethod(moduleId, methodId);
+    if (APIExplorer.instance && APIExplorer.instance.apiMethodsManager) {
+        APIExplorer.instance.apiMethodsManager.toggleMethod(moduleId, methodId);
+    }
 };
 
 window.executeMethod = (moduleId, methodId) => {
-    APIExplorer.instance.apiMethodsManager.executeMethod(moduleId, methodId);
+    if (APIExplorer.instance && APIExplorer.instance.apiMethodsManager) {
+        APIExplorer.instance.apiMethodsManager.executeMethod(moduleId, methodId);
+    }
+};
+
+// Add test functions for debugging
+window.testAPIManager = () => {
+    if (APIExplorer.instance && APIExplorer.instance.apiMethodsManager) {
+        return APIExplorer.instance.apiMethodsManager.testButtonFunctionality();
+    }
+    return { error: 'API Manager not available' };
+};
+
+window.getAPIManager = () => {
+    return APIExplorer.instance ? APIExplorer.instance.apiMethodsManager : null;
 };
 
 window.connectWebSocket = (moduleId) => {
@@ -89,5 +105,21 @@ window.clearEvents = (moduleId) => {
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing API Explorer...');
     APIExplorer.instance = new APIExplorer();
+    
+    // Ensure API methods manager is accessible globally for debugging
+    window.apiMethodsManager = APIExplorer.instance.apiMethodsManager;
+    
+    console.log('API Explorer initialized');
+    console.log('API Methods Manager:', window.apiMethodsManager);
+    
+    // Wait a bit and test functionality
+    setTimeout(() => {
+        console.log('Running delayed test...');
+        if (window.apiMethodsManager && window.apiMethodsManager.testButtonFunctionality) {
+            const result = window.apiMethodsManager.testButtonFunctionality();
+            console.log('Test result:', result);
+        }
+    }, 1000);
 });

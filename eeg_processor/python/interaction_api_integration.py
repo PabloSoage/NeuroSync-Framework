@@ -7,7 +7,7 @@ to avoid code duplication and ensures all methods appear in a single module.
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from .services.interaction_service import InteractionService
 from .interaction_api import EEGProcessorInteractionAPI
@@ -140,6 +140,10 @@ class EEGProcessorInteractionApiIntegration:
             self._handle_get_available_boards,
         )
 
+        # Get board options and preset options
+        board_options = self._get_board_options()
+        preset_options = self._get_preset_options()
+        
         # Connect to board
         api_explorer.register_method(
             self._target_module_id,
@@ -151,19 +155,24 @@ class EEGProcessorInteractionApiIntegration:
                 "type": "POST",
                 "params": {
                     "board_id": {
-                        "type": "number",
+                        "type": "select",
                         "description": "ID of the board to connect to",
                         "required": True,
+                        "options": board_options,
                     },
                     "params": {
-                        "type": "object",
-                        "description": "Connection parameters (JSON object)",
+                        "type": "dict",  # Changed from "json_template" to "dict"
+                        "description": "Connection parameters (will be populated based on selected board)",
                         "required": False,
+                        "template_source": "board_id",
+                        "placeholder": "Parameters will appear based on board selection",
                     },
                     "preset": {
-                        "type": "number",
+                        "type": "select",
                         "description": "Data preset to use",
                         "required": False,
+                        "options": preset_options,
+                        "default": 0,
                     },
                 },
             },
@@ -202,6 +211,26 @@ class EEGProcessorInteractionApiIntegration:
                 },
             },
             self._handle_get_board_requirements,
+        )
+
+        # Get board template (helper method for UI)
+        api_explorer.register_method(
+            self._target_module_id,
+            "connection",
+            "get_board_template",
+            {
+                "name": "get_board_template(board_id)",
+                "description": "Get parameter template for a specific board (UI helper)",
+                "type": "GET",
+                "params": {
+                    "board_id": {
+                        "type": "number",
+                        "description": "ID of the board",
+                        "required": True,
+                    }
+                },
+            },
+            self._handle_get_board_template,
         )
 
     def _register_streaming_methods(self, api_explorer: Any) -> None:
@@ -610,7 +639,34 @@ class EEGProcessorInteractionApiIntegration:
         self, board_id: int, params: Optional[Dict[str, Any]] = None, preset: int = 0
     ) -> Dict[str, Any]:
         """Handle connect_to_board."""
-        return EEGProcessorInteractionAPI.connect_to_board(board_id, params, preset)
+        try:
+            # Convert string values to integers if needed
+            if isinstance(board_id, str):
+                board_id = int(board_id)
+            if isinstance(preset, str):
+                preset = int(preset)
+            
+            # Ensure params is a dictionary
+            if params is None:
+                params = {}
+            
+            logging.info(f"Connecting to board {board_id} with preset {preset} and params {params}")
+            
+            return EEGProcessorInteractionAPI.connect_to_board(board_id, params, preset)
+        except ValueError as e:
+            logging.error(f"Error converting parameters: {e}")
+            return {
+                "success": False,
+                "message": f"Invalid parameter values: {e}",
+                "error": "INVALID_PARAMETERS"
+            }
+        except Exception as e:
+            logging.error(f"Error in connect_to_board handler: {e}")
+            return {
+                "success": False,
+                "message": f"Connection failed: {e}",
+                "error": str(e)
+            }
 
     async def _handle_disconnect_from_board(self) -> Dict[str, Any]:
         """Handle disconnect_from_board."""
@@ -710,3 +766,111 @@ class EEGProcessorInteractionApiIntegration:
     async def _handle_get_system_status(self) -> Dict[str, Any]:
         """Handle get_system_status."""
         return EEGProcessorInteractionAPI.get_system_status()
+
+    async def _handle_get_board_template(self, board_id: int) -> Dict[str, Any]:
+        """Handle get_board_template."""
+        try:
+            logging.info(f"Getting board template for board_id: {board_id}")
+            template = self._get_board_template(board_id)
+            logging.info(f"Generated template: {template}")
+            
+            result = {"template": template, "board_id": board_id}
+            logging.info(f"Returning template result: {result}")
+            return result
+        except Exception as e:
+            logging.error(f"Error in _handle_get_board_template: {e}")
+            return {"template": {}, "board_id": board_id, "error": str(e)}
+
+    def _get_board_options(self) -> List[Dict[str, Any]]:
+        """Get available board options for dropdown."""
+        try:
+            from .collectors.board_configuration import BoardConfiguration
+            boards = BoardConfiguration.get_all_boards()
+            
+            return [
+                {"value": board_id, "label": f"{board_name} (ID: {board_id})"}
+                for board_name, board_id in boards
+            ]
+        except Exception as e:
+            logging.error(f"Error getting board options: {e}")
+            return [{"value": 0, "label": "Synthetic Board (ID: 0)"}]
+
+    def _get_preset_options(self) -> List[Dict[str, Any]]:
+        """Get available preset options for dropdown."""
+        try:
+            from .collectors.board_configuration import BoardConfiguration
+            preset_info = BoardConfiguration.get_preset_info()
+            
+            return [
+                {"value": preset_val, "label": f"{preset_desc} ({preset_val})"}
+                for preset_val, preset_desc in preset_info.items()
+            ]
+        except Exception as e:
+            logging.error(f"Error getting preset options: {e}")
+            return [{"value": 0, "label": "Default Preset (0)"}]
+
+    def _get_board_template(self, board_id: int) -> Dict[str, Any]:
+        """Get parameter template for a specific board."""
+        try:
+            logging.info(f"Building template for board_id: {board_id}")
+            from .collectors.board_configuration import BoardConfiguration
+            requirements = BoardConfiguration.get_board_requirements(board_id)
+            logging.info(f"Board requirements: {requirements}")
+            
+            template = {}
+            
+            # Build complete template with all possible fields like in connection_panel.py
+            # Always include all fields but mark which ones are required
+            template["serial_port"] = {
+                "value": "",
+                "required": requirements.get("serial_port", False),
+                "description": "Serial port for board connection"
+            }
+            template["ip_address"] = {
+                "value": "225.1.1.1",
+                "required": requirements.get("ip_address", False),
+                "description": "IP address for network boards"
+            }
+            template["ip_port"] = {
+                "value": 6677,
+                "required": requirements.get("ip_port", False),
+                "description": "IP port for network boards"
+            }
+            template["mac_address"] = {
+                "value": "",
+                "required": requirements.get("mac_address", False),
+                "description": "MAC address for Bluetooth boards"
+            }
+            template["serial_number"] = {
+                "value": "",
+                "required": requirements.get("serial_number", False),
+                "description": "Serial number of the device"
+            }
+            template["file"] = {
+                "value": "",
+                "required": requirements.get("file", False),
+                "description": "File path for playback boards"
+            }
+            template["master_board"] = {
+                "value": 0,
+                "required": requirements.get("master_board", False),
+                "description": "Master board ID for daisy chain"
+            }
+            template["other_info"] = {
+                "value": "",
+                "required": requirements.get("other_info", False),
+                "description": "Additional information"
+            }
+            template["timeout"] = {
+                "value": 15000,
+                "required": requirements.get("timeout", False),
+                "description": "Connection timeout in milliseconds"
+            }
+            
+            logging.info(f"Built template: {template}")
+            return template
+        except Exception as e:
+            logging.error(f"Error getting board template: {e}")
+            import traceback
+            logging.error(f"Traceback: {traceback.format_exc()}")
+            return {}

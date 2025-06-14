@@ -647,3 +647,105 @@ body.dark-mode .range-value-display {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+/* JSON Template Styles */
+.json-template-container {
+    position: relative;
+}
+
+.json-template-textarea {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.9em;
+    resize: vertical;
+    min-height: 200px;
+}
+
+.load-template-btn {
+    margin-right: 0.5rem;
+}
+
+.format-json-btn {
+    margin-right: 0.5rem;
+}
+
+/* Dark mode support for JSON templates */
+body.dark-mode .json-template-textarea {
+    background-color: #2d2d2d;
+    color: #f0f0f0;
+    border-color: #444;
+}
+
+body.dark-mode .json-template-textarea::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Enhanced select styling */
+select.form-control {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+}
+
+body.dark-mode select.form-control {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%9ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+}
+
+/* Method parameter help styling */
+.param-help {
+    background-color: rgba(13, 110, 253, 0.1);
+    border: 1px solid rgba(13, 110, 253, 0.2);
+    border-radius: 4px;
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+    font-size: 0.85em;
+}
+
+body.dark-mode .param-help {
+    background-color: rgba(13, 110, 253, 0.2);
+    border-color: rgba(13, 110, 253, 0.3);
+}
+
+/* Enhanced JSON template styles */
+.json-template-textarea {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.9em;
+    resize: vertical;
+    min-height: 200px;
+}
+
+.validate-json-btn {
+    margin-right: 0.5rem;
+}
+
+/* Validation messages */
+.param-help ul {
+    margin: 0;
+    padding-left: 1.2em;
+}
+
+.param-help li {
+    margin-bottom: 0.25rem;
+}
+
+/* Enhanced select styling with better contrast */
+select.form-control option {
+    background-color: inherit;
+    color: inherit;
+}
+
+body.dark-mode select.form-control option {
+    background-color: #333;
+    color: #f0f0f0;
+}
+
+/* Better visibility for required field indicators */
+.json-template-container .param-help {
+    background-color: rgba(13, 110, 253, 0.05);
+    border-left: 3px solid #0d6efd;
+}
+
+body.dark-mode .json-template-container .param-help {
+    background-color: rgba(13, 110, 253, 0.15);
+}
