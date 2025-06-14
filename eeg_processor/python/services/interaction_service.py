@@ -836,13 +836,25 @@ class InteractionService:
             Dictionary with visualization result information
         """
         try:
-            from .visualization_service import VisualizationService
-            from .collector_service import CollectorService
-            from .processor_service import ProcessorService
+            # Use singleton instances
+            viz_service = self._get_visualization_service()
+            collector_service = self._get_collector_service()
+            processor_service = self._get_processor_service()
 
-            viz_service = VisualizationService()
-            collector_service = CollectorService()
-            processor_service = ProcessorService()
+            # Validate that we have a connected collector and are streaming
+            if not collector_service.is_connected():
+                return {
+                    "success": False,
+                    "message": "No board connected. Please connect to a board first.",
+                    "error": "NOT_CONNECTED"
+                }
+
+            if not collector_service.is_streaming_active():
+                return {
+                    "success": False,
+                    "message": "No active stream. Please start streaming first.",
+                    "error": "NOT_STREAMING"
+                }
 
             success = False
             if viz_type == "eeg":
@@ -880,6 +892,14 @@ class InteractionService:
                 source="interaction_service",
             )
 
+            # Additional UI update for show visualization button
+            if success:
+                dispatch(
+                    EventType.UI_UPDATE_CONTROLS,
+                    {"visualization_visible": True, "streaming": True},
+                    source="interaction_service",
+                )
+
             return result
 
         except Exception as e:
@@ -901,9 +921,7 @@ class InteractionService:
             Dictionary with visualization result information
         """
         try:
-            from .visualization_service import VisualizationService
-
-            viz_service = VisualizationService()
+            viz_service = self._get_visualization_service()
 
             success = False
             if viz_type == "eeg":
@@ -932,6 +950,14 @@ class InteractionService:
                 {"visualization_type": viz_type, "success": success},
                 source="interaction_service",
             )
+
+            # Additional UI update for show visualization button
+            if success:
+                dispatch(
+                    EventType.UI_UPDATE_CONTROLS,
+                    {"visualization_visible": False, "streaming": True},
+                    source="interaction_service",
+                )
 
             return result
 

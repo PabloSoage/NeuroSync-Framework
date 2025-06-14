@@ -88,7 +88,8 @@ class ConnectionPanel(BasePanel):
             # Update UI to reflect streaming started
             self.start_stream_btn.setEnabled(False)
             self.stop_stream_btn.setEnabled(True)
-            self.show_viz_btn.setEnabled(False)
+            # enable and style show-viz button so user can reopen window
+            self.update_visualization_button(True)
             
             # Emit signal for other components
             self.stream_started.emit()
@@ -636,26 +637,20 @@ class ConnectionPanel(BasePanel):
     def show_visualization(self) -> None:
         """Show the EEG visualization if it was closed."""
         try:
-            if self.visualization_service.visualization_closed():
-                # Recreate and restart visualization
+            # Create if none exists, or reopen if it was closed
+            if self.visualization_service.eeg_visualizer is None \
+               or self.visualization_service.visualization_closed():
                 success = self.visualization_service.create_eeg_visualizer(
-                    self.collector_service.collector,
-                    None,  # We'll initialize the processor later
+                    self.collector_service.collector, None
                 )
-
                 if success:
                     self.visualization_service.start_eeg_visualization()
                     self.show_viz_btn.setEnabled(False)
                     self.show_status("Visualization window reopened")
                 else:
-                    self.show_error(
-                        "Visualization Error", "Failed to create visualization"
-                    )
-
+                    self.show_error("Visualization Error", "Failed to create visualization")
         except Exception as e:
-            self.show_error(
-                "Visualization Error", f"Error showing visualization: {str(e)}"
-            )
+            self.show_error("Visualization Error", f"Error showing visualization: {e}")
 
     def update_visualization_button(self, enabled: bool) -> None:
         """Update the state of the visualization button."""
@@ -692,14 +687,10 @@ class ConnectionPanel(BasePanel):
         try:
             self.start_stream_btn.setEnabled(not streaming)
             self.stop_stream_btn.setEnabled(streaming)
-
-            # Enable/disable visualization button based on streaming state
-            self.show_viz_btn.setEnabled(
-                not streaming
-                and hasattr(self, "visualization_service")
-                and self.visualization_service.visualization_closed()
-            )
-
+            # enable show-viz only when streaming is active and window is closed
+            enabled = streaming and hasattr(self, "visualization_service") and self.visualization_service.visualization_closed()
+            self.update_visualization_button(enabled)
+            
             return True
         except Exception as e:
             self.show_error("Streaming State Update Error", str(e))
