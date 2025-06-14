@@ -85,7 +85,7 @@ class BrainFlowBoardConfiguration(BoardInterface):
         """
         all_boards = self.get_all_boards()
 
-        # Define groups
+        # Define groups with more categories
         groups: Dict[str, List[Tuple[str, int]]] = {
             "Special/Synthetic": [],
             "OpenBCI": [],
@@ -93,7 +93,13 @@ class BrainFlowBoardConfiguration(BoardInterface):
             "Neurosity": [],
             "g.tec": [],
             "ANT Neuro": [],
-            "Other": [],
+            "NeuroMD": [],
+            "OYMotion": [],
+            "FreeEEG": [],
+            "Mentalab": [],
+            "EmotiBit": [],
+            "Other Hardware": [],
+            "Undocumented": [],
         }
 
         # Special handling for synthetic, playback and streaming boards
@@ -128,10 +134,32 @@ class BrainFlowBoardConfiguration(BoardInterface):
                 or "gtec" in board_name_lower
             ):
                 groups["g.tec"].append((board_name, board_id))
-            elif "ant" in board_name_lower or "neuro" in board_name_lower:
+            elif "ant" in board_name_lower or "eego" in board_name_lower:
                 groups["ANT Neuro"].append((board_name, board_id))
+            elif (
+                "brainbit" in board_name_lower
+                or "callibri" in board_name_lower
+                or "neuromd" in board_name_lower
+            ):
+                groups["NeuroMD"].append((board_name, board_id))
+            elif "gforce" in board_name_lower or "oymotion" in board_name_lower:
+                groups["OYMotion"].append((board_name, board_id))
+            elif "freeeeg" in board_name_lower:
+                groups["FreeEEG"].append((board_name, board_id))
+            elif "explore" in board_name_lower or "mentalab" in board_name_lower:
+                groups["Mentalab"].append((board_name, board_id))
+            elif "emotibit" in board_name_lower:
+                groups["EmotiBit"].append((board_name, board_id))
+            elif any(name in board_name_lower for name in [
+                "enophone", "brainalive", "pieeg", "neuropawn", "knight", "biolistener"
+            ]):
+                groups["Other Hardware"].append((board_name, board_id))
+            elif any(name in board_name_lower for name in [
+                "galea", "ntl", "aavaa"
+            ]):
+                groups["Undocumented"].append((board_name, board_id))
             else:
-                groups["Other"].append((board_name, board_id))
+                groups["Other Hardware"].append((board_name, board_id))
 
         return groups
 
@@ -154,127 +182,224 @@ class BrainFlowBoardConfiguration(BoardInterface):
             "serial_number": False,
             "file": False,
             "master_board": False,
+            "timeout": False,
         }
 
         # Define requirements based on supported_boards.txt documentation
         if board_id == BoardIds.SYNTHETIC_BOARD.value:
             # Synthetic board doesn't need any parameters
+            requirements.pop("timeout")
             return requirements
 
         if board_id == BoardIds.PLAYBACK_FILE_BOARD.value:
             requirements["file"] = True  # Required: full path to recorded file
             requirements["master_board"] = True  # Required: board ID of device used to create files
+            requirements.pop("timeout")
             return requirements
 
         if board_id == BoardIds.STREAMING_BOARD.value:
             requirements["ip_address"] = True  # Required: multicast address
             requirements["ip_port"] = True  # Required: port number
             requirements["master_board"] = True  # Required: board ID of the device
+            requirements.pop("timeout")
             return requirements
 
-        # Try to determine requirements based on board name or ID
+        # Use specific Board IDs for exact matching - Documented boards
+        try:
+            # OpenBCI Cyton - serial_port required
+            if board_id == BoardIds.CYTON_BOARD.value:
+                requirements["serial_port"] = True
+                requirements.pop("timeout")
+                return requirements
+
+            # OpenBCI Cyton Daisy - serial_port required  
+            elif board_id == BoardIds.CYTON_DAISY_BOARD.value:
+                requirements["serial_port"] = True
+                requirements.pop("timeout")
+                return requirements
+
+            # OpenBCI Ganglion (with dongle) - serial_port required, timeout optional
+            elif board_id == BoardIds.GANGLION_BOARD.value:
+                requirements["serial_port"] = True
+                return requirements
+
+            # OpenBCI Ganglion Native - no required parameters (auto-discovery)
+            elif board_id == BoardIds.GANGLION_NATIVE_BOARD.value:
+                requirements.pop("timeout")
+                return requirements
+
+            # OpenBCI WiFi boards - ip_port required, timeout optional
+            elif board_id in [BoardIds.GANGLION_WIFI_BOARD.value, BoardIds.CYTON_WIFI_BOARD.value, BoardIds.CYTON_DAISY_WIFI_BOARD.value]:
+                requirements["ip_port"] = True
+                return requirements
+
+            # BrainBit - timeout optional
+            elif board_id == BoardIds.BRAINBIT_BOARD.value:
+                return requirements
+
+            # BrainBit BLED - serial_port required for dongle
+            elif board_id == BoardIds.BRAINBIT_BLED_BOARD.value:
+                requirements["serial_port"] = True
+                requirements.pop("timeout")
+                return requirements
+
+            # Callibri boards - timeout optional
+            elif board_id in [BoardIds.CALLIBRI_EEG_BOARD.value, BoardIds.CALLIBRI_EMG_BOARD.value, BoardIds.CALLIBRI_ECG_BOARD.value]:
+                return requirements
+
+            # Unicorn - no required parameters
+            elif board_id == BoardIds.UNICORN_BOARD.value:
+                requirements.pop("timeout")
+                return requirements
+
+            # Neurosity boards - no required parameters
+            elif board_id in [BoardIds.NOTION_1_BOARD.value, BoardIds.NOTION_2_BOARD.value, BoardIds.CROWN_BOARD.value]:
+                requirements.pop("timeout")
+                return requirements
+
+            # gForce boards - no required parameters
+            elif board_id in [BoardIds.GFORCE_PRO_BOARD.value, BoardIds.GFORCE_DUAL_BOARD.value]:
+                requirements.pop("timeout")
+                return requirements
+
+            # FreeEEG boards - serial_port required
+            elif board_id in [BoardIds.FREEEEG32_BOARD.value, BoardIds.FREEEEG128_BOARD.value]:
+                requirements["serial_port"] = True
+                requirements.pop("timeout")
+                return requirements
+
+            # Muse BLED boards - serial_port required for dongle
+            elif board_id in [BoardIds.MUSE_S_BLED_BOARD.value, BoardIds.MUSE_2_BLED_BOARD.value, BoardIds.MUSE_2016_BLED_BOARD.value]:
+                requirements["serial_port"] = True
+                requirements.pop("timeout")
+                return requirements
+
+            # Muse native boards - no required parameters (auto-discovery)
+            elif board_id in [BoardIds.MUSE_S_BOARD.value, BoardIds.MUSE_2_BOARD.value, BoardIds.MUSE_2016_BOARD.value]:
+                requirements.pop("timeout")
+                return requirements
+
+            # ANT Neuro boards - no required parameters
+            elif board_id in [
+                BoardIds.ANT_NEURO_EE_410_BOARD.value, BoardIds.ANT_NEURO_EE_411_BOARD.value,
+                BoardIds.ANT_NEURO_EE_430_BOARD.value, BoardIds.ANT_NEURO_EE_211_BOARD.value,
+                BoardIds.ANT_NEURO_EE_212_BOARD.value, BoardIds.ANT_NEURO_EE_213_BOARD.value,
+                BoardIds.ANT_NEURO_EE_214_BOARD.value, BoardIds.ANT_NEURO_EE_215_BOARD.value,
+                BoardIds.ANT_NEURO_EE_221_BOARD.value, BoardIds.ANT_NEURO_EE_222_BOARD.value,
+                BoardIds.ANT_NEURO_EE_223_BOARD.value, BoardIds.ANT_NEURO_EE_224_BOARD.value,
+                BoardIds.ANT_NEURO_EE_225_BOARD.value, BoardIds.ANT_NEURO_EE_511_BOARD.value
+            ]:
+                requirements.pop("timeout")
+                return requirements
+
+            # Enophone - no required parameters (can auto-discover paired devices)
+            elif board_id == BoardIds.ENOPHONE_BOARD.value:
+                requirements.pop("timeout")
+                return requirements
+
+            # BrainAlive - no required parameters (auto-discovery)
+            elif board_id == BoardIds.BRAINALIVE_BOARD.value:
+                requirements.pop("timeout")
+                return requirements
+
+            # Mentalab Explore boards - no required parameters (can auto-discover paired devices)
+            elif board_id in [BoardIds.EXPLORE_4_CHAN_BOARD.value, BoardIds.EXPLORE_8_CHAN_BOARD.value]:
+                requirements.pop("timeout")
+                return requirements
+
+            # Check for newer Explore boards if they exist
+            elif hasattr(BoardIds, 'EXPLORE_PLUS_8_CHAN_BOARD') and board_id == BoardIds.EXPLORE_PLUS_8_CHAN_BOARD.value:
+                requirements.pop("timeout")
+                return requirements
+
+            elif hasattr(BoardIds, 'EXPLORE_PLUS_32_CHAN_BOARD') and board_id == BoardIds.EXPLORE_PLUS_32_CHAN_BOARD.value:
+                requirements.pop("timeout")
+                return requirements
+
+            # EmotiBit - no required parameters (auto-discovery)
+            elif board_id == BoardIds.EMOTIBIT_BOARD.value:
+                requirements.pop("timeout")
+                return requirements
+
+            # PiEEG - no required parameters (has defaults)
+            elif board_id == BoardIds.PIEEG_BOARD.value:
+                requirements.pop("timeout")
+                return requirements
+
+            # NeuroPawn Knight - serial_port required
+            elif board_id == BoardIds.NEUROPAWN_KNIGHT_BOARD.value:
+                requirements["serial_port"] = True
+                requirements.pop("timeout")
+                return requirements
+
+            # BioListener - timeout optional (not in the original enum but mentioned in docs)
+            elif hasattr(BoardIds, 'BIOLISTENER_BOARD') and board_id == BoardIds.BIOLISTENER_BOARD.value:
+                return requirements
+
+            # Undocumented boards - make educated guesses based on patterns
+            # Galea boards (likely similar to other EEG boards)
+            elif board_id in [getattr(BoardIds, attr, -999) for attr in ['GALEA_BOARD', 'GALEA_SERIAL_BOARD', 'GALEA_BOARD_V4', 'GALEA_SERIAL_BOARD_V4'] if hasattr(BoardIds, attr)]:
+                # Serial variants likely need serial port
+                if 'SERIAL' in [attr for attr in dir(BoardIds) if getattr(BoardIds, attr, -999) == board_id]:
+                    requirements["serial_port"] = True
+                requirements.pop("timeout")
+                return requirements
+
+            # NTL WiFi board (likely similar to other WiFi boards)
+            elif hasattr(BoardIds, 'NTL_WIFI_BOARD') and board_id == BoardIds.NTL_WIFI_BOARD.value:
+                requirements["ip_port"] = True
+                return requirements
+
+            # AAVAA board (unknown requirements)
+            elif hasattr(BoardIds, 'AAVAA_V3_BOARD') and board_id == BoardIds.AAVAA_V3_BOARD.value:
+                requirements.pop("timeout")
+                return requirements
+
+        except AttributeError:
+            # Some board IDs might not exist in this version of BrainFlow
+            pass
+
+        # Fallback: try to determine requirements based on board name
         try:
             board_name = BoardShim.get_device_name(board_id).lower()
 
-            # OpenBCI Cyton boards - serial_port required
-            if "cyton" in board_name and "wifi" not in board_name and "daisy" not in board_name:
+            # OpenBCI boards
+            if "cyton" in board_name and "wifi" not in board_name:
                 requirements["serial_port"] = True
-
-            # OpenBCI Cyton Daisy - serial_port required  
-            elif "cyton" in board_name and "daisy" in board_name and "wifi" not in board_name:
-                requirements["serial_port"] = True
-
-            # OpenBCI Ganglion (with dongle) - serial_port required
+                requirements.pop("timeout")
             elif "ganglion" in board_name and "native" not in board_name and "wifi" not in board_name:
                 requirements["serial_port"] = True
-                # mac_address is optional but helpful
-
-            # OpenBCI Ganglion Native - no required parameters (auto-discovery)
-            elif "ganglion" in board_name and "native" in board_name:
-                # Both mac_address and serial_number are optional
-                pass
-
-            # OpenBCI WiFi boards - ip_port required, ip_address optional
             elif ("ganglion" in board_name or "cyton" in board_name) and "wifi" in board_name:
                 requirements["ip_port"] = True
-                # ip_address is optional (can use SSDP discovery)
-
-            # BrainBit - no required parameters (auto-discovery)
             elif "brainbit" in board_name and "bled" not in board_name:
-                # serial_number is optional but important for multiple devices
-                pass
-
-            # BrainBit BLED - serial_port required for dongle
-            elif "brainbit" in board_name and "bled" in board_name:
-                requirements["serial_port"] = True
-                # mac_address is optional but important for multiple devices
-
-            # Callibri boards - no required parameters
+                pass  # Keep timeout for BrainBit
             elif "callibri" in board_name:
-                # other_info is optional for ExternalSwitchInputMioUSB
-                pass
-
-            # Unicorn - no required parameters
-            elif "unicorn" in board_name:
-                # serial_number is optional, important for multiple devices
-                pass
-
-            # Neurosity boards (Notion 1, Notion 2, Crown) - no required parameters
-            elif "notion" in board_name or "crown" in board_name:
-                # serial_number is optional, important for multiple devices
-                pass
-
-            # gForce boards - no required parameters
-            elif "gforce" in board_name:
-                pass
-
-            # FreeEEG boards - serial_port required
-            elif "freeeeg" in board_name:
+                pass  # Keep timeout for Callibri
+            elif "biolistener" in board_name:
+                pass  # Keep timeout for BioListener
+            elif "galea" in board_name and "serial" in board_name:
                 requirements["serial_port"] = True
-
-            # Muse BLED boards - serial_port required for dongle
-            elif "muse" in board_name and "bled" in board_name:
-                requirements["serial_port"] = True
-                # serial_number is optional
-
-            # Muse native boards - no required parameters (auto-discovery)
-            elif "muse" in board_name and "bled" not in board_name:
-                # Both mac_address and serial_number are optional
-                pass
-
-            # ANT Neuro boards - no required parameters
-            elif "ant" in board_name or "eego" in board_name:
-                pass
-
-            # Enophone - no required parameters (can auto-discover paired devices)
-            elif "enophone" in board_name:
-                # mac_address is optional (required only on Linux)
-                pass
-
-            # BrainAlive - no required parameters (auto-discovery)
-            elif "brainalive" in board_name:
-                # Both mac_address and serial_number are optional
-                pass
-
-            # Mentalab Explore boards - no required parameters (can auto-discover paired devices)
-            elif "explore" in board_name:
-                # mac_address is optional (required only on Linux)
-                pass
-
-            # EmotiBit - no required parameters (auto-discovery)
-            elif "emotibit" in board_name:
-                # ip_address and serial_number are optional
-                pass
-
-            # PiEEG - no required parameters (has defaults)
-            elif "pieeg" in board_name:
-                # serial_port is optional (has default /dev/spidev0.0)
-                pass
+                requirements.pop("timeout")
+            elif "wifi" in board_name:
+                requirements["ip_port"] = True
+            else:
+                # Other boards with serial port requirements
+                if any(name in board_name for name in ["freeeeg", "neuropawn", "knight", "serial"]):
+                    requirements["serial_port"] = True
+                elif "brainbit" in board_name and "bled" in board_name:
+                    requirements["serial_port"] = True
+                elif "muse" in board_name and "bled" in board_name:
+                    requirements["serial_port"] = True
+                
+                # Remove timeout for boards that don't mention it
+                requirements.pop("timeout")
 
         except Exception as e:
             logging.warning(
                 f"Could not determine requirements for board ID {board_id}: {e}"
             )
+            # Default: remove timeout if we can't determine the board type
+            requirements.pop("timeout")
 
         return requirements
 
@@ -330,6 +455,16 @@ class BrainFlowBoardConfiguration(BoardInterface):
                     input_params.master_board = int(master_board)
             except:
                 pass  # Ignore if we can't set master board
+
+        if "timeout" in params_dict and params_dict["timeout"]:
+            try:
+                timeout = params_dict["timeout"]
+                if isinstance(timeout, int):
+                    input_params.timeout = timeout
+                else:
+                    input_params.timeout = int(timeout)
+            except:
+                pass  # Ignore if we can't set timeout
 
         return input_params
 

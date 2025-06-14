@@ -372,28 +372,40 @@ class ConnectionPanel(BasePanel):
             # Get requirements for this board
             requirements = BoardConfiguration.get_board_requirements(board_id)
 
-            # Show/hide parameters based on requirements
+            # Show/hide parameters based on requirements and determine visual styling
             for param, required in requirements.items():
                 if param in self.param_fields:
-                    self.param_fields[param].setEnabled(required)
-
-                    # Add visual cue for required fields
+                    field = self.param_fields[param]
+                    
+                    # Determine the field state and styling
                     if required:
-                        if isinstance(self.param_fields[param], QComboBox):
-                            self.param_fields[param].setStyleSheet(
-                                "border: 1px solid #E0A030;"
-                            )
+                        # REQUIRED (yellow): Field is mandatory for connection
+                        field.setEnabled(True)
+                        if isinstance(field, QComboBox):
+                            field.setStyleSheet("border: 2px solid #ffc107; background-color: rgba(255, 193, 7, 0.1);")
                         else:
-                            self.param_fields[param].setStyleSheet(
-                                "border: 1px solid #E0A030; background-color: rgba(224, 160, 48, 0.1);"
-                            )
+                            field.setStyleSheet("border: 2px solid #ffc107; background-color: rgba(255, 193, 7, 0.1);")
                     else:
-                        if isinstance(self.param_fields[param], QComboBox):
-                            self.param_fields[param].setStyleSheet("")
+                        # Check if this field is used by this board type (optional vs not applicable)
+                        board_name = BoardConfiguration.get_board_description(board_id).get('name', '').lower()
+                        
+                        # Determine if field is optional or not applicable based on board type
+                        is_optional = self._is_field_optional_for_board(param, board_id, board_name)
+                        
+                        if is_optional:
+                            # OPTIONAL (green): Field can be provided but not required
+                            field.setEnabled(True)
+                            if isinstance(field, QComboBox):
+                                field.setStyleSheet("border: 1px solid #28a745; background-color: rgba(40, 167, 69, 0.1);")
+                            else:
+                                field.setStyleSheet("border: 1px solid #28a745; background-color: rgba(40, 167, 69, 0.1);")
                         else:
-                            self.param_fields[param].setStyleSheet(
-                                "background-color: #252526;"
-                            )
+                            # NOT APPLICABLE (disabled/gray): Field is not used by this board
+                            field.setEnabled(False)
+                            if isinstance(field, QComboBox):
+                                field.setStyleSheet("background-color: #6c757d; color: #adb5bd;")
+                            else:
+                                field.setStyleSheet("background-color: #6c757d; color: #adb5bd;")
 
             # Get and display board description
             try:
@@ -431,6 +443,99 @@ class ConnectionPanel(BasePanel):
             self.show_error(
                 "Board Selection Error", f"Error updating board parameters: {str(e)}"
             )
+
+    def _is_field_optional_for_board(self, param: str, board_id: int, board_name: str) -> bool:
+        """
+        Determine if a parameter field is optional (vs not applicable) for a specific board.
+        
+        Args:
+            param: Parameter name
+            board_id: Board ID
+            board_name: Board name (lowercase)
+            
+        Returns:
+            True if field is optional, False if not applicable
+        """
+        from brainflow.board_shim import BoardIds
+        
+        # Special boards - check which fields are potentially useful
+        if board_id == BoardIds.SYNTHETIC_BOARD.value:
+            # Synthetic board: no fields are useful
+            return False
+            
+        if board_id == BoardIds.PLAYBACK_FILE_BOARD.value:
+            # Playback board: only file and master_board are relevant
+            return param in ["file", "master_board"]
+            
+        if board_id == BoardIds.STREAMING_BOARD.value:
+            # Streaming board: ip_address, ip_port, master_board are relevant
+            return param in ["ip_address", "ip_port", "master_board"]
+        
+        # For real hardware boards, determine based on board characteristics
+        try:
+            # Check board name patterns to determine optional fields
+            if "cyton" in board_name or "ganglion" in board_name:
+                if "wifi" in board_name:
+                    # WiFi boards: ip_address optional (SSDP discovery), ip_port required, timeout optional
+                    return param in ["ip_address", "timeout"]
+                elif "native" in board_name:
+                    # Native Bluetooth: mac_address and serial_number are optional (auto-discovery)
+                    return param in ["mac_address", "serial_number", "timeout"]
+                elif "bled" in board_name:
+                    # BLED dongle boards: mac_address optional but helpful
+                    return param in ["mac_address", "timeout"]
+                else:
+                    # Serial boards: timeout is optional
+                    return param in ["timeout"]
+                    
+            elif "muse" in board_name:
+                if "bled" in board_name:
+                    # Muse BLED: serial_number optional
+                    return param in ["serial_number", "timeout"]
+                else:
+                    # Muse native: mac_address and serial_number optional
+                    return param in ["mac_address", "serial_number", "timeout"]
+                    
+            elif "unicorn" in board_name:
+                # Unicorn: serial_number optional (for multiple devices)
+                return param in ["serial_number", "timeout"]
+                
+            elif "brainbit" in board_name:
+                if "bled" in board_name:
+                    # BrainBit BLED: mac_address optional
+                    return param in ["mac_address", "timeout"]
+                else:
+                    # BrainBit native: serial_number optional
+                    return param in ["serial_number", "timeout"]
+                    
+            elif "notion" in board_name or "crown" in board_name:
+                # Neurosity boards: serial_number optional
+                return param in ["serial_number", "timeout"]
+                
+            elif "freeeeg" in board_name:
+                # FreeEEG: timeout optional
+                return param in ["timeout"]
+                
+            elif "enophone" in board_name or "explore" in board_name:
+                # Bluetooth boards: mac_address optional on some platforms
+                return param in ["mac_address", "timeout"]
+                
+            elif "emotibit" in board_name:
+                # EmotiBit: ip_address and serial_number optional
+                return param in ["ip_address", "serial_number", "timeout"]
+                
+            elif "ant" in board_name or "eego" in board_name:
+                # ANT Neuro: timeout might be optional
+                return param in ["timeout"]
+                
+            else:
+                # Default for unknown boards: timeout is usually optional
+                return param in ["timeout"]
+                
+        except Exception as e:
+            logging.warning(f"Error determining optional fields for {board_name}: {e}")
+            # Conservative fallback: consider timeout as optional for most boards
+            return param in ["timeout"]
 
     def filter_boards(self) -> None:
         """Filter the boards in the dropdown based on search text."""
