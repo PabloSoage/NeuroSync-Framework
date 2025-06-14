@@ -818,60 +818,191 @@ class EEGProcessorInteractionApiIntegration:
             requirements = BoardConfiguration.get_board_requirements(board_id)
             logging.info(f"Board requirements: {requirements}")
             
+            # Get board name for determining optional fields
+            try:
+                board_description = BoardConfiguration.get_board_description(board_id)
+                board_name = board_description.get('name', '').lower()
+            except:
+                board_name = ''
+            
             template = {}
+            required_comments = []
+            optional_comments = []
             
-            # Build complete template with all possible fields like in connection_panel.py
-            # Always include all fields but mark which ones are required
-            template["serial_port"] = {
-                "value": "",
-                "required": requirements.get("serial_port", False),
-                "description": "Serial port for board connection"
-            }
-            template["ip_address"] = {
-                "value": "225.1.1.1",
-                "required": requirements.get("ip_address", False),
-                "description": "IP address for network boards"
-            }
-            template["ip_port"] = {
-                "value": 6677,
-                "required": requirements.get("ip_port", False),
-                "description": "IP port for network boards"
-            }
-            template["mac_address"] = {
-                "value": "",
-                "required": requirements.get("mac_address", False),
-                "description": "MAC address for Bluetooth boards"
-            }
-            template["serial_number"] = {
-                "value": "",
-                "required": requirements.get("serial_number", False),
-                "description": "Serial number of the device"
-            }
-            template["file"] = {
-                "value": "",
-                "required": requirements.get("file", False),
-                "description": "File path for playback boards"
-            }
-            template["master_board"] = {
-                "value": 0,
-                "required": requirements.get("master_board", False),
-                "description": "Master board ID for daisy chain"
-            }
-            template["other_info"] = {
-                "value": "",
-                "required": requirements.get("other_info", False),
-                "description": "Additional information"
-            }
-            template["timeout"] = {
-                "value": 15000,
-                "required": requirements.get("timeout", False),
-                "description": "Connection timeout in milliseconds"
+            # Build complete template with all possible fields
+            all_fields = {
+                "serial_port": {
+                    "value": "",
+                    "description": "Serial port for board connection (e.g., COM3, /dev/ttyUSB0)"
+                },
+                "ip_address": {
+                    "value": "225.1.1.1",
+                    "description": "IP address for network boards (default: 225.1.1.1)"
+                },
+                "ip_port": {
+                    "value": 6677,
+                    "description": "IP port for network boards (default: 6677)"
+                },
+                "mac_address": {
+                    "value": "",
+                    "description": "MAC address for Bluetooth boards (auto-discovery if empty)"
+                },
+                "serial_number": {
+                    "value": "",
+                    "description": "Serial number of the device (useful for multiple devices)"
+                },
+                "file": {
+                    "value": "",
+                    "description": "File path for playback boards (full path to CSV file)"
+                },
+                "master_board": {
+                    "value": 0,
+                    "description": "Master board ID for daisy chain or streaming boards"
+                },
+                "other_info": {
+                    "value": "",
+                    "description": "Additional information (e.g., ExternalSwitchInputMioUSB for Callibri)"
+                },
+                "timeout": {
+                    "value": 15000,
+                    "description": "Connection timeout in milliseconds (default: 15000)"
+                }
             }
             
-            logging.info(f"Built template: {template}")
+            # Determine field status for this specific board
+            for field_name, field_info in all_fields.items():
+                is_required = requirements.get(field_name, False)
+                is_optional = self._is_field_optional_for_board(field_name, board_id, board_name)
+                
+                if is_required:
+                    # Required field - add to template and comments
+                    template[field_name] = field_info["value"]
+                    required_comments.append(f"{field_name}: {field_info['description']}")
+                elif is_optional:
+                    # Optional field - add to template and comments
+                    template[field_name] = field_info["value"]
+                    optional_comments.append(f"{field_name}: {field_info['description']}")
+                # Skip fields that are not applicable (neither required nor optional)
+            
+            # Add comments if we have any fields
+            if required_comments or optional_comments:
+                comments = []
+                
+                if required_comments:
+                    comments.append("REQUIRED fields for this board:")
+                    comments.extend([f"  - {comment}" for comment in required_comments])
+                    
+                if optional_comments:
+                    if required_comments:
+                        comments.append("")  # Empty line separator
+                    comments.append("OPTIONAL fields for this board:")
+                    comments.extend([f"  - {comment}" for comment in optional_comments])
+                
+                comments.append("")
+                comments.append("Remove this _COMMENTS field before executing")
+                template["_COMMENTS"] = comments
+            
+            logging.info(f"Built template with {len(template)} fields: {list(template.keys())}")
             return template
         except Exception as e:
             logging.error(f"Error getting board template: {e}")
             import traceback
             logging.error(f"Traceback: {traceback.format_exc()}")
             return {}
+
+    def _is_field_optional_for_board(self, param: str, board_id: int, board_name: str) -> bool:
+        """
+        Determine if a parameter field is optional (vs not applicable) for a specific board.
+        
+        Args:
+            param: Parameter name
+            board_id: Board ID
+            board_name: Board name (lowercase)
+            
+        Returns:
+            True if field is optional, False if not applicable
+        """
+        from brainflow.board_shim import BoardIds
+        
+        # Special boards - check which fields are potentially useful
+        if board_id == BoardIds.SYNTHETIC_BOARD.value:
+            # Synthetic board: no fields are useful
+            return False
+            
+        if board_id == BoardIds.PLAYBACK_FILE_BOARD.value:
+            # Playback board: only file and master_board are relevant (both required per requirements)
+            return False  # No optional fields for playback board
+            
+        if board_id == BoardIds.STREAMING_BOARD.value:
+            # Streaming board: ip_address, ip_port, master_board are all required per requirements
+            return False  # No optional fields for streaming board
+        
+        # For real hardware boards, determine based on board characteristics
+        try:
+            # Check board name patterns to determine optional fields
+            if "cyton" in board_name or "ganglion" in board_name:
+                if "wifi" in board_name:
+                    # WiFi boards: ip_port is required, ip_address is optional (SSDP discovery), timeout optional
+                    return param in ["ip_address", "timeout"]
+                elif "native" in board_name:
+                    # Native Bluetooth: mac_address and serial_number are optional (auto-discovery), timeout optional
+                    return param in ["mac_address", "serial_number", "timeout"]
+                elif "bled" in board_name:
+                    # BLED dongle boards: serial_port required, mac_address optional but helpful, timeout optional
+                    return param in ["mac_address", "timeout"]
+                else:
+                    # Serial boards: serial_port required, timeout is optional
+                    return param in ["timeout"]
+                    
+            elif "muse" in board_name:
+                if "bled" in board_name:
+                    # Muse BLED: serial_port required, serial_number optional, timeout optional
+                    return param in ["serial_number", "timeout"]
+                else:
+                    # Muse native: mac_address and serial_number optional, timeout optional
+                    return param in ["mac_address", "serial_number", "timeout"]
+                    
+            elif "unicorn" in board_name:
+                # Unicorn: serial_number optional (for multiple devices), timeout optional
+                return param in ["serial_number", "timeout"]
+                
+            elif "brainbit" in board_name:
+                if "bled" in board_name:
+                    # BrainBit BLED: serial_port required, mac_address optional, timeout optional
+                    return param in ["mac_address", "timeout"]
+                else:
+                    # BrainBit native: serial_number optional, timeout optional
+                    return param in ["serial_number", "timeout"]
+                    
+            elif "notion" in board_name or "crown" in board_name:
+                # Neurosity boards: serial_number optional, timeout optional
+                return param in ["serial_number", "timeout"]
+                
+            elif "freeeeg" in board_name:
+                # FreeEEG: serial_port required, timeout optional
+                return param in ["timeout"]
+                
+            elif "enophone" in board_name or "explore" in board_name:
+                # Bluetooth boards: mac_address optional on some platforms, timeout optional
+                return param in ["mac_address", "timeout"]
+                
+            elif "emotibit" in board_name:
+                # EmotiBit: ip_address and serial_number optional, timeout optional
+                return param in ["ip_address", "serial_number", "timeout"]
+                
+            elif "ant" in board_name or "eego" in board_name:
+                # ANT Neuro: timeout might be optional
+                return param in ["timeout"]
+                
+            elif "callibri" in board_name:
+                # Callibri: other_info optional (for ExternalSwitchInputMioUSB), timeout optional
+                return param in ["other_info", "timeout"]
+                
+            else:
+                # Default for unknown boards: timeout is usually optional
+                return param in ["timeout"]
+                
+        except Exception as e:
+            logging.warning(f"Error determining optional fields for {board_name}: {e}")
+            # Conservative fallback: consider timeout as optional for most boards
+            return param in ["timeout"]
