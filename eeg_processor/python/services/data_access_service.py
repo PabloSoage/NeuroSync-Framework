@@ -61,7 +61,7 @@ class DataAccessService:
         try:
             from .collector_service import CollectorService
 
-            self._collector_service = CollectorService()
+            self._collector_service = CollectorService.get_instance()
             logging.info("Connected to collector service")
         except Exception as e:
             logging.debug(f"Could not connect to collector service: {e}")

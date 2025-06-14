@@ -1,4 +1,5 @@
 from typing import Optional, Dict, Any
+import logging
 
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import (
@@ -18,6 +19,7 @@ from PyQt5.QtWidgets import (
 from .base_panel import BasePanel
 from ..collectors.board_configuration import BoardConfiguration
 from ..utils.help_system import HelpButton
+from ..core.event_system import EventDispatcher, EventType
 
 
 class ConnectionPanel(BasePanel):
@@ -40,6 +42,9 @@ class ConnectionPanel(BasePanel):
         self.collector_service = collector_service
         self.visualization_service = visualization_service
 
+        # Subscribe to events for API synchronization
+        self._setup_event_subscriptions()
+
         # Setup UI components
         self.setup_visualization_control()
         self.setup_board_selection()
@@ -47,6 +52,93 @@ class ConnectionPanel(BasePanel):
 
         # Initially update visible parameters based on selected board
         self.on_board_type_changed()
+
+    def _setup_event_subscriptions(self) -> None:
+        """Setup subscriptions to events for API synchronization."""
+        try:
+            event_dispatcher = EventDispatcher.get_instance()
+            
+            # Subscribe to UI update events from API
+            event_dispatcher.subscribe(EventType.UI_UPDATE_CONTROLS, self._handle_ui_update_event)
+            event_dispatcher.subscribe(EventType.STREAM_START, self._handle_stream_start_event)
+            event_dispatcher.subscribe(EventType.STREAM_STOP, self._handle_stream_stop_event)
+            event_dispatcher.subscribe(EventType.BOARD_CONNECT, self._handle_board_connect_event)
+            event_dispatcher.subscribe(EventType.BOARD_DISCONNECT, self._handle_board_disconnect_event)
+            
+        except Exception as e:
+            logging.error(f"Error setting up event subscriptions: {e}")
+
+    def _handle_ui_update_event(self, event) -> None:
+        """Handle UI update events from API."""
+        try:
+            data = event.data
+            streaming = data.get("streaming", False)
+            connected = data.get("connected", False)
+            
+            # Update UI state based on event data
+            self._update_streaming_state(streaming)
+            self._update_connection_state(connected)
+            
+        except Exception as e:
+            logging.error(f"Error handling UI update event: {e}")
+
+    def _handle_stream_start_event(self, event) -> None:
+        """Handle stream start events from API."""
+        try:
+            # Update UI to reflect streaming started
+            self.start_stream_btn.setEnabled(False)
+            self.stop_stream_btn.setEnabled(True)
+            self.show_viz_btn.setEnabled(False)
+            
+            # Emit signal for other components
+            self.stream_started.emit()
+            
+        except Exception as e:
+            logging.error(f"Error handling stream start event: {e}")
+
+    def _handle_stream_stop_event(self, event) -> None:
+        """Handle stream stop events from API."""
+        try:
+            # Update UI to reflect streaming stopped
+            self.start_stream_btn.setEnabled(True)
+            self.stop_stream_btn.setEnabled(False)
+            self.show_viz_btn.setEnabled(False)
+            
+            # Emit signal for other components
+            self.stream_stopped.emit()
+            
+        except Exception as e:
+            logging.error(f"Error handling stream stop event: {e}")
+
+    def _handle_board_connect_event(self, event) -> None:
+        """Handle board connect events from API."""
+        try:
+            # Update UI to reflect board connected
+            self.connect_btn.setEnabled(False)
+            self.disconnect_btn.setEnabled(True)
+            self.start_stream_btn.setEnabled(True)
+            
+            # Emit signal for other components
+            self.board_connected.emit()
+            
+        except Exception as e:
+            logging.error(f"Error handling board connect event: {e}")
+
+    def _handle_board_disconnect_event(self, event) -> None:
+        """Handle board disconnect events from API."""
+        try:
+            # Update UI to reflect board disconnected
+            self.connect_btn.setEnabled(True)
+            self.disconnect_btn.setEnabled(False)
+            self.start_stream_btn.setEnabled(False)
+            self.stop_stream_btn.setEnabled(False)
+            self.show_viz_btn.setEnabled(False)
+            
+            # Emit signal for other components
+            self.board_disconnected.emit()
+            
+        except Exception as e:
+            logging.error(f"Error handling board disconnect event: {e}")
 
     def setup_visualization_control(self) -> None:
         """Set up visualization control group."""

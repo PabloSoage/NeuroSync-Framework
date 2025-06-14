@@ -21,8 +21,22 @@ class CollectorService:
     streaming data, and managing the collector state.
     """
 
+    _instance: Optional["CollectorService"] = None
+    _lock = threading.RLock()
+
+    @classmethod
+    def get_instance(cls) -> "CollectorService":
+        """Get the singleton instance."""
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = CollectorService()
+            return cls._instance
+
     def __init__(self) -> None:
         """Initialize the collector service."""
+        if CollectorService._instance is not None:
+            raise RuntimeError("CollectorService is a singleton. Use get_instance()")
+            
         self.collector: Optional[EEGCollector] = None
         self.is_streaming = False
 
@@ -44,6 +58,8 @@ class CollectorService:
         self._last_timestamp = 0.0
         self._last_reported_time = 0.0
         self._report_interval = 0.5
+
+        logging.info("CollectorService singleton initialized")
 
     def enable_high_performance_mode(self, enable: bool = True) -> None:
         """
@@ -274,6 +290,9 @@ class CollectorService:
             return False
 
         try:
+            # Ensure buffer_size is an integer
+            buffer_size = int(buffer_size)
+            
             self.collector.start_stream(buffer_size)
             self.is_streaming = True
 

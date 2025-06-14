@@ -37,6 +37,14 @@ class EEGProcessorInteractionApiIntegration:
         self.module_id = "eeg_processor_interaction"
         self._target_module_id: Optional[str] = None
 
+        # Ensure the interaction service is initialized
+        try:
+            if not self.interaction_service._initialized:
+                self.interaction_service.initialize()
+                logging.info("Interaction service initialized via API integration")
+        except Exception as e:
+            logging.warning(f"Could not initialize interaction service: {e}")
+
         logging.info("EEG Processor interaction API integration initialized")
 
     def register_api_methods(self, api_explorer: Any) -> None:

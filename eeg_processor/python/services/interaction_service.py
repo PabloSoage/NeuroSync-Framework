@@ -39,25 +39,165 @@ class InteractionService:
 
         self.event_dispatcher = EventDispatcher.get_instance()
         self._initialized = False
+        
+        # Component registry like input_collector
+        self._components: Dict[str, Any] = {}
+        self._last_status = {"success": False, "message": "Service not initialized"}
+        
+        # Shared service instances - initialize once and reuse
+        self._collector_service = None
+        self._processor_service = None
+        self._recording_service = None
+        self._visualization_service = None
+        self._data_access_service = None
 
         logging.info("Interaction service initialized")
+        
+        # Auto-initialize the service
+        self._auto_initialize()
+
+    def _auto_initialize(self) -> None:
+        """Auto-initialize the service with basic setup."""
+        try:
+            # Initialize core services immediately
+            self._get_collector_service()
+            self._get_data_access_service()
+            
+            self._initialized = True
+            self._set_status(True, "Service auto-initialized successfully")
+            logging.info("Interaction service auto-initialized")
+        except Exception as e:
+            self._set_status(False, f"Auto-initialization failed: {e}")
+            logging.warning(f"Auto-initialization failed, will retry on first use: {e}")
+
+    def register_component(self, component_name: str, component: Any) -> None:
+        """
+        Register an application component with the service.
+
+        Args:
+            component_name: Name of the component
+            component: The component instance
+        """
+        self._components[component_name] = component
+        logging.info(f"Component '{component_name}' registered with interaction service")
+
+    def get_component(self, component_name: str) -> Any:
+        """
+        Get a registered component by name.
+
+        Args:
+            component_name: Name of the component to retrieve
+
+        Returns:
+            The component instance or None if not found
+        """
+        return self._components.get(component_name)
+
+    def _set_status(self, success: bool, message: str) -> None:
+        """
+        Set the status of the last operation.
+
+        Args:
+            success: Whether the operation was successful
+            message: Status message
+        """
+        self._last_status = {"success": success, "message": message}
+        log_level = logging.INFO if success else logging.ERROR
+        logging.log(log_level, f"Interaction status: {message}")
+
+    def get_last_status(self) -> Dict[str, Any]:
+        """
+        Get the status of the last operation.
+
+        Returns:
+            Dict with status information
+        """
+        return self._last_status
+
+    def _get_collector_service(self):
+        """Get or create collector service instance."""
+        if self._collector_service is None:
+            from .collector_service import CollectorService
+            self._collector_service = CollectorService.get_instance()
+            self.register_component("collector_service", self._collector_service)
+        return self._collector_service
+
+    def _get_processor_service(self):
+        """Get or create processor service instance."""
+        if self._processor_service is None:
+            from .processor_service import ProcessorService
+            self._processor_service = ProcessorService()
+            self.register_component("processor_service", self._processor_service)
+        return self._processor_service
+
+    def _get_recording_service(self):
+        """Get or create recording service instance."""
+        if self._recording_service is None:
+            from .recording_service import RecordingService
+            self._recording_service = RecordingService()
+            self.register_component("recording_service", self._recording_service)
+        return self._recording_service
+
+    def _get_visualization_service(self):
+        """Get or create visualization service instance."""
+        if self._visualization_service is None:
+            from .visualization_service import VisualizationService
+            self._visualization_service = VisualizationService()
+            self.register_component("visualization_service", self._visualization_service)
+        return self._visualization_service
+
+    def _get_data_access_service(self):
+        """Get or create data access service instance."""
+        if self._data_access_service is None:
+            from .data_access_service import DataAccessService
+            self._data_access_service = DataAccessService.get_instance()
+            self.register_component("data_access_service", self._data_access_service)
+        return self._data_access_service
 
     def _check_initialized(self) -> bool:
         """Check if the service is properly initialized."""
         if not self._initialized:
-            logging.warning("Interaction service not properly initialized")
+            # Try to initialize if not already done
+            logging.info("Service not initialized, attempting auto-initialization")
+            try:
+                self._auto_initialize()
+                if self._initialized:
+                    return True
+            except Exception as e:
+                logging.error(f"Failed to auto-initialize: {e}")
+                
+            self._set_status(False, "Service not initialized and auto-initialization failed")
             return False
         return True
 
-    def initialize(self) -> None:
-        """Initialize the service with required dependencies."""
+    def initialize(self, components: Optional[Dict[str, Any]] = None) -> bool:
+        """
+        Initialize the service with required dependencies.
+
+        Args:
+            components: Optional dictionary of components to register
+
+        Returns:
+            bool: True if successful
+        """
         try:
-            # Initialize any required dependencies here
+            # Register components if provided
+            if components:
+                for name, component in components.items():
+                    self.register_component(name, component)
+
+            # Initialize core services
+            self._get_collector_service()
+            self._get_data_access_service()
+            
             self._initialized = True
+            self._set_status(True, "Service initialized successfully")
             logging.info("Interaction service initialization completed")
+            return True
         except Exception as e:
+            self._set_status(False, f"Error initializing interaction service: {e}")
             logging.error(f"Error initializing interaction service: {e}")
-            raise
+            return False
 
     def get_available_boards(self) -> List[Dict[str, Any]]:
         """
@@ -108,9 +248,7 @@ class InteractionService:
             Dictionary with connection result information
         """
         try:
-            from .collector_service import CollectorService
-
-            collector_service = CollectorService()
+            collector_service = self._get_collector_service()
             success = collector_service.connect_to_board(board_id, params, preset)
 
             result = {
@@ -162,9 +300,7 @@ class InteractionService:
             Dictionary with disconnection result information
         """
         try:
-            from .collector_service import CollectorService
-
-            collector_service = CollectorService()
+            collector_service = self._get_collector_service()
             success = collector_service.disconnect_from_board()
 
             result = {
@@ -211,20 +347,55 @@ class InteractionService:
         Returns:
             Dictionary with streaming result information
         """
-        try:
-            from .collector_service import CollectorService
+        if not self._check_initialized():
+            return {
+                "success": False,
+                "message": self._last_status["message"],
+                "error": "NOT_INITIALIZED"
+            }
 
-            collector_service = CollectorService()
+        try:
+            collector_service = self._get_collector_service()
+            
+            # Validate that we're connected before starting stream
+            if not collector_service.is_connected():
+                self._set_status(False, "No board connected. Please connect to a board first.")
+                return {
+                    "success": False,
+                    "message": "No board connected. Please connect to a board first.",
+                    "error": "NOT_CONNECTED"
+                }
+
+            # Check if already streaming
+            if collector_service.is_streaming_active():
+                self._set_status(False, "Already streaming")
+                return {
+                    "success": False,
+                    "message": "Already streaming",
+                    "error": "ALREADY_STREAMING"
+                }
+            
+            # Ensure buffer_size is an integer
+            buffer_size = int(buffer_size)
+            
             success = collector_service.start_stream(buffer_size)
+
+            if success:
+                self._set_status(True, "Streaming started successfully")
+                
+                # Dispatch additional events for GUI synchronization
+                dispatch(
+                    EventType.UI_UPDATE_CONTROLS,
+                    {"streaming": True, "connected": True},
+                    source="interaction_service",
+                )
+            else:
+                self._set_status(False, "Failed to start streaming")
 
             result = {
                 "success": success,
                 "buffer_size": buffer_size,
-                "message": (
-                    "Streaming started successfully"
-                    if success
-                    else "Failed to start streaming"
-                ),
+                "message": self._last_status["message"],
             }
 
             # Dispatch event for UI updates
@@ -237,6 +408,7 @@ class InteractionService:
             return result
 
         except Exception as e:
+            self._set_status(False, f"Error starting stream: {e}")
             logging.error(f"Error starting stream: {e}")
             return {
                 "success": False,
@@ -251,19 +423,42 @@ class InteractionService:
         Returns:
             Dictionary with streaming result information
         """
-        try:
-            from .collector_service import CollectorService
+        if not self._check_initialized():
+            return {
+                "success": False,
+                "message": self._last_status["message"],
+                "error": "NOT_INITIALIZED"
+            }
 
-            collector_service = CollectorService()
+        try:
+            collector_service = self._get_collector_service()
+            
+            # Validate that we're actually streaming before stopping
+            if not collector_service.is_streaming_active():
+                self._set_status(False, "Not currently streaming")
+                return {
+                    "success": False,
+                    "message": "No active stream to stop.",
+                    "error": "NOT_STREAMING"
+                }
+            
             success = collector_service.stop_stream()
+
+            if success:
+                self._set_status(True, "Streaming stopped successfully")
+                
+                # Dispatch additional events for GUI synchronization
+                dispatch(
+                    EventType.UI_UPDATE_CONTROLS,
+                    {"streaming": False, "connected": True},
+                    source="interaction_service",
+                )
+            else:
+                self._set_status(False, "Failed to stop streaming")
 
             result = {
                 "success": success,
-                "message": (
-                    "Streaming stopped successfully"
-                    if success
-                    else "Failed to stop streaming"
-                ),
+                "message": self._last_status["message"],
             }
 
             # Dispatch event for UI updates
@@ -276,6 +471,7 @@ class InteractionService:
             return result
 
         except Exception as e:
+            self._set_status(False, f"Error stopping stream: {e}")
             logging.error(f"Error stopping stream: {e}")
             return {
                 "success": False,
@@ -294,9 +490,7 @@ class InteractionService:
             Dictionary with streamer result information
         """
         try:
-            from .collector_service import CollectorService
-
-            collector_service = CollectorService()
+            collector_service = self._get_collector_service()
             success = collector_service.add_streamer(streamer_params)
 
             result = {
@@ -337,9 +531,7 @@ class InteractionService:
             Dictionary with streamer result information
         """
         try:
-            from .collector_service import CollectorService
-
-            collector_service = CollectorService()
+            collector_service = self._get_collector_service()
             success = collector_service.remove_streamer(streamer_params)
 
             result = {
@@ -380,26 +572,57 @@ class InteractionService:
         Returns:
             Dictionary with recording result information
         """
-        try:
-            from .recording_service import RecordingService
-            from .collector_service import CollectorService
+        if not self._check_initialized():
+            return {
+                "success": False,
+                "message": self._last_status["message"],
+                "error": "NOT_INITIALIZED"
+            }
 
-            recording_service = RecordingService()
-            collector_service = CollectorService()
+        try:
+            recording_service = self._get_recording_service()
+            collector_service = self._get_collector_service()
+
+            # Validate state before recording
+            if not collector_service.is_connected():
+                self._set_status(False, "No board connected. Please connect to a board first.")
+                return {
+                    "success": False,
+                    "message": "No board connected. Please connect to a board first.",
+                    "error": "NOT_CONNECTED"
+                }
+
+            # Check if already recording
+            if recording_service.is_recording():
+                self._set_status(False, "Already recording")
+                return {
+                    "success": False,
+                    "message": "Already recording",
+                    "error": "ALREADY_RECORDING"
+                }
+
+            if not collector_service.collector:
+                self._set_status(False, "Collector not available")
+                return {
+                    "success": False,
+                    "message": "Collector not available.",
+                    "error": "NO_COLLECTOR"
+                }
 
             success = recording_service.start_recording(
                 collector_service.collector, filename, data_type
             )
 
+            if success:
+                self._set_status(True, "Recording started successfully")
+            else:
+                self._set_status(False, "Failed to start recording")
+
             result = {
                 "success": success,
                 "filename": filename,
                 "data_type": data_type,
-                "message": (
-                    "Recording started successfully"
-                    if success
-                    else "Failed to start recording"
-                ),
+                "message": self._last_status["message"],
             }
 
             # Dispatch event for UI updates
@@ -419,6 +642,7 @@ class InteractionService:
             return result
 
         except Exception as e:
+            self._set_status(False, f"Error starting recording: {e}")
             logging.error(f"Error starting recording: {e}")
             return {
                 "success": False,
@@ -433,22 +657,44 @@ class InteractionService:
         Returns:
             Dictionary with recording result information
         """
-        try:
-            from .recording_service import RecordingService
-            from .collector_service import CollectorService
+        if not self._check_initialized():
+            return {
+                "success": False,
+                "message": self._last_status["message"],
+                "error": "NOT_INITIALIZED"
+            }
 
-            recording_service = RecordingService()
-            collector_service = CollectorService()
+        try:
+            recording_service = self._get_recording_service()
+            collector_service = self._get_collector_service()
+
+            # Validate state before stopping recording
+            if not recording_service.is_recording():
+                self._set_status(False, "Not currently recording")
+                return {
+                    "success": False,
+                    "message": "No active recording to stop.",
+                    "error": "NOT_RECORDING"
+                }
+
+            if not collector_service.collector:
+                self._set_status(False, "Collector not available")
+                return {
+                    "success": False,
+                    "message": "Collector not available.",
+                    "error": "NO_COLLECTOR"
+                }
 
             success = recording_service.stop_recording(collector_service.collector)
 
+            if success:
+                self._set_status(True, "Recording stopped successfully")
+            else:
+                self._set_status(False, "Failed to stop recording")
+
             result = {
                 "success": success,
-                "message": (
-                    "Recording stopped successfully"
-                    if success
-                    else "Failed to stop recording"
-                ),
+                "message": self._last_status["message"],
             }
 
             # Dispatch event for UI updates
@@ -468,6 +714,7 @@ class InteractionService:
             return result
 
         except Exception as e:
+            self._set_status(False, f"Error stopping recording: {e}")
             logging.error(f"Error stopping recording: {e}")
             return {
                 "success": False,
@@ -486,11 +733,8 @@ class InteractionService:
             Dictionary with marker result information
         """
         try:
-            from .recording_service import RecordingService
-            from .collector_service import CollectorService
-
-            recording_service = RecordingService()
-            collector_service = CollectorService()
+            recording_service = self._get_recording_service()
+            collector_service = self._get_collector_service()
 
             success = recording_service.insert_marker(
                 collector_service.collector, marker_value
@@ -829,15 +1073,10 @@ class InteractionService:
             Dictionary with system status
         """
         try:
-            from .collector_service import CollectorService
-            from .recording_service import RecordingService
-            from .data_access_service import DataAccessService
-            from .visualization_service import VisualizationService
-
-            collector_service = CollectorService()
-            recording_service = RecordingService()
-            data_service = DataAccessService.get_instance()
-            viz_service = VisualizationService()
+            collector_service = self._get_collector_service()
+            recording_service = self._get_recording_service()
+            data_service = self._get_data_access_service()
+            viz_service = self._get_visualization_service()
 
             # Get metadata
             metadata = data_service.get_metadata()
@@ -901,9 +1140,7 @@ class InteractionService:
             Dictionary with configuration result information
         """
         try:
-            from .collector_service import CollectorService
-
-            collector_service = CollectorService()
+            collector_service = self._get_collector_service()
             response = collector_service.config_device(config_cmd)
 
             result = {
@@ -950,9 +1187,7 @@ class InteractionService:
             Dictionary with save result information
         """
         try:
-            from .collector_service import CollectorService
-
-            collector_service = CollectorService()
+            collector_service = self._get_collector_service()
 
             if not collector_service.collector:
                 return {

@@ -1,7 +1,7 @@
 import logging
 
 from PyQt5 import QtWidgets
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, pyqtSlot
 from PyQt5.QtGui import QCloseEvent
 from PyQt5.QtWidgets import (
     QMainWindow,
@@ -61,7 +61,7 @@ class EEGProcessorApp(QMainWindow):
         self.setGeometry(100, 100, 1200, 800)
 
         # Initialize services
-        self.collector_service = CollectorService()
+        self.collector_service = CollectorService.get_instance()
         self.processor_service = ProcessorService()
         self.visualization_service = VisualizationService()
         self.recording_service = RecordingService()
@@ -178,6 +178,46 @@ class EEGProcessorApp(QMainWindow):
         if hasattr(self, "mne_panel"):
             self.mne_panel.status_message.connect(self.show_status_message)
             self.mne_panel.error_message.connect(self.show_error_message)
+
+        # Setup event system subscriptions for API synchronization
+        self._setup_api_event_subscriptions()
+
+    def _setup_api_event_subscriptions(self) -> None:
+        """Setup subscriptions for API-generated events."""
+        try:
+            from .core.event_system import EventDispatcher, EventType
+            
+            event_dispatcher = EventDispatcher.get_instance()
+            
+            # Subscribe to events that need app-level handling
+            event_dispatcher.subscribe(EventType.STREAM_START, self._handle_api_stream_start)
+            event_dispatcher.subscribe(EventType.STREAM_STOP, self._handle_api_stream_stop)
+            event_dispatcher.subscribe(EventType.BOARD_CONNECT, self._handle_api_board_connect)
+            event_dispatcher.subscribe(EventType.BOARD_DISCONNECT, self._handle_api_board_disconnect)
+            
+        except Exception as e:
+            logging.error(f"Error setting up API event subscriptions: {e}")
+
+    @pyqtSlot()
+    def _handle_api_stream_start(self, event) -> None:
+        """Handle stream start from API with thread safety."""
+        # Use Qt's thread-safe mechanism to update GUI
+        QTimer.singleShot(0, self.on_stream_started)
+
+    @pyqtSlot()
+    def _handle_api_stream_stop(self, event) -> None:
+        """Handle stream stop from API with thread safety."""
+        QTimer.singleShot(0, self.on_stream_stopped)
+
+    @pyqtSlot()
+    def _handle_api_board_connect(self, event) -> None:
+        """Handle board connect from API with thread safety."""
+        QTimer.singleShot(0, self.on_board_connected)
+
+    @pyqtSlot()
+    def _handle_api_board_disconnect(self, event) -> None:
+        """Handle board disconnect from API with thread safety."""
+        QTimer.singleShot(0, self.on_board_disconnected)
 
     def update_status(self) -> None:
         """Update status information periodically."""
