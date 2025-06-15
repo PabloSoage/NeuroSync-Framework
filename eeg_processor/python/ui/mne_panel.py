@@ -1,4 +1,4 @@
-from typing import Any, Optional, Dict
+from typing import Any, Optional, Dict, List
 import logging
 import base64
 from io import BytesIO
@@ -14,6 +14,11 @@ from PyQt5.QtWidgets import (
     QComboBox,
     QProgressBar,
     QTextEdit,
+    QDialog,
+    QDialogButtonBox,
+    QScrollArea,
+    QFrame,
+    QGridLayout,
 )
 from PyQt5.QtCore import QTimer, pyqtSignal, Qt
 from PyQt5.QtGui import QPixmap
@@ -22,6 +27,7 @@ import numpy as np
 from .base_panel import BasePanel
 from ..utils.help_system import HelpButton
 from ..services.mne_service import MNEService
+from ..services.data_access_service import DataAccessService
 
 # Check if MNE is available
 try:
@@ -29,6 +35,190 @@ try:
     MNE_AVAILABLE = True
 except ImportError:
     MNE_AVAILABLE = False
+
+
+class ChannelSelectionDialog(QDialog):
+    """Dialog for selecting EEG channels for MNE analysis."""
+    
+    def __init__(self, channel_names: List[str], selected_channels: List[int] = None, parent=None):
+        """
+        Initialize the channel selection dialog.
+        
+        Args:
+            channel_names: List of channel names
+            selected_channels: List of initially selected channel indices
+            parent: Parent widget
+        """
+        super().__init__(parent)
+        self.channel_names = channel_names
+        self.selected_channels = selected_channels or list(range(len(channel_names)))
+        self.checkboxes = []
+        
+        self.setup_ui()
+        self.apply_dark_theme()
+        
+    def setup_ui(self):
+        """Set up the dialog UI."""
+        self.setWindowTitle("Select EEG Channels")
+        self.setModal(True)
+        self.resize(400, 500)
+        
+        layout = QVBoxLayout(self)
+        
+        # Title
+        title_label = QLabel("Select channels to include in MNE analysis:")
+        title_label.setStyleSheet("font-weight: bold; font-size: 12px; margin-bottom: 10px;")
+        layout.addWidget(title_label)
+        
+        # Selection controls
+        controls_layout = QHBoxLayout()
+        
+        select_all_btn = QPushButton("Select All")
+        select_all_btn.clicked.connect(self.select_all)
+        controls_layout.addWidget(select_all_btn)
+        
+        deselect_all_btn = QPushButton("Deselect All")
+        deselect_all_btn.clicked.connect(self.deselect_all)
+        controls_layout.addWidget(deselect_all_btn)
+        
+        controls_layout.addStretch()
+        layout.addLayout(controls_layout)
+        
+        # Scrollable area for checkboxes
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setMaximumHeight(300)
+        
+        # Container widget for checkboxes
+        container_widget = QFrame()
+        container_layout = QGridLayout(container_widget)
+        
+        # Create checkboxes for each channel
+        for i, channel_name in enumerate(self.channel_names):
+            checkbox = QCheckBox(f"{channel_name}")
+            checkbox.setChecked(i in self.selected_channels)
+            self.checkboxes.append(checkbox)
+            
+            # Arrange in 2 columns
+            row = i // 2
+            col = i % 2
+            container_layout.addWidget(checkbox, row, col)
+        
+        scroll_area.setWidget(container_widget)
+        layout.addWidget(scroll_area)
+        
+        # Info label
+        self.info_label = QLabel()
+        self.update_info_label()
+        layout.addWidget(self.info_label)
+        
+        # Connect checkboxes to update info
+        for checkbox in self.checkboxes:
+            checkbox.toggled.connect(self.update_info_label)
+        
+        # Dialog buttons
+        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+        
+    def apply_dark_theme(self):
+        """Apply dark theme styling to the dialog."""
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #2b2b2b;
+                color: #ffffff;
+            }
+            QLabel {
+                color: #ffffff;
+                background-color: transparent;
+            }
+            QCheckBox {
+                color: #ffffff;
+                background-color: transparent;
+                spacing: 8px;
+                padding: 4px;
+            }
+            QCheckBox::indicator {
+                width: 16px;
+                height: 16px;
+                border: 2px solid #555555;
+                border-radius: 3px;
+                background-color: #3a3a3a;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #007ACC;
+                border-color: #007ACC;
+            }
+            QCheckBox::indicator:checked:hover {
+                background-color: #1e90ff;
+                border-color: #1e90ff;
+            }
+            QCheckBox::indicator:hover {
+                border-color: #777777;
+                background-color: #4a4a4a;
+            }
+            QPushButton {
+                background-color: #404040;
+                color: #ffffff;
+                border: 1px solid #555555;
+                border-radius: 4px;
+                padding: 6px 12px;
+                min-width: 80px;
+            }
+            QPushButton:hover {
+                background-color: #505050;
+                border-color: #777777;
+            }
+            QPushButton:pressed {
+                background-color: #353535;
+            }
+            QScrollArea {
+                border: 1px solid #555555;
+                border-radius: 4px;
+                background-color: #1e1e1e;
+            }
+            QFrame {
+                background-color: #1e1e1e;
+                border: none;
+            }
+            QDialogButtonBox QPushButton {
+                min-width: 80px;
+            }
+            QScrollBar:vertical {
+                background-color: #2b2b2b;
+                width: 12px;
+                border: none;
+            }
+            QScrollBar::handle:vertical {
+                background-color: #555555;
+                border-radius: 6px;
+                min-height: 20px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background-color: #777777;
+            }
+        """)
+        
+    def select_all(self):
+        """Select all channels."""
+        for checkbox in self.checkboxes:
+            checkbox.setChecked(True)
+            
+    def deselect_all(self):
+        """Deselect all channels."""
+        for checkbox in self.checkboxes:
+            checkbox.setChecked(False)
+            
+    def update_info_label(self):
+        """Update the info label with selection count."""
+        selected_count = sum(1 for cb in self.checkboxes if cb.isChecked())
+        total_count = len(self.checkboxes)
+        self.info_label.setText(f"Selected: {selected_count} of {total_count} channels")
+        
+    def get_selected_channels(self) -> List[int]:
+        """Get the list of selected channel indices."""
+        return [i for i, cb in enumerate(self.checkboxes) if cb.isChecked()]
 
 
 class MNEPanel(BasePanel):
@@ -49,12 +239,17 @@ class MNEPanel(BasePanel):
         self.collector_service = collector_service
         self.processor_service = processor_service
         
-        # Get MNE service
+        # Get MNE service and data access service
         self.mne_service = MNEService.get_instance()
+        self.data_service = DataAccessService.get_instance()
         
         # Current task tracking
         self.current_conversion_task: Optional[str] = None
         self.current_visualization_task: Optional[str] = None
+        
+        # Channel selection state
+        self.selected_channels: List[int] = []
+        self.channel_names: List[str] = []
         
         # Setup UI components
         if self.mne_service.is_available():
@@ -75,8 +270,45 @@ class MNEPanel(BasePanel):
         self.status_timer = QTimer()
         self.status_timer.timeout.connect(self._check_task_status)
 
+        # Initialize channel selection
+        self._update_channel_selection()
+
+        # Check if streaming is already active when panel is created
+        self._check_initial_streaming_state()
+
         # Add stretch to push everything to the top
         self.layout.addStretch()
+
+    def _check_initial_streaming_state(self):
+        """Check if streaming is already active when the panel is created."""
+        try:
+            # Check if data service indicates streaming is active
+            if self.data_service.is_streaming():
+                self.enable_processing(True)
+            # Also check collector service directly
+            elif hasattr(self.collector_service, 'is_streaming_active') and self.collector_service.is_streaming_active():
+                self.enable_processing(True)
+        except Exception as e:
+            logging.debug(f"Error checking initial streaming state: {e}")
+
+    def _update_channel_selection(self):
+        """Update channel selection based on current data."""
+        try:
+            # Get channel information from data service
+            metadata = self.data_service.get_metadata()
+            self.channel_names = metadata.get("channel_names", [])
+            eeg_channels = metadata.get("eeg_channels", [])
+            
+            # If no channel names, create generic names
+            if not self.channel_names and eeg_channels:
+                self.channel_names = [f"CH{i+1}" for i in range(len(eeg_channels))]
+            
+            # Initialize selected channels to all available channels
+            if not self.selected_channels and self.channel_names:
+                self.selected_channels = list(range(len(self.channel_names)))
+                
+        except Exception as e:
+            logging.debug(f"Error updating channel selection: {e}")
 
     def setup_mne_not_available(self) -> None:
         """Show warning when MNE is not installed."""
@@ -119,6 +351,23 @@ class MNEPanel(BasePanel):
 
         mne_layout.addLayout(mne_params_layout)
 
+        # Channel selection
+        channel_selection_layout = QHBoxLayout()
+        channel_selection_layout.addWidget(QLabel("Selected Channels:"))
+        
+        self.selected_channels_label = QLabel("All channels")
+        self.selected_channels_label.setStyleSheet("color: #CCCCCC; font-style: italic;")
+        channel_selection_layout.addWidget(self.selected_channels_label)
+        
+        channel_selection_layout.addStretch()
+        
+        self.select_channels_btn = QPushButton("Select Channels")
+        self.select_channels_btn.clicked.connect(self.open_channel_selection)
+        self.select_channels_btn.setStyleSheet("background-color: #007ACC;")
+        channel_selection_layout.addWidget(self.select_channels_btn)
+        
+        mne_layout.addLayout(channel_selection_layout)
+
         # MNE Control buttons
         mne_buttons_layout = QHBoxLayout()
 
@@ -140,6 +389,54 @@ class MNEPanel(BasePanel):
         mne_layout.addWidget(self.conversion_progress)
 
         self.layout.addWidget(mne_group)
+
+    def open_channel_selection(self):
+        """Open the channel selection dialog."""
+        try:
+            # Update channel information
+            self._update_channel_selection()
+            
+            if not self.channel_names:
+                self.show_error("Channel Selection", "No channels available. Start streaming first.")
+                return
+            
+            # Create and show dialog
+            dialog = ChannelSelectionDialog(
+                channel_names=self.channel_names,
+                selected_channels=self.selected_channels,
+                parent=self
+            )
+            
+            if dialog.exec_() == QDialog.Accepted:
+                # Update selected channels
+                self.selected_channels = dialog.get_selected_channels()
+                self._update_selected_channels_label()
+                
+                self._add_status_message(f"Selected {len(self.selected_channels)} channels for MNE analysis")
+                
+        except Exception as e:
+            self.show_error("Channel Selection Error", f"Error opening channel selection: {str(e)}")
+            logging.error(f"Channel selection error: {e}")
+
+    def _update_selected_channels_label(self):
+        """Update the selected channels label."""
+        if not self.selected_channels:
+            self.selected_channels_label.setText("No channels selected")
+            self.selected_channels_label.setStyleSheet("color: #FF6B6B; font-style: italic;")
+        elif len(self.selected_channels) == len(self.channel_names):
+            self.selected_channels_label.setText("All channels")
+            self.selected_channels_label.setStyleSheet("color: #96CEB4; font-style: italic;")
+        else:
+            # Show first few channel names
+            if len(self.selected_channels) <= 3:
+                names = [self.channel_names[i] for i in self.selected_channels if i < len(self.channel_names)]
+                text = ", ".join(names)
+            else:
+                names = [self.channel_names[i] for i in self.selected_channels[:3] if i < len(self.channel_names)]
+                text = f"{', '.join(names)}... ({len(self.selected_channels)} total)"
+            
+            self.selected_channels_label.setText(text)
+            self.selected_channels_label.setStyleSheet("color: #CCCCCC; font-style: italic;")
 
     def setup_mne_visualization(self) -> None:
         """Set up MNE visualization section."""
@@ -168,6 +465,29 @@ class MNEPanel(BasePanel):
         plot_selection_layout.addWidget(self.freq_max_spin)
         
         mne_viz_layout.addLayout(plot_selection_layout)
+
+        # PSD Options (NEW)
+        psd_options_layout = QHBoxLayout()
+        psd_options_layout.addWidget(QLabel("PSD Mode:"))
+        
+        self.psd_individual_check = QCheckBox("Show Individual Channels")
+        self.psd_individual_check.setChecked(True)  # Default to individual channels
+        self.psd_individual_check.setToolTip("Show each channel as a separate colored line")
+        psd_options_layout.addWidget(self.psd_individual_check)
+        
+        # Add some spacing
+        psd_options_layout.addWidget(QLabel("   "))
+        
+        # Info label for PSD mode
+        self.psd_mode_info = QLabel("(Individual channels with colors)")
+        self.psd_mode_info.setStyleSheet("color: #888888; font-style: italic; font-size: 10px;")
+        psd_options_layout.addWidget(self.psd_mode_info)
+        
+        psd_options_layout.addStretch()
+        mne_viz_layout.addLayout(psd_options_layout)
+        
+        # Connect checkbox to update info
+        self.psd_individual_check.toggled.connect(self._update_psd_mode_info)
 
         mne_viz_buttons = QHBoxLayout()
 
@@ -209,6 +529,13 @@ class MNEPanel(BasePanel):
 
         self.layout.addWidget(mne_viz_group)
 
+    def _update_psd_mode_info(self):
+        """Update the PSD mode information label."""
+        if self.psd_individual_check.isChecked():
+            self.psd_mode_info.setText("(Individual channels with colors)")
+        else:
+            self.psd_mode_info.setText("(Average with variability band)")
+
     def setup_status_monitoring(self) -> None:
         """Set up status monitoring section."""
         status_group = QGroupBox("Operation Status")
@@ -235,15 +562,28 @@ class MNEPanel(BasePanel):
             self.show_error("MNE Error", "MNE package is not installed")
             return
 
+        # Update channel selection in case it hasn't been initialized
+        self._update_channel_selection()
+
+        # If no channels are selected, use all available channels
+        if not self.selected_channels:
+            if self.channel_names:
+                self.selected_channels = list(range(len(self.channel_names)))
+                self._update_selected_channels_label()
+            else:
+                self.show_error("MNE Error", "No channels available. Start streaming first.")
+                return
+
         try:
             # Get parameters
             duration_seconds = self.mne_duration_spin.value()
             convert_to_v = self.convert_to_v_check.isChecked()
 
-            # Start conversion
+            # Start conversion with selected channels
             self.current_conversion_task = self.mne_service.convert_to_mne_async(
                 duration_seconds=duration_seconds,
                 convert_to_v=convert_to_v,
+                selected_channels=self.selected_channels,  # Pass selected channels
                 callback=self._conversion_callback
             )
 
@@ -256,7 +596,8 @@ class MNEPanel(BasePanel):
             # Start status monitoring
             self.status_timer.start(100)  # Check every 100ms
 
-            self._add_status_message(f"Starting MNE conversion (Task: {self.current_conversion_task})")
+            selected_names = [self.channel_names[i] for i in self.selected_channels if i < len(self.channel_names)]
+            self._add_status_message(f"Starting MNE conversion with channels: {', '.join(selected_names[:5])}")
             self.show_status("Converting data to MNE format...")
 
         except Exception as e:
@@ -292,17 +633,21 @@ class MNEPanel(BasePanel):
             plot_type = self.plot_type_combo.currentText()
             freq_min = self.freq_min_spin.value()
             freq_max = self.freq_max_spin.value()
+            
+            # Get PSD mode preference
+            show_individual = self.psd_individual_check.isChecked()
 
             # Get current theme background color
             bg_color = "#2b2b2b"  # Dark theme background
 
-            # Start visualization
+            # Start visualization with PSD mode option
             self.current_visualization_task = self.mne_service.create_visualization_async(
                 task_id=self.current_conversion_task,
                 plot_type=plot_type,
                 freq_min=freq_min,
                 freq_max=freq_max,
                 bg_color=bg_color,
+                show_individual_channels=show_individual,  # Pass the PSD mode preference
                 callback=self._visualization_callback
             )
 
@@ -312,7 +657,8 @@ class MNEPanel(BasePanel):
             self.plot_progress.setVisible(True)
             self.plot_progress.setRange(0, 0)  # Indeterminate progress
 
-            self._add_status_message(f"Starting {plot_type} visualization (Task: {self.current_visualization_task})")
+            psd_mode = "individual" if show_individual else "averaged"
+            self._add_status_message(f"Starting {plot_type} visualization ({psd_mode}) - Task: {self.current_visualization_task}")
             self.show_status(f"Generating {plot_type} visualization...")
 
         except Exception as e:
@@ -344,8 +690,9 @@ class MNEPanel(BasePanel):
     def _on_conversion_completed(self, task_id: str, result: Dict[str, Any]) -> None:
         """Handle conversion completion in main thread."""
         if result.get("success"):
-            self._add_status_message(f"Conversion completed successfully: {task_id}")
-            self.show_status(f"Converted {result.get('duration', 0)}s of data to MNE format ({result.get('channels', 0)} channels)")
+            channels_used = result.get('channels', 0)
+            self._add_status_message(f"Conversion completed successfully: {task_id} ({channels_used} channels)")
+            self.show_status(f"Converted {result.get('duration', 0)}s of data to MNE format ({channels_used} channels)")
             
             # Enable plot button
             self.plot_mne_btn.setEnabled(True)
@@ -441,11 +788,16 @@ class MNEPanel(BasePanel):
     def enable_processing(self, enabled: bool) -> None:
         """Enable or disable MNE processing controls."""
         if hasattr(self, 'convert_to_mne_btn'):
-            # Only enable if not currently processing
+            # Always enable the button when streaming is active, regardless of channel selection
+            # The button logic will handle channel selection internally
             if enabled and not self.current_conversion_task:
                 self.convert_to_mne_btn.setEnabled(True)
             elif not enabled:
                 self.convert_to_mne_btn.setEnabled(False)
+
+        # Enable/disable channel selection
+        if hasattr(self, 'select_channels_btn'):
+            self.select_channels_btn.setEnabled(enabled)
 
         # Reset dependent buttons if disabling
         if not enabled:
@@ -453,6 +805,11 @@ class MNEPanel(BasePanel):
                 self.plot_mne_btn.setEnabled(False)
             self.current_conversion_task = None
             self.current_visualization_task = None
+        
+        # Update channel selection when enabling to ensure it's current
+        if enabled:
+            self._update_channel_selection()
+            self._update_selected_channels_label()
 
     # API compatibility methods
     def get_mne_settings(self) -> Dict[str, Any]:
@@ -468,7 +825,10 @@ class MNEPanel(BasePanel):
             "freq_range": [
                 self.freq_min_spin.value() if hasattr(self, "freq_min_spin") else 1,
                 self.freq_max_spin.value() if hasattr(self, "freq_max_spin") else 50
-            ]
+            ],
+            "selected_channels": self.selected_channels,
+            "channel_names": self.channel_names,
+            "psd_individual_mode": self.psd_individual_check.isChecked() if hasattr(self, "psd_individual_check") else True
         }
 
     def update_mne_plot(self, plot_data: Dict[str, Any]) -> bool:

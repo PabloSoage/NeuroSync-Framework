@@ -2,7 +2,7 @@ import logging
 import multiprocessing as mp
 import queue
 import time
-from typing import Dict, Any, Optional, Tuple, Callable
+from typing import Dict, Any, Optional, Tuple, Callable, List
 import numpy as np
 
 from .data_access_service import DataAccessService
@@ -98,6 +98,7 @@ class MNEService:
         self, 
         duration_seconds: int,
         convert_to_v: bool = True,
+        selected_channels: Optional[List[int]] = None,
         callback: Optional[Callable] = None
     ) -> str:
         """
@@ -106,6 +107,7 @@ class MNEService:
         Args:
             duration_seconds: Duration of data to convert
             convert_to_v: Whether to convert units from µV to V
+            selected_channels: List of channel indices to include (None for all)
             callback: Callback function to call when conversion completes
             
         Returns:
@@ -127,7 +129,7 @@ class MNEService:
         # Submit task to process pool
         async_result = self._process_pool.apply_async(
             _convert_to_mne_worker,
-            args=(data, metadata, duration_seconds, convert_to_v),
+            args=(data, metadata, duration_seconds, convert_to_v, selected_channels),
             callback=lambda result: self._handle_conversion_complete(task_id, result, callback)
         )
         
@@ -146,6 +148,7 @@ class MNEService:
         freq_min: int = 1,
         freq_max: int = 50,
         bg_color: str = "#2b2b2b",
+        show_individual_channels: bool = True,
         callback: Optional[Callable] = None
     ) -> str:
         """
@@ -157,6 +160,7 @@ class MNEService:
             freq_min: Minimum frequency for PSD plots
             freq_max: Maximum frequency for PSD plots
             bg_color: Background color for the plot
+            show_individual_channels: Whether to show individual channels in PSD (vs averaged)
             callback: Callback function to call when plotting completes
             
         Returns:
@@ -179,7 +183,7 @@ class MNEService:
         # Submit visualization task
         async_result = self._process_pool.apply_async(
             _create_visualization_worker,
-            args=(mne_data["raw_data"], mne_data["info"], plot_type, freq_min, freq_max, bg_color),
+            args=(mne_data["raw_data"], mne_data["info"], plot_type, freq_min, freq_max, bg_color, show_individual_channels),
             callback=lambda result: self._handle_visualization_complete(viz_task_id, result, callback)
         )
         
@@ -317,7 +321,8 @@ def _convert_to_mne_worker(
     data: np.ndarray,
     metadata: Dict[str, Any],
     duration_seconds: int,
-    convert_to_v: bool
+    convert_to_v: bool,
+    selected_channels: Optional[List[int]] = None
 ) -> Dict[str, Any]:
     """
     Worker function to convert BrainFlow data to MNE format.
@@ -327,6 +332,7 @@ def _convert_to_mne_worker(
         metadata: Stream metadata
         duration_seconds: Duration to convert
         convert_to_v: Whether to convert units
+        selected_channels: List of channel indices to include
         
     Returns:
         Dictionary with conversion result
@@ -355,6 +361,30 @@ def _convert_to_mne_worker(
                 "error": "No EEG channels available"
             }
         
+        # Apply channel selection
+        if selected_channels is not None:
+            # Filter EEG channels based on selection
+            available_eeg_indices = []
+            selected_eeg_channels = []
+            
+            for i, selected_idx in enumerate(selected_channels):
+                if selected_idx < len(eeg_channels):
+                    eeg_channel = eeg_channels[selected_idx]
+                    if eeg_channel < recent_data.shape[0]:
+                        available_eeg_indices.append(selected_idx)
+                        selected_eeg_channels.append(eeg_channel)
+            
+            if not selected_eeg_channels:
+                return {
+                    "success": False,
+                    "error": "No valid EEG channels selected"
+                }
+            
+            eeg_channels = selected_eeg_channels
+            channel_selection_info = f"Selected {len(eeg_channels)} of {len(metadata.get('eeg_channels', []))} channels"
+        else:
+            channel_selection_info = f"Using all {len(eeg_channels)} channels"
+        
         # Extract EEG data
         eeg_data = recent_data[eeg_channels, :]
         
@@ -365,7 +395,17 @@ def _convert_to_mne_worker(
         # Create channel info
         ch_types = ['eeg'] * len(eeg_channels)
         ch_names = metadata.get("channel_names", [])
-        if len(ch_names) < len(eeg_channels):
+        
+        # Apply channel selection to channel names
+        if selected_channels is not None and ch_names:
+            selected_ch_names = []
+            for selected_idx in selected_channels:
+                if selected_idx < len(ch_names):
+                    selected_ch_names.append(ch_names[selected_idx])
+                else:
+                    selected_ch_names.append(f"EEG_{selected_idx}")
+            ch_names = selected_ch_names
+        elif not ch_names or len(ch_names) < len(eeg_channels):
             ch_names = [f"EEG_{i}" for i in range(len(eeg_channels))]
         else:
             ch_names = ch_names[:len(eeg_channels)]
@@ -380,7 +420,9 @@ def _convert_to_mne_worker(
             "duration": duration_seconds,
             "channels": len(eeg_channels),
             "sampling_rate": sampling_rate,
-            "converted_to_v": convert_to_v
+            "converted_to_v": convert_to_v,
+            "selected_channels": selected_channels,
+            "channel_selection_info": channel_selection_info
         }
         
     except Exception as e:
@@ -396,7 +438,8 @@ def _create_visualization_worker(
     plot_type: str,
     freq_min: int,
     freq_max: int,
-    bg_color: str
+    bg_color: str,
+    show_individual_channels: bool = True
 ) -> Dict[str, Any]:
     """
     Worker function to create MNE visualizations.
@@ -408,6 +451,7 @@ def _create_visualization_worker(
         freq_min: Minimum frequency
         freq_max: Maximum frequency
         bg_color: Background color
+        show_individual_channels: Whether to show individual channels in PSD
         
     Returns:
         Dictionary with visualization result
@@ -463,48 +507,145 @@ def _create_visualization_worker(
         ax.set_facecolor(bg_color)
         
         if plot_type.lower() == "psd":
-            # Create PSD plot using MNE's plotting with better contrast
+            # Create PSD plot with toggle option
             psd = raw.compute_psd(fmin=freq_min, fmax=freq_max, method='welch')
             
-            # Use MNE's plot function but customize colors
-            psd_fig = psd.plot(
-                axes=ax, 
-                show=False, 
-                average=True,
-                color='#00D4FF',  # Bright cyan for better contrast
-                alpha=0.8,
-                spatial_colors=False
-            )
-            
-            # Enhance the plot appearance
-            ax.set_title(f"Power Spectral Density ({freq_min}-{freq_max} Hz)", 
-                        color='white', fontweight='bold', pad=20)
-            ax.set_xlabel("Frequency (Hz)", color='white', fontweight='bold')
-            ax.set_ylabel("Power (V²/Hz)", color='white', fontweight='bold')
-            
-            # Improve grid and ticks
-            ax.grid(True, alpha=0.4, color='#888888', linestyle='-', linewidth=0.5)
-            ax.tick_params(colors='#CCCCCC', which='both')
-            
-            # Set background
-            ax.set_facecolor('#1a1a1a')
-            
+            if show_individual_channels:
+                # NEW: Individual channels mode (current implementation)
+                # Get PSD data and frequencies
+                psd_data = psd.get_data()  # Shape: (n_channels, n_freqs)
+                freqs = psd.freqs
+                
+                # Clear the axis and set background
+                ax.clear()
+                ax.set_facecolor('#1a1a1a')
+                
+                # Generate distinct colors for each channel
+                n_channels = len(raw.ch_names)
+                if n_channels <= 10:
+                    # Use predefined colors for small number of channels
+                    colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', 
+                             '#DDA0DD', '#F39C12', '#E74C3C', '#9B59B6', '#1ABC9C']
+                else:
+                    # Generate colors using colormap for many channels
+                    import matplotlib.cm as cm
+                    colormap = cm.get_cmap('tab20')  # Good for up to 20 distinct colors
+                    if n_channels > 20:
+                        colormap = cm.get_cmap('viridis')  # Continuous colormap for many channels
+                    colors = [colormap(i / n_channels) for i in range(n_channels)]
+                    # Convert to hex strings
+                    colors = ['#{:02x}{:02x}{:02x}'.format(
+                        int(c[0]*255), int(c[1]*255), int(c[2]*255)) for c in colors]
+                
+                # Plot each channel with its own color
+                for i, channel_name in enumerate(raw.ch_names):
+                    color = colors[i % len(colors)]
+                    ax.plot(freqs, psd_data[i], 
+                           color=color, 
+                           label=channel_name,
+                           linewidth=1.5, 
+                           alpha=0.8)
+                
+                # Enhance the plot appearance
+                ax.set_title(f"Power Spectral Density ({freq_min}-{freq_max} Hz) - {n_channels} channels", 
+                            color='white', fontweight='bold', pad=20)
+                ax.set_xlabel("Frequency (Hz)", color='white', fontweight='bold')
+                ax.set_ylabel("Power (V²/Hz)", color='white', fontweight='bold')
+                
+                # Improve legend for many channels
+                if n_channels <= 8:
+                    # Show legend for few channels
+                    legend = ax.legend(loc='upper right', fancybox=True, shadow=True, 
+                                     framealpha=0.8, facecolor='#2a2a2a', edgecolor='#666666',
+                                     fontsize=8)
+                    for text in legend.get_texts():
+                        text.set_color('white')
+                elif n_channels <= 16:
+                    # Two column legend for medium number of channels
+                    legend = ax.legend(loc='upper right', fancybox=True, shadow=True, 
+                                     framealpha=0.8, facecolor='#2a2a2a', edgecolor='#666666',
+                                     fontsize=7, ncol=2)
+                    for text in legend.get_texts():
+                        text.set_color('white')
+                else:
+                    # No legend for many channels, just show count in title
+                    ax.text(0.98, 0.98, f'{n_channels} channels', 
+                           transform=ax.transAxes, ha='right', va='top',
+                           color='white', fontsize=10, 
+                           bbox=dict(boxstyle='round', facecolor='#2a2a2a', alpha=0.8))
+                
+                # Improve grid and ticks
+                ax.grid(True, alpha=0.4, color='#888888', linestyle='-', linewidth=0.5)
+                ax.tick_params(colors='#CCCCCC', which='both')
+                
+            else:
+                # ORIGINAL: MNE native averaged mode with variability band
+                # Use MNE's plot function with averaging and spatial colors disabled
+                psd_fig = psd.plot(
+                    axes=ax, 
+                    show=False, 
+                    average=True,  # This creates the average line
+                    color='#00D4FF',  # Bright cyan for better contrast
+                    alpha=0.8,
+                    spatial_colors=False  # Disable individual channel colors
+                )
+                
+                # Enhance the plot appearance
+                ax.set_title(f"Power Spectral Density - Average ({freq_min}-{freq_max} Hz)", 
+                            color='white', fontweight='bold', pad=20)
+                ax.set_xlabel("Frequency (Hz)", color='white', fontweight='bold')
+                ax.set_ylabel("Power (V²/Hz)", color='white', fontweight='bold')
+                
+                # Improve grid and ticks
+                ax.grid(True, alpha=0.4, color='#888888', linestyle='-', linewidth=0.5)
+                ax.tick_params(colors='#CCCCCC', which='both')
+                
+                # Set background
+                ax.set_facecolor('#1a1a1a')
+        
         elif plot_type.lower() == "topomap":
-            # For topomap, we need to check if we have electrode positions
+            # Remove channel limitation - work with any number of channels (even 1)
             try:
-                # Try to create a simple topomap if we have enough channels
-                if len(raw.ch_names) >= 4:
+                n_channels = len(raw.ch_names)
+                
+                if n_channels == 1:
+                    # Special case for single channel
+                    psd = raw.compute_psd(fmin=8, fmax=13, method='welch')
+                    psd_avg = psd.get_data().mean(axis=1)[0]  # Get the single channel value
+                    
+                    # Create a single large visualization for one channel
+                    ax.clear()
+                    ax.set_facecolor('#1a1a1a')
+                    
+                    # Create a circle representing the single channel
+                    circle = plt.Circle((0.5, 0.5), 0.3, color=plt.cm.plasma(0.8), alpha=0.8)
+                    ax.add_patch(circle)
+                    
+                    # Add text with channel name and power
+                    ax.text(0.5, 0.5, f"{raw.ch_names[0]}\n{psd_avg:.2e}", 
+                           ha='center', va='center', color='white', fontweight='bold',
+                           fontsize=14)
+                    
+                    ax.set_xlim(0, 1)
+                    ax.set_ylim(0, 1)
+                    ax.set_title("Alpha Band Power (8-13 Hz) - Single Channel", 
+                               color='white', fontweight='bold', pad=20)
+                    ax.set_xticks([])
+                    ax.set_yticks([])
+                    ax.set_aspect('equal')
+                    
+                else:
+                    # Multiple channels - use grid layout
                     psd = raw.compute_psd(fmin=8, fmax=13, method='welch')
                     psd_avg = psd.get_data().mean(axis=1)
                     
-                    # Create a simple grid layout for channels
-                    n_channels = len(psd_avg)
-                    
-                    # Create a simple 2D layout
+                    # Create a grid layout for channels
                     if n_channels <= 4:
                         rows, cols = 2, 2
                     elif n_channels <= 9:
                         rows, cols = 3, 3
+                    elif n_channels <= 16:
+                        rows, cols = 4, 4
                     else:
                         rows = int(np.ceil(np.sqrt(n_channels)))
                         cols = int(np.ceil(n_channels / rows))
@@ -522,36 +663,29 @@ def _create_visualization_worker(
                     # Plot each channel's power
                     for i, power in enumerate(psd_avg):
                         if i < len(axes):
-                            ax = axes[i]
-                            ax.set_facecolor('#1a1a1a')
+                            ax_sub = axes[i]
+                            ax_sub.set_facecolor('#1a1a1a')
                             
-                            # Create a simple power visualization
-                            colors = plt.cm.plasma(power / np.max(psd_avg))
+                            # Create a power visualization with color based on relative power
+                            color_intensity = power / np.max(psd_avg) if np.max(psd_avg) > 0 else 0.5
+                            colors = plt.cm.plasma(color_intensity)
                             circle = plt.Circle((0.5, 0.5), 0.4, color=colors, alpha=0.8)
-                            ax.add_patch(circle)
+                            ax_sub.add_patch(circle)
                             
-                            ax.set_xlim(0, 1)
-                            ax.set_ylim(0, 1)
-                            ax.set_title(f"{raw.ch_names[i]}\n{power:.2e}", 
-                                       color='white', fontsize=9)
-                            ax.set_xticks([])
-                            ax.set_yticks([])
-                            ax.set_aspect('equal')
+                            ax_sub.set_xlim(0, 1)
+                            ax_sub.set_ylim(0, 1)
+                            ax_sub.set_title(f"{raw.ch_names[i]}\n{power:.2e}", 
+                                           color='white', fontsize=9)
+                            ax_sub.set_xticks([])
+                            ax_sub.set_yticks([])
+                            ax_sub.set_aspect('equal')
                     
                     # Hide unused subplots
                     for i in range(len(psd_avg), len(axes)):
                         axes[i].set_visible(False)
                     
-                    fig.suptitle("Alpha Band Power (8-13 Hz)", color='white', fontweight='bold', fontsize=14)
-                    
-                else:
-                    # Fallback for few channels
-                    ax.text(0.5, 0.5, f"Alpha Power Visualization\n({len(raw.ch_names)} channels)\n\nNeed electrode positions for\nproper topographic map", 
-                           ha='center', va='center', transform=ax.transAxes, 
-                           color='white', fontsize=12, fontweight='bold')
-                    ax.set_title("Alpha Band Power (8-13 Hz)", color='white', fontweight='bold')
-                    ax.axis('off')
-                    ax.set_facecolor('#1a1a1a')
+                    fig.suptitle(f"Alpha Band Power (8-13 Hz) - {n_channels} channels", 
+                               color='white', fontweight='bold', fontsize=14)
                     
             except Exception as e:
                 # Simple fallback
@@ -692,7 +826,8 @@ def _create_visualization_worker(
             "success": True,
             "plot_type": plot_type,
             "plot_data": plot_data,
-            "freq_range": [freq_min, freq_max]
+            "freq_range": [freq_min, freq_max],
+            "individual_channels": show_individual_channels
         }
         
     except Exception as e:
