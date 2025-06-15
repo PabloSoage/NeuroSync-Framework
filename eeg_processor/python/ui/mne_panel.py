@@ -1,6 +1,7 @@
 from typing import Any, Optional, Dict
 import logging
-import numpy as np
+import base64
+from io import BytesIO
 
 from PyQt5.QtWidgets import (
     QVBoxLayout,
@@ -11,18 +12,20 @@ from PyQt5.QtWidgets import (
     QSpinBox,
     QCheckBox,
     QComboBox,
+    QProgressBar,
+    QTextEdit,
 )
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
+from PyQt5.QtCore import QTimer, pyqtSignal
+from PyQt5.QtGui import QPixmap
+import numpy as np
 
 from .base_panel import BasePanel
 from ..utils.help_system import HelpButton
-from ..services.data_access_service import DataAccessService
+from ..services.mne_service import MNEService
 
 # Check if MNE is available
 try:
     import mne
-    import matplotlib.pyplot as plt
     MNE_AVAILABLE = True
 except ImportError:
     MNE_AVAILABLE = False
@@ -30,6 +33,10 @@ except ImportError:
 
 class MNEPanel(BasePanel):
     """Panel for MNE integration and analysis."""
+
+    # Custom signals for async operations
+    conversion_completed = pyqtSignal(str, dict)  # task_id, result
+    visualization_completed = pyqtSignal(str, dict)  # task_id, result
 
     def __init__(
         self,
@@ -41,17 +48,32 @@ class MNEPanel(BasePanel):
         super().__init__(parent)
         self.collector_service = collector_service
         self.processor_service = processor_service
-        self.mne_raw = None
         
-        # Get data access service
-        self.data_service = DataAccessService.get_instance()
-
+        # Get MNE service
+        self.mne_service = MNEService.get_instance()
+        
+        # Current task tracking
+        self.current_conversion_task: Optional[str] = None
+        self.current_visualization_task: Optional[str] = None
+        
         # Setup UI components
-        if MNE_AVAILABLE:
+        if self.mne_service.is_available():
             self.setup_mne_conversion()
             self.setup_mne_visualization()
+            self.setup_status_monitoring()
+            
+            # Start MNE service
+            self.mne_service.start_service()
         else:
             self.setup_mne_not_available()
+
+        # Connect signals
+        self.conversion_completed.connect(self._on_conversion_completed)
+        self.visualization_completed.connect(self._on_visualization_completed)
+
+        # Setup timer for checking task status
+        self.status_timer = QTimer()
+        self.status_timer.timeout.connect(self._check_task_status)
 
         # Add stretch to push everything to the top
         self.layout.addStretch()
@@ -105,7 +127,17 @@ class MNEPanel(BasePanel):
         self.convert_to_mne_btn.setEnabled(False)
         mne_buttons_layout.addWidget(self.convert_to_mne_btn)
 
+        self.cancel_conversion_btn = QPushButton("Cancel")
+        self.cancel_conversion_btn.clicked.connect(self.cancel_conversion)
+        self.cancel_conversion_btn.setEnabled(False)
+        mne_buttons_layout.addWidget(self.cancel_conversion_btn)
+
         mne_layout.addLayout(mne_buttons_layout)
+
+        # Progress bar for conversion
+        self.conversion_progress = QProgressBar()
+        self.conversion_progress.setVisible(False)
+        mne_layout.addWidget(self.conversion_progress)
 
         self.layout.addWidget(mne_group)
 
@@ -144,180 +176,273 @@ class MNEPanel(BasePanel):
         self.plot_mne_btn.setEnabled(False)
         mne_viz_buttons.addWidget(self.plot_mne_btn)
 
+        self.cancel_plot_btn = QPushButton("Cancel Plot")
+        self.cancel_plot_btn.clicked.connect(self.cancel_visualization)
+        self.cancel_plot_btn.setEnabled(False)
+        mne_viz_buttons.addWidget(self.cancel_plot_btn)
+
         mne_viz_layout.addLayout(mne_viz_buttons)
 
-        # Matplotlib figure for MNE plots
-        self.mne_figure = Figure(figsize=(10, 8))
-        self.mne_canvas = FigureCanvas(self.mne_figure)
-        mne_viz_layout.addWidget(self.mne_canvas)
+        # Progress bar for visualization
+        self.plot_progress = QProgressBar()
+        self.plot_progress.setVisible(False)
+        mne_viz_layout.addWidget(self.plot_progress)
+
+        # Plot display area with proper background
+        self.plot_display = QLabel()
+        self.plot_display.setStyleSheet("""
+            QLabel {
+                background-color: #2b2b2b;
+                border: 1px solid #555555;
+                border-radius: 4px;
+            }
+        """)
+        self.plot_display.setMinimumHeight(400)
+        self.plot_display.setScaledContents(True)
+        self.plot_display.setText("No plot generated yet")
+        self.plot_display.setWordWrap(True)
+        mne_viz_layout.addWidget(self.plot_display)
 
         self.layout.addWidget(mne_viz_group)
 
+    def setup_status_monitoring(self) -> None:
+        """Set up status monitoring section."""
+        status_group = QGroupBox("Operation Status")
+        status_layout = QVBoxLayout(status_group)
+
+        self.status_text = QTextEdit()
+        self.status_text.setMaximumHeight(100)
+        self.status_text.setReadOnly(True)
+        self.status_text.setStyleSheet("""
+            QTextEdit {
+                background-color: #1e1e1e;
+                color: #ffffff;
+                border: 1px solid #555555;
+                font-family: monospace;
+            }
+        """)
+        status_layout.addWidget(self.status_text)
+
+        self.layout.addWidget(status_group)
+
     def convert_to_mne(self) -> None:
-        """Convert BrainFlow data to MNE format."""
-        if not MNE_AVAILABLE:
+        """Convert BrainFlow data to MNE format asynchronously."""
+        if not self.mne_service.is_available():
             self.show_error("MNE Error", "MNE package is not installed")
             return
 
         try:
-            # Get data from DataAccessService
-            data, timestamps = self.data_service.get_current_data()
-            metadata = self.data_service.get_metadata()
-            
-            if data.size == 0:
-                self.show_error("MNE Error", "No data available. Start streaming first.")
-                return
-
-            # Get duration in seconds
+            # Get parameters
             duration_seconds = self.mne_duration_spin.value()
-            sampling_rate = metadata.get("sampling_rate", 250)
-            samples_needed = int(duration_seconds * sampling_rate)
-            
-            # Get last N seconds of data
-            if data.shape[1] < samples_needed:
-                self.show_error("MNE Error", f"Not enough data. Need {duration_seconds}s but only have {data.shape[1]/sampling_rate:.1f}s")
-                return
-                
-            # Extract last N seconds
-            recent_data = data[:, -samples_needed:]
-            
-            # Get EEG channels
-            eeg_channels = metadata.get("eeg_channels", [])
-            if not eeg_channels:
-                self.show_error("MNE Error", "No EEG channels available")
-                return
-                
-            # Extract EEG data
-            eeg_data = recent_data[eeg_channels, :]
-            
-            # Convert units: BrainFlow returns uV, convert to V for MNE (igual que el ejemplo)
-            if self.convert_to_v_check.isChecked():
-                eeg_data = eeg_data / 1000000
-            
-            # Create MNE objects from brainflow data arrays
-            ch_types = ['eeg'] * len(eeg_channels)
-            
-            # Get channel names
-            ch_names = metadata.get("channel_names", [])
-            if len(ch_names) < len(eeg_channels):
-                ch_names = [f"EEG_{i}" for i in range(len(eeg_channels))]
-            else:
-                ch_names = ch_names[:len(eeg_channels)]
-            
-            # Create MNE info object
-            info = mne.create_info(ch_names=ch_names, sfreq=sampling_rate, ch_types=ch_types)
-            
-            # Create Raw object
-            self.mne_raw = mne.io.RawArray(eeg_data, info)
-            
-            # Enable visualization buttons
-            self.plot_mne_btn.setEnabled(True)
-            
-            self.show_status(f"Converted {duration_seconds}s of data to MNE format ({len(eeg_channels)} channels)")
-            logging.info(f"MNE Raw object created: {self.mne_raw}")
-            
+            convert_to_v = self.convert_to_v_check.isChecked()
+
+            # Start conversion
+            self.current_conversion_task = self.mne_service.convert_to_mne_async(
+                duration_seconds=duration_seconds,
+                convert_to_v=convert_to_v,
+                callback=self._conversion_callback
+            )
+
+            # Update UI state
+            self.convert_to_mne_btn.setEnabled(False)
+            self.cancel_conversion_btn.setEnabled(True)
+            self.conversion_progress.setVisible(True)
+            self.conversion_progress.setRange(0, 0)  # Indeterminate progress
+
+            # Start status monitoring
+            self.status_timer.start(100)  # Check every 100ms
+
+            self._add_status_message(f"Starting MNE conversion (Task: {self.current_conversion_task})")
+            self.show_status("Converting data to MNE format...")
+
         except Exception as e:
-            self.show_error("MNE Error", f"Error converting to MNE format: {str(e)}")
-            logging.error(f"MNE conversion error: {e}")
+            self.show_error("MNE Error", f"Error starting conversion: {str(e)}")
+            logging.error(f"MNE conversion start error: {e}")
+
+    def cancel_conversion(self) -> None:
+        """Cancel the current MNE conversion."""
+        if self.current_conversion_task:
+            if self.mne_service.cancel_task(self.current_conversion_task):
+                self._add_status_message(f"Cancelled conversion task: {self.current_conversion_task}")
+                self.show_status("Conversion cancelled")
+            else:
+                self._add_status_message("Failed to cancel conversion task")
+
+            self._reset_conversion_ui()
+            self.current_conversion_task = None
 
     def plot_mne_visualization(self) -> None:
-        """Plot MNE visualizations (implementando funcionalidades reales)."""
-        if not MNE_AVAILABLE or self.mne_raw is None:
+        """Create MNE visualization asynchronously."""
+        if not self.current_conversion_task:
             self.show_error("MNE Error", "No MNE data available. Convert data first.")
             return
 
+        # Check if conversion is complete
+        status = self.mne_service.get_task_status(self.current_conversion_task)
+        if not status.get("ready") or not status.get("successful"):
+            self.show_error("MNE Error", "MNE conversion not complete or failed.")
+            return
+
         try:
-            # Clear the figure
-            self.mne_figure.clear()
-            
+            # Get plot parameters
             plot_type = self.plot_type_combo.currentText()
-            
-            if plot_type == "PSD":
-                # Create PSD plot
-                fmin = self.freq_min_spin.value()
-                fmax = self.freq_max_spin.value()
-                
-                # Use MNE's compute_psd method
-                psd = self.mne_raw.compute_psd(fmin=fmin, fmax=fmax, method='welch')
-                
-                # Plot using matplotlib
-                ax = self.mne_figure.add_subplot(111)
-                psd.plot(axes=ax, show=False, average=True)
-                ax.set_title(f"Power Spectral Density ({fmin}-{fmax} Hz)")
-                ax.set_xlabel("Frequency (Hz)")
-                ax.set_ylabel("Power (V²/Hz)")
-                
-            elif plot_type == "Topomap":
-                # Create topomap for alpha band
-                freqs = np.arange(8, 13)  # Alpha band
-                psd = self.mne_raw.compute_psd(fmin=8, fmax=13, method='welch')
-                psd_avg = psd.get_data().mean(axis=1)
-                
-                # Create a basic topomap
-                ax = self.mne_figure.add_subplot(111)
-                # For demonstration - in real implementation would need proper electrode positions
-                ax.text(0.5, 0.5, f"Alpha Power Topomap\n({len(psd_avg)} channels)", 
-                       ha='center', va='center', transform=ax.transAxes)
-                ax.set_title("Alpha Band Power (8-13 Hz)")
-                ax.axis('off')
-                
-            elif plot_type == "Raw Data":
-                # Plot raw time series data
-                ax = self.mne_figure.add_subplot(111)
-                data_to_plot = self.mne_raw.get_data()
-                times = self.mne_raw.times
-                
-                # Plot first few channels to avoid clutter
-                max_channels = min(4, data_to_plot.shape[0])
-                for i in range(max_channels):
-                    ax.plot(times, data_to_plot[i], label=f"Channel {i}")
-                
-                ax.set_xlabel("Time (s)")
-                ax.set_ylabel("Amplitude (V)")
-                ax.set_title("Raw EEG Data")
-                ax.legend()
-                ax.grid(True)
-                
-            elif plot_type == "Spectrogram":
-                # Create spectrogram for first channel
-                ax = self.mne_figure.add_subplot(111)
-                data_ch0 = self.mne_raw.get_data()[0]
-                fs = self.mne_raw.info['sfreq']
-                
-                # Create spectrogram
-                from scipy import signal
-                f, t, Sxx = signal.spectrogram(data_ch0, fs)
-                im = ax.pcolormesh(t, f, 10 * np.log10(Sxx))
-                ax.set_ylabel('Frequency [Hz]')
-                ax.set_xlabel('Time [s]')
-                ax.set_title('Spectrogram (Channel 0)')
-                self.mne_figure.colorbar(im, ax=ax, label='Power (dB)')
+            freq_min = self.freq_min_spin.value()
+            freq_max = self.freq_max_spin.value()
 
-            # Update canvas
-            self.mne_figure.tight_layout()
-            self.mne_canvas.draw()
+            # Get current theme background color
+            bg_color = "#2b2b2b"  # Dark theme background
 
-            self.show_status(f"Generated {plot_type} visualization")
-            
+            # Start visualization
+            self.current_visualization_task = self.mne_service.create_visualization_async(
+                task_id=self.current_conversion_task,
+                plot_type=plot_type,
+                freq_min=freq_min,
+                freq_max=freq_max,
+                bg_color=bg_color,
+                callback=self._visualization_callback
+            )
+
+            # Update UI state
+            self.plot_mne_btn.setEnabled(False)
+            self.cancel_plot_btn.setEnabled(True)
+            self.plot_progress.setVisible(True)
+            self.plot_progress.setRange(0, 0)  # Indeterminate progress
+
+            self._add_status_message(f"Starting {plot_type} visualization (Task: {self.current_visualization_task})")
+            self.show_status(f"Generating {plot_type} visualization...")
+
         except Exception as e:
-            self.show_error("MNE Error", f"Error creating visualization: {str(e)}")
-            logging.error(f"MNE visualization error: {e}")
+            self.show_error("MNE Error", f"Error starting visualization: {str(e)}")
+            logging.error(f"MNE visualization start error: {e}")
+
+    def cancel_visualization(self) -> None:
+        """Cancel the current visualization."""
+        if self.current_visualization_task:
+            if self.mne_service.cancel_task(self.current_visualization_task):
+                self._add_status_message(f"Cancelled visualization task: {self.current_visualization_task}")
+                self.show_status("Visualization cancelled")
+            else:
+                self._add_status_message("Failed to cancel visualization task")
+
+            self._reset_visualization_ui()
+            self.current_visualization_task = None
+
+    def _conversion_callback(self, task_id: str, result: Dict[str, Any]) -> None:
+        """Callback for conversion completion (called from process)."""
+        # Emit signal to update UI in main thread
+        self.conversion_completed.emit(task_id, result)
+
+    def _visualization_callback(self, task_id: str, result: Dict[str, Any]) -> None:
+        """Callback for visualization completion (called from process)."""
+        # Emit signal to update UI in main thread
+        self.visualization_completed.emit(task_id, result)
+
+    def _on_conversion_completed(self, task_id: str, result: Dict[str, Any]) -> None:
+        """Handle conversion completion in main thread."""
+        if result.get("success"):
+            self._add_status_message(f"Conversion completed successfully: {task_id}")
+            self.show_status(f"Converted {result.get('duration', 0)}s of data to MNE format ({result.get('channels', 0)} channels)")
+            
+            # Enable plot button
+            self.plot_mne_btn.setEnabled(True)
+        else:
+            error_msg = result.get("error", "Unknown error")
+            self._add_status_message(f"Conversion failed: {error_msg}")
+            self.show_error("MNE Conversion Error", error_msg)
+
+        self._reset_conversion_ui()
+
+    def _on_visualization_completed(self, task_id: str, result: Dict[str, Any]) -> None:
+        """Handle visualization completion in main thread."""
+        if result.get("success"):
+            self._add_status_message(f"Visualization completed: {task_id}")
+            self.show_status(f"Generated {result.get('plot_type', '')} visualization")
+            
+            # Display the plot
+            self._display_plot(result.get("plot_data"))
+        else:
+            error_msg = result.get("error", "Unknown error")
+            self._add_status_message(f"Visualization failed: {error_msg}")
+            self.show_error("MNE Visualization Error", error_msg)
+
+        self._reset_visualization_ui()
+
+    def _display_plot(self, plot_data: str) -> None:
+        """Display the generated plot."""
+        if plot_data:
+            try:
+                # Decode base64 plot data
+                image_data = base64.b64decode(plot_data)
+                pixmap = QPixmap()
+                pixmap.loadFromData(image_data)
+                
+                # Display in label
+                self.plot_display.setPixmap(pixmap)
+                self.plot_display.setText("")  # Clear text
+                
+            except Exception as e:
+                logging.error(f"Error displaying plot: {e}")
+                self.plot_display.setText(f"Error displaying plot: {str(e)}")
+        else:
+            self.plot_display.setText("No plot data received")
+
+    def _check_task_status(self) -> None:
+        """Check status of active tasks."""
+        # Update status of conversion task
+        if self.current_conversion_task:
+            status = self.mne_service.get_task_status(self.current_conversion_task)
+            if status:
+                self._add_status_message(f"Conversion task status: {status.get('status', 'unknown')}")
+        
+        # Update status of visualization task
+        if self.current_visualization_task:
+            status = self.mne_service.get_task_status(self.current_visualization_task)
+            if status:
+                self._add_status_message(f"Visualization task status: {status.get('status', 'unknown')}")
+        
+        # Stop timer if no active tasks
+        if not self.current_conversion_task and not self.current_visualization_task:
+            self.status_timer.stop()
+
+    def _reset_conversion_ui(self) -> None:
+        """Reset conversion UI elements."""
+        self.convert_to_mne_btn.setEnabled(True)
+        self.cancel_conversion_btn.setEnabled(False)
+        self.conversion_progress.setVisible(False)
+
+    def _reset_visualization_ui(self) -> None:
+        """Reset visualization UI elements."""
+        self.plot_mne_btn.setEnabled(True)
+        self.cancel_plot_btn.setEnabled(False)
+        self.plot_progress.setVisible(False)
+
+    def _add_status_message(self, message: str) -> None:
+        """Add a status message to the status text area."""
+        if hasattr(self, 'status_text'):
+            import time
+            timestamp = time.strftime("%H:%M:%S")
+            self.status_text.append(f"[{timestamp}] {message}")
 
     def enable_processing(self, enabled: bool) -> None:
         """Enable or disable MNE processing controls."""
         if hasattr(self, 'convert_to_mne_btn'):
-            self.convert_to_mne_btn.setEnabled(enabled)
+            # Only enable if not currently processing
+            if enabled and not self.current_conversion_task:
+                self.convert_to_mne_btn.setEnabled(True)
+            elif not enabled:
+                self.convert_to_mne_btn.setEnabled(False)
 
-        # Reset dependent buttons
+        # Reset dependent buttons if disabling
         if not enabled:
             if hasattr(self, 'plot_mne_btn'):
                 self.plot_mne_btn.setEnabled(False)
-            self.mne_raw = None
+            self.current_conversion_task = None
+            self.current_visualization_task = None
 
-    # Add methods for API interaction
+    # API compatibility methods
     def get_mne_settings(self) -> Dict[str, Any]:
         """Get current MNE settings."""
-        if not MNE_AVAILABLE:
+        if not self.mne_service.is_available():
             return {"available": False}
 
         return {
@@ -333,14 +458,13 @@ class MNEPanel(BasePanel):
 
     def update_mne_plot(self, plot_data: Dict[str, Any]) -> bool:
         """Update MNE plot from API call."""
-        if not MNE_AVAILABLE:
+        if not self.mne_service.is_available():
             return False
 
         try:
-            # Implementation for API-driven plot updates
             plot_type = plot_data.get("type", "psd")
             
-            if plot_type in ["psd", "topomap", "raw", "spectrogram"]:
+            if plot_type.lower() in ["psd", "topomap", "raw data", "spectrogram"]:
                 # Set the combo box and trigger plotting
                 if hasattr(self, 'plot_type_combo'):
                     index = self.plot_type_combo.findText(plot_type.title())
@@ -355,3 +479,17 @@ class MNEPanel(BasePanel):
         except Exception as e:
             self.show_error("MNE Plot Update Error", str(e))
             return False
+
+    def closeEvent(self, event) -> None:
+        """Handle panel close event."""
+        # Cancel any active tasks
+        if self.current_conversion_task:
+            self.mne_service.cancel_task(self.current_conversion_task)
+        if self.current_visualization_task:
+            self.mne_service.cancel_task(self.current_visualization_task)
+        
+        # Stop timer
+        if hasattr(self, 'status_timer'):
+            self.status_timer.stop()
+        
+        super().closeEvent(event)

@@ -66,6 +66,15 @@ class EEGProcessorApp(QMainWindow):
         self.visualization_service = VisualizationService()
         self.recording_service = RecordingService()
 
+        # Initialize MNE service
+        try:
+            from .services.mne_service import MNEService
+
+            self.mne_service = MNEService.get_instance()
+        except ImportError:
+            self.mne_service = None
+            logging.warning("MNE service not available")
+
         # Initialize Qt interaction adapter
         self.qt_adapter = QtInteractionAdapter(self)
 
@@ -186,15 +195,15 @@ class EEGProcessorApp(QMainWindow):
         """Setup subscriptions for API-generated events."""
         try:
             from .core.event_system import EventDispatcher, EventType
-            
+
             event_dispatcher = EventDispatcher.get_instance()
-            
+
             # Subscribe to events that need app-level handling
             event_dispatcher.subscribe(EventType.STREAM_START, self._handle_api_stream_start)
             event_dispatcher.subscribe(EventType.STREAM_STOP, self._handle_api_stream_stop)
             event_dispatcher.subscribe(EventType.BOARD_CONNECT, self._handle_api_board_connect)
             event_dispatcher.subscribe(EventType.BOARD_DISCONNECT, self._handle_api_board_disconnect)
-            
+
         except Exception as e:
             logging.error(f"Error setting up API event subscriptions: {e}")
 
@@ -292,6 +301,10 @@ class EEGProcessorApp(QMainWindow):
         self.collector_service.cleanup()
         self.visualization_service.cleanup()
         self.recording_service.cleanup()
+
+        # Clean up MNE service
+        if self.mne_service:
+            self.mne_service.cleanup()
 
         # Clean up Qt adapter
         if hasattr(self, "qt_adapter"):
