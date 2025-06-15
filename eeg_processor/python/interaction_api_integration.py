@@ -818,13 +818,6 @@ class EEGProcessorInteractionApiIntegration:
             requirements = BoardConfiguration.get_board_requirements(board_id)
             logging.info(f"Board requirements: {requirements}")
             
-            # Get board name for determining optional fields
-            try:
-                board_description = BoardConfiguration.get_board_description(board_id)
-                board_name = board_description.get('name', '').lower()
-            except:
-                board_name = ''
-            
             template = {}
             required_comments = []
             optional_comments = []
@@ -872,7 +865,7 @@ class EEGProcessorInteractionApiIntegration:
             # Determine field status for this specific board
             for field_name, field_info in all_fields.items():
                 is_required = requirements.get(field_name, False)
-                is_optional = self._is_field_optional_for_board(field_name, board_id, board_name)
+                is_optional = BoardConfiguration.is_field_optional_for_board(field_name, board_id)
                 
                 if is_required:
                     # Required field - add to template and comments
@@ -902,6 +895,13 @@ class EEGProcessorInteractionApiIntegration:
                 comments.append("Remove this _COMMENTS field before executing")
                 template["_COMMENTS"] = comments
             
+            logging.info(f"Built template with {len(template)} fields: {list(template.keys())}")
+            return template
+        except Exception as e:
+            logging.error(f"Error getting board template: {e}")
+            import traceback
+            logging.error(f"Traceback: {traceback.format_exc()}")
+            return {}
             logging.info(f"Built template with {len(template)} fields: {list(template.keys())}")
             return template
         except Exception as e:

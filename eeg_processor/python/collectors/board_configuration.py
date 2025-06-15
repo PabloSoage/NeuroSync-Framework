@@ -539,6 +539,229 @@ class BrainFlowBoardConfiguration(BoardInterface):
             # If IpProtocolTypes is not available in this version
             return {0: "No Protocol", 1: "UDP", 2: "TCP"}
 
+    def is_field_optional_for_board(self, param: str, board_id: int) -> bool:
+        """
+        Determine if a parameter field is optional (vs not applicable) for a specific board.
+        
+        Args:
+            param: Parameter name
+            board_id: Board ID
+            
+        Returns:
+            True if field is optional, False if not applicable
+        """
+        # Handle NO_BOARD case - no parameters are applicable
+        if board_id == BoardIds.NO_BOARD.value:
+            return False
+
+        # Special boards - check which fields are potentially useful
+        if board_id == BoardIds.SYNTHETIC_BOARD.value:
+            # Synthetic board: no fields are useful
+            return False
+            
+        if board_id == BoardIds.PLAYBACK_FILE_BOARD.value:
+            # Playback board: file_aux and file_anc are optional for multi-preset setups
+            return param in ["file_aux", "file_anc"]
+            
+        if board_id == BoardIds.STREAMING_BOARD.value:
+            # Streaming board: auxiliary and ancillary IP addresses/ports are optional
+            return param in ["ip_address_aux", "ip_port_aux", "ip_address_anc", "ip_port_anc"]
+
+        # For real hardware boards, determine based on exact board IDs and official documentation
+        try:
+            # OpenBCI Cyton - NO optional parameters according to boards.txt
+            if board_id == BoardIds.CYTON_BOARD.value:
+                return False
+
+            # OpenBCI Cyton Daisy - NO optional parameters according to boards.txt  
+            elif board_id == BoardIds.CYTON_DAISY_BOARD.value:
+                return False
+
+            # OpenBCI Ganglion (with dongle) - mac_address and timeout optional per boards.txt
+            elif board_id == BoardIds.GANGLION_BOARD.value:
+                return param in ["mac_address", "timeout"]
+
+            # OpenBCI Ganglion Native - mac_address and serial_number optional per boards.txt
+            elif board_id == BoardIds.GANGLION_NATIVE_BOARD.value:
+                return param in ["mac_address", "serial_number"]
+
+            # OpenBCI WiFi boards - ip_address and timeout optional per boards.txt
+            elif board_id in [BoardIds.GANGLION_WIFI_BOARD.value, BoardIds.CYTON_WIFI_BOARD.value, BoardIds.CYTON_DAISY_WIFI_BOARD.value]:
+                return param in ["ip_address", "timeout"]
+
+            # BrainBit - serial_number and timeout optional per boards.txt
+            elif board_id == BoardIds.BRAINBIT_BOARD.value:
+                return param in ["serial_number", "timeout"]
+
+            # BrainBit BLED - mac_address optional per boards.txt
+            elif board_id == BoardIds.BRAINBIT_BLED_BOARD.value:
+                return param in ["mac_address"]
+
+            # Callibri boards - other_info and timeout optional per boards.txt
+            elif board_id in [BoardIds.CALLIBRI_EEG_BOARD.value, BoardIds.CALLIBRI_EMG_BOARD.value, BoardIds.CALLIBRI_ECG_BOARD.value]:
+                return param in ["other_info", "timeout"]
+
+            # Unicorn - serial_number optional per boards.txt
+            elif board_id == BoardIds.UNICORN_BOARD.value:
+                return param in ["serial_number"]
+
+            # Neurosity boards - serial_number optional per boards.txt
+            elif board_id in [BoardIds.NOTION_1_BOARD.value, BoardIds.NOTION_2_BOARD.value, BoardIds.CROWN_BOARD.value]:
+                return param in ["serial_number"]
+
+            # gForce boards - no optional parameters per boards.txt
+            elif board_id in [BoardIds.GFORCE_PRO_BOARD.value, BoardIds.GFORCE_DUAL_BOARD.value]:
+                return False
+
+            # FreeEEG boards - NO optional parameters according to boards.txt
+            elif board_id in [BoardIds.FREEEEG32_BOARD.value, BoardIds.FREEEEG128_BOARD.value]:
+                return False
+
+            # Muse BLED boards - serial_number optional per boards.txt
+            elif board_id in [BoardIds.MUSE_S_BLED_BOARD.value, BoardIds.MUSE_2_BLED_BOARD.value, BoardIds.MUSE_2016_BLED_BOARD.value]:
+                return param in ["serial_number"]
+
+            # Muse native boards - mac_address and serial_number optional per boards.txt
+            elif board_id in [BoardIds.MUSE_S_BOARD.value, BoardIds.MUSE_2_BOARD.value, BoardIds.MUSE_2016_BOARD.value]:
+                return param in ["mac_address", "serial_number"]
+
+            # ANT Neuro boards - no optional parameters per boards.txt
+            elif board_id in [
+                BoardIds.ANT_NEURO_EE_410_BOARD.value, BoardIds.ANT_NEURO_EE_411_BOARD.value,
+                BoardIds.ANT_NEURO_EE_430_BOARD.value, BoardIds.ANT_NEURO_EE_211_BOARD.value,
+                BoardIds.ANT_NEURO_EE_212_BOARD.value, BoardIds.ANT_NEURO_EE_213_BOARD.value,
+                BoardIds.ANT_NEURO_EE_214_BOARD.value, BoardIds.ANT_NEURO_EE_215_BOARD.value,
+                BoardIds.ANT_NEURO_EE_221_BOARD.value, BoardIds.ANT_NEURO_EE_222_BOARD.value,
+                BoardIds.ANT_NEURO_EE_223_BOARD.value, BoardIds.ANT_NEURO_EE_224_BOARD.value,
+                BoardIds.ANT_NEURO_EE_225_BOARD.value, BoardIds.ANT_NEURO_EE_511_BOARD.value
+            ]:
+                return False
+
+            # Enophone - mac_address optional per boards.txt
+            elif board_id == BoardIds.ENOPHONE_BOARD.value:
+                return param in ["mac_address"]
+
+            # BrainAlive - mac_address and serial_number optional per boards.txt
+            elif board_id == BoardIds.BRAINALIVE_BOARD.value:
+                return param in ["mac_address", "serial_number"]
+
+            # Mentalab Explore boards - mac_address optional per boards.txt
+            elif board_id in [BoardIds.EXPLORE_4_CHAN_BOARD.value, BoardIds.EXPLORE_8_CHAN_BOARD.value]:
+                return param in ["mac_address"]
+
+            # Check for newer Explore boards if they exist
+            elif hasattr(BoardIds, 'EXPLORE_PLUS_8_CHAN_BOARD') and board_id == BoardIds.EXPLORE_PLUS_8_CHAN_BOARD.value:
+                return param in ["mac_address"]
+
+            elif hasattr(BoardIds, 'EXPLORE_PLUS_32_CHAN_BOARD') and board_id == BoardIds.EXPLORE_PLUS_32_CHAN_BOARD.value:
+                return param in ["mac_address"]
+
+            # EmotiBit - ip_address and serial_number optional per boards.txt
+            elif board_id == BoardIds.EMOTIBIT_BOARD.value:
+                return param in ["ip_address", "serial_number"]
+
+            # PiEEG - serial_port optional per boards.txt
+            elif board_id == BoardIds.PIEEG_BOARD.value:
+                return param in ["serial_port"]
+
+            # NeuroPawn Knight - NO optional parameters according to boards.txt
+            elif board_id == BoardIds.NEUROPAWN_KNIGHT_BOARD.value:
+                return False
+
+            # BioListener - ip_address, ip_port, timeout optional per boards.txt
+            elif hasattr(BoardIds, 'BIOLISTENER_BOARD') and board_id == BoardIds.BIOLISTENER_BOARD.value:
+                return param in ["ip_address", "ip_port", "timeout"]
+
+            # Undocumented boards - make conservative guesses
+            # Galea boards
+            elif board_id in [getattr(BoardIds, attr, -999) for attr in ['GALEA_BOARD', 'GALEA_SERIAL_BOARD', 'GALEA_BOARD_V4', 'GALEA_SERIAL_BOARD_V4'] if hasattr(BoardIds, attr)]:
+                # Conservative: no optional parameters for undocumented boards
+                return False
+
+            # NTL WiFi board 
+            elif hasattr(BoardIds, 'NTL_WIFI_BOARD') and board_id == BoardIds.NTL_WIFI_BOARD.value:
+                # Conservative: no optional parameters for undocumented boards
+                return False
+
+            # AAVAA board
+            elif hasattr(BoardIds, 'AAVAA_V3_BOARD') and board_id == BoardIds.AAVAA_V3_BOARD.value:
+                # Conservative: no optional parameters for undocumented boards
+                return False
+
+        except AttributeError:
+            # Some board IDs might not exist in this version of BrainFlow
+            pass
+
+        # Fallback: try to determine requirements based on board name
+        try:
+            board_name = BoardShim.get_device_name(board_id).lower()
+
+            # OpenBCI boards
+            if "cyton" in board_name and "wifi" not in board_name:
+                # Cyton boards: NO optional parameters per boards.txt
+                return False
+            elif "ganglion" in board_name and "native" not in board_name and "wifi" not in board_name:
+                # Ganglion with dongle: mac_address and timeout optional
+                return param in ["mac_address", "timeout"]
+            elif "ganglion" in board_name and "native" in board_name:
+                # Ganglion native: mac_address and serial_number optional
+                return param in ["mac_address", "serial_number"]
+            elif ("ganglion" in board_name or "cyton" in board_name) and "wifi" in board_name:
+                # WiFi boards: ip_address and timeout optional
+                return param in ["ip_address", "timeout"]
+            elif "brainbit" in board_name and "bled" not in board_name:
+                # BrainBit native: serial_number and timeout optional
+                return param in ["serial_number", "timeout"]
+            elif "brainbit" in board_name and "bled" in board_name:
+                # BrainBit BLED: mac_address optional
+                return param in ["mac_address"]
+            elif "callibri" in board_name:
+                # Callibri: other_info and timeout optional
+                return param in ["other_info", "timeout"]
+            elif "unicorn" in board_name:
+                # Unicorn: serial_number optional
+                return param in ["serial_number"]
+            elif "notion" in board_name or "crown" in board_name:
+                # Neurosity: serial_number optional
+                return param in ["serial_number"]
+            elif "muse" in board_name and "bled" in board_name:
+                # Muse BLED: serial_number optional
+                return param in ["serial_number"]
+            elif "muse" in board_name:
+                # Muse native: mac_address and serial_number optional
+                return param in ["mac_address", "serial_number"]
+            elif "freeeeg" in board_name:
+                # FreeEEG: NO optional parameters per boards.txt
+                return False
+            elif "enophone" in board_name:
+                # Enophone: mac_address optional
+                return param in ["mac_address"]
+            elif "explore" in board_name:
+                # Explore: mac_address optional
+                return param in ["mac_address"]
+            elif "emotibit" in board_name:
+                # EmotiBit: ip_address and serial_number optional
+                return param in ["ip_address", "serial_number"]
+            elif "pieeg" in board_name:
+                # PiEEG: serial_port optional
+                return param in ["serial_port"]
+            elif "neuropawn" in board_name or "knight" in board_name:
+                # NeuroPawn Knight: NO optional parameters per boards.txt
+                return False
+            elif "biolistener" in board_name:
+                # BioListener: ip_address, ip_port, timeout optional
+                return param in ["ip_address", "ip_port", "timeout"]
+            elif "brainalive" in board_name:
+                # BrainAlive: mac_address and serial_number optional
+                return param in ["mac_address", "serial_number"]
+            else:
+                # Unknown boards: conservative approach - no optional parameters
+                return False
+
+        except Exception as e:
+            logging.warning(f"Could not determine optional fields for board ID {board_id}: {e}")
+            # Conservative fallback: no optional parameters
+            return False
 
 # Add static method wrappers for backward compatibility
 class BoardConfiguration:
@@ -591,25 +814,9 @@ class BoardConfiguration:
         """Static wrapper for backward compatibility."""
         instance = BrainFlowBoardConfiguration()
         return instance.get_protocol_types()
-        instance = BrainFlowBoardConfiguration()
-        return instance.create_board_params(board_id, params_dict)
 
     @staticmethod
-    def get_preset_info() -> Dict[int, str]:
+    def is_field_optional_for_board(param: str, board_id: int) -> bool:
         """Static wrapper for backward compatibility."""
         instance = BrainFlowBoardConfiguration()
-        return instance.get_preset_info()
-
-    @staticmethod
-    def get_board_description(
-        board_id: int, preset: int = BrainFlowPresets.DEFAULT_PRESET.value
-    ) -> Dict:
-        """Static wrapper for backward compatibility."""
-        instance = BrainFlowBoardConfiguration()
-        return instance.get_board_description(board_id, preset)
-
-    @staticmethod
-    def get_protocol_types() -> Dict[int, str]:
-        """Static wrapper for backward compatibility."""
-        instance = BrainFlowBoardConfiguration()
-        return instance.get_protocol_types()
+        return instance.is_field_optional_for_board(param, board_id)
