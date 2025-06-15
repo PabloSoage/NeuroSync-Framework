@@ -5,7 +5,7 @@ import threading
 import time
 from typing import Dict, Any, Callable, Optional
 
-from ..interfaces.mne_interfaces import MNEProcessManagerInterface
+from ...interfaces.mne_interfaces import MNEProcessManagerInterface
 
 # Check if MNE is available
 try:

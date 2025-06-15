@@ -3,7 +3,7 @@ import time
 from typing import Dict, Any, Optional, Callable, List, Tuple
 import numpy as np
 
-from ..interfaces.mne_interfaces import MNEVisualizerInterface, MNEProcessManagerInterface, MNEResultStorageInterface
+from ...interfaces.mne_interfaces import MNEVisualizerInterface, MNEProcessManagerInterface, MNEResultStorageInterface
 
 # Check if MNE is available
 try:

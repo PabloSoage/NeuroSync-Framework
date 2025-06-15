@@ -2,7 +2,7 @@ import logging
 import threading
 from typing import Dict, Any, Optional
 
-from ..interfaces.mne_interfaces import MNEResultStorageInterface
+from ...interfaces.mne_interfaces import MNEResultStorageInterface
 
 
 class MNEResultStorage(MNEResultStorageInterface):

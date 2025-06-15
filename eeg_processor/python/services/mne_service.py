@@ -8,10 +8,10 @@ from ..interfaces.mne_interfaces import (
     MNEProcessManagerInterface, 
     MNEResultStorageInterface
 )
-from .mne_converter_service import MNEConverterService
-from .mne_visualizer_service import MNEVisualizerService
-from .mne_process_manager import MNEProcessManager
-from .mne_result_storage import MNEResultStorage
+from .mne.mne_converter_service import MNEConverterService
+from .mne.mne_visualizer_service import MNEVisualizerService
+from .mne.mne_process_manager import MNEProcessManager
+from .mne.mne_result_storage import MNEResultStorage
 from .data_access_service import DataAccessService
 
 # Check if MNE is available
