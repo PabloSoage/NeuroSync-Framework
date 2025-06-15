@@ -414,85 +414,233 @@ def _create_visualization_worker(
     """
     try:
         import mne
+        import numpy as np  # Add explicit numpy import
         import matplotlib.pyplot as plt
         import matplotlib
         from io import BytesIO
         import base64
         
-        # Set matplotlib style for dark theme
+        # Set high DPI for better quality
+        matplotlib.rcParams['figure.dpi'] = 150
+        matplotlib.rcParams['savefig.dpi'] = 200
+        
+        # Configure matplotlib for dark theme with better contrast
         plt.style.use('dark_background')
+        
+        # Override some style settings for better contrast
+        matplotlib.rcParams.update({
+            'text.color': '#FFFFFF',
+            'axes.labelcolor': '#FFFFFF',
+            'axes.edgecolor': '#CCCCCC',
+            'xtick.color': '#CCCCCC',
+            'ytick.color': '#CCCCCC',
+            'grid.color': '#555555',
+            'font.size': 11,
+            'axes.titlesize': 13,
+            'axes.labelsize': 11,
+            'xtick.labelsize': 10,
+            'ytick.labelsize': 10,
+            'legend.fontsize': 10,
+            'figure.titlesize': 14
+        })
         
         # Create Raw object
         raw = mne.io.RawArray(raw_data, info)
         
-        # Create figure with dark background
-        fig, ax = plt.subplots(figsize=(10, 8), facecolor=bg_color)
+        # Calculate figure size based on plot type to maintain aspect ratio
+        if plot_type.lower() in ["psd", "spectrogram"]:
+            # For frequency domain plots, use wider aspect ratio
+            figsize = (12, 7)
+        elif plot_type.lower() == "raw data":
+            # For time series, use wider format
+            figsize = (14, 6)
+        else:
+            # For topomaps and other plots
+            figsize = (10, 8)
+        
+        # Create figure with proper background and size
+        fig, ax = plt.subplots(figsize=figsize, facecolor=bg_color)
         ax.set_facecolor(bg_color)
         
         if plot_type.lower() == "psd":
-            # Create PSD plot
+            # Create PSD plot using MNE's plotting with better contrast
             psd = raw.compute_psd(fmin=freq_min, fmax=freq_max, method='welch')
-            psd.plot(axes=ax, show=False, average=True)
-            ax.set_title(f"Power Spectral Density ({freq_min}-{freq_max} Hz)", color='white')
-            ax.set_xlabel("Frequency (Hz)", color='white')
-            ax.set_ylabel("Power (V²/Hz)", color='white')
+            
+            # Use MNE's plot function but customize colors
+            psd_fig = psd.plot(
+                axes=ax, 
+                show=False, 
+                average=True,
+                color='#00D4FF',  # Bright cyan for better contrast
+                alpha=0.8,
+                spatial_colors=False
+            )
+            
+            # Enhance the plot appearance
+            ax.set_title(f"Power Spectral Density ({freq_min}-{freq_max} Hz)", 
+                        color='white', fontweight='bold', pad=20)
+            ax.set_xlabel("Frequency (Hz)", color='white', fontweight='bold')
+            ax.set_ylabel("Power (V²/Hz)", color='white', fontweight='bold')
+            
+            # Improve grid and ticks
+            ax.grid(True, alpha=0.4, color='#888888', linestyle='-', linewidth=0.5)
+            ax.tick_params(colors='#CCCCCC', which='both')
+            
+            # Set background
+            ax.set_facecolor('#1a1a1a')
             
         elif plot_type.lower() == "topomap":
-            # Create topomap for alpha band
-            psd = raw.compute_psd(fmin=8, fmax=13, method='welch')
-            psd_avg = psd.get_data().mean(axis=1)
-            
-            # Simple representation since we don't have electrode positions
-            ax.text(0.5, 0.5, f"Alpha Power Topomap\n({len(psd_avg)} channels)", 
-                   ha='center', va='center', transform=ax.transAxes, color='white')
-            ax.set_title("Alpha Band Power (8-13 Hz)", color='white')
-            ax.axis('off')
+            # For topomap, we need to check if we have electrode positions
+            try:
+                # Try to create a simple topomap if we have enough channels
+                if len(raw.ch_names) >= 4:
+                    psd = raw.compute_psd(fmin=8, fmax=13, method='welch')
+                    psd_avg = psd.get_data().mean(axis=1)
+                    
+                    # Create a simple grid layout for channels
+                    n_channels = len(psd_avg)
+                    
+                    # Create a simple 2D layout
+                    if n_channels <= 4:
+                        rows, cols = 2, 2
+                    elif n_channels <= 9:
+                        rows, cols = 3, 3
+                    else:
+                        rows = int(np.ceil(np.sqrt(n_channels)))
+                        cols = int(np.ceil(n_channels / rows))
+                    
+                    # Create subplot grid
+                    fig.clear()
+                    fig, axes = plt.subplots(rows, cols, figsize=figsize, facecolor=bg_color)
+                    if rows * cols == 1:
+                        axes = [axes]
+                    elif rows == 1 or cols == 1:
+                        axes = axes.flatten()
+                    else:
+                        axes = axes.flatten()
+                    
+                    # Plot each channel's power
+                    for i, power in enumerate(psd_avg):
+                        if i < len(axes):
+                            ax = axes[i]
+                            ax.set_facecolor('#1a1a1a')
+                            
+                            # Create a simple power visualization
+                            colors = plt.cm.plasma(power / np.max(psd_avg))
+                            circle = plt.Circle((0.5, 0.5), 0.4, color=colors, alpha=0.8)
+                            ax.add_patch(circle)
+                            
+                            ax.set_xlim(0, 1)
+                            ax.set_ylim(0, 1)
+                            ax.set_title(f"{raw.ch_names[i]}\n{power:.2e}", 
+                                       color='white', fontsize=9)
+                            ax.set_xticks([])
+                            ax.set_yticks([])
+                            ax.set_aspect('equal')
+                    
+                    # Hide unused subplots
+                    for i in range(len(psd_avg), len(axes)):
+                        axes[i].set_visible(False)
+                    
+                    fig.suptitle("Alpha Band Power (8-13 Hz)", color='white', fontweight='bold', fontsize=14)
+                    
+                else:
+                    # Fallback for few channels
+                    ax.text(0.5, 0.5, f"Alpha Power Visualization\n({len(raw.ch_names)} channels)\n\nNeed electrode positions for\nproper topographic map", 
+                           ha='center', va='center', transform=ax.transAxes, 
+                           color='white', fontsize=12, fontweight='bold')
+                    ax.set_title("Alpha Band Power (8-13 Hz)", color='white', fontweight='bold')
+                    ax.axis('off')
+                    ax.set_facecolor('#1a1a1a')
+                    
+            except Exception as e:
+                # Simple fallback
+                ax.text(0.5, 0.5, f"Topomap Visualization\n\nError: {str(e)}", 
+                       ha='center', va='center', transform=ax.transAxes, 
+                       color='white', fontsize=12)
+                ax.set_title("Alpha Band Power (8-13 Hz)", color='white', fontweight='bold')
+                ax.axis('off')
+                ax.set_facecolor('#1a1a1a')
             
         elif plot_type.lower() == "raw data":
-            # Plot raw time series data
+            # Plot raw time series data using MNE's approach but with better colors
             data_to_plot = raw.get_data()
             times = raw.times
             
-            # Plot first few channels to avoid clutter
-            max_channels = min(4, data_to_plot.shape[0])
-            colors = plt.cm.tab10(np.linspace(0, 1, max_channels))
+            # Plot channels with distinct colors
+            max_channels = min(6, data_to_plot.shape[0])  # Show more channels
+            colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD']
             
             for i in range(max_channels):
-                ax.plot(times, data_to_plot[i], label=f"Channel {i}", color=colors[i])
+                color = colors[i % len(colors)]
+                # Scale data for better visualization
+                offset = i * (np.std(data_to_plot) * 3)
+                ax.plot(times, data_to_plot[i] + offset, 
+                       label=f"{raw.ch_names[i] if i < len(raw.ch_names) else f'Ch {i}'}", 
+                       color=color, linewidth=1.2, alpha=0.9)
             
-            ax.set_xlabel("Time (s)", color='white')
-            ax.set_ylabel("Amplitude (V)", color='white')
-            ax.set_title("Raw EEG Data", color='white')
-            ax.legend()
-            ax.grid(True, alpha=0.3)
+            ax.set_xlabel("Time (s)", color='white', fontweight='bold')
+            ax.set_ylabel("Amplitude (V) + offset", color='white', fontweight='bold')
+            ax.set_title("Raw EEG Data", color='white', fontweight='bold', pad=20)
+            
+            # Improve legend
+            legend = ax.legend(loc='upper right', fancybox=True, shadow=True, 
+                             framealpha=0.8, facecolor='#2a2a2a', edgecolor='#666666')
+            for text in legend.get_texts():
+                text.set_color('white')
+            
+            ax.grid(True, alpha=0.3, color='#666666', linestyle='-', linewidth=0.5)
+            ax.set_facecolor('#1a1a1a')
+            ax.tick_params(colors='#CCCCCC', which='both')
             
         elif plot_type.lower() == "spectrogram":
-            # Create spectrogram for first channel
+            # Create spectrogram for first channel using scipy but with MNE styling
             data_ch0 = raw.get_data()[0]
             fs = raw.info['sfreq']
             
             from scipy import signal
-            f, t, Sxx = signal.spectrogram(data_ch0, fs)
-            im = ax.pcolormesh(t, f, 10 * np.log10(Sxx), cmap='viridis')
-            ax.set_ylabel('Frequency [Hz]', color='white')
-            ax.set_xlabel('Time [s]', color='white')
-            ax.set_title('Spectrogram (Channel 0)', color='white')
-            cbar = fig.colorbar(im, ax=ax)
-            cbar.set_label('Power (dB)', color='white')
+            f, t, Sxx = signal.spectrogram(data_ch0, fs, nperseg=min(256, len(data_ch0)//4))
+            
+            # Use a perceptually uniform colormap with better contrast
+            im = ax.pcolormesh(t, f, 10 * np.log10(Sxx + 1e-10), 
+                             cmap='plasma', shading='gouraud')
+            
+            ax.set_ylabel('Frequency [Hz]', color='white', fontweight='bold')
+            ax.set_xlabel('Time [s]', color='white', fontweight='bold')
+            ax.set_title('Spectrogram (Channel 0)', color='white', fontweight='bold', pad=20)
+            
+            # Improve colorbar
+            cbar = fig.colorbar(im, ax=ax, shrink=0.8, aspect=20)
+            cbar.set_label('Power (dB)', color='white', fontweight='bold')
             cbar.ax.yaxis.set_tick_params(color='white')
-            plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color='white')
+            cbar.ax.tick_params(labelcolor='white')
+            
+            ax.set_facecolor('#1a1a1a')
+            ax.tick_params(colors='#CCCCCC', which='both')
         
-        # Set tick colors
-        ax.tick_params(colors='white')
+        # Set tick colors and improve overall appearance
+        if hasattr(ax, 'tick_params'):
+            ax.tick_params(colors='#CCCCCC', which='both', labelsize=10)
         
-        # Convert plot to base64 string
+        # Ensure tight layout
+        plt.tight_layout(pad=2.0)
+        
+        # Convert plot to base64 string with high quality
         buffer = BytesIO()
-        fig.savefig(buffer, format='png', facecolor=bg_color, edgecolor='none', bbox_inches='tight')
+        fig.savefig(buffer, format='png', 
+                   facecolor=bg_color, 
+                   edgecolor='none', 
+                   bbox_inches='tight',
+                   dpi=200,  # High DPI for quality
+                   pad_inches=0.2)
         buffer.seek(0)
         plot_data = base64.b64encode(buffer.read()).decode()
         buffer.close()
         
         plt.close(fig)
+        
+        # Reset matplotlib settings to defaults
+        matplotlib.rcParams.update(matplotlib.rcParamsDefault)
         
         return {
             "success": True,
@@ -502,6 +650,11 @@ def _create_visualization_worker(
         }
         
     except Exception as e:
+        # Reset matplotlib settings on error too
+        try:
+            matplotlib.rcParams.update(matplotlib.rcParamsDefault)
+        except:
+            pass
         return {
             "success": False,
             "error": str(e)

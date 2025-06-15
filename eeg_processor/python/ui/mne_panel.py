@@ -3,7 +3,6 @@ import logging
 import base64
 from io import BytesIO
 
-from PyQt5 import QtCore
 from PyQt5.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
@@ -16,7 +15,7 @@ from PyQt5.QtWidgets import (
     QProgressBar,
     QTextEdit,
 )
-from PyQt5.QtCore import QTimer, pyqtSignal
+from PyQt5.QtCore import QTimer, pyqtSignal, Qt
 from PyQt5.QtGui import QPixmap
 import numpy as np
 
@@ -189,21 +188,21 @@ class MNEPanel(BasePanel):
         self.plot_progress.setVisible(False)
         mne_viz_layout.addWidget(self.plot_progress)
 
-        # Plot display area with improved styling - use scaled contents to fill space
+        # Plot display area with proper background and better sizing
         self.plot_display = QLabel()
         self.plot_display.setStyleSheet("""
             QLabel {
                 background-color: #2b2b2b;
-                border: 2px solid #555555;
-                border-radius: 6px;
-                padding: 4px;
+                border: 1px solid #555555;
+                border-radius: 4px;
+                padding: 5px;
             }
         """)
-        self.plot_display.setMinimumHeight(400)
-        self.plot_display.setMinimumWidth(500)
-        # Enable scaled contents to fill the available space
-        self.plot_display.setScaledContents(True)
-        self.plot_display.setAlignment(QtCore.Qt.AlignCenter)
+        self.plot_display.setMinimumHeight(450)  # Increased height
+        self.plot_display.setMinimumWidth(600)   # Ensure minimum width
+        # Use KeepAspectRatio to prevent text distortion
+        self.plot_display.setScaledContents(False)
+        self.plot_display.setAlignment(Qt.AlignCenter)
         self.plot_display.setText("No plot generated yet")
         self.plot_display.setWordWrap(True)
         mne_viz_layout.addWidget(self.plot_display)
@@ -373,7 +372,7 @@ class MNEPanel(BasePanel):
         self._reset_visualization_ui()
 
     def _display_plot(self, plot_data: str) -> None:
-        """Display the generated plot with proper scaling to fill available space."""
+        """Display the generated plot with proper scaling."""
         if plot_data:
             try:
                 # Decode base64 plot data
@@ -382,46 +381,19 @@ class MNEPanel(BasePanel):
                 pixmap.loadFromData(image_data)
                 
                 if not pixmap.isNull():
-                    # Get current display area size
+                    # Scale pixmap to fit the display area while maintaining aspect ratio
                     display_size = self.plot_display.size()
-                    
-                    # Calculate the available area (minus padding and borders)
-                    available_width = max(display_size.width() - 12, 300)  # Account for padding and border
-                    available_height = max(display_size.height() - 12, 200)
-                    
-                    # Scale the pixmap to fill most of the available space while maintaining aspect ratio
                     scaled_pixmap = pixmap.scaled(
-                        available_width,
-                        available_height,
-                        QtCore.Qt.KeepAspectRatio,
-                        QtCore.Qt.SmoothTransformation
+                        display_size, 
+                        Qt.KeepAspectRatio, 
+                        Qt.SmoothTransformation  # Use smooth transformation for better quality
                     )
                     
-                    # If the scaled image is still quite small compared to available space,
-                    # scale it up more aggressively
-                    if (scaled_pixmap.width() < available_width * 0.7 and 
-                        scaled_pixmap.height() < available_height * 0.7):
-                        
-                        # Scale up to use at least 80% of available space
-                        target_width = int(available_width * 0.9)
-                        target_height = int(available_height * 0.9)
-                        
-                        scaled_pixmap = pixmap.scaled(
-                            target_width,
-                            target_height,
-                            QtCore.Qt.KeepAspectRatio,
-                            QtCore.Qt.SmoothTransformation
-                        )
-                    
-                    # Set the scaled pixmap
+                    # Display in label
                     self.plot_display.setPixmap(scaled_pixmap)
                     self.plot_display.setText("")  # Clear text
-                    
-                    # Since we're using setScaledContents(True), the label will automatically
-                    # scale the image to fit its full size while maintaining aspect ratio
-                    
                 else:
-                    self.plot_display.setText("Error: Could not load image data")
+                    self.plot_display.setText("Error: Could not load plot image")
                 
             except Exception as e:
                 logging.error(f"Error displaying plot: {e}")
