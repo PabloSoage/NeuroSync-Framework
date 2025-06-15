@@ -451,14 +451,14 @@ def _create_visualization_worker(
     Worker function to create MNE visualizations.
     
     Args:
-        raw_data: EEG data array (ALL channels from conversion)
-        info: MNE info object (ALL channels from conversion)
+        raw_data: EEG data array (channels from conversion - could be ALL or SELECTED)
+        info: MNE info object (channels from conversion - could be ALL or SELECTED)
         plot_type: Type of plot to create
         freq_min: Minimum frequency
         freq_max: Maximum frequency
         bg_color: Background color
         show_individual_channels: Whether to show individual channels in PSD
-        selected_channels_for_display: Channels to display (subset for visualization)
+        selected_channels_for_display: Channels to display (indices relative to converted data)
         topomap_freq_range: Frequency range for topomap (min_freq, max_freq)
         
     Returns:
@@ -496,28 +496,29 @@ def _create_visualization_worker(
             'figure.titlesize': 14
         })
         
-        # Create Raw object with ALL channels first
-        raw_all_channels = mne.io.RawArray(raw_data, info)
+        # Create Raw object with converted channels (could be ALL or SELECTED from conversion)
+        raw_all_converted = mne.io.RawArray(raw_data, info)
         
         # Apply channel selection for display if specified
+        # NOTE: selected_channels_for_display indices are relative to the converted data
         if selected_channels_for_display is not None:
-            # Validate channel indices
-            max_channels = len(raw_all_channels.ch_names)
-            valid_channels = [ch for ch in selected_channels_for_display if 0 <= ch < max_channels]
+            # Validate channel indices against converted data
+            max_converted_channels = len(raw_all_converted.ch_names)
+            valid_channels = [ch for ch in selected_channels_for_display if 0 <= ch < max_converted_channels]
             
             if not valid_channels:
-                # If no valid channels, use all
-                raw = raw_all_channels
-                display_info = f"all {max_channels} channels (invalid selection)"
+                # If no valid channels, use all converted
+                raw = raw_all_converted
+                display_info = f"all {max_converted_channels} converted channels (invalid selection)"
             else:
-                # Create subset with selected channels
-                channel_names_to_pick = [raw_all_channels.ch_names[i] for i in valid_channels]
-                raw = raw_all_channels.pick_channels(channel_names_to_pick, ordered=True)
-                display_info = f"{len(valid_channels)} of {max_channels} channels"
+                # Create subset with selected channels from converted data
+                channel_names_to_pick = [raw_all_converted.ch_names[i] for i in valid_channels]
+                raw = raw_all_converted.pick_channels(channel_names_to_pick, ordered=True)
+                display_info = f"{len(valid_channels)} of {max_converted_channels} converted channels"
         else:
-            # Use all channels
-            raw = raw_all_channels
-            display_info = f"all {len(raw_all_channels.ch_names)} channels"
+            # Use all converted channels
+            raw = raw_all_converted
+            display_info = f"all {len(raw_all_converted.ch_names)} converted channels"
         
         # Calculate figure size based on plot type to maintain aspect ratio
         if plot_type.lower() in ["psd", "spectrogram"]:
