@@ -403,6 +403,46 @@ class MNEPanel(BasePanel):
         
         mne_viz_layout.addLayout(plot_selection_layout)
 
+        # Topomap Band Selection (NEW)
+        topomap_band_layout = QHBoxLayout()
+        topomap_band_layout.addWidget(QLabel("Topomap Band:"))
+        
+        self.topomap_band_combo = QComboBox()
+        self.topomap_band_combo.addItems([
+            "Alpha (8-13 Hz)", 
+            "Delta (1-4 Hz)", 
+            "Theta (4-8 Hz)", 
+            "Beta (13-30 Hz)", 
+            "Gamma (30-50 Hz)",
+            "Custom Range"
+        ])
+        self.topomap_band_combo.setCurrentText("Alpha (8-13 Hz)")  # Default to Alpha
+        self.topomap_band_combo.currentTextChanged.connect(self._on_topomap_band_changed)
+        topomap_band_layout.addWidget(self.topomap_band_combo)
+        
+        # Custom range controls (initially hidden)
+        topomap_band_layout.addWidget(QLabel("Custom:"))
+        self.topomap_freq_min_spin = QSpinBox()
+        self.topomap_freq_min_spin.setRange(1, 100)
+        self.topomap_freq_min_spin.setValue(8)
+        self.topomap_freq_min_spin.setSuffix(" Hz")
+        self.topomap_freq_min_spin.setVisible(False)
+        topomap_band_layout.addWidget(self.topomap_freq_min_spin)
+        
+        topomap_band_layout.addWidget(QLabel("-"))
+        self.topomap_range_separator = topomap_band_layout.itemAt(topomap_band_layout.count()-1).widget()
+        self.topomap_range_separator.setVisible(False)
+        
+        self.topomap_freq_max_spin = QSpinBox()
+        self.topomap_freq_max_spin.setRange(1, 100)
+        self.topomap_freq_max_spin.setValue(13)
+        self.topomap_freq_max_spin.setSuffix(" Hz")
+        self.topomap_freq_max_spin.setVisible(False)
+        topomap_band_layout.addWidget(self.topomap_freq_max_spin)
+        
+        topomap_band_layout.addStretch()
+        mne_viz_layout.addLayout(topomap_band_layout)
+
         # Channel selection (MOVED HERE from conversion section)
         channel_selection_layout = QHBoxLayout()
         channel_selection_layout.addWidget(QLabel("Channels to Display:"))
@@ -483,12 +523,52 @@ class MNEPanel(BasePanel):
 
         self.layout.addWidget(mne_viz_group)
 
-    def _update_psd_mode_info(self):
-        """Update the PSD mode information label."""
-        if self.psd_individual_check.isChecked():
-            self.psd_mode_info.setText("(Individual channels with colors)")
+    def _on_topomap_band_changed(self):
+        """Handle topomap band selection change."""
+        selected_band = self.topomap_band_combo.currentText()
+        
+        # Show/hide custom range controls
+        is_custom = "Custom Range" in selected_band
+        self.topomap_freq_min_spin.setVisible(is_custom)
+        self.topomap_freq_max_spin.setVisible(is_custom)
+        self.topomap_range_separator.setVisible(is_custom)
+        
+        # Update custom range values based on selected band
+        if not is_custom:
+            if "Alpha" in selected_band:
+                self.topomap_freq_min_spin.setValue(8)
+                self.topomap_freq_max_spin.setValue(13)
+            elif "Delta" in selected_band:
+                self.topomap_freq_min_spin.setValue(1)
+                self.topomap_freq_max_spin.setValue(4)
+            elif "Theta" in selected_band:
+                self.topomap_freq_min_spin.setValue(4)
+                self.topomap_freq_max_spin.setValue(8)
+            elif "Beta" in selected_band:
+                self.topomap_freq_min_spin.setValue(13)
+                self.topomap_freq_max_spin.setValue(30)
+            elif "Gamma" in selected_band:
+                self.topomap_freq_min_spin.setValue(30)
+                self.topomap_freq_max_spin.setValue(50)
+
+    def _get_topomap_frequency_range(self) -> tuple:
+        """Get the frequency range for topomap based on current selection."""
+        selected_band = self.topomap_band_combo.currentText()
+        
+        if "Custom Range" in selected_band:
+            return (self.topomap_freq_min_spin.value(), self.topomap_freq_max_spin.value())
+        elif "Alpha" in selected_band:
+            return (8, 13)
+        elif "Delta" in selected_band:
+            return (1, 4)
+        elif "Theta" in selected_band:
+            return (4, 8)
+        elif "Beta" in selected_band:
+            return (13, 30)
+        elif "Gamma" in selected_band:
+            return (30, 50)
         else:
-            self.psd_mode_info.setText("(Average with variability band)")
+            return (8, 13)  # Default to Alpha
 
     def setup_status_monitoring(self) -> None:
         """Set up status monitoring section."""
@@ -593,6 +673,9 @@ class MNEPanel(BasePanel):
             freq_min = self.freq_min_spin.value()
             freq_max = self.freq_max_spin.value()
             
+            # Get topomap frequency range
+            topomap_freq_min, topomap_freq_max = self._get_topomap_frequency_range()
+            
             # Get PSD mode preference
             show_individual = self.psd_individual_check.isChecked()
 
@@ -607,7 +690,8 @@ class MNEPanel(BasePanel):
                 freq_max=freq_max,
                 bg_color=bg_color,
                 show_individual_channels=show_individual,
-                selected_channels_for_display=self.selected_channels,  # NEW: channels to display
+                selected_channels_for_display=self.selected_channels,
+                topomap_freq_range=(topomap_freq_min, topomap_freq_max),  # NEW: Pass topomap frequency range
                 callback=self._visualization_callback
             )
 
@@ -619,7 +703,14 @@ class MNEPanel(BasePanel):
 
             psd_mode = "individual" if show_individual else "averaged"
             selected_names = [self.channel_names[i] for i in self.selected_channels if i < len(self.channel_names)]
-            self._add_status_message(f"Starting {plot_type} visualization ({psd_mode}) with {len(self.selected_channels)} channels: {', '.join(selected_names[:3])}{'...' if len(selected_names) > 3 else ''}")
+            
+            # Include topomap band info in status message
+            band_name = self.topomap_band_combo.currentText()
+            if plot_type.lower() == "topomap":
+                self._add_status_message(f"Starting {plot_type} visualization with {band_name} ({topomap_freq_min}-{topomap_freq_max} Hz) using {len(self.selected_channels)} channels: {', '.join(selected_names[:3])}{'...' if len(selected_names) > 3 else ''}")
+            else:
+                self._add_status_message(f"Starting {plot_type} visualization ({psd_mode}) with {len(self.selected_channels)} channels: {', '.join(selected_names[:3])}{'...' if len(selected_names) > 3 else ''}")
+            
             self.show_status(f"Generating {plot_type} visualization...")
 
         except Exception as e:
@@ -780,6 +871,9 @@ class MNEPanel(BasePanel):
         if not self.mne_service.is_available():
             return {"available": False}
 
+        # Get topomap frequency range
+        topomap_freq_min, topomap_freq_max = self._get_topomap_frequency_range()
+
         return {
             "available": True,
             "duration": self.mne_duration_spin.value() if hasattr(self, "mne_duration_spin") else 10,
@@ -789,6 +883,8 @@ class MNEPanel(BasePanel):
                 self.freq_min_spin.value() if hasattr(self, "freq_min_spin") else 1,
                 self.freq_max_spin.value() if hasattr(self, "freq_max_spin") else 50
             ],
+            "topomap_band": self.topomap_band_combo.currentText() if hasattr(self, "topomap_band_combo") else "Alpha (8-13 Hz)",
+            "topomap_freq_range": [topomap_freq_min, topomap_freq_max],
             "selected_channels": self.selected_channels,
             "channel_names": self.channel_names,
             "psd_individual_mode": self.psd_individual_check.isChecked() if hasattr(self, "psd_individual_check") else True
@@ -879,3 +975,10 @@ class MNEPanel(BasePanel):
             
             self.selected_channels_label.setText(text)
             self.selected_channels_label.setStyleSheet("color: #CCCCCC; font-style: italic;")
+
+    def _update_psd_mode_info(self):
+        """Update the PSD mode information label."""
+        if self.psd_individual_check.isChecked():
+            self.psd_mode_info.setText("(Individual channels with colors)")
+        else:
+            self.psd_mode_info.setText("(Average with variability band)")

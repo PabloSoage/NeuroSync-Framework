@@ -150,6 +150,7 @@ class MNEService:
         bg_color: str = "#2b2b2b",
         show_individual_channels: bool = True,
         selected_channels_for_display: Optional[List[int]] = None,
+        topomap_freq_range: Optional[Tuple[int, int]] = None,
         callback: Optional[Callable] = None
     ) -> str:
         """
@@ -163,6 +164,7 @@ class MNEService:
             bg_color: Background color for the plot
             show_individual_channels: Whether to show individual channels in PSD (vs averaged)
             selected_channels_for_display: Channels to display (applied during visualization)
+            topomap_freq_range: Frequency range for topomap (min_freq, max_freq)
             callback: Callback function to call when plotting completes
             
         Returns:
@@ -185,7 +187,7 @@ class MNEService:
         # Submit visualization task
         async_result = self._process_pool.apply_async(
             _create_visualization_worker,
-            args=(mne_data["raw_data"], mne_data["info"], plot_type, freq_min, freq_max, bg_color, show_individual_channels, selected_channels_for_display),
+            args=(mne_data["raw_data"], mne_data["info"], plot_type, freq_min, freq_max, bg_color, show_individual_channels, selected_channels_for_display, topomap_freq_range),
             callback=lambda result: self._handle_visualization_complete(viz_task_id, result, callback)
         )
         
@@ -442,7 +444,8 @@ def _create_visualization_worker(
     freq_max: int,
     bg_color: str,
     show_individual_channels: bool = True,
-    selected_channels_for_display: Optional[List[int]] = None
+    selected_channels_for_display: Optional[List[int]] = None,
+    topomap_freq_range: Optional[Tuple[int, int]] = None
 ) -> Dict[str, Any]:
     """
     Worker function to create MNE visualizations.
@@ -456,6 +459,7 @@ def _create_visualization_worker(
         bg_color: Background color
         show_individual_channels: Whether to show individual channels in PSD
         selected_channels_for_display: Channels to display (subset for visualization)
+        topomap_freq_range: Frequency range for topomap (min_freq, max_freq)
         
     Returns:
         Dictionary with visualization result
@@ -628,13 +632,22 @@ def _create_visualization_worker(
                 ax.set_facecolor('#1a1a1a')
         
         elif plot_type.lower() == "topomap":
-            # Topomap with selected channels
+            # Topomap with configurable frequency range
             try:
                 n_channels = len(raw.ch_names)
                 
+                # Get frequency range for topomap
+                if topomap_freq_range is not None:
+                    topo_freq_min, topo_freq_max = topomap_freq_range
+                else:
+                    topo_freq_min, topo_freq_max = 8, 13  # Default to Alpha
+                
+                # Get band name for display
+                band_name = _get_band_name(topo_freq_min, topo_freq_max)
+                
                 if n_channels == 1:
                     # Special case for single channel
-                    psd = raw.compute_psd(fmin=8, fmax=13, method='welch')
+                    psd = raw.compute_psd(fmin=topo_freq_min, fmax=topo_freq_max, method='welch')
                     psd_avg = psd.get_data().mean(axis=1)[0]  # Get the single channel value
                     
                     # Create a single large visualization for one channel
@@ -652,7 +665,7 @@ def _create_visualization_worker(
                     
                     ax.set_xlim(0, 1)
                     ax.set_ylim(0, 1)
-                    ax.set_title(f"Alpha Band Power (8-13 Hz) - {display_info}", 
+                    ax.set_title(f"{band_name} Power ({topo_freq_min}-{topo_freq_max} Hz) - {display_info}", 
                                color='white', fontweight='bold', pad=20)
                     ax.set_xticks([])
                     ax.set_yticks([])
@@ -660,7 +673,7 @@ def _create_visualization_worker(
                     
                 else:
                     # Multiple channels - use grid layout
-                    psd = raw.compute_psd(fmin=8, fmax=13, method='welch')
+                    psd = raw.compute_psd(fmin=topo_freq_min, fmax=topo_freq_max, method='welch')
                     psd_avg = psd.get_data().mean(axis=1)
                     
                     # Create a grid layout for channels
@@ -708,7 +721,7 @@ def _create_visualization_worker(
                     for i in range(len(psd_avg), len(axes)):
                         axes[i].set_visible(False)
                     
-                    fig.suptitle(f"Alpha Band Power (8-13 Hz) - {display_info}", 
+                    fig.suptitle(f"{band_name} Power ({topo_freq_min}-{topo_freq_max} Hz) - {display_info}", 
                                color='white', fontweight='bold', fontsize=14)
                     
             except Exception as e:
@@ -716,7 +729,7 @@ def _create_visualization_worker(
                 ax.text(0.5, 0.5, f"Topomap Visualization\n\nError: {str(e)}", 
                        ha='center', va='center', transform=ax.transAxes, 
                        color='white', fontsize=12)
-                ax.set_title(f"Alpha Band Power (8-13 Hz) - {display_info}", color='white', fontweight='bold')
+                ax.set_title(f"Band Power Visualization - {display_info}", color='white', fontweight='bold')
                 ax.axis('off')
                 ax.set_facecolor('#1a1a1a')
             
@@ -854,6 +867,7 @@ def _create_visualization_worker(
             "plot_type": plot_type,
             "plot_data": plot_data,
             "freq_range": [freq_min, freq_max],
+            "topomap_freq_range": topomap_freq_range,
             "individual_channels": show_individual_channels,
             "displayed_channels": len(raw.ch_names),
             "display_info": display_info
@@ -869,3 +883,22 @@ def _create_visualization_worker(
             "success": False,
             "error": str(e)
         }
+
+def _get_band_name(freq_min: int, freq_max: int) -> str:
+    """Get the name of the frequency band based on frequency range."""
+    # Standard EEG bands from eeg_viz.py
+    bands = [
+        ("Delta", 1, 4),
+        ("Theta", 4, 8), 
+        ("Alpha", 8, 13),
+        ("Beta", 13, 30),
+        ("Gamma", 30, 50)
+    ]
+    
+    # Check if the range matches any standard band
+    for band_name, band_min, band_max in bands:
+        if freq_min == band_min and freq_max == band_max:
+            return band_name
+    
+    # If no exact match, return custom range description
+    return f"Custom Band"
