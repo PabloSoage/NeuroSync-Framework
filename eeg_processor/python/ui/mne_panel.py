@@ -332,7 +332,7 @@ class MNEPanel(BasePanel):
 
         # Add description
         mne_layout.addWidget(
-            QLabel("Convert BrainFlow data to MNE format for advanced analysis")
+            QLabel("Convert BrainFlow data to MNE format for advanced analysis (all channels)")
         )
 
         # MNE Parameters
@@ -351,22 +351,7 @@ class MNEPanel(BasePanel):
 
         mne_layout.addLayout(mne_params_layout)
 
-        # Channel selection
-        channel_selection_layout = QHBoxLayout()
-        channel_selection_layout.addWidget(QLabel("Selected Channels:"))
-        
-        self.selected_channels_label = QLabel("All channels")
-        self.selected_channels_label.setStyleSheet("color: #CCCCCC; font-style: italic;")
-        channel_selection_layout.addWidget(self.selected_channels_label)
-        
-        channel_selection_layout.addStretch()
-        
-        self.select_channels_btn = QPushButton("Select Channels")
-        self.select_channels_btn.clicked.connect(self.open_channel_selection)
-        self.select_channels_btn.setStyleSheet("background-color: #007ACC;")
-        channel_selection_layout.addWidget(self.select_channels_btn)
-        
-        mne_layout.addLayout(channel_selection_layout)
+        # Remove channel selection from conversion section - it's now only for visualization
 
         # MNE Control buttons
         mne_buttons_layout = QHBoxLayout()
@@ -389,54 +374,6 @@ class MNEPanel(BasePanel):
         mne_layout.addWidget(self.conversion_progress)
 
         self.layout.addWidget(mne_group)
-
-    def open_channel_selection(self):
-        """Open the channel selection dialog."""
-        try:
-            # Update channel information
-            self._update_channel_selection()
-            
-            if not self.channel_names:
-                self.show_error("Channel Selection", "No channels available. Start streaming first.")
-                return
-            
-            # Create and show dialog
-            dialog = ChannelSelectionDialog(
-                channel_names=self.channel_names,
-                selected_channels=self.selected_channels,
-                parent=self
-            )
-            
-            if dialog.exec_() == QDialog.Accepted:
-                # Update selected channels
-                self.selected_channels = dialog.get_selected_channels()
-                self._update_selected_channels_label()
-                
-                self._add_status_message(f"Selected {len(self.selected_channels)} channels for MNE analysis")
-                
-        except Exception as e:
-            self.show_error("Channel Selection Error", f"Error opening channel selection: {str(e)}")
-            logging.error(f"Channel selection error: {e}")
-
-    def _update_selected_channels_label(self):
-        """Update the selected channels label."""
-        if not self.selected_channels:
-            self.selected_channels_label.setText("No channels selected")
-            self.selected_channels_label.setStyleSheet("color: #FF6B6B; font-style: italic;")
-        elif len(self.selected_channels) == len(self.channel_names):
-            self.selected_channels_label.setText("All channels")
-            self.selected_channels_label.setStyleSheet("color: #96CEB4; font-style: italic;")
-        else:
-            # Show first few channel names
-            if len(self.selected_channels) <= 3:
-                names = [self.channel_names[i] for i in self.selected_channels if i < len(self.channel_names)]
-                text = ", ".join(names)
-            else:
-                names = [self.channel_names[i] for i in self.selected_channels[:3] if i < len(self.channel_names)]
-                text = f"{', '.join(names)}... ({len(self.selected_channels)} total)"
-            
-            self.selected_channels_label.setText(text)
-            self.selected_channels_label.setStyleSheet("color: #CCCCCC; font-style: italic;")
 
     def setup_mne_visualization(self) -> None:
         """Set up MNE visualization section."""
@@ -466,7 +403,24 @@ class MNEPanel(BasePanel):
         
         mne_viz_layout.addLayout(plot_selection_layout)
 
-        # PSD Options (NEW)
+        # Channel selection (MOVED HERE from conversion section)
+        channel_selection_layout = QHBoxLayout()
+        channel_selection_layout.addWidget(QLabel("Channels to Display:"))
+        
+        self.selected_channels_label = QLabel("All channels")
+        self.selected_channels_label.setStyleSheet("color: #CCCCCC; font-style: italic;")
+        channel_selection_layout.addWidget(self.selected_channels_label)
+        
+        channel_selection_layout.addStretch()
+        
+        self.select_channels_btn = QPushButton("Select Channels")
+        self.select_channels_btn.clicked.connect(self.open_channel_selection)
+        self.select_channels_btn.setStyleSheet("background-color: #007ACC;")
+        channel_selection_layout.addWidget(self.select_channels_btn)
+        
+        mne_viz_layout.addLayout(channel_selection_layout)
+
+        # PSD Options
         psd_options_layout = QHBoxLayout()
         psd_options_layout.addWidget(QLabel("PSD Mode:"))
         
@@ -557,7 +511,7 @@ class MNEPanel(BasePanel):
         self.layout.addWidget(status_group)
 
     def convert_to_mne(self) -> None:
-        """Convert BrainFlow data to MNE format asynchronously."""
+        """Convert BrainFlow data to MNE format asynchronously (ALL channels)."""
         if not self.mne_service.is_available():
             self.show_error("MNE Error", "MNE package is not installed")
             return
@@ -565,25 +519,21 @@ class MNEPanel(BasePanel):
         # Update channel selection in case it hasn't been initialized
         self._update_channel_selection()
 
-        # If no channels are selected, use all available channels
-        if not self.selected_channels:
-            if self.channel_names:
-                self.selected_channels = list(range(len(self.channel_names)))
-                self._update_selected_channels_label()
-            else:
-                self.show_error("MNE Error", "No channels available. Start streaming first.")
-                return
+        # Always convert ALL available channels - selection is applied only during visualization
+        if not self.channel_names:
+            self.show_error("MNE Error", "No channels available. Start streaming first.")
+            return
 
         try:
             # Get parameters
             duration_seconds = self.mne_duration_spin.value()
             convert_to_v = self.convert_to_v_check.isChecked()
 
-            # Start conversion with selected channels
+            # Start conversion with ALL channels (pass None for selected_channels)
             self.current_conversion_task = self.mne_service.convert_to_mne_async(
                 duration_seconds=duration_seconds,
                 convert_to_v=convert_to_v,
-                selected_channels=self.selected_channels,  # Pass selected channels
+                selected_channels=None,  # Convert ALL channels
                 callback=self._conversion_callback
             )
 
@@ -596,9 +546,9 @@ class MNEPanel(BasePanel):
             # Start status monitoring
             self.status_timer.start(100)  # Check every 100ms
 
-            selected_names = [self.channel_names[i] for i in self.selected_channels if i < len(self.channel_names)]
-            self._add_status_message(f"Starting MNE conversion with channels: {', '.join(selected_names[:5])}")
-            self.show_status("Converting data to MNE format...")
+            total_channels = len(self.channel_names)
+            self._add_status_message(f"Starting MNE conversion with ALL {total_channels} available channels")
+            self.show_status("Converting all channel data to MNE format...")
 
         except Exception as e:
             self.show_error("MNE Error", f"Error starting conversion: {str(e)}")
@@ -628,6 +578,15 @@ class MNEPanel(BasePanel):
             self.show_error("MNE Error", "MNE conversion not complete or failed.")
             return
 
+        # Update channel selection (in case user changed it after conversion)
+        self._update_channel_selection()
+        
+        # If no channels selected, use all available
+        if not self.selected_channels:
+            if self.channel_names:
+                self.selected_channels = list(range(len(self.channel_names)))
+                self._update_selected_channels_label()
+
         try:
             # Get plot parameters
             plot_type = self.plot_type_combo.currentText()
@@ -640,14 +599,15 @@ class MNEPanel(BasePanel):
             # Get current theme background color
             bg_color = "#2b2b2b"  # Dark theme background
 
-            # Start visualization with PSD mode option
+            # Start visualization with selected channels for display
             self.current_visualization_task = self.mne_service.create_visualization_async(
                 task_id=self.current_conversion_task,
                 plot_type=plot_type,
                 freq_min=freq_min,
                 freq_max=freq_max,
                 bg_color=bg_color,
-                show_individual_channels=show_individual,  # Pass the PSD mode preference
+                show_individual_channels=show_individual,
+                selected_channels_for_display=self.selected_channels,  # NEW: channels to display
                 callback=self._visualization_callback
             )
 
@@ -658,7 +618,8 @@ class MNEPanel(BasePanel):
             self.plot_progress.setRange(0, 0)  # Indeterminate progress
 
             psd_mode = "individual" if show_individual else "averaged"
-            self._add_status_message(f"Starting {plot_type} visualization ({psd_mode}) - Task: {self.current_visualization_task}")
+            selected_names = [self.channel_names[i] for i in self.selected_channels if i < len(self.channel_names)]
+            self._add_status_message(f"Starting {plot_type} visualization ({psd_mode}) with {len(self.selected_channels)} channels: {', '.join(selected_names[:3])}{'...' if len(selected_names) > 3 else ''}")
             self.show_status(f"Generating {plot_type} visualization...")
 
         except Exception as e:
@@ -691,11 +652,13 @@ class MNEPanel(BasePanel):
         """Handle conversion completion in main thread."""
         if result.get("success"):
             channels_used = result.get('channels', 0)
-            self._add_status_message(f"Conversion completed successfully: {task_id} ({channels_used} channels)")
-            self.show_status(f"Converted {result.get('duration', 0)}s of data to MNE format ({channels_used} channels)")
+            self._add_status_message(f"Conversion completed successfully: {task_id} (ALL {channels_used} channels converted)")
+            self.show_status(f"Converted {result.get('duration', 0)}s of ALL channel data to MNE format ({channels_used} channels)")
             
-            # Enable plot button
+            # Enable plot button and channel selection
             self.plot_mne_btn.setEnabled(True)
+            if hasattr(self, 'select_channels_btn'):
+                self.select_channels_btn.setEnabled(True)
         else:
             error_msg = result.get("error", "Unknown error")
             self._add_status_message(f"Conversion failed: {error_msg}")
@@ -868,3 +831,51 @@ class MNEPanel(BasePanel):
             self.status_timer.stop()
         
         super().closeEvent(event)
+
+    def open_channel_selection(self):
+        """Open the channel selection dialog."""
+        try:
+            # Update channel information
+            self._update_channel_selection()
+            
+            if not self.channel_names:
+                self.show_error("Channel Selection", "No channels available. Start streaming first.")
+                return
+            
+            # Create and show dialog
+            dialog = ChannelSelectionDialog(
+                channel_names=self.channel_names,
+                selected_channels=self.selected_channels,
+                parent=self
+            )
+            
+            if dialog.exec_() == QDialog.Accepted:
+                # Update selected channels
+                self.selected_channels = dialog.get_selected_channels()
+                self._update_selected_channels_label()
+                
+                self._add_status_message(f"Selected {len(self.selected_channels)} channels for MNE analysis")
+                
+        except Exception as e:
+            self.show_error("Channel Selection Error", f"Error opening channel selection: {str(e)}")
+            logging.error(f"Channel selection error: {e}")
+
+    def _update_selected_channels_label(self):
+        """Update the selected channels label."""
+        if not self.selected_channels:
+            self.selected_channels_label.setText("No channels selected")
+            self.selected_channels_label.setStyleSheet("color: #FF6B6B; font-style: italic;")
+        elif len(self.selected_channels) == len(self.channel_names):
+            self.selected_channels_label.setText("All channels")
+            self.selected_channels_label.setStyleSheet("color: #96CEB4; font-style: italic;")
+        else:
+            # Show first few channel names
+            if len(self.selected_channels) <= 3:
+                names = [self.channel_names[i] for i in self.selected_channels if i < len(self.channel_names)]
+                text = ", ".join(names)
+            else:
+                names = [self.channel_names[i] for i in self.selected_channels[:3] if i < len(self.channel_names)]
+                text = f"{', '.join(names)}... ({len(self.selected_channels)} total)"
+            
+            self.selected_channels_label.setText(text)
+            self.selected_channels_label.setStyleSheet("color: #CCCCCC; font-style: italic;")
