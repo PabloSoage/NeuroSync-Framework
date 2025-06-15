@@ -18,7 +18,7 @@ from PyQt5.QtWidgets import (
     QDialogButtonBox,
     QScrollArea,
     QFrame,
-    QGridLayout,
+    QGridLayout, QWidget,
 )
 from PyQt5.QtCore import QTimer, pyqtSignal, Qt
 from PyQt5.QtGui import QPixmap
@@ -332,8 +332,29 @@ class MNEPanel(BasePanel):
 
         # Add description
         mne_layout.addWidget(
-            QLabel("Convert BrainFlow data to MNE format for advanced analysis (all channels)")
+            QLabel("Convert BrainFlow data to MNE format for advanced analysis")
         )
+
+        # Conversion Mode Selection (NEW)
+        mode_layout = QHBoxLayout()
+        mode_layout.addWidget(QLabel("Conversion Mode:"))
+        
+        self.conversion_mode_combo = QComboBox()
+        self.conversion_mode_combo.addItems([
+            "Flexible Mode (All Channels)", 
+            "Performance Mode (Selected Only)"
+        ])
+        self.conversion_mode_combo.setCurrentText("Flexible Mode (All Channels)")  # Default to flexible
+        self.conversion_mode_combo.currentTextChanged.connect(self._on_conversion_mode_changed)
+        mode_layout.addWidget(self.conversion_mode_combo)
+        
+        # Add info icon for mode explanation
+        self.mode_info_label = QLabel("ℹ️ Converts all channels, apply selection during visualization")
+        self.mode_info_label.setStyleSheet("color: #888888; font-style: italic; font-size: 10px;")
+        mode_layout.addWidget(self.mode_info_label)
+        
+        mode_layout.addStretch()
+        mne_layout.addLayout(mode_layout)
 
         # MNE Parameters
         mne_params_layout = QHBoxLayout()
@@ -351,7 +372,26 @@ class MNEPanel(BasePanel):
 
         mne_layout.addLayout(mne_params_layout)
 
-        # Remove channel selection from conversion section - it's now only for visualization
+        # Channel selection for Performance Mode (initially hidden)
+        self.performance_channel_layout = QHBoxLayout()
+        self.performance_channel_layout.addWidget(QLabel("Channels for Conversion:"))
+        
+        self.conversion_channels_label = QLabel("All channels")
+        self.conversion_channels_label.setStyleSheet("color: #CCCCCC; font-style: italic;")
+        self.performance_channel_layout.addWidget(self.conversion_channels_label)
+        
+        self.performance_channel_layout.addStretch()
+        
+        self.select_conversion_channels_btn = QPushButton("Select Channels")
+        self.select_conversion_channels_btn.clicked.connect(self.open_conversion_channel_selection)
+        self.select_conversion_channels_btn.setStyleSheet("background-color: #FF8C00;")  # Orange for performance
+        self.performance_channel_layout.addWidget(self.select_conversion_channels_btn)
+        
+        # Initially hide performance mode controls
+        self.performance_channel_widget = QWidget()
+        self.performance_channel_widget.setLayout(self.performance_channel_layout)
+        self.performance_channel_widget.setVisible(False)
+        mne_layout.addWidget(self.performance_channel_widget)
 
         # MNE Control buttons
         mne_buttons_layout = QHBoxLayout()
@@ -374,6 +414,499 @@ class MNEPanel(BasePanel):
         mne_layout.addWidget(self.conversion_progress)
 
         self.layout.addWidget(mne_group)
+
+    def _on_conversion_mode_changed(self):
+        """Handle conversion mode change."""
+        selected_mode = self.conversion_mode_combo.currentText()
+        
+        is_performance_mode = "Performance Mode" in selected_mode
+        
+        # Show/hide performance mode controls
+        self.performance_channel_widget.setVisible(is_performance_mode)
+        
+        # Update info label
+        if is_performance_mode:
+            self.mode_info_label.setText("⚡ Converts only selected channels for better performance")
+            self.mode_info_label.setStyleSheet("color: #FFB366; font-style: italic; font-size: 10px;")
+        else:
+            self.mode_info_label.setText("ℹ️ Converts all channels, apply selection during visualization")
+            self.mode_info_label.setStyleSheet("color: #88BB88; font-style: italic; font-size: 10px;")
+
+    def open_conversion_channel_selection(self):
+        """Open channel selection dialog for conversion (Performance Mode)."""
+        try:
+            # Update channel information
+            self._update_channel_selection()
+            
+            if not self.channel_names:
+                self.show_error("Channel Selection", "No channels available. Start streaming first.")
+                return
+            
+            # Create and show dialog with different title for conversion
+            dialog = ChannelSelectionDialog(
+                channel_names=self.channel_names,
+                selected_channels=getattr(self, 'conversion_selected_channels', self.selected_channels),
+                parent=self
+            )
+            dialog.setWindowTitle("Select Channels for MNE Conversion")
+            
+            if dialog.exec_() == QDialog.Accepted:
+                # Update conversion-specific selected channels
+                self.conversion_selected_channels = dialog.get_selected_channels()
+                self._update_conversion_channels_label()
+                
+                self._add_status_message(f"Selected {len(self.conversion_selected_channels)} channels for MNE conversion")
+                
+        except Exception as e:
+            self.show_error("Channel Selection Error", f"Error opening conversion channel selection: {str(e)}")
+            logging.error(f"Conversion channel selection error: {e}")
+
+    def _update_conversion_channels_label(self):
+        """Update the conversion channels label."""
+        if not hasattr(self, 'conversion_selected_channels'):
+            self.conversion_selected_channels = self.selected_channels.copy()
+        
+        if not self.conversion_selected_channels:
+            self.conversion_channels_label.setText("No channels selected")
+            self.conversion_channels_label.setStyleSheet("color: #FF6B6B; font-style: italic;")
+        elif len(self.conversion_selected_channels) == len(self.channel_names):
+            self.conversion_channels_label.setText("All channels")
+            self.conversion_channels_label.setStyleSheet("color: #96CEB4; font-style: italic;")
+        else:
+            # Show first few channel names
+            if len(self.conversion_selected_channels) <= 3:
+                names = [self.channel_names[i] for i in self.conversion_selected_channels if i < len(self.channel_names)]
+                text = ", ".join(names)
+            else:
+                names = [self.channel_names[i] for i in self.conversion_selected_channels[:3] if i < len(self.channel_names)]
+                text = f"{', '.join(names)}... ({len(self.conversion_selected_channels)} total)"
+            
+            self.conversion_channels_label.setText(text)
+            self.conversion_channels_label.setStyleSheet("color: #CCCCCC; font-style: italic;")
+
+    def convert_to_mne(self) -> None:
+        """Convert BrainFlow data to MNE format asynchronously."""
+        if not self.mne_service.is_available():
+            self.show_error("MNE Error", "MNE package is not installed")
+            return
+
+        # Update channel selection in case it hasn't been initialized
+        self._update_channel_selection()
+
+        if not self.channel_names:
+            self.show_error("MNE Error", "No channels available. Start streaming first.")
+            return
+
+        # Determine conversion mode
+        selected_mode = self.conversion_mode_combo.currentText()
+        is_performance_mode = "Performance Mode" in selected_mode
+        
+        # Determine which channels to convert
+        if is_performance_mode:
+            # Performance Mode: Convert only selected channels
+            if not hasattr(self, 'conversion_selected_channels'):
+                self.conversion_selected_channels = self.selected_channels.copy()
+            
+            if not self.conversion_selected_channels:
+                self.show_error("MNE Error", "No channels selected for conversion. Please select channels first.")
+                return
+            
+            channels_for_conversion = self.conversion_selected_channels
+            conversion_info = f"SELECTED {len(channels_for_conversion)} channels"
+        else:
+            # Flexible Mode: Convert all channels
+            channels_for_conversion = None  # None means all channels
+            conversion_info = f"ALL {len(self.channel_names)} channels"
+
+        try:
+            # Get parameters
+            duration_seconds = self.mne_duration_spin.value()
+            convert_to_v = self.convert_to_v_check.isChecked()
+
+            # Start conversion with appropriate channel selection
+            self.current_conversion_task = self.mne_service.convert_to_mne_async(
+                duration_seconds=duration_seconds,
+                convert_to_v=convert_to_v,
+                selected_channels=channels_for_conversion,
+                callback=self._conversion_callback
+            )
+
+            # Update UI state
+            self.convert_to_mne_btn.setEnabled(False)
+            self.cancel_conversion_btn.setEnabled(True)
+            self.conversion_progress.setVisible(True)
+            self.conversion_progress.setRange(0, 0)  # Indeterminate progress
+
+            # Start status monitoring
+            self.status_timer.start(100)  # Check every 100ms
+
+            mode_name = "Performance" if is_performance_mode else "Flexible"
+            self._add_status_message(f"Starting MNE conversion in {mode_name} Mode with {conversion_info}")
+            self.show_status(f"Converting {conversion_info} to MNE format...")
+
+        except Exception as e:
+            self.show_error("MNE Error", f"Error starting conversion: {str(e)}")
+            logging.error(f"MNE conversion start error: {e}")
+
+    def cancel_conversion(self) -> None:
+        """Cancel the current MNE conversion."""
+        if self.current_conversion_task:
+            if self.mne_service.cancel_task(self.current_conversion_task):
+                self._add_status_message(f"Cancelled conversion task: {self.current_conversion_task}")
+                self.show_status("Conversion cancelled")
+            else:
+                self._add_status_message("Failed to cancel conversion task")
+
+            self._reset_conversion_ui()
+            self.current_conversion_task = None
+
+    def plot_mne_visualization(self) -> None:
+        """Create MNE visualization asynchronously."""
+        if not self.current_conversion_task:
+            self.show_error("MNE Error", "No MNE data available. Convert data first.")
+            return
+
+        # Check if conversion is complete
+        status = self.mne_service.get_task_status(self.current_conversion_task)
+        if not status.get("ready") or not status.get("successful"):
+            self.show_error("MNE Error", "MNE conversion not complete or failed.")
+            return
+
+        # Update channel selection (in case user changed it after conversion)
+        self._update_channel_selection()
+        
+        # If no channels selected, use all available
+        if not self.selected_channels:
+            if self.channel_names:
+                self.selected_channels = list(range(len(self.channel_names)))
+                self._update_selected_channels_label()
+
+        try:
+            # Get plot parameters
+            plot_type = self.plot_type_combo.currentText()
+            freq_min = self.freq_min_spin.value()
+            freq_max = self.freq_max_spin.value()
+            
+            # Get topomap frequency range
+            topomap_freq_min, topomap_freq_max = self._get_topomap_frequency_range()
+            
+            # Get PSD mode preference
+            show_individual = self.psd_individual_check.isChecked()
+
+            # Get current theme background color
+            bg_color = "#2b2b2b"  # Dark theme background
+
+            # Start visualization with selected channels for display
+            self.current_visualization_task = self.mne_service.create_visualization_async(
+                task_id=self.current_conversion_task,
+                plot_type=plot_type,
+                freq_min=freq_min,
+                freq_max=freq_max,
+                bg_color=bg_color,
+                show_individual_channels=show_individual,
+                selected_channels_for_display=self.selected_channels,
+                topomap_freq_range=(topomap_freq_min, topomap_freq_max),  # NEW: Pass topomap frequency range
+                callback=self._visualization_callback
+            )
+
+            # Update UI state
+            self.plot_mne_btn.setEnabled(False)
+            self.cancel_plot_btn.setEnabled(True)
+            self.plot_progress.setVisible(True)
+            self.plot_progress.setRange(0, 0) # Indeterminate progress
+
+            psd_mode = "individual" if show_individual else "averaged"
+            selected_names = [self.channel_names[i] for i in self.selected_channels if i < len(self.channel_names)]
+            
+            # Include topomap band info in status message
+            band_name = self.topomap_band_combo.currentText()
+            if plot_type.lower() == "topomap":
+                self._add_status_message(f"Starting {plot_type} visualization with {band_name} ({topomap_freq_min}-{topomap_freq_max} Hz) using {len(self.selected_channels)} channels: {', '.join(selected_names[:3])}{'...' if len(selected_names) > 3 else ''}")
+            else:
+                self._add_status_message(f"Starting {plot_type} visualization ({psd_mode}) with {len(self.selected_channels)} channels: {', '.join(selected_names[:3])}{'...' if len(selected_names) > 3 else ''}")
+            
+            self.show_status(f"Generating {plot_type} visualization...")
+
+        except Exception as e:
+            self.show_error("MNE Error", f"Error starting visualization: {str(e)}")
+            logging.error(f"MNE visualization start error: {e}")
+
+    def cancel_visualization(self) -> None:
+        """Cancel the current visualization."""
+        if self.current_visualization_task:
+            if self.mne_service.cancel_task(self.current_visualization_task):
+                self._add_status_message(f"Cancelled visualization task: {self.current_visualization_task}")
+                self.show_status("Visualization cancelled")
+            else:
+                self._add_status_message("Failed to cancel visualization task")
+
+            self._reset_visualization_ui()
+            self.current_visualization_task = None
+
+    def _conversion_callback(self, task_id: str, result: Dict[str, Any]) -> None:
+        """Callback for conversion completion (called from process)."""
+        # Emit signal to update UI in main thread
+        self.conversion_completed.emit(task_id, result)
+
+    def _visualization_callback(self, task_id: str, result: Dict[str, Any]) -> None:
+        """Callback for visualization completion (called from process)."""
+        # Emit signal to update UI in main thread
+        self.visualization_completed.emit(task_id, result)
+
+    def _on_conversion_completed(self, task_id: str, result: Dict[str, Any]) -> None:
+        """Handle conversion completion in main thread."""
+        if result.get("success"):
+            channels_used = result.get('channels', 0)
+            selected_mode = self.conversion_mode_combo.currentText()
+            mode_name = "Performance" if "Performance Mode" in selected_mode else "Flexible"
+            
+            self._add_status_message(f"Conversion completed successfully: {task_id} ({mode_name} Mode - {channels_used} channels converted)")
+            self.show_status(f"Converted {result.get('duration', 0)}s of data to MNE format ({channels_used} channels, {mode_name} Mode)")
+            
+            # Enable plot button and channel selection
+            self.plot_mne_btn.setEnabled(True)
+            if hasattr(self, 'select_channels_btn'):
+                self.select_channels_btn.setEnabled(True)
+        else:
+            error_msg = result.get("error", "Unknown error")
+            self._add_status_message(f"Conversion failed: {error_msg}")
+            self.show_error("MNE Conversion Error", error_msg)
+
+        self._reset_conversion_ui()
+
+    def _on_visualization_completed(self, task_id: str, result: Dict[str, Any]) -> None:
+        """Handle visualization completion in main thread."""
+        if result.get("success"):
+            self._add_status_message(f"Visualization completed: {task_id}")
+            self.show_status(f"Generated {result.get('plot_type', '')} visualization")
+            
+            # Display the plot
+            self._display_plot(result.get("plot_data"))
+        else:
+            error_msg = result.get("error", "Unknown error")
+            self._add_status_message(f"Visualization failed: {error_msg}")
+            self.show_error("MNE Visualization Error", error_msg)
+
+        self._reset_visualization_ui()
+
+    def _display_plot(self, plot_data: str) -> None:
+        """Display the generated plot with proper scaling."""
+        if plot_data:
+            try:
+                # Decode base64 plot data
+                image_data = base64.b64decode(plot_data)
+                pixmap = QPixmap()
+                pixmap.loadFromData(image_data)
+                
+                if not pixmap.isNull():
+                    # Scale pixmap to fit the display area while maintaining aspect ratio
+                    display_size = self.plot_display.size()
+                    scaled_pixmap = pixmap.scaled(
+                        display_size, 
+                        Qt.KeepAspectRatio, 
+                        Qt.SmoothTransformation  # Use smooth transformation for better quality
+                    )
+                    
+                    # Display in label
+                    self.plot_display.setPixmap(scaled_pixmap)
+                    self.plot_display.setText("")  # Clear text
+                else:
+                    self.plot_display.setText("Error: Could not load plot image")
+                
+            except Exception as e:
+                logging.error(f"Error displaying plot: {e}")
+                self.plot_display.setText(f"Error displaying plot: {str(e)}")
+        else:
+            self.plot_display.setText("No plot data received")
+
+    def _check_task_status(self) -> None:
+        """Check status of active tasks."""
+        # Update status of conversion task
+        if self.current_conversion_task:
+            status = self.mne_service.get_task_status(self.current_conversion_task)
+            if status:
+                self._add_status_message(f"Conversion task status: {status.get('status', 'unknown')}")
+        
+        # Update status of visualization task
+        if self.current_visualization_task:
+            status = self.mne_service.get_task_status(self.current_visualization_task)
+            if status:
+                self._add_status_message(f"Visualization task status: {status.get('status', 'unknown')}")
+        
+        # Stop timer if no active tasks
+        if not self.current_conversion_task and not self.current_visualization_task:
+            self.status_timer.stop()
+
+    def _reset_conversion_ui(self) -> None:
+        """Reset conversion UI elements."""
+        self.convert_to_mne_btn.setEnabled(True)
+        self.cancel_conversion_btn.setEnabled(False)
+        self.conversion_progress.setVisible(False)
+
+    def _reset_visualization_ui(self) -> None:
+        """Reset visualization UI elements."""
+        self.plot_mne_btn.setEnabled(True)
+        self.cancel_plot_btn.setEnabled(False)
+        self.plot_progress.setVisible(False)
+
+    def _add_status_message(self, message: str) -> None:
+        """Add a status message to the status text area."""
+        if hasattr(self, 'status_text'):
+            import time
+            timestamp = time.strftime("%H:%M:%S")
+            self.status_text.append(f"[{timestamp}] {message}")
+
+    def enable_processing(self, enabled: bool) -> None:
+        """Enable or disable MNE processing controls."""
+        if hasattr(self, 'convert_to_mne_btn'):
+            if enabled and not self.current_conversion_task:
+                self.convert_to_mne_btn.setEnabled(True)
+            elif not enabled:
+                self.convert_to_mne_btn.setEnabled(False)
+
+        # Enable/disable channel selection for both modes
+        if hasattr(self, 'select_channels_btn'):
+            self.select_channels_btn.setEnabled(enabled)
+        if hasattr(self, 'select_conversion_channels_btn'):
+            self.select_conversion_channels_btn.setEnabled(enabled)
+
+        # Reset dependent buttons if disabling
+        if not enabled:
+            if hasattr(self, 'plot_mne_btn'):
+                self.plot_mne_btn.setEnabled(False)
+            self.current_conversion_task = None
+            self.current_visualization_task = None
+        
+        # Update channel selection when enabling to ensure it's current
+        if enabled:
+            self._update_channel_selection()
+            self._update_selected_channels_label()
+            if hasattr(self, 'conversion_selected_channels'):
+                self._update_conversion_channels_label()
+
+    # API compatibility methods
+    def get_mne_settings(self) -> Dict[str, Any]:
+        """Get current MNE settings."""
+        if not self.mne_service.is_available():
+            return {"available": False}
+
+        # Get topomap frequency range
+        topomap_freq_min, topomap_freq_max = self._get_topomap_frequency_range()
+        
+        # Get conversion mode
+        selected_mode = self.conversion_mode_combo.currentText() if hasattr(self, "conversion_mode_combo") else "Flexible Mode (All Channels)"
+        is_performance_mode = "Performance Mode" in selected_mode
+
+        return {
+            "available": True,
+            "duration": self.mne_duration_spin.value() if hasattr(self, "mne_duration_spin") else 10,
+            "convert_to_v": self.convert_to_v_check.isChecked() if hasattr(self, "convert_to_v_check") else True,
+            "conversion_mode": "performance" if is_performance_mode else "flexible",
+            "plot_type": self.plot_type_combo.currentText() if hasattr(self, "plot_type_combo") else "PSD",
+            "freq_range": [
+                self.freq_min_spin.value() if hasattr(self, "freq_min_spin") else 1,
+                self.freq_max_spin.value() if hasattr(self, "freq_max_spin") else 50
+            ],
+            "topomap_band": self.topomap_band_combo.currentText() if hasattr(self, "topomap_band_combo") else "Alpha (8-13 Hz)",
+            "topomap_freq_range": [topomap_freq_min, topomap_freq_max],
+            "selected_channels": self.selected_channels,
+            "conversion_channels": getattr(self, 'conversion_selected_channels', self.selected_channels),
+            "channel_names": self.channel_names,
+            "psd_individual_mode": self.psd_individual_check.isChecked() if hasattr(self, "psd_individual_check") else True
+        }
+
+    def update_mne_plot(self, plot_data: Dict[str, Any]) -> bool:
+        """Update MNE plot from API call."""
+        if not self.mne_service.is_available():
+            return False
+
+        try:
+            plot_type = plot_data.get("type", "psd")
+            
+            if plot_type.lower() in ["psd", "topomap", "raw data", "spectrogram"]:
+                # Set the combo box and trigger plotting
+                if hasattr(self, 'plot_type_combo'):
+                    index = self.plot_type_combo.findText(plot_type.title())
+                    if index >= 0:
+                        self.plot_type_combo.setCurrentIndex(index)
+                        
+                self.plot_mne_visualization()
+                return True
+            
+            return False
+            
+        except Exception as e:
+            self.show_error("MNE Plot Update Error", str(e))
+            return False
+
+    def closeEvent(self, event) -> None:
+        """Handle panel close event."""
+        # Cancel any active tasks
+        if self.current_conversion_task:
+            self.mne_service.cancel_task(self.current_conversion_task)
+        if self.current_visualization_task:
+            self.mne_service.cancel_task(self.current_visualization_task)
+        
+        # Stop timer
+        if hasattr(self, 'status_timer'):
+            self.status_timer.stop()
+        
+        super().closeEvent(event)
+
+    def open_channel_selection(self):
+        """Open the channel selection dialog."""
+        try:
+            # Update channel information
+            self._update_channel_selection()
+            
+            if not self.channel_names:
+                self.show_error("Channel Selection", "No channels available. Start streaming first.")
+                return
+            
+            # Create and show dialog
+            dialog = ChannelSelectionDialog(
+                channel_names=self.channel_names,
+                selected_channels=self.selected_channels,
+                parent=self
+            )
+            
+            if dialog.exec_() == QDialog.Accepted:
+                # Update selected channels
+                self.selected_channels = dialog.get_selected_channels()
+                self._update_selected_channels_label()
+                
+                self._add_status_message(f"Selected {len(self.selected_channels)} channels for MNE analysis")
+                
+        except Exception as e:
+            self.show_error("Channel Selection Error", f"Error opening channel selection: {str(e)}")
+            logging.error(f"Channel selection error: {e}")
+
+    def _update_selected_channels_label(self):
+        """Update the selected channels label."""
+        if not self.selected_channels:
+            self.selected_channels_label.setText("No channels selected")
+            self.selected_channels_label.setStyleSheet("color: #FF6B6B; font-style: italic;")
+        elif len(self.selected_channels) == len(self.channel_names):
+            self.selected_channels_label.setText("All channels")
+            self.selected_channels_label.setStyleSheet("color: #96CEB4; font-style: italic;")
+        else:
+            # Show first few channel names
+            if len(self.selected_channels) <= 3:
+                names = [self.channel_names[i] for i in self.selected_channels if i < len(self.channel_names)]
+                text = ", ".join(names)
+            else:
+                names = [self.channel_names[i] for i in self.selected_channels[:3] if i < len(self.channel_names)]
+                text = f"{', '.join(names)}... ({len(self.selected_channels)} total)"
+            
+            self.selected_channels_label.setText(text)
+            self.selected_channels_label.setStyleSheet("color: #CCCCCC; font-style: italic;")
+
+    def _update_psd_mode_info(self):
+        """Update the PSD mode information label."""
+        if self.psd_individual_check.isChecked():
+            self.psd_mode_info.setText("(Individual channels with colors)")
+        else:
+            self.psd_mode_info.setText("(Average with variability band)")
 
     def setup_mne_visualization(self) -> None:
         """Set up MNE visualization section."""
@@ -403,7 +936,7 @@ class MNEPanel(BasePanel):
         
         mne_viz_layout.addLayout(plot_selection_layout)
 
-        # Topomap Band Selection (NEW)
+        # Topomap Band Selection
         topomap_band_layout = QHBoxLayout()
         topomap_band_layout.addWidget(QLabel("Topomap Band:"))
         
@@ -443,7 +976,7 @@ class MNEPanel(BasePanel):
         topomap_band_layout.addStretch()
         mne_viz_layout.addLayout(topomap_band_layout)
 
-        # Channel selection (MOVED HERE from conversion section)
+        # Channel selection for visualization
         channel_selection_layout = QHBoxLayout()
         channel_selection_layout.addWidget(QLabel("Channels to Display:"))
         
@@ -589,396 +1122,3 @@ class MNEPanel(BasePanel):
         status_layout.addWidget(self.status_text)
 
         self.layout.addWidget(status_group)
-
-    def convert_to_mne(self) -> None:
-        """Convert BrainFlow data to MNE format asynchronously (ALL channels)."""
-        if not self.mne_service.is_available():
-            self.show_error("MNE Error", "MNE package is not installed")
-            return
-
-        # Update channel selection in case it hasn't been initialized
-        self._update_channel_selection()
-
-        # Always convert ALL available channels - selection is applied only during visualization
-        if not self.channel_names:
-            self.show_error("MNE Error", "No channels available. Start streaming first.")
-            return
-
-        try:
-            # Get parameters
-            duration_seconds = self.mne_duration_spin.value()
-            convert_to_v = self.convert_to_v_check.isChecked()
-
-            # Start conversion with ALL channels (pass None for selected_channels)
-            self.current_conversion_task = self.mne_service.convert_to_mne_async(
-                duration_seconds=duration_seconds,
-                convert_to_v=convert_to_v,
-                selected_channels=None,  # Convert ALL channels
-                callback=self._conversion_callback
-            )
-
-            # Update UI state
-            self.convert_to_mne_btn.setEnabled(False)
-            self.cancel_conversion_btn.setEnabled(True)
-            self.conversion_progress.setVisible(True)
-            self.conversion_progress.setRange(0, 0)  # Indeterminate progress
-
-            # Start status monitoring
-            self.status_timer.start(100)  # Check every 100ms
-
-            total_channels = len(self.channel_names)
-            self._add_status_message(f"Starting MNE conversion with ALL {total_channels} available channels")
-            self.show_status("Converting all channel data to MNE format...")
-
-        except Exception as e:
-            self.show_error("MNE Error", f"Error starting conversion: {str(e)}")
-            logging.error(f"MNE conversion start error: {e}")
-
-    def cancel_conversion(self) -> None:
-        """Cancel the current MNE conversion."""
-        if self.current_conversion_task:
-            if self.mne_service.cancel_task(self.current_conversion_task):
-                self._add_status_message(f"Cancelled conversion task: {self.current_conversion_task}")
-                self.show_status("Conversion cancelled")
-            else:
-                self._add_status_message("Failed to cancel conversion task")
-
-            self._reset_conversion_ui()
-            self.current_conversion_task = None
-
-    def plot_mne_visualization(self) -> None:
-        """Create MNE visualization asynchronously."""
-        if not self.current_conversion_task:
-            self.show_error("MNE Error", "No MNE data available. Convert data first.")
-            return
-
-        # Check if conversion is complete
-        status = self.mne_service.get_task_status(self.current_conversion_task)
-        if not status.get("ready") or not status.get("successful"):
-            self.show_error("MNE Error", "MNE conversion not complete or failed.")
-            return
-
-        # Update channel selection (in case user changed it after conversion)
-        self._update_channel_selection()
-        
-        # If no channels selected, use all available
-        if not self.selected_channels:
-            if self.channel_names:
-                self.selected_channels = list(range(len(self.channel_names)))
-                self._update_selected_channels_label()
-
-        try:
-            # Get plot parameters
-            plot_type = self.plot_type_combo.currentText()
-            freq_min = self.freq_min_spin.value()
-            freq_max = self.freq_max_spin.value()
-            
-            # Get topomap frequency range
-            topomap_freq_min, topomap_freq_max = self._get_topomap_frequency_range()
-            
-            # Get PSD mode preference
-            show_individual = self.psd_individual_check.isChecked()
-
-            # Get current theme background color
-            bg_color = "#2b2b2b"  # Dark theme background
-
-            # Start visualization with selected channels for display
-            self.current_visualization_task = self.mne_service.create_visualization_async(
-                task_id=self.current_conversion_task,
-                plot_type=plot_type,
-                freq_min=freq_min,
-                freq_max=freq_max,
-                bg_color=bg_color,
-                show_individual_channels=show_individual,
-                selected_channels_for_display=self.selected_channels,
-                topomap_freq_range=(topomap_freq_min, topomap_freq_max),  # NEW: Pass topomap frequency range
-                callback=self._visualization_callback
-            )
-
-            # Update UI state
-            self.plot_mne_btn.setEnabled(False)
-            self.cancel_plot_btn.setEnabled(True)
-            self.plot_progress.setVisible(True)
-            self.plot_progress.setRange(0, 0)  # Indeterminate progress
-
-            psd_mode = "individual" if show_individual else "averaged"
-            selected_names = [self.channel_names[i] for i in self.selected_channels if i < len(self.channel_names)]
-            
-            # Include topomap band info in status message
-            band_name = self.topomap_band_combo.currentText()
-            if plot_type.lower() == "topomap":
-                self._add_status_message(f"Starting {plot_type} visualization with {band_name} ({topomap_freq_min}-{topomap_freq_max} Hz) using {len(self.selected_channels)} channels: {', '.join(selected_names[:3])}{'...' if len(selected_names) > 3 else ''}")
-            else:
-                self._add_status_message(f"Starting {plot_type} visualization ({psd_mode}) with {len(self.selected_channels)} channels: {', '.join(selected_names[:3])}{'...' if len(selected_names) > 3 else ''}")
-            
-            self.show_status(f"Generating {plot_type} visualization...")
-
-        except Exception as e:
-            self.show_error("MNE Error", f"Error starting visualization: {str(e)}")
-            logging.error(f"MNE visualization start error: {e}")
-
-    def cancel_visualization(self) -> None:
-        """Cancel the current visualization."""
-        if self.current_visualization_task:
-            if self.mne_service.cancel_task(self.current_visualization_task):
-                self._add_status_message(f"Cancelled visualization task: {self.current_visualization_task}")
-                self.show_status("Visualization cancelled")
-            else:
-                self._add_status_message("Failed to cancel visualization task")
-
-            self._reset_visualization_ui()
-            self.current_visualization_task = None
-
-    def _conversion_callback(self, task_id: str, result: Dict[str, Any]) -> None:
-        """Callback for conversion completion (called from process)."""
-        # Emit signal to update UI in main thread
-        self.conversion_completed.emit(task_id, result)
-
-    def _visualization_callback(self, task_id: str, result: Dict[str, Any]) -> None:
-        """Callback for visualization completion (called from process)."""
-        # Emit signal to update UI in main thread
-        self.visualization_completed.emit(task_id, result)
-
-    def _on_conversion_completed(self, task_id: str, result: Dict[str, Any]) -> None:
-        """Handle conversion completion in main thread."""
-        if result.get("success"):
-            channels_used = result.get('channels', 0)
-            self._add_status_message(f"Conversion completed successfully: {task_id} (ALL {channels_used} channels converted)")
-            self.show_status(f"Converted {result.get('duration', 0)}s of ALL channel data to MNE format ({channels_used} channels)")
-            
-            # Enable plot button and channel selection
-            self.plot_mne_btn.setEnabled(True)
-            if hasattr(self, 'select_channels_btn'):
-                self.select_channels_btn.setEnabled(True)
-        else:
-            error_msg = result.get("error", "Unknown error")
-            self._add_status_message(f"Conversion failed: {error_msg}")
-            self.show_error("MNE Conversion Error", error_msg)
-
-        self._reset_conversion_ui()
-
-    def _on_visualization_completed(self, task_id: str, result: Dict[str, Any]) -> None:
-        """Handle visualization completion in main thread."""
-        if result.get("success"):
-            self._add_status_message(f"Visualization completed: {task_id}")
-            self.show_status(f"Generated {result.get('plot_type', '')} visualization")
-            
-            # Display the plot
-            self._display_plot(result.get("plot_data"))
-        else:
-            error_msg = result.get("error", "Unknown error")
-            self._add_status_message(f"Visualization failed: {error_msg}")
-            self.show_error("MNE Visualization Error", error_msg)
-
-        self._reset_visualization_ui()
-
-    def _display_plot(self, plot_data: str) -> None:
-        """Display the generated plot with proper scaling."""
-        if plot_data:
-            try:
-                # Decode base64 plot data
-                image_data = base64.b64decode(plot_data)
-                pixmap = QPixmap()
-                pixmap.loadFromData(image_data)
-                
-                if not pixmap.isNull():
-                    # Scale pixmap to fit the display area while maintaining aspect ratio
-                    display_size = self.plot_display.size()
-                    scaled_pixmap = pixmap.scaled(
-                        display_size, 
-                        Qt.KeepAspectRatio, 
-                        Qt.SmoothTransformation  # Use smooth transformation for better quality
-                    )
-                    
-                    # Display in label
-                    self.plot_display.setPixmap(scaled_pixmap)
-                    self.plot_display.setText("")  # Clear text
-                else:
-                    self.plot_display.setText("Error: Could not load plot image")
-                
-            except Exception as e:
-                logging.error(f"Error displaying plot: {e}")
-                self.plot_display.setText(f"Error displaying plot: {str(e)}")
-        else:
-            self.plot_display.setText("No plot data received")
-
-    def _check_task_status(self) -> None:
-        """Check status of active tasks."""
-        # Update status of conversion task
-        if self.current_conversion_task:
-            status = self.mne_service.get_task_status(self.current_conversion_task)
-            if status:
-                self._add_status_message(f"Conversion task status: {status.get('status', 'unknown')}")
-        
-        # Update status of visualization task
-        if self.current_visualization_task:
-            status = self.mne_service.get_task_status(self.current_visualization_task)
-            if status:
-                self._add_status_message(f"Visualization task status: {status.get('status', 'unknown')}")
-        
-        # Stop timer if no active tasks
-        if not self.current_conversion_task and not self.current_visualization_task:
-            self.status_timer.stop()
-
-    def _reset_conversion_ui(self) -> None:
-        """Reset conversion UI elements."""
-        self.convert_to_mne_btn.setEnabled(True)
-        self.cancel_conversion_btn.setEnabled(False)
-        self.conversion_progress.setVisible(False)
-
-    def _reset_visualization_ui(self) -> None:
-        """Reset visualization UI elements."""
-        self.plot_mne_btn.setEnabled(True)
-        self.cancel_plot_btn.setEnabled(False)
-        self.plot_progress.setVisible(False)
-
-    def _add_status_message(self, message: str) -> None:
-        """Add a status message to the status text area."""
-        if hasattr(self, 'status_text'):
-            import time
-            timestamp = time.strftime("%H:%M:%S")
-            self.status_text.append(f"[{timestamp}] {message}")
-
-    def enable_processing(self, enabled: bool) -> None:
-        """Enable or disable MNE processing controls."""
-        if hasattr(self, 'convert_to_mne_btn'):
-            # Always enable the button when streaming is active, regardless of channel selection
-            # The button logic will handle channel selection internally
-            if enabled and not self.current_conversion_task:
-                self.convert_to_mne_btn.setEnabled(True)
-            elif not enabled:
-                self.convert_to_mne_btn.setEnabled(False)
-
-        # Enable/disable channel selection
-        if hasattr(self, 'select_channels_btn'):
-            self.select_channels_btn.setEnabled(enabled)
-
-        # Reset dependent buttons if disabling
-        if not enabled:
-            if hasattr(self, 'plot_mne_btn'):
-                self.plot_mne_btn.setEnabled(False)
-            self.current_conversion_task = None
-            self.current_visualization_task = None
-        
-        # Update channel selection when enabling to ensure it's current
-        if enabled:
-            self._update_channel_selection()
-            self._update_selected_channels_label()
-
-    # API compatibility methods
-    def get_mne_settings(self) -> Dict[str, Any]:
-        """Get current MNE settings."""
-        if not self.mne_service.is_available():
-            return {"available": False}
-
-        # Get topomap frequency range
-        topomap_freq_min, topomap_freq_max = self._get_topomap_frequency_range()
-
-        return {
-            "available": True,
-            "duration": self.mne_duration_spin.value() if hasattr(self, "mne_duration_spin") else 10,
-            "convert_to_v": self.convert_to_v_check.isChecked() if hasattr(self, "convert_to_v_check") else True,
-            "plot_type": self.plot_type_combo.currentText() if hasattr(self, "plot_type_combo") else "PSD",
-            "freq_range": [
-                self.freq_min_spin.value() if hasattr(self, "freq_min_spin") else 1,
-                self.freq_max_spin.value() if hasattr(self, "freq_max_spin") else 50
-            ],
-            "topomap_band": self.topomap_band_combo.currentText() if hasattr(self, "topomap_band_combo") else "Alpha (8-13 Hz)",
-            "topomap_freq_range": [topomap_freq_min, topomap_freq_max],
-            "selected_channels": self.selected_channels,
-            "channel_names": self.channel_names,
-            "psd_individual_mode": self.psd_individual_check.isChecked() if hasattr(self, "psd_individual_check") else True
-        }
-
-    def update_mne_plot(self, plot_data: Dict[str, Any]) -> bool:
-        """Update MNE plot from API call."""
-        if not self.mne_service.is_available():
-            return False
-
-        try:
-            plot_type = plot_data.get("type", "psd")
-            
-            if plot_type.lower() in ["psd", "topomap", "raw data", "spectrogram"]:
-                # Set the combo box and trigger plotting
-                if hasattr(self, 'plot_type_combo'):
-                    index = self.plot_type_combo.findText(plot_type.title())
-                    if index >= 0:
-                        self.plot_type_combo.setCurrentIndex(index)
-                        
-                self.plot_mne_visualization()
-                return True
-            
-            return False
-            
-        except Exception as e:
-            self.show_error("MNE Plot Update Error", str(e))
-            return False
-
-    def closeEvent(self, event) -> None:
-        """Handle panel close event."""
-        # Cancel any active tasks
-        if self.current_conversion_task:
-            self.mne_service.cancel_task(self.current_conversion_task)
-        if self.current_visualization_task:
-            self.mne_service.cancel_task(self.current_visualization_task)
-        
-        # Stop timer
-        if hasattr(self, 'status_timer'):
-            self.status_timer.stop()
-        
-        super().closeEvent(event)
-
-    def open_channel_selection(self):
-        """Open the channel selection dialog."""
-        try:
-            # Update channel information
-            self._update_channel_selection()
-            
-            if not self.channel_names:
-                self.show_error("Channel Selection", "No channels available. Start streaming first.")
-                return
-            
-            # Create and show dialog
-            dialog = ChannelSelectionDialog(
-                channel_names=self.channel_names,
-                selected_channels=self.selected_channels,
-                parent=self
-            )
-            
-            if dialog.exec_() == QDialog.Accepted:
-                # Update selected channels
-                self.selected_channels = dialog.get_selected_channels()
-                self._update_selected_channels_label()
-                
-                self._add_status_message(f"Selected {len(self.selected_channels)} channels for MNE analysis")
-                
-        except Exception as e:
-            self.show_error("Channel Selection Error", f"Error opening channel selection: {str(e)}")
-            logging.error(f"Channel selection error: {e}")
-
-    def _update_selected_channels_label(self):
-        """Update the selected channels label."""
-        if not self.selected_channels:
-            self.selected_channels_label.setText("No channels selected")
-            self.selected_channels_label.setStyleSheet("color: #FF6B6B; font-style: italic;")
-        elif len(self.selected_channels) == len(self.channel_names):
-            self.selected_channels_label.setText("All channels")
-            self.selected_channels_label.setStyleSheet("color: #96CEB4; font-style: italic;")
-        else:
-            # Show first few channel names
-            if len(self.selected_channels) <= 3:
-                names = [self.channel_names[i] for i in self.selected_channels if i < len(self.channel_names)]
-                text = ", ".join(names)
-            else:
-                names = [self.channel_names[i] for i in self.selected_channels[:3] if i < len(self.channel_names)]
-                text = f"{', '.join(names)}... ({len(self.selected_channels)} total)"
-            
-            self.selected_channels_label.setText(text)
-            self.selected_channels_label.setStyleSheet("color: #CCCCCC; font-style: italic;")
-
-    def _update_psd_mode_info(self):
-        """Update the PSD mode information label."""
-        if self.psd_individual_check.isChecked():
-            self.psd_mode_info.setText("(Individual channels with colors)")
-        else:
-            self.psd_mode_info.setText("(Average with variability band)")
