@@ -567,59 +567,105 @@ def _create_visualization_worker(
             data_to_plot = raw.get_data()
             times = raw.times
             
-            # Plot channels with distinct colors
-            max_channels = min(6, data_to_plot.shape[0])  # Show more channels
-            colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD']
+            # Show ALL EEG channels instead of limiting to 6
+            max_channels = data_to_plot.shape[0]  # Show all available channels
             
+            # Generate enough distinct colors for all channels
+            if max_channels <= 10:
+                # Use predefined colors for small number of channels
+                colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', 
+                         '#DDA0DD', '#F39C12', '#E74C3C', '#9B59B6', '#1ABC9C']
+            else:
+                # Generate colors using colormap for many channels
+                import matplotlib.cm as cm
+                colormap = cm.get_cmap('tab20')  # Good for up to 20 distinct colors
+                if max_channels > 20:
+                    colormap = cm.get_cmap('viridis')  # Continuous colormap for many channels
+                colors = [colormap(i / max_channels) for i in range(max_channels)]
+                # Convert to hex strings
+                colors = ['#{:02x}{:02x}{:02x}'.format(
+                    int(c[0]*255), int(c[1]*255), int(c[2]*255)) for c in colors]
+
+            # Calculate appropriate offset between channels for better visualization
+            data_range = np.ptp(data_to_plot)  # Peak-to-peak range of all data
+            if data_range > 0:
+                # Use a reasonable offset based on the data range
+                channel_offset = data_range / max_channels * 1.5
+            else:
+                # Fallback offset if data is flat
+                channel_offset = np.std(data_to_plot) * 3
+                if channel_offset == 0:
+                    channel_offset = 1e-6  # Very small fallback
+
             for i in range(max_channels):
                 color = colors[i % len(colors)]
-                # Scale data for better visualization
-                offset = i * (np.std(data_to_plot) * 3)
+                # Apply offset to separate channels visually
+                offset = i * channel_offset
+                
+                # Get channel name from raw object (MNE preserves channel names)
+                channel_name = raw.ch_names[i] if i < len(raw.ch_names) else f'Ch {i}'
+                
                 ax.plot(times, data_to_plot[i] + offset, 
-                       label=f"{raw.ch_names[i] if i < len(raw.ch_names) else f'Ch {i}'}", 
-                       color=color, linewidth=1.2, alpha=0.9)
-            
+                       label=channel_name,  # Use actual channel name
+                       color=color, linewidth=1.0, alpha=0.9)
+
             ax.set_xlabel("Time (s)", color='white', fontweight='bold')
             ax.set_ylabel("Amplitude (V) + offset", color='white', fontweight='bold')
-            ax.set_title("Raw EEG Data", color='white', fontweight='bold', pad=20)
+            ax.set_title(f"Raw EEG Data ({max_channels} channels)", color='white', fontweight='bold', pad=20)
             
-            # Improve legend
-            legend = ax.legend(loc='upper right', fancybox=True, shadow=True, 
-                             framealpha=0.8, facecolor='#2a2a2a', edgecolor='#666666')
-            for text in legend.get_texts():
-                text.set_color('white')
-            
+            # Improve legend for many channels
+            if max_channels <= 8:
+                # Show legend for few channels
+                legend = ax.legend(loc='upper right', fancybox=True, shadow=True, 
+                                 framealpha=0.8, facecolor='#2a2a2a', edgecolor='#666666',
+                                 fontsize=8)
+                for text in legend.get_texts():
+                    text.set_color('white')
+            elif max_channels <= 16:
+                # Two column legend for medium number of channels
+                legend = ax.legend(loc='upper right', fancybox=True, shadow=True, 
+                                 framealpha=0.8, facecolor='#2a2a2a', edgecolor='#666666',
+                                 fontsize=7, ncol=2)
+                for text in legend.get_texts():
+                    text.set_color('white')
+            else:
+                # No legend for many channels, just show count in title
+                ax.text(0.98, 0.98, f'{max_channels} channels', 
+                       transform=ax.transAxes, ha='right', va='top',
+                       color='white', fontsize=10, 
+                       bbox=dict(boxstyle='round', facecolor='#2a2a2a', alpha=0.8))
+
             ax.grid(True, alpha=0.3, color='#666666', linestyle='-', linewidth=0.5)
             ax.set_facecolor('#1a1a1a')
             ax.tick_params(colors='#CCCCCC', which='both')
             
         elif plot_type.lower() == "spectrogram":
-            # Create spectrogram for first channel using scipy but with MNE styling
+            # Restore the simpler spectrogram logic from the previous version
             data_ch0 = raw.get_data()[0]
             fs = raw.info['sfreq']
             
             from scipy import signal
-            f, t, Sxx = signal.spectrogram(data_ch0, fs, nperseg=min(256, len(data_ch0)//4))
+            # Use the same parameters as before - this is the key difference
+            f, t, Sxx = signal.spectrogram(data_ch0, fs)
             
-            # Use a perceptually uniform colormap with better contrast
-            im = ax.pcolormesh(t, f, 10 * np.log10(Sxx + 1e-10), 
-                             cmap='plasma', shading='gouraud')
+            # Use the original approach without extra enhancements
+            im = ax.pcolormesh(t, f, 10 * np.log10(Sxx), cmap='viridis')
+            ax.set_ylabel('Frequency [Hz]', color='white')
+            ax.set_xlabel('Time [s]', color='white')
+            ax.set_title('Spectrogram (Channel 0)', color='white')
             
-            ax.set_ylabel('Frequency [Hz]', color='white', fontweight='bold')
-            ax.set_xlabel('Time [s]', color='white', fontweight='bold')
-            ax.set_title('Spectrogram (Channel 0)', color='white', fontweight='bold', pad=20)
-            
-            # Improve colorbar
-            cbar = fig.colorbar(im, ax=ax, shrink=0.8, aspect=20)
-            cbar.set_label('Power (dB)', color='white', fontweight='bold')
+            # Simple colorbar like in the original
+            cbar = fig.colorbar(im, ax=ax)
+            cbar.set_label('Power (dB)', color='white')
             cbar.ax.yaxis.set_tick_params(color='white')
-            cbar.ax.tick_params(labelcolor='white')
+            plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color='white')
             
-            ax.set_facecolor('#1a1a1a')
-            ax.tick_params(colors='#CCCCCC', which='both')
+            # Keep the original background and tick settings
+            ax.set_facecolor(bg_color)
+            ax.tick_params(colors='white')
         
-        # Set tick colors and improve overall appearance
-        if hasattr(ax, 'tick_params'):
+        # Set tick colors and improve overall appearance (except for spectrogram)
+        if plot_type.lower() != "spectrogram":
             ax.tick_params(colors='#CCCCCC', which='both', labelsize=10)
         
         # Ensure tight layout
