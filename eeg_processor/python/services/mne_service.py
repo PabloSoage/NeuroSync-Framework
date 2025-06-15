@@ -1,19 +1,22 @@
 import logging
-import multiprocessing as mp
-import queue
-import time
-from typing import Dict, Any, Optional, Tuple, Callable, List
-import numpy as np
+import threading
+from typing import Dict, Any, Optional, Callable, List, Tuple
 
+from ..interfaces.mne_interfaces import (
+    MNEConverterInterface, 
+    MNEVisualizerInterface, 
+    MNEProcessManagerInterface, 
+    MNEResultStorageInterface
+)
+from .mne_converter_service import MNEConverterService
+from .mne_visualizer_service import MNEVisualizerService
+from .mne_process_manager import MNEProcessManager
+from .mne_result_storage import MNEResultStorage
 from .data_access_service import DataAccessService
 
 # Check if MNE is available
 try:
     import mne
-    import matplotlib
-    matplotlib.use('Agg')  # Non-interactive backend for processes
-    import matplotlib.pyplot as plt
-    from scipy import signal
     MNE_AVAILABLE = True
 except ImportError:
     MNE_AVAILABLE = False
@@ -21,81 +24,74 @@ except ImportError:
 
 class MNEService:
     """
-    Service for MNE-Python operations using multiprocessing.
+    Facade service for MNE integration operations.
     
-    This service handles heavy MNE computations in separate processes
-    to prevent UI freezing.
+    This class provides a unified interface for MNE operations while
+    coordinating between specialized services (converter, visualizer, etc.).
+    Maintains backward compatibility with the original MNE service API.
     """
     
     _instance: Optional["MNEService"] = None
-    _lock = mp.Lock()
+    _lock = threading.RLock()
     
     @classmethod
     def get_instance(cls) -> "MNEService":
-        """Get the singleton instance."""
+        """Get the singleton instance of the MNE service."""
         with cls._lock:
             if cls._instance is None:
                 cls._instance = MNEService()
             return cls._instance
     
     def __init__(self) -> None:
-        """Initialize the MNE service."""
+        """Initialize the MNE service facade."""
         if MNEService._instance is not None:
             raise RuntimeError("MNEService is a singleton. Use get_instance()")
-            
-        self.data_service = DataAccessService.get_instance()
         
-        # Process management
-        self._process_pool: Optional[mp.Pool] = None
-        self._active_tasks: Dict[str, mp.pool.AsyncResult] = {}
+        # Initialize core services
+        self._process_manager = MNEProcessManager()
+        self._result_storage = MNEResultStorage()
         
-        # Results storage
-        self._results: Dict[str, Any] = {}
+        # Initialize specialized services
+        self._converter_service = MNEConverterService(
+            self._process_manager, 
+            self._result_storage
+        )
+        self._visualizer_service = MNEVisualizerService(
+            self._process_manager, 
+            self._result_storage
+        )
         
-        # Callbacks for completion
-        self._completion_callbacks: Dict[str, Callable] = {}
+        # Data access service
+        self._data_access_service = DataAccessService.get_instance()
         
-        logging.info("MNE Service initialized")
+        logging.info("MNE service facade initialized")
     
     def is_available(self) -> bool:
         """Check if MNE is available."""
         return MNE_AVAILABLE
     
     def start_service(self) -> None:
-        """Start the MNE service with process pool."""
+        """Start the MNE service and underlying components."""
         if not MNE_AVAILABLE:
             logging.warning("MNE not available, service not started")
             return
-            
-        if self._process_pool is None:
-            # Create process pool with 2 workers for MNE operations
-            self._process_pool = mp.Pool(
-                processes=2,
-                initializer=_mne_worker_init
-            )
-            logging.info("MNE service started with process pool")
+        
+        self._process_manager.start_service()
+        logging.info("MNE service started")
     
     def stop_service(self) -> None:
         """Stop the MNE service and cleanup resources."""
-        if self._process_pool is not None:
-            # Cancel active tasks
-            for task_id, async_result in self._active_tasks.items():
-                try:
-                    async_result.terminate()
-                except:
-                    pass
-            
-            self._active_tasks.clear()
-            
-            # Terminate process pool
-            self._process_pool.terminate()
-            self._process_pool.join()
-            self._process_pool = None
-            
-            logging.info("MNE service stopped")
+        self._process_manager.stop_service()
+        self._result_storage.clear_all_results()
+        logging.info("MNE service stopped")
     
+    def cleanup(self) -> None:
+        """Cleanup resources when shutting down."""
+        self.stop_service()
+    
+    # Conversion API (delegates to converter service)
     def convert_to_mne_async(
-        self, 
+        self,
         duration_seconds: int,
         convert_to_v: bool = True,
         selected_channels: Optional[List[int]] = None,
@@ -106,41 +102,35 @@ class MNEService:
         
         Args:
             duration_seconds: Duration of data to convert
-            convert_to_v: Whether to convert units from µV to V
-            selected_channels: List of channel indices to include (None for all)
-            callback: Callback function to call when conversion completes
+            convert_to_v: Whether to convert units to volts
+            selected_channels: List of channel indices to convert (None for all)
+            callback: Optional callback function
             
         Returns:
-            Task ID for tracking the operation
+            Task ID for tracking the conversion
         """
-        if not MNE_AVAILABLE or self._process_pool is None:
-            raise RuntimeError("MNE service not available or not started")
-        
         # Get current data and metadata
-        data, timestamps = self.data_service.get_current_data()
-        metadata = self.data_service.get_metadata()
+        data, timestamps = self._data_access_service.get_current_data()
+        metadata = self._data_access_service.get_metadata()
         
-        if data.size == 0:
-            raise ValueError("No data available. Start streaming first.")
-        
-        # Generate task ID
-        task_id = f"convert_{int(time.time() * 1000)}"
-        
-        # Submit task to process pool
-        async_result = self._process_pool.apply_async(
-            _convert_to_mne_worker,
-            args=(data, metadata, duration_seconds, convert_to_v, selected_channels),
-            callback=lambda result: self._handle_conversion_complete(task_id, result, callback)
+        return self._converter_service.convert_to_mne_async(
+            data=data,
+            metadata=metadata,
+            duration_seconds=duration_seconds,
+            convert_to_v=convert_to_v,
+            selected_channels=selected_channels,
+            callback=callback
         )
-        
-        # Store task
-        self._active_tasks[task_id] = async_result
-        if callback:
-            self._completion_callbacks[task_id] = callback
-        
-        logging.info(f"Started MNE conversion task: {task_id}")
-        return task_id
     
+    def get_conversion_status(self, task_id: str) -> Dict[str, Any]:
+        """Get the status of a conversion task."""
+        return self._converter_service.get_conversion_status(task_id)
+    
+    def cancel_conversion(self, task_id: str) -> bool:
+        """Cancel a conversion task."""
+        return self._converter_service.cancel_conversion(task_id)
+    
+    # Visualization API (delegates to visualizer service)
     def create_visualization_async(
         self,
         task_id: str,
@@ -157,749 +147,174 @@ class MNEService:
         Create MNE visualization asynchronously.
         
         Args:
-            task_id: Task ID of the MNE conversion result to use
+            task_id: Task ID of the conversion to visualize
             plot_type: Type of plot to create
-            freq_min: Minimum frequency for PSD plots
-            freq_max: Maximum frequency for PSD plots
+            freq_min: Minimum frequency for analysis
+            freq_max: Maximum frequency for analysis
             bg_color: Background color for the plot
-            show_individual_channels: Whether to show individual channels in PSD (vs averaged)
-            selected_channels_for_display: Channels to display (applied during visualization)
-            topomap_freq_range: Frequency range for topomap (min_freq, max_freq)
-            callback: Callback function to call when plotting completes
+            show_individual_channels: Whether to show individual channels
+            selected_channels_for_display: Channels to display
+            topomap_freq_range: Frequency range for topomaps
+            callback: Optional callback function
             
         Returns:
-            Task ID for tracking the operation
+            Task ID for tracking the visualization
         """
-        if not MNE_AVAILABLE or self._process_pool is None:
-            raise RuntimeError("MNE service not available or not started")
+        # Get the MNE data from the conversion result
+        mne_data = self._result_storage.get_result(task_id)
+        if not mne_data:
+            raise ValueError(f"No MNE data found for task ID: {task_id}")
         
-        # Check if conversion result exists
-        if task_id not in self._results:
-            raise ValueError(f"No MNE conversion result found for task {task_id}")
-        
-        mne_data = self._results[task_id]
-        if not mne_data.get("success"):
-            raise ValueError(f"MNE conversion failed for task {task_id}")
-        
-        # Generate visualization task ID
-        viz_task_id = f"viz_{plot_type}_{int(time.time() * 1000)}"
-        
-        # Submit visualization task
-        async_result = self._process_pool.apply_async(
-            _create_visualization_worker,
-            args=(mne_data["raw_data"], mne_data["info"], plot_type, freq_min, freq_max, bg_color, show_individual_channels, selected_channels_for_display, topomap_freq_range),
-            callback=lambda result: self._handle_visualization_complete(viz_task_id, result, callback)
+        return self._visualizer_service.create_visualization_async(
+            mne_data=mne_data,
+            plot_type=plot_type,
+            freq_min=freq_min,
+            freq_max=freq_max,
+            bg_color=bg_color,
+            show_individual_channels=show_individual_channels,
+            selected_channels_for_display=selected_channels_for_display,
+            topomap_freq_range=topomap_freq_range,
+            callback=callback
         )
-        
-        # Store task
-        self._active_tasks[viz_task_id] = async_result
-        if callback:
-            self._completion_callbacks[viz_task_id] = callback
-        
-        logging.info(f"Started MNE visualization task: {viz_task_id}")
-        return viz_task_id
     
+    def get_visualization_status(self, task_id: str) -> Dict[str, Any]:
+        """Get the status of a visualization task."""
+        return self._visualizer_service.get_visualization_status(task_id)
+    
+    def cancel_visualization(self, task_id: str) -> bool:
+        """Cancel a visualization task."""
+        return self._visualizer_service.cancel_visualization(task_id)
+    
+    # Generic task management API - maintain backward compatibility
     def get_task_status(self, task_id: str) -> Dict[str, Any]:
         """
-        Get the status of a task.
+        Get the status of any task (conversion or visualization).
+        """
+        # First check if it's a conversion task
+        conversion_status = self._converter_service.get_conversion_status(task_id)
+        if conversion_status.get("status") != "not_found":
+            return conversion_status
         
-        Args:
-            task_id: Task ID to check
-            
-        Returns:
-            Dictionary with task status information
-        """
-        if task_id in self._active_tasks:
-            async_result = self._active_tasks[task_id]
-            return {
-                "status": "running" if not async_result.ready() else "completed",
-                "ready": async_result.ready(),
-                "successful": async_result.successful() if async_result.ready() else None
-            }
-        elif task_id in self._results:
-            return {
-                "status": "completed",
-                "ready": True,
-                "successful": self._results[task_id].get("success", False)
-            }
-        else:
-            return {
-                "status": "not_found",
-                "ready": False,
-                "successful": False
-            }
-    
-    def get_result(self, task_id: str) -> Optional[Dict[str, Any]]:
-        """
-        Get the result of a completed task.
+        # Then check if it's a visualization task
+        visualization_status = self._visualizer_service.get_visualization_status(task_id)
+        if visualization_status.get("status") != "not_found":
+            return visualization_status
         
-        Args:
-            task_id: Task ID to get result for
-            
-        Returns:
-            Result dictionary or None if not found
-        """
-        return self._results.get(task_id)
+        # Check in process manager directly
+        process_status = self._process_manager.get_task_status(task_id)
+        if process_status.get("status") != "not_found":
+            return process_status
+        
+        # Not found in any service
+        return {
+            "status": "not_found",
+            "ready": False,
+            "successful": False
+        }
     
     def cancel_task(self, task_id: str) -> bool:
         """
-        Cancel an active task.
-        
-        Args:
-            task_id: Task ID to cancel
-            
-        Returns:
-            True if task was cancelled, False otherwise
+        Cancel any task (conversion or visualization).
         """
-        if task_id in self._active_tasks:
-            try:
-                async_result = self._active_tasks[task_id]
-                async_result.terminate()
-                del self._active_tasks[task_id]
-                if task_id in self._completion_callbacks:
-                    del self._completion_callbacks[task_id]
-                logging.info(f"Cancelled MNE task: {task_id}")
-                return True
-            except Exception as e:
-                logging.error(f"Error cancelling task {task_id}: {e}")
+        # Try to cancel as conversion task first
+        if self._converter_service.cancel_conversion(task_id):
+            return True
+        
+        # Try to cancel as visualization task
+        if self._visualizer_service.cancel_visualization(task_id):
+            return True
+        
+        # Try to cancel directly in process manager
+        if self._process_manager.cancel_task(task_id):
+            return True
+        
         return False
     
-    def _handle_conversion_complete(self, task_id: str, result: Dict[str, Any], callback: Optional[Callable]) -> None:
-        """Handle completion of MNE conversion task."""
-        # Store result
-        self._results[task_id] = result
-        
-        # Remove from active tasks
-        if task_id in self._active_tasks:
-            del self._active_tasks[task_id]
-        
-        # Call callback if provided
-        if callback:
-            try:
-                callback(task_id, result)
-            except Exception as e:
-                logging.error(f"Error in MNE conversion callback: {e}")
-        
-        # Clean up callback
-        if task_id in self._completion_callbacks:
-            del self._completion_callbacks[task_id]
-        
-        logging.info(f"MNE conversion task completed: {task_id}")
+    # Result management API
+    def get_result(self, task_id: str) -> Optional[Dict[str, Any]]:
+        """Get a stored result for a task."""
+        return self._result_storage.get_result(task_id)
     
-    def _handle_visualization_complete(self, task_id: str, result: Dict[str, Any], callback: Optional[Callable]) -> None:
-        """Handle completion of MNE visualization task."""
-        # Store result
-        self._results[task_id] = result
-        
-        # Remove from active tasks
-        if task_id in self._active_tasks:
-            del self._active_tasks[task_id]
-        
-        # Call callback if provided
-        if callback:
-            try:
-                callback(task_id, result)
-            except Exception as e:
-                logging.error(f"Error in MNE visualization callback: {e}")
-        
-        # Clean up callback
-        if task_id in self._completion_callbacks:
-            del self._completion_callbacks[task_id]
-        
-        logging.info(f"MNE visualization task completed: {task_id}")
+    def remove_result(self, task_id: str) -> bool:
+        """Remove a stored result."""
+        return self._result_storage.remove_result(task_id)
     
-    def cleanup(self) -> None:
-        """Cleanup resources when shutting down."""
-        self.stop_service()
-
-
-# Worker functions for multiprocessing
-
-def _mne_worker_init() -> None:
-    """Initialize MNE worker process."""
-    import signal
-    signal.signal(signal.SIGINT, signal.SIG_IGN)
-
-
-def _convert_to_mne_worker(
-    data: np.ndarray,
-    metadata: Dict[str, Any],
-    duration_seconds: int,
-    convert_to_v: bool,
-    selected_channels: Optional[List[int]] = None
-) -> Dict[str, Any]:
-    """
-    Worker function to convert BrainFlow data to MNE format.
+    def clear_all_results(self) -> None:
+        """Clear all stored results."""
+        self._result_storage.clear_all_results()
     
-    Args:
-        data: EEG data array
-        metadata: Stream metadata
-        duration_seconds: Duration to convert
-        convert_to_v: Whether to convert units
-        selected_channels: List of channel indices to include
-        
-    Returns:
-        Dictionary with conversion result
-    """
-    try:
-        import mne
-        
-        sampling_rate = metadata.get("sampling_rate", 250)
-        samples_needed = int(duration_seconds * sampling_rate)
-        
-        # Check if we have enough data
-        if data.shape[1] < samples_needed:
-            return {
-                "success": False,
-                "error": f"Not enough data. Need {duration_seconds}s but only have {data.shape[1]/sampling_rate:.1f}s"
+    # Service status API
+    def get_service_status(self) -> Dict[str, Any]:
+        """
+        Get overall service status.
+        """
+        return {
+            "mne_available": self.is_available(),
+            "process_manager_available": self._process_manager.is_available(),
+            "active_results": len(self._result_storage.get_all_task_ids()),
+            "services": {
+                "converter": "available",
+                "visualizer": "available",
+                "process_manager": "available" if self._process_manager.is_available() else "unavailable",
+                "result_storage": "available"
             }
+        }
+    
+    # Backward compatibility methods for existing UI code
+    def convert_to_mne(
+        self,
+        data: Any,
+        metadata: Dict[str, Any],
+        duration_seconds: int,
+        convert_to_v: bool = True,
+        selected_channels: Optional[List[int]] = None
+    ) -> Dict[str, Any]:
+        """
+        Legacy synchronous conversion method for backward compatibility.
+        Note: This is deprecated, use convert_to_mne_async instead.
+        """
+        logging.warning("convert_to_mne is deprecated, use convert_to_mne_async instead")
         
-        # Extract last N seconds
-        recent_data = data[:, -samples_needed:]
+        # For backward compatibility, we'll start an async task
+        task_id = self._converter_service.convert_to_mne_async(
+            data=data,
+            metadata=metadata,
+            duration_seconds=duration_seconds,
+            convert_to_v=convert_to_v,
+            selected_channels=selected_channels
+        )
         
-        # Get EEG channels
-        eeg_channels = metadata.get("eeg_channels", [])
-        if not eeg_channels:
-            return {
-                "success": False,
-                "error": "No EEG channels available"
-            }
-        
-        # Apply channel selection
-        if selected_channels is not None:
-            # Filter EEG channels based on selection
-            available_eeg_indices = []
-            selected_eeg_channels = []
-            
-            for i, selected_idx in enumerate(selected_channels):
-                if selected_idx < len(eeg_channels):
-                    eeg_channel = eeg_channels[selected_idx]
-                    if eeg_channel < recent_data.shape[0]:
-                        available_eeg_indices.append(selected_idx)
-                        selected_eeg_channels.append(eeg_channel)
-            
-            if not selected_eeg_channels:
-                return {
-                    "success": False,
-                    "error": "No valid EEG channels selected"
-                }
-            
-            eeg_channels = selected_eeg_channels
-            channel_selection_info = f"Selected {len(eeg_channels)} of {len(metadata.get('eeg_channels', []))} channels"
-        else:
-            channel_selection_info = f"Using all {len(eeg_channels)} channels"
-        
-        # Extract EEG data
-        eeg_data = recent_data[eeg_channels, :]
-        
-        # Convert units if requested
-        if convert_to_v:
-            eeg_data = eeg_data / 1000000  # µV to V
-        
-        # Create channel info
-        ch_types = ['eeg'] * len(eeg_channels)
-        ch_names = metadata.get("channel_names", [])
-        
-        # Apply channel selection to channel names
-        if selected_channels is not None and ch_names:
-            selected_ch_names = []
-            for selected_idx in selected_channels:
-                if selected_idx < len(ch_names):
-                    selected_ch_names.append(ch_names[selected_idx])
-                else:
-                    selected_ch_names.append(f"EEG_{selected_idx}")
-            ch_names = selected_ch_names
-        elif not ch_names or len(ch_names) < len(eeg_channels):
-            ch_names = [f"EEG_{i}" for i in range(len(eeg_channels))]
-        else:
-            ch_names = ch_names[:len(eeg_channels)]
-        
-        # Create MNE info object
-        info = mne.create_info(ch_names=ch_names, sfreq=sampling_rate, ch_types=ch_types)
-        
+        # Return task information instead of blocking
         return {
             "success": True,
-            "raw_data": eeg_data,
-            "info": info,
-            "duration": duration_seconds,
-            "channels": len(eeg_channels),
-            "sampling_rate": sampling_rate,
-            "converted_to_v": convert_to_v,
-            "selected_channels": selected_channels,
-            "channel_selection_info": channel_selection_info
+            "task_id": task_id,
+            "message": "Conversion started asynchronously"
         }
-        
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
-
-
-def _create_visualization_worker(
-    raw_data: np.ndarray,
-    info: Any,
-    plot_type: str,
-    freq_min: int,
-    freq_max: int,
-    bg_color: str,
-    show_individual_channels: bool = True,
-    selected_channels_for_display: Optional[List[int]] = None,
-    topomap_freq_range: Optional[Tuple[int, int]] = None
-) -> Dict[str, Any]:
-    """
-    Worker function to create MNE visualizations.
     
-    Args:
-        raw_data: EEG data array (channels from conversion - could be ALL or SELECTED)
-        info: MNE info object (channels from conversion - could be ALL or SELECTED)
-        plot_type: Type of plot to create
-        freq_min: Minimum frequency
-        freq_max: Maximum frequency
-        bg_color: Background color
-        show_individual_channels: Whether to show individual channels in PSD
-        selected_channels_for_display: Channels to display (indices relative to converted data)
-        topomap_freq_range: Frequency range for topomap (min_freq, max_freq)
-        
-    Returns:
-        Dictionary with visualization result
-    """
-    try:
-        import mne
-        import numpy as np
-        import matplotlib.pyplot as plt
-        import matplotlib
-        from io import BytesIO
-        import base64
-        
-        # Set high DPI for better quality
-        matplotlib.rcParams['figure.dpi'] = 150
-        matplotlib.rcParams['savefig.dpi'] = 200
-        
-        # Configure matplotlib for dark theme with better contrast
-        plt.style.use('dark_background')
-        
-        # Override some style settings for better contrast
-        matplotlib.rcParams.update({
-            'text.color': '#FFFFFF',
-            'axes.labelcolor': '#FFFFFF',
-            'axes.edgecolor': '#CCCCCC',
-            'xtick.color': '#CCCCCC',
-            'ytick.color': '#CCCCCC',
-            'grid.color': '#555555',
-            'font.size': 11,
-            'axes.titlesize': 13,
-            'axes.labelsize': 11,
-            'xtick.labelsize': 10,
-            'ytick.labelsize': 10,
-            'legend.fontsize': 10,
-            'figure.titlesize': 14
-        })
-        
-        # Create Raw object with converted channels (could be ALL or SELECTED from conversion)
-        raw_all_converted = mne.io.RawArray(raw_data, info)
-        
-        # Apply channel selection for display if specified
-        # NOTE: selected_channels_for_display indices are relative to the converted data
-        if selected_channels_for_display is not None:
-            # Validate channel indices against converted data
-            max_converted_channels = len(raw_all_converted.ch_names)
-            valid_channels = [ch for ch in selected_channels_for_display if 0 <= ch < max_converted_channels]
-            
-            if not valid_channels:
-                # If no valid channels, use all converted
-                raw = raw_all_converted
-                display_info = f"all {max_converted_channels} converted channels (invalid selection)"
-            else:
-                # Create subset with selected channels from converted data
-                channel_names_to_pick = [raw_all_converted.ch_names[i] for i in valid_channels]
-                raw = raw_all_converted.pick_channels(channel_names_to_pick, ordered=True)
-                display_info = f"{len(valid_channels)} of {max_converted_channels} converted channels"
-        else:
-            # Use all converted channels
-            raw = raw_all_converted
-            display_info = f"all {len(raw_all_converted.ch_names)} converted channels"
-        
-        # Calculate figure size based on plot type to maintain aspect ratio
-        if plot_type.lower() in ["psd", "spectrogram"]:
-            # For frequency domain plots, use wider aspect ratio
-            figsize = (12, 7)
-        elif plot_type.lower() == "raw data":
-            # For time series, use wider format
-            figsize = (14, 6)
-        else:
-            # For topomaps and other plots
-            figsize = (10, 8)
-        
-        # Create figure with proper background and size
-        fig, ax = plt.subplots(figsize=figsize, facecolor=bg_color)
-        ax.set_facecolor(bg_color)
-        
-        if plot_type.lower() == "psd":
-            # Create PSD plot with toggle option
-            psd = raw.compute_psd(fmin=freq_min, fmax=freq_max, method='welch')
-            
-            if show_individual_channels:
-                # Individual channels mode
-                # Get PSD data and frequencies
-                psd_data = psd.get_data()  # Shape: (n_channels, n_freqs)
-                freqs = psd.freqs
-                
-                # Clear the axis and set background
-                ax.clear()
-                ax.set_facecolor('#1a1a1a')
-                
-                # Generate distinct colors for each channel
-                n_channels = len(raw.ch_names)
-                if n_channels <= 10:
-                    # Use predefined colors for small number of channels
-                    colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', 
-                             '#DDA0DD', '#F39C12', '#E74C3C', '#9B59B6', '#1ABC9C']
-                else:
-                    # Generate colors using colormap for many channels
-                    import matplotlib.cm as cm
-                    colormap = cm.get_cmap('tab20')  # Good for up to 20 distinct colors
-                    if n_channels > 20:
-                        colormap = cm.get_cmap('viridis')  # Continuous colormap for many channels
-                    colors = [colormap(i / n_channels) for i in range(n_channels)]
-                    # Convert to hex strings
-                    colors = ['#{:02x}{:02x}{:02x}'.format(
-                        int(c[0]*255), int(c[1]*255), int(c[2]*255)) for c in colors]
-                
-                # Plot each channel with its own color
-                for i, channel_name in enumerate(raw.ch_names):
-                    color = colors[i % len(colors)]
-                    ax.plot(freqs, psd_data[i], 
-                           color=color, 
-                           label=channel_name,
-                           linewidth=1.5, 
-                           alpha=0.8)
-                
-                # Enhance the plot appearance with display info
-                ax.set_title(f"Power Spectral Density ({freq_min}-{freq_max} Hz) - {display_info}", 
-                            color='white', fontweight='bold', pad=20)
-                ax.set_xlabel("Frequency (Hz)", color='white', fontweight='bold')
-                ax.set_ylabel("Power (V²/Hz)", color='white', fontweight='bold')
-                
-                # Improve legend for many channels
-                if n_channels <= 8:
-                    # Show legend for few channels
-                    legend = ax.legend(loc='upper right', fancybox=True, shadow=True, 
-                                     framealpha=0.8, facecolor='#2a2a2a', edgecolor='#666666',
-                                     fontsize=8)
-                    for text in legend.get_texts():
-                        text.set_color('white')
-                elif n_channels <= 16:
-                    # Two column legend for medium number of channels
-                    legend = ax.legend(loc='upper right', fancybox=True, shadow=True, 
-                                     framealpha=0.8, facecolor='#2a2a2a', edgecolor='#666666',
-                                     fontsize=7, ncol=2)
-                    for text in legend.get_texts():
-                        text.set_color('white')
-                else:
-                    # No legend for many channels, just show count in title
-                    ax.text(0.98, 0.98, f'{n_channels} channels', 
-                           transform=ax.transAxes, ha='right', va='top',
-                           color='white', fontsize=10, 
-                           bbox=dict(boxstyle='round', facecolor='#2a2a2a', alpha=0.8))
-                
-                # Improve grid and ticks
-                ax.grid(True, alpha=0.4, color='#888888', linestyle='-', linewidth=0.5)
-                ax.tick_params(colors='#CCCCCC', which='both')
-                
-            else:
-                # MNE native averaged mode with variability band
-                # Use MNE's plot function with averaging and spatial colors disabled
-                psd_fig = psd.plot(
-                    axes=ax, 
-                    show=False, 
-                    average=True,  # This creates the average line
-                    color='#00D4FF',  # Bright cyan for better contrast
-                    alpha=0.8,
-                    spatial_colors=False  # Disable individual channel colors
-                )
-                
-                # Enhance the plot appearance with display info
-                ax.set_title(f"Power Spectral Density - Average ({freq_min}-{freq_max} Hz) - {display_info}", 
-                            color='white', fontweight='bold', pad=20)
-                ax.set_xlabel("Frequency (Hz)", color='white', fontweight='bold')
-                ax.set_ylabel("Power (V²/Hz)", color='white', fontweight='bold')
-                
-                # Improve grid and ticks
-                ax.grid(True, alpha=0.4, color='#888888', linestyle='-', linewidth=0.5)
-                ax.tick_params(colors='#CCCCCC', which='both')
-                
-                # Set background
-                ax.set_facecolor('#1a1a1a')
-        
-        elif plot_type.lower() == "topomap":
-            # Topomap with configurable frequency range
-            try:
-                n_channels = len(raw.ch_names)
-                
-                # Get frequency range for topomap
-                if topomap_freq_range is not None:
-                    topo_freq_min, topo_freq_max = topomap_freq_range
-                else:
-                    topo_freq_min, topo_freq_max = 8, 13  # Default to Alpha
-                
-                # Get band name for display
-                band_name = _get_band_name(topo_freq_min, topo_freq_max)
-                
-                if n_channels == 1:
-                    # Special case for single channel
-                    psd = raw.compute_psd(fmin=topo_freq_min, fmax=topo_freq_max, method='welch')
-                    psd_avg = psd.get_data().mean(axis=1)[0]  # Get the single channel value
-                    
-                    # Create a single large visualization for one channel
-                    ax.clear()
-                    ax.set_facecolor('#1a1a1a')
-                    
-                    # Create a circle representing the single channel
-                    circle = plt.Circle((0.5, 0.5), 0.3, color=plt.cm.plasma(0.8), alpha=0.8)
-                    ax.add_patch(circle)
-                    
-                    # Add text with channel name and power
-                    ax.text(0.5, 0.5, f"{raw.ch_names[0]}\n{psd_avg:.2e}", 
-                           ha='center', va='center', color='white', fontweight='bold',
-                           fontsize=14)
-                    
-                    ax.set_xlim(0, 1)
-                    ax.set_ylim(0, 1)
-                    ax.set_title(f"{band_name} Power ({topo_freq_min}-{topo_freq_max} Hz) - {display_info}", 
-                               color='white', fontweight='bold', pad=20)
-                    ax.set_xticks([])
-                    ax.set_yticks([])
-                    ax.set_aspect('equal')
-                    
-                else:
-                    # Multiple channels - use grid layout
-                    psd = raw.compute_psd(fmin=topo_freq_min, fmax=topo_freq_max, method='welch')
-                    psd_avg = psd.get_data().mean(axis=1)
-                    
-                    # Create a grid layout for channels
-                    if n_channels <= 4:
-                        rows, cols = 2, 2
-                    elif n_channels <= 9:
-                        rows, cols = 3, 3
-                    elif n_channels <= 16:
-                        rows, cols = 4, 4
-                    else:
-                        rows = int(np.ceil(np.sqrt(n_channels)))
-                        cols = int(np.ceil(n_channels / rows))
-                    
-                    # Create subplot grid
-                    fig.clear()
-                    fig, axes = plt.subplots(rows, cols, figsize=figsize, facecolor=bg_color)
-                    if rows * cols == 1:
-                        axes = [axes]
-                    elif rows == 1 or cols == 1:
-                        axes = axes.flatten()
-                    else:
-                        axes = axes.flatten()
-                    
-                    # Plot each channel's power
-                    for i, power in enumerate(psd_avg):
-                        if i < len(axes):
-                            ax_sub = axes[i]
-                            ax_sub.set_facecolor('#1a1a1a')
-                            
-                            # Create a power visualization with color based on relative power
-                            color_intensity = power / np.max(psd_avg) if np.max(psd_avg) > 0 else 0.5
-                            colors = plt.cm.plasma(color_intensity)
-                            circle = plt.Circle((0.5, 0.5), 0.4, color=colors, alpha=0.8)
-                            ax_sub.add_patch(circle)
-                            
-                            ax_sub.set_xlim(0, 1)
-                            ax_sub.set_ylim(0, 1)
-                            ax_sub.set_title(f"{raw.ch_names[i]}\n{power:.2e}", 
-                                           color='white', fontsize=9)
-                            ax_sub.set_xticks([])
-                            ax_sub.set_yticks([])
-                            ax_sub.set_aspect('equal')
-                    
-                    # Hide unused subplots
-                    for i in range(len(psd_avg), len(axes)):
-                        axes[i].set_visible(False)
-                    
-                    fig.suptitle(f"{band_name} Power ({topo_freq_min}-{topo_freq_max} Hz) - {display_info}", 
-                               color='white', fontweight='bold', fontsize=14)
-                    
-            except Exception as e:
-                # Simple fallback
-                ax.text(0.5, 0.5, f"Topomap Visualization\n\nError: {str(e)}", 
-                       ha='center', va='center', transform=ax.transAxes, 
-                       color='white', fontsize=12)
-                ax.set_title(f"Band Power Visualization - {display_info}", color='white', fontweight='bold')
-                ax.axis('off')
-                ax.set_facecolor('#1a1a1a')
-            
-        elif plot_type.lower() == "raw data":
-            # Plot raw time series data for selected channels
-            data_to_plot = raw.get_data()
-            times = raw.times
-            
-            # Show selected EEG channels
-            max_channels = data_to_plot.shape[0]  # Show selected channels
-            
-            # Generate enough distinct colors for all channels
-            if max_channels <= 10:
-                # Use predefined colors for small number of channels
-                colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', 
-                         '#DDA0DD', '#F39C12', '#E74C3C', '#9B59B6', '#1ABC9C']
-            else:
-                # Generate colors using colormap for many channels
-                import matplotlib.cm as cm
-                colormap = cm.get_cmap('tab20')  # Good for up to 20 distinct colors
-                if max_channels > 20:
-                    colormap = cm.get_cmap('viridis')  # Continuous colormap for many channels
-                colors = [colormap(i / max_channels) for i in range(max_channels)]
-                # Convert to hex strings
-                colors = ['#{:02x}{:02x}{:02x}'.format(
-                    int(c[0]*255), int(c[1]*255), int(c[2]*255)) for c in colors]
-
-            # Calculate appropriate offset between channels for better visualization
-            data_range = np.ptp(data_to_plot)  # Peak-to-peak range of all data
-            if data_range > 0:
-                # Use a reasonable offset based on the data range
-                channel_offset = data_range / max_channels * 1.5
-            else:
-                # Fallback offset if data is flat
-                channel_offset = np.std(data_to_plot) * 3
-                if channel_offset == 0:
-                    channel_offset = 1e-6  # Very small fallback
-
-            for i in range(max_channels):
-                color = colors[i % len(colors)]
-                # Apply offset to separate channels visually
-                offset = i * channel_offset
-                
-                # Get channel name from raw object (MNE preserves channel names)
-                channel_name = raw.ch_names[i] if i < len(raw.ch_names) else f'Ch {i}'
-                
-                ax.plot(times, data_to_plot[i] + offset, 
-                       label=channel_name,  # Use actual channel name
-                       color=color, linewidth=1.0, alpha=0.9)
-
-            ax.set_xlabel("Time (s)", color='white', fontweight='bold')
-            ax.set_ylabel("Amplitude (V) + offset", color='white', fontweight='bold')
-            ax.set_title(f"Raw EEG Data - {display_info}", color='white', fontweight='bold', pad=20)
-            
-            # Improve legend for many channels
-            if max_channels <= 8:
-                # Show legend for few channels
-                legend = ax.legend(loc='upper right', fancybox=True, shadow=True, 
-                                 framealpha=0.8, facecolor='#2a2a2a', edgecolor='#666666',
-                                 fontsize=8)
-                for text in legend.get_texts():
-                    text.set_color('white')
-            elif max_channels <= 16:
-                # Two column legend for medium number of channels
-                legend = ax.legend(loc='upper right', fancybox=True, shadow=True, 
-                                 framealpha=0.8, facecolor='#2a2a2a', edgecolor='#666666',
-                                 fontsize=7, ncol=2)
-                for text in legend.get_texts():
-                    text.set_color('white')
-            else:
-                # No legend for many channels, just show count in title
-                ax.text(0.98, 0.98, f'{max_channels} channels', 
-                       transform=ax.transAxes, ha='right', va='top',
-                       color='white', fontsize=10, 
-                       bbox=dict(boxstyle='round', facecolor='#2a2a2a', alpha=0.8))
-
-            ax.grid(True, alpha=0.3, color='#666666', linestyle='-', linewidth=0.5)
-            ax.set_facecolor('#1a1a1a')
-            ax.tick_params(colors='#CCCCCC', which='both')
-            
-        elif plot_type.lower() == "spectrogram":
-            # Spectrogram using first selected channel
-            data_ch0 = raw.get_data()[0]
-            fs = raw.info['sfreq']
-            
-            from scipy import signal
-            # Use the same parameters as before
-            f, t, Sxx = signal.spectrogram(data_ch0, fs)
-            
-            # Use the original approach
-            im = ax.pcolormesh(t, f, 10 * np.log10(Sxx), cmap='viridis')
-            ax.set_ylabel('Frequency [Hz]', color='white')
-            ax.set_xlabel('Time [s]', color='white')
-            
-            # Show which channel is being displayed
-            first_channel_name = raw.ch_names[0] if len(raw.ch_names) > 0 else "Channel 0"
-            ax.set_title(f'Spectrogram ({first_channel_name}) - {display_info}', color='white')
-            
-            # Simple colorbar
-            cbar = fig.colorbar(im, ax=ax)
-            cbar.set_label('Power (dB)', color='white')
-            cbar.ax.yaxis.set_tick_params(color='white')
-            plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color='white')
-            
-            # Keep the original background and tick settings
-            ax.set_facecolor(bg_color)
-            ax.tick_params(colors='white')
-        
-        # Set tick colors and improve overall appearance (except for spectrogram)
-        if plot_type.lower() != "spectrogram":
-            ax.tick_params(colors='#CCCCCC', which='both', labelsize=10)
-        
-        # Ensure tight layout
-        plt.tight_layout(pad=2.0)
-        
-        # Convert plot to base64 string with high quality
-        buffer = BytesIO()
-        fig.savefig(buffer, format='png', 
-                   facecolor=bg_color, 
-                   edgecolor='none', 
-                   bbox_inches='tight',
-                   dpi=200,  # High DPI for quality
-                   pad_inches=0.2)
-        buffer.seek(0)
-        plot_data = base64.b64encode(buffer.read()).decode()
-        buffer.close()
-        
-        plt.close(fig)
-        
-        # Reset matplotlib settings to defaults
-        matplotlib.rcParams.update(matplotlib.rcParamsDefault)
-        
-        return {
-            "success": True,
-            "plot_type": plot_type,
-            "plot_data": plot_data,
-            "freq_range": [freq_min, freq_max],
-            "topomap_freq_range": topomap_freq_range,
-            "individual_channels": show_individual_channels,
-            "displayed_channels": len(raw.ch_names),
-            "display_info": display_info
-        }
-        
-    except Exception as e:
-        # Reset matplotlib settings on error too
-        try:
-            matplotlib.rcParams.update(matplotlib.rcParamsDefault)
-        except:
-            pass
-        return {
-            "success": False,
-            "error": str(e)
-        }
-
-def _get_band_name(freq_min: int, freq_max: int) -> str:
-    """Get the name of the frequency band based on frequency range."""
-    # Standard EEG bands from eeg_viz.py
-    bands = [
-        ("Delta", 1, 4),
-        ("Theta", 4, 8), 
-        ("Alpha", 8, 13),
-        ("Beta", 13, 30),
-        ("Gamma", 30, 50)
-    ]
+    # Access to underlying services for advanced use cases
+    @property
+    def converter_service(self) -> MNEConverterInterface:
+        """Get the converter service for advanced operations."""
+        return self._converter_service
     
-    # Check if the range matches any standard band
-    for band_name, band_min, band_max in bands:
-        if freq_min == band_min and freq_max == band_max:
-            return band_name
+    @property
+    def visualizer_service(self) -> MNEVisualizerInterface:
+        """Get the visualizer service for advanced operations."""
+        return self._visualizer_service
     
-    # If no exact match, return custom range description
-    return f"Custom Band"
+    @property
+    def process_manager(self) -> MNEProcessManagerInterface:
+        """Get the process manager for advanced operations."""
+        return self._process_manager
+    
+    @property
+    def result_storage(self) -> MNEResultStorageInterface:
+        """Get the result storage for advanced operations."""
+        return self._result_storage
+        """Get the process manager for advanced operations."""
+        return self._process_manager
+    
+    @property
+    def result_storage(self) -> MNEResultStorageInterface:
+        """Get the result storage for advanced operations."""
+        return self._result_storage
