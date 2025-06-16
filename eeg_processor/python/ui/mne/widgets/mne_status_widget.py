@@ -59,18 +59,54 @@ class MNEStatusWidget(QWidget):
             update_count = status_info.get("update_count", 0)
             uptime = status_info.get("uptime", 0)
             plot_type = status_info.get("plot_type", "Unknown")
-
-            self.realtime_info.setText(
+            interval = status_info.get("update_interval", 2.0)
+            
+            # Performance metrics
+            perf = status_info.get("performance", {})
+            efficiency = perf.get("efficiency", 0.0)
+            
+            # Build status text with performance info
+            status_text = (
                 f"Real-time Mode: Active | Updates: {update_count} | "
                 f"Uptime: {uptime:.1f}s | Plot: {plot_type} | ⚡ Optimized"
             )
+            
+            # Add performance indicators for fast intervals
+            if interval < 1.0:
+                avg_time = perf.get("avg_processing_time", 0.0)
+                timeout_count = perf.get("timeout_count", 0)
+                
+                if efficiency > 0.8:
+                    status_text += " | ⚠️ High CPU"
+                    color = "#FFB366"
+                elif timeout_count > 0:
+                    status_text += f" | ❌ {timeout_count} timeouts"
+                    color = "#FF6B6B"
+                else:
+                    status_text += f" | ✅ {avg_time:.2f}s avg"
+                    color = "#00CC88"
+            else:
+                color = "#00CC88"
+
+            self.realtime_info.setText(status_text)
             self.realtime_info.setStyleSheet(
-                "color: #00CC88; font-weight: bold; padding: 5px;"
+                f"color: {color}; font-weight: bold; padding: 5px;"
             )
         else:
             self.realtime_info.setText("Real-time Mode: Inactive")
             self.realtime_info.setStyleSheet(
                 "color: #888888; font-weight: bold; padding: 5px;"
+            )
+
+    def add_performance_warning(self, interval: float, processing_time: float) -> None:
+        """Add performance warning for high-frequency updates."""
+        if processing_time > interval:
+            self.add_status_message(
+                f"⚠️ Processing time ({processing_time:.2f}s) exceeds interval ({interval:.2f}s)"
+            )
+        elif interval < 1.0 and processing_time > interval * 0.7:
+            self.add_status_message(
+                f"📊 High CPU mode: {processing_time:.2f}s processing time"
             )
 
     def add_channel_update_message(self, old_count: int, new_count: int) -> None:

@@ -127,14 +127,25 @@ class MNEConversionWidget(QWidget):
         
         self.realtime_params_layout.addWidget(QLabel("Update Interval:"))
         self.update_interval_spin = QSpinBox()
-        self.update_interval_spin.setRange(1, 30)
-        self.update_interval_spin.setValue(2)
-        self.update_interval_spin.setSuffix(" sec")
-        # Connect to dynamic update
+        self.update_interval_spin.setRange(5, 300)  # 0.5s to 30s (in tenths of seconds)
+        self.update_interval_spin.setValue(20)  # Default 2.0s
+        self.update_interval_spin.setSuffix(" × 0.1s")
+        self.update_interval_spin.setToolTip(
+            "Update interval: 5 = 0.5s (high CPU), 10 = 1.0s (balanced), 20 = 2.0s (efficient)"
+        )
+        # Connect to dynamic update with conversion to seconds
         self.update_interval_spin.valueChanged.connect(
-            lambda value: self.realtime_param_changed.emit("update_interval", float(value))
+            lambda value: self.realtime_param_changed.emit("update_interval", value / 10.0)
         )
         self.realtime_params_layout.addWidget(self.update_interval_spin)
+
+        # Performance warning indicator
+        self.performance_warning = QLabel("⚠️ High CPU")
+        self.performance_warning.setStyleSheet(
+            "color: #FF6B6B; font-style: italic; font-size: 9px;"
+        )
+        self.performance_warning.setVisible(False)
+        self.realtime_params_layout.addWidget(self.performance_warning)
 
         # Dynamic update indicator
         self.dynamic_update_label = QLabel("🔄 All changes apply automatically")
@@ -142,12 +153,35 @@ class MNEConversionWidget(QWidget):
             "color: #00CC88; font-style: italic; font-size: 9px;"
         )
         self.realtime_params_layout.addWidget(self.dynamic_update_label)
+        
+        # Connect warning system
+        self.update_interval_spin.valueChanged.connect(self._update_performance_warning)
+        
         self.realtime_params_layout.addStretch()
 
         self.realtime_params_widget = QWidget()
         self.realtime_params_widget.setLayout(self.realtime_params_layout)
         self.realtime_params_widget.setVisible(False)
         layout.addWidget(self.realtime_params_widget)
+
+    def _update_performance_warning(self, value: int) -> None:
+        """Update performance warning based on interval."""
+        interval_seconds = value / 10.0
+        
+        if interval_seconds < 1.0:
+            self.performance_warning.setText("⚠️ High CPU")
+            self.performance_warning.setStyleSheet(
+                "color: #FF6B6B; font-style: italic; font-size: 9px;"
+            )
+            self.performance_warning.setVisible(True)
+        elif interval_seconds < 1.5:
+            self.performance_warning.setText("⚡ Medium CPU")
+            self.performance_warning.setStyleSheet(
+                "color: #FFB366; font-style: italic; font-size: 9px;"
+            )
+            self.performance_warning.setVisible(True)
+        else:
+            self.performance_warning.setVisible(False)
 
     def _setup_performance_mode_channels(self, layout: QVBoxLayout) -> None:
         """Setup performance mode channel selection."""
@@ -248,7 +282,7 @@ class MNEConversionWidget(QWidget):
     def get_realtime_parameters(self) -> Dict[str, Any]:
         """Get current real-time parameters."""
         return {
-            "update_interval_seconds": float(self.update_interval_spin.value()),
+            "update_interval_seconds": float(self.update_interval_spin.value() / 10.0),
             "duration_seconds": self.duration_spin.value(),
             "convert_to_v": self.convert_to_v_check.isChecked(),
         }

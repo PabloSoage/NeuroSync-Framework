@@ -56,10 +56,28 @@ class MNERealtimeService(MNERealtimeInterface):
         if not MNE_AVAILABLE:
             raise RuntimeError("MNE package not available")
 
+        # Validate and adjust update interval
+        if update_interval_seconds < 0.5:
+            logging.warning(f"Update interval {update_interval_seconds}s too low, setting to 0.5s")
+            update_interval_seconds = 0.5
+        elif update_interval_seconds > 30.0:
+            logging.warning(f"Update interval {update_interval_seconds}s too high, setting to 30s")
+            update_interval_seconds = 30.0
+
+        # Performance warnings and recommendations
+        if update_interval_seconds < 1.0:
+            logging.warning(
+                f"High-frequency real-time mode active ({update_interval_seconds}s). "
+                "Monitor CPU usage and consider fewer channels for optimal performance."
+            )
+        
+        # Adaptive timeout based on update interval
+        max_processing_time = max(update_interval_seconds * 0.8, 5.0)  # Leave 20% buffer, min 5s
+
         # Generate session ID
         session_id = f"realtime_{int(time.time() * 1000)}"
 
-        # Prepare session configuration
+        # Prepare session configuration with performance optimizations
         session_config = {
             "session_id": session_id,
             "update_interval": update_interval_seconds,
@@ -75,6 +93,13 @@ class MNERealtimeService(MNERealtimeInterface):
             "status": "starting",
             "current_conversion_task": None,
             "current_visualization_task": None,
+            "max_processing_time": max_processing_time,
+            "performance_stats": {
+                "avg_processing_time": 0.0,
+                "max_processing_time_seen": 0.0,
+                "timeout_count": 0,
+                "success_count": 0,
+            }
         }
 
         with self._session_lock:
@@ -95,7 +120,7 @@ class MNERealtimeService(MNERealtimeInterface):
             self._session_threads[session_id] = thread
             thread.start()
 
-        logging.info(f"Started real-time MNE processing session: {session_id}")
+        logging.info(f"Started real-time MNE processing session: {session_id} (interval: {update_interval_seconds}s)")
         return session_id
 
     def stop_realtime_processing(self, session_id: str) -> bool:
@@ -224,12 +249,14 @@ class MNERealtimeService(MNERealtimeInterface):
             return True
 
     def get_realtime_status(self, session_id: str) -> Dict[str, Any]:
-        """Get real-time processing status."""
+        """Get real-time processing status with performance metrics."""
         with self._session_lock:
             if session_id not in self._active_sessions:
                 return {"status": "not_found", "active": False}
 
             session = self._active_sessions[session_id]
+            stats = session.get("performance_stats", {})
+            
             return {
                 "status": session["status"],
                 "active": session["status"] in ["starting", "running"],
@@ -239,6 +266,16 @@ class MNERealtimeService(MNERealtimeInterface):
                 "uptime": time.time() - session["start_time"],
                 "update_interval": session["update_interval"],
                 "plot_type": session["plot_type"],
+                "performance": {
+                    "avg_processing_time": stats.get("avg_processing_time", 0.0),
+                    "max_processing_time": stats.get("max_processing_time_seen", 0.0),
+                    "timeout_count": stats.get("timeout_count", 0),
+                    "success_count": stats.get("success_count", 0),
+                    "efficiency": (
+                        stats.get("avg_processing_time", 0.0) / session["update_interval"]
+                        if session["update_interval"] > 0 else 0.0
+                    )
+                }
             }
 
     def is_realtime_active(self, session_id: str) -> bool:
@@ -247,7 +284,7 @@ class MNERealtimeService(MNERealtimeInterface):
         return status.get("active", False)
 
     def _realtime_processing_loop(self, session_id: str, stop_event: threading.Event) -> None:
-        """Main processing loop for real-time updates."""
+        """Main processing loop for real-time updates with performance monitoring."""
         try:
             with self._session_lock:
                 session = self._active_sessions[session_id]
@@ -256,6 +293,8 @@ class MNERealtimeService(MNERealtimeInterface):
             logging.info(f"Started real-time processing loop for session: {session_id}")
 
             while not stop_event.is_set():
+                cycle_start_time = time.time()
+                
                 try:
                     # Get current session config (might be updated)
                     with self._session_lock:
@@ -269,16 +308,18 @@ class MNERealtimeService(MNERealtimeInterface):
                         metadata = self.data_service.get_metadata()
                         
                         if data.size == 0:
-                            # Wait for data
-                            stop_event.wait(0.5)
+                            # Wait for data (adaptive wait for fast intervals)
+                            wait_time = min(session["update_interval"] * 0.1, 0.5)
+                            stop_event.wait(wait_time)
                             continue
 
                         sampling_rate = metadata.get("sampling_rate", 250)
                         samples_needed = int(session["duration_seconds"] * sampling_rate)
                         
                         if data.shape[1] < samples_needed:
-                            # Not enough data yet
-                            stop_event.wait(0.5)
+                            # Not enough data yet (adaptive wait)
+                            wait_time = min(session["update_interval"] * 0.1, 0.5)
+                            stop_event.wait(wait_time)
                             continue
 
                     except Exception as e:
@@ -287,15 +328,11 @@ class MNERealtimeService(MNERealtimeInterface):
                         continue
 
                     # OPTIMIZATION: Apply channel selection BEFORE conversion
-                    # This saves processing time and memory by only converting selected channels
                     conversion_channels = session.get("selected_channels")
                     
-                    # If we have channel selection, use it directly for conversion
-                    # This way we only convert the channels we actually want to visualize
                     if conversion_channels is not None and len(conversion_channels) > 0:
                         logging.debug(f"Real-time optimization: Converting only {len(conversion_channels)} selected channels")
                     else:
-                        # No selection means convert all channels
                         logging.debug("Real-time: Converting all channels (no selection)")
 
                     # Start conversion with optimized channel selection
@@ -304,7 +341,7 @@ class MNERealtimeService(MNERealtimeInterface):
                         metadata=metadata,
                         duration_seconds=session["duration_seconds"],
                         convert_to_v=session["convert_to_v"],
-                        selected_channels=conversion_channels,  # Apply selection at conversion level
+                        selected_channels=conversion_channels,
                     )
 
                     # Update session with current task
@@ -312,8 +349,8 @@ class MNERealtimeService(MNERealtimeInterface):
                         if session_id in self._active_sessions:
                             self._active_sessions[session_id]["current_conversion_task"] = conversion_task
 
-                    # Wait for conversion to complete
-                    max_wait_time = 30.0  # Maximum wait time in seconds
+                    # Wait for conversion to complete with adaptive timeout
+                    max_wait_time = session["max_processing_time"]
                     wait_start = time.time()
                     
                     while not stop_event.is_set() and (time.time() - wait_start) < max_wait_time:
@@ -324,9 +361,10 @@ class MNERealtimeService(MNERealtimeInterface):
                             else:
                                 # Conversion failed
                                 logging.warning(f"Conversion failed in real-time session {session_id}")
-                                stop_event.wait(session["update_interval"])
-                                continue
-                        stop_event.wait(0.1)
+                                break
+                        # Shorter polling interval for fast real-time
+                        poll_interval = min(session["update_interval"] * 0.05, 0.1)
+                        stop_event.wait(poll_interval)
 
                     if stop_event.is_set():
                         break
@@ -334,6 +372,11 @@ class MNERealtimeService(MNERealtimeInterface):
                     # Check if conversion completed successfully
                     status = self.converter_service.get_conversion_status(conversion_task)
                     if not (status.get("ready") and status.get("successful")):
+                        # Update timeout stats
+                        with self._session_lock:
+                            if session_id in self._active_sessions:
+                                self._active_sessions[session_id]["performance_stats"]["timeout_count"] += 1
+                        
                         logging.warning(f"Conversion timeout or failed in real-time session {session_id}")
                         stop_event.wait(session["update_interval"])
                         continue
@@ -341,12 +384,6 @@ class MNERealtimeService(MNERealtimeInterface):
                     # OPTIMIZATION: For visualization, since we already converted only selected channels,
                     # we want to display ALL the converted channels (no further filtering needed)
                     viz_params = session["visualization_params"].copy()
-                    
-                    # Set selected_channels_for_display to None to show all converted channels
-                    # This is optimal because we already filtered at conversion time
-                    viz_params["selected_channels_for_display"] = None
-                    
-                    # Remove any conflicting channel selection parameters
                     viz_params.pop("selected_channels_for_display", None)
 
                     visualization_task = self.visualizer_service.create_visualization_async(
@@ -377,29 +414,60 @@ class MNERealtimeService(MNERealtimeInterface):
                             else:
                                 logging.warning(f"Visualization failed in real-time session {session_id}")
                                 break
-                        stop_event.wait(0.1)
+                        # Shorter polling for fast real-time
+                        poll_interval = min(session["update_interval"] * 0.05, 0.1)
+                        stop_event.wait(poll_interval)
 
                     if stop_event.is_set():
                         break
 
+                    # Calculate processing time and update statistics
+                    cycle_end_time = time.time()
+                    processing_time = cycle_end_time - cycle_start_time
+                    
                     # Update session statistics
                     with self._session_lock:
                         if session_id in self._active_sessions:
-                            self._active_sessions[session_id]["update_count"] += 1
-                            self._active_sessions[session_id]["last_update"] = time.time()
-                            self._active_sessions[session_id]["current_conversion_task"] = None
-                            self._active_sessions[session_id]["current_visualization_task"] = None
+                            session_ref = self._active_sessions[session_id]
+                            session_ref["update_count"] += 1
+                            session_ref["last_update"] = time.time()
+                            session_ref["current_conversion_task"] = None
+                            session_ref["current_visualization_task"] = None
+                            
+                            # Update performance statistics
+                            stats = session_ref["performance_stats"]
+                            stats["success_count"] += 1
+                            stats["max_processing_time_seen"] = max(stats["max_processing_time_seen"], processing_time)
+                            
+                            # Rolling average of processing time
+                            if stats["avg_processing_time"] == 0:
+                                stats["avg_processing_time"] = processing_time
+                            else:
+                                alpha = 0.1  # Smoothing factor
+                                stats["avg_processing_time"] = (
+                                    alpha * processing_time + (1 - alpha) * stats["avg_processing_time"]
+                                )
 
                     # Clean up old results to save memory
                     self.result_storage.remove_result(conversion_task)
                     self.result_storage.remove_result(visualization_task)
 
-                    # Wait for next update
-                    stop_event.wait(session["update_interval"])
+                    # Adaptive wait time - account for processing time
+                    remaining_time = session["update_interval"] - processing_time
+                    if remaining_time > 0:
+                        stop_event.wait(remaining_time)
+                    elif processing_time > session["update_interval"] * 1.5:
+                        # Processing is taking too long, warn user
+                        logging.warning(
+                            f"Real-time processing taking {processing_time:.2f}s, "
+                            f"longer than interval {session['update_interval']}s. "
+                            "Consider increasing interval or reducing channels."
+                        )
 
                 except Exception as e:
                     logging.error(f"Error in real-time processing loop for session {session_id}: {e}")
-                    stop_event.wait(2.0)
+                    # Longer wait on error to prevent spam
+                    stop_event.wait(max(session.get("update_interval", 2.0), 2.0))
 
         except Exception as e:
             logging.error(f"Critical error in real-time processing loop for session {session_id}: {e}")
