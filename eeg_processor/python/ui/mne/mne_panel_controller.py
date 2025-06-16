@@ -8,8 +8,8 @@ from .widgets.channel_selection_dialog import ChannelSelectionDialog
 from .widgets.mne_conversion_widget import MNEConversionWidget
 from .widgets.mne_status_widget import MNEStatusWidget
 from .widgets.mne_visualization_widget import MNEVisualizationWidget
-from ..services.data_access_service import DataAccessService
-from ..services.mne_service import MNEService
+from ...services.data_access_service import DataAccessService
+from ...services.mne_service import MNEService
 
 
 class MNEPanelController(QObject):

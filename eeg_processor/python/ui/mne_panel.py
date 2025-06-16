@@ -1,10 +1,10 @@
 from typing import Any, Optional, Dict
 
 from .base_panel import BasePanel
-from .mne_panel_controller import MNEPanelController
-from .widgets.mne_conversion_widget import MNEConversionWidget
-from .widgets.mne_status_widget import MNEStatusWidget
-from .widgets.mne_visualization_widget import MNEVisualizationWidget
+from .mne.mne_panel_controller import MNEPanelController
+from .mne.widgets.mne_conversion_widget import MNEConversionWidget
+from .mne.widgets.mne_status_widget import MNEStatusWidget
+from .mne.widgets.mne_visualization_widget import MNEVisualizationWidget
 from ..services.mne_service import MNEService
 
 # Check if MNE is available

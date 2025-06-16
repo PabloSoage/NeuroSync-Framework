@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
     QProgressBar,
 )
 
-from ...utils.help_system import HelpButton
+from ....utils.help_system import HelpButton
 
 
 class MNEConversionWidget(QWidget):
