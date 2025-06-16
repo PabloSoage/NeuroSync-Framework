@@ -23,7 +23,7 @@ class EEGDataAPI:
     @staticmethod
     def get_current_data() -> Tuple[np.ndarray, List[int]]:
         """
-        Get the current EEG data and timestamps.
+        Get the current EEG data and timestamps (potentially filtered).
 
         Returns:
             Tuple of (data_array, timestamps)
@@ -32,9 +32,20 @@ class EEGDataAPI:
         return data_access.get_current_data()
 
     @staticmethod
+    def get_raw_data() -> Tuple[np.ndarray, List[int]]:
+        """
+        Get the current raw EEG data and timestamps (unfiltered).
+
+        Returns:
+            Tuple of (data_array, timestamps)
+        """
+        data_access = DataAccessService.get_instance()
+        return data_access.get_raw_data()
+
+    @staticmethod
     def get_channel_data(channel_index: int) -> Tuple[np.ndarray, List[int]]:
         """
-        Get data for a specific channel.
+        Get data for a specific channel (potentially filtered).
 
         Args:
             channel_index: Index of the channel (1-based for external API)
@@ -53,7 +64,7 @@ class EEGDataAPI:
     @staticmethod
     def get_channel_by_name(channel_name: str) -> Tuple[np.ndarray, List[int]]:
         """
-        Get data for a channel by its name.
+        Get data for a channel by its name (potentially filtered).
 
         Args:
             channel_name: Name of the channel to get
@@ -187,7 +198,7 @@ class EEGDataAPI:
     @staticmethod
     def get_eeg_data(max_samples: Optional[int] = None) -> Tuple[np.ndarray, List[int]]:
         """
-        Get EEG channel data only.
+        Get EEG channel data only (potentially filtered).
 
         Args:
             max_samples: Maximum number of samples to return
@@ -196,6 +207,7 @@ class EEGDataAPI:
             Tuple of (eeg_data, timestamps)
         """
         data_access = DataAccessService.get_instance()
+        # Use get_current_data() which applies filters if enabled
         data, timestamps = data_access.get_current_data()
         metadata = data_access.get_metadata()
 
@@ -233,7 +245,7 @@ class EEGDataAPI:
     @staticmethod
     def get_all_channels_quality() -> Dict[int, float]:
         """
-        Get signal quality for all EEG channels.
+        Get signal quality for all EEG channels (using filtered data if enabled).
 
         Returns:
             Dictionary mapping channel indices to quality scores (0-1)
@@ -242,6 +254,7 @@ class EEGDataAPI:
             from .processors.signal_processor import SignalProcessor
 
             data_access = DataAccessService.get_instance()
+            # Use get_current_data() which applies filters if enabled
             data, _ = data_access.get_current_data()
             metadata = data_access.get_metadata()
 
@@ -272,3 +285,31 @@ class EEGDataAPI:
         except Exception as e:
             logging.error(f"Error calculating channel quality: {e}")
             return {}
+
+    @staticmethod
+    def are_filters_enabled() -> bool:
+        """
+        Check if filters are currently enabled in DataAccessService.
+
+        Returns:
+            True if filters are enabled, False otherwise
+        """
+        data_access = DataAccessService.get_instance()
+        return getattr(data_access, '_filters_enabled', False)
+
+    @staticmethod
+    def get_filter_settings() -> Optional[Dict[str, Any]]:
+        """
+        Get current filter settings from DataAccessService.
+
+        Returns:
+            Filter settings dictionary or None if no filters configured
+        """
+        data_access = DataAccessService.get_instance()
+        filter_settings = getattr(data_access, '_filter_settings', None)
+        if filter_settings:
+            # Add the enabled status to the settings
+            filter_settings_copy = filter_settings.copy()
+            filter_settings_copy['enabled'] = getattr(data_access, '_filters_enabled', False)
+            return filter_settings_copy
+        return None

@@ -413,6 +413,26 @@ class DataAccessService:
             for callback in self._callbacks:
                 if callback is not None:
                     try:
-                        callback(data, timestamps)
+                        # FIXED: Use get_current_data() to ensure same filtering as API calls
+                        # This prevents double filtering since get_current_data() already applies filters
+                        current_data, current_timestamps = self.get_current_data()
+                        
+                        # Send the most recent data that matches the new data length
+                        if current_data.size > 0 and data.size > 0:
+                            # Get the same amount of recent data as was just added
+                            samples_to_send = min(data.shape[1], current_data.shape[1])
+                            callback_data = current_data[:, -samples_to_send:]
+                            callback_timestamps = current_timestamps[-samples_to_send:]
+                            
+                            callback(callback_data, callback_timestamps)
+                            if self._filters_enabled:
+                                logging.debug("Sent filtered data to callback (same as get_current_data)")
+                            else:
+                                logging.debug("Sent raw data to callback (same as get_current_data)")
+                        else:
+                            # Fallback to original data if no current data available
+                            callback(data, timestamps)
+                            logging.debug("Sent fallback data to callback")
+                            
                     except Exception as e:
                         logging.error(f"Error in data access callback: {e}")

@@ -1183,13 +1183,20 @@ class EEGProcessorApiIntegration:
         # Determine how many samples to send (not too many to keep WebSocket efficient)
         samples_to_send = min(20, data.shape[1]) if data.size > 0 else 0
 
+        # Add filter information to payload - IMPROVED
+        filters_enabled = EEGDataAPI.are_filters_enabled()
+        filter_settings = EEGDataAPI.get_filter_settings() if filters_enabled else None
+
         if data.size > 0 and samples_to_send > 0:
             # Prepare visualization data - both raw values and time series
             viz_data: Dict[str, Any] = {
                 "list_view": [],  # For raw list visualization
                 "chart_data": {},  # For chart visualization
                 "timestamps": [],
-                "samples_per_event": samples_to_send,  # NEW: Inform frontend about samples count
+                "samples_per_event": samples_to_send,  # Inform frontend about samples count
+                "filters_applied": filters_enabled,  # NEW: Inform if data is filtered
+                "filter_info": filter_settings if filters_enabled else None,  # NEW: Filter details
+                "data_source": "filtered" if filters_enabled else "raw",  # NEW: Clarify data source
             }
 
             # Get the last N timestamps (convert to relative time if needed)
@@ -1234,31 +1241,29 @@ class EEGProcessorApiIntegration:
                         # Get the last N samples for this channel
                         channel_data = data[ch_idx, -samples_to_send:].tolist()
 
-                        # CAMBIO PRINCIPAL: Add to list view with ALL samples, not just last value
+                        # Add to list view with ALL samples, not just last value
                         if channel_data:
                             viz_data["list_view"].append(
                                 {
                                     "channel": ch_name,
                                     "type": ch_type,
-                                    "value": channel_data[
-                                        -1
-                                    ],  # Keep last value for compatibility
-                                    "values": channel_data,  # NUEVO: All samples from this event
-                                    "samples_count": len(
-                                        channel_data
-                                    ),  # NUEVO: Number of samples
+                                    "value": channel_data[-1],  # Keep last value for compatibility
+                                    "values": channel_data,  # All samples from this event
+                                    "samples_count": len(channel_data),  # Number of samples
                                     "index": ch_idx,
+                                    "filtered": filters_enabled,  # NEW: Indicate if this data is filtered
+                                    "filter_status": "same_as_eeg_viz_and_mne" if filters_enabled else "raw",  # NEW
                                 }
                             )
 
                         # Add to chart data
                         chart_data_by_type[ch_name] = channel_data
 
-            # Add chart data for this type
-            if chart_data_by_type:
-                viz_data["chart_data"][ch_type] = chart_data_by_type
+                # Add chart data for this type
+                if chart_data_by_type:
+                    viz_data["chart_data"][ch_type] = chart_data_by_type
 
-        # Create payload with both visualization options
+        # Create payload with both visualization options and filter info - IMPROVED
         payload = {
             "event_type": "eeg_data_update",
             "timestamp": time.time(),
@@ -1271,6 +1276,9 @@ class EEGProcessorApiIntegration:
                 "board_name": board_info.get("board_name", "Unknown"),
                 "channel_count": data.shape[0] if data.size > 0 else 0,
                 "eeg_channels_count": len(eeg_channels),
+                "filters_enabled": filters_enabled,  # NEW: Filter status in metadata
+                "filter_settings": filter_settings if filters_enabled else None,  # NEW: Filter details
+                "data_consistency": "same_filtering_as_eeg_viz_and_mne" if filters_enabled else "raw_data",  # NEW
             },
         }
 
