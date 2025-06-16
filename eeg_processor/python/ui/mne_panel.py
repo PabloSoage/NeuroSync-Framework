@@ -33,6 +33,7 @@ class MNEPanel(BasePanel):
         collector_service: Any,
         processor_service: Any,
         parent: Optional[Any] = None,
+        visualization_service: Optional[Any] = None,
     ) -> None:
         """Initialize the MNE panel."""
         super().__init__(parent)
@@ -40,6 +41,7 @@ class MNEPanel(BasePanel):
         # Store service references for compatibility
         self.collector_service = collector_service
         self.processor_service = processor_service
+        self.visualization_service = visualization_service
 
         # Get MNE service
         self.mne_service = MNEService.get_instance()
@@ -66,6 +68,7 @@ class MNEPanel(BasePanel):
             self.visualization_widget,
             self.status_widget,
             parent=self,
+            visualization_service=self.visualization_service,
         )
 
         # Connect controller signals to panel signals

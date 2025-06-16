@@ -118,6 +118,22 @@ class MNEConversionWidget(QWidget):
 
         layout.addLayout(params_layout)
 
+        # Add checkbox for using processing panel filters
+        filter_layout = QHBoxLayout()
+        filter_layout.addWidget(QLabel("Use Processing Panel Filters:"))
+        self.use_filters_check = QCheckBox()
+        self.use_filters_check.setChecked(True)
+        self.use_filters_check.setToolTip("Apply bandpass, notch, and detrend filters from the Processing Panel (if active)")
+        filter_layout.addWidget(self.use_filters_check)
+        
+        # Add filter status indicator
+        self.filter_status = QLabel("(No filters currently active)")
+        self.filter_status.setStyleSheet("color: #888888; font-style: italic; font-size: 10px;")
+        filter_layout.addWidget(self.filter_status)
+        filter_layout.addStretch()
+        
+        layout.addLayout(filter_layout)
+
         # Real-time specific parameters
         self._setup_realtime_parameters(layout)
 
@@ -299,10 +315,21 @@ class MNEConversionWidget(QWidget):
         return {
             "duration_seconds": self.duration_spin.value(),
             "convert_to_v": self.convert_to_v_check.isChecked(),
+            "use_filters": self.use_filters_check.isChecked() if hasattr(self, 'use_filters_check') else False,
             "mode": (
                 "performance" if "Performance Mode" in selected_mode else "flexible"
             ),
         }
+        
+    # Add method to update filter status text
+    def update_filter_status(self, status_text: str, is_active: bool = False) -> None:
+        """Update the filter status indicator."""
+        if hasattr(self, 'filter_status'):
+            self.filter_status.setText(status_text)
+            if is_active:
+                self.filter_status.setStyleSheet("color: #88CC88; font-style: italic; font-size: 10px;")
+            else:
+                self.filter_status.setStyleSheet("color: #888888; font-style: italic; font-size: 10px;")
 
     def set_realtime_state(self, active: bool) -> None:
         """Set the real-time processing state."""

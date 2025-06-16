@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from ..visualizers.brain_map_viz import BrainMapVisualizer
 from ..visualizers.eeg_viz import EEGVisualizer
@@ -229,6 +229,10 @@ class VisualizationService:
                 self.eeg_visualizer.set_bandpass_filter(
                     enabled, low_cutoff, high_cutoff
                 )
+                # Save settings to instance variables
+                self.bandpass_enabled = enabled
+                self.bandpass_low = low_cutoff
+                self.bandpass_high = high_cutoff
             except Exception as e:
                 logging.error(f"Setting bandpass filter for EEG visualizer error: {e}")
                 success = False
@@ -266,6 +270,9 @@ class VisualizationService:
         if self.eeg_visualizer:
             try:
                 self.eeg_visualizer.set_notch_filter(enabled)
+                # Save settings to instance variables
+                self.notch_enabled = enabled
+                self.notch_freq = frequency
             except Exception as e:
                 logging.error(f"Setting notch filter for EEG visualizer error: {e}")
                 success = False
@@ -300,6 +307,8 @@ class VisualizationService:
         if self.eeg_visualizer:
             try:
                 self.eeg_visualizer.set_detrend(enabled)
+                # Save settings to instance variables
+                self.detrend_enabled = enabled
             except Exception as e:
                 logging.error(f"Setting detrend for EEG visualizer error: {e}")
                 success = False
@@ -346,3 +355,24 @@ class VisualizationService:
                 self.brain_map_visualizer = None
         except Exception as e:
             logging.error(f"Visualization cleanup error: {e}")
+
+    def are_filters_applied(self) -> bool:
+        """Check if filters are currently applied to visualizations."""
+        return hasattr(self, "bandpass_enabled") and self.bandpass_enabled or \
+               hasattr(self, "notch_enabled") and self.notch_enabled or \
+               hasattr(self, "detrend_enabled") and self.detrend_enabled
+
+    def get_filter_settings(self) -> Dict[str, Any]:
+        """Get current filter settings."""
+        return {
+            "bandpass": {
+                "enabled": getattr(self, "bandpass_enabled", False),
+                "low": getattr(self, "bandpass_low", 1.0),
+                "high": getattr(self, "bandpass_high", 50.0),
+            },
+            "notch": {
+                "enabled": getattr(self, "notch_enabled", False),
+                "frequency": getattr(self, "notch_freq", 50.0),
+            },
+            "detrend": getattr(self, "detrend_enabled", False)
+        }

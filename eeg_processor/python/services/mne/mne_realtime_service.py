@@ -51,6 +51,10 @@ class MNERealtimeService(MNERealtimeInterface):
         selected_channels: Optional[List[int]] = None,
         visualization_params: Optional[Dict[str, Any]] = None,
         callback: Optional[Callable] = None,
+        use_filters: bool = False,
+        filter_settings: Optional[Dict[str, Any]] = None,
+        processor_service: Optional[Any] = None,
+        use_raw_data: bool = False,
     ) -> str:
         """Start real-time MNE processing."""
         if not MNE_AVAILABLE:
@@ -99,7 +103,12 @@ class MNERealtimeService(MNERealtimeInterface):
                 "max_processing_time_seen": 0.0,
                 "timeout_count": 0,
                 "success_count": 0,
-            }
+            },
+            # Add filter support and raw data option
+            "use_filters": use_filters,
+            "filter_settings": filter_settings,
+            "processor_service": processor_service,
+            "use_raw_data": use_raw_data,  # NEW: Option to use raw data
         }
 
         with self._session_lock:
@@ -120,7 +129,8 @@ class MNERealtimeService(MNERealtimeInterface):
             self._session_threads[session_id] = thread
             thread.start()
 
-        logging.info(f"Started real-time MNE processing session: {session_id} (interval: {update_interval_seconds}s)")
+        filter_info = " with filters" if use_filters else ""
+        logging.info(f"Started real-time MNE processing session{filter_info}: {session_id} (interval: {update_interval_seconds}s)")
         return session_id
 
     def stop_realtime_processing(self, session_id: str) -> bool:
@@ -304,7 +314,16 @@ class MNERealtimeService(MNERealtimeInterface):
 
                     # Check if we have enough data
                     try:
-                        data, timestamps = self.data_service.get_current_data()
+                        # Use raw data or filtered data based on session config
+                        use_raw_data = session.get("use_raw_data", False)
+                        
+                        if use_raw_data:
+                            data, timestamps = self.data_service.get_raw_data()
+                            logging.debug(f"Real-time session {session_id}: Using raw data")
+                        else:
+                            data, timestamps = self.data_service.get_current_data()
+                            logging.debug(f"Real-time session {session_id}: Using potentially filtered data")
+                            
                         metadata = self.data_service.get_metadata()
                         
                         if data.size == 0:
@@ -326,6 +345,45 @@ class MNERealtimeService(MNERealtimeInterface):
                         logging.warning(f"Error getting data for real-time session {session_id}: {e}")
                         stop_event.wait(1.0)
                         continue
+
+                    # NOTE: Legacy filter application is still supported for backward compatibility
+                    # but the preferred method is now through DataAccessService
+                    use_filters = session.get("use_filters", False)
+                    if use_filters and session.get("filter_settings") and session.get("processor_service"):
+                        try:
+                            processor_service = session["processor_service"]
+                            filter_settings = session["filter_settings"]
+                            
+                            # Apply filters to data (legacy support)
+                            filtered_data = data.copy()
+                            
+                            # Apply bandpass filter if enabled
+                            if filter_settings.get("bandpass", {}).get("enabled", False):
+                                bp = filter_settings["bandpass"]
+                                filtered_data = processor_service.apply_bandpass_filter(
+                                    filtered_data,
+                                    bp.get("low", 1.0),
+                                    bp.get("high", 50.0)
+                                )
+                                
+                            # Apply notch filter if enabled
+                            if filter_settings.get("notch", {}).get("enabled", False):
+                                notch = filter_settings["notch"]
+                                filtered_data = processor_service.apply_notch_filter(
+                                    filtered_data, 
+                                    notch.get("frequency", 50)
+                                )
+                                
+                            # Apply detrend if enabled
+                            if filter_settings.get("detrend", False):
+                                filtered_data = processor_service.apply_detrend(filtered_data)
+                                
+                            # Replace data with filtered data
+                            data = filtered_data
+                            logging.debug(f"Applied legacy filters to real-time data for session {session_id}")
+                        except Exception as e:
+                            logging.error(f"Error applying legacy filters to real-time data: {e}")
+                            # Continue with unfiltered data
 
                     # OPTIMIZATION: Apply channel selection BEFORE conversion
                     conversion_channels = session.get("selected_channels")

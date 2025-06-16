@@ -35,6 +35,14 @@ class ProcessingPanel(BasePanel):
         # Add state tracking for filters
         self.filters_applied = False
 
+        # Get DataAccessService instance for filter configuration
+        from ..services.data_access_service import DataAccessService
+
+        self.data_access_service = DataAccessService.get_instance()
+
+        # Set processor service in data access service for filtering
+        self.data_access_service.set_filter_processor(self.processor_service)
+
         # Setup UI components
         self.setup_filter_options()
         self.setup_metrics_section()
@@ -181,10 +189,13 @@ class ProcessingPanel(BasePanel):
             self.brain_map_btn.setEnabled(True)
 
     def apply_filters(self) -> None:
-        """Apply or remove the selected filters to visualization."""
+        """Apply or remove the selected filters to visualization and data access."""
         try:
             if not self.filters_applied:
-                # Apply filters
+                # Get current filter settings
+                filter_settings = self.get_filter_settings()
+
+                # Apply filters to visualization
                 self.visualization_service.set_bandpass_filter(
                     self.bandpass_check.isChecked(),
                     self.bandpass_low_spin.value(),
@@ -198,24 +209,30 @@ class ProcessingPanel(BasePanel):
 
                 self.visualization_service.set_detrend(self.detrend_check.isChecked())
 
+                # Apply filters to data access service (for MNE and other consumers)
+                self.data_access_service.enable_filters(True, filter_settings)
+
                 # Update button state
                 self.filters_applied = True
                 self.apply_filters_btn.setText("Remove Filters from Visualization")
                 self.apply_filters_btn.setStyleSheet(
                     "background-color: #AA3333; color: white;"
                 )
-                self.show_status("Filters applied to visualization")
+                self.show_status("Filters applied to visualization and data conversion")
             else:
-                # Remove filters
+                # Remove filters from visualization
                 self.visualization_service.set_bandpass_filter(False, 1.0, 50.0)
                 self.visualization_service.set_notch_filter(False)
                 self.visualization_service.set_detrend(False)
+
+                # Disable filters in data access service
+                self.data_access_service.enable_filters(False)
 
                 # Update button state
                 self.filters_applied = False
                 self.apply_filters_btn.setText("Apply Filters to Visualization")
                 self.apply_filters_btn.setStyleSheet("")
-                self.show_status("Filters removed from visualization")
+                self.show_status("Filters removed from visualization and data conversion")
 
         except Exception as e:
             self.show_error("Filter Error", f"Error applying filters: {str(e)}")
@@ -225,6 +242,9 @@ class ProcessingPanel(BasePanel):
         # Only update if filters are already applied
         if hasattr(self, "filters_applied") and self.filters_applied:
             try:
+                # Get current filter settings
+                filter_settings = self.get_filter_settings()
+
                 # Apply the same filters as in apply_filters, but without changing button state
                 self.visualization_service.set_bandpass_filter(
                     self.bandpass_check.isChecked(),
@@ -238,6 +258,9 @@ class ProcessingPanel(BasePanel):
                 )
 
                 self.visualization_service.set_detrend(self.detrend_check.isChecked())
+
+                # Update filters in data access service
+                self.data_access_service.update_filter_settings(filter_settings)
 
                 self.show_status("Filters updated dynamically")
             except Exception as e:
@@ -397,6 +420,8 @@ class ProcessingPanel(BasePanel):
                 "enabled": self.bandpass_check.isChecked(),
                 "low_cut": self.bandpass_low_spin.value(),
                 "high_cut": self.bandpass_high_spin.value(),
+                "low": self.bandpass_low_spin.value(),  # For backward compatibility
+                "high": self.bandpass_high_spin.value(),  # For backward compatibility
             },
             "notch": {
                 "enabled": self.notch_check.isChecked(),

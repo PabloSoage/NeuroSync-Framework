@@ -128,6 +128,17 @@ def _convert_to_mne_worker(
     try:
         import mne
 
+        # Log data characteristics for debugging
+        if data.size > 0:
+            data_mean = np.mean(data)
+            data_std = np.std(data)
+            data_range = np.ptp(data)
+            logging.info(
+                f"MNE Converter: Processing data - Shape: {data.shape}, Mean: {data_mean:.2e}, Std: {data_std:.2e}, Range: {data_range:.2e}"
+            )
+        else:
+            logging.warning("MNE Converter: Received empty data")
+
         sampling_rate = metadata.get("sampling_rate", 250)
         samples_needed = int(duration_seconds * sampling_rate)
 
@@ -140,6 +151,9 @@ def _convert_to_mne_worker(
 
         # Extract last N seconds
         recent_data = data[:, -samples_needed:]
+        logging.debug(
+            f"MNE Converter: Using last {duration_seconds}s of data, shape: {recent_data.shape}"
+        )
 
         # Get EEG channels
         eeg_channels = metadata.get("eeg_channels", [])
@@ -168,9 +182,19 @@ def _convert_to_mne_worker(
         # Extract EEG data
         eeg_data = recent_data[eeg_channels, :]
 
+        # Log processed data characteristics
+        if eeg_data.size > 0:
+            eeg_mean = np.mean(eeg_data)
+            eeg_std = np.std(eeg_data)
+            eeg_range = np.ptp(eeg_data)
+            logging.info(
+                f"MNE Converter: EEG data - Shape: {eeg_data.shape}, Mean: {eeg_mean:.2e}, Std: {eeg_std:.2e}, Range: {eeg_range:.2e}"
+            )
+
         # Convert units if requested
         if convert_to_v:
             eeg_data = eeg_data / 1000000  # µV to V
+            logging.debug("MNE Converter: Converted units from µV to V")
 
         # Create channel info
         ch_types = ["eeg"] * len(eeg_channels)
@@ -208,4 +232,5 @@ def _convert_to_mne_worker(
         }
 
     except Exception as e:
+        logging.error(f"MNE conversion error: {e}")
         return {"success": False, "error": str(e)}

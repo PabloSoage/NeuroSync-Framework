@@ -139,7 +139,12 @@ class EEGProcessorApp(QMainWindow):
         try:
             import mne
 
-            self.mne_panel = MNEPanel(self.collector_service, self.processor_service)
+            # Add visualization_service parameter to MNEPanel instantiation
+            self.mne_panel = MNEPanel(
+                self.collector_service,
+                self.processor_service,
+                visualization_service=self.visualization_service,
+            )
             mne_available = True
         except ImportError:
             mne_available = False

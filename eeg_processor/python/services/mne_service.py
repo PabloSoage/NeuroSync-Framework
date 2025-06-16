@@ -1,6 +1,7 @@
 import logging
 import threading
 from typing import Dict, Any, Optional, Callable, List, Tuple
+import numpy as np
 
 from .data_access_service import DataAccessService
 from .mne.mne_converter_service import MNEConverterService
@@ -105,6 +106,9 @@ class MNEService:
         convert_to_v: bool = True,
         selected_channels: Optional[List[int]] = None,
         callback: Optional[Callable] = None,
+        data: Optional[np.ndarray] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        use_raw_data: bool = False,
     ) -> str:
         """
         Convert BrainFlow data to MNE format asynchronously.
@@ -114,17 +118,35 @@ class MNEService:
             convert_to_v: Whether to convert units to volts
             selected_channels: List of channel indices to convert (None for all)
             callback: Optional callback function
+            data: Optional pre-processed data (if None, will get from DataAccessService)
+            metadata: Optional metadata (if None, will get from DataAccessService)
+            use_raw_data: If True, get raw unfiltered data; if False, get potentially filtered data
 
         Returns:
             Task ID for tracking the conversion
         """
-        # Get current data and metadata
-        data, timestamps = self._data_access_service.get_current_data()
-        metadata = self._data_access_service.get_metadata()
+        # Get current data and metadata if not provided
+        if data is None or metadata is None:
+            data_access = self._data_access_service
+            
+            # Get filtered or raw data based on parameter
+            if use_raw_data:
+                # Get raw data without any filters applied
+                data_to_use, timestamps = data_access.get_raw_data()
+                logging.debug("MNE conversion using raw (unfiltered) data")
+            else:
+                # Get data with filters applied if enabled
+                data_to_use, timestamps = data_access.get_current_data()
+                logging.debug("MNE conversion using potentially filtered data")
+                
+            metadata_to_use = data_access.get_metadata()
+        else:
+            data_to_use = data
+            metadata_to_use = metadata
 
         return self._converter_service.convert_to_mne_async(
-            data=data,
-            metadata=metadata,
+            data=data_to_use,
+            metadata=metadata_to_use,
             duration_seconds=duration_seconds,
             convert_to_v=convert_to_v,
             selected_channels=selected_channels,
@@ -204,17 +226,31 @@ class MNEService:
         selected_channels: Optional[List[int]] = None,
         visualization_params: Optional[Dict[str, Any]] = None,
         callback: Optional[Callable] = None,
+        use_filters: bool = False,
+        filter_settings: Optional[Dict[str, Any]] = None,
+        processor_service: Optional[Any] = None,
+        use_raw_data: bool = False,
     ) -> str:
-        """Start real-time MNE processing."""
-        return self._realtime_service.start_realtime_processing(
-            update_interval_seconds=update_interval_seconds,
-            plot_type=plot_type,
-            duration_seconds=duration_seconds,
-            convert_to_v=convert_to_v,
-            selected_channels=selected_channels,
-            visualization_params=visualization_params,
-            callback=callback,
-        )
+        """Start real-time MNE processing with optional filter support."""
+        realtime_params = {
+            "update_interval_seconds": update_interval_seconds,
+            "plot_type": plot_type,
+            "duration_seconds": duration_seconds,
+            "convert_to_v": convert_to_v,
+            "selected_channels": selected_channels,
+            "visualization_params": visualization_params,
+            "callback": callback,
+            "use_raw_data": use_raw_data,  # Pass through to real-time service
+        }
+        
+        # Note: The original filter support is maintained for backward compatibility
+        # but the new approach uses DataAccessService filtering
+        if use_filters and filter_settings and processor_service:
+            realtime_params["use_filters"] = True
+            realtime_params["filter_settings"] = filter_settings
+            realtime_params["processor_service"] = processor_service
+        
+        return self._realtime_service.start_realtime_processing(**realtime_params)
 
     def stop_realtime_processing(self, session_id: str) -> bool:
         """Stop real-time processing session."""

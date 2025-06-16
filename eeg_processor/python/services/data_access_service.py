@@ -51,6 +51,11 @@ class DataAccessService:
         self._callbacks: List[Optional[Callable[[np.ndarray, List[int]], None]]] = []
         self._callback_lock = threading.Lock()
 
+        # Filter settings and processor service for optional filtering
+        self._filter_settings: Optional[Dict[str, Any]] = None
+        self._filters_enabled = False
+        self._processor_service: Optional[Any] = None
+
         # Initialize collector reference (will be set properly when collector starts)
         self._init_collector_reference()
 
@@ -65,6 +70,90 @@ class DataAccessService:
             logging.info("Connected to collector service")
         except Exception as e:
             logging.debug(f"Could not connect to collector service: {e}")
+
+    def set_filter_processor(self, processor_service: Any) -> None:
+        """Set the processor service for applying filters."""
+        self._processor_service = processor_service
+        logging.info("Filter processor service set for DataAccessService")
+
+    def enable_filters(
+        self, enabled: bool, filter_settings: Optional[Dict[str, Any]] = None
+    ) -> None:
+        """
+        Enable or disable filters for data served by this service.
+
+        Args:
+            enabled: Whether to enable filters
+            filter_settings: Filter configuration (if None, will use existing settings)
+        """
+        with self._data_lock:
+            self._filters_enabled = enabled
+            if filter_settings is not None:
+                self._filter_settings = filter_settings
+
+        action = "enabled" if enabled else "disabled"
+        logging.info(f"DataAccessService filters {action}")
+
+    def update_filter_settings(self, filter_settings: Dict[str, Any]) -> None:
+        """Update filter settings."""
+        with self._data_lock:
+            self._filter_settings = filter_settings
+        logging.debug("DataAccessService filter settings updated")
+
+    def _apply_filters_if_enabled(self, data: np.ndarray) -> np.ndarray:
+        """Apply filters to data if enabled and processor is available."""
+        if not self._filters_enabled or not self._processor_service or not self._filter_settings:
+            return data
+
+        if data.size == 0:
+            return data
+
+        try:
+            filtered_data = data.copy()
+            
+            logging.debug(f"Applying filters to data shape {data.shape}")
+            
+            # Initialize processor if not already done
+            if not hasattr(self._processor_service, 'processor') or self._processor_service.processor is None:
+                # Try to get sampling rate from metadata
+                sampling_rate = self._metadata.get("sampling_rate", 250)
+                if sampling_rate > 0:
+                    self._processor_service.initialize_processor(int(sampling_rate))
+                    logging.info(f"Auto-initialized processor with sampling rate {sampling_rate} Hz for filtering")
+                else:
+                    logging.warning("Cannot initialize processor: no valid sampling rate")
+                    return data
+            
+            # Apply bandpass filter if enabled
+            if self._filter_settings.get("bandpass", {}).get("enabled", False):
+                bp = self._filter_settings["bandpass"]
+                low_cut = bp.get("low_cut", bp.get("low", 1.0))
+                high_cut = bp.get("high_cut", bp.get("high", 50.0))
+                logging.debug(f"Applying bandpass filter {low_cut}-{high_cut} Hz")
+                filtered_data = self._processor_service.apply_bandpass_filter(
+                    filtered_data, low_cut, high_cut
+                )
+                
+            # Apply notch filter if enabled
+            if self._filter_settings.get("notch", {}).get("enabled", False):
+                notch = self._filter_settings["notch"]
+                freq = notch.get("frequency", 50)
+                logging.debug(f"Applying notch filter {freq} Hz")
+                filtered_data = self._processor_service.apply_notch_filter(
+                    filtered_data, freq
+                )
+                
+            # Apply detrend if enabled
+            if self._filter_settings.get("detrend", False):
+                logging.debug("Applying detrend")
+                filtered_data = self._processor_service.apply_detrend(filtered_data)
+                
+            logging.debug("Filters applied successfully in DataAccessService")
+            return filtered_data
+            
+        except Exception as e:
+            logging.error(f"Error applying filters in DataAccessService: {e}")
+            return data
 
     def update_data(self, data: np.ndarray, timestamps: List[int]) -> None:
         """Update the current data buffer."""
@@ -105,7 +194,26 @@ class DataAccessService:
                     self._buffer_max_samples = int(sr) * 10
 
     def get_current_data(self) -> Tuple[np.ndarray, List[int]]:
-        """Get the current data and timestamps."""
+        """Get the current data and timestamps, optionally filtered."""
+        with self._data_lock:
+            raw_data = self._current_data.copy()
+            timestamps = self._timestamps.copy()
+            
+            # Apply filters if enabled
+            if self._filters_enabled and raw_data.size > 0:
+                logging.debug("DataAccessService: Applying filters to current data")
+                filtered_data = self._apply_filters_if_enabled(raw_data)
+                if not np.array_equal(filtered_data, raw_data):
+                    logging.debug("DataAccessService: Data was successfully filtered")
+                else:
+                    logging.debug("DataAccessService: Data was not changed by filters")
+                return filtered_data, timestamps
+            else:
+                logging.debug("DataAccessService: Returning raw data (filters disabled)")
+                return raw_data, timestamps
+
+    def get_raw_data(self) -> Tuple[np.ndarray, List[int]]:
+        """Get the current raw data and timestamps without any filtering."""
         with self._data_lock:
             return self._current_data.copy(), self._timestamps.copy()
 
@@ -201,7 +309,7 @@ class DataAccessService:
         return None
 
     def get_channel_data(self, channel_index: int) -> Tuple[np.ndarray, List[int]]:
-        """Get data for a specific channel."""
+        """Get data for a specific channel, optionally filtered."""
         with self._data_lock:
             if (
                 self._current_data.size == 0
@@ -209,7 +317,15 @@ class DataAccessService:
             ):
                 return np.array([]), []
 
-            return self._current_data[channel_index].copy(), self._timestamps.copy()
+            raw_data = self._current_data.copy()
+            timestamps = self._timestamps.copy()
+
+            # Apply filters if enabled
+            if self._filters_enabled and raw_data.size > 0:
+                filtered_data = self._apply_filters_if_enabled(raw_data)
+                return filtered_data[channel_index].copy(), timestamps
+            else:
+                return raw_data[channel_index].copy(), timestamps
 
     def get_channel_names(self) -> List[str]:
         """Get names of all channels."""

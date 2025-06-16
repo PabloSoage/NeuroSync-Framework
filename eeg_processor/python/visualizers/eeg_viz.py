@@ -219,7 +219,9 @@ class EEGVisualizer:
         """Update all plots with new data."""
         try:
             # Get data from DataAccessService instead of collector
-            data, timestamps = self.data_service.get_current_data()
+            # NOTE: get_raw_data() gets unfiltered data for visualization filtering
+            # This ensures visualization filters work independently
+            data, timestamps = self.data_service.get_raw_data()
             metadata = self.data_service.get_metadata()
 
             # Get sample rate info from metadata
@@ -246,10 +248,10 @@ class EEGVisualizer:
             if data.size == 0 or len(self.eeg_channels) == 0:
                 return
 
-            # Process data for display
+            # Process data for display (visualization-specific filtering)
             data_to_plot = data.copy()
 
-            # Apply pre-processing if needed
+            # Apply pre-processing if needed (visualization filters)
             if self.apply_bandpass:
                 data_to_plot = self.processor.bandpass_filter(
                     data_to_plot, self.bandpass_low, self.bandpass_high, 4

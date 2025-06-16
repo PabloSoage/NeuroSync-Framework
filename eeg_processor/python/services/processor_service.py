@@ -42,7 +42,7 @@ class ProcessorService:
         Apply bandpass filter to the data.
 
         Args:
-            data: Data to filter
+            data: Data to filter (2D array: channels x samples)
             low_cutoff: Low cutoff frequency in Hz
             high_cutoff: High cutoff frequency in Hz
             channels: Specific channels to filter (defaults to all)
@@ -51,20 +51,30 @@ class ProcessorService:
             Filtered data
         """
         if self.processor is None:
-            logging.warning("Processor not initialized")
+            logging.warning("Processor not initialized for bandpass filter")
             return data
 
         try:
+            # Ensure data is 2D
+            if data.ndim == 1:
+                data = data.reshape(1, -1)
+            
+            logging.debug(f"Applying bandpass filter {low_cutoff}-{high_cutoff} Hz to data shape {data.shape}")
+            
             # Apply filter to specific channels or all data
             if channels is not None:
                 filtered_data = data.copy()
-                channel_data = data[channels]
-                filtered_channel_data = self.processor.bandpass_filter(
-                    channel_data, low_cutoff, high_cutoff, 4
-                )
-                filtered_data[channels] = filtered_channel_data
+                for channel in channels:
+                    if channel < data.shape[0]:
+                        # Apply filter to single channel
+                        channel_data = data[channel:channel+1, :]  # Keep 2D
+                        filtered_channel_data = self.processor.bandpass_filter(
+                            channel_data, low_cutoff, high_cutoff, 4
+                        )
+                        filtered_data[channel:channel+1, :] = filtered_channel_data
                 return filtered_data
             else:
+                # Apply to all channels
                 return self.processor.bandpass_filter(data, low_cutoff, high_cutoff, 4)
         except Exception as e:
             logging.error(f"Bandpass filter error: {e}")
@@ -77,7 +87,7 @@ class ProcessorService:
         Apply notch filter to the data.
 
         Args:
-            data: Data to filter
+            data: Data to filter (2D array: channels x samples)
             notch_freq: Notch frequency in Hz
             channels: Specific channels to filter (defaults to all)
 
@@ -85,29 +95,88 @@ class ProcessorService:
             Filtered data
         """
         if self.processor is None:
-            logging.warning("Processor not initialized")
+            logging.warning("Processor not initialized for notch filter")
             return data
 
         try:
-            # Use bandstop filter for notch filtering (narrow band around notch_freq)
-            bandwidth = 2.0  # 2Hz bandwidth around notch frequency
+            # Ensure data is 2D
+            if data.ndim == 1:
+                data = data.reshape(1, -1)
+                
+            logging.debug(f"Applying notch filter {notch_freq} Hz to data shape {data.shape}")
+            
+            # Use environmental noise removal which includes notch filtering
             if channels is not None:
                 filtered_data = data.copy()
-                channel_data = data[channels]
-                filtered_channel_data = self.processor.bandstop_filter(
-                    channel_data,
-                    notch_freq - bandwidth / 2,
-                    notch_freq + bandwidth / 2,
-                    4,
-                )
-                filtered_data[channels] = filtered_channel_data
+                for channel in channels:
+                    if channel < data.shape[0]:
+                        # Apply filter to single channel
+                        channel_data = data[channel:channel+1, :]  # Keep 2D
+                        filtered_channel_data = self.processor.remove_environmental_noise(
+                            channel_data
+                        )
+                        filtered_data[channel:channel+1, :] = filtered_channel_data
                 return filtered_data
             else:
-                return self.processor.bandstop_filter(
-                    data, notch_freq - bandwidth / 2, notch_freq + bandwidth / 2, 4
-                )
+                # Apply to all channels
+                return self.processor.remove_environmental_noise(data)
         except Exception as e:
             logging.error(f"Notch filter error: {e}")
+            # Fallback: try bandstop filter
+            try:
+                bandwidth = 2.0  # 2Hz bandwidth around notch frequency
+                return self.apply_bandstop_filter(data, notch_freq - bandwidth/2, notch_freq + bandwidth/2, channels)
+            except Exception as e2:
+                logging.error(f"Bandstop fallback error: {e2}")
+                return data
+
+    def apply_bandstop_filter(
+        self,
+        data: np.ndarray,
+        low_cutoff: float,
+        high_cutoff: float,
+        channels: Optional[List[int]] = None,
+    ) -> np.ndarray:
+        """
+        Apply bandstop filter to the data.
+
+        Args:
+            data: Data to filter (2D array: channels x samples)
+            low_cutoff: Low cutoff frequency in Hz
+            high_cutoff: High cutoff frequency in Hz
+            channels: Specific channels to filter (defaults to all)
+
+        Returns:
+            Filtered data
+        """
+        if self.processor is None:
+            logging.warning("Processor not initialized for bandstop filter")
+            return data
+
+        try:
+            # Ensure data is 2D
+            if data.ndim == 1:
+                data = data.reshape(1, -1)
+                
+            logging.debug(f"Applying bandstop filter {low_cutoff}-{high_cutoff} Hz to data shape {data.shape}")
+            
+            # Apply filter to specific channels or all data
+            if channels is not None:
+                filtered_data = data.copy()
+                for channel in channels:
+                    if channel < data.shape[0]:
+                        # Apply filter to single channel
+                        channel_data = data[channel:channel+1, :]  # Keep 2D
+                        filtered_channel_data = self.processor.bandstop_filter(
+                            channel_data, low_cutoff, high_cutoff, 4
+                        )
+                        filtered_data[channel:channel+1, :] = filtered_channel_data
+                return filtered_data
+            else:
+                # Apply to all channels
+                return self.processor.bandstop_filter(data, low_cutoff, high_cutoff, 4)
+        except Exception as e:
+            logging.error(f"Bandstop filter error: {e}")
             return data
 
     def apply_detrend(
@@ -117,24 +186,34 @@ class ProcessorService:
         Apply detrend operation to the data.
 
         Args:
-            data: Data to detrend
+            data: Data to detrend (2D array: channels x samples)
             channels: Specific channels to detrend (defaults to all)
 
         Returns:
             Detrended data
         """
         if self.processor is None:
-            logging.warning("Processor not initialized")
+            logging.warning("Processor not initialized for detrend")
             return data
 
         try:
+            # Ensure data is 2D
+            if data.ndim == 1:
+                data = data.reshape(1, -1)
+                
+            logging.debug(f"Applying detrend to data shape {data.shape}")
+            
             if channels is not None:
                 detrended_data = data.copy()
-                channel_data = data[channels]
-                detrended_channel_data = self.processor.detrend(channel_data)
-                detrended_data[channels] = detrended_channel_data
+                for channel in channels:
+                    if channel < data.shape[0]:
+                        # Apply detrend to single channel
+                        channel_data = data[channel:channel+1, :]  # Keep 2D
+                        detrended_channel_data = self.processor.detrend(channel_data)
+                        detrended_data[channel:channel+1, :] = detrended_channel_data
                 return detrended_data
             else:
+                # Apply to all channels
                 return self.processor.detrend(data)
         except Exception as e:
             logging.error(f"Detrend error: {e}")
