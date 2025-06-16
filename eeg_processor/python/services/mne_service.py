@@ -311,10 +311,3 @@ class MNEService:
     def result_storage(self) -> MNEResultStorageInterface:
         """Get the result storage for advanced operations."""
         return self._result_storage
-        """Get the process manager for advanced operations."""
-        return self._process_manager
-    
-    @property
-    def result_storage(self) -> MNEResultStorageInterface:
-        """Get the result storage for advanced operations."""
-        return self._result_storage
