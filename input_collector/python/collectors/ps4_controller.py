@@ -193,13 +193,17 @@ class PS4ControllerCollector(AbstractInputCollector):
             self.controller_index = -1
 
             # Quit and reinitialize the joystick/gamecontroller subsystems
-            sdl2.SDL_QuitSubSystem(sdl2.SDL_INIT_JOYSTICK | sdl2.SDL_INIT_GAMECONTROLLER)
-            
+            sdl2.SDL_QuitSubSystem(
+                sdl2.SDL_INIT_JOYSTICK | sdl2.SDL_INIT_GAMECONTROLLER
+            )
+
             # Small delay to ensure cleanup
             time.sleep(0.1)
-            
+
             # Reinitialize
-            result = sdl2.SDL_InitSubSystem(sdl2.SDL_INIT_JOYSTICK | sdl2.SDL_INIT_GAMECONTROLLER)
+            result = sdl2.SDL_InitSubSystem(
+                sdl2.SDL_INIT_JOYSTICK | sdl2.SDL_INIT_GAMECONTROLLER
+            )
             if result == 0:
                 # Re-enable events
                 sdl2.SDL_GameControllerEventState(sdl2.SDL_ENABLE)
@@ -207,7 +211,7 @@ class PS4ControllerCollector(AbstractInputCollector):
             else:
                 error = sdl2.SDL_GetError().decode()
                 print(f"Error reinitializing SDL2 subsystems: {error}")
-                
+
         except Exception as e:
             print(f"Error refreshing SDL subsystems: {e}")
 
@@ -263,10 +267,10 @@ class PS4ControllerCollector(AbstractInputCollector):
             # Force SDL to detect new devices more aggressively
             sdl2.SDL_GameControllerUpdate()
             sdl2.SDL_JoystickUpdate()
-            
+
             # Force event processing to detect new devices
             sdl2.SDL_PumpEvents()
-            
+
             controllers = self.scan_controllers()
             if controllers and not self.controller:
                 # Removed the print statement to reduce spam in logs
@@ -286,7 +290,9 @@ class PS4ControllerCollector(AbstractInputCollector):
             print(f"Controller device added: {event.cdevice.which}")
             if not self.controller:
                 # Small delay to ensure the device is ready
-                threading.Timer(0.1, lambda: self.connect_to_controller(event.cdevice.which)).start()
+                threading.Timer(
+                    0.1, lambda: self.connect_to_controller(event.cdevice.which)
+                ).start()
         elif event.type == sdl2.SDL_CONTROLLERDEVICEREMOVED:
             print(f"Controller device removed: {event.cdevice.which}")
             if self.controller and event.cdevice.which == self.controller_index:
@@ -499,20 +505,23 @@ class PS4ControllerCollector(AbstractInputCollector):
             sdl2.SDL_PumpEvents()
             sdl2.SDL_GameControllerUpdate()
             sdl2.SDL_JoystickUpdate()
-            
+
             # Process any pending device events
             event = sdl2.SDL_Event()
             device_events_found = 0
             while sdl2.SDL_PollEvent(event):
-                if event.type in [sdl2.SDL_CONTROLLERDEVICEADDED, sdl2.SDL_CONTROLLERDEVICEREMOVED]:
+                if event.type in [
+                    sdl2.SDL_CONTROLLERDEVICEADDED,
+                    sdl2.SDL_CONTROLLERDEVICEREMOVED,
+                ]:
                     device_events_found += 1
-            
+
             if device_events_found > 0:
                 print(f"Processed {device_events_found} device event(s) during scan")
 
             # Check for controllers
             num_joysticks = sdl2.SDL_NumJoysticks()
-            
+
             for i in range(num_joysticks):
                 if sdl2.SDL_IsGameController(i):
                     name = sdl2.SDL_GameControllerNameForIndex(i)
@@ -529,11 +538,11 @@ class PS4ControllerCollector(AbstractInputCollector):
                     )
 
                     controllers.append({"index": i, "name": name, "is_ps4": is_ps4})
-                    
+
             # Only log if we found controllers or if we're actively looking
             if controllers:
                 print(f"Found {len(controllers)} controller(s)")
-                
+
         except Exception as e:
             print(f"Error scanning controllers: {e}")
 
@@ -573,7 +582,9 @@ class PS4ControllerCollector(AbstractInputCollector):
 
             # Verify the controller index is valid
             if not sdl2.SDL_IsGameController(controller_index):
-                print(f"Controller index {controller_index} is not a valid game controller")
+                print(
+                    f"Controller index {controller_index} is not a valid game controller"
+                )
                 return False
 
             # Open the controller
@@ -656,10 +667,12 @@ class PS4ControllerCollector(AbstractInputCollector):
         # Create a disconnection event only if we're capturing
         if self.is_capturing:
             event = InputData(
-                timestamp=time.time(), event_type="controller_disconnected", active_keys=[]
+                timestamp=time.time(),
+                event_type="controller_disconnected",
+                active_keys=[],
             )
             self._process_event(event)
-            
+
             # Don't start automatic reconnection if we're still capturing
             # Let the main event loop handle it
         else:
@@ -673,7 +686,9 @@ class PS4ControllerCollector(AbstractInputCollector):
 
         while attempts < max_attempts and not self.controller:
             attempts += 1
-            print(f"Attempting to reconnect to controller ({attempts}/{max_attempts})...")
+            print(
+                f"Attempting to reconnect to controller ({attempts}/{max_attempts})..."
+            )
 
             # Force refresh before attempting
             try:
@@ -852,13 +867,13 @@ class PS4ControllerCollector(AbstractInputCollector):
             # Quit SDL2 subsystems if they were initialized
             try:
                 sdl2.SDL_QuitSubSystem(
-                    sdl2.SDL_INIT_JOYSTICK | 
-                    sdl2.SDL_INIT_GAMECONTROLLER | 
-                    sdl2.SDL_INIT_HAPTIC
+                    sdl2.SDL_INIT_JOYSTICK
+                    | sdl2.SDL_INIT_GAMECONTROLLER
+                    | sdl2.SDL_INIT_HAPTIC
                 )
             except:
                 pass
-                
+
         except Exception:
             # Silently handle any cleanup errors
             pass

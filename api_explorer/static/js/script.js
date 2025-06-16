@@ -1,10 +1,10 @@
 // Main script - Initialization and coordination
-import { DarkModeManager } from './modules/darkModeManager.js';
-import { WebSocketManager } from './modules/webSocketManager.js';
-import { ChartManager } from './modules/chartManager.js';
-import { APIMethodsManager } from './modules/apiMethodsManager.js';
-import { FileBrowserManager } from './modules/fileBrowserManager.js';
-import { EventDisplayManager } from './modules/eventDisplayManager.js';
+import {DarkModeManager} from './modules/darkModeManager.js';
+import {WebSocketManager} from './modules/webSocketManager.js';
+import {ChartManager} from './modules/chartManager.js';
+import {APIMethodsManager} from './modules/apiMethodsManager.js';
+import {FileBrowserManager} from './modules/fileBrowserManager.js';
+import {EventDisplayManager} from './modules/eventDisplayManager.js';
 
 class APIExplorer {
     constructor() {
@@ -107,13 +107,13 @@ window.clearEvents = (moduleId) => {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, initializing API Explorer...');
     APIExplorer.instance = new APIExplorer();
-    
+
     // Ensure API methods manager is accessible globally for debugging
     window.apiMethodsManager = APIExplorer.instance.apiMethodsManager;
-    
+
     console.log('API Explorer initialized');
     console.log('API Methods Manager:', window.apiMethodsManager);
-    
+
     // Wait a bit and test functionality
     setTimeout(() => {
         console.log('Running delayed test...');

@@ -6,6 +6,7 @@ an interactive shell, configuration management, and specialized command
 groups for monitoring, interaction control, and data access operations.
 """
 
+from . import commands
 from .cli_app import app, run_cli
 from .cli_config import (
     headless_mode,
@@ -18,7 +19,6 @@ from .cli_config import (
     wait_for_cli_exit,
 )
 from .cli_shell import run_shell, run_interactive_shell
-from . import commands
 
 __version__ = "1.0.0"
 

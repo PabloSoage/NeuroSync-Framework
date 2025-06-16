@@ -199,10 +199,18 @@ class EEGProcessorApp(QMainWindow):
             event_dispatcher = EventDispatcher.get_instance()
 
             # Subscribe to events that need app-level handling
-            event_dispatcher.subscribe(EventType.STREAM_START, self._handle_api_stream_start)
-            event_dispatcher.subscribe(EventType.STREAM_STOP, self._handle_api_stream_stop)
-            event_dispatcher.subscribe(EventType.BOARD_CONNECT, self._handle_api_board_connect)
-            event_dispatcher.subscribe(EventType.BOARD_DISCONNECT, self._handle_api_board_disconnect)
+            event_dispatcher.subscribe(
+                EventType.STREAM_START, self._handle_api_stream_start
+            )
+            event_dispatcher.subscribe(
+                EventType.STREAM_STOP, self._handle_api_stream_stop
+            )
+            event_dispatcher.subscribe(
+                EventType.BOARD_CONNECT, self._handle_api_board_connect
+            )
+            event_dispatcher.subscribe(
+                EventType.BOARD_DISCONNECT, self._handle_api_board_disconnect
+            )
 
         except Exception as e:
             logging.error(f"Error setting up API event subscriptions: {e}")

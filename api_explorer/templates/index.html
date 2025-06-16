@@ -91,7 +91,7 @@
                                                                 {% if param_info.type == 'select' %}
                                                                     <select class="form-control" id="{{ module.id }}-{{ method.id }}_param_{{ param_id }}">
                                                                         {% for option in param_info.options %}
-                                                                            <option value="{{ option.value }}" 
+                                                                            <option value="{{ option.value }}"
                                                                                     {% if option.value == param_info.default %}selected{% endif %}>
                                                                                 {{ option.label }}
                                                                             </option>
@@ -99,7 +99,7 @@
                                                                     </select>
                                                                 {% elif param_info.type == 'json_template' or param_info.ui_type == 'json_template' %}
                                                                     <div class="json-template-container">
-                                                                        <textarea class="form-control json-template-textarea" 
+                                                                        <textarea class="form-control json-template-textarea"
                                                                                 id="{{ module.id }}-{{ method.id }}_param_{{ param_id }}"
                                                                                 rows="12"
                                                                                 data-template-source="{{ param_info.template_source }}"

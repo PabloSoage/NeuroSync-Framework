@@ -9,11 +9,11 @@ that ensures consistent behavior and proper integration with the application's
 collector system and UI framework.
 """
 
-from .visualizer_base import BaseVisualizer
 from .keyboard_viz import KeyboardVisualizer
-from .mouse_viz import MouseVisualizer
 from .mouse_buttons_selector import MouseButtonsSelector
+from .mouse_viz import MouseVisualizer
 from .ps4_controller_viz import PS4ControllerVisualizer
+from .visualizer_base import BaseVisualizer
 
 __all__ = [
     "BaseVisualizer",

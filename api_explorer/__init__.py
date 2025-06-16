@@ -10,9 +10,9 @@ streams, and comprehensive API documentation generation.
 """
 
 from .api_explorer import ApiExplorer
+from .serialization import FastJSONSerializer
 from .websocket_manager import WebSocketManager
 from .worker_pool import WebSocketWorkerPool, WorkerStats
-from .serialization import FastJSONSerializer
 
 __all__ = [
     "ApiExplorer",

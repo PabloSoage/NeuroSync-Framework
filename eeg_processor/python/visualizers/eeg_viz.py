@@ -4,7 +4,7 @@ from typing import Any
 import numpy as np
 import pyqtgraph as pg
 from brainflow.data_filter import DataFilter, WindowOperations
-from pyqtgraph.Qt import QtCore, QtGui
+from pyqtgraph.Qt import QtCore
 
 from ..collectors.eeg_collector import EEGCollector
 from ..processors.signal_processor import SignalProcessor

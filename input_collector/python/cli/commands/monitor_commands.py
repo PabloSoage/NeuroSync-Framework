@@ -7,20 +7,21 @@ These commands allow monitoring input events in real-time.
 import sys
 import threading
 import time
-from typing import List, Callable, Any, Dict, Optional, Tuple
+from typing import List, Callable, Any, Dict, Tuple
+
 import typer
+from rich import box
 from rich.console import Console
-from rich.panel import Panel
-from rich.table import Table
 from rich.layout import Layout
 from rich.live import Live
-from rich import box
+from rich.panel import Panel
+from rich.table import Table
 
 # Import shared config instead of from cli_app
 from ..cli_config import headless_mode, init_headless_mode
-from ...core.event_system import EventType, subscribe, unsubscribe, dispatch
-from ...interaction_api_integration import get_interaction_api_integration
+from ...core.event_system import EventType, subscribe, unsubscribe
 from ...interaction_api import InputCollectorAPI
+from ...interaction_api_integration import get_interaction_api_integration
 
 app = typer.Typer(no_args_is_help=True)
 

@@ -1,10 +1,10 @@
 import logging
+import multiprocessing as mp
+import queue
 import threading
 import time
-import multiprocessing as mp
-from typing import Dict, List, Any, Optional, Tuple, Union, Deque
 from collections import deque
-import queue
+from typing import Dict, List, Any, Optional, Tuple, Union, Deque
 
 import numpy as np
 
@@ -36,7 +36,7 @@ class CollectorService:
         """Initialize the collector service."""
         if CollectorService._instance is not None:
             raise RuntimeError("CollectorService is a singleton. Use get_instance()")
-            
+
         self.collector: Optional[EEGCollector] = None
         self.is_streaming = False
 
@@ -292,7 +292,7 @@ class CollectorService:
         try:
             # Ensure buffer_size is an integer
             buffer_size = int(buffer_size)
-            
+
             self.collector.start_stream(buffer_size)
             self.is_streaming = True
 

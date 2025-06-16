@@ -9,8 +9,7 @@ import json
 import logging
 import os
 import threading
-import time
-from typing import Dict, List, Optional, Callable, Any, Type, Union, Set
+from typing import Dict, List, Optional, Callable, Any, Set
 
 import uvicorn
 
@@ -406,9 +405,9 @@ class ApiExplorer:
     ) -> None:
         """Register an individual endpoint with the router."""
         import inspect
-        from fastapi import Query, Depends, Body
+        from fastapi import Query, Depends
         from pydantic import create_model, BaseModel
-        from typing import Any, Dict, List, Union, Optional
+        from typing import Any, Dict, List, Optional
 
         method_type = method_info.get("type", "GET").upper()
         sig = inspect.signature(handler_function)
@@ -416,9 +415,11 @@ class ApiExplorer:
 
         if method_type == "GET":
             if len(param_names) == 0:
+
                 @router.get(f"/{method_id}")
                 async def endpoint() -> Any:
                     return await handler_function()
+
             else:
                 param_dict: Dict[str, Any] = {}
                 for param_id, param_info in method_info.get("params", {}).items():
@@ -449,7 +450,7 @@ class ApiExplorer:
             param_fields: Dict[str, Any] = {}
             for param_id, param_info in method_info.get("params", {}).items():
                 param_type = param_info.get("type", "string").lower()
-                
+
                 # Map API types to Python types
                 if param_type in ["number", "float"]:
                     field_type = float
@@ -477,20 +478,27 @@ class ApiExplorer:
             )
 
             @router.post(f"/{method_id}")
-            async def endpoint(request_data: RequestModel) -> Any:  # Use the specific model type
+            async def endpoint(
+                request_data: RequestModel,
+            ) -> Any:  # Use the specific model type
                 # Safely extract data from the Pydantic model
                 try:
                     if hasattr(request_data, "model_dump"):
                         # Pydantic v2
-                        data_dict = request_data.model_dump(exclude_unset=True, exclude_none=True)
+                        data_dict = request_data.model_dump(
+                            exclude_unset=True, exclude_none=True
+                        )
                     elif hasattr(request_data, "dict"):
                         # Pydantic v1
-                        data_dict = request_data.dict(exclude_unset=True, exclude_none=True)
+                        data_dict = request_data.dict(
+                            exclude_unset=True, exclude_none=True
+                        )
                     else:
                         # Fallback
                         data_dict = {
-                            k: v for k, v in vars(request_data).items() 
-                            if v is not None and not k.startswith('_')
+                            k: v
+                            for k, v in vars(request_data).items()
+                            if v is not None and not k.startswith("_")
                         }
                 except Exception as e:
                     logging.error(f"Error extracting data from request model: {e}")

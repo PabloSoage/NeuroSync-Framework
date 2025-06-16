@@ -39,11 +39,11 @@ class InteractionService:
 
         self.event_dispatcher = EventDispatcher.get_instance()
         self._initialized = False
-        
+
         # Component registry like input_collector
         self._components: Dict[str, Any] = {}
         self._last_status = {"success": False, "message": "Service not initialized"}
-        
+
         # Shared service instances - initialize once and reuse
         self._collector_service = None
         self._processor_service = None
@@ -52,7 +52,7 @@ class InteractionService:
         self._data_access_service = None
 
         logging.info("Interaction service initialized")
-        
+
         # Auto-initialize the service
         self._auto_initialize()
 
@@ -62,7 +62,7 @@ class InteractionService:
             # Initialize core services immediately
             self._get_collector_service()
             self._get_data_access_service()
-            
+
             self._initialized = True
             self._set_status(True, "Service auto-initialized successfully")
             logging.info("Interaction service auto-initialized")
@@ -79,7 +79,9 @@ class InteractionService:
             component: The component instance
         """
         self._components[component_name] = component
-        logging.info(f"Component '{component_name}' registered with interaction service")
+        logging.info(
+            f"Component '{component_name}' registered with interaction service"
+        )
 
     def get_component(self, component_name: str) -> Any:
         """
@@ -118,6 +120,7 @@ class InteractionService:
         """Get or create collector service instance."""
         if self._collector_service is None:
             from .collector_service import CollectorService
+
             self._collector_service = CollectorService.get_instance()
             self.register_component("collector_service", self._collector_service)
         return self._collector_service
@@ -126,6 +129,7 @@ class InteractionService:
         """Get or create processor service instance."""
         if self._processor_service is None:
             from .processor_service import ProcessorService
+
             self._processor_service = ProcessorService()
             self.register_component("processor_service", self._processor_service)
         return self._processor_service
@@ -134,6 +138,7 @@ class InteractionService:
         """Get or create recording service instance."""
         if self._recording_service is None:
             from .recording_service import RecordingService
+
             self._recording_service = RecordingService()
             self.register_component("recording_service", self._recording_service)
         return self._recording_service
@@ -142,14 +147,18 @@ class InteractionService:
         """Get or create visualization service instance."""
         if self._visualization_service is None:
             from .visualization_service import VisualizationService
+
             self._visualization_service = VisualizationService()
-            self.register_component("visualization_service", self._visualization_service)
+            self.register_component(
+                "visualization_service", self._visualization_service
+            )
         return self._visualization_service
 
     def _get_data_access_service(self):
         """Get or create data access service instance."""
         if self._data_access_service is None:
             from .data_access_service import DataAccessService
+
             self._data_access_service = DataAccessService.get_instance()
             self.register_component("data_access_service", self._data_access_service)
         return self._data_access_service
@@ -165,8 +174,10 @@ class InteractionService:
                     return True
             except Exception as e:
                 logging.error(f"Failed to auto-initialize: {e}")
-                
-            self._set_status(False, "Service not initialized and auto-initialization failed")
+
+            self._set_status(
+                False, "Service not initialized and auto-initialization failed"
+            )
             return False
         return True
 
@@ -189,7 +200,7 @@ class InteractionService:
             # Initialize core services
             self._get_collector_service()
             self._get_data_access_service()
-            
+
             self._initialized = True
             self._set_status(True, "Service initialized successfully")
             logging.info("Interaction service initialization completed")
@@ -351,19 +362,21 @@ class InteractionService:
             return {
                 "success": False,
                 "message": self._last_status["message"],
-                "error": "NOT_INITIALIZED"
+                "error": "NOT_INITIALIZED",
             }
 
         try:
             collector_service = self._get_collector_service()
-            
+
             # Validate that we're connected before starting stream
             if not collector_service.is_connected():
-                self._set_status(False, "No board connected. Please connect to a board first.")
+                self._set_status(
+                    False, "No board connected. Please connect to a board first."
+                )
                 return {
                     "success": False,
                     "message": "No board connected. Please connect to a board first.",
-                    "error": "NOT_CONNECTED"
+                    "error": "NOT_CONNECTED",
                 }
 
             # Check if already streaming
@@ -372,17 +385,17 @@ class InteractionService:
                 return {
                     "success": False,
                     "message": "Already streaming",
-                    "error": "ALREADY_STREAMING"
+                    "error": "ALREADY_STREAMING",
                 }
-            
+
             # Ensure buffer_size is an integer
             buffer_size = int(buffer_size)
-            
+
             success = collector_service.start_stream(buffer_size)
 
             if success:
                 self._set_status(True, "Streaming started successfully")
-                
+
                 # Dispatch additional events for GUI synchronization
                 dispatch(
                     EventType.UI_UPDATE_CONTROLS,
@@ -427,26 +440,26 @@ class InteractionService:
             return {
                 "success": False,
                 "message": self._last_status["message"],
-                "error": "NOT_INITIALIZED"
+                "error": "NOT_INITIALIZED",
             }
 
         try:
             collector_service = self._get_collector_service()
-            
+
             # Validate that we're actually streaming before stopping
             if not collector_service.is_streaming_active():
                 self._set_status(False, "Not currently streaming")
                 return {
                     "success": False,
                     "message": "No active stream to stop.",
-                    "error": "NOT_STREAMING"
+                    "error": "NOT_STREAMING",
                 }
-            
+
             success = collector_service.stop_stream()
 
             if success:
                 self._set_status(True, "Streaming stopped successfully")
-                
+
                 # Dispatch additional events for GUI synchronization
                 dispatch(
                     EventType.UI_UPDATE_CONTROLS,
@@ -576,7 +589,7 @@ class InteractionService:
             return {
                 "success": False,
                 "message": self._last_status["message"],
-                "error": "NOT_INITIALIZED"
+                "error": "NOT_INITIALIZED",
             }
 
         try:
@@ -585,11 +598,13 @@ class InteractionService:
 
             # Validate state before recording
             if not collector_service.is_connected():
-                self._set_status(False, "No board connected. Please connect to a board first.")
+                self._set_status(
+                    False, "No board connected. Please connect to a board first."
+                )
                 return {
                     "success": False,
                     "message": "No board connected. Please connect to a board first.",
-                    "error": "NOT_CONNECTED"
+                    "error": "NOT_CONNECTED",
                 }
 
             # Check if already recording
@@ -598,7 +613,7 @@ class InteractionService:
                 return {
                     "success": False,
                     "message": "Already recording",
-                    "error": "ALREADY_RECORDING"
+                    "error": "ALREADY_RECORDING",
                 }
 
             if not collector_service.collector:
@@ -606,7 +621,7 @@ class InteractionService:
                 return {
                     "success": False,
                     "message": "Collector not available.",
-                    "error": "NO_COLLECTOR"
+                    "error": "NO_COLLECTOR",
                 }
 
             success = recording_service.start_recording(
@@ -661,7 +676,7 @@ class InteractionService:
             return {
                 "success": False,
                 "message": self._last_status["message"],
-                "error": "NOT_INITIALIZED"
+                "error": "NOT_INITIALIZED",
             }
 
         try:
@@ -674,7 +689,7 @@ class InteractionService:
                 return {
                     "success": False,
                     "message": "No active recording to stop.",
-                    "error": "NOT_RECORDING"
+                    "error": "NOT_RECORDING",
                 }
 
             if not collector_service.collector:
@@ -682,7 +697,7 @@ class InteractionService:
                 return {
                     "success": False,
                     "message": "Collector not available.",
-                    "error": "NO_COLLECTOR"
+                    "error": "NO_COLLECTOR",
                 }
 
             success = recording_service.stop_recording(collector_service.collector)
@@ -846,14 +861,14 @@ class InteractionService:
                 return {
                     "success": False,
                     "message": "No board connected. Please connect to a board first.",
-                    "error": "NOT_CONNECTED"
+                    "error": "NOT_CONNECTED",
                 }
 
             if not collector_service.is_streaming_active():
                 return {
                     "success": False,
                     "message": "No active stream. Please start streaming first.",
-                    "error": "NOT_STREAMING"
+                    "error": "NOT_STREAMING",
                 }
 
             success = False

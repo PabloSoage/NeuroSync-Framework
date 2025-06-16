@@ -16,7 +16,6 @@ from PyQt5.QtCore import (
     QTimer,
     pyqtSignal,
     QPoint,
-    QObject,
     QMetaObject,
     Q_ARG,
 )

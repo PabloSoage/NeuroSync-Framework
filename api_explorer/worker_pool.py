@@ -3,12 +3,12 @@ WebSocket worker pool for high-performance message processing.
 """
 
 import asyncio
-import queue
-import time
 import logging
 import multiprocessing
-from typing import List, Dict, Any, Optional
+import queue
+import time
 from dataclasses import dataclass
+from typing import List, Dict, Any, Optional
 
 
 @dataclass

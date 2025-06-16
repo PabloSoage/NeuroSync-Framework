@@ -1,5 +1,5 @@
-from typing import Optional, Dict, Any
 import logging
+from typing import Optional, Dict, Any
 
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import (
@@ -18,8 +18,8 @@ from PyQt5.QtWidgets import (
 
 from .base_panel import BasePanel
 from ..collectors.board_configuration import BoardConfiguration
-from ..utils.help_system import HelpButton
 from ..core.event_system import EventDispatcher, EventType
+from ..utils.help_system import HelpButton
 
 
 class ConnectionPanel(BasePanel):
@@ -57,14 +57,24 @@ class ConnectionPanel(BasePanel):
         """Setup subscriptions to events for API synchronization."""
         try:
             event_dispatcher = EventDispatcher.get_instance()
-            
+
             # Subscribe to UI update events from API
-            event_dispatcher.subscribe(EventType.UI_UPDATE_CONTROLS, self._handle_ui_update_event)
-            event_dispatcher.subscribe(EventType.STREAM_START, self._handle_stream_start_event)
-            event_dispatcher.subscribe(EventType.STREAM_STOP, self._handle_stream_stop_event)
-            event_dispatcher.subscribe(EventType.BOARD_CONNECT, self._handle_board_connect_event)
-            event_dispatcher.subscribe(EventType.BOARD_DISCONNECT, self._handle_board_disconnect_event)
-            
+            event_dispatcher.subscribe(
+                EventType.UI_UPDATE_CONTROLS, self._handle_ui_update_event
+            )
+            event_dispatcher.subscribe(
+                EventType.STREAM_START, self._handle_stream_start_event
+            )
+            event_dispatcher.subscribe(
+                EventType.STREAM_STOP, self._handle_stream_stop_event
+            )
+            event_dispatcher.subscribe(
+                EventType.BOARD_CONNECT, self._handle_board_connect_event
+            )
+            event_dispatcher.subscribe(
+                EventType.BOARD_DISCONNECT, self._handle_board_disconnect_event
+            )
+
         except Exception as e:
             logging.error(f"Error setting up event subscriptions: {e}")
 
@@ -74,11 +84,11 @@ class ConnectionPanel(BasePanel):
             data = event.data
             streaming = data.get("streaming", False)
             connected = data.get("connected", False)
-            
+
             # Update UI state based on event data
             self._update_streaming_state(streaming)
             self._update_connection_state(connected)
-            
+
         except Exception as e:
             logging.error(f"Error handling UI update event: {e}")
 
@@ -90,10 +100,10 @@ class ConnectionPanel(BasePanel):
             self.stop_stream_btn.setEnabled(True)
             # enable and style show-viz button so user can reopen window
             self.update_visualization_button(True)
-            
+
             # Emit signal for other components
             self.stream_started.emit()
-            
+
         except Exception as e:
             logging.error(f"Error handling stream start event: {e}")
 
@@ -104,10 +114,10 @@ class ConnectionPanel(BasePanel):
             self.start_stream_btn.setEnabled(True)
             self.stop_stream_btn.setEnabled(False)
             self.show_viz_btn.setEnabled(False)
-            
+
             # Emit signal for other components
             self.stream_stopped.emit()
-            
+
         except Exception as e:
             logging.error(f"Error handling stream stop event: {e}")
 
@@ -118,10 +128,10 @@ class ConnectionPanel(BasePanel):
             self.connect_btn.setEnabled(False)
             self.disconnect_btn.setEnabled(True)
             self.start_stream_btn.setEnabled(True)
-            
+
             # Emit signal for other components
             self.board_connected.emit()
-            
+
         except Exception as e:
             logging.error(f"Error handling board connect event: {e}")
 
@@ -134,10 +144,10 @@ class ConnectionPanel(BasePanel):
             self.start_stream_btn.setEnabled(False)
             self.stop_stream_btn.setEnabled(False)
             self.show_viz_btn.setEnabled(False)
-            
+
             # Emit signal for other components
             self.board_disconnected.emit()
-            
+
         except Exception as e:
             logging.error(f"Error handling board disconnect event: {e}")
 
@@ -377,51 +387,75 @@ class ConnectionPanel(BasePanel):
                 # Check if this parameter is mentioned in requirements
                 if param_name in requirements:
                     required = requirements[param_name]
-                    
+
                     # Determine the field state and styling
                     if required:
                         # REQUIRED (yellow): Field is mandatory for connection
                         field.setEnabled(True)
                         if isinstance(field, QComboBox):
-                            field.setStyleSheet("border: 2px solid #ffc107; background-color: rgba(255, 193, 7, 0.1);")
+                            field.setStyleSheet(
+                                "border: 2px solid #ffc107; background-color: rgba(255, 193, 7, 0.1);"
+                            )
                         else:
-                            field.setStyleSheet("border: 2px solid #ffc107; background-color: rgba(255, 193, 7, 0.1);")
+                            field.setStyleSheet(
+                                "border: 2px solid #ffc107; background-color: rgba(255, 193, 7, 0.1);"
+                            )
                     else:
                         # Check if this field is used by this board type (optional vs not applicable)
-                        is_optional = BoardConfiguration.is_field_optional_for_board(param_name, board_id)
-                        
+                        is_optional = BoardConfiguration.is_field_optional_for_board(
+                            param_name, board_id
+                        )
+
                         if is_optional:
                             # OPTIONAL (green): Field can be provided but not required
                             field.setEnabled(True)
                             if isinstance(field, QComboBox):
-                                field.setStyleSheet("border: 1px solid #28a745; background-color: rgba(40, 167, 69, 0.1);")
+                                field.setStyleSheet(
+                                    "border: 1px solid #28a745; background-color: rgba(40, 167, 69, 0.1);"
+                                )
                             else:
-                                field.setStyleSheet("border: 1px solid #28a745; background-color: rgba(40, 167, 69, 0.1);")
+                                field.setStyleSheet(
+                                    "border: 1px solid #28a745; background-color: rgba(40, 167, 69, 0.1);"
+                                )
                         else:
                             # NOT APPLICABLE (disabled/gray): Field is not used by this board
                             field.setEnabled(False)
                             if isinstance(field, QComboBox):
-                                field.setStyleSheet("background-color: #6c757d; color: #adb5bd;")
+                                field.setStyleSheet(
+                                    "background-color: #6c757d; color: #adb5bd;"
+                                )
                             else:
-                                field.setStyleSheet("background-color: #6c757d; color: #adb5bd;")
+                                field.setStyleSheet(
+                                    "background-color: #6c757d; color: #adb5bd;"
+                                )
                 else:
                     # Parameter not in requirements - check if it's optional for this board
-                    is_optional = BoardConfiguration.is_field_optional_for_board(param_name, board_id)
-                    
+                    is_optional = BoardConfiguration.is_field_optional_for_board(
+                        param_name, board_id
+                    )
+
                     if is_optional:
                         # OPTIONAL (green): Field can be provided but not required
                         field.setEnabled(True)
                         if isinstance(field, QComboBox):
-                            field.setStyleSheet("border: 1px solid #28a745; background-color: rgba(40, 167, 69, 0.1);")
+                            field.setStyleSheet(
+                                "border: 1px solid #28a745; background-color: rgba(40, 167, 69, 0.1);"
+                            )
                         else:
-                            field.setStyleSheet("border: 1px solid #28a745; background-color: rgba(40, 167, 69, 0.1);")
+                            field.setStyleSheet(
+                                "border: 1px solid #28a745; background-color: rgba(40, 167, 69, 0.1);"
+                            )
                     else:
                         # NOT APPLICABLE (disabled/gray): Field is not used by this board
                         field.setEnabled(False)
                         if isinstance(field, QComboBox):
-                            field.setStyleSheet("background-color: #6c757d; color: #adb5bd;")
+                            field.setStyleSheet(
+                                "background-color: #6c757d; color: #adb5bd;"
+                            )
                         else:
-                            field.setStyleSheet("background-color: #6c757d; color: #adb5bd;")
+                            field.setStyleSheet(
+                                "background-color: #6c757d; color: #adb5bd;"
+                            )
 
             # Get and display board description
             try:
@@ -456,7 +490,9 @@ class ConnectionPanel(BasePanel):
                         self.board_info_label.setText(f"Selected board ID: {board_id}")
 
             except Exception as e:
-                logging.debug(f"Could not get board description for board {board_id}: {str(e)}")
+                logging.debug(
+                    f"Could not get board description for board {board_id}: {str(e)}"
+                )
                 if board_id == -100:  # NO_BOARD
                     self.board_info_label.setText("No board selected")
                 else:
@@ -671,8 +707,10 @@ class ConnectionPanel(BasePanel):
         """Show the EEG visualization if it was closed."""
         try:
             # Create if none exists, or reopen if it was closed
-            if self.visualization_service.eeg_visualizer is None \
-               or self.visualization_service.visualization_closed():
+            if (
+                self.visualization_service.eeg_visualizer is None
+                or self.visualization_service.visualization_closed()
+            ):
                 success = self.visualization_service.create_eeg_visualizer(
                     self.collector_service.collector, None
                 )
@@ -681,7 +719,9 @@ class ConnectionPanel(BasePanel):
                     self.show_viz_btn.setEnabled(False)
                     self.show_status("Visualization window reopened")
                 else:
-                    self.show_error("Visualization Error", "Failed to create visualization")
+                    self.show_error(
+                        "Visualization Error", "Failed to create visualization"
+                    )
         except Exception as e:
             self.show_error("Visualization Error", f"Error showing visualization: {e}")
 
@@ -721,9 +761,13 @@ class ConnectionPanel(BasePanel):
             self.start_stream_btn.setEnabled(not streaming)
             self.stop_stream_btn.setEnabled(streaming)
             # enable show-viz only when streaming is active and window is closed
-            enabled = streaming and hasattr(self, "visualization_service") and self.visualization_service.visualization_closed()
+            enabled = (
+                streaming
+                and hasattr(self, "visualization_service")
+                and self.visualization_service.visualization_closed()
+            )
             self.update_visualization_button(enabled)
-            
+
             return True
         except Exception as e:
             self.show_error("Streaming State Update Error", str(e))

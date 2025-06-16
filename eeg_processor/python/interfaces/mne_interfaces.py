@@ -1,11 +1,12 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, Callable, List, Tuple
+
 import numpy as np
 
 
 class MNEConverterInterface(ABC):
     """Interface for MNE data conversion operations."""
-    
+
     @abstractmethod
     def convert_to_mne_async(
         self,
@@ -14,7 +15,7 @@ class MNEConverterInterface(ABC):
         duration_seconds: int,
         convert_to_v: bool = True,
         selected_channels: Optional[List[int]] = None,
-        callback: Optional[Callable] = None
+        callback: Optional[Callable] = None,
     ) -> str:
         """Convert BrainFlow data to MNE format asynchronously."""
         pass
@@ -32,7 +33,7 @@ class MNEConverterInterface(ABC):
 
 class MNEVisualizerInterface(ABC):
     """Interface for MNE visualization operations."""
-    
+
     @abstractmethod
     def create_visualization_async(
         self,
@@ -44,7 +45,7 @@ class MNEVisualizerInterface(ABC):
         show_individual_channels: bool = True,
         selected_channels_for_display: Optional[List[int]] = None,
         topomap_freq_range: Optional[Tuple[int, int]] = None,
-        callback: Optional[Callable] = None
+        callback: Optional[Callable] = None,
     ) -> str:
         """Create MNE visualization asynchronously."""
         pass
@@ -62,7 +63,7 @@ class MNEVisualizerInterface(ABC):
 
 class MNEResultStorageInterface(ABC):
     """Interface for MNE result storage operations."""
-    
+
     @abstractmethod
     def store_result(self, task_id: str, result: Dict[str, Any]) -> None:
         """Store a task result."""
@@ -86,7 +87,7 @@ class MNEResultStorageInterface(ABC):
 
 class MNEProcessManagerInterface(ABC):
     """Interface for managing multiprocessing operations."""
-    
+
     @abstractmethod
     def start_service(self) -> None:
         """Start the process pool."""
@@ -98,7 +99,9 @@ class MNEProcessManagerInterface(ABC):
         pass
 
     @abstractmethod
-    def submit_task(self, worker_func: Callable, *args, task_id: str = None, **kwargs) -> str:
+    def submit_task(
+        self, worker_func: Callable, *args, task_id: str = None, **kwargs
+    ) -> str:
         """Submit a task to the process pool with optional task ID."""
         pass
 

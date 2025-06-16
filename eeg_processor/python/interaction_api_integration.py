@@ -9,8 +9,8 @@ to avoid code duplication and ensures all methods appear in a single module.
 import logging
 from typing import Dict, Any, Optional, List
 
-from .services.interaction_service import InteractionService
 from .interaction_api import EEGProcessorInteractionAPI
+from .services.interaction_service import InteractionService
 
 
 class EEGProcessorInteractionApiIntegration:
@@ -143,7 +143,7 @@ class EEGProcessorInteractionApiIntegration:
         # Get board options and preset options
         board_options = self._get_board_options()
         preset_options = self._get_preset_options()
-        
+
         # Connect to board
         api_explorer.register_method(
             self._target_module_id,
@@ -646,27 +646,29 @@ class EEGProcessorInteractionApiIntegration:
                 board_id = int(board_id)
             if isinstance(preset, str):
                 preset = int(preset)
-            
+
             # Ensure params is a dictionary
             if params is None:
                 params = {}
-            
-            logging.info(f"Connecting to board {board_id} with preset {preset} and params {params}")
-            
+
+            logging.info(
+                f"Connecting to board {board_id} with preset {preset} and params {params}"
+            )
+
             return EEGProcessorInteractionAPI.connect_to_board(board_id, params, preset)
         except ValueError as e:
             logging.error(f"Error converting parameters: {e}")
             return {
                 "success": False,
                 "message": f"Invalid parameter values: {e}",
-                "error": "INVALID_PARAMETERS"
+                "error": "INVALID_PARAMETERS",
             }
         except Exception as e:
             logging.error(f"Error in connect_to_board handler: {e}")
             return {
                 "success": False,
                 "message": f"Connection failed: {e}",
-                "error": str(e)
+                "error": str(e),
             }
 
     async def _handle_disconnect_from_board(self) -> Dict[str, Any]:
@@ -774,7 +776,7 @@ class EEGProcessorInteractionApiIntegration:
             logging.info(f"Getting board template for board_id: {board_id}")
             template = self._get_board_template(board_id)
             logging.info(f"Generated template: {template}")
-            
+
             result = {"template": template, "board_id": board_id}
             logging.info(f"Returning template result: {result}")
             return result
@@ -786,8 +788,9 @@ class EEGProcessorInteractionApiIntegration:
         """Get available board options for dropdown."""
         try:
             from .collectors.board_configuration import BoardConfiguration
+
             boards = BoardConfiguration.get_all_boards()
-            
+
             return [
                 {"value": board_id, "label": f"{board_name} (ID: {board_id})"}
                 for board_name, board_id in boards
@@ -800,8 +803,9 @@ class EEGProcessorInteractionApiIntegration:
         """Get available preset options for dropdown."""
         try:
             from .collectors.board_configuration import BoardConfiguration
+
             preset_info = BoardConfiguration.get_preset_info()
-            
+
             return [
                 {"value": preset_val, "label": f"{preset_desc} ({preset_val})"}
                 for preset_val, preset_desc in preset_info.items()
@@ -815,128 +819,143 @@ class EEGProcessorInteractionApiIntegration:
         try:
             logging.info(f"Building template for board_id: {board_id}")
             from .collectors.board_configuration import BoardConfiguration
+
             requirements = BoardConfiguration.get_board_requirements(board_id)
             logging.info(f"Board requirements: {requirements}")
-            
+
             template = {}
             required_comments = []
             optional_comments = []
-            
+
             # Build complete template with all possible fields
             all_fields = {
                 "serial_port": {
                     "value": "",
-                    "description": "Serial port for board connection (e.g., COM3, /dev/ttyUSB0)"
+                    "description": "Serial port for board connection (e.g., COM3, /dev/ttyUSB0)",
                 },
                 "ip_address": {
                     "value": "225.1.1.1",
-                    "description": "IP address for network boards (default: 225.1.1.1)"
+                    "description": "IP address for network boards (default: 225.1.1.1)",
                 },
                 "ip_port": {
                     "value": 6677,
-                    "description": "IP port for network boards (default: 6677)"
+                    "description": "IP port for network boards (default: 6677)",
                 },
                 "mac_address": {
                     "value": "",
-                    "description": "MAC address for Bluetooth boards (auto-discovery if empty)"
+                    "description": "MAC address for Bluetooth boards (auto-discovery if empty)",
                 },
                 "serial_number": {
                     "value": "",
-                    "description": "Serial number of the device (useful for multiple devices)"
+                    "description": "Serial number of the device (useful for multiple devices)",
                 },
                 "file": {
                     "value": "",
-                    "description": "File path for playback boards (full path to CSV file)"
+                    "description": "File path for playback boards (full path to CSV file)",
                 },
                 "master_board": {
                     "value": 0,
-                    "description": "Master board ID for daisy chain or streaming boards"
+                    "description": "Master board ID for daisy chain or streaming boards",
                 },
                 "other_info": {
                     "value": "",
-                    "description": "Additional information (e.g., ExternalSwitchInputMioUSB for Callibri)"
+                    "description": "Additional information (e.g., ExternalSwitchInputMioUSB for Callibri)",
                 },
                 "timeout": {
                     "value": 15000,
-                    "description": "Connection timeout in milliseconds (default: 15000)"
-                }
+                    "description": "Connection timeout in milliseconds (default: 15000)",
+                },
             }
-            
+
             # Determine field status for this specific board
             for field_name, field_info in all_fields.items():
                 is_required = requirements.get(field_name, False)
-                is_optional = BoardConfiguration.is_field_optional_for_board(field_name, board_id)
-                
+                is_optional = BoardConfiguration.is_field_optional_for_board(
+                    field_name, board_id
+                )
+
                 if is_required:
                     # Required field - add to template and comments
                     template[field_name] = field_info["value"]
-                    required_comments.append(f"{field_name}: {field_info['description']}")
+                    required_comments.append(
+                        f"{field_name}: {field_info['description']}"
+                    )
                 elif is_optional:
                     # Optional field - add to template and comments
                     template[field_name] = field_info["value"]
-                    optional_comments.append(f"{field_name}: {field_info['description']}")
+                    optional_comments.append(
+                        f"{field_name}: {field_info['description']}"
+                    )
                 # Skip fields that are not applicable (neither required nor optional)
-            
+
             # Add comments if we have any fields
             if required_comments or optional_comments:
                 comments = []
-                
+
                 if required_comments:
                     comments.append("REQUIRED fields for this board:")
                     comments.extend([f"  - {comment}" for comment in required_comments])
-                    
+
                 if optional_comments:
                     if required_comments:
                         comments.append("")  # Empty line separator
                     comments.append("OPTIONAL fields for this board:")
                     comments.extend([f"  - {comment}" for comment in optional_comments])
-                
+
                 comments.append("")
                 comments.append("Remove this _COMMENTS field before executing")
                 template["_COMMENTS"] = comments
-            
-            logging.info(f"Built template with {len(template)} fields: {list(template.keys())}")
+
+            logging.info(
+                f"Built template with {len(template)} fields: {list(template.keys())}"
+            )
             return template
         except Exception as e:
             logging.error(f"Error getting board template: {e}")
             import traceback
+
             logging.error(f"Traceback: {traceback.format_exc()}")
             return {}
-            logging.info(f"Built template with {len(template)} fields: {list(template.keys())}")
+            logging.info(
+                f"Built template with {len(template)} fields: {list(template.keys())}"
+            )
             return template
         except Exception as e:
             logging.error(f"Error getting board template: {e}")
             import traceback
+
             logging.error(f"Traceback: {traceback.format_exc()}")
             return {}
 
-    def _is_field_optional_for_board(self, param: str, board_id: int, board_name: str) -> bool:
+    def _is_field_optional_for_board(
+        self, param: str, board_id: int, board_name: str
+    ) -> bool:
         """
         Determine if a parameter field is optional (vs not applicable) for a specific board.
-        
+
         Args:
             param: Parameter name
             board_id: Board ID
             board_name: Board name (lowercase)
-            
+
         Returns:
             True if field is optional, False if not applicable
         """
         from brainflow.board_shim import BoardIds
-        
+
         # Special boards - check which fields are potentially useful
         if board_id == BoardIds.SYNTHETIC_BOARD.value:
             # Synthetic board: no fields are useful
             return False
-            
+
         if board_id == BoardIds.PLAYBACK_FILE_BOARD.value:
             # Playback board: only file and master_board are relevant (both required per requirements)
             return False  # No optional fields for playback board
-            
+
         if board_id == BoardIds.STREAMING_BOARD.value:
             # Streaming board: ip_address, ip_port, master_board are all required per requirements
             return False  # No optional fields for streaming board
-        
+
         # For real hardware boards, determine based on board characteristics
         try:
             # Check board name patterns to determine optional fields
@@ -953,7 +972,7 @@ class EEGProcessorInteractionApiIntegration:
                 else:
                     # Serial boards: serial_port required, timeout is optional
                     return param in ["timeout"]
-                    
+
             elif "muse" in board_name:
                 if "bled" in board_name:
                     # Muse BLED: serial_port required, serial_number optional, timeout optional
@@ -961,11 +980,11 @@ class EEGProcessorInteractionApiIntegration:
                 else:
                     # Muse native: mac_address and serial_number optional, timeout optional
                     return param in ["mac_address", "serial_number", "timeout"]
-                    
+
             elif "unicorn" in board_name:
                 # Unicorn: serial_number optional (for multiple devices), timeout optional
                 return param in ["serial_number", "timeout"]
-                
+
             elif "brainbit" in board_name:
                 if "bled" in board_name:
                     # BrainBit BLED: serial_port required, mac_address optional, timeout optional
@@ -973,35 +992,35 @@ class EEGProcessorInteractionApiIntegration:
                 else:
                     # BrainBit native: serial_number optional, timeout optional
                     return param in ["serial_number", "timeout"]
-                    
+
             elif "notion" in board_name or "crown" in board_name:
                 # Neurosity boards: serial_number optional, timeout optional
                 return param in ["serial_number", "timeout"]
-                
+
             elif "freeeeg" in board_name:
                 # FreeEEG: serial_port required, timeout optional
                 return param in ["timeout"]
-                
+
             elif "enophone" in board_name or "explore" in board_name:
                 # Bluetooth boards: mac_address optional on some platforms, timeout optional
                 return param in ["mac_address", "timeout"]
-                
+
             elif "emotibit" in board_name:
                 # EmotiBit: ip_address and serial_number optional, timeout optional
                 return param in ["ip_address", "serial_number", "timeout"]
-                
+
             elif "ant" in board_name or "eego" in board_name:
                 # ANT Neuro: timeout might be optional
                 return param in ["timeout"]
-                
+
             elif "callibri" in board_name:
                 # Callibri: other_info optional (for ExternalSwitchInputMioUSB), timeout optional
                 return param in ["other_info", "timeout"]
-                
+
             else:
                 # Default for unknown boards: timeout is usually optional
                 return param in ["timeout"]
-                
+
         except Exception as e:
             logging.warning(f"Error determining optional fields for {board_name}: {e}")
             # Conservative fallback: consider timeout as optional for most boards

@@ -2,16 +2,16 @@
 WebSocket connection management with worker pools and message throttling.
 """
 
-import time
-import random
-import logging
 import asyncio
-from typing import Dict, List, Any, Callable, Optional
-from fastapi import WebSocket
 import multiprocessing as mp
+import random
+import time
+from typing import Dict, List, Any, Optional
 
-from .worker_pool import WebSocketWorkerPool
+from fastapi import WebSocket
+
 from .serialization import FastJSONSerializer
+from .worker_pool import WebSocketWorkerPool
 
 
 class WebSocketManager:

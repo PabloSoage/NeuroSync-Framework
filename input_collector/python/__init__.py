@@ -16,21 +16,21 @@ Key components:
 - CLI for headless operation and scripting
 """
 
-# Main application exports
-from .input_collector_app import InputCollectorApp, run_collector_app
-
-# Core API exports
-from .data_access_api import InputDataAPI
-from .interaction_api import InputCollectorAPI
-
-# Core interfaces
-from .interfaces import InputData, AbstractInputCollector, AbstractVisualizer
-
 # Collectors
 from .collectors import (
     CollectorManager,
     KeyboardMouseCollector,
 )
+
+# Core API exports
+from .data_access_api import InputDataAPI
+
+# Main application exports
+from .input_collector_app import InputCollectorApp, run_collector_app
+from .interaction_api import InputCollectorAPI
+
+# Core interfaces
+from .interfaces import InputData, AbstractInputCollector, AbstractVisualizer
 
 # Try to import PS4 controller with graceful fallback
 try:

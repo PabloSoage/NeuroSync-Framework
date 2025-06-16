@@ -8,11 +8,11 @@ and GUI state. It follows the same pattern as the input_collector module.
 
 import logging
 import threading
-from typing import Any, Callable, Optional, TypeVar, Dict
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
+from typing import Any, Callable, Optional, TypeVar, Dict
 
 from PyQt5.QtCore import QObject, QTimer, QThread
-from PyQt5.QtWidgets import QApplication, QComboBox, QSpinBox, QLineEdit, QCheckBox
+from PyQt5.QtWidgets import QApplication
 
 T = TypeVar("T")
 
