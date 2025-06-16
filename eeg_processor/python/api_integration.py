@@ -58,7 +58,7 @@ class EEGProcessorApiIntegration:
         # Get collector service directly for access to board/collector info
         self.collector_service: Optional[CollectorService] = None
         try:
-            self.collector_service = CollectorService()
+            self.collector_service = CollectorService.get_instance()
         except Exception as e:
             logger.warning(f"Could not initialize collector service: {e}")
 
@@ -903,7 +903,7 @@ class EEGProcessorApiIntegration:
             eeg_channels = self._get_eeg_channels_direct()
 
             if eeg_channels and len(eeg_channels) > 0:
-                # Get actual channel names from metadata
+                # Get channel names from metadata
                 actual_channel_names = EEGDataAPI.get_channel_names()
 
                 # Ensure eeg_channels indices are valid for the data array

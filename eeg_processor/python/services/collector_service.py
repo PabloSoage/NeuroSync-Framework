@@ -187,14 +187,19 @@ class CollectorService:
             #  - Real-time event detection
             #  - Adaptive filtering based on signal characteristics
 
-            processed_data = data.copy()
+            # processed_data = data.copy()
 
             # Optimization: reduce precision if necessary to save bandwidth
-            if processed_data.dtype == np.float64:
-                processed_data = processed_data.astype(np.float32)
+            # This is currently not implemented because there are no bandwidth issues,
+            # thus maintaining accuracy.
+            
+            # TODO this data is used by the new architecture with the data_access_service,
+            # causing application failures in parts that require float64.
+            # if processed_data.dtype == np.float64:
+            #     processed_data = processed_data.astype(np.float32)
 
             return {
-                "data": processed_data,
+                "data": data, # processed_data,
                 "timestamps": timestamps,
                 "metadata": metadata,
                 "processed_at": time.time(),
