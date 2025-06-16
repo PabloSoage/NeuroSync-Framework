@@ -137,6 +137,9 @@ class PS4ControllerCollector(AbstractInputCollector):
 
         self.is_capturing = True
 
+        # Reset connection state
+        self.controller_index = -1
+
         # Make sure we have a controller connection
         if not self.controller:
             self.connect_to_first_available()
@@ -166,32 +169,110 @@ class PS4ControllerCollector(AbstractInputCollector):
             # Give the thread a moment to stop gracefully
             self.event_thread.join(timeout=1.0)
 
+        # Process any remaining SDL events to clear the queue
+        self._clear_sdl_event_queue()
+
+        # Force refresh SDL2 subsystems to detect reconnected controllers
+        self._refresh_sdl_subsystems()
+
         print("PS4 controller capture stopped")
+
+    def _refresh_sdl_subsystems(self) -> None:
+        """Force refresh SDL2 subsystems to detect reconnected controllers."""
+        try:
+            # Close existing connections first
+            if self.controller:
+                sdl2.SDL_GameControllerClose(self.controller)
+                self.controller = None
+
+            if self.joystick:
+                sdl2.SDL_JoystickClose(self.joystick)
+                self.joystick = None
+
+            # Reset controller index
+            self.controller_index = -1
+
+            # Quit and reinitialize the joystick/gamecontroller subsystems
+            sdl2.SDL_QuitSubSystem(sdl2.SDL_INIT_JOYSTICK | sdl2.SDL_INIT_GAMECONTROLLER)
+            
+            # Small delay to ensure cleanup
+            time.sleep(0.1)
+            
+            # Reinitialize
+            result = sdl2.SDL_InitSubSystem(sdl2.SDL_INIT_JOYSTICK | sdl2.SDL_INIT_GAMECONTROLLER)
+            if result == 0:
+                # Re-enable events
+                sdl2.SDL_GameControllerEventState(sdl2.SDL_ENABLE)
+                sdl2.SDL_JoystickEventState(sdl2.SDL_ENABLE)
+            else:
+                error = sdl2.SDL_GetError().decode()
+                print(f"Error reinitializing SDL2 subsystems: {error}")
+                
+        except Exception as e:
+            print(f"Error refreshing SDL subsystems: {e}")
+
+    def _clear_sdl_event_queue(self) -> None:
+        """Clear SDL event queue to prevent stale events."""
+        try:
+            # Pump events and clear the queue
+            sdl2.SDL_PumpEvents()
+            event = sdl2.SDL_Event()
+            # Process all pending events without acting on them
+            while sdl2.SDL_PollEvent(event):
+                pass
+        except Exception as e:
+            print(f"Error clearing SDL event queue: {e}")
 
     def _event_loop(self) -> None:
         """Main event loop that processes SDL2 events."""
+        last_scan_time = 0
+        scan_interval = 1.0  # Scan for controllers every second
+
         while not self.event_stop_event.is_set() and self.is_capturing:
             try:
                 # Process SDL events
                 event = sdl2.SDL_Event()
 
-                # Wait for events with timeout
-                if sdl2.SDL_WaitEventTimeout(event, 16):  # 16ms timeout (~60Hz)
+                # Check for events with a short timeout
+                has_event = sdl2.SDL_WaitEventTimeout(event, 16)  # 16ms timeout (~60Hz)
+
+                if has_event:
                     self._process_sdl_event(event)
-                else:
-                    # Timeout occurred, check for controller disconnection
-                    if self.controller and not sdl2.SDL_GameControllerGetAttached(
-                        self.controller
-                    ):
-                        self._on_controller_disconnected()
-                    elif not self.controller:
-                        # Try to reconnect if no controller
-                        self.connect_to_first_available()
+
+                # Periodically check for controller connection/disconnection
+                current_time = time.time()
+                if current_time - last_scan_time > scan_interval:
+                    last_scan_time = current_time
+
+                    if self.controller:
+                        # Check if current controller is still attached
+                        if not sdl2.SDL_GameControllerGetAttached(self.controller):
+                            self._on_controller_disconnected()
+                    else:
+                        # Try to find and connect to a controller
+                        self._try_connect_without_blocking()
 
             except Exception as e:
                 print(f"Error in event loop: {e}")
                 # Brief pause before continuing to avoid tight error loops
                 time.sleep(0.1)
+
+    def _try_connect_without_blocking(self) -> None:
+        """Try to connect to a controller without blocking the event loop."""
+        try:
+            # Force SDL to detect new devices more aggressively
+            sdl2.SDL_GameControllerUpdate()
+            sdl2.SDL_JoystickUpdate()
+            
+            # Force event processing to detect new devices
+            sdl2.SDL_PumpEvents()
+            
+            controllers = self.scan_controllers()
+            if controllers and not self.controller:
+                # Removed the print statement to reduce spam in logs
+                self.connect_to_controller(controllers[0]["index"])
+        except Exception as e:
+            print(f"Error in non-blocking connect: {e}")
 
     def _process_sdl_event(self, event: sdl2.SDL_Event) -> None:
         """Process a single SDL2 event."""
@@ -204,7 +285,8 @@ class PS4ControllerCollector(AbstractInputCollector):
         elif event.type == sdl2.SDL_CONTROLLERDEVICEADDED:
             print(f"Controller device added: {event.cdevice.which}")
             if not self.controller:
-                self.connect_to_controller(event.cdevice.which)
+                # Small delay to ensure the device is ready
+                threading.Timer(0.1, lambda: self.connect_to_controller(event.cdevice.which)).start()
         elif event.type == sdl2.SDL_CONTROLLERDEVICEREMOVED:
             print(f"Controller device removed: {event.cdevice.which}")
             if self.controller and event.cdevice.which == self.controller_index:
@@ -315,7 +397,6 @@ class PS4ControllerCollector(AbstractInputCollector):
             old_pos = self.stick_positions["left"]
             self.stick_positions["left"] = (normalized_value, old_pos[1])
 
-            # Create event for any movement (no threshold for events)
             event = InputData(
                 timestamp=time.time(),
                 event_type="axis_motion",
@@ -332,11 +413,10 @@ class PS4ControllerCollector(AbstractInputCollector):
             old_pos = self.stick_positions["left"]
             self.stick_positions["left"] = (old_pos[0], normalized_value)
 
-            # Create event for any movement (no threshold for events)
             event = InputData(
                 timestamp=time.time(),
                 event_type="axis_motion",
-                key="Left_Stick_X",  # Keep consistent with existing format
+                key="Left_Stick_Y",  # Fixed: Should be Y for Y axis
                 rel_x=old_pos[0],
                 rel_y=normalized_value,
                 active_keys=self.get_active_keys(),
@@ -349,7 +429,6 @@ class PS4ControllerCollector(AbstractInputCollector):
             old_pos = self.stick_positions["right"]
             self.stick_positions["right"] = (normalized_value, old_pos[1])
 
-            # Create event for any movement (no threshold for events)
             event = InputData(
                 timestamp=time.time(),
                 event_type="axis_motion",
@@ -366,11 +445,10 @@ class PS4ControllerCollector(AbstractInputCollector):
             old_pos = self.stick_positions["right"]
             self.stick_positions["right"] = (old_pos[0], normalized_value)
 
-            # Create event for any movement (no threshold for events)
             event = InputData(
                 timestamp=time.time(),
                 event_type="axis_motion",
-                key="Right_Stick_X",  # Keep consistent with existing format
+                key="Right_Stick_Y",  # Fixed: Should be Y for Y axis
                 rel_x=old_pos[0],
                 rel_y=normalized_value,
                 active_keys=self.get_active_keys(),
@@ -378,14 +456,11 @@ class PS4ControllerCollector(AbstractInputCollector):
             self._process_event(event)
 
         elif axis_event.axis == sdl2.SDL_CONTROLLER_AXIS_TRIGGERLEFT:
-            # Left trigger with "return to zero" detection
+            # Left trigger
             filtered_value = apply_trigger_deadzone(axis_event.value)
             normalized_value = filtered_value / 32767.0
-            previous_normalized = self.trigger_values["left"] / 32767.0
-
             self.trigger_values["left"] = filtered_value
 
-            # Always create event, but check for threshold crossing for special logging
             event = InputData(
                 timestamp=time.time(),
                 event_type="axis_motion",
@@ -396,14 +471,11 @@ class PS4ControllerCollector(AbstractInputCollector):
             self._process_event(event)
 
         elif axis_event.axis == sdl2.SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
-            # Right trigger with "return to zero" detection
+            # Right trigger
             filtered_value = apply_trigger_deadzone(axis_event.value)
             normalized_value = filtered_value / 32767.0
-            previous_normalized = self.trigger_values["right"] / 32767.0
-
             self.trigger_values["right"] = filtered_value
 
-            # Always create event, but check for threshold crossing for special logging
             event = InputData(
                 timestamp=time.time(),
                 event_type="axis_motion",
@@ -422,27 +494,48 @@ class PS4ControllerCollector(AbstractInputCollector):
         """
         controllers = []
 
-        # Refresh SDL state
-        sdl2.SDL_GameControllerUpdate()
+        try:
+            # More aggressive device detection
+            sdl2.SDL_PumpEvents()
+            sdl2.SDL_GameControllerUpdate()
+            sdl2.SDL_JoystickUpdate()
+            
+            # Process any pending device events
+            event = sdl2.SDL_Event()
+            device_events_found = 0
+            while sdl2.SDL_PollEvent(event):
+                if event.type in [sdl2.SDL_CONTROLLERDEVICEADDED, sdl2.SDL_CONTROLLERDEVICEREMOVED]:
+                    device_events_found += 1
+            
+            if device_events_found > 0:
+                print(f"Processed {device_events_found} device event(s) during scan")
 
-        # Check for controllers
-        num_joysticks = sdl2.SDL_NumJoysticks()
-        for i in range(num_joysticks):
-            if sdl2.SDL_IsGameController(i):
-                name = sdl2.SDL_GameControllerNameForIndex(i)
-                if name:
-                    name = name.decode("utf-8", errors="replace")
-                else:
-                    name = f"Controller {i}"
+            # Check for controllers
+            num_joysticks = sdl2.SDL_NumJoysticks()
+            
+            for i in range(num_joysticks):
+                if sdl2.SDL_IsGameController(i):
+                    name = sdl2.SDL_GameControllerNameForIndex(i)
+                    if name:
+                        name = name.decode("utf-8", errors="replace")
+                    else:
+                        name = f"Controller {i}"
 
-                # Check if this is a PS4 controller
-                is_ps4 = (
-                    "ps4" in name.lower()
-                    or "dualshock" in name.lower()
-                    or "playstation" in name.lower()
-                )
+                    # Check if this is a PS4 controller
+                    is_ps4 = (
+                        "ps4" in name.lower()
+                        or "dualshock" in name.lower()
+                        or "playstation" in name.lower()
+                    )
 
-                controllers.append({"index": i, "name": name, "is_ps4": is_ps4})
+                    controllers.append({"index": i, "name": name, "is_ps4": is_ps4})
+                    
+            # Only log if we found controllers or if we're actively looking
+            if controllers:
+                print(f"Found {len(controllers)} controller(s)")
+                
+        except Exception as e:
+            print(f"Error scanning controllers: {e}")
 
         return controllers
 
@@ -478,6 +571,11 @@ class PS4ControllerCollector(AbstractInputCollector):
                 sdl2.SDL_JoystickClose(self.joystick)
                 self.joystick = None
 
+            # Verify the controller index is valid
+            if not sdl2.SDL_IsGameController(controller_index):
+                print(f"Controller index {controller_index} is not a valid game controller")
+                return False
+
             # Open the controller
             self.controller = sdl2.SDL_GameControllerOpen(controller_index)
             if not self.controller:
@@ -509,6 +607,17 @@ class PS4ControllerCollector(AbstractInputCollector):
             self.trigger_values = {"left": 0, "right": 0}
 
             print(f"Connected to controller: {self.controller_name}")
+
+            # Create a connection event if we're capturing
+            if self.is_capturing:
+                event = InputData(
+                    timestamp=time.time(),
+                    event_type="controller_connected",
+                    key=self.controller_name,
+                    active_keys=[],
+                )
+                self._process_event(event)
+
             return True
 
         except Exception as e:
@@ -542,48 +651,47 @@ class PS4ControllerCollector(AbstractInputCollector):
         self.button_states = {}
         self.stick_positions = {"left": (0, 0), "right": (0, 0)}
         self.trigger_values = {"left": 0, "right": 0}
+        self.controller_index = -1
 
-        # Create a disconnection event
-        event = InputData(
-            timestamp=time.time(), event_type="controller_disconnected", active_keys=[]
-        )
-
-        # Process event
-        self._process_event(event)
-
-        # Try to reconnect
-        threading.Thread(target=self._try_reconnect, daemon=True).start()
+        # Create a disconnection event only if we're capturing
+        if self.is_capturing:
+            event = InputData(
+                timestamp=time.time(), event_type="controller_disconnected", active_keys=[]
+            )
+            self._process_event(event)
+            
+            # Don't start automatic reconnection if we're still capturing
+            # Let the main event loop handle it
+        else:
+            # Only try reconnection if we're not in the middle of stopping
+            threading.Thread(target=self._try_reconnect, daemon=True).start()
 
     def _try_reconnect(self) -> None:
         """Try to reconnect to a controller periodically."""
         attempts = 0
-        max_attempts = 10
+        max_attempts = 5  # Reduced attempts since main loop will also try
 
-        while attempts < max_attempts:
+        while attempts < max_attempts and not self.controller:
             attempts += 1
-            print(
-                f"Attempting to reconnect to controller ({attempts}/{max_attempts})..."
-            )
+            print(f"Attempting to reconnect to controller ({attempts}/{max_attempts})...")
+
+            # Force refresh before attempting
+            try:
+                sdl2.SDL_PumpEvents()
+                sdl2.SDL_GameControllerUpdate()
+                sdl2.SDL_JoystickUpdate()
+            except:
+                pass
 
             if self.connect_to_first_available():
                 print("Controller reconnected")
-
-                # Create a connection event
-                event = InputData(
-                    timestamp=time.time(),
-                    event_type="controller_connected",
-                    key=self.controller_name,
-                    active_keys=[],
-                )
-
-                # Process event
-                self._process_event(event)
                 return
 
             # Wait before retrying
-            time.sleep(1)
+            time.sleep(2)
 
-        print("Failed to reconnect to controller after multiple attempts")
+        if not self.controller:
+            print("Failed to reconnect to controller after multiple attempts")
 
     def _process_event(self, event: InputData) -> None:
         """
@@ -729,17 +837,28 @@ class PS4ControllerCollector(AbstractInputCollector):
     def __del__(self) -> None:
         """Clean up SDL2 resources."""
         try:
-            # Stop polling
+            # Stop capture first
             self.stop_capture()
 
-            # Close controller
+            # Close controller connections
             if self.controller:
                 sdl2.SDL_GameControllerClose(self.controller)
                 self.controller = None
 
-            # Close joystick
             if self.joystick:
                 sdl2.SDL_JoystickClose(self.joystick)
                 self.joystick = None
-        except:
+
+            # Quit SDL2 subsystems if they were initialized
+            try:
+                sdl2.SDL_QuitSubSystem(
+                    sdl2.SDL_INIT_JOYSTICK | 
+                    sdl2.SDL_INIT_GAMECONTROLLER | 
+                    sdl2.SDL_INIT_HAPTIC
+                )
+            except:
+                pass
+                
+        except Exception:
+            # Silently handle any cleanup errors
             pass
