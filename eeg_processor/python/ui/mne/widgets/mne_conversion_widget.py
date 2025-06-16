@@ -24,6 +24,11 @@ class MNEConversionWidget(QWidget):
     conversion_requested = pyqtSignal(dict)  # Emit conversion parameters
     conversion_cancelled = pyqtSignal()
     channel_selection_requested = pyqtSignal(str)  # conversion/visualization
+    realtime_requested = pyqtSignal(dict)  # Emit real-time parameters
+    realtime_stopped = pyqtSignal()
+    
+    # Add new signal for dynamic parameter updates
+    realtime_param_changed = pyqtSignal(str, object)  # param_name, value
 
     def __init__(self, parent: Optional[QWidget] = None):
         """Initialize the MNE conversion widget."""
@@ -76,9 +81,11 @@ class MNEConversionWidget(QWidget):
         mode_layout.addWidget(QLabel("Conversion Mode:"))
 
         self.conversion_mode_combo = QComboBox()
-        self.conversion_mode_combo.addItems(
-            ["Flexible Mode (All Channels)", "Performance Mode (Selected Only)"]
-        )
+        self.conversion_mode_combo.addItems([
+            "Flexible Mode (All Channels)", 
+            "Performance Mode (Selected Only)",
+            "Real-time Mode (Auto-updating)"
+        ])
         self.conversion_mode_combo.setCurrentText("Flexible Mode (All Channels)")
         self.conversion_mode_combo.currentTextChanged.connect(self._on_mode_changed)
         mode_layout.addWidget(self.conversion_mode_combo)
@@ -110,6 +117,37 @@ class MNEConversionWidget(QWidget):
         params_layout.addWidget(self.convert_to_v_check)
 
         layout.addLayout(params_layout)
+
+        # Real-time specific parameters
+        self._setup_realtime_parameters(layout)
+
+    def _setup_realtime_parameters(self, layout: QVBoxLayout) -> None:
+        """Setup real-time mode parameters."""
+        self.realtime_params_layout = QHBoxLayout()
+        
+        self.realtime_params_layout.addWidget(QLabel("Update Interval:"))
+        self.update_interval_spin = QSpinBox()
+        self.update_interval_spin.setRange(1, 30)
+        self.update_interval_spin.setValue(2)
+        self.update_interval_spin.setSuffix(" sec")
+        # Connect to dynamic update
+        self.update_interval_spin.valueChanged.connect(
+            lambda value: self.realtime_param_changed.emit("update_interval", float(value))
+        )
+        self.realtime_params_layout.addWidget(self.update_interval_spin)
+
+        # Dynamic update indicator
+        self.dynamic_update_label = QLabel("🔄 All changes apply automatically")
+        self.dynamic_update_label.setStyleSheet(
+            "color: #00CC88; font-style: italic; font-size: 9px;"
+        )
+        self.realtime_params_layout.addWidget(self.dynamic_update_label)
+        self.realtime_params_layout.addStretch()
+
+        self.realtime_params_widget = QWidget()
+        self.realtime_params_widget.setLayout(self.realtime_params_layout)
+        self.realtime_params_widget.setVisible(False)
+        layout.addWidget(self.realtime_params_widget)
 
     def _setup_performance_mode_channels(self, layout: QVBoxLayout) -> None:
         """Setup performance mode channel selection."""
@@ -143,6 +181,20 @@ class MNEConversionWidget(QWidget):
         self.convert_btn.clicked.connect(self._request_conversion)
         buttons_layout.addWidget(self.convert_btn)
 
+        # Real-time controls
+        self.start_realtime_btn = QPushButton("Start Real-time")
+        self.start_realtime_btn.clicked.connect(self._request_realtime)
+        self.start_realtime_btn.setStyleSheet("background-color: #00AA00;")
+        self.start_realtime_btn.setVisible(False)
+        buttons_layout.addWidget(self.start_realtime_btn)
+
+        self.stop_realtime_btn = QPushButton("Stop Real-time")
+        self.stop_realtime_btn.clicked.connect(self.realtime_stopped.emit)
+        self.stop_realtime_btn.setStyleSheet("background-color: #AA0000;")
+        self.stop_realtime_btn.setVisible(False)
+        self.stop_realtime_btn.setEnabled(False)
+        buttons_layout.addWidget(self.stop_realtime_btn)
+
         self.cancel_btn = QPushButton("Cancel")
         self.cancel_btn.clicked.connect(self.conversion_cancelled.emit)
         self.cancel_btn.setEnabled(False)
@@ -154,10 +206,26 @@ class MNEConversionWidget(QWidget):
         """Handle conversion mode change."""
         selected_mode = self.conversion_mode_combo.currentText()
         is_performance_mode = "Performance Mode" in selected_mode
+        is_realtime_mode = "Real-time Mode" in selected_mode
 
+        # Show/hide relevant controls
         self.performance_channel_widget.setVisible(is_performance_mode)
+        self.realtime_params_widget.setVisible(is_realtime_mode)
+        
+        # Show/hide buttons
+        self.convert_btn.setVisible(not is_realtime_mode)
+        self.start_realtime_btn.setVisible(is_realtime_mode)
+        self.stop_realtime_btn.setVisible(is_realtime_mode)
 
-        if is_performance_mode:
+        # Update info label
+        if is_realtime_mode:
+            self.mode_info_label.setText(
+                "🔄 Optimized real-time: Only converts selected channels"
+            )
+            self.mode_info_label.setStyleSheet(
+                "color: #00CC88; font-style: italic; font-size: 10px;"
+            )
+        elif is_performance_mode:
             self.mode_info_label.setText(
                 "⚡ Converts only selected channels for better performance"
             )
@@ -171,6 +239,19 @@ class MNEConversionWidget(QWidget):
             self.mode_info_label.setStyleSheet(
                 "color: #88BB88; font-style: italic; font-size: 10px;"
             )
+
+    def _request_realtime(self) -> None:
+        """Request real-time processing with current parameters."""
+        params = self.get_realtime_parameters()
+        self.realtime_requested.emit(params)
+
+    def get_realtime_parameters(self) -> Dict[str, Any]:
+        """Get current real-time parameters."""
+        return {
+            "update_interval_seconds": float(self.update_interval_spin.value()),
+            "duration_seconds": self.duration_spin.value(),
+            "convert_to_v": self.convert_to_v_check.isChecked(),
+        }
 
     def _request_conversion(self) -> None:
         """Request conversion with current parameters."""
@@ -189,6 +270,18 @@ class MNEConversionWidget(QWidget):
             ),
         }
 
+    def set_realtime_state(self, active: bool) -> None:
+        """Set the real-time processing state."""
+        self.start_realtime_btn.setEnabled(not active)
+        self.stop_realtime_btn.setEnabled(active)
+        
+        # Disable mode switching during real-time
+        self.conversion_mode_combo.setEnabled(not active)
+        
+        # Show/hide dynamic update indicator
+        if hasattr(self, 'dynamic_update_label'):
+            self.dynamic_update_label.setVisible(active)
+
     def set_conversion_state(self, converting: bool) -> None:
         """Set the conversion state."""
         self.convert_btn.setEnabled(not converting)
@@ -201,11 +294,13 @@ class MNEConversionWidget(QWidget):
     def set_enabled(self, enabled: bool) -> None:
         """Enable or disable the widget."""
         self.convert_btn.setEnabled(enabled)
-        self.select_conversion_channels_btn.setEnabled(enabled)
+        if hasattr(self, 'select_conversion_channels_btn'):
+            self.select_conversion_channels_btn.setEnabled(enabled)
 
     def update_channel_info(self, channel_info: str) -> None:
         """Update the channel information display."""
-        self.conversion_channels_label.setText(channel_info)
+        if hasattr(self, 'conversion_channels_label'):
+            self.conversion_channels_label.setText(channel_info)
 
     def reset_state(self) -> None:
         """Reset widget to initial state."""

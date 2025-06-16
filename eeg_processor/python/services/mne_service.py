@@ -7,11 +7,13 @@ from .mne.mne_converter_service import MNEConverterService
 from .mne.mne_process_manager import MNEProcessManager
 from .mne.mne_result_storage import MNEResultStorage
 from .mne.mne_visualizer_service import MNEVisualizerService
+from .mne.mne_realtime_service import MNERealtimeService
 from ..interfaces.mne_interfaces import (
     MNEConverterInterface,
     MNEVisualizerInterface,
     MNEProcessManagerInterface,
     MNEResultStorageInterface,
+    MNERealtimeInterface,
 )
 
 # Check if MNE is available
@@ -59,6 +61,13 @@ class MNEService:
         self._visualizer_service = MNEVisualizerService(
             self._process_manager, self._result_storage
         )
+        
+        # Initialize real-time service
+        self._realtime_service = MNERealtimeService(
+            self._converter_service,
+            self._visualizer_service,
+            self._result_storage,
+        )
 
         # Data access service
         self._data_access_service = DataAccessService.get_instance()
@@ -80,6 +89,7 @@ class MNEService:
 
     def stop_service(self) -> None:
         """Stop the MNE service and cleanup resources."""
+        self._realtime_service.cleanup_all_sessions()
         self._process_manager.stop_service()
         self._result_storage.clear_all_results()
         logging.info("MNE service stopped")
@@ -183,6 +193,66 @@ class MNEService:
     def cancel_visualization(self, task_id: str) -> bool:
         """Cancel a visualization task."""
         return self._visualizer_service.cancel_visualization(task_id)
+
+    # Real-time API (delegates to real-time service)
+    def start_realtime_processing(
+        self,
+        update_interval_seconds: float = 2.0,
+        plot_type: str = "PSD",
+        duration_seconds: int = 10,
+        convert_to_v: bool = True,
+        selected_channels: Optional[List[int]] = None,
+        visualization_params: Optional[Dict[str, Any]] = None,
+        callback: Optional[Callable] = None,
+    ) -> str:
+        """Start real-time MNE processing."""
+        return self._realtime_service.start_realtime_processing(
+            update_interval_seconds=update_interval_seconds,
+            plot_type=plot_type,
+            duration_seconds=duration_seconds,
+            convert_to_v=convert_to_v,
+            selected_channels=selected_channels,
+            visualization_params=visualization_params,
+            callback=callback,
+        )
+
+    def stop_realtime_processing(self, session_id: str) -> bool:
+        """Stop real-time processing session."""
+        return self._realtime_service.stop_realtime_processing(session_id)
+
+    def update_realtime_params(self, session_id: str, params: Dict[str, Any]) -> bool:
+        """Update real-time processing parameters."""
+        return self._realtime_service.update_realtime_params(session_id, params)
+
+    def get_realtime_status(self, session_id: str) -> Dict[str, Any]:
+        """Get real-time processing status."""
+        return self._realtime_service.get_realtime_status(session_id)
+
+    def is_realtime_active(self, session_id: str) -> bool:
+        """Check if real-time processing is active."""
+        return self._realtime_service.is_realtime_active(session_id)
+
+    def get_all_realtime_sessions(self) -> List[str]:
+        """Get all active real-time sessions."""
+        return self._realtime_service.get_all_active_sessions()
+
+    def update_realtime_visualization_params(self, session_id: str, viz_params: Dict[str, Any]) -> bool:
+        """Update visualization parameters for active real-time session."""
+        return self._realtime_service.update_visualization_params(session_id, viz_params)
+
+    def update_realtime_channels(self, session_id: str, selected_channels: List[int]) -> bool:
+        """Update selected channels for active real-time session."""
+        return self._realtime_service.update_channels(session_id, selected_channels)
+
+    def update_realtime_plot_type(self, session_id: str, plot_type: str) -> bool:
+        """Update plot type for active real-time session."""
+        return self._realtime_service.update_plot_type(session_id, plot_type)
+
+    def update_realtime_interval(self, session_id: str, interval_seconds: float) -> bool:
+        """Update update interval for active real-time session."""
+        return self._realtime_service.update_realtime_params(
+            session_id, {"update_interval": interval_seconds}
+        )
 
     # Generic task management API - maintain backward compatibility
     def get_task_status(self, task_id: str) -> Dict[str, Any]:
@@ -314,3 +384,8 @@ class MNEService:
     def result_storage(self) -> MNEResultStorageInterface:
         """Get the result storage for advanced operations."""
         return self._result_storage
+
+    @property
+    def realtime_service(self) -> MNERealtimeInterface:
+        """Get the real-time service for advanced operations."""
+        return self._realtime_service

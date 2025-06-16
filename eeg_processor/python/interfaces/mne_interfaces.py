@@ -119,3 +119,45 @@ class MNEProcessManagerInterface(ABC):
     def is_available(self) -> bool:
         """Check if the service is available."""
         pass
+
+
+class MNERealtimeInterface(ABC):
+    """Interface for MNE real-time processing operations."""
+
+    @abstractmethod
+    def start_realtime_processing(
+        self,
+        update_interval_seconds: float = 2.0,
+        plot_type: str = "PSD",
+        duration_seconds: int = 10,
+        convert_to_v: bool = True,
+        selected_channels: Optional[List[int]] = None,
+        visualization_params: Optional[Dict[str, Any]] = None,
+        callback: Optional[Callable] = None,
+    ) -> str:
+        """Start real-time MNE processing."""
+        pass
+
+    @abstractmethod
+    def stop_realtime_processing(self, session_id: str) -> bool:
+        """Stop real-time processing session."""
+        pass
+
+    @abstractmethod
+    def update_realtime_params(
+        self, 
+        session_id: str, 
+        params: Dict[str, Any]
+    ) -> bool:
+        """Update real-time processing parameters."""
+        pass
+
+    @abstractmethod
+    def get_realtime_status(self, session_id: str) -> Dict[str, Any]:
+        """Get real-time processing status."""
+        pass
+
+    @abstractmethod
+    def is_realtime_active(self, session_id: str) -> bool:
+        """Check if real-time processing is active."""
+        pass

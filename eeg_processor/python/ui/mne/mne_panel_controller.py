@@ -50,6 +50,7 @@ class MNEPanelController(QObject):
         # State management
         self.current_conversion_task: Optional[str] = None
         self.current_visualization_task: Optional[str] = None
+        self.current_realtime_session: Optional[str] = None
         self.selected_channels: List[int] = []
         self.conversion_selected_channels: List[int] = []
         self.channel_names: List[str] = []
@@ -58,6 +59,7 @@ class MNEPanelController(QObject):
         # Setup connections and timers
         self._connect_widgets()
         self._setup_status_timer()
+        self._setup_realtime_timer()
         self._initialize_channel_data()
 
     def _connect_widgets(self) -> None:
@@ -70,6 +72,18 @@ class MNEPanelController(QObject):
         self.conversion_widget.channel_selection_requested.connect(
             self._handle_channel_selection
         )
+        
+        # Real-time signals
+        self.conversion_widget.realtime_requested.connect(
+            self._handle_realtime_request
+        )
+        self.conversion_widget.realtime_stopped.connect(
+            self._stop_realtime_processing
+        )
+        # Dynamic parameter updates
+        self.conversion_widget.realtime_param_changed.connect(
+            self._handle_realtime_param_change
+        )
 
         # Visualization widget signals
         self.visualization_widget.visualization_requested.connect(
@@ -81,11 +95,30 @@ class MNEPanelController(QObject):
         self.visualization_widget.channel_selection_requested.connect(
             self._handle_channel_selection
         )
+        
+        # Dynamic visualization updates
+        self.visualization_widget.plot_type_changed.connect(
+            self._handle_plot_type_change
+        )
+        self.visualization_widget.freq_range_changed.connect(
+            self._handle_freq_range_change
+        )
+        self.visualization_widget.psd_mode_changed.connect(
+            self._handle_psd_mode_change
+        )
+        self.visualization_widget.topomap_band_changed.connect(
+            self._handle_topomap_band_change
+        )
 
     def _setup_status_timer(self) -> None:
         """Setup timer for checking task status."""
         self.status_timer = QTimer()
         self.status_timer.timeout.connect(self._check_task_status)
+
+    def _setup_realtime_timer(self) -> None:
+        """Setup timer for real-time status updates."""
+        self.realtime_timer = QTimer()
+        self.realtime_timer.timeout.connect(self._update_realtime_status)
 
     def _initialize_channel_data(self) -> None:
         """Initialize channel data from data service."""
@@ -190,6 +223,83 @@ class MNEPanelController(QObject):
             self._show_error("MNE Error", f"Error starting visualization: {str(e)}")
             logging.error(f"MNE visualization start error: {e}")
 
+    def _handle_realtime_request(self, params: Dict[str, Any]) -> None:
+        """Handle real-time processing request."""
+        if not self.mne_service.is_available():
+            self._show_error("MNE Error", "MNE package is not installed")
+            return
+
+        try:
+            # Get visualization parameters
+            viz_params = self.visualization_widget.get_visualization_parameters()
+            
+            # OPTIMIZATION: In real-time mode, channel selection is applied at conversion level
+            # This saves processing time and memory by only converting selected channels
+            selected_for_conversion = self.selected_channels if self.selected_channels else None
+            
+            # Start real-time processing
+            self.current_realtime_session = self.mne_service.start_realtime_processing(
+                update_interval_seconds=params["update_interval_seconds"],
+                plot_type=viz_params["plot_type"],
+                duration_seconds=params["duration_seconds"],
+                convert_to_v=params["convert_to_v"],
+                selected_channels=selected_for_conversion,
+                visualization_params=viz_params,
+                callback=self._realtime_callback,
+            )
+
+            # Update UI state
+            self.conversion_widget.set_realtime_state(True)
+            self.visualization_widget.set_realtime_mode(True)
+            self.realtime_timer.start(1000)  # Update every second
+
+            channel_count = len(self.selected_channels) if self.selected_channels else len(self.channel_names)
+            total_channels = len(self.channel_names)
+            
+            # Show optimization information
+            if selected_for_conversion and len(selected_for_conversion) < total_channels:
+                optimization_msg = f"⚡ Optimized: Converting only {channel_count}/{total_channels} channels"
+                self._add_status_message(optimization_msg)
+                self._add_status_message(f"💾 Memory saved: ~{((total_channels - channel_count) / total_channels * 100):.1f}% less data processing")
+            
+            self._add_status_message(
+                f"🚀 Started real-time session: {self.current_realtime_session}"
+            )
+            self.status_message.emit("Real-time MNE processing started")
+
+        except Exception as e:
+            self._show_error("MNE Error", f"Error starting real-time processing: {str(e)}")
+            logging.error(f"Real-time processing start error: {e}")
+
+    def _stop_realtime_processing(self) -> None:
+        """Stop real-time processing."""
+        if self.current_realtime_session:
+            if self.mne_service.stop_realtime_processing(self.current_realtime_session):
+                self._add_status_message(
+                    f"Stopped real-time session: {self.current_realtime_session}"
+                )
+                self.status_message.emit("Real-time processing stopped")
+
+            self.conversion_widget.set_realtime_state(False)
+            self.visualization_widget.set_realtime_mode(False)
+            self.realtime_timer.stop()
+            self.current_realtime_session = None
+            
+            # Reset status display
+            self.status_widget.update_realtime_status({"active": False})
+
+    def _realtime_callback(self, session_id: str, result: Dict[str, Any]) -> None:
+        """Handle real-time visualization updates."""
+        if result.get("success"):
+            # Update visualization
+            self.visualization_widget.display_plot(result.get("plot_data"))
+            
+            # Log successful update
+            logging.debug(f"Real-time update completed for session: {session_id}")
+        else:
+            error_msg = result.get("error", "Unknown error")
+            logging.warning(f"Real-time update failed: {error_msg}")
+
     def _handle_channel_selection(self, selection_type: str) -> None:
         """Handle channel selection request."""
         try:
@@ -238,22 +348,71 @@ class MNEPanelController(QObject):
             )
             return
 
+        # For real-time mode, show appropriate title with optimization info
+        if self.current_realtime_session:
+            title = "Select Channels for Real-time Processing (Optimized)"
+        else:
+            title = "Select Channels for Visualization"
+
         dialog = ChannelSelectionDialog(
             channel_names=available_names,
             selected_channels=self.selected_channels,
             parent=self.visualization_widget,
         )
-        dialog.setWindowTitle("Select Channels for Visualization")
+        dialog.setWindowTitle(title)
 
         if dialog.exec_() == QDialog.Accepted:
+            old_selection = self.selected_channels.copy()
             self.selected_channels = dialog.get_selected_channels()
             self._update_channel_displays()
+            
+            # Log the change with optimization information
+            selected_names = [available_names[i] for i in self.selected_channels if i < len(available_names)]
             self._add_status_message(
-                f"Selected {len(self.selected_channels)} channels for visualization"
+                f"Selected {len(self.selected_channels)} channels: {', '.join(selected_names[:5])}"
+                + (f" and {len(selected_names)-5} more" if len(selected_names) > 5 else "")
             )
+            
+            # Update real-time session if active
+            if self.current_realtime_session:
+                try:
+                    # Calculate optimization benefit
+                    total_channels = len(self.channel_names)
+                    new_count = len(self.selected_channels)
+                    old_count = len(old_selection)
+                    
+                    # Update channels directly
+                    if self.mne_service.update_realtime_channels(
+                        self.current_realtime_session, self.selected_channels
+                    ):
+                        self._add_status_message(
+                            f"✅ Real-time channels updated: {old_count} → {new_count}"
+                        )
+                        
+                        # Show optimization information
+                        if new_count < total_channels:
+                            memory_saved = ((total_channels - new_count) / total_channels * 100)
+                            self._add_status_message(
+                                f"⚡ Optimization active: {memory_saved:.1f}% less processing needed"
+                            )
+                        elif old_count < total_channels and new_count == total_channels:
+                            self._add_status_message(
+                                f"ℹ️ Processing all channels now (no optimization)"
+                            )
+                    else:
+                        self._add_status_message("⚠️ Failed to update real-time channels")
+                        
+                except Exception as e:
+                    logging.error(f"Error updating real-time channels: {e}")
+                    self._add_status_message(f"❌ Error updating channels: {str(e)}")
 
     def _get_available_channels_for_visualization(self) -> Tuple[List[str], List[int]]:
         """Get available channels for visualization based on conversion mode."""
+        # In real-time mode, always show all available channels
+        if self.current_realtime_session:
+            return self.channel_names.copy(), list(range(len(self.channel_names)))
+        
+        # For non-real-time mode, use existing logic
         selected_mode = None
         try:
             selected_mode = self.conversion_widget.conversion_mode_combo.currentText()
@@ -368,6 +527,18 @@ class MNEPanelController(QObject):
         if not self.current_conversion_task and not self.current_visualization_task:
             self.status_timer.stop()
 
+    def _update_realtime_status(self) -> None:
+        """Update real-time status display."""
+        if self.current_realtime_session:
+            status = self.mne_service.get_realtime_status(self.current_realtime_session)
+            self.status_widget.update_realtime_status(status)
+            
+            # Stop timer if session is no longer active
+            if not status.get("active", False):
+                self.realtime_timer.stop()
+                self.conversion_widget.set_realtime_state(False)
+                self.current_realtime_session = None
+
     def _update_channel_displays(self) -> None:
         """Update channel information displays in widgets."""
         # Update conversion widget
@@ -409,9 +580,102 @@ class MNEPanelController(QObject):
 
     def cleanup(self) -> None:
         """Cleanup resources."""
+        # Stop real-time processing
+        if self.current_realtime_session:
+            self.mne_service.stop_realtime_processing(self.current_realtime_session)
+        
+        # Cancel other tasks
         if self.current_conversion_task:
             self.mne_service.cancel_task(self.current_conversion_task)
         if self.current_visualization_task:
             self.mne_service.cancel_task(self.current_visualization_task)
+            
+        # Stop timers
         if hasattr(self, "status_timer"):
             self.status_timer.stop()
+        if hasattr(self, "realtime_timer"):
+            self.realtime_timer.stop()
+
+    def _handle_realtime_param_change(self, param_name: str, value: Any) -> None:
+        """Handle dynamic parameter changes during real-time processing."""
+        if not self.current_realtime_session:
+            return
+
+        try:
+            success = False
+            if param_name == "update_interval":
+                success = self.mne_service.update_realtime_interval(
+                    self.current_realtime_session, value
+                )
+                if success:
+                    self._add_status_message(f"Updated interval to {value}s")
+
+            if success:
+                logging.debug(f"Updated real-time parameter {param_name} to {value}")
+            else:
+                logging.warning(f"Failed to update real-time parameter {param_name}")
+
+        except Exception as e:
+            logging.error(f"Error updating real-time parameter {param_name}: {e}")
+
+    def _handle_plot_type_change(self, plot_type: str) -> None:
+        """Handle plot type change during real-time processing."""
+        if not self.current_realtime_session:
+            return
+
+        try:
+            if self.mne_service.update_realtime_plot_type(self.current_realtime_session, plot_type):
+                self._add_status_message(f"Switched to {plot_type} visualization")
+            else:
+                logging.warning(f"Failed to update plot type to {plot_type}")
+        except Exception as e:
+            logging.error(f"Error updating plot type: {e}")
+
+    def _handle_freq_range_change(self, freq_min: int, freq_max: int) -> None:
+        """Handle frequency range change during real-time processing."""
+        if not self.current_realtime_session:
+            return
+
+        try:
+            viz_params = self.visualization_widget.get_visualization_parameters()
+            if self.mne_service.update_realtime_visualization_params(
+                self.current_realtime_session, viz_params
+            ):
+                self._add_status_message(f"Updated frequency range: {freq_min}-{freq_max} Hz")
+            else:
+                logging.warning("Failed to update frequency range")
+        except Exception as e:
+            logging.error(f"Error updating frequency range: {e}")
+
+    def _handle_psd_mode_change(self, individual_mode: bool) -> None:
+        """Handle PSD mode change during real-time processing."""
+        if not self.current_realtime_session:
+            return
+
+        try:
+            viz_params = self.visualization_widget.get_visualization_parameters()
+            if self.mne_service.update_realtime_visualization_params(
+                self.current_realtime_session, viz_params
+            ):
+                mode_name = "Individual" if individual_mode else "Average"
+                self._add_status_message(f"Switched to {mode_name} PSD mode")
+            else:
+                logging.warning("Failed to update PSD mode")
+        except Exception as e:
+            logging.error(f"Error updating PSD mode: {e}")
+
+    def _handle_topomap_band_change(self, freq_min: int, freq_max: int) -> None:
+        """Handle topomap band change during real-time processing."""
+        if not self.current_realtime_session:
+            return
+
+        try:
+            viz_params = self.visualization_widget.get_visualization_parameters()
+            if self.mne_service.update_realtime_visualization_params(
+                self.current_realtime_session, viz_params
+            ):
+                self._add_status_message(f"Updated topomap band: {freq_min}-{freq_max} Hz")
+            else:
+                logging.warning("Failed to update topomap band")
+        except Exception as e:
+            logging.error(f"Error updating topomap band: {e}")

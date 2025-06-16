@@ -26,6 +26,12 @@ class MNEVisualizationWidget(QWidget):
     visualization_cancelled = pyqtSignal()
     channel_selection_requested = pyqtSignal(str)  # visualization
 
+    # Add new signals for dynamic updates
+    plot_type_changed = pyqtSignal(str)
+    freq_range_changed = pyqtSignal(int, int)
+    psd_mode_changed = pyqtSignal(bool)
+    topomap_band_changed = pyqtSignal(int, int)
+
     def __init__(self, parent: Optional[QWidget] = None):
         """Initialize the MNE visualization widget."""
         super().__init__(parent)
@@ -72,6 +78,8 @@ class MNEVisualizationWidget(QWidget):
         plot_layout.addWidget(QLabel("Plot Type:"))
         self.plot_type_combo = QComboBox()
         self.plot_type_combo.addItems(["PSD", "Topomap", "Raw Data", "Spectrogram"])
+        # Connect to dynamic update
+        self.plot_type_combo.currentTextChanged.connect(self.plot_type_changed.emit)
         plot_layout.addWidget(self.plot_type_combo)
 
         plot_layout.addWidget(QLabel("Freq Range:"))
@@ -79,12 +87,16 @@ class MNEVisualizationWidget(QWidget):
         self.freq_min_spin.setRange(1, 100)
         self.freq_min_spin.setValue(1)
         self.freq_min_spin.setSuffix(" Hz")
+        # Connect to dynamic update
+        self.freq_min_spin.valueChanged.connect(self._emit_freq_range_change)
         plot_layout.addWidget(self.freq_min_spin)
 
         self.freq_max_spin = QSpinBox()
         self.freq_max_spin.setRange(1, 100)
         self.freq_max_spin.setValue(50)
         self.freq_max_spin.setSuffix(" Hz")
+        # Connect to dynamic update
+        self.freq_max_spin.valueChanged.connect(self._emit_freq_range_change)
         plot_layout.addWidget(self.freq_max_spin)
 
         layout.addLayout(plot_layout)
@@ -118,6 +130,8 @@ class MNEVisualizationWidget(QWidget):
         self.topomap_freq_min_spin.setValue(8)
         self.topomap_freq_min_spin.setSuffix(" Hz")
         self.topomap_freq_min_spin.setVisible(False)
+        # Connect to dynamic update
+        self.topomap_freq_min_spin.valueChanged.connect(self._emit_topomap_band_change)
         topomap_layout.addWidget(self.topomap_freq_min_spin)
 
         self.topomap_range_label = QLabel("-")
@@ -129,6 +143,8 @@ class MNEVisualizationWidget(QWidget):
         self.topomap_freq_max_spin.setValue(13)
         self.topomap_freq_max_spin.setSuffix(" Hz")
         self.topomap_freq_max_spin.setVisible(False)
+        # Connect to dynamic update
+        self.topomap_freq_max_spin.valueChanged.connect(self._emit_topomap_band_change)
         topomap_layout.addWidget(self.topomap_freq_max_spin)
 
         topomap_layout.addStretch()
@@ -145,6 +161,14 @@ class MNEVisualizationWidget(QWidget):
         )
         channel_layout.addWidget(self.selected_channels_label)
         channel_layout.addStretch()
+
+        # Add real-time indicator for channel selection
+        self.realtime_channel_indicator = QLabel("🔄 Live updates")
+        self.realtime_channel_indicator.setStyleSheet(
+            "color: #00CC88; font-style: italic; font-size: 9px; margin-right: 10px;"
+        )
+        self.realtime_channel_indicator.setVisible(False)
+        channel_layout.addWidget(self.realtime_channel_indicator)
 
         self.select_channels_btn = QPushButton("Select Channels")
         self.select_channels_btn.clicked.connect(
@@ -166,6 +190,8 @@ class MNEVisualizationWidget(QWidget):
             "Show each channel as a separate colored line"
         )
         self.psd_individual_check.toggled.connect(self._update_psd_mode_info)
+        # Connect to dynamic update
+        self.psd_individual_check.toggled.connect(self.psd_mode_changed.emit)
         psd_layout.addWidget(self.psd_individual_check)
 
         psd_layout.addWidget(QLabel("   "))
@@ -175,8 +201,16 @@ class MNEVisualizationWidget(QWidget):
             "color: #888888; font-style: italic; font-size: 10px;"
         )
         psd_layout.addWidget(self.psd_mode_info)
-        psd_layout.addStretch()
 
+        # Add dynamic update indicator
+        self.realtime_viz_indicator = QLabel("🔄 Auto-updating")
+        self.realtime_viz_indicator.setStyleSheet(
+            "color: #00CC88; font-style: italic; font-size: 9px;"
+        )
+        self.realtime_viz_indicator.setVisible(False)
+        psd_layout.addWidget(self.realtime_viz_indicator)
+
+        psd_layout.addStretch()
         layout.addLayout(psd_layout)
 
     def _setup_visualization_controls(self, layout: QVBoxLayout) -> None:
@@ -215,6 +249,17 @@ class MNEVisualizationWidget(QWidget):
         self.plot_display.setWordWrap(True)
         layout.addWidget(self.plot_display)
 
+    def _emit_freq_range_change(self) -> None:
+        """Emit frequency range change signal."""
+        self.freq_range_changed.emit(
+            self.freq_min_spin.value(), self.freq_max_spin.value()
+        )
+
+    def _emit_topomap_band_change(self) -> None:
+        """Emit topomap band change signal."""
+        topomap_freq_min, topomap_freq_max = self._get_topomap_frequency_range()
+        self.topomap_band_changed.emit(topomap_freq_min, topomap_freq_max)
+
     def _on_topomap_band_changed(self) -> None:
         """Handle topomap band selection change."""
         selected_band = self.topomap_band_combo.currentText()
@@ -240,6 +285,9 @@ class MNEVisualizationWidget(QWidget):
                     self.topomap_freq_min_spin.setValue(min_freq)
                     self.topomap_freq_max_spin.setValue(max_freq)
                     break
+
+        # Emit change signal
+        self._emit_topomap_band_change()
 
     def _update_psd_mode_info(self) -> None:
         """Update PSD mode information."""
@@ -301,8 +349,11 @@ class MNEVisualizationWidget(QWidget):
 
     def set_enabled(self, enabled: bool) -> None:
         """Enable or disable the widget."""
-        self.plot_btn.setEnabled(enabled)
-        self.select_channels_btn.setEnabled(enabled)
+        # Only disable plot button, keep channel selection always enabled
+        if hasattr(self, "plot_btn"):
+            self.plot_btn.setEnabled(enabled)
+        if hasattr(self, "select_channels_btn"):
+            self.select_channels_btn.setEnabled(True)  # Always enabled for dynamic selection
 
     def update_channel_info(self, channel_info: str) -> None:
         """Update channel information display."""
@@ -338,3 +389,27 @@ class MNEVisualizationWidget(QWidget):
         self.set_enabled(False)
         self.plot_display.clear()
         self.plot_display.setText("No plot generated yet")
+
+    def set_realtime_mode(self, active: bool) -> None:
+        """Set whether visualization is in real-time mode."""
+        if hasattr(self, "realtime_viz_indicator"):
+            self.realtime_viz_indicator.setVisible(active)
+
+        # Show real-time channel indicator
+        if hasattr(self, "realtime_channel_indicator"):
+            self.realtime_channel_indicator.setVisible(active)
+
+        # Disable manual plot generation in real-time mode
+        if hasattr(self, "plot_btn"):
+            self.plot_btn.setText("Real-time Active" if active else "Generate Plot")
+            self.plot_btn.setEnabled(not active)
+        
+        # Keep channel selection enabled in real-time mode
+        if hasattr(self, "select_channels_btn"):
+            self.select_channels_btn.setEnabled(True)  # Always enabled now
+            if active:
+                self.select_channels_btn.setText("Update Channels")
+                self.select_channels_btn.setStyleSheet("background-color: #00AA00;")
+            else:
+                self.select_channels_btn.setText("Select Channels")
+                self.select_channels_btn.setStyleSheet("background-color: #007ACC;")
