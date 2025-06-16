@@ -475,32 +475,327 @@ HELP_CONTENT = {
         "title": "MNE Integration",
         "content": """
         <h3>MNE Integration</h3>
-        <p>This feature allows you to convert BrainFlow data to MNE format for advanced analysis.</p>
+        <p>This feature allows you to convert BrainFlow data to MNE format for advanced neurophysiological analysis.</p>
 
         <p><a href="https://mne.tools/">MNE-Python</a> is a comprehensive Python library for processing,
         analyzing, and visualizing neurophysiological data (EEG, MEG, etc.).</p>
 
-        <h4>Functions:</h4>
+        <h4>Two-Step Process:</h4>
+        <ol>
+            <li><b>Data Conversion</b>: Convert current EEG data to MNE Raw format</li>
+            <li><b>Visualization</b>: Create advanced plots and analyses using MNE's capabilities</li>
+        </ol>
+
+        <h4>Conversion Modes:</h4>
         <ul>
-            <li><b>Convert to MNE</b>: Creates an MNE Raw object from current EEG data</li>
-            <li><b>Plot PSD</b>: Shows power spectral density using MNE's advanced plotting</li>
-            <li><b>Plot Topomap</b>: Shows spatial distribution of activity across the scalp</li>
+            <li><b>Flexible Mode</b>: Converts all available channels, allows channel selection during visualization</li>
+            <li><b>Performance Mode</b>: Converts only selected channels for better performance and memory usage</li>
         </ul>
 
-        <h4>Benefits of MNE for EEG Analysis:</h4>
+        <h4>Available Visualizations:</h4>
         <ul>
-            <li>Advanced preprocessing capabilities</li>
-            <li>Time-frequency analysis tools</li>
-            <li>Source localization</li>
-            <li>Connectivity analysis</li>
-            <li>Statistical analysis</li>
-            <li>Integration with machine learning libraries</li>
+            <li><b>Power Spectral Density (PSD)</b>: Frequency content analysis with individual or averaged channels</li>
+            <li><b>Topomap</b>: Spatial distribution of activity across frequency bands (Alpha, Beta, Theta, etc.)</li>
+            <li><b>Raw Data</b>: Time series display with proper scaling and channel separation</li>
+            <li><b>Spectrogram</b>: Time-frequency representation of signal changes</li>
         </ul>
 
-        <p>After converting to MNE format, you can continue analysis in Python
-        using MNE's full suite of functions or export to other formats.</p>
+        <p>After conversion, you can continue analysis in Python using MNE's full suite of functions
+        or export to other formats for further processing in specialized software.</p>
         """,
     },
+    
+    "mne_conversion": {
+        "title": "MNE Data Conversion",
+        "content": """
+        <h3>MNE Data Conversion</h3>
+        <p>The first step in MNE integration is converting your EEG data from BrainFlow format to MNE's Raw format.</p>
+
+        <h4>Conversion Parameters:</h4>
+        <ul>
+            <li><b>Data Duration</b>: How many seconds of recent data to convert (1-60 seconds)</li>
+            <li><b>Auto Convert to V</b>: Automatically convert from microvolts (μV) to volts (V) as expected by MNE</li>
+        </ul>
+
+        <h4>Conversion Modes:</h4>
+        
+        <h5>Flexible Mode (Recommended for Analysis)</h5>
+        <ul>
+            <li>Converts all available EEG channels</li>
+            <li>Channel selection happens during visualization</li>
+            <li>Allows experimenting with different channel combinations</li>
+            <li>Better for exploratory analysis</li>
+        </ul>
+
+        <h5>Performance Mode (Optimized for Speed)</h5>
+        <ul>
+            <li>Converts only pre-selected channels</li>
+            <li>Faster conversion and lower memory usage</li>
+            <li>Visualization limited to converted channels</li>
+            <li>Better for focused analysis or low-resource systems</li>
+        </ul>
+
+        <h4>Process:</h4>
+        <ol>
+            <li>Select conversion mode and parameters</li>
+            <li>If using Performance Mode, select specific channels</li>
+            <li>Click "Convert to MNE" to start the process</li>
+            <li>Monitor progress in the Operation Status section</li>
+            <li>Once complete, visualization options become available</li>
+        </ol>
+
+        <p><b>Note:</b> Conversion runs in the background, so you can continue using other parts
+        of the application while it processes.</p>
+        """,
+    },
+    
+    "mne_visualization": {
+        "title": "MNE Visualization Options",
+        "content": """
+        <h3>MNE Visualization Options</h3>
+        <p>After successful data conversion, you can create various types of scientific visualizations
+        using MNE's advanced plotting capabilities.</p>
+
+        <h4>Plot Types:</h4>
+        
+        <h5>Power Spectral Density (PSD)</h5>
+        <ul>
+            <li>Shows frequency content of EEG signals</li>
+            <li>Individual mode: Each channel as colored line with legend</li>
+            <li>Averaged mode: Single line representing average across channels</li>
+            <li>Useful for identifying dominant brain rhythms and artifacts</li>
+        </ul>
+
+        <h5>Topomap (Spatial Brain Mapping)</h5>
+        <ul>
+            <li>Shows spatial distribution of power across the scalp</li>
+            <li>Choose from predefined frequency bands: Alpha (8-13Hz), Beta (13-30Hz), etc.</li>
+            <li>Custom frequency ranges supported</li>
+            <li>Single channel: Shows as colored circle</li>
+            <li>Multiple channels: Grid layout with relative power intensities</li>
+        </ul>
+
+        <h5>Raw Data (Time Series)</h5>
+        <ul>
+            <li>Displays EEG signals over time</li>
+            <li>Each channel shown with offset for clear separation</li>
+            <li>Color-coded channels for easy identification</li>
+            <li>Useful for visual inspection of signal quality and artifacts</li>
+        </ul>
+
+        <h5>Spectrogram (Time-Frequency)</h5>
+        <ul>
+            <li>Shows how frequency content changes over time</li>
+            <li>Uses first selected channel</li>
+            <li>Color intensity represents power at each time-frequency point</li>
+            <li>Excellent for detecting transient events and state changes</li>
+        </ul>
+
+        <h4>Visualization Controls:</h4>
+        <ul>
+            <li><b>Frequency Range</b>: Set min/max frequencies for analysis (1-100 Hz)</li>
+            <li><b>Channel Selection</b>: Choose which channels to display</li>
+            <li><b>PSD Mode Toggle</b>: Switch between individual and averaged display</li>
+            <li><b>Topomap Bands</b>: Quick selection of common EEG frequency bands</li>
+        </ul>
+
+        <p><b>Performance Tips:</b></p>
+        <ul>
+            <li>Use fewer channels for faster rendering</li>
+            <li>Narrow frequency ranges focus analysis and improve clarity</li>
+            <li>Individual channel mode works best with ≤16 channels</li>
+            <li>Topomap visualization adapts automatically to channel count</li>
+        </ul>
+        """,
+    },
+    
+    "mne_workflow": {
+        "title": "MNE Integration Workflow",
+        "content": """
+        <h3>MNE Integration Workflow</h3>
+        <p>This guide walks you through the complete process of using MNE integration
+        for EEG analysis in the application.</p>
+
+        <h4>Prerequisites:</h4>
+        <ul>
+            <li>EEG device connected and streaming data</li>
+            <li>At least a few seconds of recorded data</li>
+            <li>MNE-Python package installed (pip install mne)</li>
+        </ul>
+
+        <h4>Step-by-Step Workflow:</h4>
+        
+        <h5>1. Data Collection Phase</h5>
+        <ol>
+            <li>Connect your EEG device in the Connection tab</li>
+            <li>Start streaming in the Streaming tab</li>
+            <li>Record some baseline data (eyes closed, relaxed state)</li>
+            <li>Optionally record task-specific data (eyes open, cognitive tasks, etc.)</li>
+        </ol>
+
+        <h5>2. MNE Conversion Phase</h5>
+        <ol>
+            <li>Navigate to the MNE Integration tab</li>
+            <li>Choose conversion mode:
+                <ul>
+                    <li><b>Flexible Mode</b>: For comprehensive analysis</li>
+                    <li><b>Performance Mode</b>: For targeted analysis with specific channels</li>
+                </ul>
+            </li>
+            <li>Set data duration (start with 10 seconds)</li>
+            <li>If using Performance Mode, select channels of interest</li>
+            <li>Click "Convert to MNE" and wait for completion</li>
+        </ol>
+
+        <h5>3. Analysis and Visualization Phase</h5>
+        <ol>
+            <li>Start with PSD analysis to understand frequency content</li>
+            <li>Use Topomap to see spatial distribution of brain activity</li>
+            <li>Check Raw Data view for signal quality assessment</li>
+            <li>Use Spectrogram for time-varying analysis</li>
+            <li>Experiment with different frequency ranges and channel selections</li>
+        </ol>
+
+        <h4>Common Analysis Scenarios:</h4>
+        
+        <h5>Alpha Wave Detection (Relaxation/Meditation)</h5>
+        <ol>
+            <li>Record with eyes closed in relaxed state</li>
+            <li>Convert 10-30 seconds of data</li>
+            <li>Use PSD plot with 8-13 Hz range</li>
+            <li>Look for prominent peak around 10 Hz</li>
+            <li>Use Alpha topomap to see spatial distribution</li>
+        </ol>
+
+        <h5>Artifact Identification</h5>
+        <ol>
+            <li>Convert data including movement or eye blinks</li>
+            <li>Use Raw Data view to visually inspect</li>
+            <li>Check PSD for high-frequency noise or low-frequency drift</li>
+            <li>Use multiple channels to identify artifact sources</li>
+        </ol>
+
+        <h5>Cognitive Load Assessment</h5>
+        <ol>
+            <li>Record baseline (rest) and task data separately</li>
+            <li>Convert both datasets using same parameters</li>
+            <li>Compare Beta band (13-30 Hz) activity</li>
+            <li>Use topomaps to identify regions of increased activity</li>
+        </ol>
+
+        <h4>Best Practices:</h4>
+        <ul>
+            <li>Always start with good signal quality (green indicators)</li>
+            <li>Use consistent recording conditions for comparisons</li>
+            <li>Document your experimental conditions</li>
+            <li>Start with standard frequency bands before custom ranges</li>
+            <li>Validate findings across multiple recordings</li>
+        </ul>
+
+        <h4>Troubleshooting:</h4>
+        <ul>
+            <li><b>Conversion fails</b>: Check if enough data is available</li>
+            <li><b>Plot appears empty</b>: Verify frequency range includes signal content</li>
+            <li><b>Poor signal quality</b>: Check electrode contact and reduce artifacts</li>
+            <li><b>Performance issues</b>: Use Performance Mode with fewer channels</li>
+        </ul>
+        """,
+    },
+    
+    "mne_advanced": {
+        "title": "Advanced MNE Features",
+        "content": """
+        <h3>Advanced MNE Features</h3>
+        <p>Beyond basic visualization, MNE integration offers advanced capabilities
+        for sophisticated EEG analysis.</p>
+
+        <h4>Technical Features:</h4>
+        
+        <h5>Asynchronous Processing</h5>
+        <ul>
+            <li>Conversion and visualization run in background processes</li>
+            <li>Application remains responsive during heavy computations</li>
+            <li>Multiple tasks can be queued and processed</li>
+            <li>Real-time progress monitoring with cancellation support</li>
+        </ul>
+
+        <h5>Memory Management</h5>
+        <ul>
+            <li>Automatic cleanup of completed tasks</li>
+            <li>Performance Mode reduces memory footprint</li>
+            <li>Efficient handling of large datasets</li>
+            <li>Task result caching for quick access</li>
+        </ul>
+
+        <h5>Quality Assurance</h5>
+        <ul>
+            <li>Data validation before conversion</li>
+            <li>Error handling with detailed feedback</li>
+            <li>Automatic unit conversion (μV to V)</li>
+            <li>Channel mapping and naming consistency</li>
+        </ul>
+
+        <h4>Integration with MNE Ecosystem:</h4>
+        
+        <h5>Export Capabilities</h5>
+        <ul>
+            <li>Converted data maintains MNE Raw format compatibility</li>
+            <li>Can be loaded into Python scripts for further analysis</li>
+            <li>Compatible with MNE's preprocessing pipeline</li>
+            <li>Supports export to various formats (FIF, EDF, etc.)</li>
+        </ul>
+
+        <h5>Advanced Analysis Potential</h5>
+        <p>After conversion, data can be used with MNE's full capabilities:</p>
+        <ul>
+            <li><b>Preprocessing</b>: Advanced filtering, bad channel detection, ICA</li>
+            <li><b>Time-Frequency</b>: Morlet wavelets, multitaper methods</li>
+            <li><b>Connectivity</b>: Coherence, phase-locking value, PLI</li>
+            <li><b>Source Analysis</b>: Forward modeling, inverse solutions</li>
+            <li><b>Statistics</b>: Cluster-based permutation tests</li>
+            <li><b>Machine Learning</b>: Feature extraction, classification</li>
+        </ul>
+
+        <h4>Performance Optimization:</h4>
+        
+        <h5>When to Use Performance Mode</h5>
+        <ul>
+            <li>Working with high-density EEG systems (64+ channels)</li>
+            <li>Limited system memory or processing power</li>
+            <li>Focused analysis on specific brain regions</li>
+            <li>Real-time or near-real-time processing requirements</li>
+        </ul>
+
+        <h5>When to Use Flexible Mode</h5>
+        <ul>
+            <li>Exploratory data analysis</li>
+            <li>Comparing different channel combinations</li>
+            <li>Educational or demonstration purposes</li>
+            <li>Systems with adequate memory and processing power</li>
+        </ul>
+
+        <h4>Scientific Applications:</h4>
+        <ul>
+            <li><b>Neurofeedback</b>: Real-time monitoring of specific frequency bands</li>
+            <li><b>BCI Research</b>: Feature extraction for brain-computer interfaces</li>
+            <li><b>Clinical Assessment</b>: Quantitative EEG analysis</li>
+            <li><b>Cognitive Neuroscience</b>: Event-related potential analysis</li>
+            <li><b>Sleep Research</b>: Sleep stage classification</li>
+            <li><b>Meditation Studies</b>: Alpha/theta wave analysis</li>
+        </ul>
+
+        <h4>Future Enhancements:</h4>
+        <p>The MNE integration is designed to be extensible. Potential future features include:</p>
+        <ul>
+            <li>Real-time streaming analysis</li>
+            <li>Automated artifact detection and removal</li>
+            <li>Integration with machine learning models</li>
+            <li>Advanced source localization</li>
+            <li>Group-level statistical analysis</li>
+        </ul>
+        """,
+    },
+    
     # General EEG Concepts
     "eeg_basics": {
         "title": "EEG Basics",
@@ -661,7 +956,9 @@ class EEGConceptsHelpDialog(QDialog):
             "Visualization", ["eeg_visualization", "brain_map", "multi_modality"]
         )
         self.add_tab("Recording", ["recording", "streaming", "streamers"])
-        self.add_tab("Advanced Analysis", ["ica", "wavelet", "downsampling", "mne"])
+        self.add_tab("Advanced Analysis", ["ica", "wavelet", "downsampling"])
+        # Add comprehensive MNE Integration tab
+        self.add_tab("MNE Integration", ["mne", "mne_conversion", "mne_visualization", "mne_workflow", "mne_advanced"])
 
         layout.addWidget(self.tabs)
 
