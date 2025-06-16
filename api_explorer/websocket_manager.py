@@ -3,6 +3,7 @@ WebSocket connection management with worker pools and message throttling.
 """
 
 import asyncio
+import logging
 import multiprocessing as mp
 import random
 import time
@@ -139,7 +140,7 @@ class WebSocketManager:
                     if throttle_data["drop_counter"] > 0
                     else ""
                 )
-                print(
+                logging.info(
                     f"Broadcasting events for module {module_id} (rate: ~{throttle_data['rate']}/sec{dropped_str}){mode_str}"
                 )
                 throttle_data["last_log_time"] = current_time

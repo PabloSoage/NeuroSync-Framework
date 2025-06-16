@@ -5,8 +5,7 @@ import os
 import sys
 from typing import Dict, List, Tuple, Optional
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from interfaces.board_interface import BoardInterface
+from ..interfaces.board_interface import BoardInterface
 
 from brainflow.board_shim import (
     BoardShim,

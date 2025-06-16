@@ -5,9 +5,8 @@ from typing import Dict, Tuple, List, Any, Optional
 
 import numpy as np
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from collectors.eeg_collector import EEGCollector
-from processors.signal_processor import SignalProcessor
+from ..collectors.eeg_collector import EEGCollector
+from ..processors.signal_processor import SignalProcessor
 
 import pyqtgraph as pg
 from PyQt5.QtCore import Qt, QTimer, QPointF
@@ -37,18 +36,18 @@ class BrainMapVisualizer:
         if self.collector is None:
             logging.error("Collector is None!")
         else:
-            logging.info(f"Collector methods: {dir(self.collector)}")
+            logging.debug(f"Collector methods: {dir(self.collector)}")
 
         if self.processor is None:
             logging.error("Processor is None!")
         else:
-            logging.info(f"Processor methods: {dir(self.processor)}")
+            logging.debug(f"Processor methods: {dir(self.processor)}")
 
         # Check specifically for the required methods
         has_get_data = hasattr(self.collector, "get_data")
         has_quality_method = hasattr(self.processor, "get_all_channels_quality")
-        logging.info(f"Collector has get_data: {has_get_data}")
-        logging.info(f"Processor has get_all_channels_quality: {has_quality_method}")
+        logging.debug(f"Collector has get_data: {has_get_data}")
+        logging.debug(f"Processor has get_all_channels_quality: {has_quality_method}")
 
         # Increase the update frequency to be faster than EEGVisualizer
         self.update_speed_ms = 100  # Faster than before (200ms)
@@ -70,8 +69,8 @@ class BrainMapVisualizer:
         self.apply_bandpass = False
         self.bandpass_low = 1.0
         self.bandpass_high = 30.0
-        self.apply_notch = False  # Changed from True to False
-        self.apply_detrend = False  # Changed from True to False
+        self.apply_notch = False
+        self.apply_detrend = False
 
         # Create visualization window
         self.setup_ui()
@@ -350,29 +349,29 @@ class BrainMapVisualizer:
                 hasattr(self.collector, "eeg_channels") and self.collector.eeg_channels
             )
 
-            logging.info(
+            logging.debug(
                 f"Collector has eeg_names: {has_eeg_names}, has_eeg_channels: {has_eeg_channels}"
             )
 
             # Get channel names if available
             if has_eeg_names:
-                logging.info(f"EEG names from collector: {self.collector.eeg_names}")
+                logging.debug(f"EEG names from collector: {self.collector.eeg_names}")
                 # Create positions for each named electrode
                 for i, name in enumerate(self.collector.eeg_names):
                     if not name or not isinstance(name, str):
                         continue
 
                     name = name.strip().upper()  # Normalize name
-                    logging.info(f"Processing electrode: {name}")
+                    logging.debug(f"Processing electrode: {name}")
 
                     # Try exact match with standard positions
                     if name in self.standard_positions:
                         pos = self.standard_positions[name]
                         self.electrode_positions[name] = pos
                         self.electrode_quality[name] = (
-                            0.0  # CAMBIO: Changed from 0.5 to 0.0 (worst quality) to match EEGVisualizer
+                            0.0
                         )
-                        logging.info(f"Found standard position for {name}: {pos}")
+                        logging.debug(f"Found standard position for {name}: {pos}")
 
                         # Determine region based on y-coordinate
                         for region, check_func in region_ranges.items():
@@ -672,7 +671,7 @@ class BrainMapVisualizer:
 
             # Increment counter for debugging
             self.update_count += 1
-            logging.info(f"Brain Map update #{self.update_count} started")
+            logging.debug(f"Brain Map update #{self.update_count} started")
 
             # More detailed diagnostics for missing methods
             if not hasattr(self.collector, "get_data"):
@@ -731,7 +730,7 @@ class BrainMapVisualizer:
                                 quality = quality_dict.get(ch_idx, 0.0)
                                 # Update directly
                                 self.electrode_quality[ch_name] = quality
-                                logging.info(
+                                logging.debug(
                                     f"Updated electrode {ch_name} quality to {quality}"
                                 )
 
@@ -775,7 +774,7 @@ class BrainMapVisualizer:
             )
 
             # Show the calculated quality values
-            logging.info(f"BrainMap - Calculated quality values: {quality_dict}")
+            logging.debug(f"BrainMap - Calculated quality values: {quality_dict}")
 
             # Update electrode qualities directly
             for i, ch_idx in enumerate(self.eeg_channels):
@@ -785,7 +784,7 @@ class BrainMapVisualizer:
                         quality = quality_dict.get(ch_idx, 0.0)
                         # Update directly
                         self.electrode_quality[ch_name] = quality
-                        logging.info(
+                        logging.debug(
                             f"Updated electrode {ch_name} quality to {quality}"
                         )
 
@@ -807,7 +806,7 @@ class BrainMapVisualizer:
             self.labels = []
 
             # Log current quality values for debugging
-            logging.info(f"Current quality values: {self.electrode_quality}")
+            logging.debug(f"Current quality values: {self.electrode_quality}")
 
             if not self.electrode_positions:
                 logging.warning("No electrode positions to display")
@@ -844,7 +843,7 @@ class BrainMapVisualizer:
                 )
 
                 # Log quality and color assignment
-                logging.info(
+                logging.debug(
                     f"Electrode {name} quality={quality:.2f}, color_idx={color_idx}"
                 )
 
@@ -882,7 +881,7 @@ class BrainMapVisualizer:
                 # Clear and add points
                 self.scatter.clear()
                 self.scatter.addPoints(scatter_points)
-                logging.info(f"Updated scatter plot with {len(scatter_points)} points")
+                logging.debug(f"Updated scatter plot with {len(scatter_points)} points")
 
         except Exception as e:
             logging.error(f"Error in update_electrode_display: {e}", exc_info=True)
@@ -933,7 +932,7 @@ class BrainMapVisualizer:
 
             self.electrode_positions[name] = pos
             self.electrode_quality[name] = (
-                0.0  # CAMBIO: Changed from 0.5 to 0.0 to match EEGVisualizer
+                0.0
             )
             self.electrode_regions[name] = "other"
 

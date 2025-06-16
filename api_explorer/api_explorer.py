@@ -251,7 +251,8 @@ class ApiExplorer:
             )
             success = self.websocket_manager.queue_message(module_id, serialized_data)
             if not success:
-                logging.warning(f"Failed to queue message for module {module_id}")
+                # Changed from warning to debug level for less critical issues
+                logging.debug(f"Failed to queue message for module {module_id}")
         except Exception as e:
             logging.error(f"Error in broadcast_event: {e}")
 

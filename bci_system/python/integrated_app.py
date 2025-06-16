@@ -406,7 +406,7 @@ class IntegratedBCIApp(QMainWindow):
         self.input_json_check = QCheckBox("JSON Format")
         self.input_json_check.setChecked(
             False
-        )  # Changed from True to False - unchecked by default
+        )
         input_options.addWidget(self.input_json_check)
 
         self.input_csv_check = QCheckBox("CSV Format")

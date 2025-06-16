@@ -13,9 +13,6 @@ import sys
 
 from PyQt5.QtWidgets import QApplication
 
-# Add the parent directory to the path to allow importing the package
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from eeg_processor.python.eeg_processor_app import EEGProcessorApp
 
 

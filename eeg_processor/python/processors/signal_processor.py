@@ -345,7 +345,7 @@ class SignalProcessor:
             band_power = DataFilter.get_band_power(psd, start_freq, stop_freq)
             band_powers.append(band_power)
 
-        logging.info(f"Calculated band power for {start_freq}-{stop_freq}Hz")
+        logging.debug(f"Calculated band power for {start_freq}-{stop_freq}Hz")
         return np.array(band_powers)
 
     def get_eeg_metrics(

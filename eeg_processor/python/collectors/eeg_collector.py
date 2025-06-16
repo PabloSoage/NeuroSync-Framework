@@ -8,9 +8,7 @@ from typing import Dict, List, Any, Optional, Tuple, TextIO
 
 import numpy as np
 
-# Import interfaces
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from interfaces.collector_interface import (
+from ..interfaces.collector_interface import (
     CollectorInterface,
     DataStorageInterface,
     ContinuousRecordingInterface,

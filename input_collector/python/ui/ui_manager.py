@@ -51,7 +51,6 @@ class UIManager(QObject):
     apply_mouse_settings = pyqtSignal()
     toggle_fullscreen = pyqtSignal()
     mouse_button_toggled = pyqtSignal(str, bool)
-    # Remove capture_scroll_changed signal
 
     # Add a new signal for the PS4 visualization mode
     toggle_ps4_viz_mode = pyqtSignal(str)
