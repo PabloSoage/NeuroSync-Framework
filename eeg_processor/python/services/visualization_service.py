@@ -223,33 +223,14 @@ class VisualizationService:
         """
         success = True
 
-        # Apply settings to EEG visualizer
-        if self.eeg_visualizer:
-            try:
-                self.eeg_visualizer.set_bandpass_filter(
-                    enabled, low_cutoff, high_cutoff
-                )
-                # Save settings to instance variables
-                self.bandpass_enabled = enabled
-                self.bandpass_low = low_cutoff
-                self.bandpass_high = high_cutoff
-            except Exception as e:
-                logging.error(f"Setting bandpass filter for EEG visualizer error: {e}")
-                success = False
+        # Store settings for internal use (e.g., MNE notifications)
+        self.bandpass_enabled = enabled
+        self.bandpass_low = low_cutoff
+        self.bandpass_high = high_cutoff
 
-        # Apply the same settings to brain map visualizer for consistency
-        if self.brain_map_visualizer and hasattr(
-            self.brain_map_visualizer, "set_bandpass_filter"
-        ):
-            try:
-                self.brain_map_visualizer.set_bandpass_filter(
-                    enabled, low_cutoff, high_cutoff
-                )
-            except Exception as e:
-                logging.error(
-                    f"Setting bandpass filter for brain map visualizer error: {e}"
-                )
-                success = False
+        # Note: Visualizers now get filtered data from DataAccessService
+        # No need to configure filters on individual visualizers
+        logging.info(f"Filter settings stored: bandpass {enabled} ({low_cutoff}-{high_cutoff}Hz)")
 
         return success
 
@@ -266,28 +247,13 @@ class VisualizationService:
         """
         success = True
 
-        # Apply settings to EEG visualizer
-        if self.eeg_visualizer:
-            try:
-                self.eeg_visualizer.set_notch_filter(enabled)
-                # Save settings to instance variables
-                self.notch_enabled = enabled
-                self.notch_freq = frequency
-            except Exception as e:
-                logging.error(f"Setting notch filter for EEG visualizer error: {e}")
-                success = False
+        # Store settings for internal use (e.g., MNE notifications)
+        self.notch_enabled = enabled
+        self.notch_freq = frequency
 
-        # Apply the same settings to brain map visualizer for consistency
-        if self.brain_map_visualizer and hasattr(
-            self.brain_map_visualizer, "set_notch_filter"
-        ):
-            try:
-                self.brain_map_visualizer.set_notch_filter(enabled)
-            except Exception as e:
-                logging.error(
-                    f"Setting notch filter for brain map visualizer error: {e}"
-                )
-                success = False
+        # Note: Visualizers now get filtered data from DataAccessService
+        # No need to configure filters on individual visualizers
+        logging.info(f"Filter settings stored: notch {enabled} ({frequency}Hz)")
 
         return success
 
@@ -303,25 +269,12 @@ class VisualizationService:
         """
         success = True
 
-        # Apply settings to EEG visualizer
-        if self.eeg_visualizer:
-            try:
-                self.eeg_visualizer.set_detrend(enabled)
-                # Save settings to instance variables
-                self.detrend_enabled = enabled
-            except Exception as e:
-                logging.error(f"Setting detrend for EEG visualizer error: {e}")
-                success = False
+        # Store settings for internal use (e.g., MNE notifications)
+        self.detrend_enabled = enabled
 
-        # Apply the same settings to brain map visualizer for consistency
-        if self.brain_map_visualizer and hasattr(
-            self.brain_map_visualizer, "set_detrend"
-        ):
-            try:
-                self.brain_map_visualizer.set_detrend(enabled)
-            except Exception as e:
-                logging.error(f"Setting detrend for brain map visualizer error: {e}")
-                success = False
+        # Note: Visualizers now get filtered data from DataAccessService
+        # No need to configure filters on individual visualizers
+        logging.info(f"Filter settings stored: detrend {enabled}")
 
         return success
 

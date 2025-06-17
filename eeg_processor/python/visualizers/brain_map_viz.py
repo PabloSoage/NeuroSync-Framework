@@ -8,6 +8,7 @@ from PyQt5.QtGui import QFont, QColor, QPainterPath
 
 from ..collectors.eeg_collector import EEGCollector
 from ..processors.signal_processor import SignalProcessor
+from ..services.data_access_service import DataAccessService
 
 
 class BrainMapVisualizer:
@@ -23,11 +24,15 @@ class BrainMapVisualizer:
         Initialize the brain map visualizer.
 
         Args:
-            collector: EEG data collector
+            collector: EEG data collector (for metadata only)
             processor: Signal processor
         """
+        # Only use collector for metadata, not for direct data access
         self.collector = collector
         self.processor = processor
+
+        # Use DataAccessService for data access instead of direct collector access
+        self.data_service = DataAccessService.get_instance()
 
         # Debug checks for collector and processor
         if self.collector is None:
@@ -41,9 +46,9 @@ class BrainMapVisualizer:
             logging.debug(f"Processor methods: {dir(self.processor)}")
 
         # Check specifically for the required methods
-        has_get_data = hasattr(self.collector, "get_data")
+        has_get_data = hasattr(self.data_service, "get_current_data")
         has_quality_method = hasattr(self.processor, "get_all_channels_quality")
-        logging.debug(f"Collector has get_data: {has_get_data}")
+        logging.debug(f"DataAccessService has get_current_data: {has_get_data}")
         logging.debug(f"Processor has get_all_channels_quality: {has_quality_method}")
 
         # Increase the update frequency to be faster than EEGVisualizer
@@ -62,12 +67,12 @@ class BrainMapVisualizer:
         # Store EEG channels directly like EEGVisualizer does
         self.eeg_channels = collector.get_eeg_channels()
 
-        # Processing options - all disabled by default to match EEGVisualizer
-        self.apply_bandpass = False
-        self.bandpass_low = 1.0
-        self.bandpass_high = 30.0
-        self.apply_notch = False
-        self.apply_detrend = False
+        # Remove local filter settings - use centralized filtering from DataAccessService
+        # self.apply_bandpass = False
+        # self.bandpass_low = 1.0
+        # self.bandpass_high = 30.0
+        # self.apply_notch = False
+        # self.apply_detrend = False
 
         # Create visualization window
         self.setup_ui()
@@ -75,7 +80,7 @@ class BrainMapVisualizer:
         # Identify electrode positions
         self.identify_electrode_positions()
 
-        logging.info("Brain map visualizer initialized")
+        logging.info("Brain map visualizer initialized with DataAccessService")
 
     def setup_ui(self) -> None:
         """Set up the user interface."""
@@ -669,8 +674,8 @@ class BrainMapVisualizer:
             logging.debug(f"Brain Map update #{self.update_count} started")
 
             # More detailed diagnostics for missing methods
-            if not hasattr(self.collector, "get_data"):
-                logging.error("Collector missing get_data method")
+            if not hasattr(self.data_service, "get_current_data"):
+                logging.error("DataAccessService missing get_current_data method")
                 return
 
             if not hasattr(self.processor, "get_all_channels_quality"):
@@ -680,23 +685,16 @@ class BrainMapVisualizer:
                     logging.info(
                         "Using fallback quality calculation with get_signal_quality"
                     )
-                    # Get the data anyway
-                    data, _ = self.collector.get_data(self.num_points)
+                    # Get the data from DataAccessService
+                    data, _ = self.data_service.get_current_data()
 
                     if data.size == 0:
                         logging.warning("No data available for quality calculation")
                         return
 
-                    # Apply filters as normal
+                    # Use data as-is since it comes from the centralized filter pipeline
+                    # Remove local filtering
                     data_copy = data.copy()
-                    if self.apply_bandpass:
-                        data_copy = self.processor.bandpass_filter(
-                            data_copy, self.bandpass_low, self.bandpass_high, 4
-                        )
-                    if self.apply_notch:
-                        data_copy = self.processor.remove_environmental_noise(data_copy)
-                    if self.apply_detrend:
-                        data_copy = self.processor.detrend(data_copy)
 
                     # Calculate qualities manually using get_signal_quality for each channel
                     quality_dict = {}
@@ -738,30 +736,22 @@ class BrainMapVisualizer:
 
             # Original method if both methods exist
             # Check preconditions
-            if not hasattr(self.collector, "get_data") or not hasattr(
+            if not hasattr(self.data_service, "get_current_data") or not hasattr(
                 self.processor, "get_all_channels_quality"
             ):
-                logging.warning("Collector or processor missing required methods")
+                logging.warning("DataAccessService or processor missing required methods")
                 return
 
-            # Get data
-            data, _ = self.collector.get_data(self.num_points)
+            # Get data from DataAccessService instead of collector
+            data, _ = self.data_service.get_current_data()
 
             if data.size == 0:
                 logging.warning("No data available for brain map update")
                 return
 
-            # Process data exactly as in EEGVisualizer
+            # Use data as-is since it comes from the centralized filter pipeline
+            # Remove local filtering - DataAccessService handles this
             data_copy = data.copy()
-
-            if self.apply_bandpass:
-                data_copy = self.processor.bandpass_filter(
-                    data_copy, self.bandpass_low, self.bandpass_high, 4
-                )
-            if self.apply_notch:
-                data_copy = self.processor.remove_environmental_noise(data_copy)
-            if self.apply_detrend:
-                data_copy = self.processor.detrend(data_copy)
 
             # Calculate quality directly as EEGVisualizer does
             quality_dict = self.processor.get_all_channels_quality(
@@ -928,37 +918,3 @@ class BrainMapVisualizer:
             self.electrode_positions[name] = pos
             self.electrode_quality[name] = 0.0
             self.electrode_regions[name] = "other"
-
-    # Add methods to configure filters similar to EEGVisualizer
-    def set_bandpass_filter(
-        self, enabled: bool, low_freq: float = 1.0, high_freq: float = 30.0
-    ) -> None:
-        """
-        Set bandpass filter parameters.
-
-        Args:
-            enabled: Whether to enable the bandpass filter
-            low_freq: Lower cutoff frequency
-            high_freq: Higher cutoff frequency
-        """
-        self.apply_bandpass = enabled
-        self.bandpass_low = low_freq
-        self.bandpass_high = high_freq
-
-    def set_notch_filter(self, enabled: bool) -> None:
-        """
-        Set notch filter for power line noise.
-
-        Args:
-            enabled: Whether to enable the notch filter
-        """
-        self.apply_notch = enabled
-
-    def set_detrend(self, enabled: bool) -> None:
-        """
-        Set detrending option.
-
-        Args:
-            enabled: Whether to enable detrending
-        """
-        self.apply_detrend = enabled

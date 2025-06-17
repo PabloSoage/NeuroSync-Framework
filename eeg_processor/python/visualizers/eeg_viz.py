@@ -49,13 +49,6 @@ class EEGVisualizer:
         # Data for plotting
         self.time_vector = np.linspace(0, self.window_size, self.num_points)
 
-        # Processing options - disable all filters by default
-        self.apply_bandpass = False
-        self.bandpass_low = 1.0
-        self.bandpass_high = 30.0
-        self.apply_notch = False
-        self.apply_detrend = False
-
         # Setup UI elements
         self.setup_ui()
 
@@ -237,10 +230,9 @@ class EEGVisualizer:
     def update_plots(self) -> None:
         """Update all plots with new data."""
         try:
-            # Get data from DataAccessService instead of collector
-            # NOTE: get_raw_data() gets unfiltered data for visualization filtering
-            # This ensures visualization filters work independently
-            data, timestamps = self.data_service.get_raw_data()
+            # Get data from DataAccessService - use get_current_data() to get filtered data
+            # This ensures consistency with the centralized filter pipeline
+            data, timestamps = self.data_service.get_current_data()
             metadata = self.data_service.get_metadata()
 
             # Get sample rate info from metadata
@@ -267,21 +259,19 @@ class EEGVisualizer:
             if data.size == 0 or len(self.eeg_channels) == 0:
                 return
 
-            # Process data for display (visualization-specific filtering)
+            # Use data as-is since it comes from the centralized filter pipeline
+            # Remove local filtering - DataAccessService handles this
             data_to_plot = data.copy()
 
-            # Apply pre-processing if needed (visualization filters)
-            if self.apply_bandpass:
-                data_to_plot = self.processor.bandpass_filter(
-                    data_to_plot, self.bandpass_low, self.bandpass_high, 4
-                )
-
-            if self.apply_notch:
-                # Remove 50Hz noise (adjust to 60Hz if needed)
-                data_to_plot = self.processor.remove_environmental_noise(data_to_plot)
-
-            if self.apply_detrend:
-                data_to_plot = self.processor.detrend(data_to_plot)
+            # Remove visualization-specific filtering - now handled centrally
+            # if self.apply_bandpass:
+            #     data_to_plot = self.processor.bandpass_filter(
+            #         data_to_plot, self.bandpass_low, self.bandpass_high, 4
+            #     )
+            # if self.apply_notch:
+            #     data_to_plot = self.processor.remove_environmental_noise(data_to_plot)
+            # if self.apply_detrend:
+            #     data_to_plot = self.processor.detrend(data_to_plot)
 
             # Calculate signal quality for each channel
             quality_scores = self.processor.get_all_channels_quality(
@@ -433,39 +423,6 @@ class EEGVisualizer:
 
         except Exception as e:
             logging.error(f"Error updating plots: {e}")
-
-    def set_bandpass_filter(
-        self, enabled: bool, low_freq: float = 1.0, high_freq: float = 30.0
-    ) -> None:
-        """
-        Set bandpass filter parameters.
-
-        Args:
-            enabled: Whether to enable the bandpass filter
-            low_freq: Lower cutoff frequency
-            high_freq: Higher cutoff frequency
-        """
-        self.apply_bandpass = enabled
-        self.bandpass_low = low_freq
-        self.bandpass_high = high_freq
-
-    def set_notch_filter(self, enabled: bool) -> None:
-        """
-        Set notch filter for power line noise.
-
-        Args:
-            enabled: Whether to enable the notch filter
-        """
-        self.apply_notch = enabled
-
-    def set_detrend(self, enabled: bool) -> None:
-        """
-        Set detrending option.
-
-        Args:
-            enabled: Whether to enable detrending
-        """
-        self.apply_detrend = enabled
 
     def set_frequency_range(self, min_freq: float, max_freq: float) -> None:
         """Set the frequency range for the FFT plot."""
