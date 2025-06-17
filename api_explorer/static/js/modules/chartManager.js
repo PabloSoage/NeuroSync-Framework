@@ -34,11 +34,18 @@ export class ChartManager {
         if (!data.visualization_data?.list_view) return;
 
         let hasNewData = false;
+        let hasNewTypes = false;
         const updatedChannels = new Set();
+        
+        const hadDataBefore = Object.keys(this.channelData[moduleId]).length > 0;
 
         data.visualization_data.list_view.forEach(item => {
             const channelId = item.channel;
             const type = item.type;
+
+            if (!this.channelData[moduleId][channelId]) {
+                hasNewTypes = true;
+            }
 
             // CAMBIO PRINCIPAL: Usar todas las muestras del evento, no solo una
             const allValues = item.values || [item.value]; // Usar 'values' si está disponible, sino 'value'
@@ -66,6 +73,12 @@ export class ChartManager {
                 this.channelData[moduleId][channelId].values.shift();
             }
         });
+
+        if (!hadDataBefore && hasNewTypes && document.getElementById(`${moduleId}-show-graph`)?.checked) {
+            console.log(`First data detected for ${moduleId}, initializing graph`);
+            this.initOrUpdateGraph(moduleId);
+            return; // No need to queue updates, the graph was just created
+        }
 
         if (hasNewData && document.getElementById(`${moduleId}-show-graph`)?.checked) {
             updatedChannels.forEach(channelId => {
