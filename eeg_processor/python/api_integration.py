@@ -5,6 +5,7 @@ import socket
 import sys
 import time
 from typing import Dict, List, Any, Optional, Tuple, Union
+import numpy as np
 
 # Configure logging
 logging.basicConfig(
@@ -28,7 +29,6 @@ except ImportError:
 # Import core services - we need direct access to services, not just through API
 from .data_access_api import EEGDataAPI
 from .services.data_access_service import DataAccessService
-from .services.collector_service import CollectorService
 
 # Import interaction API integration
 from .interaction_api_integration import EEGProcessorInteractionApiIntegration
@@ -55,12 +55,6 @@ class EEGProcessorApiIntegration:
         self.module_id = "eeg_processor"
         self.data_service = DataAccessService.get_instance()
 
-        # Get collector service directly for access to board/collector info
-        self.collector_service: Optional[CollectorService] = None
-        try:
-            self.collector_service = CollectorService.get_instance()
-        except Exception as e:
-            logger.warning(f"Could not initialize collector service: {e}")
 
         # Initialize interaction API integration
         self.interaction_integration = (
@@ -68,10 +62,10 @@ class EEGProcessorApiIntegration:
         )
 
         # Callback registration for streaming data
-        self.callback_id: Optional[Union[str, int]] = None
+        self.api_callback_id: Optional[int] = None
 
-        # Timer to periodically pull data from the collector
-        self.update_timer: Optional[Any] = None
+        # Track sample count for debugging only
+        self._total_samples_sent = 0
 
         #
         # Main API Registration Methods
@@ -119,18 +113,9 @@ class EEGProcessorApiIntegration:
         # Start server
         self.explorer.start_server(host=host, port=port, block=False)
 
-        if self.collector_service:
-            try:
-                self.collector_service.enable_high_performance_mode(True)
-                logger.info("High performance mode enabled for EEG data collection")
-            except Exception as e:
-                logger.warning(f"Could not enable high performance mode: {e}")
-
-        # Register data callback
-        self.callback_id = EEGDataAPI.register_data_callback(self._handle_data_callback)
-
-        # Start data polling
-        self.start_data_polling()
+        # Register API callback with DataAccessService (this will automatically enable multiprocessing)
+        self.api_callback_id = self.data_service.register_api_callback(self._handle_data_callback)
+        logger.info("Registered API callback with DataAccessService")
 
         return True
 
@@ -169,71 +154,14 @@ class EEGProcessorApiIntegration:
         for group_id, group_name in groups:
             self.explorer.add_method_group(self.module_id, group_id, group_name)
 
-    #
-    # Data Polling Methods
-    #
-
-    def start_data_polling(self, interval: float = 0.5) -> None:
-        """Start polling for data from the collector service."""
-        self.stop_data_polling()  # Stop any existing timer
-
-        loop = asyncio.get_event_loop()
-        self.update_timer = loop.call_later(interval, self._poll_data, interval, loop)
-        logger.info(f"Started data polling with interval {interval}s")
-
-    def stop_data_polling(self) -> None:
-        """Stop polling for data."""
-        if self.update_timer:
-            self.update_timer.cancel()
-            self.update_timer = None
-            logger.info("Stopped data polling")
-
-    def _poll_data(self, interval: float, loop: asyncio.AbstractEventLoop) -> None:
-        """Poll for new data from the collector and update the data service."""
+    def _get_collector_service(self) -> Optional[Any]:
+        """Get collector service when needed (lazy loading)."""
         try:
-            if (
-                self.collector_service
-                and self.collector_service.is_connected()
-                and self.collector_service.is_streaming_active()
-            ):
-                # Get data from collector
-                data, timestamps = self.collector_service.get_board_data(
-                    100
-                )  # Get last 100 samples
-
-                if data.size > 0:
-                    # Update data in the data service
-                    self.data_service.update_data(data, timestamps)
-
-                    # Update metadata if not set
-                    metadata = self.data_service.get_metadata()
-                    if (
-                        not metadata.get("streaming", False)
-                        or metadata.get("sampling_rate", 0) == 0
-                    ):
-                        new_metadata = {
-                            "streaming": True,
-                            "sampling_rate": self.collector_service.get_sampling_rate(),
-                            "eeg_channels": self.collector_service.get_eeg_channels(),
-                            "channel_names": self._get_channel_names_direct(),
-                        }
-                        self.data_service.update_metadata(new_metadata)
-
-                    logger.debug(f"Updated data service with data shape {data.shape}")
+            from .services.collector_service import CollectorService
+            return CollectorService.get_instance()
         except Exception as e:
-            logger.error(f"Error polling data: {e}")
-        finally:
-            # Schedule next poll
-            if loop.is_running():
-                self.update_timer = loop.call_later(
-                    interval, self._poll_data, interval, loop
-                )
-
-    def _port_in_use(self, host: str, port: int) -> bool:
-        """Check if port is already in use."""
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(1)
-            return s.connect_ex((host, port)) == 0
+            logger.debug(f"Could not get collector service: {e}")
+            return None
 
     #
     # Direct data access methods
@@ -241,22 +169,23 @@ class EEGProcessorApiIntegration:
 
     def _get_active_collector(self) -> Any:
         """Get currently active collector for direct data access."""
-        if not self.collector_service:
+        collector_service = self._get_collector_service()
+        if not collector_service:
             return None
 
         # Try to access the collector service's active collector
         try:
             # Different possible attribute names
-            if hasattr(self.collector_service, "collector"):
-                return self.collector_service.collector
-            elif hasattr(self.collector_service, "active_collector"):
-                return self.collector_service.active_collector
-            elif hasattr(self.collector_service, "current_collector"):
-                return self.collector_service.current_collector
+            if hasattr(collector_service, "collector"):
+                return collector_service.collector
+            elif hasattr(collector_service, "active_collector"):
+                return collector_service.active_collector
+            elif hasattr(collector_service, "current_collector"):
+                return collector_service.current_collector
 
             # Fallback: try to get collector from internal state
-            collectors = getattr(self.collector_service, "_collectors", {})
-            active_id = getattr(self.collector_service, "_active_collector_id", None)
+            collectors = getattr(collector_service, "_collectors", {})
+            active_id = getattr(collector_service, "_active_collector_id", None)
             if active_id and active_id in collectors:
                 return collectors[active_id]
 
@@ -277,9 +206,9 @@ class EEGProcessorApiIntegration:
 
         # Fallback: if collector or attributes aren't available
         try:
-            # If collector service is available, try to get board info from there
-            if self.collector_service:
-                board_info = self.collector_service.get_board_info()
+            collector_service = self._get_collector_service()
+            if collector_service:
+                board_info = collector_service.get_board_info()
                 if board_info:
                     return board_info.get("board_id", None), board_info.get(
                         "preset", None
@@ -306,6 +235,12 @@ class EEGProcessorApiIntegration:
             logger.debug(f"Error getting sampling rate from BrainFlow: {e}")
 
         return 0
+    
+    def _port_in_use(self, host: str, port: int) -> bool:
+        """Check if port is already in use."""
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(1)
+            return s.connect_ex((host, port)) == 0
 
     def _get_eeg_channels_direct(self) -> List[int]:
         """Get EEG channels directly from collector."""
@@ -315,9 +250,10 @@ class EEGProcessorApiIntegration:
             return collector.eeg_channels
 
         # Second attempt: from collector service
-        if self.collector_service:
+        collector_service = self._get_collector_service()
+        if collector_service:
             try:
-                channels = self.collector_service.get_eeg_channels()
+                channels = collector_service.get_eeg_channels()
                 if channels:
                     return channels
             except Exception as e:
@@ -365,15 +301,14 @@ class EEGProcessorApiIntegration:
             return selected_board_info
 
         # Fallback: get info from collector service if connected
-        if self.collector_service and self.collector_service.is_connected():
+        collector_service = self._get_collector_service()
+        if collector_service and collector_service.is_connected():
             try:
-                board_info = self.collector_service.get_board_info()
+                board_info = collector_service.get_board_info()
                 if board_info:
                     # Add connection and streaming status
                     board_info["connected"] = True
-                    board_info["streaming"] = (
-                        self.collector_service.is_streaming_active()
-                    )
+                    board_info["streaming"] = collector_service.is_streaming_active()
                     return board_info
             except Exception as e:
                 logger.debug(f"Error getting board info from collector service: {e}")
@@ -384,11 +319,10 @@ class EEGProcessorApiIntegration:
             if "board_info" in metadata and isinstance(metadata["board_info"], dict):
                 board_info = metadata["board_info"].copy()
                 # Add connection status
-                if self.collector_service:
-                    board_info["connected"] = self.collector_service.is_connected()
-                    board_info["streaming"] = (
-                        self.collector_service.is_streaming_active()
-                    )
+                collector_service = self._get_collector_service()
+                if collector_service:
+                    board_info["connected"] = collector_service.is_connected()
+                    board_info["streaming"] = collector_service.is_streaming_active()
                 return board_info
         except Exception as e:
             logger.debug(f"Error getting board info from metadata: {e}")
@@ -796,12 +730,14 @@ class EEGProcessorApiIntegration:
         is_streaming = EEGDataAPI.is_streaming()
 
         # If API reports not streaming but we have a collector that is streaming
-        if not is_streaming and self.collector_service:
-            is_streaming = self.collector_service.is_streaming_active()
+        if not is_streaming:
+            collector_service = self._get_collector_service()
+            if collector_service:
+                is_streaming = collector_service.is_streaming_active()
 
-            # Update data service with streaming status
-            if is_streaming:
-                self.data_service.update_metadata({"streaming": True})
+                # Update data service with streaming status
+                if is_streaming:
+                    self.data_service.update_metadata({"streaming": True})
 
         return {"streaming": is_streaming}
 
@@ -841,9 +777,10 @@ class EEGProcessorApiIntegration:
         board_info = self._get_board_info_direct()
 
         # Add connection status
-        if self.collector_service:
-            board_info["connected"] = self.collector_service.is_connected()
-            board_info["streaming"] = self.collector_service.is_streaming_active()
+        collector_service = self._get_collector_service()
+        if collector_service:
+            board_info["connected"] = collector_service.is_connected()
+            board_info["streaming"] = collector_service.is_streaming_active()
 
         # Always provide at least some basic data
         if not board_info:
@@ -1142,11 +1079,85 @@ class EEGProcessorApiIntegration:
             return
 
         try:
-            # Create visualization payload for WebSocket
-            payload = self._create_visualization_payload(data, timestamps)
-
-            # Broadcast through WebSocket
-            self._broadcast_event(payload)
+            if data.size == 0:
+                return
+            
+            # Check if filters are enabled to decide data source
+            filters_enabled = EEGDataAPI.are_filters_enabled()
+            
+            if filters_enabled:
+                # User wants filtered data - get it from EEGDataAPI (already filtered)
+                current_data, current_timestamps = EEGDataAPI.get_current_data()
+                
+                if current_data.size > 0:
+                    # Use the same sample count as callback but from filtered buffer
+                    callback_sample_count = data.shape[1]
+                    processed_data = current_data[:, -callback_sample_count:]
+                    processed_timestamps = current_timestamps[-callback_sample_count:]
+                else:
+                    # Fallback to raw if no filtered data available
+                    processed_data = data
+                    processed_timestamps = timestamps
+            else:
+                # User wants raw data - use callback data directly
+                processed_data = data
+                processed_timestamps = timestamps
+            
+            # Instead of arbitrary limits, use time-based throttling
+            current_time = time.time()
+            
+            # Initialize throttling variables if needed
+            if not hasattr(self, '_last_websocket_time'):
+                self._last_websocket_time = 0
+                self._websocket_interval = 0.05  # 50ms = 20 events/second
+                self._pending_samples = np.array([]).reshape(0, 0)
+                self._pending_timestamps = []
+            
+            # Accumulate samples instead of truncating
+            if self._pending_samples.size == 0:
+                # First chunk or reset
+                self._pending_samples = processed_data.copy()
+                self._pending_timestamps = list(processed_timestamps)
+            else:
+                # Append to pending if same number of channels
+                if self._pending_samples.shape[0] == processed_data.shape[0]:
+                    self._pending_samples = np.concatenate([self._pending_samples, processed_data], axis=1)
+                    self._pending_timestamps.extend(processed_timestamps)
+                else:
+                    # Channel count changed, reset
+                    self._pending_samples = processed_data.copy()
+                    self._pending_timestamps = list(processed_timestamps)
+            
+            # Send accumulated data if enough time has passed
+            if current_time - self._last_websocket_time >= self._websocket_interval:
+                
+                # Limit total samples to prevent WebSocket overload but maintain recent continuity
+                max_websocket_samples = 50  # Reasonable for WebSocket efficiency
+                
+                if self._pending_samples.shape[1] > max_websocket_samples:
+                    # Keep the most recent samples for continuity
+                    websocket_data = self._pending_samples[:, -max_websocket_samples:]
+                    websocket_timestamps = self._pending_timestamps[-max_websocket_samples:]
+                else:
+                    websocket_data = self._pending_samples
+                    websocket_timestamps = self._pending_timestamps
+                
+                # Update tracking
+                self._total_samples_sent += len(websocket_timestamps)
+                
+                # Create and send payload
+                payload = self._create_visualization_payload(websocket_data, websocket_timestamps)
+                self._broadcast_event(payload)
+                
+                # Reset pending data
+                self._pending_samples = np.array([]).reshape(websocket_data.shape[0], 0) if websocket_data.size > 0 else np.array([]).reshape(0, 0)
+                self._pending_timestamps = []
+                self._last_websocket_time = current_time
+                
+                logger.debug(f"Sent {len(websocket_timestamps)} accumulated samples via WebSocket (from {processed_data.shape[1]} new samples)")
+            else:
+                logger.debug(f"Accumulated {processed_data.shape[1]} samples for WebSocket (total pending: {self._pending_samples.shape[1]})")
+            
         except Exception as e:
             logger.error(f"Error in data callback: {e}")
 
@@ -1180,31 +1191,29 @@ class EEGProcessorApiIntegration:
         if not channel_types:
             channel_types = {"eeg": eeg_channels}
 
-        # Determine how many samples to send (not too many to keep WebSocket efficient)
-        samples_to_send = min(20, data.shape[1]) if data.size > 0 else 0
+        # Use actual samples count (limited for WebSocket efficiency)
+        websocket_samples_count = data.shape[1] if data.size > 0 else 0
 
-        # Add filter information to payload - IMPROVED
+        # Get filter information for payload metadata (no processing, just info)
         filters_enabled = EEGDataAPI.are_filters_enabled()
         filter_settings = EEGDataAPI.get_filter_settings() if filters_enabled else None
 
-        if data.size > 0 and samples_to_send > 0:
-            # Prepare visualization data - both raw values and time series
+        if data.size > 0 and websocket_samples_count > 0:
+            # Prepare visualization data - send limited samples for WebSocket
             viz_data: Dict[str, Any] = {
                 "list_view": [],  # For raw list visualization
                 "chart_data": {},  # For chart visualization
                 "timestamps": [],
-                "samples_per_event": samples_to_send,  # Inform frontend about samples count
-                "filters_applied": filters_enabled,  # NEW: Inform if data is filtered
-                "filter_info": filter_settings if filters_enabled else None,  # NEW: Filter details
-                "data_source": "filtered" if filters_enabled else "raw",  # NEW: Clarify data source
+                "samples_per_event": websocket_samples_count,  # WebSocket sample count (limited)
+                "filters_applied": filters_enabled,  # Info: are filters enabled in UI?
+                "filter_info": filter_settings if filters_enabled else None,  # Info: filter details
+                "data_source": "filtered" if filters_enabled else "raw",  # Info: clarify data source
             }
 
-            # Get the last N timestamps (convert to relative time if needed)
-            ts_slice = timestamps[-samples_to_send:]
-            # Convert timestamps to relative time (milliseconds since start)
-            if ts_slice:
-                base_time = ts_slice[0]
-                rel_timestamps = [int(ts - base_time) for ts in ts_slice]
+            # Use ALL timestamps from WebSocket data (already limited)
+            if timestamps:
+                base_time = timestamps[0]
+                rel_timestamps = [int(ts - base_time) for ts in timestamps]
                 viz_data["timestamps"] = rel_timestamps
 
             # Process each channel type
@@ -1238,21 +1247,21 @@ class EEGProcessorApiIntegration:
                             else f"{ch_type}_{ch_idx}"
                         )
 
-                        # Get the last N samples for this channel
-                        channel_data = data[ch_idx, -samples_to_send:].tolist()
+                        # Get ALL WebSocket samples for this channel (already limited)
+                        channel_data = data[ch_idx, :].tolist()
 
-                        # Add to list view with ALL samples, not just last value
+                        # Add to list view with WebSocket samples
                         if channel_data:
                             viz_data["list_view"].append(
                                 {
                                     "channel": ch_name,
                                     "type": ch_type,
                                     "value": channel_data[-1],  # Keep last value for compatibility
-                                    "values": channel_data,  # All samples from this event
-                                    "samples_count": len(channel_data),  # Number of samples
+                                    "values": channel_data,  # WebSocket samples (limited for efficiency)
+                                    "samples_count": len(channel_data),  # WebSocket sample count
                                     "index": ch_idx,
-                                    "filtered": filters_enabled,  # NEW: Indicate if this data is filtered
-                                    "filter_status": "same_as_eeg_viz_and_mne" if filters_enabled else "raw",  # NEW
+                                    "filtered": filters_enabled,  # Info: indicate if filters are enabled
+                                    "data_type": "websocket_optimized",  # Clarify this is optimized for WebSocket
                                 }
                             )
 
@@ -1263,22 +1272,23 @@ class EEGProcessorApiIntegration:
                 if chart_data_by_type:
                     viz_data["chart_data"][ch_type] = chart_data_by_type
 
-        # Create payload with both visualization options and filter info - IMPROVED
+        # Create payload with WebSocket-optimized sample count
         payload = {
             "event_type": "eeg_data_update",
             "timestamp": time.time(),
             "sampling_rate": self._get_sampling_rate_direct(),
             "visualization_data": viz_data,
-            "samples_count": samples_to_send,  # This now represents total samples in event
+            "samples_count": websocket_samples_count,  # WebSocket-optimized count
             "visualization_modes": ["list", "chart"],
             "channel_types": list(channel_types.keys()),
+            "data_type": "websocket_optimized",  # Clarify this is optimized for WebSocket
             "metadata": {
                 "board_name": board_info.get("board_name", "Unknown"),
                 "channel_count": data.shape[0] if data.size > 0 else 0,
                 "eeg_channels_count": len(eeg_channels),
-                "filters_enabled": filters_enabled,  # NEW: Filter status in metadata
-                "filter_settings": filter_settings if filters_enabled else None,  # NEW: Filter details
-                "data_consistency": "same_filtering_as_eeg_viz_and_mne" if filters_enabled else "raw_data",  # NEW
+                "filters_enabled": filters_enabled,  # Info: filter status
+                "filter_settings": filter_settings if filters_enabled else None,  # Info: filter details
+                "data_flow": "websocket_optimized",  # Info: explain WebSocket optimization
             },
         }
 

@@ -1,5 +1,4 @@
 import logging
-import multiprocessing as mp
 import queue
 import threading
 import time
@@ -44,12 +43,6 @@ class CollectorService:
         self._data_thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
 
-        self._use_multiprocessing = False
-        self._data_queue: Optional[mp.Queue] = None
-        self._process_pool: Optional[mp.pool.Pool] = None
-        self._worker_processes: List[mp.Process] = []
-        self._processed_data_queue: Optional[mp.Queue] = None
-
         # Sample rate metrics
         self._sample_window_size = 5.0
         self._samples_timestamps: Deque[float] = deque(maxlen=1000)
@@ -59,155 +52,132 @@ class CollectorService:
         self._last_reported_time = 0.0
         self._report_interval = 0.5
 
-        logging.info("CollectorService singleton initialized")
+        logging.info("CollectorService singleton initialized (simplified)")
 
-    def enable_high_performance_mode(self, enable: bool = True) -> None:
-        """
-        Enable/disable high performance mode with multiprocessing.
+    def _data_loop(self) -> None:
+        """Background loop to fetch data and update DataAccessService."""
+        data_access = DataAccessService.get_instance()
 
-        Args:
-            enable: Whether to enable high performance mode
-        """
-        if enable and not self._use_multiprocessing:
-            self._use_multiprocessing = True
-            self._setup_multiprocessing()
-            logging.info("High performance mode enabled with multiprocessing")
-        elif not enable and self._use_multiprocessing:
-            self._use_multiprocessing = False
-            self._cleanup_multiprocessing()
-            logging.info("High performance mode disabled")
+        # Reset metrics
+        self._last_sample_count = 0
+        self._current_sample_rate = 0.0
+        self._samples_timestamps.clear()
+        self._last_timestamp = time.time()
+        self._last_reported_time = self._last_timestamp
 
-    def _setup_multiprocessing(self) -> None:
-        """Setup multiprocessing components."""
-        try:
-            # Create queues for inter-process communication
-            self._data_queue = mp.Queue(maxsize=1000)
-            self._processed_data_queue = mp.Queue(maxsize=500)
+        # Variables for data processing - IMPROVED for better consistency
+        min_event_interval = 0.02  # 50Hz event rate for smoother data flow
+        last_event_time = 0.0
+        target_chunk_size = 5  # Target 5 samples per chunk at 250Hz = 20ms chunks
 
-            # Determine number of workers based on CPU
-            num_workers = max(2, min(4, mp.cpu_count() - 1))
-
-            # Create process pool for data processing
-            self._process_pool = mp.Pool(
-                processes=num_workers,
-                initializer=self._worker_init,
-                initargs=(self._data_queue, self._processed_data_queue),
-            )
-
-            logging.info(f"Multiprocessing setup complete with {num_workers} workers")
-
-        except Exception as e:
-            logging.error(f"Error setting up multiprocessing: {e}")
-            self._use_multiprocessing = False
-
-    def _cleanup_multiprocessing(self) -> None:
-        """Cleanup multiprocessing components."""
-        try:
-            if self._process_pool:
-                self._process_pool.terminate()
-                self._process_pool.join()
-                self._process_pool = None
-
-            if self._data_queue:
-                try:
-                    while not self._data_queue.empty():
-                        self._data_queue.get_nowait()
-                except:
-                    pass
-                self._data_queue = None
-
-            if self._processed_data_queue:
-                try:
-                    while not self._processed_data_queue.empty():
-                        self._processed_data_queue.get_nowait()
-                except:
-                    pass
-                self._processed_data_queue = None
-
-            logging.info("Multiprocessing cleanup complete")
-
-        except Exception as e:
-            logging.error(f"Error cleaning up multiprocessing: {e}")
-
-    @staticmethod
-    def _worker_init(data_queue: mp.Queue, processed_queue: mp.Queue) -> None:
-        """Initialize worker process."""
-        import signal
-
-        signal.signal(signal.SIGINT, signal.SIG_IGN)  # Ignore keyboard interrupt
-
-        # Worker loop
-        while True:
+        # Get sampling information
+        expected_sampling_rate = 0
+        if self.collector:
             try:
-                # Get data from queue with timeout
+                expected_sampling_rate = self.collector.sampling_rate
+            except:
+                expected_sampling_rate = 250
+
+        # Calculate target chunk size based on sampling rate
+        if expected_sampling_rate > 0:
+            target_chunk_size = max(1, int(expected_sampling_rate * min_event_interval))
+            logging.info(f"Target chunk size: {target_chunk_size} samples ({min_event_interval*1000:.1f}ms)")
+
+        while not self._stop_event.is_set() and self.collector and self.is_streaming:
+            try:
+                current_time = time.time()
+
+                # Get available data
                 try:
-                    data_package = data_queue.get(timeout=1.0)
-                except queue.Empty:
-                    continue
+                    available_count = self.collector.get_board_data_count()
+                except Exception as e:
+                    logging.debug(f"Error getting board data count: {e}")
+                    available_count = 0
 
-                if data_package is None:  # Shutdown signal
-                    break
+                # Process data only if new data is available
+                if available_count > self._last_sample_count:
+                    new_samples = available_count - self._last_sample_count
+                    
+                    # Get data in reasonable chunks to maintain flow consistency
+                    # Don't take all available data at once if it's too much
+                    samples_to_get = min(new_samples, target_chunk_size * 3) # Max 3x target chunk
+                    
+                    if samples_to_get > 0:
+                        self._last_sample_count += samples_to_get
 
-                # Process data
-                processed_data = CollectorService._process_data_chunk(data_package)
+                        # Get new data
+                        data, timestamps = self.collector.get_data(samples_to_get)
 
-                # Send processed data back
-                try:
-                    processed_queue.put_nowait(processed_data)
-                except queue.Full:
-                    # Skip if queue is full to avoid blocking
-                    pass
+                        if data.size > 0 and data.shape[1] > 0:
+                            # Update sampling rate metrics
+                            self._update_sample_metrics(data, current_time)
+
+                            # Update DataAccessService with consistent chunks
+                            data_access.update_data(data, timestamps)
+
+                            # Send event for other components
+                            if current_time - last_event_time >= min_event_interval:
+                                try:
+                                    from ..core.event_system import EventType, dispatch
+                                    dispatch(
+                                        EventType.DATA_UPDATED,
+                                        {"data": data, "timestamps": timestamps},
+                                        source="collector_service",
+                                    )
+                                    last_event_time = current_time
+                                except Exception as e:
+                                    logging.debug(f"Error dispatching data event: {e}")
+                            
+                            logging.debug(f"Collected {samples_to_get} samples (available: {new_samples})")
+
+                # Adaptive sleep based on data availability
+                if expected_sampling_rate > 0:
+                    if available_count > self._last_sample_count + target_chunk_size * 2:
+                        # Data is accumulating, process faster
+                        sleep_time = min_event_interval * 0.5
+                    elif new_samples == 0:
+                        # No new data, sleep longer
+                        sleep_time = min_event_interval * 2
+                    else:
+                        # Normal processing
+                        sleep_time = min_event_interval
+                else:
+                    sleep_time = 0.01
+
+                time.sleep(sleep_time)
 
             except Exception as e:
-                logging.error(f"Error in worker process: {e}")
+                logging.error(f"Error in data loop: {e}")
+                time.sleep(0.1)
 
-    @staticmethod
-    def _process_data_chunk(data_package: Dict[str, Any]) -> Dict[str, Any]:
+    def stop_stream(self) -> bool:
         """
-        Process a chunk of data in worker process.
-
-        Args:
-            data_package: Package containing data and metadata
+        Stop streaming data from the board.
 
         Returns:
-            Processed data package
+            True if stream stopped successfully, False otherwise
         """
+        if not self.collector or not self.is_streaming:
+            return False
+
         try:
-            data = data_package["data"]
-            timestamps = data_package["timestamps"]
-            metadata = data_package.get("metadata", {})
+            self.collector.stop_stream()
+            self.is_streaming = False
 
-            # TODO: Here we can add intensive processing implementations like:
-            #  - Signal filtering (bandpass, notch, etc.)
-            #  - Artifact detection (eye blinks, muscle activity, electrode issues)
-            #  - Data compression for transmission optimization
-            #  - Real-time spectral analysis (FFT, PSD, band powers)
-            #  - Signal quality assessment
-            #  - Feature extraction for BCI applications
-            #  - Real-time event detection
-            #  - Adaptive filtering based on signal characteristics
+            # Update streaming status in DataAccessService
+            data_access = DataAccessService.get_instance()
+            data_access.update_metadata({"streaming": False})
 
-            # processed_data = data.copy()
+            # Stop background data retrieval thread
+            self._stop_event.set()
+            if self._data_thread:
+                self._data_thread.join()
 
-            # Optimization: reduce precision if necessary to save bandwidth
-            # This is currently not implemented because there are no bandwidth issues,
-            # thus maintaining accuracy.
-            
-            # TODO this data is used by the new architecture with the data_access_service,
-            # causing application failures in parts that require float64.
-            # if processed_data.dtype == np.float64:
-            #     processed_data = processed_data.astype(np.float32)
-
-            return {
-                "data": data, # processed_data,
-                "timestamps": timestamps,
-                "metadata": metadata,
-                "processed_at": time.time(),
-            }
-
+            logging.info("Stream stopped")
+            return True
         except Exception as e:
-            logging.error(f"Error processing data chunk: {e}")
-            return data_package
+            logging.error(f"Stream stop error: {e}")
+            return False
 
     def connect_to_board(
         self, board_id: int, params: Dict[str, Any], preset: int
@@ -301,51 +271,32 @@ class CollectorService:
             self.collector.start_stream(buffer_size)
             self.is_streaming = True
 
-            # Update streaming status in DataAccessService
+            # Update streaming status and buffer info in DataAccessService
             data_access = DataAccessService.get_instance()
-            data_access.update_metadata({"streaming": True})
+            
+            # Calculate reasonable buffer size for DataAccessService based on sampling rate
+            sampling_rate = self.get_sampling_rate()
+            if sampling_rate > 0:
+                # Set DataAccessService buffer to 30 seconds of data (reasonable for real-time processing)
+                service_buffer_samples = sampling_rate * 30
+                data_access._buffer_max_samples = service_buffer_samples
+                logging.info(f"DataAccessService buffer set to {service_buffer_samples} samples (30s at {sampling_rate}Hz)")
+            
+            data_access.update_metadata({
+                "streaming": True,
+                "collector_buffer_size": buffer_size,  # Collector's buffer size
+                "service_buffer_size": getattr(data_access, '_buffer_max_samples', None)  # Service buffer size
+            })
 
             # Start background data retrieval thread
             self._stop_event.clear()
             self._data_thread = threading.Thread(target=self._data_loop, daemon=True)
             self._data_thread.start()
 
-            logging.info("Stream started")
+            logging.info(f"Stream started with collector buffer: {buffer_size}, service buffer: {getattr(data_access, '_buffer_max_samples', 'auto')}")
             return True
         except Exception as e:
             logging.error(f"Stream start error: {e}")
-            return False
-
-    def stop_stream(self) -> bool:
-        """
-        Stop streaming data from the board.
-
-        Returns:
-            True if stream stopped successfully, False otherwise
-        """
-        if not self.collector or not self.is_streaming:
-            return False
-
-        try:
-            if self._use_multiprocessing:
-                self._cleanup_multiprocessing()
-
-            self.collector.stop_stream()
-            self.is_streaming = False
-
-            # Update streaming status in DataAccessService
-            data_access = DataAccessService.get_instance()
-            data_access.update_metadata({"streaming": False})
-
-            # Stop background data retrieval thread
-            self._stop_event.set()
-            if self._data_thread:
-                self._data_thread.join()
-
-            logging.info("Stream stopped")
-            return True
-        except Exception as e:
-            logging.error(f"Stream stop error: {e}")
             return False
 
     def get_board_data(
@@ -592,86 +543,6 @@ class CollectorService:
         """
         return self._current_sample_rate
 
-    def _data_loop(self) -> None:
-        """Background loop to fetch data and update DataAccessService."""
-        data_access = DataAccessService.get_instance()
-
-        # Reset metrics
-        self._last_sample_count = 0
-        self._current_sample_rate = 0.0
-        self._samples_timestamps.clear()
-        self._last_timestamp = time.time()
-        self._last_reported_time = self._last_timestamp
-
-        # Variables for data processing
-        min_event_interval = 0.04 if not self._use_multiprocessing else 0.02
-        last_event_time = 0.0
-        accumulated_data = None
-        accumulated_timestamps: List[int] = []
-
-        # Get sampling information
-        expected_sampling_rate = 0
-        if self.collector:
-            try:
-                expected_sampling_rate = self.collector.sampling_rate
-            except:
-                expected_sampling_rate = 250
-
-        while not self._stop_event.is_set() and self.collector and self.is_streaming:
-            try:
-                current_time = time.time()
-
-                # Process data from workers if in HP mode
-                if self._use_multiprocessing and self._processed_data_queue:
-                    self._process_worker_results(
-                        data_access, current_time, last_event_time, min_event_interval
-                    )
-
-                # Get available data
-                try:
-                    available_count = self.collector.get_board_data_count()
-                except Exception as e:
-                    logging.debug(f"Error getting board data count: {e}")
-                    available_count = 0
-
-                # Process data only if new data is available
-                if available_count > self._last_sample_count:
-                    new_samples = available_count - self._last_sample_count
-                    self._last_sample_count = available_count
-
-                    # Get new data
-                    data, timestamps = self.collector.get_data(new_samples)
-
-                    if data.size > 0 and data.shape[1] > 0:
-                        # Update sampling rate metrics
-                        self._update_sample_metrics(data, current_time)
-
-                        # Use multiprocessing if enabled
-                        if self._use_multiprocessing and self._data_queue:
-                            self._queue_data_for_processing(data, timestamps)
-                        else:
-                            # Traditional processing
-                            self._process_data_traditional(
-                                data,
-                                timestamps,
-                                data_access,
-                                current_time,
-                                last_event_time,
-                                min_event_interval,
-                            )
-
-                # Adjust wait time based on mode
-                sleep_time = self._calculate_sleep_time(
-                    expected_sampling_rate,
-                    new_samples if "new_samples" in locals() else 0,
-                    available_count,
-                )
-                time.sleep(sleep_time)
-
-            except Exception as e:
-                logging.error(f"Error in data loop: {e}")
-                time.sleep(0.1)
-
     def _update_sample_rate(self, current_time: float) -> None:
         """
         Update sampling rate based on recorded timestamps.
@@ -718,102 +589,6 @@ class CollectorService:
             # Not enough samples in the window
             self._current_sample_rate = 0.0
 
-    def _process_worker_results(
-        self,
-        data_access: DataAccessService,
-        current_time: float,
-        last_event_time: float,
-        min_event_interval: float,
-    ) -> None:
-        """Process results from worker processes."""
-        try:
-            if self._processed_data_queue is not None:
-                while not self._processed_data_queue.empty():
-                    try:
-                        processed_package = self._processed_data_queue.get_nowait()
-
-                        data = processed_package["data"]
-                        timestamps = processed_package["timestamps"]
-
-                        # Update data service
-                        data_access.update_data(data, timestamps)
-
-                        # Send event if enough time has passed
-                        if current_time - last_event_time >= min_event_interval:
-                            try:
-                                from ..core.event_system import EventType, dispatch
-
-                                dispatch(
-                                    EventType.DATA_UPDATED,
-                                    {"data": data, "timestamps": timestamps},
-                                    source="collector_service_mp",
-                                )
-                                last_event_time = current_time
-                            except Exception as e:
-                                logging.debug(f"Error dispatching MP data event: {e}")
-
-                    except queue.Empty:
-                        break
-
-        except Exception as e:
-            logging.error(f"Error processing worker results: {e}")
-
-    def _queue_data_for_processing(
-        self, data: np.ndarray, timestamps: List[int]
-    ) -> None:
-        """Queue data for multiprocessing."""
-        try:
-            data_package = {
-                "data": data,
-                "timestamps": timestamps,
-                "metadata": {
-                    "timestamp": time.time(),
-                    "sampling_rate": self.get_sampling_rate(),
-                },
-            }
-
-            # Attempt to send to queue without blocking
-            if self._data_queue is not None:
-                try:
-                    self._data_queue.put_nowait(data_package)
-                except queue.Full:
-                    # If queue is full, discard older data
-                    try:
-                        self._data_queue.get_nowait()  # Remove old data
-                        self._data_queue.put_nowait(data_package)  # Add new data
-                    except queue.Empty:
-                        pass
-
-        except Exception as e:
-            logging.error(f"Error queuing data for processing: {e}")
-
-    def _process_data_traditional(
-        self,
-        data: np.ndarray,
-        timestamps: List[int],
-        data_access: DataAccessService,
-        current_time: float,
-        last_event_time: float,
-        min_event_interval: float,
-    ) -> None:
-        """Traditional single-threaded data processing."""
-        # Update data service
-        data_access.update_data(data, timestamps)
-
-        # Send event with throttling
-        if current_time - last_event_time >= min_event_interval:
-            try:
-                from ..core.event_system import EventType, dispatch
-
-                dispatch(
-                    EventType.DATA_UPDATED,
-                    {"data": data, "timestamps": timestamps},
-                    source="collector_service",
-                )
-                last_event_time = current_time
-            except Exception as e:
-                logging.debug(f"Error dispatching data event: {e}")
-
     def _update_sample_metrics(self, data: np.ndarray, current_time: float) -> None:
         """Update sample rate metrics."""
         samples_received = data.shape[1]
@@ -835,27 +610,3 @@ class CollectorService:
         if current_time - self._last_reported_time >= self._report_interval:
             self._update_sample_rate(current_time)
             self._last_reported_time = current_time
-
-    def _calculate_sleep_time(
-        self, expected_sampling_rate: int, new_samples: int, available_count: int
-    ) -> float:
-        """Calculate optimal sleep time based on performance mode and data flow."""
-        if self._use_multiprocessing:
-            # In high performance mode, sleep less
-            base_sleep = 0.005  # 5ms base
-        else:
-            base_sleep = 0.01  # 10ms base
-
-        if expected_sampling_rate > 0:
-            ideal_sleep = 1.0 / expected_sampling_rate
-
-            if available_count > new_samples * 2:
-                sleep_time = min(0.001, ideal_sleep * 0.1)
-            elif new_samples > 0:
-                sleep_time = ideal_sleep * 0.3
-            else:
-                sleep_time = ideal_sleep
-
-            return min(base_sleep, sleep_time)
-
-        return base_sleep

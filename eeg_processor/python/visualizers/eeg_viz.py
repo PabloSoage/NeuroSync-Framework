@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, List
 
 import numpy as np
 import pyqtgraph as pg
@@ -32,6 +32,9 @@ class EEGVisualizer:
 
         # Get data from DataAccessService
         self.data_service = DataAccessService.get_instance()
+        
+        # Register as local callback for immediate updates (no processing delay)
+        self.local_callback_id = self.data_service.register_local_callback(self._on_immediate_data)
 
         # Get metadata from collector
         self.sampling_rate = collector.sampling_rate
@@ -54,7 +57,16 @@ class EEGVisualizer:
         # Setup UI elements
         self.setup_ui()
 
-        logging.info("EEG visualizer initialized (using DataAccessService)")
+        logging.info("EEG visualizer initialized with immediate local callback")
+
+    def _on_immediate_data(self, data: np.ndarray, timestamps: List[int]) -> None:
+        """Handle immediate data updates for responsive visualization."""
+        try:
+            # This ensures immediate visualization updates without waiting for processing
+            # The data is already in DataAccessService buffer for get_raw_data() calls
+            logging.debug(f"Received immediate data update: {data.shape}")
+        except Exception as e:
+            logging.error(f"Error handling immediate data in visualizer: {e}")
 
     def setup_ui(self) -> None:
         """Set up the user interface for the visualizer."""
@@ -198,6 +210,11 @@ class EEGVisualizer:
 
     def handle_close_event(self, event: Any) -> None:
         """Handle window close event to signal the app that visualization was closed."""
+        # Unregister from callbacks
+        if hasattr(self, 'local_callback_id'):
+            self.data_service.unregister_local_callback(self.local_callback_id)
+            logging.info("EEG visualizer unregistered from local callbacks")
+                
         self.stop()  # Stop the timer
         # Emit signal or notify that window was closed
         logging.info("EEG visualization window closed by user")

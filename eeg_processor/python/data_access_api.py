@@ -23,7 +23,10 @@ class EEGDataAPI:
     @staticmethod
     def get_current_data() -> Tuple[np.ndarray, List[int]]:
         """
-        Get the current EEG data and timestamps (potentially filtered).
+        Get the current EEG data and timestamps.
+        
+        NOTE: This returns FILTERED data if filters are enabled in DataAccessService,
+        RAW data if filters are disabled. Use get_raw_data() for always unfiltered data.
 
         Returns:
             Tuple of (data_array, timestamps)
@@ -198,7 +201,9 @@ class EEGDataAPI:
     @staticmethod
     def get_eeg_data(max_samples: Optional[int] = None) -> Tuple[np.ndarray, List[int]]:
         """
-        Get EEG channel data only (potentially filtered).
+        Get EEG channel data only.
+        
+        NOTE: This returns FILTERED data if filters are enabled in DataAccessService.
 
         Args:
             max_samples: Maximum number of samples to return
