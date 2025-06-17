@@ -1,5 +1,8 @@
 import logging
 from typing import Any, Optional, Dict, List
+import multiprocessing as mp
+import queue
+import time
 
 import numpy as np
 from PyQt5.QtWidgets import (
@@ -11,7 +14,9 @@ from PyQt5.QtWidgets import (
     QComboBox,
     QSpinBox,
     QGridLayout, QMessageBox, QWidget, QDoubleSpinBox, QFileDialog,
+    QProgressDialog,
 )
+from PyQt5.QtCore import QTimer, pyqtSignal
 from brainflow.data_filter import (
     FilterTypes,
     AggOperations,
@@ -25,6 +30,10 @@ from ..utils.help_system import HelpButton
 
 class AdvancedProcessingPanel(BasePanel):
     """Panel for advanced signal processing operations."""
+    
+    # Signal for export progress updates
+    export_progress = pyqtSignal(int, str)  # progress percentage, status message
+    export_finished = pyqtSignal(bool, str)  # success, message
 
     def __init__(
         self,
@@ -56,6 +65,16 @@ class AdvancedProcessingPanel(BasePanel):
         self.wavelet_metadata = None
         self.advanced_filters_applied = False
         self.downsampling_applied = False
+
+        # Export process management
+        self.export_process = None
+        self.export_queue = None
+        self.export_timer = None
+        self.export_progress_dialog = None
+
+        # Connect export signals
+        self.export_progress.connect(self._update_export_progress)
+        self.export_finished.connect(self._export_finished)
 
         # Setup UI components
         self.setup_ica_section()
@@ -654,6 +673,7 @@ class AdvancedProcessingPanel(BasePanel):
             )
             
             if filename:
+                # Simple single-file export - can be done directly without multiprocessing
                 self.ica_figure.savefig(filename, dpi=300, bbox_inches='tight')
                 self.show_status(f"ICA overview exported to {filename}")
                 
@@ -661,7 +681,7 @@ class AdvancedProcessingPanel(BasePanel):
             self.show_error("Export Error", f"Error exporting overview: {str(e)}")
 
     def _export_all_ica_images(self):
-        """Export all ICA images to a directory."""
+        """Export all ICA images to a directory using multiprocessing."""
         try:
             # Open directory selection dialog
             directory = QFileDialog.getExistingDirectory(
@@ -671,441 +691,130 @@ class AdvancedProcessingPanel(BasePanel):
             if not directory:
                 return
 
-            import matplotlib
-            matplotlib.use('Agg')  # Use non-GUI backend for saving
-            import matplotlib.pyplot as plt
-            import os
+            # Prepare data for export process
+            export_data = {
+                'ica_components': self.ica_components,
+                'colormap': self.ica_colormap_combo.currentData(),
+                'sampling_rate': self.collector_service.get_sampling_rate(),
+                'directory': directory
+            }
 
-            num_components = self.ica_components["num_components"]
-            selected_channels = self.ica_components["selected_channels"]
-            colormap = self.ica_colormap_combo.currentData()
-
-            # Save the complete overview (including all components)
-            overview_path = os.path.join(directory, "ica_complete_overview.png")
-            self._create_complete_overview_figure(colormap, overview_path)
-
-            # Save individual component plots
-            if "s" in self.ica_components:
-                s_data = self.ica_components["s"]
-                sampling_rate = self.collector_service.get_sampling_rate()
-                time_vec = np.linspace(0, s_data.shape[1] / sampling_rate, s_data.shape[1])
-                
-                for i in range(s_data.shape[0]):
-                    fig_comp, ax = plt.subplots(1, 1, figsize=(12, 6))
-                    ax.plot(time_vec, s_data[i, :], linewidth=1.2, color='#1f77b4')
-                    ax.set_title(f"Independent Component {i+1}", fontsize=14, fontweight='bold')
-                    ax.set_xlabel("Time (s)", fontsize=12)
-                    ax.set_ylabel("Amplitude", fontsize=12)
-                    ax.grid(True, alpha=0.3)
-                    
-                    # Add statistics
-                    data_mean = np.mean(s_data[i, :])
-                    data_std = np.std(s_data[i, :])
-                    data_min = np.min(s_data[i, :])
-                    data_max = np.max(s_data[i, :])
-                    stats_text = f"Mean: {data_mean:.4f} | Std: {data_std:.4f} | Min: {data_min:.4f} | Max: {data_max:.4f}"
-                    ax.text(0.02, 0.98, stats_text, transform=ax.transAxes, fontsize=10, 
-                           verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
-                    
-                    plt.tight_layout()
-                    
-                    comp_path = os.path.join(directory, f"ica_component_{i+1}.png")
-                    fig_comp.savefig(comp_path, dpi=300, bbox_inches='tight')
-                    plt.close(fig_comp)
-
-            # Save matrix details
-            for matrix_name, matrix_key in [("mixing", "a"), ("unmixing", "w")]:
-                if matrix_key in self.ica_components:
-                    matrix_data = self.ica_components[matrix_key]
-                    
-                    fig_matrix, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
-                    
-                    # Matrix heatmap
-                    im = ax1.imshow(matrix_data, aspect="auto", cmap=colormap, interpolation='nearest')
-                    title = f"{'Mixing' if matrix_key == 'a' else 'Unmixing'} Matrix ({matrix_key.upper()})"
-                    ax1.set_title(title, fontsize=14, fontweight='bold')
-                    ax1.set_xlabel("Components" if matrix_key == "a" else "Channels", fontsize=12)
-                    ax1.set_ylabel("Channels" if matrix_key == "a" else "Components", fontsize=12)
-                    
-                    # Add colorbar
-                    cbar = plt.colorbar(im, ax=ax1, shrink=0.8)
-                    cbar.set_label('Weight', fontsize=12)
-                    
-                    # Matrix statistics histogram
-                    ax2.hist(matrix_data.flatten(), bins=30, alpha=0.7, color='skyblue', edgecolor='black')
-                    ax2.set_title("Weight Distribution", fontsize=14, fontweight='bold')
-                    ax2.set_xlabel("Weight Value", fontsize=12)
-                    ax2.set_ylabel("Frequency", fontsize=12)
-                    ax2.grid(True, alpha=0.3)
-                    
-                    # Add statistics
-                    stats_text = f"Shape: {matrix_data.shape}\n"
-                    stats_text += f"Mean: {np.mean(matrix_data):.4f}\n"
-                    stats_text += f"Std: {np.std(matrix_data):.4f}\n"
-                    stats_text += f"Min: {np.min(matrix_data):.4f}\n"
-                    stats_text += f"Max: {np.max(matrix_data):.4f}"
-                    
-                    ax2.text(0.02, 0.98, stats_text, transform=ax2.transAxes, fontsize=10,
-                            verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
-                    
-                    plt.tight_layout()
-                    
-                    matrix_path = os.path.join(directory, f"ica_{matrix_name}_matrix.png")
-                    fig_matrix.savefig(matrix_path, dpi=300, bbox_inches='tight')
-                    plt.close(fig_matrix)
-
-            # Reset matplotlib backend
-            matplotlib.use('Qt5Agg')
-            
-            self.show_status(f"All ICA images exported successfully to {directory}")
+            # Start export in separate process
+            self._start_export_process(export_data, 'all_images')
 
         except Exception as e:
-            self.show_error("Export Error", f"Error exporting all ICA images: {str(e)}")
+            self.show_error("Export Error", f"Error starting export: {str(e)}")
 
-    def _create_complete_overview_figure(self, colormap, save_path):
-        """Create a complete overview figure showing ALL components."""
-        import matplotlib
-        matplotlib.use('Agg')
-        import matplotlib.pyplot as plt
-        
-        num_components = self.ica_components["num_components"]
-        
-        # Create a comprehensive overview with all components
-        # Calculate layout: matrices + all components in a grid
-        cols = 4  # 4 columns for better layout
-        matrix_slots = 2  # 2 slots for matrices
-        total_plots = matrix_slots + num_components
-        rows = int(np.ceil(total_plots / cols))
-        
-        fig, axes = plt.subplots(rows, cols, figsize=(cols * 4, rows * 3))
-        if rows == 1:
-            axes = axes.reshape(1, -1)
-        axes = axes.flatten()
-        
-        fig.suptitle(f"Complete ICA Analysis - {num_components} Components", fontsize=16)
-        
-        plot_idx = 0
-        
-        # Plot mixing matrix (A)
-        if "a" in self.ica_components and plot_idx < len(axes):
-            im1 = axes[plot_idx].imshow(self.ica_components["a"], aspect="auto", cmap=colormap)
-            axes[plot_idx].set_title("Mixing Matrix (A)")
-            axes[plot_idx].set_xlabel("Components")
-            axes[plot_idx].set_ylabel("Channels")
-            plt.colorbar(im1, ax=axes[plot_idx], shrink=0.6)
-            plot_idx += 1
-
-        # Plot unmixing matrix (W)
-        if "w" in self.ica_components and plot_idx < len(axes):
-            im2 = axes[plot_idx].imshow(self.ica_components["w"], aspect="auto", cmap=colormap)
-            axes[plot_idx].set_title("Unmixing Matrix (W)")
-            axes[plot_idx].set_xlabel("Channels")
-            axes[plot_idx].set_ylabel("Components")
-            plt.colorbar(im2, ax=axes[plot_idx], shrink=0.6)
-            plot_idx += 1
-
-        # Plot ALL independent components
-        if "s" in self.ica_components:
-            s_data = self.ica_components["s"]
-            sampling_rate = self.collector_service.get_sampling_rate()
-            time_vec = np.linspace(0, s_data.shape[1] / sampling_rate, s_data.shape[1])
-            
-            for i in range(min(num_components, s_data.shape[0])):
-                if plot_idx < len(axes):
-                    axes[plot_idx].plot(time_vec, s_data[i, :], linewidth=1.2, color='#1f77b4')
-                    axes[plot_idx].set_title(f"IC {i+1}")
-                    axes[plot_idx].set_xlabel("Time (s)")
-                    axes[plot_idx].set_ylabel("Amplitude")
-                    axes[plot_idx].grid(True, alpha=0.3)
-                    plot_idx += 1
-
-        # Hide unused subplots
-        for i in range(plot_idx, len(axes)):
-            axes[i].set_visible(False)
-
-        plt.tight_layout()
-        fig.savefig(save_path, dpi=300, bbox_inches='tight')
-        plt.close(fig)
-
-    def _show_component_detail(self, component_index: int, component_data: np.ndarray, time_vector: np.ndarray) -> None:
-        """Show detailed view of a single ICA component."""
+    def _start_export_process(self, export_data: Dict[str, Any], export_type: str):
+        """Start the export process with progress monitoring."""
         try:
-            from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel
-            import matplotlib.pyplot as plt
-            from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-            
-            # Create detail dialog
-            detail_dialog = QDialog(self.ica_dialog)
-            detail_dialog.setWindowTitle(f"ICA Component {component_index + 1} - Detailed View")
-            detail_dialog.resize(1200, 700)
-            
-            layout = QVBoxLayout(detail_dialog)
-            
-            # Add controls at the top
-            controls_layout = QHBoxLayout()
-            
-            # Frequency range controls
-            controls_layout.addWidget(QLabel("PSD Frequency Range:"))
-            
-            self.freq_min_spin = QDoubleSpinBox()
-            self.freq_min_spin.setRange(0.1, 100.0)
-            self.freq_min_spin.setValue(1.0)
-            self.freq_min_spin.setSuffix(" Hz")
-            controls_layout.addWidget(QLabel("Min:"))
-            controls_layout.addWidget(self.freq_min_spin)
-            
-            self.freq_max_spin = QDoubleSpinBox()
-            self.freq_max_spin.setRange(1.0, 200.0)
-            self.freq_max_spin.setValue(50.0)
-            self.freq_max_spin.setSuffix(" Hz")
-            controls_layout.addWidget(QLabel("Max:"))
-            controls_layout.addWidget(self.freq_max_spin)
-            
-            update_freq_btn = QPushButton("Update PSD Range")
-            controls_layout.addWidget(update_freq_btn)
-            
-            controls_layout.addStretch()
-            
-            # Export this component button
-            export_component_btn = QPushButton("Export This Component")
-            export_component_btn.clicked.connect(lambda: self._export_single_component(component_index, component_data, time_vector))
-            controls_layout.addWidget(export_component_btn)
-            
-            layout.addLayout(controls_layout)
-            
-            # Create larger figure for component
-            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 9))
-            
-            # Store figure reference for export
-            self.detail_figure = fig
-            self.detail_component_index = component_index
-            self.detail_component_data = component_data
-            self.detail_time_vector = time_vector
-            
-            # Main time series plot
-            ax1.plot(time_vector, component_data, linewidth=1.5, color='#1f77b4', alpha=0.8)
-            ax1.set_title(f"Independent Component {component_index + 1} - Time Series", fontsize=16, fontweight='bold')
-            ax1.set_xlabel("Time (s)", fontsize=14)
-            ax1.set_ylabel("Amplitude", fontsize=14)
-            ax1.grid(True, alpha=0.3)
-            ax1.tick_params(axis='both', which='major', labelsize=12)
-            
-            # Add statistics text
-            data_mean = np.mean(component_data)
-            data_std = np.std(component_data)
-            data_min = np.min(component_data)
-            data_max = np.max(component_data)
-            stats_text = f"Mean: {data_mean:.4f} | Std: {data_std:.4f} | Min: {data_min:.4f} | Max: {data_max:.4f}"
-            ax1.text(0.02, 0.98, stats_text, transform=ax1.transAxes, fontsize=10, 
-                    verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
-            
-            # Initial power spectral density
-            def update_psd():
-                ax2.clear()
-                from scipy import signal
-                sampling_rate = self.collector_service.get_sampling_rate()
-                if sampling_rate > 0:
-                    freqs, psd = signal.welch(component_data, sampling_rate, nperseg=min(len(component_data)//4, 1024))
-                    ax2.semilogy(freqs, psd, color='#ff7f0e', linewidth=1.5)
-                    ax2.set_title(f"Component {component_index + 1} - Power Spectral Density", fontsize=16, fontweight='bold')
-                    ax2.set_xlabel("Frequency (Hz)", fontsize=14)
-                    ax2.set_ylabel("Power/Frequency (dB/Hz)", fontsize=14)
-                    ax2.grid(True, alpha=0.3)
-                    ax2.tick_params(axis='both', which='major', labelsize=12)
-                    
-                    # Set frequency range
-                    freq_min = self.freq_min_spin.value()
-                    freq_max = self.freq_max_spin.value()
-                    ax2.set_xlim(freq_min, min(freq_max, sampling_rate/2))
-                else:
-                    ax2.text(0.5, 0.5, "Cannot compute PSD\n(sampling rate unknown)", 
-                            transform=ax2.transAxes, ha='center', va='center', fontsize=14)
-                    ax2.set_title(f"Component {component_index + 1} - Power Spectral Density", fontsize=16)
-                
-                fig.canvas.draw()
-            
-            # Initial PSD
-            update_psd()
-            
-            # Connect frequency update button
-            update_freq_btn.clicked.connect(update_psd)
-            
-            plt.tight_layout()
-            
-            # Create canvas and add to dialog
-            canvas = FigureCanvas(fig)
-            layout.addWidget(canvas)
-            
-            # Show detail dialog
-            detail_dialog.show()
-            
-        except Exception as e:
-            self.show_error("Component Detail Error", f"Error showing component detail: {str(e)}")
-
-    def _export_single_component(self, component_index, component_data, time_vector):
-        """Export a single component figure."""
-        try:
-            # Open file save dialog
-            from PyQt5.QtWidgets import QFileDialog
-            filename, _ = QFileDialog.getSaveFileName(
-                self, f"Save Component {component_index + 1}", 
-                f"ica_component_{component_index + 1}.png", "PNG files (*.png)"
+            # Create progress dialog
+            self.export_progress_dialog = QProgressDialog(
+                "Exporting ICA images...", "Cancel", 0, 100, self.ica_dialog
             )
-            
-            if filename:
-                self.detail_figure.savefig(filename, dpi=300, bbox_inches='tight')
-                self.show_status(f"Component {component_index + 1} exported to {filename}")
-                
-        except Exception as e:
-            self.show_error("Export Error", f"Error exporting component: {str(e)}")
+            self.export_progress_dialog.setWindowTitle("Export Progress")
+            self.export_progress_dialog.setModal(True)
+            self.export_progress_dialog.canceled.connect(self._cancel_export)
+            self.export_progress_dialog.show()
 
-    def _show_matrix_detail(self, matrix_type: str) -> None:
-        """Show detailed view of mixing or unmixing matrix."""
+            # Create queue for communication with process
+            self.export_queue = mp.Queue()
+
+            # Start export process
+            self.export_process = mp.Process(
+                target=_export_worker_process,
+                args=(export_data, export_type, self.export_queue)
+            )
+            self.export_process.start()
+
+            # Start timer to monitor progress
+            self.export_timer = QTimer()
+            self.export_timer.timeout.connect(self._check_export_progress)
+            self.export_timer.start(100)  # Check every 100ms
+
+            self.show_status("Export started in background process...")
+
+        except Exception as e:
+            self.show_error("Export Error", f"Error starting export process: {str(e)}")
+            self._cleanup_export()
+
+    def _check_export_progress(self):
+        """Check export progress from the worker process."""
         try:
-            from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QComboBox
-            import matplotlib.pyplot as plt
-            from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-            
-            # Get matrix data
-            if matrix_type == "mixing":
-                matrix_data = self.ica_components["a"]
-                title = "Mixing Matrix (A)"
-                xlabel = "Components"
-                ylabel = "Channels"
-                description = "How components combine to form channels"
-            else:  # unmixing
-                matrix_data = self.ica_components["w"]
-                title = "Unmixing Matrix (W)"
-                xlabel = "Channels"
-                ylabel = "Components"
-                description = "How to extract components from channels"
-            
-            # Create detail dialog
-            detail_dialog = QDialog(self.ica_dialog)
-            detail_dialog.setWindowTitle(f"{title} - Detailed View")
-            detail_dialog.resize(1200, 600)
-            
-            layout = QVBoxLayout(detail_dialog)
-            
-            # Add controls at the top
-            controls_layout = QHBoxLayout()
-            
-            # Colormap selection (MOVED HERE from main panel)
-            controls_layout.addWidget(QLabel("Colormap:"))
-            matrix_colormap_combo = QComboBox()
-            matrix_colormap_combo.addItem("Viridis", "viridis")
-            matrix_colormap_combo.addItem("Plasma", "plasma")
-            matrix_colormap_combo.addItem("Inferno", "inferno")
-            matrix_colormap_combo.addItem("Magma", "magma")
-            matrix_colormap_combo.addItem("Coolwarm", "coolwarm")
-            matrix_colormap_combo.addItem("RdBu", "RdBu")
-            matrix_colormap_combo.addItem("Spectral", "Spectral")
-            matrix_colormap_combo.addItem("Jet", "jet")
-            # Set to match main colormap
-            current_colormap = self.ica_colormap_combo.currentData()
-            for i in range(matrix_colormap_combo.count()):
-                if matrix_colormap_combo.itemData(i) == current_colormap:
-                    matrix_colormap_combo.setCurrentIndex(i)
+            while not self.export_queue.empty():
+                try:
+                    message = self.export_queue.get_nowait()
+                    
+                    if message['type'] == 'progress':
+                        self.export_progress.emit(message['percent'], message['status'])
+                    elif message['type'] == 'finished':
+                        self.export_finished.emit(message['success'], message['message'])
+                        return
+                    elif message['type'] == 'error':
+                        self.export_finished.emit(False, f"Export error: {message['error']}")
+                        return
+                        
+                except queue.Empty:
                     break
-            controls_layout.addWidget(matrix_colormap_combo)
-            
-            controls_layout.addStretch()
-            
-            # Export matrix button
-            export_matrix_btn = QPushButton("Export This Matrix")
-            export_matrix_btn.clicked.connect(lambda: self._export_single_matrix(matrix_type, matrix_data, matrix_colormap_combo.currentData()))
-            controls_layout.addWidget(export_matrix_btn)
-            
-            layout.addLayout(controls_layout)
-            
-            # Create figure with better proportions
-            fig = plt.figure(figsize=(16, 7))
-            
-            # Store references for export and update
-            self.matrix_detail_figure = fig
-            self.matrix_detail_data = matrix_data
-            self.matrix_detail_type = matrix_type
-            
-            def update_matrix_plot():
-                fig.clear()
+                    
+            # Check if process is still alive
+            if self.export_process and not self.export_process.is_alive():
+                # Process finished but no final message received
+                self.export_finished.emit(False, "Export process ended unexpectedly")
                 
-                # Create custom subplot layout - matrix gets more width
-                ax1 = plt.subplot2grid((1, 3), (0, 0), colspan=2)  # Matrix takes 2/3 of width
-                ax2 = plt.subplot2grid((1, 3), (0, 2), colspan=1)  # Histogram takes 1/3 of width
-                
-                current_colormap = matrix_colormap_combo.currentData()
-                
-                # Matrix heatmap
-                im = ax1.imshow(matrix_data, aspect="auto", cmap=current_colormap, interpolation='nearest')
-                ax1.set_title(f"{title}\n{description}", fontsize=12, fontweight='bold')
-                ax1.set_xlabel(xlabel, fontsize=12)
-                ax1.set_ylabel(ylabel, fontsize=12)
-                
-                # Add colorbar
-                cbar = plt.colorbar(im, ax=ax1, shrink=0.8)
-                cbar.set_label('Weight', fontsize=12)
-                
-                # Add value annotations if matrix is small enough
-                if matrix_data.shape[0] <= 8 and matrix_data.shape[1] <= 8:
-                    for i in range(matrix_data.shape[0]):
-                        for j in range(matrix_data.shape[1]):
-                            ax1.text(j, i, f'{matrix_data[i, j]:.3f}', 
-                                    ha='center', va='center', color='white', fontsize=10)
-                
-                # Matrix statistics
-                ax2.hist(matrix_data.flatten(), bins=30, alpha=0.7, color='skyblue', edgecolor='black')
-                ax2.set_title("Weight Distribution", fontsize=14, fontweight='bold')
-                ax2.set_xlabel("Weight Value", fontsize=12)
-                ax2.set_ylabel("Frequency", fontsize=12)
-                ax2.grid(True, alpha=0.3)
-                
-                # Add statistics
-                stats_text = f"Shape: {matrix_data.shape}\n"
-                stats_text += f"Mean: {np.mean(matrix_data):.4f}\n"
-                stats_text += f"Std: {np.std(matrix_data):.4f}\n"
-                stats_text += f"Min: {np.min(matrix_data):.4f}\n"
-                stats_text += f"Max: {np.max(matrix_data):.4f}"
-                
-                ax2.text(0.02, 0.98, stats_text, transform=ax2.transAxes, fontsize=10,
-                        verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
-                
-                # Better spacing
-                plt.subplots_adjust(left=0.08, right=0.95, bottom=0.1, top=0.85, wspace=0.3)
-                
-                fig.canvas.draw()
-            
-            # Initial plot
-            update_matrix_plot()
-            
-            # Connect colormap changes
-            matrix_colormap_combo.currentTextChanged.connect(lambda: update_matrix_plot())
-            
-            # Create canvas and add to dialog
-            canvas = FigureCanvas(fig)
-            layout.addWidget(canvas)
-            
-            # Show detail dialog
-            detail_dialog.show()
-            
         except Exception as e:
-            self.show_error("Matrix Detail Error", f"Error showing matrix detail: {str(e)}")
+            logging.error(f"Error checking export progress: {e}")
+            self.export_finished.emit(False, f"Error monitoring export: {str(e)}")
 
-    def _export_single_matrix(self, matrix_type, matrix_data, colormap):
-        """Export a single matrix figure."""
-        try:
-            # Open file save dialog
-            from PyQt5.QtWidgets import QFileDialog
-            filename, _ = QFileDialog.getSaveFileName(
-                self, f"Save {matrix_type.title()} Matrix", 
-                f"ica_{matrix_type}_matrix.png", "PNG files (*.png)"
-            )
+    def _update_export_progress(self, percent: int, status: str):
+        """Update the progress dialog."""
+        if self.export_progress_dialog:
+            self.export_progress_dialog.setValue(percent)
+            self.export_progress_dialog.setLabelText(status)
+
+    def _export_finished(self, success: bool, message: str):
+        """Handle export completion."""
+        self._cleanup_export()
+        
+        if success:
+            self.show_status(message)
+        else:
+            self.show_error("Export Error", message)
+
+    def _cancel_export(self):
+        """Cancel the export process."""
+        if self.export_process and self.export_process.is_alive():
+            self.export_process.terminate()
+            self.export_process.join(timeout=5)
+            if self.export_process.is_alive():
+                self.export_process.kill()
+        
+        self._cleanup_export()
+        self.show_status("Export cancelled")
+
+    def _cleanup_export(self):
+        """Clean up export process resources."""
+        if self.export_timer:
+            self.export_timer.stop()
+            self.export_timer = None
             
-            if filename:
-                self.matrix_detail_figure.savefig(filename, dpi=300, bbox_inches='tight')
-                self.show_status(f"{matrix_type.title()} matrix exported to {filename}")
-                
-        except Exception as e:
-            self.show_error("Export Error", f"Error exporting matrix: {str(e)}")
+        if self.export_progress_dialog:
+            self.export_progress_dialog.close()
+            self.export_progress_dialog = None
+            
+        if self.export_process:
+            if self.export_process.is_alive():
+                self.export_process.join(timeout=1)
+            self.export_process = None
+            
+        if self.export_queue:
+            # Clean up queue
+            try:
+                while not self.export_queue.empty():
+                    self.export_queue.get_nowait()
+            except:
+                pass
+            self.export_queue = None
 
     def compute_wavelet(self) -> None:
         """Compute wavelet transform."""
@@ -1427,3 +1136,383 @@ class AdvancedProcessingPanel(BasePanel):
             "filter_type": self.filter_type_combo.currentData(),
             "window_function": self.window_function_combo.currentData(),
         }
+
+
+def _export_worker_process(export_data: Dict[str, Any], export_type: str, progress_queue: mp.Queue):
+    """Worker process for exporting ICA images."""
+    try:
+        # Configure matplotlib for non-GUI use
+        import matplotlib
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
+        import numpy as np
+        import os
+
+        if export_type == 'all_images':
+            _export_all_images_worker(export_data, progress_queue)
+        elif export_type == 'single_component':
+            _export_single_component_worker(export_data, progress_queue)
+        elif export_type == 'single_matrix':
+            _export_single_matrix_worker(export_data, progress_queue)
+        else:
+            progress_queue.put({
+                'type': 'error',
+                'error': f'Unknown export type: {export_type}'
+            })
+
+    except Exception as e:
+        progress_queue.put({
+            'type': 'error',
+            'error': str(e)
+        })
+
+
+def _export_all_images_worker(export_data: Dict[str, Any], progress_queue: mp.Queue):
+    """Worker function to export all ICA images."""
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import os
+
+    try:
+        ica_components = export_data['ica_components']
+        colormap = export_data['colormap']
+        sampling_rate = export_data['sampling_rate']
+        directory = export_data['directory']
+
+        num_components = ica_components["num_components"]
+        selected_channels = ica_components["selected_channels"]
+
+        # Calculate total steps for progress
+        total_steps = 1 + num_components + 2  # overview + components + 2 matrices
+        current_step = 0
+
+        # Step 1: Save the complete overview
+        progress_queue.put({
+            'type': 'progress',
+            'percent': int((current_step / total_steps) * 100),
+            'status': 'Creating complete overview...'
+        })
+
+        overview_path = os.path.join(directory, "ica_complete_overview.png")
+        _create_complete_overview_figure_worker(ica_components, colormap, sampling_rate, overview_path)
+        current_step += 1
+
+        # Step 2: Save individual component plots
+        if "s" in ica_components:
+            s_data = ica_components["s"]
+            time_vec = np.linspace(0, s_data.shape[1] / sampling_rate, s_data.shape[1])
+            
+            for i in range(s_data.shape[0]):
+                progress_queue.put({
+                    'type': 'progress',
+                    'percent': int((current_step / total_steps) * 100),
+                    'status': f'Exporting component {i+1}/{s_data.shape[0]}...'
+                })
+
+                fig_comp, ax = plt.subplots(1, 1, figsize=(12, 6))
+                ax.plot(time_vec, s_data[i, :], linewidth=1.2, color='#1f77b4')
+                ax.set_title(f"Independent Component {i+1}", fontsize=14, fontweight='bold')
+                ax.set_xlabel("Time (s)", fontsize=12)
+                ax.set_ylabel("Amplitude", fontsize=12)
+                ax.grid(True, alpha=0.3)
+                
+                # Add statistics
+                data_mean = np.mean(s_data[i, :])
+                data_std = np.std(s_data[i, :])
+                data_min = np.min(s_data[i, :])
+                data_max = np.max(s_data[i, :])
+                stats_text = f"Mean: {data_mean:.4f} | Std: {data_std:.4f} | Min: {data_min:.4f} | Max: {data_max:.4f}"
+                ax.text(0.02, 0.98, stats_text, transform=ax.transAxes, fontsize=10, 
+                       verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+                
+                plt.tight_layout()
+                
+                comp_path = os.path.join(directory, f"ica_component_{i+1}.png")
+                fig_comp.savefig(comp_path, dpi=300, bbox_inches='tight')
+                plt.close(fig_comp)
+                current_step += 1
+
+        # Step 3: Save matrix details
+        for matrix_name, matrix_key in [("mixing", "a"), ("unmixing", "w")]:
+            if matrix_key in ica_components:
+                progress_queue.put({
+                    'type': 'progress',
+                    'percent': int((current_step / total_steps) * 100),
+                    'status': f'Exporting {matrix_name} matrix...'
+                })
+
+                matrix_data = ica_components[matrix_key]
+                
+                fig_matrix, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+                
+                # Matrix heatmap
+                im = ax1.imshow(matrix_data, aspect="auto", cmap=colormap, interpolation='nearest')
+                title = f"{'Mixing' if matrix_key == 'a' else 'Unmixing'} Matrix ({matrix_key.upper()})"
+                ax1.set_title(title, fontsize=14, fontweight='bold')
+                ax1.set_xlabel("Components" if matrix_key == "a" else "Channels", fontsize=12)
+                ax1.set_ylabel("Channels" if matrix_key == "a" else "Components", fontsize=12)
+                
+                # Add colorbar
+                cbar = plt.colorbar(im, ax=ax1, shrink=0.8)
+                cbar.set_label('Weight', fontsize=12)
+                
+                # Matrix statistics histogram
+                ax2.hist(matrix_data.flatten(), bins=30, alpha=0.7, color='skyblue', edgecolor='black')
+                ax2.set_title("Weight Distribution", fontsize=14, fontweight='bold')
+                ax2.set_xlabel("Weight Value", fontsize=12)
+                ax2.set_ylabel("Frequency", fontsize=12)
+                ax2.grid(True, alpha=0.3)
+                
+                # Add statistics
+                stats_text = f"Shape: {matrix_data.shape}\n"
+                stats_text += f"Mean: {np.mean(matrix_data):.4f}\n"
+                stats_text += f"Std: {np.std(matrix_data):.4f}\n"
+                stats_text += f"Min: {np.min(matrix_data):.4f}\n"
+                stats_text += f"Max: {np.max(matrix_data):.4f}"
+                
+                ax2.text(0.02, 0.98, stats_text, transform=ax2.transAxes, fontsize=10,
+                        verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+                
+                plt.tight_layout()
+                
+                matrix_path = os.path.join(directory, f"ica_{matrix_name}_matrix.png")
+                fig_matrix.savefig(matrix_path, dpi=300, bbox_inches='tight')
+                plt.close(fig_matrix)
+                current_step += 1
+
+        # Export completed successfully
+        progress_queue.put({
+            'type': 'finished',
+            'success': True,
+            'message': f"All ICA images exported successfully to {directory}"
+        })
+
+    except Exception as e:
+        progress_queue.put({
+            'type': 'error',
+            'error': str(e)
+        })
+
+
+def _export_single_component_worker(export_data: Dict[str, Any], progress_queue: mp.Queue):
+    """Worker function to export a single component."""
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from scipy import signal
+
+    try:
+        component_index = export_data['component_index']
+        component_data = export_data['component_data']
+        time_vector = export_data['time_vector']
+        sampling_rate = export_data['sampling_rate']
+        filename = export_data['filename']
+
+        progress_queue.put({
+            'type': 'progress',
+            'percent': 50,
+            'status': f'Exporting component {component_index + 1}...'
+        })
+
+        # Create larger figure for component
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 9))
+        
+        # Main time series plot
+        ax1.plot(time_vector, component_data, linewidth=1.5, color='#1f77b4', alpha=0.8)
+        ax1.set_title(f"Independent Component {component_index + 1} - Time Series", fontsize=16, fontweight='bold')
+        ax1.set_xlabel("Time (s)", fontsize=14)
+        ax1.set_ylabel("Amplitude", fontsize=14)
+        ax1.grid(True, alpha=0.3)
+        ax1.tick_params(axis='both', which='major', labelsize=12)
+        
+        # Add statistics text
+        data_mean = np.mean(component_data)
+        data_std = np.std(component_data)
+        data_min = np.min(component_data)
+        data_max = np.max(component_data)
+        stats_text = f"Mean: {data_mean:.4f} | Std: {data_std:.4f} | Min: {data_min:.4f} | Max: {data_max:.4f}"
+        ax1.text(0.02, 0.98, stats_text, transform=ax1.transAxes, fontsize=10, 
+                verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+        
+        # Power spectral density
+        if sampling_rate > 0:
+            freqs, psd = signal.welch(component_data, sampling_rate, nperseg=min(len(component_data)//4, 1024))
+            ax2.semilogy(freqs, psd, color='#ff7f0e', linewidth=1.5)
+            ax2.set_title(f"Component {component_index + 1} - Power Spectral Density", fontsize=16, fontweight='bold')
+            ax2.set_xlabel("Frequency (Hz)", fontsize=14)
+            ax2.set_ylabel("Power/Frequency (dB/Hz)", fontsize=14)
+            ax2.grid(True, alpha=0.3)
+            ax2.tick_params(axis='both', which='major', labelsize=12)
+            ax2.set_xlim(0, min(50, sampling_rate/2))  # Show up to 50 Hz or Nyquist
+        else:
+            ax2.text(0.5, 0.5, "Cannot compute PSD\n(sampling rate unknown)", 
+                    transform=ax2.transAxes, ha='center', va='center', fontsize=14)
+            ax2.set_title(f"Component {component_index + 1} - Power Spectral Density", fontsize=16)
+        
+        plt.tight_layout()
+        fig.savefig(filename, dpi=300, bbox_inches='tight')
+        plt.close(fig)
+
+        progress_queue.put({
+            'type': 'finished',
+            'success': True,
+            'message': f"Component {component_index + 1} exported to {filename}"
+        })
+
+    except Exception as e:
+        progress_queue.put({
+            'type': 'error',
+            'error': str(e)
+        })
+
+
+def _export_single_matrix_worker(export_data: Dict[str, Any], progress_queue: mp.Queue):
+    """Worker function to export a single matrix."""
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    try:
+        matrix_type = export_data['matrix_type']
+        matrix_data = export_data['matrix_data']
+        colormap = export_data['colormap']
+        filename = export_data['filename']
+
+        progress_queue.put({
+            'type': 'progress',
+            'percent': 50,
+            'status': f'Exporting {matrix_type} matrix...'
+        })
+
+        # Get matrix info
+        if matrix_type == "mixing":
+            title = "Mixing Matrix (A)"
+            xlabel = "Components"
+            ylabel = "Channels"
+            description = "How components combine to form channels"
+        else:  # unmixing
+            title = "Unmixing Matrix (W)"
+            xlabel = "Channels"
+            ylabel = "Components"
+            description = "How to extract components from channels"
+
+        # Create figure with better proportions
+        fig = plt.figure(figsize=(16, 7))
+        
+        # Create custom subplot layout
+        ax1 = plt.subplot2grid((1, 3), (0, 0), colspan=2)  # Matrix takes 2/3 of width
+        ax2 = plt.subplot2grid((1, 3), (0, 2), colspan=1)  # Histogram takes 1/3 of width
+        
+        # Matrix heatmap
+        im = ax1.imshow(matrix_data, aspect="auto", cmap=colormap, interpolation='nearest')
+        ax1.set_title(f"{title}\n{description}", fontsize=12, fontweight='bold')
+        ax1.set_xlabel(xlabel, fontsize=12)
+        ax1.set_ylabel(ylabel, fontsize=12)
+        
+        # Add colorbar
+        cbar = plt.colorbar(im, ax=ax1, shrink=0.8)
+        cbar.set_label('Weight', fontsize=12)
+        
+        # Add value annotations if matrix is small enough
+        if matrix_data.shape[0] <= 8 and matrix_data.shape[1] <= 8:
+            for i in range(matrix_data.shape[0]):
+                for j in range(matrix_data.shape[1]):
+                    ax1.text(j, i, f'{matrix_data[i, j]:.3f}', 
+                            ha='center', va='center', color='white', fontsize=10)
+        
+        # Matrix statistics
+        ax2.hist(matrix_data.flatten(), bins=30, alpha=0.7, color='skyblue', edgecolor='black')
+        ax2.set_title("Weight Distribution", fontsize=14, fontweight='bold')
+        ax2.set_xlabel("Weight Value", fontsize=12)
+        ax2.set_ylabel("Frequency", fontsize=12)
+        ax2.grid(True, alpha=0.3)
+        
+        # Add statistics
+        stats_text = f"Shape: {matrix_data.shape}\n"
+        stats_text += f"Mean: {np.mean(matrix_data):.4f}\n"
+        stats_text += f"Std: {np.std(matrix_data):.4f}\n"
+        stats_text += f"Min: {np.min(matrix_data):.4f}\n"
+        stats_text += f"Max: {np.max(matrix_data):.4f}"
+        
+        ax2.text(0.02, 0.98, stats_text, transform=ax2.transAxes, fontsize=10,
+                verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+        
+        # Better spacing
+        plt.subplots_adjust(left=0.08, right=0.95, bottom=0.1, top=0.85, wspace=0.3)
+        
+        fig.savefig(filename, dpi=300, bbox_inches='tight')
+        plt.close(fig)
+
+        progress_queue.put({
+            'type': 'finished',
+            'success': True,
+            'message': f"{matrix_type.title()} matrix exported to {filename}"
+        })
+
+    except Exception as e:
+        progress_queue.put({
+            'type': 'error',
+            'error': str(e)
+        })
+
+
+def _create_complete_overview_figure_worker(ica_components, colormap, sampling_rate, save_path):
+    """Create a complete overview figure showing ALL components in worker process."""
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    num_components = ica_components["num_components"]
+    
+    # Create a comprehensive overview with all components
+    # Calculate layout: matrices + all components in a grid
+    cols = 4  # 4 columns for better layout
+    matrix_slots = 2  # 2 slots for matrices
+    total_plots = matrix_slots + num_components
+    rows = int(np.ceil(total_plots / cols))
+    
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 4, rows * 3))
+    if rows == 1:
+        axes = axes.reshape(1, -1)
+    axes = axes.flatten()
+    
+    fig.suptitle(f"Complete ICA Analysis - {num_components} Components", fontsize=16)
+    
+    plot_idx = 0
+    
+    # Plot mixing matrix (A)
+    if "a" in ica_components and plot_idx < len(axes):
+        im1 = axes[plot_idx].imshow(ica_components["a"], aspect="auto", cmap=colormap)
+        axes[plot_idx].set_title("Mixing Matrix (A)")
+        axes[plot_idx].set_xlabel("Components")
+        axes[plot_idx].set_ylabel("Channels")
+        plt.colorbar(im1, ax=axes[plot_idx], shrink=0.6)
+        plot_idx += 1
+
+    # Plot unmixing matrix (W)
+    if "w" in ica_components and plot_idx < len(axes):
+        im2 = axes[plot_idx].imshow(ica_components["w"], aspect="auto", cmap=colormap)
+        axes[plot_idx].set_title("Unmixing Matrix (W)")
+        axes[plot_idx].set_xlabel("Channels")
+        axes[plot_idx].set_ylabel("Components")
+        plt.colorbar(im2, ax=axes[plot_idx], shrink=0.6)
+        plot_idx += 1
+
+    # Plot ALL independent components
+    if "s" in ica_components:
+        s_data = ica_components["s"]
+        time_vec = np.linspace(0, s_data.shape[1] / sampling_rate, s_data.shape[1])
+        
+        for i in range(min(num_components, s_data.shape[0])):
+            if plot_idx < len(axes):
+                axes[plot_idx].plot(time_vec, s_data[i, :], linewidth=1.2, color='#1f77b4')
+                axes[plot_idx].set_title(f"IC {i+1}")
+                axes[plot_idx].set_xlabel("Time (s)")
+                axes[plot_idx].set_ylabel("Amplitude")
+                axes[plot_idx].grid(True, alpha=0.3)
+                plot_idx += 1
+
+    # Hide unused subplots
+    for i in range(plot_idx, len(axes)):
+        axes[i].set_visible(False)
+
+    plt.tight_layout()
+    fig.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.close(fig)
