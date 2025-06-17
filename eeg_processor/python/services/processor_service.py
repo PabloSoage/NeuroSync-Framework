@@ -2,7 +2,7 @@ import logging
 from typing import Dict, List, Any, Tuple, Optional
 
 import numpy as np
-from brainflow.data_filter import WaveletTypes, AggOperations
+from brainflow.data_filter import WaveletTypes, AggOperations, FilterTypes
 
 from ..processors.signal_processor import SignalProcessor
 
@@ -399,3 +399,111 @@ class ProcessorService:
         except Exception as e:
             logging.error(f"Downsampling error: {e}")
             return data
+
+    def apply_advanced_bandpass_filter(
+        self,
+        data: np.ndarray,
+        low_cutoff: float,
+        high_cutoff: float,
+        filter_type: FilterTypes = FilterTypes.BUTTERWORTH,
+        order: int = 4,
+        channels: Optional[List[int]] = None,
+    ) -> np.ndarray:
+        """
+        Apply advanced bandpass filter with specific filter type.
+
+        Args:
+            data: Data to filter (2D array: channels x samples)
+            low_cutoff: Low cutoff frequency in Hz
+            high_cutoff: High cutoff frequency in Hz
+            filter_type: Type of filter to use
+            order: Filter order
+            channels: Specific channels to filter (defaults to all)
+
+        Returns:
+            Filtered data
+        """
+        if self.processor is None:
+            logging.warning("Processor not initialized for advanced bandpass filter")
+            return data
+
+        try:
+            # Ensure data is 2D
+            if data.ndim == 1:
+                data = data.reshape(1, -1)
+
+            logging.debug(
+                f"Applying advanced bandpass filter {low_cutoff}-{high_cutoff} Hz, type {filter_type}"
+            )
+
+            if channels is not None:
+                filtered_data = data.copy()
+                for channel in channels:
+                    if channel < data.shape[0]:
+                        channel_data = data[channel : channel + 1, :]
+                        filtered_channel_data = self.processor.perform_advanced_bandpass_filter(
+                            channel_data, low_cutoff, high_cutoff, order, filter_type
+                        )
+                        filtered_data[channel : channel + 1, :] = filtered_channel_data
+                return filtered_data
+            else:
+                return self.processor.perform_advanced_bandpass_filter(
+                    data, low_cutoff, high_cutoff, order, filter_type
+                )
+        except Exception as e:
+            logging.error(f"Advanced bandpass filter error: {e}")
+            return data
+
+    def compute_wavelet_coefficients(
+        self,
+        data: np.ndarray,
+        wavelet: WaveletTypes = WaveletTypes.DB4,
+        decomposition_level: int = 3,
+    ) -> Tuple[np.ndarray, Dict[str, Any]]:
+        """
+        Compute wavelet coefficients for the data.
+
+        Args:
+            data: Data to analyze
+            wavelet: Type of wavelet to use
+            decomposition_level: Level of decomposition
+
+        Returns:
+            Tuple of (coefficients, metadata)
+        """
+        if self.processor is None:
+            logging.warning("Processor not initialized for wavelet computation")
+            return data, {}
+
+        try:
+            return self.processor.get_wavelet_coefficients(
+                data, wavelet, decomposition_level
+            )
+        except Exception as e:
+            logging.error(f"Wavelet computation error: {e}")
+            return data, {}
+
+    def apply_inverse_wavelet(
+        self,
+        coefficients: np.ndarray,
+        metadata: Dict[str, Any],
+    ) -> np.ndarray:
+        """
+        Apply inverse wavelet transform.
+
+        Args:
+            coefficients: Wavelet coefficients
+            metadata: Metadata from forward transform
+
+        Returns:
+            Reconstructed data
+        """
+        if self.processor is None:
+            logging.warning("Processor not initialized for inverse wavelet")
+            return coefficients
+
+        try:
+            return self.processor.apply_inverse_wavelet_transform(coefficients, metadata)
+        except Exception as e:
+            logging.error(f"Inverse wavelet error: {e}")
+            return coefficients

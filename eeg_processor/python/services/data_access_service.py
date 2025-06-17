@@ -6,6 +6,7 @@ import time
 from typing import Dict, List, Any, Tuple, Callable, Optional
 
 import numpy as np
+from brainflow import FilterTypes, AggOperations
 
 
 class DataAccessService:
@@ -363,30 +364,51 @@ class DataAccessService:
             self._filter_settings = filter_settings
         logging.debug("DataAccessService filter settings updated")
 
+    def enable_advanced_processing(
+        self, enabled: bool, processing_settings: Optional[Dict[str, Any]] = None
+    ) -> None:
+        """
+        Enable or disable advanced processing for data served by this service.
+
+        Args:
+            enabled: Whether to enable advanced processing
+            processing_settings: Advanced processing configuration
+        """
+        with self._data_lock:
+            self._advanced_processing_enabled = getattr(self, '_advanced_processing_enabled', False)
+            self._advanced_processing_enabled = enabled
+            if processing_settings is not None:
+                self._advanced_processing_settings = processing_settings
+
+        action = "enabled" if enabled else "disabled"
+        logging.info(f"DataAccessService advanced processing {action}")
+
+    def update_advanced_processing_settings(self, processing_settings: Dict[str, Any]) -> None:
+        """Update advanced processing settings."""
+        with self._data_lock:
+            self._advanced_processing_settings = processing_settings
+        logging.debug("DataAccessService advanced processing settings updated")
+
     def _apply_filters_if_enabled(self, data: np.ndarray) -> np.ndarray:
         """Apply filters to data if enabled and processor is available."""
         if (
             not self._filters_enabled
-            or not self._processor_service
-            or not self._filter_settings
-        ):
+            and not getattr(self, '_advanced_processing_enabled', False)
+        ) or not self._processor_service:
             return data
 
         if data.size == 0:
             return data
 
         try:
-            # Apply filters to the CHUNK, not the entire buffer
+            # Apply basic filters first
             filtered_data = data.copy()
-
-            logging.debug(f"Applying filters to chunk shape {data.shape}")
 
             # Initialize processor if not already done
             if (
                 not hasattr(self._processor_service, "processor")
                 or self._processor_service.processor is None
             ):
-                # Try to get sampling rate from metadata
                 sampling_rate = self._metadata.get("sampling_rate", 250)
                 try:
                     if isinstance(sampling_rate, (int, float)) and sampling_rate > 0:
@@ -405,37 +427,84 @@ class DataAccessService:
                     )
                     return data
 
-            # Apply bandpass filter if enabled
-            if self._filter_settings.get("bandpass", {}).get("enabled", False):
-                bp = self._filter_settings["bandpass"]
-                low_cut = bp.get("low_cut", bp.get("low", 1.0))
-                high_cut = bp.get("high_cut", bp.get("high", 50.0))
-                logging.debug(
-                    f"Applying bandpass filter {low_cut}-{high_cut} Hz to chunk"
-                )
-                filtered_data = self._processor_service.apply_bandpass_filter(
-                    filtered_data, low_cut, high_cut
-                )
+            # Apply basic filters
+            if self._filters_enabled and self._filter_settings:
+                # Apply bandpass filter if enabled
+                if self._filter_settings.get("bandpass", {}).get("enabled", False):
+                    bp = self._filter_settings["bandpass"]
+                    low_cut = bp.get("low_cut", bp.get("low", 1.0))
+                    high_cut = bp.get("high_cut", bp.get("high", 50.0))
+                    logging.debug(f"Applying bandpass filter {low_cut}-{high_cut} Hz to chunk")
+                    filtered_data = self._processor_service.apply_bandpass_filter(
+                        filtered_data, low_cut, high_cut
+                    )
 
-            # Apply notch filter if enabled
-            if self._filter_settings.get("notch", {}).get("enabled", False):
-                notch = self._filter_settings["notch"]
-                freq = notch.get("frequency", 50)
-                logging.debug(f"Applying notch filter {freq} Hz to chunk")
-                filtered_data = self._processor_service.apply_notch_filter(
-                    filtered_data, freq
-                )
+                # Apply notch filter if enabled
+                if self._filter_settings.get("notch", {}).get("enabled", False):
+                    notch = self._filter_settings["notch"]
+                    freq = notch.get("frequency", 50)
+                    logging.debug(f"Applying notch filter {freq} Hz to chunk")
+                    filtered_data = self._processor_service.apply_notch_filter(
+                        filtered_data, freq
+                    )
 
-            # Apply detrend if enabled
-            if self._filter_settings.get("detrend", False):
-                logging.debug("Applying detrend to chunk")
-                filtered_data = self._processor_service.apply_detrend(filtered_data)
+                # Apply detrend if enabled
+                if self._filter_settings.get("detrend", False):
+                    logging.debug("Applying detrend to chunk")
+                    filtered_data = self._processor_service.apply_detrend(filtered_data)
 
-            logging.debug("Filters applied successfully to chunk in DataAccessService")
+            # Apply advanced processing
+            if getattr(self, '_advanced_processing_enabled', False) and hasattr(self, '_advanced_processing_settings'):
+                filtered_data = self._apply_advanced_processing(filtered_data)
+
+            logging.debug("Filters and advanced processing applied successfully to chunk in DataAccessService")
             return filtered_data
 
         except Exception as e:
-            logging.error(f"Error applying filters to chunk in DataAccessService: {e}")
+            logging.error(f"Error applying filters/processing to chunk in DataAccessService: {e}")
+            return data
+
+    def _apply_advanced_processing(self, data: np.ndarray) -> np.ndarray:
+        """Apply advanced processing to data chunk."""
+        try:
+            processed_data = data.copy()
+            settings = getattr(self, '_advanced_processing_settings', {})
+
+            # Apply advanced filters
+            if settings.get("advanced_filters", {}).get("enabled", False):
+                adv_filters = settings["advanced_filters"]
+                processed_data = self._processor_service.apply_advanced_bandpass_filter(
+                    processed_data,
+                    adv_filters.get("low_cut", 1.0),
+                    adv_filters.get("high_cut", 50.0),
+                    adv_filters.get("filter_type", FilterTypes.BUTTERWORTH),
+                    adv_filters.get("order", 4),
+                )
+
+            # Apply downsampling
+            if settings.get("downsampling", {}).get("enabled", False):
+                ds = settings["downsampling"]
+                processed_data = self._processor_service.perform_downsampling(
+                    processed_data,
+                    ds.get("factor", 2),
+                    ds.get("operation", AggOperations.MEAN),
+                )
+
+            # Apply wavelet processing (if inverse transform is enabled)
+            if settings.get("wavelet", {}).get("inverse_enabled", False):
+                wavelet_data = getattr(self, '_wavelet_coefficients', None)
+                wavelet_metadata = getattr(self, '_wavelet_metadata', None)
+                if wavelet_data is not None and wavelet_metadata is not None:
+                    # Apply inverse wavelet transform to recent data
+                    recent_coeffs = wavelet_data[:, -processed_data.shape[1]:]
+                    processed_data = self._processor_service.apply_inverse_wavelet(
+                        recent_coeffs, wavelet_metadata
+                    )
+
+            return processed_data
+
+        except Exception as e:
+            logging.error(f"Error in advanced processing: {e}")
             return data
 
     def update_data(self, data: np.ndarray, timestamps: List[int]) -> None:

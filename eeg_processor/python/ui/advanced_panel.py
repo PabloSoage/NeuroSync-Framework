@@ -1,5 +1,7 @@
+import logging
 from typing import Any, Optional, Dict, List
 
+import numpy as np
 from PyQt5.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
@@ -8,7 +10,7 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QComboBox,
     QSpinBox,
-    QGridLayout,
+    QGridLayout, QMessageBox, QWidget,
 )
 from brainflow.data_filter import (
     FilterTypes,
@@ -35,11 +37,34 @@ class AdvancedProcessingPanel(BasePanel):
         self.collector_service = collector_service
         self.processor_service = processor_service
 
+        # Get DataAccessService instance for advanced processing
+        from ..services.data_access_service import DataAccessService
+        self.data_access_service = DataAccessService.get_instance()
+
+        # Set processor service in data access service
+        self.data_access_service.set_filter_processor(self.processor_service)
+
+        # Channel management
+        self.channel_names: List[str] = []
+        self.ica_selected_channels: List[int] = []
+
+        # State tracking
+        self.ica_computed = False
+        self.ica_components = None
+        self.wavelet_computed = False
+        self.wavelet_coefficients = None
+        self.wavelet_metadata = None
+        self.advanced_filters_applied = False
+        self.downsampling_applied = False
+
         # Setup UI components
         self.setup_ica_section()
         self.setup_wavelet_section()
         self.setup_downsampling_section()
         self.setup_advanced_filtering_section()
+
+        # Initialize channel data
+        self._initialize_channel_data()
 
         # Add stretch to push everything to the top
         self.layout.addStretch()
@@ -57,19 +82,35 @@ class AdvancedProcessingPanel(BasePanel):
         ica_layout.addLayout(ica_header_layout)
 
         # ICA Parameters
-        ica_params_layout = QHBoxLayout()
-        ica_params_layout.addWidget(QLabel("Number of Components:"))
+        ica_params_layout = QVBoxLayout()
+        
+        # Number of components
+        components_layout = QHBoxLayout()
+        components_layout.addWidget(QLabel("Number of Components:"))
         self.ica_components_spin = QSpinBox()
-        self.ica_components_spin.setRange(1, 10)
+        self.ica_components_spin.setRange(1, 16)
         self.ica_components_spin.setValue(2)
-        ica_params_layout.addWidget(self.ica_components_spin)
+        components_layout.addWidget(self.ica_components_spin)
+        components_layout.addStretch()
+        ica_params_layout.addLayout(components_layout)
 
-        ica_params_layout.addWidget(QLabel("Channel:"))
-        self.ica_channel_combo = QComboBox()
-        self.ica_channel_combo.addItem("All Channels", -1)
-        # Channels will be populated when connected to a board
-        ica_params_layout.addWidget(self.ica_channel_combo)
-
+        # Channel selection - SIMPLIFIED approach
+        channel_layout = QVBoxLayout()
+        channel_layout.addWidget(QLabel("Channel Selection:"))
+        
+        # Channel selection button and info
+        channel_selection_layout = QHBoxLayout()
+        self.ica_channel_select_btn = QPushButton("Select Channels")
+        self.ica_channel_select_btn.clicked.connect(self._open_ica_channel_selection)
+        channel_selection_layout.addWidget(self.ica_channel_select_btn)
+        
+        self.ica_channel_info_label = QLabel("All channels")
+        self.ica_channel_info_label.setStyleSheet("color: #AAAAAA; font-style: italic;")
+        channel_selection_layout.addWidget(self.ica_channel_info_label)
+        channel_selection_layout.addStretch()
+        
+        channel_layout.addLayout(channel_selection_layout)
+        ica_params_layout.addLayout(channel_layout)
         ica_layout.addLayout(ica_params_layout)
 
         # ICA Control buttons
@@ -222,71 +263,765 @@ class AdvancedProcessingPanel(BasePanel):
 
         self.layout.addWidget(adv_filter_group)
 
+    def _initialize_channel_data(self) -> None:
+        """Initialize channel data from data service."""
+        try:
+            metadata = self.data_access_service.get_metadata()
+            self.channel_names = metadata.get("channel_names", [])
+            eeg_channels = metadata.get("eeg_channels", [])
+
+            # Generate default channel names if needed
+            if not self.channel_names and eeg_channels:
+                self.channel_names = [f"CH{i+1}" for i in range(len(eeg_channels))]
+            elif not self.channel_names and not eeg_channels:
+                # Try to get from collector service directly
+                if hasattr(self.collector_service, 'get_eeg_channels'):
+                    eeg_channels = self.collector_service.get_eeg_channels()
+                    if eeg_channels:
+                        self.channel_names = [f"CH{i+1}" for i in range(len(eeg_channels))]
+
+            # Initialize selected channels (all by default)
+            if not self.ica_selected_channels and self.channel_names:
+                self.ica_selected_channels = list(range(len(self.channel_names)))
+
+            self._update_ica_channel_display()
+
+        except Exception as e:
+            logging.debug(f"Error initializing channel data: {e}")
+
+    def _open_ica_channel_selection(self) -> None:
+        """Open channel selection dialog for ICA."""
+        if not self.channel_names:
+            self.show_error(
+                "Channel Selection", "No channels available. Start streaming first."
+            )
+            return
+
+        from .mne.widgets.channel_selection_dialog import ChannelSelectionDialog
+        from PyQt5.QtWidgets import QDialog
+
+        dialog = ChannelSelectionDialog(
+            channel_names=self.channel_names,
+            selected_channels=self.ica_selected_channels,
+            parent=self,
+        )
+        dialog.setWindowTitle("Select Channels for ICA Analysis")
+
+        if dialog.exec_() == QDialog.Accepted:
+            self.ica_selected_channels = dialog.get_selected_channels()
+            self._update_ica_channel_display()
+            self.show_status(
+                f"Selected {len(self.ica_selected_channels)} channels for ICA"
+            )
+
+    def _update_ica_channel_display(self) -> None:
+        """Update the ICA channel selection display."""
+        if not self.channel_names:
+            self.ica_channel_info_label.setText("No channels available")
+            self.ica_channel_select_btn.setEnabled(False)
+            return
+        
+        self.ica_channel_select_btn.setEnabled(True)
+        
+        if not self.ica_selected_channels:
+            self.ica_channel_info_label.setText("No channels selected")
+        elif len(self.ica_selected_channels) == len(self.channel_names):
+            self.ica_channel_info_label.setText("All channels selected")
+        else:
+            count = len(self.ica_selected_channels)
+            total = len(self.channel_names)
+            self.ica_channel_info_label.setText(f"{count}/{total} channels selected")
+
     def compute_ica(self) -> None:
         """Compute ICA components."""
         try:
-            # Implementation of ICA computation
-            self.show_status("ICA computation started")
-            # Actual implementation would get data and call processor_service
-            self.view_ica_components_btn.setEnabled(True)
+            # Get current data
+            data, _ = self.data_access_service.get_current_data()
+            if data.size == 0:
+                self.show_error("ICA Error", "No data available for ICA computation")
+                return
+
+            # Get number of components and channels
+            num_components = self.ica_components_spin.value()
+            
+            # Use selected channels or all if none selected
+            if not self.ica_selected_channels:
+                self.show_error("ICA Error", "Please select at least one channel")
+                return
+            
+            # Extract selected channels
+            if len(self.ica_selected_channels) < num_components:
+                self.show_error("ICA Error", f"Number of selected channels ({len(self.ica_selected_channels)}) must be >= number of components ({num_components})")
+                return
+            
+            ica_data = data[self.ica_selected_channels, :]
+            selected_channels = self.ica_selected_channels.copy()
+
+            # Ensure we have enough data
+            min_samples = max(num_components * 100, 1000)
+            if ica_data.shape[1] < min_samples:
+                self.show_error("ICA Error", f"Need at least {min_samples} samples for reliable ICA")
+                return
+            
+            # Check minimum channels requirement
+            if ica_data.shape[0] < 2:
+                self.show_error("ICA Error", "Need at least 2 channels for ICA")
+                return
+            
+            if ica_data.shape[0] < 8:
+                reply = QMessageBox.question(
+                    self, 
+                    "ICA Warning", 
+                    f"ICA works best with at least 8-16 channels. You have {ica_data.shape[0]} channels.\n"
+                    "Results may not be meaningful. Continue anyway?",
+                    QMessageBox.Yes | QMessageBox.No
+                )
+                if reply == QMessageBox.No:
+                    return
+
+            # Initialize processor if needed
+            sampling_rate = self.collector_service.get_sampling_rate()
+            if sampling_rate > 0 and (not hasattr(self.processor_service, "processor") or 
+                                      self.processor_service.processor is None):
+                self.processor_service.initialize_processor(sampling_rate)
+
+            # Compute ICA
+            w, k, a, s = self.processor_service.perform_ica(ica_data, num_components)
+            
+            if w is not None:
+                self.ica_components = {
+                    "w": w, "k": k, "a": a, "s": s,
+                    "selected_channels": selected_channels,
+                    "num_components": num_components
+                }
+                self.ica_computed = True
+                self.view_ica_components_btn.setEnabled(True)
+                
+                self.show_status(f"ICA computed successfully with {num_components} components on {len(selected_channels)} channels")
+            else:
+                self.show_error("ICA Error", "Failed to compute ICA components")
+
         except Exception as e:
             self.show_error("ICA Error", f"Error computing ICA: {str(e)}")
 
     def view_ica_components(self) -> None:
-        """View ICA components."""
+        """View ICA components in a scrollable 2-column layout."""
         try:
-            # Implementation of ICA component visualization
-            self.show_status("Showing ICA components")
+            if not self.ica_computed or self.ica_components is None:
+                self.show_error("ICA Error", "No ICA components available. Compute ICA first.")
+                return
+
+            # Create a new dialog window for the ICA visualization
+            from PyQt5.QtWidgets import QDialog, QVBoxLayout, QScrollArea, QWidget
+            from PyQt5.QtCore import Qt
+            
+            dialog = QDialog(self)
+            # Move the analysis info to the window title
+            num_components = self.ica_components["num_components"]
+            selected_channels = self.ica_components["selected_channels"]
+            dialog.setWindowTitle(f"ICA Components Visualization - {num_components} Components on {len(selected_channels)} Channels")
+            dialog.setModal(False)  # Allow interaction with main window
+            dialog.resize(1400, 1000)  # Increased size: wider and taller for better visibility
+            
+            # Store dialog reference for component detail windows
+            self.ica_dialog = dialog
+            
+            # Create main layout
+            main_layout = QVBoxLayout(dialog)
+            
+            # Create scroll area
+            scroll_area = QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+            scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+            
+            # Create scrollable widget with fixed size
+            scroll_widget = QWidget()
+            scroll_layout = QVBoxLayout(scroll_widget)
+            scroll_layout.setContentsMargins(0, 0, 0, 0)
+            
+            # Get component data
+            num_components = self.ica_components["num_components"]
+            selected_channels = self.ica_components["selected_channels"]
+            
+            # Import matplotlib with Qt5 backend
+            import matplotlib
+            matplotlib.use('Qt5Agg')
+            import matplotlib.pyplot as plt
+            from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+            
+            # Calculate number of rows needed (2 columns fixed + matrices at top)
+            plots_per_row = 2
+            matrix_rows = 1  # One row for both matrices side by side
+            component_rows = int(np.ceil(num_components / plots_per_row))
+            total_rows = matrix_rows + component_rows
+            
+            # Fixed subplot height - maintain this regardless of number of components
+            subplot_height = 4.0  # inches per subplot row
+            figure_width = 12
+            total_figure_height = total_rows * subplot_height
+            
+            # Create the matplotlib figure with FIXED size - don't let it resize
+            fig = plt.figure(figsize=(figure_width, total_figure_height))
+            
+            plot_idx = 1  # matplotlib subplot indices start at 1
+            
+            # First row: Mixing and Unmixing matrices side by side
+            if "a" in self.ica_components:
+                ax1 = fig.add_subplot(total_rows, 2, plot_idx)
+                im1 = ax1.imshow(self.ica_components["a"], aspect="auto", cmap="viridis")
+                ax1.set_title("Mixing Matrix (A)\n(Click to view details)", fontsize=14)
+                ax1.set_xlabel("Components")
+                ax1.set_ylabel("Channels")
+                plt.colorbar(im1, ax=ax1, shrink=0.6)
+                # Add click functionality for mixing matrix
+                ax1.set_picker(True)
+                ax1.matrix_type = "mixing"
+                plot_idx += 1
+
+            if "w" in self.ica_components:
+                ax2 = fig.add_subplot(total_rows, 2, plot_idx)
+                im2 = ax2.imshow(self.ica_components["w"], aspect="auto", cmap="viridis")
+                ax2.set_title("Unmixing Matrix (W)\n(Click to view details)", fontsize=14)
+                ax2.set_xlabel("Channels")
+                ax2.set_ylabel("Components")
+                plt.colorbar(im2, ax=ax2, shrink=0.6)
+                # Add click functionality for unmixing matrix
+                ax2.set_picker(True)
+                ax2.matrix_type = "unmixing"
+                plot_idx += 1
+
+            # Plot independent components in 2-column layout
+            if "s" in self.ica_components:
+                s_data = self.ica_components["s"]
+                sampling_rate = self.collector_service.get_sampling_rate()
+                time_vec = np.linspace(0, s_data.shape[1] / sampling_rate, s_data.shape[1])
+                
+                for i in range(min(num_components, s_data.shape[0])):
+                    # Calculate row and column for this component
+                    component_row = (i // plots_per_row) + matrix_rows  # Add matrix_rows offset
+                    component_col = (i % plots_per_row)
+                    
+                    # Calculate subplot index (row, col) -> index
+                    subplot_idx = (component_row * 2) + component_col + 1
+                    
+                    ax = fig.add_subplot(total_rows, 2, subplot_idx)
+                    ax.plot(time_vec, s_data[i, :], linewidth=1.2, color='#1f77b4')
+                    ax.set_title(f"Independent Component {i+1}\n(Click to view details)", fontsize=14, fontweight='bold')
+                    ax.set_xlabel("Time (s)", fontsize=12)
+                    ax.set_ylabel("Amplitude", fontsize=12)
+                    ax.grid(True, alpha=0.3)
+                    
+                    # Set reasonable y-limits to avoid extreme scaling
+                    data_std = np.std(s_data[i, :])
+                    data_mean = np.mean(s_data[i, :])
+                    ax.set_ylim(data_mean - 3*data_std, data_mean + 3*data_std)
+                    
+                    # Improve tick formatting
+                    ax.tick_params(axis='both', which='major', labelsize=10)
+                    
+                    # Add click functionality for components
+                    ax.set_picker(True)
+                    ax.component_index = i
+                    ax.component_data = s_data[i, :]
+                    ax.time_vector = time_vec
+
+            # Adjust layout with proper spacing - this is key for maintaining subplot sizes
+            plt.subplots_adjust(
+                left=0.08, right=0.95, 
+                top=0.95, bottom=0.05,
+                hspace=0.3, wspace=0.25
+            )
+            
+            # Add click event handler
+            def on_plot_click(event):
+                if event.inaxes is not None:
+                    ax = event.inaxes
+                    if hasattr(ax, 'component_index'):
+                        # Component plot clicked
+                        self._show_component_detail(ax.component_index, ax.component_data, ax.time_vector)
+                    elif hasattr(ax, 'matrix_type'):
+                        # Matrix plot clicked
+                        self._show_matrix_detail(ax.matrix_type)
+            
+            # Connect the click event
+            fig.canvas.mpl_connect('button_press_event', on_plot_click)
+            
+            # Create canvas with FIXED size
+            canvas = FigureCanvas(fig)
+            # IMPORTANT: Set minimum size to maintain figure dimensions
+            canvas_height = int(total_figure_height * 100)  # Convert inches to pixels (approx)
+            canvas.setMinimumHeight(canvas_height)
+            canvas.setMinimumWidth(int(figure_width * 100))
+            
+            # Add canvas to scroll layout
+            scroll_layout.addWidget(canvas)
+            
+            # CRITICAL: Set the scroll widget's minimum size to match canvas
+            scroll_widget.setMinimumHeight(canvas_height + 20)  # Add some padding
+            scroll_widget.setMinimumWidth(int(figure_width * 100) + 20)
+            
+            # Set the scroll widget
+            scroll_area.setWidget(scroll_widget)
+            main_layout.addWidget(scroll_area)
+            
+            # Add instruction label
+            from PyQt5.QtWidgets import QLabel
+            instruction_label = QLabel("Use mouse wheel to scroll • Click on any plot to view details")
+            instruction_label.setStyleSheet("color: #666666; font-style: italic; padding: 5px;")
+            instruction_label.setAlignment(Qt.AlignCenter)
+            main_layout.addWidget(instruction_label)
+            
+            # Show the dialog
+            dialog.show()
+            
+            self.show_status(f"ICA components visualization displayed - {num_components} components in scrollable view")
+
         except Exception as e:
             self.show_error("ICA Error", f"Error displaying ICA components: {str(e)}")
+
+    def _show_component_detail(self, component_index: int, component_data: np.ndarray, time_vector: np.ndarray) -> None:
+        """Show detailed view of a single ICA component."""
+        try:
+            from PyQt5.QtWidgets import QDialog, QVBoxLayout
+            import matplotlib.pyplot as plt
+            from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+            
+            # Create detail dialog
+            detail_dialog = QDialog(self.ica_dialog)
+            detail_dialog.setWindowTitle(f"ICA Component {component_index + 1} - Detailed View")
+            detail_dialog.resize(1000, 600)
+            
+            layout = QVBoxLayout(detail_dialog)
+            
+            # Create larger figure for component
+            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
+            
+            # Main time series plot
+            ax1.plot(time_vector, component_data, linewidth=1.5, color='#1f77b4', alpha=0.8)
+            ax1.set_title(f"Independent Component {component_index + 1} - Time Series", fontsize=16, fontweight='bold')
+            ax1.set_xlabel("Time (s)", fontsize=14)
+            ax1.set_ylabel("Amplitude", fontsize=14)
+            ax1.grid(True, alpha=0.3)
+            ax1.tick_params(axis='both', which='major', labelsize=12)
+            
+            # Add statistics text
+            data_mean = np.mean(component_data)
+            data_std = np.std(component_data)
+            data_min = np.min(component_data)
+            data_max = np.max(component_data)
+            stats_text = f"Mean: {data_mean:.4f} | Std: {data_std:.4f} | Min: {data_min:.4f} | Max: {data_max:.4f}"
+            ax1.text(0.02, 0.98, stats_text, transform=ax1.transAxes, fontsize=10, 
+                    verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+            
+            # Power spectral density
+            from scipy import signal
+            sampling_rate = self.collector_service.get_sampling_rate()
+            if sampling_rate > 0:
+                freqs, psd = signal.welch(component_data, sampling_rate, nperseg=min(len(component_data)//4, 1024))
+                ax2.semilogy(freqs, psd, color='#ff7f0e', linewidth=1.5)
+                ax2.set_title(f"Component {component_index + 1} - Power Spectral Density", fontsize=16, fontweight='bold')
+                ax2.set_xlabel("Frequency (Hz)", fontsize=14)
+                ax2.set_ylabel("Power/Frequency (dB/Hz)", fontsize=14)
+                ax2.grid(True, alpha=0.3)
+                ax2.tick_params(axis='both', which='major', labelsize=12)
+                ax2.set_xlim(0, min(50, sampling_rate/2))  # Show up to 50 Hz or Nyquist
+            else:
+                ax2.text(0.5, 0.5, "Cannot compute PSD\n(sampling rate unknown)", 
+                        transform=ax2.transAxes, ha='center', va='center', fontsize=14)
+                ax2.set_title(f"Component {component_index + 1} - Power Spectral Density", fontsize=16)
+            
+            plt.tight_layout()
+            
+            # Create canvas and add to dialog
+            canvas = FigureCanvas(fig)
+            layout.addWidget(canvas)
+            
+            # Show detail dialog
+            detail_dialog.show()
+            
+        except Exception as e:
+            self.show_error("Component Detail Error", f"Error showing component detail: {str(e)}")
+
+    def _show_matrix_detail(self, matrix_type: str) -> None:
+        """Show detailed view of mixing or unmixing matrix."""
+        try:
+            from PyQt5.QtWidgets import QDialog, QVBoxLayout
+            import matplotlib.pyplot as plt
+            from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+            
+            # Get matrix data
+            if matrix_type == "mixing":
+                matrix_data = self.ica_components["a"]
+                title = "Mixing Matrix (A)"
+                xlabel = "Components"
+                ylabel = "Channels"
+                description = "How components combine to form channels"
+            else:  # unmixing
+                matrix_data = self.ica_components["w"]
+                title = "Unmixing Matrix (W)"
+                xlabel = "Channels"
+                ylabel = "Components"
+                description = "How to extract components from channels"
+            
+            # Create detail dialog
+            detail_dialog = QDialog(self.ica_dialog)
+            detail_dialog.setWindowTitle(f"{title} - Detailed View")
+            detail_dialog.resize(1200, 600)  # Make dialog wider
+            
+            layout = QVBoxLayout(detail_dialog)
+            
+            # Create figure with better proportions - use 2:1 ratio for matrix:histogram
+            fig = plt.figure(figsize=(16, 7))
+            
+            # Create custom subplot layout - matrix gets more width
+            ax1 = plt.subplot2grid((1, 3), (0, 0), colspan=2)  # Matrix takes 2/3 of width
+            ax2 = plt.subplot2grid((1, 3), (0, 2), colspan=1)  # Histogram takes 1/3 of width
+            
+            # Matrix heatmap
+            im = ax1.imshow(matrix_data, aspect="auto", cmap="viridis", interpolation='nearest')
+            ax1.set_title(f"{title}\n{description}", fontsize=12, fontweight='bold')
+            ax1.set_xlabel(xlabel, fontsize=12)
+            ax1.set_ylabel(ylabel, fontsize=12)
+            
+            # Add colorbar
+            cbar = plt.colorbar(im, ax=ax1, shrink=0.8)
+            cbar.set_label('Weight', fontsize=12)
+            
+            # Add value annotations if matrix is small enough
+            if matrix_data.shape[0] <= 8 and matrix_data.shape[1] <= 8:
+                for i in range(matrix_data.shape[0]):
+                    for j in range(matrix_data.shape[1]):
+                        ax1.text(j, i, f'{matrix_data[i, j]:.3f}', 
+                                ha='center', va='center', color='white', fontsize=10)
+            
+            # Matrix statistics
+            ax2.hist(matrix_data.flatten(), bins=30, alpha=0.7, color='skyblue', edgecolor='black')
+            ax2.set_title("Weight Distribution", fontsize=14, fontweight='bold')
+            ax2.set_xlabel("Weight Value", fontsize=12)
+            ax2.set_ylabel("Frequency", fontsize=12)
+            ax2.grid(True, alpha=0.3)
+            
+            # Add statistics
+            stats_text = f"Shape: {matrix_data.shape}\n"
+            stats_text += f"Mean: {np.mean(matrix_data):.4f}\n"
+            stats_text += f"Std: {np.std(matrix_data):.4f}\n"
+            stats_text += f"Min: {np.min(matrix_data):.4f}\n"
+            stats_text += f"Max: {np.max(matrix_data):.4f}"
+            
+            ax2.text(0.02, 0.98, stats_text, transform=ax2.transAxes, fontsize=10,
+                    verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+            
+            # Better spacing
+            plt.subplots_adjust(left=0.08, right=0.95, bottom=0.1, top=0.85, wspace=0.3)
+            
+            # Create canvas and add to dialog
+            canvas = FigureCanvas(fig)
+            layout.addWidget(canvas)
+            
+            # Show detail dialog
+            detail_dialog.show()
+            
+        except Exception as e:
+            self.show_error("Matrix Detail Error", f"Error showing matrix detail: {str(e)}")
 
     def compute_wavelet(self) -> None:
         """Compute wavelet transform."""
         try:
-            # Implementation of wavelet transform
-            self.show_status("Wavelet transform computed")
-            self.inverse_wavelet_btn.setEnabled(True)
-        except Exception as e:
-            self.show_error(
-                "Wavelet Error", f"Error computing wavelet transform: {str(e)}"
+            # Get current data
+            data, _ = self.data_access_service.get_current_data()
+            if data.size == 0:
+                self.show_error("Wavelet Error", "No data available for wavelet computation")
+                return
+
+            # Get wavelet parameters
+            wavelet_type = self.wavelet_type_combo.currentData()
+            decomp_level = self.wavelet_level_spin.value()
+            channel_selection = self.wavelet_channel_combo.currentData()
+
+            # Select data for wavelet analysis
+            if channel_selection < data.shape[0]:
+                wavelet_data = data[channel_selection:channel_selection+1, :]
+            else:
+                self.show_error("Wavelet Error", "Selected channel not available")
+                return
+
+            # Initialize processor if needed
+            sampling_rate = self.collector_service.get_sampling_rate()
+            if sampling_rate > 0 and (not hasattr(self.processor_service, "processor") or 
+                                      self.processor_service.processor is None):
+                self.processor_service.initialize_processor(sampling_rate)
+
+            # Compute wavelet coefficients
+            coefficients, metadata = self.processor_service.compute_wavelet_coefficients(
+                wavelet_data, wavelet_type, decomp_level
             )
+
+            if coefficients is not None:
+                self.wavelet_coefficients = coefficients
+                self.wavelet_metadata = metadata
+                self.wavelet_computed = True
+                self.inverse_wavelet_btn.setEnabled(True)
+                self.inverse_wavelet_btn.setText("Apply Inverse Transform")
+                
+                # Store in data access service for stream processing
+                self.data_access_service._wavelet_coefficients = coefficients
+                self.data_access_service._wavelet_metadata = metadata
+                
+                self.show_status("Wavelet transform computed successfully")
+            else:
+                self.show_error("Wavelet Error", "Failed to compute wavelet transform")
+
+        except Exception as e:
+            self.show_error("Wavelet Error", f"Error computing wavelet transform: {str(e)}")
 
     def apply_inverse_wavelet(self) -> None:
-        """Apply inverse wavelet transform."""
+        """Apply or remove inverse wavelet transform."""
         try:
-            # Implementation of inverse wavelet transform
-            self.show_status("Inverse wavelet transform applied")
+            if not self.wavelet_computed or self.wavelet_coefficients is None:
+                self.show_error("Wavelet Error", "No wavelet coefficients available. Compute wavelet first.")
+                return
+
+            current_text = self.inverse_wavelet_btn.text()
+            
+            if current_text == "Apply Inverse Transform":
+                # Apply inverse wavelet transform to the stream
+                processing_settings = {
+                    "wavelet": {
+                        "inverse_enabled": True,
+                    }
+                }
+                
+                self.data_access_service.enable_advanced_processing(True, processing_settings)
+                
+                self.inverse_wavelet_btn.setText("Remove Inverse Transform")
+                self.inverse_wavelet_btn.setStyleSheet("background-color: #AA3333; color: white;")
+                self.show_status("Inverse wavelet transform applied to data stream")
+                
+            else:
+                # Remove inverse wavelet transform
+                self.data_access_service.enable_advanced_processing(False)
+                
+                self.inverse_wavelet_btn.setText("Apply Inverse Transform")
+                self.inverse_wavelet_btn.setStyleSheet("")
+                self.show_status("Inverse wavelet transform removed from data stream")
+
         except Exception as e:
-            self.show_error(
-                "Wavelet Error", f"Error applying inverse wavelet: {str(e)}"
-            )
+            self.show_error("Wavelet Error", f"Error applying inverse wavelet: {str(e)}")
 
     def apply_downsampling(self) -> None:
-        """Apply downsampling to data."""
+        """Apply or remove downsampling to data stream."""
         try:
-            # Implementation of downsampling
-            self.show_status("Downsampling applied")
+            current_text = self.apply_downsample_btn.text()
+            
+            if current_text == "Apply Downsampling":
+                # Apply downsampling to the stream
+                processing_settings = {
+                    "downsampling": {
+                        "enabled": True,
+                        "factor": self.downsample_factor_spin.value(),
+                        "operation": self.downsample_agg_combo.currentData(),
+                    }
+                }
+                
+                self.data_access_service.enable_advanced_processing(True, processing_settings)
+                self.downsampling_applied = True
+                
+                self.apply_downsample_btn.setText("Remove Downsampling")
+                self.apply_downsample_btn.setStyleSheet("background-color: #AA3333; color: white;")
+                self.show_status(f"Downsampling (factor {self.downsample_factor_spin.value()}) applied to data stream")
+                
+            else:
+                # Remove downsampling
+                self.data_access_service.enable_advanced_processing(False)
+                self.downsampling_applied = False
+                
+                self.apply_downsample_btn.setText("Apply Downsampling")
+                self.apply_downsample_btn.setStyleSheet("")
+                self.show_status("Downsampling removed from data stream")
+
         except Exception as e:
-            self.show_error(
-                "Downsampling Error", f"Error applying downsampling: {str(e)}"
-            )
+            self.show_error("Downsampling Error", f"Error applying downsampling: {str(e)}")
 
     def apply_advanced_filters(self) -> None:
-        """Apply advanced filters."""
+        """Apply or remove advanced filters to data stream."""
         try:
-            # Implementation of advanced filtering
-            self.show_status("Advanced filters applied")
-        except Exception as e:
-            self.show_error(
-                "Filtering Error", f"Error applying advanced filters: {str(e)}"
-            )
+            current_text = self.apply_adv_filter_btn.text()
+            
+            if current_text == "Apply Advanced Filters":
+                # Apply advanced filters to the stream
+                processing_settings = {
+                    "advanced_filters": {
+                        "enabled": True,
+                        "filter_type": self.filter_type_combo.currentData(),
+                        "low_cut": 1.0,  # Could be made configurable
+                        "high_cut": 50.0,  # Could be made configurable
+                        "order": 4,
+                    }
+                }
+                
+                self.data_access_service.enable_advanced_processing(True, processing_settings)
+                self.advanced_filters_applied = True
+                
+                self.apply_adv_filter_btn.setText("Remove Advanced Filters")
+                self.apply_adv_filter_btn.setStyleSheet("background-color: #AA3333; color: white;")
+                
+                filter_name = self.filter_type_combo.currentText()
+                self.show_status(f"Advanced filters ({filter_name}) applied to data stream")
+                
+            else:
+                # Remove advanced filters
+                self.data_access_service.enable_advanced_processing(False)
+                self.advanced_filters_applied = False
+                
+                self.apply_adv_filter_btn.setText("Apply Advanced Filters")
+                self.apply_adv_filter_btn.setStyleSheet("")
+                self.show_status("Advanced filters removed from data stream")
 
-    # Add methods for API interaction
+        except Exception as e:
+            self.show_error("Filtering Error", f"Error applying advanced filters: {str(e)}")
+
+    def compute_ica(self) -> None:
+        """Compute ICA components."""
+        try:
+            # Get current data
+            data, _ = self.data_access_service.get_current_data()
+            if data.size == 0:
+                self.show_error("ICA Error", "No data available for ICA computation")
+                return
+
+            # Get number of components and channels
+            num_components = self.ica_components_spin.value()
+            
+            # Use selected channels or all if none selected
+            if not self.ica_selected_channels:
+                self.show_error("ICA Error", "Please select at least one channel")
+                return
+            
+            # Extract selected channels
+            if len(self.ica_selected_channels) < num_components:
+                self.show_error("ICA Error", f"Number of selected channels ({len(self.ica_selected_channels)}) must be >= number of components ({num_components})")
+                return
+            
+            ica_data = data[self.ica_selected_channels, :]
+            selected_channels = self.ica_selected_channels.copy()
+
+            # Ensure we have enough data
+            min_samples = max(num_components * 100, 1000)
+            if ica_data.shape[1] < min_samples:
+                self.show_error("ICA Error", f"Need at least {min_samples} samples for reliable ICA")
+                return
+            
+            # Check minimum channels requirement
+            if ica_data.shape[0] < 2:
+                self.show_error("ICA Error", "Need at least 2 channels for ICA")
+                return
+            
+            if ica_data.shape[0] < 8:
+                reply = QMessageBox.question(
+                    self, 
+                    "ICA Warning", 
+                    f"ICA works best with at least 8-16 channels. You have {ica_data.shape[0]} channels.\n"
+                    "Results may not be meaningful. Continue anyway?",
+                    QMessageBox.Yes | QMessageBox.No
+                )
+                if reply == QMessageBox.No:
+                    return
+
+            # Initialize processor if needed
+            sampling_rate = self.collector_service.get_sampling_rate()
+            if sampling_rate > 0 and (not hasattr(self.processor_service, "processor") or 
+                                      self.processor_service.processor is None):
+                self.processor_service.initialize_processor(sampling_rate)
+
+            # Compute ICA
+            w, k, a, s = self.processor_service.perform_ica(ica_data, num_components)
+            
+            if w is not None:
+                self.ica_components = {
+                    "w": w, "k": k, "a": a, "s": s,
+                    "selected_channels": selected_channels,
+                    "num_components": num_components
+                }
+                self.ica_computed = True
+                self.view_ica_components_btn.setEnabled(True)
+                
+                self.show_status(f"ICA computed successfully with {num_components} components on {len(selected_channels)} channels")
+            else:
+                self.show_error("ICA Error", "Failed to compute ICA components")
+
+        except Exception as e:
+            self.show_error("ICA Error", f"Error computing ICA: {str(e)}")
+
+    def update_channel_lists(self, channel_names: List[str]) -> bool:
+        """Update channel selection dropdowns from API call."""
+        try:
+            self.channel_names = channel_names.copy()
+            
+            # Reset ICA selected channels to all channels
+            self.ica_selected_channels = list(range(len(self.channel_names)))
+            self._update_ica_channel_display()
+            
+            # Update wavelet channel combo (existing functionality)
+            current_wavelet_ch = self.wavelet_channel_combo.currentData()
+            self.wavelet_channel_combo.clear()
+
+            # Add channel options to wavelet combo
+            for i, name in enumerate(channel_names):
+                self.wavelet_channel_combo.addItem(name, i)
+
+            # Try to restore previous selection for wavelet
+            if current_wavelet_ch is not None:
+                for i in range(self.wavelet_channel_combo.count()):
+                    if self.wavelet_channel_combo.itemData(i) == current_wavelet_ch:
+                        self.wavelet_channel_combo.setCurrentIndex(i)
+                        break
+
+            return True
+        except Exception as e:
+            self.show_error("Channel List Update Error", str(e))
+            return False
+
+    def enable_processing(self, enabled: bool) -> None:
+        """Enable or disable advanced processing controls."""
+        self.compute_ica_btn.setEnabled(enabled)
+        self.compute_wavelet_btn.setEnabled(enabled)
+        self.apply_downsample_btn.setEnabled(enabled)
+        self.apply_adv_filter_btn.setEnabled(enabled)
+
+        # Update channel data when processing is enabled
+        if enabled:
+            self._initialize_channel_data()
+
+        # Reset dependent buttons and state when processing is disabled
+        if not enabled:
+            self.view_ica_components_btn.setEnabled(False)
+            self.inverse_wavelet_btn.setEnabled(False)
+            
+            # Reset button states
+            if self.downsampling_applied:
+                self.apply_downsample_btn.setText("Apply Downsampling")
+                self.apply_downsample_btn.setStyleSheet("")
+                self.downsampling_applied = False
+                
+            if self.advanced_filters_applied:
+                self.apply_adv_filter_btn.setText("Apply Advanced Filters")
+                self.apply_adv_filter_btn.setStyleSheet("")
+                self.advanced_filters_applied = False
+                
+            # Reset computed states
+            self.ica_computed = False
+            self.ica_components = None
+            self.wavelet_computed = False
+            self.wavelet_coefficients = None
+            self.wavelet_metadata = None
+
     def get_ica_settings(self) -> Dict[str, Any]:
         """Get current ICA settings."""
         return {
             "components": self.ica_components_spin.value(),
-            "channel": self.ica_channel_combo.currentData(),
+            "channels": self.ica_selected_channels,
+            "use_all_channels": len(self.ica_selected_channels) == len(self.channel_names) if self.channel_names else True,
         }
 
     def get_wavelet_settings(self) -> Dict[str, Any]:
@@ -310,51 +1045,3 @@ class AdvancedProcessingPanel(BasePanel):
             "filter_type": self.filter_type_combo.currentData(),
             "window_function": self.window_function_combo.currentData(),
         }
-
-    def update_channel_lists(self, channel_names: List[str]) -> bool:
-        """Update channel selection dropdowns from API call."""
-        try:
-            current_ica_ch = self.ica_channel_combo.currentData()
-            current_wavelet_ch = self.wavelet_channel_combo.currentData()
-
-            # Clear existing items
-            self.ica_channel_combo.clear()
-            self.wavelet_channel_combo.clear()
-
-            # Add "All Channels" option to ICA
-            self.ica_channel_combo.addItem("All Channels", -1)
-
-            # Add channel options
-            for i, name in enumerate(channel_names):
-                self.ica_channel_combo.addItem(name, i)
-                self.wavelet_channel_combo.addItem(name, i)
-
-            # Try to restore previous selections
-            if current_ica_ch is not None:
-                for i in range(self.ica_channel_combo.count()):
-                    if self.ica_channel_combo.itemData(i) == current_ica_ch:
-                        self.ica_channel_combo.setCurrentIndex(i)
-                        break
-
-            if current_wavelet_ch is not None:
-                for i in range(self.wavelet_channel_combo.count()):
-                    if self.wavelet_channel_combo.itemData(i) == current_wavelet_ch:
-                        self.wavelet_channel_combo.setCurrentIndex(i)
-                        break
-
-            return True
-        except Exception as e:
-            self.show_error("Channel List Update Error", str(e))
-            return False
-
-    def enable_processing(self, enabled: bool) -> None:
-        """Enable or disable advanced processing controls."""
-        self.compute_ica_btn.setEnabled(enabled)
-        self.compute_wavelet_btn.setEnabled(enabled)
-        self.apply_downsample_btn.setEnabled(enabled)
-        self.apply_adv_filter_btn.setEnabled(enabled)
-
-        # Reset dependent buttons
-        if not enabled:
-            self.view_ica_components_btn.setEnabled(False)
-            self.inverse_wavelet_btn.setEnabled(False)

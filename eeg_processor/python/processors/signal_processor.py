@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Any
 
 import numpy as np
 from brainflow.data_filter import (
@@ -548,3 +548,108 @@ class SignalProcessor:
         for channel in channels:
             quality_dict[channel] = self.get_signal_quality(data, channel, gain)
         return quality_dict
+
+    def perform_advanced_bandpass_filter(
+        self,
+        data: np.ndarray,
+        start_freq: float,
+        stop_freq: float,
+        order: int,
+        filter_type: FilterTypes = FilterTypes.BUTTERWORTH,
+    ) -> np.ndarray:
+        """
+        Apply advanced bandpass filter with specific filter type to the data.
+
+        Args:
+            data: Input data to filter
+            start_freq: Low cutoff frequency
+            stop_freq: High cutoff frequency
+            order: Filter order
+            filter_type: Type of filter to use
+
+        Returns:
+            Filtered data
+        """
+        filtered_data = data.copy()
+        for channel_idx in range(data.shape[0]):
+            DataFilter.perform_bandpass(
+                filtered_data[channel_idx],
+                self.sampling_rate,
+                start_freq,
+                stop_freq,
+                order,
+                filter_type,
+                0,
+            )
+
+        self.processed_data = filtered_data
+        logging.info(
+            f"Applied advanced bandpass filter {start_freq}-{stop_freq}Hz, order {order}, type {filter_type}"
+        )
+        return filtered_data
+
+    def get_wavelet_coefficients(
+        self,
+        data: np.ndarray,
+        wavelet: WaveletTypes = WaveletTypes.DB4,
+        decomposition_level: int = 3,
+    ) -> Tuple[np.ndarray, Dict[str, Any]]:
+        """
+        Get wavelet coefficients for the data.
+
+        Args:
+            data: Input data
+            wavelet: Type of wavelet to use
+            decomposition_level: Level of decomposition
+
+        Returns:
+            Tuple of (coefficients, metadata)
+        """
+        coefficients_data = np.zeros_like(data)
+        metadata = {
+            "wavelet": wavelet,
+            "decomposition_level": decomposition_level,
+            "original_shape": data.shape,
+        }
+
+        for channel_idx in range(data.shape[0]):
+            # Get wavelet coefficients using BrainFlow
+            coeffs = DataFilter.get_wavelet_coeffs(
+                data[channel_idx], wavelet, decomposition_level
+            )
+            # Store coefficients (note: this is a simplified version)
+            coefficients_data[channel_idx] = coeffs[:data.shape[1]]
+
+        logging.info(f"Computed wavelet coefficients with {wavelet}, level {decomposition_level}")
+        return coefficients_data, metadata
+
+    def apply_inverse_wavelet_transform(
+        self,
+        coefficients: np.ndarray,
+        metadata: Dict[str, Any],
+    ) -> np.ndarray:
+        """
+        Apply inverse wavelet transform using stored coefficients.
+
+        Args:
+            coefficients: Wavelet coefficients
+            metadata: Metadata from forward transform
+
+        Returns:
+            Reconstructed data
+        """
+        wavelet = metadata.get("wavelet", WaveletTypes.DB4)
+        decomp_level = metadata.get("decomposition_level", 3)
+        
+        reconstructed_data = np.zeros_like(coefficients)
+        
+        for channel_idx in range(coefficients.shape[0]):
+            # For demonstration, we'll use the restore function
+            # In practice, you'd need to implement proper inverse transform
+            restored = DataFilter.restore_data_from_wavelet_detailed_coeffs(
+                coefficients[channel_idx], wavelet, decomp_level, decomp_level
+            )
+            reconstructed_data[channel_idx] = restored[:coefficients.shape[1]]
+
+        logging.info("Applied inverse wavelet transform")
+        return reconstructed_data
