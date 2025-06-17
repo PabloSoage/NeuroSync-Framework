@@ -1,5 +1,4 @@
 import logging
-import queue
 import threading
 import time
 from collections import deque
@@ -109,6 +108,7 @@ class CollectorService:
                         if current_time - last_event_time >= min_event_interval:
                             try:
                                 from ..core.event_system import EventType, dispatch
+
                                 dispatch(
                                     EventType.DATA_UPDATED,
                                     {"data": data, "timestamps": timestamps},
@@ -117,7 +117,7 @@ class CollectorService:
                                 last_event_time = current_time
                             except Exception as e:
                                 logging.debug(f"Error dispatching data event: {e}")
-                        
+
                         logging.debug(f"Collected {new_samples} samples IMMEDIATELY")
 
                 # Very short sleep for immediate responsiveness
@@ -257,27 +257,35 @@ class CollectorService:
 
             # Update streaming status and buffer info in DataAccessService
             data_access = DataAccessService.get_instance()
-            
+
             # Calculate reasonable buffer size for DataAccessService based on sampling rate
             sampling_rate = self.get_sampling_rate()
             if sampling_rate > 0:
                 # Set DataAccessService buffer to 30 seconds of data (reasonable for real-time processing)
                 service_buffer_samples = sampling_rate * 30
                 data_access._buffer_max_samples = service_buffer_samples
-                logging.info(f"DataAccessService buffer set to {service_buffer_samples} samples (30s at {sampling_rate}Hz)")
-            
-            data_access.update_metadata({
-                "streaming": True,
-                "collector_buffer_size": buffer_size,  # Collector's buffer size
-                "service_buffer_size": getattr(data_access, '_buffer_max_samples', None)  # Service buffer size
-            })
+                logging.info(
+                    f"DataAccessService buffer set to {service_buffer_samples} samples (30s at {sampling_rate}Hz)"
+                )
+
+            data_access.update_metadata(
+                {
+                    "streaming": True,
+                    "collector_buffer_size": buffer_size,  # Collector's buffer size
+                    "service_buffer_size": getattr(
+                        data_access, "_buffer_max_samples", None
+                    ),  # Service buffer size
+                }
+            )
 
             # Start background data retrieval thread
             self._stop_event.clear()
             self._data_thread = threading.Thread(target=self._data_loop, daemon=True)
             self._data_thread.start()
 
-            logging.info(f"Stream started with collector buffer: {buffer_size}, service buffer: {getattr(data_access, '_buffer_max_samples', 'auto')}")
+            logging.info(
+                f"Stream started with collector buffer: {buffer_size}, service buffer: {getattr(data_access, '_buffer_max_samples', 'auto')}"
+            )
             return True
         except Exception as e:
             logging.error(f"Stream start error: {e}")

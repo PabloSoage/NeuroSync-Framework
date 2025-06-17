@@ -1,4 +1,5 @@
 import logging
+from typing import Optional, Any
 
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import QTimer, pyqtSlot
@@ -67,6 +68,7 @@ class EEGProcessorApp(QMainWindow):
         self.recording_service = RecordingService()
 
         # Initialize MNE service
+        self.mne_service: Optional["MNEService"] = None
         try:
             from .services.mne_service import MNEService
 
@@ -221,23 +223,23 @@ class EEGProcessorApp(QMainWindow):
             logging.error(f"Error setting up API event subscriptions: {e}")
 
     @pyqtSlot()
-    def _handle_api_stream_start(self, event) -> None:
+    def _handle_api_stream_start(self, event: Any) -> None:
         """Handle stream start from API with thread safety."""
         # Use Qt's thread-safe mechanism to update GUI
         QTimer.singleShot(0, self.on_stream_started)
 
     @pyqtSlot()
-    def _handle_api_stream_stop(self, event) -> None:
+    def _handle_api_stream_stop(self, event: Any) -> None:
         """Handle stream stop from API with thread safety."""
         QTimer.singleShot(0, self.on_stream_stopped)
 
     @pyqtSlot()
-    def _handle_api_board_connect(self, event) -> None:
+    def _handle_api_board_connect(self, event: Any) -> None:
         """Handle board connect from API with thread safety."""
         QTimer.singleShot(0, self.on_board_connected)
 
     @pyqtSlot()
-    def _handle_api_board_disconnect(self, event) -> None:
+    def _handle_api_board_disconnect(self, event: Any) -> None:
         """Handle board disconnect from API with thread safety."""
         QTimer.singleShot(0, self.on_board_disconnected)
 

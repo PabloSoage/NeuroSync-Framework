@@ -218,7 +218,9 @@ class ProcessingPanel(BasePanel):
                 self.apply_filters_btn.setStyleSheet(
                     "background-color: #AA3333; color: white;"
                 )
-                self.show_status("Filters applied to visualization, MNE, and WebSocket API with same settings")
+                self.show_status(
+                    "Filters applied to visualization, MNE, and WebSocket API with same settings"
+                )
             else:
                 # Remove filters from visualization
                 self.visualization_service.set_bandpass_filter(False, 1.0, 50.0)
@@ -232,7 +234,9 @@ class ProcessingPanel(BasePanel):
                 self.filters_applied = False
                 self.apply_filters_btn.setText("Apply Filters to Visualization")
                 self.apply_filters_btn.setStyleSheet("")
-                self.show_status("Filters removed from all consumers (visualization, MNE, WebSocket)")
+                self.show_status(
+                    "Filters removed from all consumers (visualization, MNE, WebSocket)"
+                )
 
         except Exception as e:
             self.show_error("Filter Error", f"Error applying filters: {str(e)}")

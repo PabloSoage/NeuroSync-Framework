@@ -7,7 +7,7 @@ inputs using SDL2, with support for buttons, analog sticks and triggers.
 
 import threading
 import time
-from typing import List, Dict, Any, Callable, Set, Optional
+from typing import List, Dict, Any, Callable, Set, Optional, Tuple
 
 import sdl2
 import sdl2.ext
@@ -57,14 +57,20 @@ class PS4ControllerCollector(AbstractInputCollector):
         self.button_states: Dict[str, bool] = {}
 
         # Stick positions
-        self.stick_positions: Dict[str, tuple] = {"left": (0, 0), "right": (0, 0)}
+        self.stick_positions: Dict[str, Tuple[float, float]] = {
+            "left": (0.0, 0.0),
+            "right": (0.0, 0.0),
+        }
 
         # Trigger values
-        self.trigger_values: Dict[str, float] = {"left": 0, "right": 0}
+        self.trigger_values: Dict[str, float] = {"left": 0.0, "right": 0.0}
 
         # Previous values to track threshold crossings
-        self.previous_trigger_values = {"left": 0, "right": 0}
-        self.previous_stick_positions = {"left": (0, 0), "right": (0, 0)}
+        self.previous_trigger_values: Dict[str, float] = {"left": 0.0, "right": 0.0}
+        self.previous_stick_positions: Dict[str, Tuple[float, float]] = {
+            "left": (0.0, 0.0),
+            "right": (0.0, 0.0),
+        }
 
         # Threading for event processing
         self.event_thread: Optional[threading.Thread] = None
@@ -229,7 +235,7 @@ class PS4ControllerCollector(AbstractInputCollector):
 
     def _event_loop(self) -> None:
         """Main event loop that processes SDL2 events."""
-        last_scan_time = 0
+        last_scan_time = 0.0
         scan_interval = 1.0  # Scan for controllers every second
 
         while not self.event_stop_event.is_set() and self.is_capturing:
@@ -393,8 +399,8 @@ class PS4ControllerCollector(AbstractInputCollector):
 
         def apply_trigger_deadzone(value, deadzone=500):
             if value < deadzone:
-                return 0
-            return value
+                return 0.0
+            return float(value)
 
         # Handle different axis types
         if axis_event.axis == sdl2.SDL_CONTROLLER_AXIS_LEFTX:
@@ -614,8 +620,8 @@ class PS4ControllerCollector(AbstractInputCollector):
 
             # Reset all state
             self.button_states = {}
-            self.stick_positions = {"left": (0, 0), "right": (0, 0)}
-            self.trigger_values = {"left": 0, "right": 0}
+            self.stick_positions = {"left": (0.0, 0.0), "right": (0.0, 0.0)}
+            self.trigger_values = {"left": 0.0, "right": 0.0}
 
             print(f"Connected to controller: {self.controller_name}")
 
@@ -660,8 +666,8 @@ class PS4ControllerCollector(AbstractInputCollector):
 
         # Reset states
         self.button_states = {}
-        self.stick_positions = {"left": (0, 0), "right": (0, 0)}
-        self.trigger_values = {"left": 0, "right": 0}
+        self.stick_positions = {"left": (0.0, 0.0), "right": (0.0, 0.0)}
+        self.trigger_values = {"left": 0.0, "right": 0.0}
         self.controller_index = -1
 
         # Create a disconnection event only if we're capturing

@@ -353,7 +353,9 @@ class MNEVisualizationWidget(QWidget):
         if hasattr(self, "plot_btn"):
             self.plot_btn.setEnabled(enabled)
         if hasattr(self, "select_channels_btn"):
-            self.select_channels_btn.setEnabled(True)  # Always enabled for dynamic selection
+            self.select_channels_btn.setEnabled(
+                True
+            )  # Always enabled for dynamic selection
 
     def update_channel_info(self, channel_info: str) -> None:
         """Update channel information display."""
@@ -403,7 +405,7 @@ class MNEVisualizationWidget(QWidget):
         if hasattr(self, "plot_btn"):
             self.plot_btn.setText("Real-time Active" if active else "Generate Plot")
             self.plot_btn.setEnabled(not active)
-        
+
         # Keep channel selection enabled in real-time mode
         if hasattr(self, "select_channels_btn"):
             self.select_channels_btn.setEnabled(True)  # Always enabled now

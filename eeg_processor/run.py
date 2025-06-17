@@ -8,7 +8,6 @@ visualizing EEG data from various devices including g.tec unicorn.
 
 import argparse
 import logging
-import os
 import sys
 
 from PyQt5.QtWidgets import QApplication

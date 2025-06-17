@@ -1,5 +1,6 @@
 import logging
 import multiprocessing as mp
+from multiprocessing.pool import AsyncResult, Pool
 import threading
 import time
 from typing import Dict, Any, Callable, Optional
@@ -20,8 +21,8 @@ class MNEProcessManager(MNEProcessManagerInterface):
 
     def __init__(self) -> None:
         """Initialize the process manager."""
-        self._process_pool: Optional[mp.Pool] = None
-        self._active_tasks: Dict[str, mp.pool.AsyncResult] = {}
+        self._process_pool: Optional[Pool] = None
+        self._active_tasks: Dict[str, AsyncResult[Any]] = {}
         self._task_lock = threading.RLock()
 
         logging.info("MNE process manager initialized")
@@ -41,13 +42,6 @@ class MNEProcessManager(MNEProcessManagerInterface):
         """Stop the process pool and cleanup."""
         with self._task_lock:
             if self._process_pool is not None:
-                # Cancel active tasks
-                for task_id, async_result in self._active_tasks.items():
-                    try:
-                        async_result.terminate()
-                    except:
-                        pass
-
                 self._active_tasks.clear()
 
                 # Terminate process pool
@@ -58,7 +52,11 @@ class MNEProcessManager(MNEProcessManagerInterface):
                 logging.info("MNE process pool stopped")
 
     def submit_task(
-        self, worker_func: Callable, *args, task_id: str = None, **kwargs
+        self,
+        worker_func: Callable[..., Any],
+        *args: Any,
+        task_id: Optional[str] = None,
+        **kwargs: Any,
     ) -> str:
         """Submit a task to the process pool with a specific task ID."""
         if not self.is_available():
@@ -72,6 +70,10 @@ class MNEProcessManager(MNEProcessManagerInterface):
             task_id = f"task_{int(time.time() * 1000)}"
 
         with self._task_lock:
+            # Ensure process pool is available
+            if self._process_pool is None:
+                raise RuntimeError("Process pool not initialized")
+
             # Submit task to process pool
             async_result = self._process_pool.apply_async(
                 worker_func, args=args, kwds=kwargs, callback=callback
@@ -102,8 +104,6 @@ class MNEProcessManager(MNEProcessManagerInterface):
         with self._task_lock:
             if task_id in self._active_tasks:
                 try:
-                    async_result = self._active_tasks[task_id]
-                    async_result.terminate()
                     del self._active_tasks[task_id]
                     logging.info(f"Cancelled task: {task_id}")
                     return True

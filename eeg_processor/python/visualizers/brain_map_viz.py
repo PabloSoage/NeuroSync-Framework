@@ -1,16 +1,13 @@
 import logging
-import os
-import sys
 from typing import Dict, Tuple, List, Any, Optional
 
 import numpy as np
-
-from ..collectors.eeg_collector import EEGCollector
-from ..processors.signal_processor import SignalProcessor
-
 import pyqtgraph as pg
 from PyQt5.QtCore import Qt, QTimer, QPointF
 from PyQt5.QtGui import QFont, QColor, QPainterPath
+
+from ..collectors.eeg_collector import EEGCollector
+from ..processors.signal_processor import SignalProcessor
 
 
 class BrainMapVisualizer:
@@ -368,9 +365,7 @@ class BrainMapVisualizer:
                     if name in self.standard_positions:
                         pos = self.standard_positions[name]
                         self.electrode_positions[name] = pos
-                        self.electrode_quality[name] = (
-                            0.0
-                        )
+                        self.electrode_quality[name] = 0.0
                         logging.debug(f"Found standard position for {name}: {pos}")
 
                         # Determine region based on y-coordinate
@@ -931,9 +926,7 @@ class BrainMapVisualizer:
                 logging.debug(f"Created circular position for {name}: {pos}")
 
             self.electrode_positions[name] = pos
-            self.electrode_quality[name] = (
-                0.0
-            )
+            self.electrode_quality[name] = 0.0
             self.electrode_regions[name] = "other"
 
     # Add methods to configure filters similar to EEGVisualizer

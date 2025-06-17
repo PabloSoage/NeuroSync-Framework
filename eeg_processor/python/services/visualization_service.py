@@ -358,9 +358,14 @@ class VisualizationService:
 
     def are_filters_applied(self) -> bool:
         """Check if filters are currently applied to visualizations."""
-        return hasattr(self, "bandpass_enabled") and self.bandpass_enabled or \
-               hasattr(self, "notch_enabled") and self.notch_enabled or \
-               hasattr(self, "detrend_enabled") and self.detrend_enabled
+        return (
+            hasattr(self, "bandpass_enabled")
+            and self.bandpass_enabled
+            or hasattr(self, "notch_enabled")
+            and self.notch_enabled
+            or hasattr(self, "detrend_enabled")
+            and self.detrend_enabled
+        )
 
     def get_filter_settings(self) -> Dict[str, Any]:
         """Get current filter settings."""
@@ -374,5 +379,5 @@ class VisualizationService:
                 "enabled": getattr(self, "notch_enabled", False),
                 "frequency": getattr(self, "notch_freq", 50.0),
             },
-            "detrend": getattr(self, "detrend_enabled", False)
+            "detrend": getattr(self, "detrend_enabled", False),
         }

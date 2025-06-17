@@ -60,22 +60,22 @@ class MNEStatusWidget(QWidget):
             uptime = status_info.get("uptime", 0)
             plot_type = status_info.get("plot_type", "Unknown")
             interval = status_info.get("update_interval", 2.0)
-            
+
             # Performance metrics
             perf = status_info.get("performance", {})
             efficiency = perf.get("efficiency", 0.0)
-            
+
             # Build status text with performance info
             status_text = (
                 f"Real-time Mode: Active | Updates: {update_count} | "
                 f"Uptime: {uptime:.1f}s | Plot: {plot_type} | ⚡ Optimized"
             )
-            
+
             # Add performance indicators for fast intervals
             if interval < 1.0:
                 avg_time = perf.get("avg_processing_time", 0.0)
                 timeout_count = perf.get("timeout_count", 0)
-                
+
                 if efficiency > 0.8:
                     status_text += " | ⚠️ High CPU"
                     color = "#FFB366"
@@ -113,12 +113,18 @@ class MNEStatusWidget(QWidget):
         """Add a special message for channel updates."""
         if old_count != new_count:
             emoji = "📈" if new_count > old_count else "📉"
-            self.add_status_message(f"{emoji} Channel selection changed: {old_count} → {new_count}")
+            self.add_status_message(
+                f"{emoji} Channel selection changed: {old_count} → {new_count}"
+            )
 
-    def add_optimization_message(self, channels_selected: int, total_channels: int) -> None:
+    def add_optimization_message(
+        self, channels_selected: int, total_channels: int
+    ) -> None:
         """Add optimization information message."""
         if channels_selected < total_channels:
-            percentage_saved = ((total_channels - channels_selected) / total_channels * 100)
+            percentage_saved = (
+                (total_channels - channels_selected) / total_channels * 100
+            )
             self.add_status_message(
                 f"⚡ Optimization: Processing {channels_selected}/{total_channels} channels "
                 f"({percentage_saved:.1f}% less computation)"

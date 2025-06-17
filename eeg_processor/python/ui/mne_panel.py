@@ -1,5 +1,7 @@
 from typing import Any, Optional, Dict
 
+from PyQt5.QtGui import QCloseEvent
+
 from .base_panel import BasePanel
 from .mne.mne_panel_controller import MNEPanelController
 from .mne.widgets.mne_conversion_widget import MNEConversionWidget
@@ -95,7 +97,7 @@ class MNEPanel(BasePanel):
         if hasattr(self, "controller"):
             self.controller.enable_processing(enabled)
 
-    def closeEvent(self, event) -> None:
+    def closeEvent(self, event: QCloseEvent) -> None:
         """Handle panel close event."""
         if hasattr(self, "controller"):
             self.controller.cleanup()

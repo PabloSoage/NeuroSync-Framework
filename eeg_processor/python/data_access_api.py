@@ -24,7 +24,7 @@ class EEGDataAPI:
     def get_current_data() -> Tuple[np.ndarray, List[int]]:
         """
         Get the current EEG data and timestamps.
-        
+
         NOTE: This returns FILTERED data if filters are enabled in DataAccessService,
         RAW data if filters are disabled. Use get_raw_data() for always unfiltered data.
 
@@ -202,7 +202,7 @@ class EEGDataAPI:
     def get_eeg_data(max_samples: Optional[int] = None) -> Tuple[np.ndarray, List[int]]:
         """
         Get EEG channel data only.
-        
+
         NOTE: This returns FILTERED data if filters are enabled in DataAccessService.
 
         Args:
@@ -300,7 +300,7 @@ class EEGDataAPI:
             True if filters are enabled, False otherwise
         """
         data_access = DataAccessService.get_instance()
-        return getattr(data_access, '_filters_enabled', False)
+        return getattr(data_access, "_filters_enabled", False)
 
     @staticmethod
     def get_filter_settings() -> Optional[Dict[str, Any]]:
@@ -311,10 +311,12 @@ class EEGDataAPI:
             Filter settings dictionary or None if no filters configured
         """
         data_access = DataAccessService.get_instance()
-        filter_settings = getattr(data_access, '_filter_settings', None)
+        filter_settings = getattr(data_access, "_filter_settings", None)
         if filter_settings:
             # Add the enabled status to the settings
             filter_settings_copy = filter_settings.copy()
-            filter_settings_copy['enabled'] = getattr(data_access, '_filters_enabled', False)
+            filter_settings_copy["enabled"] = getattr(
+                data_access, "_filters_enabled", False
+            )
             return filter_settings_copy
         return None

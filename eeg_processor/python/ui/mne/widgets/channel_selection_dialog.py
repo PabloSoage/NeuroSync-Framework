@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from PyQt5.QtWidgets import (
     QDialog,
@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import (
     QScrollArea,
     QFrame,
     QGridLayout,
+    QWidget,
 )
 
 
@@ -18,18 +19,21 @@ class ChannelSelectionDialog(QDialog):
     """Reusable dialog for selecting EEG channels."""
 
     def __init__(
-        self, channel_names: List[str], selected_channels: List[int] = None, parent=None
-    ):
+        self,
+        channel_names: List[str],
+        selected_channels: Optional[List[int]] = None,
+        parent: Optional[QWidget] = None,
+    ) -> None:
         """Initialize the channel selection dialog."""
         super().__init__(parent)
         self.channel_names = channel_names
         self.selected_channels = selected_channels or list(range(len(channel_names)))
-        self.checkboxes = []
+        self.checkboxes: List[QCheckBox] = []
 
         self.setup_ui()
         self.apply_dark_theme()
 
-    def setup_ui(self):
+    def setup_ui(self) -> None:
         """Set up the dialog UI."""
         self.setWindowTitle("Select EEG Channels")
         self.setModal(True)
@@ -93,7 +97,7 @@ class ChannelSelectionDialog(QDialog):
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
 
-    def apply_dark_theme(self):
+    def apply_dark_theme(self) -> None:
         """Apply dark theme styling to the dialog."""
         self.setStyleSheet(
             """
@@ -157,17 +161,17 @@ class ChannelSelectionDialog(QDialog):
         """
         )
 
-    def select_all(self):
+    def select_all(self) -> None:
         """Select all channels."""
         for checkbox in self.checkboxes:
             checkbox.setChecked(True)
 
-    def deselect_all(self):
+    def deselect_all(self) -> None:
         """Deselect all channels."""
         for checkbox in self.checkboxes:
             checkbox.setChecked(False)
 
-    def update_info_label(self):
+    def update_info_label(self) -> None:
         """Update the info label with selection count."""
         selected_count = sum(1 for cb in self.checkboxes if cb.isChecked())
         total_count = len(self.checkboxes)

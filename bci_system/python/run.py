@@ -6,7 +6,6 @@ EEG processing and input collection functionality.
 """
 
 import logging
-import os
 import sys
 
 from PyQt5.QtWidgets import QApplication

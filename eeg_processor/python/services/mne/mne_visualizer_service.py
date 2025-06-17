@@ -207,7 +207,9 @@ def _create_visualization_worker(
             display_info = f"all {len(raw_all_converted.ch_names)} converted channels"
 
         # Debug logging
-        logging.info(f"Visualization: {display_info}, Raw data shape: {raw_data.shape}, Channels in raw: {len(raw.ch_names)}")
+        logging.info(
+            f"Visualization: {display_info}, Raw data shape: {raw_data.shape}, Channels in raw: {len(raw.ch_names)}"
+        )
 
         # Calculate figure size based on plot type to maintain aspect ratio
         if plot_type.lower() in ["psd", "spectrogram"]:

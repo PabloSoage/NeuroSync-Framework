@@ -4,7 +4,8 @@ import os
 import socket
 import sys
 import time
-from typing import Dict, List, Any, Optional, Tuple, Union
+from typing import Dict, List, Any, Optional, Tuple
+
 import numpy as np
 
 # Configure logging
@@ -38,6 +39,7 @@ from .interaction_api_integration import EEGProcessorInteractionApiIntegration
 # True = High throughput mode (multiprocessing, higher latency but better for heavy processing)
 USE_API_MULTIPROCESSING = False
 
+
 class EEGProcessorApiIntegration:
     """Direct integration with EEG processor services and data."""
 
@@ -59,7 +61,6 @@ class EEGProcessorApiIntegration:
         self.module_id = "eeg_processor"
         self.data_service = DataAccessService.get_instance()
 
-
         # Initialize interaction API integration
         self.interaction_integration = (
             EEGProcessorInteractionApiIntegration.get_instance()
@@ -73,10 +74,10 @@ class EEGProcessorApiIntegration:
 
         # MULTIPROCESSING MODE: Variables for accumulation to prevent discontinuities
         if USE_API_MULTIPROCESSING:
-            self._websocket_interval = 0.05  # 50ms for multiprocessing mode
+            self._websocket_interval: float = 0.05  # 50ms for multiprocessing mode
             self._pending_samples = np.array([]).reshape(0, 0)
-            self._pending_timestamps = []
-            self._last_websocket_time = 0
+            self._pending_timestamps: List[int] = []
+            self._last_websocket_time = 0.0
         else:
             # DIRECT MODE: No accumulation needed
             pass
@@ -130,11 +131,17 @@ class EEGProcessorApiIntegration:
         # Register callback based on configuration
         if USE_API_MULTIPROCESSING:
             # High throughput mode with multiprocessing
-            self.api_callback_id = self.data_service.register_api_callback(self._handle_data_callback)
-            logger.info("Registered API callback with MULTIPROCESSING (high throughput mode)")
+            self.api_callback_id = self.data_service.register_api_callback(
+                self._handle_data_callback
+            )
+            logger.info(
+                "Registered API callback with MULTIPROCESSING (high throughput mode)"
+            )
         else:
             # Low latency mode with direct callbacks
-            self.api_callback_id = self.data_service.register_api_callback_direct(self._handle_data_callback)
+            self.api_callback_id = self.data_service.register_api_callback_direct(
+                self._handle_data_callback
+            )
             logger.info("Registered DIRECT API callback (low latency mode)")
 
         return True
@@ -178,6 +185,7 @@ class EEGProcessorApiIntegration:
         """Get collector service when needed (lazy loading)."""
         try:
             from .services.collector_service import CollectorService
+
             return CollectorService.get_instance()
         except Exception as e:
             logger.debug(f"Could not get collector service: {e}")
@@ -255,7 +263,7 @@ class EEGProcessorApiIntegration:
             logger.debug(f"Error getting sampling rate from BrainFlow: {e}")
 
         return 0
-    
+
     def _port_in_use(self, host: str, port: int) -> bool:
         """Check if port is already in use."""
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -1102,14 +1110,14 @@ class EEGProcessorApiIntegration:
         try:
             if data.size == 0:
                 return
-            
+
             # Check if filters are enabled to decide data source
             filters_enabled = EEGDataAPI.are_filters_enabled()
-            
+
             if filters_enabled:
                 # User wants filtered data - get it from EEGDataAPI (already filtered)
                 current_data, current_timestamps = EEGDataAPI.get_current_data()
-                
+
                 if current_data.size > 0:
                     # Use the same sample count as callback but from filtered buffer
                     callback_sample_count = data.shape[1]
@@ -1123,7 +1131,7 @@ class EEGProcessorApiIntegration:
                 # User wants raw data - use callback data directly
                 processed_data = data
                 processed_timestamps = timestamps
-            
+
             # Handle data differently based on mode
             if USE_API_MULTIPROCESSING:
                 # MULTIPROCESSING MODE: Use accumulator to prevent discontinuities
@@ -1131,42 +1139,48 @@ class EEGProcessorApiIntegration:
             else:
                 # DIRECT MODE: Send immediately for low latency
                 self._handle_direct_data(processed_data, processed_timestamps)
-            
+
         except Exception as e:
             logger.error(f"Error in data callback: {e}")
 
     def _handle_direct_data(self, data: np.ndarray, timestamps: List[int]) -> None:
         """Handle data in direct mode (low latency)."""
-        # IMMEDIATE SEND - similar to original implementation
+        # IMMEDIATE SEND
         max_websocket_samples = 20  # Keep it lean for minimal latency
-        
+
         if data.shape[1] > max_websocket_samples:
             websocket_data = data[:, -max_websocket_samples:]
             websocket_timestamps = timestamps[-max_websocket_samples:]
         else:
             websocket_data = data
             websocket_timestamps = timestamps
-        
+
         # Update tracking
         self._total_samples_sent += len(websocket_timestamps)
-        
-        # Create and send payload IMMEDIATELY
-        payload = self._create_visualization_payload(websocket_data, websocket_timestamps)
-        self._broadcast_event(payload)
-        
-        logger.debug(f"Sent {len(websocket_timestamps)} samples IMMEDIATELY via WebSocket (direct mode)")
 
-    def _handle_multiprocessing_data(self, data: np.ndarray, timestamps: List[int]) -> None:
+        # Create and send payload IMMEDIATELY
+        payload = self._create_visualization_payload(
+            websocket_data, websocket_timestamps
+        )
+        self._broadcast_event(payload)
+
+        logger.debug(
+            f"Sent {len(websocket_timestamps)} samples IMMEDIATELY via WebSocket (direct mode)"
+        )
+
+    def _handle_multiprocessing_data(
+        self, data: np.ndarray, timestamps: List[int]
+    ) -> None:
         """Handle data in multiprocessing mode (with accumulation to prevent discontinuities)."""
         current_time = time.time()
-        
+
         # Initialize accumulation variables if needed
-        if not hasattr(self, '_last_websocket_time'):
-            self._last_websocket_time = 0
+        if not hasattr(self, "_last_websocket_time"):
+            self._last_websocket_time = 0.0
             self._websocket_interval = 0.05  # 50ms for multiprocessing mode
             self._pending_samples = np.array([]).reshape(0, 0)
             self._pending_timestamps = []
-        
+
         # Accumulate samples to maintain continuity
         if self._pending_samples.size == 0:
             # First chunk or reset
@@ -1175,21 +1189,27 @@ class EEGProcessorApiIntegration:
         else:
             # Append to pending if same number of channels
             if self._pending_samples.shape[0] == data.shape[0]:
-                self._pending_samples = np.concatenate([self._pending_samples, data], axis=1)
+                self._pending_samples = np.concatenate(
+                    [self._pending_samples, data], axis=1
+                )
                 self._pending_timestamps.extend(timestamps)
             else:
                 # Channel count changed, reset
                 self._pending_samples = data.copy()
                 self._pending_timestamps = list(timestamps)
-        
+
         # Send accumulated data if enough time has passed OR if we have enough samples
-        time_threshold_met = current_time - self._last_websocket_time >= self._websocket_interval
-        sample_threshold_met = self._pending_samples.shape[1] >= 25  # Send when we have 25+ samples
-        
+        time_threshold_met = (
+            current_time - self._last_websocket_time >= self._websocket_interval
+        )
+        sample_threshold_met = (
+            self._pending_samples.shape[1] >= 25
+        )  # Send when we have 25+ samples
+
         if time_threshold_met or sample_threshold_met:
             # Limit for WebSocket efficiency but allow more than direct mode
             max_websocket_samples = 30  # Slightly more for multiprocessing mode
-            
+
             if self._pending_samples.shape[1] > max_websocket_samples:
                 # Keep the most recent samples for continuity
                 websocket_data = self._pending_samples[:, -max_websocket_samples:]
@@ -1197,23 +1217,33 @@ class EEGProcessorApiIntegration:
             else:
                 websocket_data = self._pending_samples
                 websocket_timestamps = self._pending_timestamps
-            
+
             # Update tracking
             self._total_samples_sent += len(websocket_timestamps)
-            
+
             # Create and send payload
-            payload = self._create_visualization_payload(websocket_data, websocket_timestamps)
+            payload = self._create_visualization_payload(
+                websocket_data, websocket_timestamps
+            )
             self._broadcast_event(payload)
-            
+
             # Reset pending data
-            self._pending_samples = np.array([]).reshape(websocket_data.shape[0], 0) if websocket_data.size > 0 else np.array([]).reshape(0, 0)
+            self._pending_samples = (
+                np.array([]).reshape(websocket_data.shape[0], 0)
+                if websocket_data.size > 0
+                else np.array([]).reshape(0, 0)
+            )
             self._pending_timestamps = []
             self._last_websocket_time = current_time
-            
+
             trigger_reason = "time" if time_threshold_met else "samples"
-            logger.debug(f"Sent {len(websocket_timestamps)} samples via WebSocket (multiprocessing mode, trigger: {trigger_reason})")
+            logger.debug(
+                f"Sent {len(websocket_timestamps)} samples via WebSocket (multiprocessing mode, trigger: {trigger_reason})"
+            )
         else:
-            logger.debug(f"Accumulated {data.shape[1]} samples for WebSocket (total pending: {self._pending_samples.shape[1]}, wait: {(current_time - self._last_websocket_time)*1000:.1f}ms)")
+            logger.debug(
+                f"Accumulated {data.shape[1]} samples for WebSocket (total pending: {self._pending_samples.shape[1]}, wait: {(current_time - self._last_websocket_time)*1000:.1f}ms)"
+            )
 
     def _create_visualization_payload(
         self, data: Any, timestamps: Any
@@ -1262,7 +1292,9 @@ class EEGProcessorApiIntegration:
                 "filters_applied": filters_enabled,
                 "filter_info": filter_settings if filters_enabled else None,
                 "data_source": "filtered" if filters_enabled else "raw",
-                "processing_mode": "multiprocessing" if USE_API_MULTIPROCESSING else "direct",
+                "processing_mode": (
+                    "multiprocessing" if USE_API_MULTIPROCESSING else "direct"
+                ),
             }
 
             # Use ALL timestamps from WebSocket data (already limited)
@@ -1316,7 +1348,11 @@ class EEGProcessorApiIntegration:
                                     "samples_count": len(channel_data),
                                     "index": ch_idx,
                                     "filtered": filters_enabled,
-                                    "processing_mode": "multiprocessing" if USE_API_MULTIPROCESSING else "direct",
+                                    "processing_mode": (
+                                        "multiprocessing"
+                                        if USE_API_MULTIPROCESSING
+                                        else "direct"
+                                    ),
                                 }
                             )
 
@@ -1336,15 +1372,21 @@ class EEGProcessorApiIntegration:
             "samples_count": websocket_samples_count,
             "visualization_modes": ["list", "chart"],
             "channel_types": list(channel_types.keys()),
-            "processing_mode": "multiprocessing" if USE_API_MULTIPROCESSING else "direct",
+            "processing_mode": (
+                "multiprocessing" if USE_API_MULTIPROCESSING else "direct"
+            ),
             "metadata": {
                 "board_name": board_info.get("board_name", "Unknown"),
                 "channel_count": data.shape[0] if data.size > 0 else 0,
                 "eeg_channels_count": len(eeg_channels),
                 "filters_enabled": filters_enabled,
                 "filter_settings": filter_settings if filters_enabled else None,
-                "processing_mode": "multiprocessing" if USE_API_MULTIPROCESSING else "direct",
-                "latency_mode": "high_throughput" if USE_API_MULTIPROCESSING else "low_latency",
+                "processing_mode": (
+                    "multiprocessing" if USE_API_MULTIPROCESSING else "direct"
+                ),
+                "latency_mode": (
+                    "high_throughput" if USE_API_MULTIPROCESSING else "low_latency"
+                ),
             },
         }
 

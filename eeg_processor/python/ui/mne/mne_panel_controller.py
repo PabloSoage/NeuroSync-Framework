@@ -50,7 +50,9 @@ class MNEPanelController(QObject):
         self.data_service = DataAccessService.get_instance()
         self.visualization_service = visualization_service
         self.processor_service = None
-        if hasattr(self.visualization_service, 'processor_service'):
+        if self.visualization_service and hasattr(
+            self.visualization_service, "processor_service"
+        ):
             self.processor_service = self.visualization_service.processor_service
 
         # State management
@@ -61,21 +63,21 @@ class MNEPanelController(QObject):
         self.conversion_selected_channels: List[int] = []
         self.channel_names: List[str] = []
         self.last_converted_channels: List[int] = []
-        
+
         # Filter state
         self.filters_applied = False
-        self.filter_settings = {}
-        
+        self.filter_settings: Dict[str, Any] = {}
+
         # Setup connections and timers
         self._connect_widgets()
         self._setup_status_timer()
         self._setup_realtime_timer()
         self._initialize_channel_data()
-        
+
         # Check for active filters
         self._update_filter_status()
         self._setup_filter_check_timer()
-        
+
     def _connect_widgets(self) -> None:
         """Connect widget signals to controller methods."""
         # Conversion widget signals
@@ -86,14 +88,10 @@ class MNEPanelController(QObject):
         self.conversion_widget.channel_selection_requested.connect(
             self._handle_channel_selection
         )
-        
+
         # Real-time signals
-        self.conversion_widget.realtime_requested.connect(
-            self._handle_realtime_request
-        )
-        self.conversion_widget.realtime_stopped.connect(
-            self._stop_realtime_processing
-        )
+        self.conversion_widget.realtime_requested.connect(self._handle_realtime_request)
+        self.conversion_widget.realtime_stopped.connect(self._stop_realtime_processing)
         # Dynamic parameter updates
         self.conversion_widget.realtime_param_changed.connect(
             self._handle_realtime_param_change
@@ -109,7 +107,7 @@ class MNEPanelController(QObject):
         self.visualization_widget.channel_selection_requested.connect(
             self._handle_channel_selection
         )
-        
+
         # Dynamic visualization updates
         self.visualization_widget.plot_type_changed.connect(
             self._handle_plot_type_change
@@ -117,9 +115,7 @@ class MNEPanelController(QObject):
         self.visualization_widget.freq_range_changed.connect(
             self._handle_freq_range_change
         )
-        self.visualization_widget.psd_mode_changed.connect(
-            self._handle_psd_mode_change
-        )
+        self.visualization_widget.psd_mode_changed.connect(self._handle_psd_mode_change)
         self.visualization_widget.topomap_band_changed.connect(
             self._handle_topomap_band_change
         )
@@ -133,7 +129,7 @@ class MNEPanelController(QObject):
         """Setup timer for real-time status updates."""
         self.realtime_timer = QTimer()
         self.realtime_timer.timeout.connect(self._update_realtime_status)
-    
+
     def _setup_filter_check_timer(self) -> None:
         """Setup timer to periodically check filter status."""
         self.filter_check_timer = QTimer()
@@ -144,78 +140,83 @@ class MNEPanelController(QObject):
         """Check if filters are applied in visualization service and update UI."""
         if not self.visualization_service:
             # No visualization service, can't check filters
-            if hasattr(self.conversion_widget, 'filter_status'):
-                self.conversion_widget.update_filter_status("(No access to filters)", False)
+            if hasattr(self.conversion_widget, "filter_status"):
+                self.conversion_widget.update_filter_status(
+                    "(No access to filters)", False
+                )
             return
-        
+
         # Check if filters are applied using the visualization service
         self.filters_applied = False
         self.filter_settings = {}
-        
+
         try:
             # Check for commonly used methods to determine if filters are applied
-            if hasattr(self.visualization_service, 'are_filters_applied'):
+            if hasattr(self.visualization_service, "are_filters_applied"):
                 self.filters_applied = self.visualization_service.are_filters_applied()
-            elif hasattr(self.visualization_service, 'has_active_filters'):
+            elif hasattr(self.visualization_service, "has_active_filters"):
                 self.filters_applied = self.visualization_service.has_active_filters()
-                
+
             # Get filter settings
-            if hasattr(self.visualization_service, 'get_filter_settings'):
+            if hasattr(self.visualization_service, "get_filter_settings"):
                 self.filter_settings = self.visualization_service.get_filter_settings()
-            
+
             # Update UI
             if self.filters_applied:
                 # Format filter description
                 desc_parts = []
                 if self.filter_settings.get("bandpass", {}).get("enabled", False):
                     bp = self.filter_settings["bandpass"]
-                    desc_parts.append(f"BP {bp.get('low', 1.0)}-{bp.get('high', 50.0)}Hz")
-                
+                    desc_parts.append(
+                        f"BP {bp.get('low', 1.0)}-{bp.get('high', 50.0)}Hz"
+                    )
+
                 if self.filter_settings.get("notch", {}).get("enabled", False):
                     notch = self.filter_settings["notch"]
                     desc_parts.append(f"Notch {notch.get('frequency', 50)}Hz")
-                
+
                 if self.filter_settings.get("detrend", False):
                     desc_parts.append("Detrend")
-                
+
                 filter_desc = "(Active: " + ", ".join(desc_parts) + ")"
                 self.conversion_widget.update_filter_status(filter_desc, True)
             else:
-                self.conversion_widget.update_filter_status("(No filters currently active)", False)
-        
+                self.conversion_widget.update_filter_status(
+                    "(No filters currently active)", False
+                )
+
         except Exception as e:
             logging.error(f"Error checking filter status: {e}")
-            self.conversion_widget.update_filter_status("(Error checking filter status)", False)
-    
+            self.conversion_widget.update_filter_status(
+                "(Error checking filter status)", False
+            )
+
     def _apply_filters_to_data(self, data: np.ndarray) -> np.ndarray:
         """Apply processing panel filters to data if enabled."""
         if not (self.filters_applied and self.processor_service):
             return data
-            
+
         try:
             filtered_data = data.copy()
-            
+
             # Apply filters in same order as visualization
             if self.filter_settings.get("bandpass", {}).get("enabled", False):
                 bp = self.filter_settings["bandpass"]
                 filtered_data = self.processor_service.apply_bandpass_filter(
-                    filtered_data,
-                    bp.get("low", 1.0),
-                    bp.get("high", 50.0)
+                    filtered_data, bp.get("low", 1.0), bp.get("high", 50.0)
                 )
-                
+
             if self.filter_settings.get("notch", {}).get("enabled", False):
                 notch = self.filter_settings["notch"]
                 filtered_data = self.processor_service.apply_notch_filter(
-                    filtered_data,
-                    notch.get("frequency", 50)
+                    filtered_data, notch.get("frequency", 50)
                 )
-                
+
             if self.filter_settings.get("detrend", False):
                 filtered_data = self.processor_service.apply_detrend(filtered_data)
-                
+
             return filtered_data
-            
+
         except Exception as e:
             logging.error(f"Error applying filters to data: {e}")
             return data  # Return original data on error
@@ -237,13 +238,13 @@ class MNEPanelController(QObject):
 
             # Get data and apply filters if requested
             data, timestamps = self.data_service.get_current_data()
-            
+
             # Apply filters if enabled and available
             use_filters = params.get("use_filters", False)
             if use_filters and self.filters_applied:
                 data = self._apply_filters_to_data(data)
                 self._add_status_message("Applied processing panel filters to MNE data")
-            
+
             # Start conversion with potentially filtered data
             self.current_conversion_task = self.mne_service.convert_to_mne_async(
                 duration_seconds=params["duration_seconds"],
@@ -251,7 +252,7 @@ class MNEPanelController(QObject):
                 selected_channels=channels_for_conversion,
                 callback=self._conversion_callback,
                 data=data,  # Pass filtered or raw data
-                metadata=self.data_service.get_metadata()
+                metadata=self.data_service.get_metadata(),
             )
 
             # Update UI state
@@ -264,18 +265,22 @@ class MNEPanelController(QObject):
                 if channels_for_conversion
                 else "all channels"
             )
-            
-            filter_info = " with filters" if (use_filters and self.filters_applied) else ""
-            
+
+            filter_info = (
+                " with filters" if (use_filters and self.filters_applied) else ""
+            )
+
             self._add_status_message(
                 f"Starting MNE conversion in {mode_name} Mode with {channel_info}{filter_info}"
             )
-            self.status_message.emit(f"Converting {channel_info} to MNE format{filter_info}...")
+            self.status_message.emit(
+                f"Converting {channel_info} to MNE format{filter_info}..."
+            )
 
         except Exception as e:
             self._show_error("MNE Error", f"Error starting conversion: {str(e)}")
             logging.error(f"MNE conversion start error: {e}")
-            
+
     def _handle_visualization_request(self, params: Dict[str, Any]) -> None:
         """Handle visualization request from widget."""
         if not self.current_conversion_task:
@@ -326,14 +331,16 @@ class MNEPanelController(QObject):
         try:
             # Get visualization parameters
             viz_params = self.visualization_widget.get_visualization_parameters()
-            
+
             # OPTIMIZATION: In real-time mode, channel selection is applied at conversion level
             # This saves processing time and memory by only converting selected channels
-            selected_for_conversion = self.selected_channels if self.selected_channels else None
-            
+            selected_for_conversion = (
+                self.selected_channels if self.selected_channels else None
+            )
+
             # Check if filters should be applied
             use_filters = params.get("use_filters", False)
-            
+
             # Start real-time processing
             self.current_realtime_session = self.mne_service.start_realtime_processing(
                 update_interval_seconds=params["update_interval_seconds"],
@@ -344,8 +351,16 @@ class MNEPanelController(QObject):
                 visualization_params=viz_params,
                 callback=self._realtime_callback,
                 use_filters=use_filters and self.filters_applied,
-                filter_settings=self.filter_settings if (use_filters and self.filters_applied) else None,
-                processor_service=self.processor_service if (use_filters and self.filters_applied) else None
+                filter_settings=(
+                    self.filter_settings
+                    if (use_filters and self.filters_applied)
+                    else None
+                ),
+                processor_service=(
+                    self.processor_service
+                    if (use_filters and self.filters_applied)
+                    else None
+                ),
             )
 
             # Update UI state
@@ -353,26 +368,39 @@ class MNEPanelController(QObject):
             self.visualization_widget.set_realtime_mode(True)
             self.realtime_timer.start(1000)  # Update every second
 
-            channel_count = len(self.selected_channels) if self.selected_channels else len(self.channel_names)
+            channel_count = (
+                len(self.selected_channels)
+                if self.selected_channels
+                else len(self.channel_names)
+            )
             total_channels = len(self.channel_names)
-            
+
             # Show optimization information
-            if selected_for_conversion and len(selected_for_conversion) < total_channels:
+            if (
+                selected_for_conversion
+                and len(selected_for_conversion) < total_channels
+            ):
                 optimization_msg = f"⚡ Optimized: Converting only {channel_count}/{total_channels} channels"
                 self._add_status_message(optimization_msg)
-                self._add_status_message(f"💾 Memory saved: ~{((total_channels - channel_count) / total_channels * 100):.1f}% less data processing")
-            
+                self._add_status_message(
+                    f"💾 Memory saved: ~{((total_channels - channel_count) / total_channels * 100):.1f}% less data processing"
+                )
+
             # Show filter information
             if use_filters and self.filters_applied:
-                self._add_status_message("🔍 Using processing panel filters for real-time data")
-            
+                self._add_status_message(
+                    "🔍 Using processing panel filters for real-time data"
+                )
+
             self._add_status_message(
                 f"🚀 Started real-time session: {self.current_realtime_session}"
             )
             self.status_message.emit("Real-time MNE processing started")
 
         except Exception as e:
-            self._show_error("MNE Error", f"Error starting real-time processing: {str(e)}")
+            self._show_error(
+                "MNE Error", f"Error starting real-time processing: {str(e)}"
+            )
             logging.error(f"Real-time processing start error: {e}")
 
     def _stop_realtime_processing(self) -> None:
@@ -388,7 +416,7 @@ class MNEPanelController(QObject):
             self.visualization_widget.set_realtime_mode(False)
             self.realtime_timer.stop()
             self.current_realtime_session = None
-            
+
             # Reset status display
             self.status_widget.update_realtime_status({"active": False})
 
@@ -396,8 +424,10 @@ class MNEPanelController(QObject):
         """Handle real-time visualization updates."""
         if result.get("success"):
             # Update visualization
-            self.visualization_widget.display_plot(result.get("plot_data"))
-            
+            plot_data = result.get("plot_data")
+            if plot_data is not None:
+                self.visualization_widget.display_plot(str(plot_data))
+
             # Log successful update
             logging.debug(f"Real-time update completed for session: {session_id}")
         else:
@@ -469,14 +499,22 @@ class MNEPanelController(QObject):
             old_selection = self.selected_channels.copy()
             self.selected_channels = dialog.get_selected_channels()
             self._update_channel_displays()
-            
+
             # Log the change with optimization information
-            selected_names = [available_names[i] for i in self.selected_channels if i < len(available_names)]
+            selected_names = [
+                available_names[i]
+                for i in self.selected_channels
+                if i < len(available_names)
+            ]
             self._add_status_message(
                 f"Selected {len(self.selected_channels)} channels: {', '.join(selected_names[:5])}"
-                + (f" and {len(selected_names)-5} more" if len(selected_names) > 5 else "")
+                + (
+                    f" and {len(selected_names)-5} more"
+                    if len(selected_names) > 5
+                    else ""
+                )
             )
-            
+
             # Update real-time session if active
             if self.current_realtime_session:
                 try:
@@ -484,7 +522,7 @@ class MNEPanelController(QObject):
                     total_channels = len(self.channel_names)
                     new_count = len(self.selected_channels)
                     old_count = len(old_selection)
-                    
+
                     # Update channels directly
                     if self.mne_service.update_realtime_channels(
                         self.current_realtime_session, self.selected_channels
@@ -492,10 +530,12 @@ class MNEPanelController(QObject):
                         self._add_status_message(
                             f"✅ Real-time channels updated: {old_count} → {new_count}"
                         )
-                        
+
                         # Show optimization information
                         if new_count < total_channels:
-                            memory_saved = ((total_channels - new_count) / total_channels * 100)
+                            memory_saved = (
+                                (total_channels - new_count) / total_channels * 100
+                            )
                             self._add_status_message(
                                 f"⚡ Optimization active: {memory_saved:.1f}% less processing needed"
                             )
@@ -504,8 +544,10 @@ class MNEPanelController(QObject):
                                 f"ℹ️ Processing all channels now (no optimization)"
                             )
                     else:
-                        self._add_status_message("⚠️ Failed to update real-time channels")
-                        
+                        self._add_status_message(
+                            "⚠️ Failed to update real-time channels"
+                        )
+
                 except Exception as e:
                     logging.error(f"Error updating real-time channels: {e}")
                     self._add_status_message(f"❌ Error updating channels: {str(e)}")
@@ -515,7 +557,7 @@ class MNEPanelController(QObject):
         # In real-time mode, always show all available channels
         if self.current_realtime_session:
             return self.channel_names.copy(), list(range(len(self.channel_names)))
-        
+
         # For non-real-time mode, use existing logic
         selected_mode = None
         try:
@@ -564,7 +606,9 @@ class MNEPanelController(QObject):
         if result.get("success"):
             self._add_status_message(f"Visualization completed: {task_id}")
             self.status_message.emit("MNE visualization completed")
-            self.visualization_widget.display_plot(result.get("plot_data"))
+            plot_data = result.get("plot_data")
+            if plot_data is not None:
+                self.visualization_widget.display_plot(str(plot_data))
 
         else:
             error_msg = result.get("error", "Unknown error")
@@ -636,7 +680,7 @@ class MNEPanelController(QObject):
         if self.current_realtime_session:
             status = self.mne_service.get_realtime_status(self.current_realtime_session)
             self.status_widget.update_realtime_status(status)
-            
+
             # Stop timer if session is no longer active
             if not status.get("active", False):
                 self.realtime_timer.stop()
@@ -687,13 +731,13 @@ class MNEPanelController(QObject):
         # Stop real-time processing
         if self.current_realtime_session:
             self.mne_service.stop_realtime_processing(self.current_realtime_session)
-        
+
         # Cancel other tasks
         if self.current_conversion_task:
             self.mne_service.cancel_task(self.current_conversion_task)
         if self.current_visualization_task:
             self.mne_service.cancel_task(self.current_visualization_task)
-            
+
         # Stop timers
         if hasattr(self, "status_timer"):
             self.status_timer.stop()
@@ -728,7 +772,9 @@ class MNEPanelController(QObject):
             return
 
         try:
-            if self.mne_service.update_realtime_plot_type(self.current_realtime_session, plot_type):
+            if self.mne_service.update_realtime_plot_type(
+                self.current_realtime_session, plot_type
+            ):
                 self._add_status_message(f"Switched to {plot_type} visualization")
             else:
                 logging.warning(f"Failed to update plot type to {plot_type}")
@@ -745,7 +791,9 @@ class MNEPanelController(QObject):
             if self.mne_service.update_realtime_visualization_params(
                 self.current_realtime_session, viz_params
             ):
-                self._add_status_message(f"Updated frequency range: {freq_min}-{freq_max} Hz")
+                self._add_status_message(
+                    f"Updated frequency range: {freq_min}-{freq_max} Hz"
+                )
             else:
                 logging.warning("Failed to update frequency range")
         except Exception as e:
@@ -778,7 +826,9 @@ class MNEPanelController(QObject):
             if self.mne_service.update_realtime_visualization_params(
                 self.current_realtime_session, viz_params
             ):
-                self._add_status_message(f"Updated topomap band: {freq_min}-{freq_max} Hz")
+                self._add_status_message(
+                    f"Updated topomap band: {freq_min}-{freq_max} Hz"
+                )
             else:
                 logging.warning("Failed to update topomap band")
         except Exception as e:

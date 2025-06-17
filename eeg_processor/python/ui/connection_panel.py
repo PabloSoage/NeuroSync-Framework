@@ -78,7 +78,7 @@ class ConnectionPanel(BasePanel):
         except Exception as e:
             logging.error(f"Error setting up event subscriptions: {e}")
 
-    def _handle_ui_update_event(self, event) -> None:
+    def _handle_ui_update_event(self, event: Any) -> None:
         """Handle UI update events from API."""
         try:
             data = event.data
@@ -92,7 +92,7 @@ class ConnectionPanel(BasePanel):
         except Exception as e:
             logging.error(f"Error handling UI update event: {e}")
 
-    def _handle_stream_start_event(self, event) -> None:
+    def _handle_stream_start_event(self, event: Any) -> None:
         """Handle stream start events from API."""
         try:
             # Update UI to reflect streaming started
@@ -107,7 +107,7 @@ class ConnectionPanel(BasePanel):
         except Exception as e:
             logging.error(f"Error handling stream start event: {e}")
 
-    def _handle_stream_stop_event(self, event) -> None:
+    def _handle_stream_stop_event(self, event: Any) -> None:
         """Handle stream stop events from API."""
         try:
             # Update UI to reflect streaming stopped
@@ -121,7 +121,7 @@ class ConnectionPanel(BasePanel):
         except Exception as e:
             logging.error(f"Error handling stream stop event: {e}")
 
-    def _handle_board_connect_event(self, event) -> None:
+    def _handle_board_connect_event(self, event: Any) -> None:
         """Handle board connect events from API."""
         try:
             # Update UI to reflect board connected
@@ -135,7 +135,7 @@ class ConnectionPanel(BasePanel):
         except Exception as e:
             logging.error(f"Error handling board connect event: {e}")
 
-    def _handle_board_disconnect_event(self, event) -> None:
+    def _handle_board_disconnect_event(self, event: Any) -> None:
         """Handle board disconnect events from API."""
         try:
             # Update UI to reflect board disconnected

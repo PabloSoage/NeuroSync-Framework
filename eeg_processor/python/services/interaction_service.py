@@ -8,9 +8,16 @@ the same singleton pattern as the input_collector module.
 
 import logging
 import threading
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, TYPE_CHECKING
 
 from ..core.event_system import EventDispatcher, EventType, dispatch
+
+if TYPE_CHECKING:
+    from .collector_service import CollectorService
+    from .processor_service import ProcessorService
+    from .recording_service import RecordingService
+    from .visualization_service import VisualizationService
+    from .data_access_service import DataAccessService
 
 
 class InteractionService:
@@ -45,11 +52,11 @@ class InteractionService:
         self._last_status = {"success": False, "message": "Service not initialized"}
 
         # Shared service instances - initialize once and reuse
-        self._collector_service = None
-        self._processor_service = None
-        self._recording_service = None
-        self._visualization_service = None
-        self._data_access_service = None
+        self._collector_service: Optional["CollectorService"] = None
+        self._processor_service: Optional["ProcessorService"] = None
+        self._recording_service: Optional["RecordingService"] = None
+        self._visualization_service: Optional["VisualizationService"] = None
+        self._data_access_service: Optional["DataAccessService"] = None
 
         logging.info("Interaction service initialized")
 
@@ -116,7 +123,7 @@ class InteractionService:
         """
         return self._last_status
 
-    def _get_collector_service(self):
+    def _get_collector_service(self) -> "CollectorService":
         """Get or create collector service instance."""
         if self._collector_service is None:
             from .collector_service import CollectorService
@@ -125,7 +132,7 @@ class InteractionService:
             self.register_component("collector_service", self._collector_service)
         return self._collector_service
 
-    def _get_processor_service(self):
+    def _get_processor_service(self) -> "ProcessorService":
         """Get or create processor service instance."""
         if self._processor_service is None:
             from .processor_service import ProcessorService
@@ -134,7 +141,7 @@ class InteractionService:
             self.register_component("processor_service", self._processor_service)
         return self._processor_service
 
-    def _get_recording_service(self):
+    def _get_recording_service(self) -> "RecordingService":
         """Get or create recording service instance."""
         if self._recording_service is None:
             from .recording_service import RecordingService
@@ -143,7 +150,7 @@ class InteractionService:
             self.register_component("recording_service", self._recording_service)
         return self._recording_service
 
-    def _get_visualization_service(self):
+    def _get_visualization_service(self) -> "VisualizationService":
         """Get or create visualization service instance."""
         if self._visualization_service is None:
             from .visualization_service import VisualizationService
@@ -154,7 +161,7 @@ class InteractionService:
             )
         return self._visualization_service
 
-    def _get_data_access_service(self):
+    def _get_data_access_service(self) -> "DataAccessService":
         """Get or create data access service instance."""
         if self._data_access_service is None:
             from .data_access_service import DataAccessService

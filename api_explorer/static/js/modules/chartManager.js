@@ -36,7 +36,7 @@ export class ChartManager {
         let hasNewData = false;
         let hasNewTypes = false;
         const updatedChannels = new Set();
-        
+
         const hadDataBefore = Object.keys(this.channelData[moduleId]).length > 0;
 
         data.visualization_data.list_view.forEach(item => {

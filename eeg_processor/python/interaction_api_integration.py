@@ -823,12 +823,12 @@ class EEGProcessorInteractionApiIntegration:
             requirements = BoardConfiguration.get_board_requirements(board_id)
             logging.info(f"Board requirements: {requirements}")
 
-            template = {}
+            template: Dict[str, Any] = {}
             required_comments = []
             optional_comments = []
 
             # Build complete template with all possible fields
-            all_fields = {
+            all_fields: Dict[str, Dict[str, Any]] = {
                 "serial_port": {
                     "value": "",
                     "description": "Serial port for board connection (e.g., COM3, /dev/ttyUSB0)",

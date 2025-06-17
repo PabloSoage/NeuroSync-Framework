@@ -1,11 +1,7 @@
 import logging
-import os
 
 # Import the interface
-import sys
 from typing import Dict, List, Tuple, Optional
-
-from ..interfaces.board_interface import BoardInterface
 
 from brainflow.board_shim import (
     BoardShim,
@@ -13,6 +9,8 @@ from brainflow.board_shim import (
     BoardIds,
     BrainFlowPresets,
 )
+
+from ..interfaces.board_interface import BoardInterface
 
 
 class BrainFlowBoardConfiguration(BoardInterface):

@@ -1,21 +1,11 @@
 import logging
 import os
 import queue
-import sys
 import threading
 import time
 from typing import Dict, List, Any, Optional, Tuple, TextIO
 
 import numpy as np
-
-from ..interfaces.collector_interface import (
-    CollectorInterface,
-    DataStorageInterface,
-    ContinuousRecordingInterface,
-    MarkerInterface,
-    ConfigurableCollectorInterface,
-)
-
 from brainflow.board_shim import (
     BoardShim,
     BrainFlowInputParams,
@@ -24,6 +14,14 @@ from brainflow.board_shim import (
 )
 from brainflow.data_filter import DataFilter
 from brainflow.exit_codes import BrainFlowError, BrainFlowExitCodes
+
+from ..interfaces.collector_interface import (
+    CollectorInterface,
+    DataStorageInterface,
+    ContinuousRecordingInterface,
+    MarkerInterface,
+    ConfigurableCollectorInterface,
+)
 
 
 class BrainFlowCollector(

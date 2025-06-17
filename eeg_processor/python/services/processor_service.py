@@ -58,20 +58,22 @@ class ProcessorService:
             # Ensure data is 2D
             if data.ndim == 1:
                 data = data.reshape(1, -1)
-            
-            logging.debug(f"Applying bandpass filter {low_cutoff}-{high_cutoff} Hz to data shape {data.shape}")
-            
+
+            logging.debug(
+                f"Applying bandpass filter {low_cutoff}-{high_cutoff} Hz to data shape {data.shape}"
+            )
+
             # Apply filter to specific channels or all data
             if channels is not None:
                 filtered_data = data.copy()
                 for channel in channels:
                     if channel < data.shape[0]:
                         # Apply filter to single channel
-                        channel_data = data[channel:channel+1, :]  # Keep 2D
+                        channel_data = data[channel : channel + 1, :]  # Keep 2D
                         filtered_channel_data = self.processor.bandpass_filter(
                             channel_data, low_cutoff, high_cutoff, 4
                         )
-                        filtered_data[channel:channel+1, :] = filtered_channel_data
+                        filtered_data[channel : channel + 1, :] = filtered_channel_data
                 return filtered_data
             else:
                 # Apply to all channels
@@ -102,20 +104,22 @@ class ProcessorService:
             # Ensure data is 2D
             if data.ndim == 1:
                 data = data.reshape(1, -1)
-                
-            logging.debug(f"Applying notch filter {notch_freq} Hz to data shape {data.shape}")
-            
+
+            logging.debug(
+                f"Applying notch filter {notch_freq} Hz to data shape {data.shape}"
+            )
+
             # Use environmental noise removal which includes notch filtering
             if channels is not None:
                 filtered_data = data.copy()
                 for channel in channels:
                     if channel < data.shape[0]:
                         # Apply filter to single channel
-                        channel_data = data[channel:channel+1, :]  # Keep 2D
-                        filtered_channel_data = self.processor.remove_environmental_noise(
-                            channel_data
+                        channel_data = data[channel : channel + 1, :]  # Keep 2D
+                        filtered_channel_data = (
+                            self.processor.remove_environmental_noise(channel_data)
                         )
-                        filtered_data[channel:channel+1, :] = filtered_channel_data
+                        filtered_data[channel : channel + 1, :] = filtered_channel_data
                 return filtered_data
             else:
                 # Apply to all channels
@@ -125,7 +129,12 @@ class ProcessorService:
             # Fallback: try bandstop filter
             try:
                 bandwidth = 2.0  # 2Hz bandwidth around notch frequency
-                return self.apply_bandstop_filter(data, notch_freq - bandwidth/2, notch_freq + bandwidth/2, channels)
+                return self.apply_bandstop_filter(
+                    data,
+                    notch_freq - bandwidth / 2,
+                    notch_freq + bandwidth / 2,
+                    channels,
+                )
             except Exception as e2:
                 logging.error(f"Bandstop fallback error: {e2}")
                 return data
@@ -157,20 +166,22 @@ class ProcessorService:
             # Ensure data is 2D
             if data.ndim == 1:
                 data = data.reshape(1, -1)
-                
-            logging.debug(f"Applying bandstop filter {low_cutoff}-{high_cutoff} Hz to data shape {data.shape}")
-            
+
+            logging.debug(
+                f"Applying bandstop filter {low_cutoff}-{high_cutoff} Hz to data shape {data.shape}"
+            )
+
             # Apply filter to specific channels or all data
             if channels is not None:
                 filtered_data = data.copy()
                 for channel in channels:
                     if channel < data.shape[0]:
                         # Apply filter to single channel
-                        channel_data = data[channel:channel+1, :]  # Keep 2D
+                        channel_data = data[channel : channel + 1, :]  # Keep 2D
                         filtered_channel_data = self.processor.bandstop_filter(
                             channel_data, low_cutoff, high_cutoff, 4
                         )
-                        filtered_data[channel:channel+1, :] = filtered_channel_data
+                        filtered_data[channel : channel + 1, :] = filtered_channel_data
                 return filtered_data
             else:
                 # Apply to all channels
@@ -200,17 +211,19 @@ class ProcessorService:
             # Ensure data is 2D
             if data.ndim == 1:
                 data = data.reshape(1, -1)
-                
+
             logging.debug(f"Applying detrend to data shape {data.shape}")
-            
+
             if channels is not None:
                 detrended_data = data.copy()
                 for channel in channels:
                     if channel < data.shape[0]:
                         # Apply detrend to single channel
-                        channel_data = data[channel:channel+1, :]  # Keep 2D
+                        channel_data = data[channel : channel + 1, :]  # Keep 2D
                         detrended_channel_data = self.processor.detrend(channel_data)
-                        detrended_data[channel:channel+1, :] = detrended_channel_data
+                        detrended_data[channel : channel + 1, :] = (
+                            detrended_channel_data
+                        )
                 return detrended_data
             else:
                 # Apply to all channels

@@ -26,7 +26,7 @@ class MNEConversionWidget(QWidget):
     channel_selection_requested = pyqtSignal(str)  # conversion/visualization
     realtime_requested = pyqtSignal(dict)  # Emit real-time parameters
     realtime_stopped = pyqtSignal()
-    
+
     # Add new signal for dynamic parameter updates
     realtime_param_changed = pyqtSignal(str, object)  # param_name, value
 
@@ -81,11 +81,13 @@ class MNEConversionWidget(QWidget):
         mode_layout.addWidget(QLabel("Conversion Mode:"))
 
         self.conversion_mode_combo = QComboBox()
-        self.conversion_mode_combo.addItems([
-            "Flexible Mode (All Channels)", 
-            "Performance Mode (Selected Only)",
-            "Real-time Mode (Auto-updating)"
-        ])
+        self.conversion_mode_combo.addItems(
+            [
+                "Flexible Mode (All Channels)",
+                "Performance Mode (Selected Only)",
+                "Real-time Mode (Auto-updating)",
+            ]
+        )
         self.conversion_mode_combo.setCurrentText("Flexible Mode (All Channels)")
         self.conversion_mode_combo.currentTextChanged.connect(self._on_mode_changed)
         mode_layout.addWidget(self.conversion_mode_combo)
@@ -123,15 +125,19 @@ class MNEConversionWidget(QWidget):
         filter_layout.addWidget(QLabel("Use Processing Panel Filters:"))
         self.use_filters_check = QCheckBox()
         self.use_filters_check.setChecked(True)
-        self.use_filters_check.setToolTip("Apply bandpass, notch, and detrend filters from the Processing Panel (if active)")
+        self.use_filters_check.setToolTip(
+            "Apply bandpass, notch, and detrend filters from the Processing Panel (if active)"
+        )
         filter_layout.addWidget(self.use_filters_check)
-        
+
         # Add filter status indicator
         self.filter_status = QLabel("(No filters currently active)")
-        self.filter_status.setStyleSheet("color: #888888; font-style: italic; font-size: 10px;")
+        self.filter_status.setStyleSheet(
+            "color: #888888; font-style: italic; font-size: 10px;"
+        )
         filter_layout.addWidget(self.filter_status)
         filter_layout.addStretch()
-        
+
         layout.addLayout(filter_layout)
 
         # Real-time specific parameters
@@ -140,7 +146,7 @@ class MNEConversionWidget(QWidget):
     def _setup_realtime_parameters(self, layout: QVBoxLayout) -> None:
         """Setup real-time mode parameters."""
         self.realtime_params_layout = QHBoxLayout()
-        
+
         self.realtime_params_layout.addWidget(QLabel("Update Interval:"))
         self.update_interval_spin = QSpinBox()
         self.update_interval_spin.setRange(5, 300)  # 0.5s to 30s (in tenths of seconds)
@@ -151,7 +157,9 @@ class MNEConversionWidget(QWidget):
         )
         # Connect to dynamic update with conversion to seconds
         self.update_interval_spin.valueChanged.connect(
-            lambda value: self.realtime_param_changed.emit("update_interval", value / 10.0)
+            lambda value: self.realtime_param_changed.emit(
+                "update_interval", value / 10.0
+            )
         )
         self.realtime_params_layout.addWidget(self.update_interval_spin)
 
@@ -169,10 +177,10 @@ class MNEConversionWidget(QWidget):
             "color: #00CC88; font-style: italic; font-size: 9px;"
         )
         self.realtime_params_layout.addWidget(self.dynamic_update_label)
-        
+
         # Connect warning system
         self.update_interval_spin.valueChanged.connect(self._update_performance_warning)
-        
+
         self.realtime_params_layout.addStretch()
 
         self.realtime_params_widget = QWidget()
@@ -183,7 +191,7 @@ class MNEConversionWidget(QWidget):
     def _update_performance_warning(self, value: int) -> None:
         """Update performance warning based on interval."""
         interval_seconds = value / 10.0
-        
+
         if interval_seconds < 1.0:
             self.performance_warning.setText("⚠️ High CPU")
             self.performance_warning.setStyleSheet(
@@ -261,7 +269,7 @@ class MNEConversionWidget(QWidget):
         # Show/hide relevant controls
         self.performance_channel_widget.setVisible(is_performance_mode)
         self.realtime_params_widget.setVisible(is_realtime_mode)
-        
+
         # Show/hide buttons
         self.convert_btn.setVisible(not is_realtime_mode)
         self.start_realtime_btn.setVisible(is_realtime_mode)
@@ -315,32 +323,40 @@ class MNEConversionWidget(QWidget):
         return {
             "duration_seconds": self.duration_spin.value(),
             "convert_to_v": self.convert_to_v_check.isChecked(),
-            "use_filters": self.use_filters_check.isChecked() if hasattr(self, 'use_filters_check') else False,
+            "use_filters": (
+                self.use_filters_check.isChecked()
+                if hasattr(self, "use_filters_check")
+                else False
+            ),
             "mode": (
                 "performance" if "Performance Mode" in selected_mode else "flexible"
             ),
         }
-        
+
     # Add method to update filter status text
     def update_filter_status(self, status_text: str, is_active: bool = False) -> None:
         """Update the filter status indicator."""
-        if hasattr(self, 'filter_status'):
+        if hasattr(self, "filter_status"):
             self.filter_status.setText(status_text)
             if is_active:
-                self.filter_status.setStyleSheet("color: #88CC88; font-style: italic; font-size: 10px;")
+                self.filter_status.setStyleSheet(
+                    "color: #88CC88; font-style: italic; font-size: 10px;"
+                )
             else:
-                self.filter_status.setStyleSheet("color: #888888; font-style: italic; font-size: 10px;")
+                self.filter_status.setStyleSheet(
+                    "color: #888888; font-style: italic; font-size: 10px;"
+                )
 
     def set_realtime_state(self, active: bool) -> None:
         """Set the real-time processing state."""
         self.start_realtime_btn.setEnabled(not active)
         self.stop_realtime_btn.setEnabled(active)
-        
+
         # Disable mode switching during real-time
         self.conversion_mode_combo.setEnabled(not active)
-        
+
         # Show/hide dynamic update indicator
-        if hasattr(self, 'dynamic_update_label'):
+        if hasattr(self, "dynamic_update_label"):
             self.dynamic_update_label.setVisible(active)
 
     def set_conversion_state(self, converting: bool) -> None:
@@ -355,12 +371,12 @@ class MNEConversionWidget(QWidget):
     def set_enabled(self, enabled: bool) -> None:
         """Enable or disable the widget."""
         self.convert_btn.setEnabled(enabled)
-        if hasattr(self, 'select_conversion_channels_btn'):
+        if hasattr(self, "select_conversion_channels_btn"):
             self.select_conversion_channels_btn.setEnabled(enabled)
 
     def update_channel_info(self, channel_info: str) -> None:
         """Update the channel information display."""
-        if hasattr(self, 'conversion_channels_label'):
+        if hasattr(self, "conversion_channels_label"):
             self.conversion_channels_label.setText(channel_info)
 
     def reset_state(self) -> None:

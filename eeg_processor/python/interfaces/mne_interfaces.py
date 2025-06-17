@@ -100,7 +100,11 @@ class MNEProcessManagerInterface(ABC):
 
     @abstractmethod
     def submit_task(
-        self, worker_func: Callable, *args, task_id: str = None, **kwargs
+        self,
+        worker_func: Callable[..., Any],
+        *args: Any,
+        task_id: Optional[str] = None,
+        **kwargs: Any
     ) -> str:
         """Submit a task to the process pool with optional task ID."""
         pass
@@ -144,11 +148,7 @@ class MNERealtimeInterface(ABC):
         pass
 
     @abstractmethod
-    def update_realtime_params(
-        self, 
-        session_id: str, 
-        params: Dict[str, Any]
-    ) -> bool:
+    def update_realtime_params(self, session_id: str, params: Dict[str, Any]) -> bool:
         """Update real-time processing parameters."""
         pass
 

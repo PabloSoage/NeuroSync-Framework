@@ -504,7 +504,6 @@ HELP_CONTENT = {
         or export to other formats for further processing in specialized software.</p>
         """,
     },
-    
     "mne_conversion": {
         "title": "MNE Data Conversion",
         "content": """
@@ -518,7 +517,7 @@ HELP_CONTENT = {
         </ul>
 
         <h4>Conversion Modes:</h4>
-        
+
         <h5>Flexible Mode (Recommended for Analysis)</h5>
         <ul>
             <li>Converts all available EEG channels</li>
@@ -548,7 +547,6 @@ HELP_CONTENT = {
         of the application while it processes.</p>
         """,
     },
-    
     "mne_visualization": {
         "title": "MNE Visualization Options",
         "content": """
@@ -557,7 +555,7 @@ HELP_CONTENT = {
         using MNE's advanced plotting capabilities.</p>
 
         <h4>Plot Types:</h4>
-        
+
         <h5>Power Spectral Density (PSD)</h5>
         <ul>
             <li>Shows frequency content of EEG signals</li>
@@ -608,7 +606,6 @@ HELP_CONTENT = {
         </ul>
         """,
     },
-    
     "mne_workflow": {
         "title": "MNE Integration Workflow",
         "content": """
@@ -624,7 +621,7 @@ HELP_CONTENT = {
         </ul>
 
         <h4>Step-by-Step Workflow:</h4>
-        
+
         <h5>1. Data Collection Phase</h5>
         <ol>
             <li>Connect your EEG device in the Connection tab</li>
@@ -657,7 +654,7 @@ HELP_CONTENT = {
         </ol>
 
         <h4>Common Analysis Scenarios:</h4>
-        
+
         <h5>Alpha Wave Detection (Relaxation/Meditation)</h5>
         <ol>
             <li>Record with eyes closed in relaxed state</li>
@@ -701,7 +698,6 @@ HELP_CONTENT = {
         </ul>
         """,
     },
-    
     "mne_advanced": {
         "title": "Advanced MNE Features",
         "content": """
@@ -710,7 +706,7 @@ HELP_CONTENT = {
         for sophisticated EEG analysis.</p>
 
         <h4>Technical Features:</h4>
-        
+
         <h5>Asynchronous Processing</h5>
         <ul>
             <li>Conversion and visualization run in background processes</li>
@@ -736,7 +732,7 @@ HELP_CONTENT = {
         </ul>
 
         <h4>Integration with MNE Ecosystem:</h4>
-        
+
         <h5>Export Capabilities</h5>
         <ul>
             <li>Converted data maintains MNE Raw format compatibility</li>
@@ -757,7 +753,7 @@ HELP_CONTENT = {
         </ul>
 
         <h4>Performance Optimization:</h4>
-        
+
         <h5>When to Use Performance Mode</h5>
         <ul>
             <li>Working with high-density EEG systems (64+ channels)</li>
@@ -795,7 +791,6 @@ HELP_CONTENT = {
         </ul>
         """,
     },
-    
     # General EEG Concepts
     "eeg_basics": {
         "title": "EEG Basics",
@@ -958,7 +953,16 @@ class EEGConceptsHelpDialog(QDialog):
         self.add_tab("Recording", ["recording", "streaming", "streamers"])
         self.add_tab("Advanced Analysis", ["ica", "wavelet", "downsampling"])
         # Add comprehensive MNE Integration tab
-        self.add_tab("MNE Integration", ["mne", "mne_conversion", "mne_visualization", "mne_workflow", "mne_advanced"])
+        self.add_tab(
+            "MNE Integration",
+            [
+                "mne",
+                "mne_conversion",
+                "mne_visualization",
+                "mne_workflow",
+                "mne_advanced",
+            ],
+        )
 
         layout.addWidget(self.tabs)
 

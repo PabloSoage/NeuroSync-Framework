@@ -1,14 +1,15 @@
 import logging
 import threading
 from typing import Dict, Any, Optional, Callable, List, Tuple
+
 import numpy as np
 
 from .data_access_service import DataAccessService
 from .mne.mne_converter_service import MNEConverterService
 from .mne.mne_process_manager import MNEProcessManager
+from .mne.mne_realtime_service import MNERealtimeService
 from .mne.mne_result_storage import MNEResultStorage
 from .mne.mne_visualizer_service import MNEVisualizerService
-from .mne.mne_realtime_service import MNERealtimeService
 from ..interfaces.mne_interfaces import (
     MNEConverterInterface,
     MNEVisualizerInterface,
@@ -62,7 +63,7 @@ class MNEService:
         self._visualizer_service = MNEVisualizerService(
             self._process_manager, self._result_storage
         )
-        
+
         # Initialize real-time service
         self._realtime_service = MNERealtimeService(
             self._converter_service,
@@ -128,7 +129,7 @@ class MNEService:
         # Get current data and metadata if not provided
         if data is None or metadata is None:
             data_access = self._data_access_service
-            
+
             # Get filtered or raw data based on parameter
             if use_raw_data:
                 # Get raw data without any filters applied
@@ -138,7 +139,7 @@ class MNEService:
                 # Get data with filters applied if enabled
                 data_to_use, timestamps = data_access.get_current_data()
                 logging.debug("MNE conversion using potentially filtered data")
-                
+
             metadata_to_use = data_access.get_metadata()
         else:
             data_to_use = data
@@ -232,25 +233,33 @@ class MNEService:
         use_raw_data: bool = False,
     ) -> str:
         """Start real-time MNE processing with optional filter support."""
-        realtime_params = {
-            "update_interval_seconds": update_interval_seconds,
-            "plot_type": plot_type,
-            "duration_seconds": duration_seconds,
-            "convert_to_v": convert_to_v,
-            "selected_channels": selected_channels,
-            "visualization_params": visualization_params,
-            "callback": callback,
-            "use_raw_data": use_raw_data,  # Pass through to real-time service
-        }
-        
         # Note: The original filter support is maintained for backward compatibility
         # but the new approach uses DataAccessService filtering
         if use_filters and filter_settings and processor_service:
-            realtime_params["use_filters"] = True
-            realtime_params["filter_settings"] = filter_settings
-            realtime_params["processor_service"] = processor_service
-        
-        return self._realtime_service.start_realtime_processing(**realtime_params)
+            return self._realtime_service.start_realtime_processing(
+                update_interval_seconds=update_interval_seconds,
+                plot_type=plot_type,
+                duration_seconds=duration_seconds,
+                convert_to_v=convert_to_v,
+                selected_channels=selected_channels,
+                visualization_params=visualization_params,
+                callback=callback,
+                use_raw_data=use_raw_data,
+                use_filters=True,
+                filter_settings=filter_settings,
+                processor_service=processor_service,
+            )
+        else:
+            return self._realtime_service.start_realtime_processing(
+                update_interval_seconds=update_interval_seconds,
+                plot_type=plot_type,
+                duration_seconds=duration_seconds,
+                convert_to_v=convert_to_v,
+                selected_channels=selected_channels,
+                visualization_params=visualization_params,
+                callback=callback,
+                use_raw_data=use_raw_data,
+            )
 
     def stop_realtime_processing(self, session_id: str) -> bool:
         """Stop real-time processing session."""
@@ -272,11 +281,17 @@ class MNEService:
         """Get all active real-time sessions."""
         return self._realtime_service.get_all_active_sessions()
 
-    def update_realtime_visualization_params(self, session_id: str, viz_params: Dict[str, Any]) -> bool:
+    def update_realtime_visualization_params(
+        self, session_id: str, viz_params: Dict[str, Any]
+    ) -> bool:
         """Update visualization parameters for active real-time session."""
-        return self._realtime_service.update_visualization_params(session_id, viz_params)
+        return self._realtime_service.update_visualization_params(
+            session_id, viz_params
+        )
 
-    def update_realtime_channels(self, session_id: str, selected_channels: List[int]) -> bool:
+    def update_realtime_channels(
+        self, session_id: str, selected_channels: List[int]
+    ) -> bool:
         """Update selected channels for active real-time session."""
         return self._realtime_service.update_channels(session_id, selected_channels)
 
@@ -284,7 +299,9 @@ class MNEService:
         """Update plot type for active real-time session."""
         return self._realtime_service.update_plot_type(session_id, plot_type)
 
-    def update_realtime_interval(self, session_id: str, interval_seconds: float) -> bool:
+    def update_realtime_interval(
+        self, session_id: str, interval_seconds: float
+    ) -> bool:
         """Update update interval for active real-time session."""
         return self._realtime_service.update_realtime_params(
             session_id, {"update_interval": interval_seconds}

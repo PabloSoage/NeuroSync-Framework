@@ -1,7 +1,7 @@
 import logging
-import threading
 import multiprocessing as mp
 import queue
+import threading
 import time
 from typing import Dict, List, Any, Tuple, Callable, Optional
 
@@ -52,8 +52,12 @@ class DataAccessService:
         }
 
         # Registered callbacks for data updates - SEPARATED BY TYPE
-        self._local_callbacks: List[Optional[Callable[[np.ndarray, List[int]], None]]] = []
-        self._api_callbacks: List[Optional[Callable[[np.ndarray, List[int]], None]]] = []
+        self._local_callbacks: List[
+            Optional[Callable[[np.ndarray, List[int]], None]]
+        ] = []
+        self._api_callbacks: List[Optional[Callable[[np.ndarray, List[int]], None]]] = (
+            []
+        )
         self._callback_lock = threading.Lock()
 
         # Filter settings and processor service for optional filtering
@@ -84,7 +88,9 @@ class DataAccessService:
         except Exception as e:
             logging.debug(f"Could not connect to collector service: {e}")
 
-    def register_local_callback(self, callback: Callable[[np.ndarray, List[int]], None]) -> int:
+    def register_local_callback(
+        self, callback: Callable[[np.ndarray, List[int]], None]
+    ) -> int:
         """Register a callback for local app use (immediate data, no processing)."""
         with self._callback_lock:
             callback_id = len(self._local_callbacks)
@@ -92,27 +98,35 @@ class DataAccessService:
             logging.info(f"Registered local callback (ID: {callback_id})")
             return callback_id
 
-    def register_api_callback(self, callback: Callable[[np.ndarray, List[int]], None]) -> int:
+    def register_api_callback(
+        self, callback: Callable[[np.ndarray, List[int]], None]
+    ) -> int:
         """Register a callback for API use (potentially processed data)."""
         with self._callback_lock:
             callback_id = len(self._api_callbacks)
             self._api_callbacks.append(callback)
-            
+
             # Enable multiprocessing for API if not already enabled
             if not self._use_api_multiprocessing:
                 self._enable_api_multiprocessing()
-                
-            logging.info(f"Registered API callback (ID: {callback_id}), multiprocessing enabled")
+
+            logging.info(
+                f"Registered API callback (ID: {callback_id}), multiprocessing enabled"
+            )
             return callback_id
 
-    def register_api_callback_direct(self, callback: Callable[[np.ndarray, List[int]], None]) -> int:
+    def register_api_callback_direct(
+        self, callback: Callable[[np.ndarray, List[int]], None]
+    ) -> int:
         """Register a DIRECT callback for API use (immediate, no multiprocessing for low latency)."""
         with self._callback_lock:
             callback_id = len(self._api_callbacks)
             self._api_callbacks.append(callback)
-            
+
             # DON'T enable multiprocessing for direct callbacks
-            logging.info(f"Registered DIRECT API callback (ID: {callback_id}), immediate processing")
+            logging.info(
+                f"Registered DIRECT API callback (ID: {callback_id}), immediate processing"
+            )
             return callback_id
 
     def unregister_local_callback(self, callback_id: int) -> bool:
@@ -129,12 +143,14 @@ class DataAccessService:
         with self._callback_lock:
             if 0 <= callback_id < len(self._api_callbacks):
                 self._api_callbacks[callback_id] = None
-                
+
                 # Check if we still have active API callbacks
-                active_api_callbacks = [cb for cb in self._api_callbacks if cb is not None]
+                active_api_callbacks = [
+                    cb for cb in self._api_callbacks if cb is not None
+                ]
                 if not active_api_callbacks and self._use_api_multiprocessing:
                     self._disable_api_multiprocessing()
-                    
+
                 logging.info(f"Unregistered API callback (ID: {callback_id})")
                 return True
             return False
@@ -143,10 +159,10 @@ class DataAccessService:
         """Enable multiprocessing for API callbacks."""
         if self._use_api_multiprocessing:
             return
-            
+
         try:
             self._use_api_multiprocessing = True
-            
+
             # Create queues for inter-process communication
             self._api_data_queue = mp.Queue(maxsize=1000)
             self._api_processed_queue = mp.Queue(maxsize=500)
@@ -163,7 +179,9 @@ class DataAccessService:
 
             # Start thread to handle processed results
             self._api_stop_event.clear()
-            self._api_worker_thread = threading.Thread(target=self._api_result_handler, daemon=True)
+            self._api_worker_thread = threading.Thread(
+                target=self._api_result_handler, daemon=True
+            )
             self._api_worker_thread.start()
 
             logging.info(f"API multiprocessing enabled with {num_workers} workers")
@@ -176,15 +194,15 @@ class DataAccessService:
         """Disable multiprocessing for API callbacks."""
         if not self._use_api_multiprocessing:
             return
-            
+
         try:
             self._use_api_multiprocessing = False
-            
+
             # Stop worker thread
             self._api_stop_event.set()
             if self._api_worker_thread:
                 self._api_worker_thread.join(timeout=5)
-            
+
             # Cleanup process pool
             if self._api_process_pool:
                 self._api_process_pool.terminate()
@@ -287,7 +305,7 @@ class DataAccessService:
             try:
                 if self._api_processed_queue is None:
                     break
-                    
+
                 try:
                     processed_package = self._api_processed_queue.get(timeout=1.0)
                 except queue.Empty:
@@ -295,7 +313,9 @@ class DataAccessService:
 
                 data = processed_package["data"]
                 timestamps = processed_package["timestamps"]
-                chunk_size = processed_package.get("metadata", {}).get("chunk_size", data.shape[1] if data.size > 0 else 0)
+                chunk_size = processed_package.get("metadata", {}).get(
+                    "chunk_size", data.shape[1] if data.size > 0 else 0
+                )
 
                 # Send to API callbacks only
                 with self._callback_lock:
@@ -304,7 +324,9 @@ class DataAccessService:
                             try:
                                 # Send raw data - API will apply filters if needed
                                 callback(data, timestamps)
-                                logging.debug(f"Sent processed chunk of {chunk_size} samples to API callback")
+                                logging.debug(
+                                    f"Sent processed chunk of {chunk_size} samples to API callback"
+                                )
                             except Exception as e:
                                 logging.error(f"Error in API callback: {e}")
 
@@ -343,7 +365,11 @@ class DataAccessService:
 
     def _apply_filters_if_enabled(self, data: np.ndarray) -> np.ndarray:
         """Apply filters to data if enabled and processor is available."""
-        if not self._filters_enabled or not self._processor_service or not self._filter_settings:
+        if (
+            not self._filters_enabled
+            or not self._processor_service
+            or not self._filter_settings
+        ):
             return data
 
         if data.size == 0:
@@ -352,30 +378,45 @@ class DataAccessService:
         try:
             # Apply filters to the CHUNK, not the entire buffer
             filtered_data = data.copy()
-            
+
             logging.debug(f"Applying filters to chunk shape {data.shape}")
-            
+
             # Initialize processor if not already done
-            if not hasattr(self._processor_service, 'processor') or self._processor_service.processor is None:
+            if (
+                not hasattr(self._processor_service, "processor")
+                or self._processor_service.processor is None
+            ):
                 # Try to get sampling rate from metadata
                 sampling_rate = self._metadata.get("sampling_rate", 250)
-                if sampling_rate > 0:
-                    self._processor_service.initialize_processor(int(sampling_rate))
-                    logging.info(f"Auto-initialized processor with sampling rate {sampling_rate} Hz for filtering")
-                else:
-                    logging.warning("Cannot initialize processor: no valid sampling rate")
+                try:
+                    if isinstance(sampling_rate, (int, float)) and sampling_rate > 0:
+                        self._processor_service.initialize_processor(int(sampling_rate))
+                        logging.info(
+                            f"Auto-initialized processor with sampling rate {sampling_rate} Hz for filtering"
+                        )
+                    else:
+                        logging.warning(
+                            "Cannot initialize processor: no valid sampling rate"
+                        )
+                        return data
+                except (TypeError, ValueError):
+                    logging.warning(
+                        "Cannot initialize processor: invalid sampling rate type"
+                    )
                     return data
-            
+
             # Apply bandpass filter if enabled
             if self._filter_settings.get("bandpass", {}).get("enabled", False):
                 bp = self._filter_settings["bandpass"]
                 low_cut = bp.get("low_cut", bp.get("low", 1.0))
                 high_cut = bp.get("high_cut", bp.get("high", 50.0))
-                logging.debug(f"Applying bandpass filter {low_cut}-{high_cut} Hz to chunk")
+                logging.debug(
+                    f"Applying bandpass filter {low_cut}-{high_cut} Hz to chunk"
+                )
                 filtered_data = self._processor_service.apply_bandpass_filter(
                     filtered_data, low_cut, high_cut
                 )
-                
+
             # Apply notch filter if enabled
             if self._filter_settings.get("notch", {}).get("enabled", False):
                 notch = self._filter_settings["notch"]
@@ -384,15 +425,15 @@ class DataAccessService:
                 filtered_data = self._processor_service.apply_notch_filter(
                     filtered_data, freq
                 )
-                
+
             # Apply detrend if enabled
             if self._filter_settings.get("detrend", False):
                 logging.debug("Applying detrend to chunk")
                 filtered_data = self._processor_service.apply_detrend(filtered_data)
-                
+
             logging.debug("Filters applied successfully to chunk in DataAccessService")
             return filtered_data
-            
+
         except Exception as e:
             logging.error(f"Error applying filters to chunk in DataAccessService: {e}")
             return data
@@ -412,9 +453,12 @@ class DataAccessService:
                 # Concatenate along time axis
                 self._current_data = np.concatenate((self._current_data, data), axis=1)
                 self._timestamps.extend(timestamps)
-            
+
             # LIMIT buffer size to prevent infinite growth
-            if self._buffer_max_samples and self._current_data.shape[1] > self._buffer_max_samples:
+            if (
+                self._buffer_max_samples
+                and self._current_data.shape[1] > self._buffer_max_samples
+            ):
                 # Keep only the most recent samples
                 keep_samples = self._buffer_max_samples
                 self._current_data = self._current_data[:, -keep_samples:]
@@ -446,7 +490,9 @@ class DataAccessService:
                 # DIRECT callbacks for low latency (new implementation)
                 self._notify_api_callbacks_direct(data, timestamps)
 
-    def _notify_api_callbacks_direct(self, data: np.ndarray, timestamps: List[int]) -> None:
+    def _notify_api_callbacks_direct(
+        self, data: np.ndarray, timestamps: List[int]
+    ) -> None:
         """Notify API callbacks directly for low latency."""
         with self._callback_lock:
             for callback in self._api_callbacks:
@@ -454,11 +500,15 @@ class DataAccessService:
                     try:
                         # Send raw data immediately - API will handle filtering if needed
                         callback(data, timestamps)
-                        logging.debug(f"Sent {data.shape[1]} samples to API callback DIRECTLY (low latency)")
+                        logging.debug(
+                            f"Sent {data.shape[1]} samples to API callback DIRECTLY (low latency)"
+                        )
                     except Exception as e:
                         logging.error(f"Error in direct API callback: {e}")
 
-    def _notify_api_callbacks_multiprocessing(self, data: np.ndarray, timestamps: List[int]) -> None:
+    def _notify_api_callbacks_multiprocessing(
+        self, data: np.ndarray, timestamps: List[int]
+    ) -> None:
         """Notify API callbacks through multiprocessing (existing implementation)."""
         try:
             data_package = {
@@ -470,29 +520,38 @@ class DataAccessService:
                     "chunk_size": data.shape[1] if data.size > 0 else 0,
                 },
             }
-            
+
             # Non-blocking send to queue
-            try:
-                self._api_data_queue.put_nowait(data_package)
-                logging.debug(f"Queued {data.shape[1]} samples for API multiprocessing")
-            except queue.Full:
-                # If queue is full, try to make space but don't lose all data
-                dropped_count = 0
-                while dropped_count < 3:
-                    try:
-                        old_package = self._api_data_queue.get_nowait()
-                        dropped_count += 1
-                        logging.warning(f"Dropped old API data package ({dropped_count}/3)")
-                    except queue.Empty:
-                        break
-                
-                # Try to queue new data
+            if self._api_data_queue is not None:
                 try:
                     self._api_data_queue.put_nowait(data_package)
-                    logging.debug(f"Queued {data.shape[1]} samples after dropping {dropped_count} old packages")
+                    logging.debug(
+                        f"Queued {data.shape[1]} samples for API multiprocessing"
+                    )
                 except queue.Full:
-                    logging.warning("API queue still full, dropping current data package")
-                    
+                    # If queue is full, try to make space but don't lose all data
+                    dropped_count = 0
+                    while dropped_count < 3:
+                        try:
+                            old_package = self._api_data_queue.get_nowait()
+                            dropped_count += 1
+                            logging.warning(
+                                f"Dropped old API data package ({dropped_count}/3)"
+                            )
+                        except queue.Empty:
+                            break
+
+                    # Try to queue new data
+                    try:
+                        self._api_data_queue.put_nowait(data_package)
+                        logging.debug(
+                            f"Queued {data.shape[1]} samples after dropping {dropped_count} old packages"
+                        )
+                    except queue.Full:
+                        logging.warning(
+                            "API queue still full, dropping current data package"
+                        )
+
         except Exception as e:
             logging.error(f"Error queuing data for API multiprocessing: {e}")
 
@@ -504,27 +563,51 @@ class DataAccessService:
             sr = self._metadata.get("sampling_rate", 0)
             if sr and not self._buffer_max_samples:
                 # Calculate buffer size: sampling_rate * buffer_seconds
-                if isinstance(sr, (int, float)):
-                    self._buffer_max_samples = int(sr) * self._default_buffer_seconds
-                    logging.info(f"Buffer size set to {self._buffer_max_samples} samples ({self._default_buffer_seconds}s at {sr}Hz)")
+                try:
+                    # More robust type checking and conversion
+                    if isinstance(sr, (int, float)):
+                        sr_float = float(sr)
+                        if sr_float > 0:
+                            self._buffer_max_samples = (
+                                int(sr_float) * self._default_buffer_seconds
+                            )
+                            logging.info(
+                                f"Buffer size set to {self._buffer_max_samples} samples ({self._default_buffer_seconds}s at {sr_float}Hz)"
+                            )
+                    elif isinstance(sr, str):
+                        # Try to convert string or other types
+                        sr_float = float(sr)
+                        if sr_float > 0:
+                            self._buffer_max_samples = (
+                                int(sr_float) * self._default_buffer_seconds
+                            )
+                            logging.info(
+                                f"Buffer size set to {self._buffer_max_samples} samples ({self._default_buffer_seconds}s at {sr_float}Hz)"
+                            )
+                    else:
+                        logging.warning(f"Unsupported sampling rate type: {type(sr)}")
+                except (TypeError, ValueError, OverflowError):
+                    logging.warning(
+                        f"Invalid sampling rate value: {sr}, cannot set buffer size"
+                    )
 
     def get_current_data(self) -> Tuple[np.ndarray, List[int]]:
         """Get the current data and timestamps, optionally filtered."""
         with self._data_lock:
             raw_data = self._current_data.copy()
             timestamps = self._timestamps.copy()
-            
+
             # Apply filters if enabled - but only to recent data for efficiency
             if self._filters_enabled and raw_data.size > 0:
                 logging.debug("DataAccessService: Applying filters to current data")
-                
+
                 # For large buffers, only filter recent data to avoid performance issues
                 if raw_data.shape[1] > 5000:  # If buffer is large
                     # Filter only the last 5000 samples and use cached older data
                     recent_samples = 5000
                     recent_data = raw_data[:, -recent_samples:]
                     filtered_recent = self._apply_filters_if_enabled(recent_data)
-                    
+
                     # For demo purposes, just return the filtered recent data
                     # In production, you'd want to cache filtered older data
                     filtered_data = filtered_recent
@@ -533,15 +616,19 @@ class DataAccessService:
                     # Small buffer, filter everything
                     filtered_data = self._apply_filters_if_enabled(raw_data)
                     filtered_timestamps = timestamps
-                
-                if not np.array_equal(filtered_data, raw_data[:, -filtered_data.shape[1]:]):
+
+                if not np.array_equal(
+                    filtered_data, raw_data[:, -filtered_data.shape[1] :]
+                ):
                     logging.debug("DataAccessService: Data was successfully filtered")
                 else:
                     logging.debug("DataAccessService: Data was not changed by filters")
-                    
+
                 return filtered_data, filtered_timestamps
             else:
-                logging.debug("DataAccessService: Returning raw data (filters disabled)")
+                logging.debug(
+                    "DataAccessService: Returning raw data (filters disabled)"
+                )
                 return raw_data, timestamps
 
     def get_raw_data(self) -> Tuple[np.ndarray, List[int]]:
@@ -688,20 +775,38 @@ class DataAccessService:
         """Get the sampling rate."""
         with self._metadata_lock:
             rate = self._metadata.get("sampling_rate", 0)
-            if not isinstance(rate, (int, float)):
-                rate = 0
+
+            # Safe type conversion
+            try:
+                if isinstance(rate, (int, float)):
+                    rate_float = float(rate)
+                elif isinstance(rate, str):
+                    # Try to convert string
+                    rate_float = float(rate) if rate else 0.0
+                else:
+                    # Unsupported type
+                    rate_float = 0.0
+            except (TypeError, ValueError, OverflowError):
+                rate_float = 0.0
 
             # If rate is 0, try to get directly from collector
-            if rate == 0:
+            if rate_float == 0:
                 collector = self._get_active_collector()
                 if collector and hasattr(collector, "sampling_rate"):
                     collector_rate = collector.sampling_rate
-                    if isinstance(collector_rate, (int, float)):
-                        rate = float(collector_rate)
-                        # Update metadata for future calls
-                        self._metadata["sampling_rate"] = rate
+                    try:
+                        if isinstance(collector_rate, (int, float)):
+                            rate_float = float(collector_rate)
+                            # Update metadata for future calls
+                            self._metadata["sampling_rate"] = rate_float
+                        elif isinstance(collector_rate, str):
+                            rate_float = float(collector_rate)
+                            # Update metadata for future calls
+                            self._metadata["sampling_rate"] = rate_float
+                    except (TypeError, ValueError, OverflowError):
+                        pass
 
-            return float(rate)
+            return rate_float
 
     def is_streaming(self) -> bool:
         """Check if streaming is active."""
@@ -726,11 +831,6 @@ class DataAccessService:
         self, callback: Callable[[np.ndarray, List[int]], None]
     ) -> int:
         """Register a callback function (defaults to local callback for backward compatibility)."""
-        return self.register_local_callback(callback)
-
-    def unregister_callback(self, callback_id: int) -> bool:
-        """Unregister a callback (tries local first for backward compatibility)."""
-        return self.unregister_local_callback(callback_id)
         return self.register_local_callback(callback)
 
     def unregister_callback(self, callback_id: int) -> bool:

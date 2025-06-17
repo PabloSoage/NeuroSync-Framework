@@ -9,7 +9,7 @@ import json
 import logging
 import os
 import threading
-from typing import Dict, List, Optional, Callable, Any, Set
+from typing import Dict, List, Optional, Callable, Any, Set, Union
 
 import uvicorn
 
@@ -453,6 +453,14 @@ class ApiExplorer:
                 param_type = param_info.get("type", "string").lower()
 
                 # Map API types to Python types
+                field_type: Union[
+                    type[float],
+                    type[int],
+                    type[bool],
+                    type[Dict[str, Any]],
+                    type[List[Any]],
+                    type[str],
+                ]
                 if param_type in ["number", "float"]:
                     field_type = float
                 elif param_type in ["integer", "int"]:
@@ -480,8 +488,8 @@ class ApiExplorer:
 
             @router.post(f"/{method_id}")
             async def endpoint(
-                request_data: RequestModel,
-            ) -> Any:  # Use the specific model type
+                request_data: Any,  # RequestModel
+            ) -> Any:  # Use Any for dynamically created model
                 # Safely extract data from the Pydantic model
                 try:
                     if hasattr(request_data, "model_dump"):
