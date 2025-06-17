@@ -67,13 +67,6 @@ class BrainMapVisualizer:
         # Store EEG channels directly like EEGVisualizer does
         self.eeg_channels = collector.get_eeg_channels()
 
-        # Remove local filter settings - use centralized filtering from DataAccessService
-        # self.apply_bandpass = False
-        # self.bandpass_low = 1.0
-        # self.bandpass_high = 30.0
-        # self.apply_notch = False
-        # self.apply_detrend = False
-
         # Create visualization window
         self.setup_ui()
 

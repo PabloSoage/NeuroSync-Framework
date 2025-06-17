@@ -260,18 +260,7 @@ class EEGVisualizer:
                 return
 
             # Use data as-is since it comes from the centralized filter pipeline
-            # Remove local filtering - DataAccessService handles this
             data_to_plot = data.copy()
-
-            # Remove visualization-specific filtering - now handled centrally
-            # if self.apply_bandpass:
-            #     data_to_plot = self.processor.bandpass_filter(
-            #         data_to_plot, self.bandpass_low, self.bandpass_high, 4
-            #     )
-            # if self.apply_notch:
-            #     data_to_plot = self.processor.remove_environmental_noise(data_to_plot)
-            # if self.apply_detrend:
-            #     data_to_plot = self.processor.detrend(data_to_plot)
 
             # Calculate signal quality for each channel
             quality_scores = self.processor.get_all_channels_quality(
