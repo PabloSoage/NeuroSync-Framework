@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QComboBox,
     QSpinBox,
-    QGridLayout, QMessageBox, QWidget,
+    QGridLayout, QMessageBox, QWidget, QDoubleSpinBox, QFileDialog,
 )
 from brainflow.data_filter import (
     FilterTypes,
@@ -111,9 +111,10 @@ class AdvancedProcessingPanel(BasePanel):
         
         channel_layout.addLayout(channel_selection_layout)
         ica_params_layout.addLayout(channel_layout)
+        
         ica_layout.addLayout(ica_params_layout)
 
-        # ICA Control buttons
+        # ICA Control buttons (REMOVED colormap and export from here)
         ica_buttons_layout = QHBoxLayout()
         self.compute_ica_btn = QPushButton("Compute ICA")
         self.compute_ica_btn.clicked.connect(self.compute_ica)
@@ -412,7 +413,7 @@ class AdvancedProcessingPanel(BasePanel):
                 return
 
             # Create a new dialog window for the ICA visualization
-            from PyQt5.QtWidgets import QDialog, QVBoxLayout, QScrollArea, QWidget
+            from PyQt5.QtWidgets import QDialog, QVBoxLayout, QScrollArea, QWidget, QHBoxLayout
             from PyQt5.QtCore import Qt
             
             dialog = QDialog(self)
@@ -429,6 +430,37 @@ class AdvancedProcessingPanel(BasePanel):
             # Create main layout
             main_layout = QVBoxLayout(dialog)
             
+            # Add export controls at the top
+            export_layout = QHBoxLayout()
+            
+            # Colormap selection
+            export_layout.addWidget(QLabel("Colormap:"))
+            self.ica_colormap_combo = QComboBox()
+            self.ica_colormap_combo.addItem("Viridis", "viridis")
+            self.ica_colormap_combo.addItem("Plasma", "plasma")
+            self.ica_colormap_combo.addItem("Inferno", "inferno")
+            self.ica_colormap_combo.addItem("Magma", "magma")
+            self.ica_colormap_combo.addItem("Coolwarm", "coolwarm")
+            self.ica_colormap_combo.addItem("RdBu", "RdBu")
+            self.ica_colormap_combo.addItem("Spectral", "Spectral")
+            self.ica_colormap_combo.addItem("Jet", "jet")
+            # Connect to update visualization when colormap changes
+            self.ica_colormap_combo.currentTextChanged.connect(lambda: self._refresh_ica_visualization())
+            export_layout.addWidget(self.ica_colormap_combo)
+            
+            export_layout.addStretch()
+            
+            # Export buttons
+            export_overview_btn = QPushButton("Export Overview")
+            export_overview_btn.clicked.connect(self._export_ica_overview)
+            export_layout.addWidget(export_overview_btn)
+            
+            export_all_btn = QPushButton("Export All Images")
+            export_all_btn.clicked.connect(self._export_all_ica_images)
+            export_layout.addWidget(export_all_btn)
+            
+            main_layout.addLayout(export_layout)
+            
             # Create scroll area
             scroll_area = QScrollArea()
             scroll_area.setWidgetResizable(True)
@@ -440,134 +472,19 @@ class AdvancedProcessingPanel(BasePanel):
             scroll_layout = QVBoxLayout(scroll_widget)
             scroll_layout.setContentsMargins(0, 0, 0, 0)
             
-            # Get component data
-            num_components = self.ica_components["num_components"]
-            selected_channels = self.ica_components["selected_channels"]
+            # Store references for refresh functionality
+            self.ica_scroll_widget = scroll_widget
+            self.ica_scroll_layout = scroll_layout
             
-            # Import matplotlib with Qt5 backend
-            import matplotlib
-            matplotlib.use('Qt5Agg')
-            import matplotlib.pyplot as plt
-            from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-            
-            # Calculate number of rows needed (2 columns fixed + matrices at top)
-            plots_per_row = 2
-            matrix_rows = 1  # One row for both matrices side by side
-            component_rows = int(np.ceil(num_components / plots_per_row))
-            total_rows = matrix_rows + component_rows
-            
-            # Fixed subplot height - maintain this regardless of number of components
-            subplot_height = 4.0  # inches per subplot row
-            figure_width = 12
-            total_figure_height = total_rows * subplot_height
-            
-            # Create the matplotlib figure with FIXED size - don't let it resize
-            fig = plt.figure(figsize=(figure_width, total_figure_height))
-            
-            plot_idx = 1  # matplotlib subplot indices start at 1
-            
-            # First row: Mixing and Unmixing matrices side by side
-            if "a" in self.ica_components:
-                ax1 = fig.add_subplot(total_rows, 2, plot_idx)
-                im1 = ax1.imshow(self.ica_components["a"], aspect="auto", cmap="viridis")
-                ax1.set_title("Mixing Matrix (A)\n(Click to view details)", fontsize=14)
-                ax1.set_xlabel("Components")
-                ax1.set_ylabel("Channels")
-                plt.colorbar(im1, ax=ax1, shrink=0.6)
-                # Add click functionality for mixing matrix
-                ax1.set_picker(True)
-                ax1.matrix_type = "mixing"
-                plot_idx += 1
-
-            if "w" in self.ica_components:
-                ax2 = fig.add_subplot(total_rows, 2, plot_idx)
-                im2 = ax2.imshow(self.ica_components["w"], aspect="auto", cmap="viridis")
-                ax2.set_title("Unmixing Matrix (W)\n(Click to view details)", fontsize=14)
-                ax2.set_xlabel("Channels")
-                ax2.set_ylabel("Components")
-                plt.colorbar(im2, ax=ax2, shrink=0.6)
-                # Add click functionality for unmixing matrix
-                ax2.set_picker(True)
-                ax2.matrix_type = "unmixing"
-                plot_idx += 1
-
-            # Plot independent components in 2-column layout
-            if "s" in self.ica_components:
-                s_data = self.ica_components["s"]
-                sampling_rate = self.collector_service.get_sampling_rate()
-                time_vec = np.linspace(0, s_data.shape[1] / sampling_rate, s_data.shape[1])
-                
-                for i in range(min(num_components, s_data.shape[0])):
-                    # Calculate row and column for this component
-                    component_row = (i // plots_per_row) + matrix_rows  # Add matrix_rows offset
-                    component_col = (i % plots_per_row)
-                    
-                    # Calculate subplot index (row, col) -> index
-                    subplot_idx = (component_row * 2) + component_col + 1
-                    
-                    ax = fig.add_subplot(total_rows, 2, subplot_idx)
-                    ax.plot(time_vec, s_data[i, :], linewidth=1.2, color='#1f77b4')
-                    ax.set_title(f"Independent Component {i+1}\n(Click to view details)", fontsize=14, fontweight='bold')
-                    ax.set_xlabel("Time (s)", fontsize=12)
-                    ax.set_ylabel("Amplitude", fontsize=12)
-                    ax.grid(True, alpha=0.3)
-                    
-                    # Set reasonable y-limits to avoid extreme scaling
-                    data_std = np.std(s_data[i, :])
-                    data_mean = np.mean(s_data[i, :])
-                    ax.set_ylim(data_mean - 3*data_std, data_mean + 3*data_std)
-                    
-                    # Improve tick formatting
-                    ax.tick_params(axis='both', which='major', labelsize=10)
-                    
-                    # Add click functionality for components
-                    ax.set_picker(True)
-                    ax.component_index = i
-                    ax.component_data = s_data[i, :]
-                    ax.time_vector = time_vec
-
-            # Adjust layout with proper spacing - this is key for maintaining subplot sizes
-            plt.subplots_adjust(
-                left=0.08, right=0.95, 
-                top=0.95, bottom=0.05,
-                hspace=0.3, wspace=0.25
-            )
-            
-            # Add click event handler
-            def on_plot_click(event):
-                if event.inaxes is not None:
-                    ax = event.inaxes
-                    if hasattr(ax, 'component_index'):
-                        # Component plot clicked
-                        self._show_component_detail(ax.component_index, ax.component_data, ax.time_vector)
-                    elif hasattr(ax, 'matrix_type'):
-                        # Matrix plot clicked
-                        self._show_matrix_detail(ax.matrix_type)
-            
-            # Connect the click event
-            fig.canvas.mpl_connect('button_press_event', on_plot_click)
-            
-            # Create canvas with FIXED size
-            canvas = FigureCanvas(fig)
-            # IMPORTANT: Set minimum size to maintain figure dimensions
-            canvas_height = int(total_figure_height * 100)  # Convert inches to pixels (approx)
-            canvas.setMinimumHeight(canvas_height)
-            canvas.setMinimumWidth(int(figure_width * 100))
-            
-            # Add canvas to scroll layout
-            scroll_layout.addWidget(canvas)
-            
-            # CRITICAL: Set the scroll widget's minimum size to match canvas
-            scroll_widget.setMinimumHeight(canvas_height + 20)  # Add some padding
-            scroll_widget.setMinimumWidth(int(figure_width * 100) + 20)
+            # Create the visualization
+            self._create_ica_visualization_content()
             
             # Set the scroll widget
             scroll_area.setWidget(scroll_widget)
             main_layout.addWidget(scroll_area)
             
             # Add instruction label
-            from PyQt5.QtWidgets import QLabel
-            instruction_label = QLabel("Use mouse wheel to scroll • Click on any plot to view details")
+            instruction_label = QLabel("Use mouse wheel to scroll • Click on any plot to view details • Export functions in the toolbar above")
             instruction_label.setStyleSheet("color: #666666; font-style: italic; padding: 5px;")
             instruction_label.setAlignment(Qt.AlignCenter)
             main_layout.addWidget(instruction_label)
@@ -580,22 +497,390 @@ class AdvancedProcessingPanel(BasePanel):
         except Exception as e:
             self.show_error("ICA Error", f"Error displaying ICA components: {str(e)}")
 
+    def _create_ica_visualization_content(self):
+        """Create the actual ICA visualization content."""
+        # Get component data
+        num_components = self.ica_components["num_components"]
+        selected_channels = self.ica_components["selected_channels"]
+        
+        # Import matplotlib with Qt5 backend
+        import matplotlib
+        matplotlib.use('Qt5Agg')
+        import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+        
+        # Get selected colormap
+        colormap = self.ica_colormap_combo.currentData()
+        
+        # Calculate number of rows needed (2 columns fixed + matrices at top)
+        plots_per_row = 2
+        matrix_rows = 1  # One row for both matrices side by side
+        component_rows = int(np.ceil(num_components / plots_per_row))
+        total_rows = matrix_rows + component_rows
+        
+        # Fixed subplot height - maintain this regardless of number of components
+        subplot_height = 4.0  # inches per subplot row
+        figure_width = 12
+        total_figure_height = total_rows * subplot_height
+        
+        # Create the matplotlib figure with FIXED size - don't let it resize
+        fig = plt.figure(figsize=(figure_width, total_figure_height))
+        
+        # Store figure reference for export functionality
+        self.ica_figure = fig
+        
+        plot_idx = 1  # matplotlib subplot indices start at 1
+        
+        # First row: Mixing and Unmixing matrices side by side
+        if "a" in self.ica_components:
+            ax1 = fig.add_subplot(total_rows, 2, plot_idx)
+            im1 = ax1.imshow(self.ica_components["a"], aspect="auto", cmap=colormap)
+            ax1.set_title("Mixing Matrix (A)\n(Click to view details)", fontsize=14)
+            ax1.set_xlabel("Components")
+            ax1.set_ylabel("Channels")
+            plt.colorbar(im1, ax=ax1, shrink=0.6)
+            # Add click functionality for mixing matrix
+            ax1.set_picker(True)
+            ax1.matrix_type = "mixing"
+            plot_idx += 1
+
+        if "w" in self.ica_components:
+            ax2 = fig.add_subplot(total_rows, 2, plot_idx)
+            im2 = ax2.imshow(self.ica_components["w"], aspect="auto", cmap=colormap)
+            ax2.set_title("Unmixing Matrix (W)\n(Click to view details)", fontsize=14)
+            ax2.set_xlabel("Channels")
+            ax2.set_ylabel("Components")
+            plt.colorbar(im2, ax=ax2, shrink=0.6)
+            # Add click functionality for unmixing matrix
+            ax2.set_picker(True)
+            ax2.matrix_type = "unmixing"
+            plot_idx += 1
+
+        # Plot independent components in 2-column layout
+        if "s" in self.ica_components:
+            s_data = self.ica_components["s"]
+            sampling_rate = self.collector_service.get_sampling_rate()
+            time_vec = np.linspace(0, s_data.shape[1] / sampling_rate, s_data.shape[1])
+            
+            for i in range(min(num_components, s_data.shape[0])):
+                # Calculate row and column for this component
+                component_row = (i // plots_per_row) + matrix_rows  # Add matrix_rows offset
+                component_col = (i % plots_per_row)
+                
+                # Calculate subplot index (row, col) -> index
+                subplot_idx = (component_row * 2) + component_col + 1
+                
+                ax = fig.add_subplot(total_rows, 2, subplot_idx)
+                ax.plot(time_vec, s_data[i, :], linewidth=1.2, color='#1f77b4')
+                ax.set_title(f"Independent Component {i+1}\n(Click to view details)", fontsize=14, fontweight='bold')
+                ax.set_xlabel("Time (s)", fontsize=12)
+                ax.set_ylabel("Amplitude", fontsize=12)
+                ax.grid(True, alpha=0.3)
+                
+                # Set reasonable y-limits to avoid extreme scaling
+                data_std = np.std(s_data[i, :])
+                data_mean = np.mean(s_data[i, :])
+                ax.set_ylim(data_mean - 3*data_std, data_mean + 3*data_std)
+                
+                # Improve tick formatting
+                ax.tick_params(axis='both', which='major', labelsize=10)
+                
+                # Add click functionality for components
+                ax.set_picker(True)
+                ax.component_index = i
+                ax.component_data = s_data[i, :]
+                ax.time_vector = time_vec
+
+        # Adjust layout with proper spacing - this is key for maintaining subplot sizes
+        plt.subplots_adjust(
+            left=0.08, right=0.95, 
+            top=0.95, bottom=0.05,
+            hspace=0.3, wspace=0.25
+        )
+        
+        # Add click event handler
+        def on_plot_click(event):
+            if event.inaxes is not None:
+                ax = event.inaxes
+                if hasattr(ax, 'component_index'):
+                    # Component plot clicked
+                    self._show_component_detail(ax.component_index, ax.component_data, ax.time_vector)
+                elif hasattr(ax, 'matrix_type'):
+                    # Matrix plot clicked
+                    self._show_matrix_detail(ax.matrix_type)
+        
+        # Connect the click event
+        fig.canvas.mpl_connect('button_press_event', on_plot_click)
+        
+        # Create canvas with FIXED size
+        canvas = FigureCanvas(fig)
+        # Store canvas reference
+        self.ica_canvas = canvas
+        
+        # IMPORTANT: Set minimum size to maintain figure dimensions
+        canvas_height = int(total_figure_height * 100)  # Convert inches to pixels (approx)
+        canvas.setMinimumHeight(canvas_height)
+        canvas.setMinimumWidth(int(figure_width * 100))
+        
+        # Add canvas to scroll layout
+        self.ica_scroll_layout.addWidget(canvas)
+        
+        # CRITICAL: Set the scroll widget's minimum size to match canvas
+        self.ica_scroll_widget.setMinimumHeight(canvas_height + 20)  # Add some padding
+        self.ica_scroll_widget.setMinimumWidth(int(figure_width * 100) + 20)
+
+    def _refresh_ica_visualization(self):
+        """Refresh the ICA visualization with new colormap."""
+        try:
+            # Clear the existing layout
+            for i in reversed(range(self.ica_scroll_layout.count())):
+                child = self.ica_scroll_layout.itemAt(i).widget()
+                if child:
+                    child.setParent(None)
+            
+            # Recreate the visualization
+            self._create_ica_visualization_content()
+            
+        except Exception as e:
+            self.show_error("Refresh Error", f"Error refreshing visualization: {str(e)}")
+
+    def _export_ica_overview(self):
+        """Export only the overview figure."""
+        try:
+            # Open file save dialog
+            from PyQt5.QtWidgets import QFileDialog
+            filename, _ = QFileDialog.getSaveFileName(
+                self.ica_dialog, "Save ICA Overview", "ica_overview.png", "PNG files (*.png)"
+            )
+            
+            if filename:
+                self.ica_figure.savefig(filename, dpi=300, bbox_inches='tight')
+                self.show_status(f"ICA overview exported to {filename}")
+                
+        except Exception as e:
+            self.show_error("Export Error", f"Error exporting overview: {str(e)}")
+
+    def _export_all_ica_images(self):
+        """Export all ICA images to a directory."""
+        try:
+            # Open directory selection dialog
+            directory = QFileDialog.getExistingDirectory(
+                self.ica_dialog, "Select Directory to Save ICA Images", ""
+            )
+            
+            if not directory:
+                return
+
+            import matplotlib
+            matplotlib.use('Agg')  # Use non-GUI backend for saving
+            import matplotlib.pyplot as plt
+            import os
+
+            num_components = self.ica_components["num_components"]
+            selected_channels = self.ica_components["selected_channels"]
+            colormap = self.ica_colormap_combo.currentData()
+
+            # Save the complete overview (including all components)
+            overview_path = os.path.join(directory, "ica_complete_overview.png")
+            self._create_complete_overview_figure(colormap, overview_path)
+
+            # Save individual component plots
+            if "s" in self.ica_components:
+                s_data = self.ica_components["s"]
+                sampling_rate = self.collector_service.get_sampling_rate()
+                time_vec = np.linspace(0, s_data.shape[1] / sampling_rate, s_data.shape[1])
+                
+                for i in range(s_data.shape[0]):
+                    fig_comp, ax = plt.subplots(1, 1, figsize=(12, 6))
+                    ax.plot(time_vec, s_data[i, :], linewidth=1.2, color='#1f77b4')
+                    ax.set_title(f"Independent Component {i+1}", fontsize=14, fontweight='bold')
+                    ax.set_xlabel("Time (s)", fontsize=12)
+                    ax.set_ylabel("Amplitude", fontsize=12)
+                    ax.grid(True, alpha=0.3)
+                    
+                    # Add statistics
+                    data_mean = np.mean(s_data[i, :])
+                    data_std = np.std(s_data[i, :])
+                    data_min = np.min(s_data[i, :])
+                    data_max = np.max(s_data[i, :])
+                    stats_text = f"Mean: {data_mean:.4f} | Std: {data_std:.4f} | Min: {data_min:.4f} | Max: {data_max:.4f}"
+                    ax.text(0.02, 0.98, stats_text, transform=ax.transAxes, fontsize=10, 
+                           verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+                    
+                    plt.tight_layout()
+                    
+                    comp_path = os.path.join(directory, f"ica_component_{i+1}.png")
+                    fig_comp.savefig(comp_path, dpi=300, bbox_inches='tight')
+                    plt.close(fig_comp)
+
+            # Save matrix details
+            for matrix_name, matrix_key in [("mixing", "a"), ("unmixing", "w")]:
+                if matrix_key in self.ica_components:
+                    matrix_data = self.ica_components[matrix_key]
+                    
+                    fig_matrix, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+                    
+                    # Matrix heatmap
+                    im = ax1.imshow(matrix_data, aspect="auto", cmap=colormap, interpolation='nearest')
+                    title = f"{'Mixing' if matrix_key == 'a' else 'Unmixing'} Matrix ({matrix_key.upper()})"
+                    ax1.set_title(title, fontsize=14, fontweight='bold')
+                    ax1.set_xlabel("Components" if matrix_key == "a" else "Channels", fontsize=12)
+                    ax1.set_ylabel("Channels" if matrix_key == "a" else "Components", fontsize=12)
+                    
+                    # Add colorbar
+                    cbar = plt.colorbar(im, ax=ax1, shrink=0.8)
+                    cbar.set_label('Weight', fontsize=12)
+                    
+                    # Matrix statistics histogram
+                    ax2.hist(matrix_data.flatten(), bins=30, alpha=0.7, color='skyblue', edgecolor='black')
+                    ax2.set_title("Weight Distribution", fontsize=14, fontweight='bold')
+                    ax2.set_xlabel("Weight Value", fontsize=12)
+                    ax2.set_ylabel("Frequency", fontsize=12)
+                    ax2.grid(True, alpha=0.3)
+                    
+                    # Add statistics
+                    stats_text = f"Shape: {matrix_data.shape}\n"
+                    stats_text += f"Mean: {np.mean(matrix_data):.4f}\n"
+                    stats_text += f"Std: {np.std(matrix_data):.4f}\n"
+                    stats_text += f"Min: {np.min(matrix_data):.4f}\n"
+                    stats_text += f"Max: {np.max(matrix_data):.4f}"
+                    
+                    ax2.text(0.02, 0.98, stats_text, transform=ax2.transAxes, fontsize=10,
+                            verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+                    
+                    plt.tight_layout()
+                    
+                    matrix_path = os.path.join(directory, f"ica_{matrix_name}_matrix.png")
+                    fig_matrix.savefig(matrix_path, dpi=300, bbox_inches='tight')
+                    plt.close(fig_matrix)
+
+            # Reset matplotlib backend
+            matplotlib.use('Qt5Agg')
+            
+            self.show_status(f"All ICA images exported successfully to {directory}")
+
+        except Exception as e:
+            self.show_error("Export Error", f"Error exporting all ICA images: {str(e)}")
+
+    def _create_complete_overview_figure(self, colormap, save_path):
+        """Create a complete overview figure showing ALL components."""
+        import matplotlib
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
+        
+        num_components = self.ica_components["num_components"]
+        
+        # Create a comprehensive overview with all components
+        # Calculate layout: matrices + all components in a grid
+        cols = 4  # 4 columns for better layout
+        matrix_slots = 2  # 2 slots for matrices
+        total_plots = matrix_slots + num_components
+        rows = int(np.ceil(total_plots / cols))
+        
+        fig, axes = plt.subplots(rows, cols, figsize=(cols * 4, rows * 3))
+        if rows == 1:
+            axes = axes.reshape(1, -1)
+        axes = axes.flatten()
+        
+        fig.suptitle(f"Complete ICA Analysis - {num_components} Components", fontsize=16)
+        
+        plot_idx = 0
+        
+        # Plot mixing matrix (A)
+        if "a" in self.ica_components and plot_idx < len(axes):
+            im1 = axes[plot_idx].imshow(self.ica_components["a"], aspect="auto", cmap=colormap)
+            axes[plot_idx].set_title("Mixing Matrix (A)")
+            axes[plot_idx].set_xlabel("Components")
+            axes[plot_idx].set_ylabel("Channels")
+            plt.colorbar(im1, ax=axes[plot_idx], shrink=0.6)
+            plot_idx += 1
+
+        # Plot unmixing matrix (W)
+        if "w" in self.ica_components and plot_idx < len(axes):
+            im2 = axes[plot_idx].imshow(self.ica_components["w"], aspect="auto", cmap=colormap)
+            axes[plot_idx].set_title("Unmixing Matrix (W)")
+            axes[plot_idx].set_xlabel("Channels")
+            axes[plot_idx].set_ylabel("Components")
+            plt.colorbar(im2, ax=axes[plot_idx], shrink=0.6)
+            plot_idx += 1
+
+        # Plot ALL independent components
+        if "s" in self.ica_components:
+            s_data = self.ica_components["s"]
+            sampling_rate = self.collector_service.get_sampling_rate()
+            time_vec = np.linspace(0, s_data.shape[1] / sampling_rate, s_data.shape[1])
+            
+            for i in range(min(num_components, s_data.shape[0])):
+                if plot_idx < len(axes):
+                    axes[plot_idx].plot(time_vec, s_data[i, :], linewidth=1.2, color='#1f77b4')
+                    axes[plot_idx].set_title(f"IC {i+1}")
+                    axes[plot_idx].set_xlabel("Time (s)")
+                    axes[plot_idx].set_ylabel("Amplitude")
+                    axes[plot_idx].grid(True, alpha=0.3)
+                    plot_idx += 1
+
+        # Hide unused subplots
+        for i in range(plot_idx, len(axes)):
+            axes[i].set_visible(False)
+
+        plt.tight_layout()
+        fig.savefig(save_path, dpi=300, bbox_inches='tight')
+        plt.close(fig)
+
     def _show_component_detail(self, component_index: int, component_data: np.ndarray, time_vector: np.ndarray) -> None:
         """Show detailed view of a single ICA component."""
         try:
-            from PyQt5.QtWidgets import QDialog, QVBoxLayout
+            from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel
             import matplotlib.pyplot as plt
             from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
             
             # Create detail dialog
             detail_dialog = QDialog(self.ica_dialog)
             detail_dialog.setWindowTitle(f"ICA Component {component_index + 1} - Detailed View")
-            detail_dialog.resize(1000, 600)
+            detail_dialog.resize(1200, 700)
             
             layout = QVBoxLayout(detail_dialog)
             
+            # Add controls at the top
+            controls_layout = QHBoxLayout()
+            
+            # Frequency range controls
+            controls_layout.addWidget(QLabel("PSD Frequency Range:"))
+            
+            self.freq_min_spin = QDoubleSpinBox()
+            self.freq_min_spin.setRange(0.1, 100.0)
+            self.freq_min_spin.setValue(1.0)
+            self.freq_min_spin.setSuffix(" Hz")
+            controls_layout.addWidget(QLabel("Min:"))
+            controls_layout.addWidget(self.freq_min_spin)
+            
+            self.freq_max_spin = QDoubleSpinBox()
+            self.freq_max_spin.setRange(1.0, 200.0)
+            self.freq_max_spin.setValue(50.0)
+            self.freq_max_spin.setSuffix(" Hz")
+            controls_layout.addWidget(QLabel("Max:"))
+            controls_layout.addWidget(self.freq_max_spin)
+            
+            update_freq_btn = QPushButton("Update PSD Range")
+            controls_layout.addWidget(update_freq_btn)
+            
+            controls_layout.addStretch()
+            
+            # Export this component button
+            export_component_btn = QPushButton("Export This Component")
+            export_component_btn.clicked.connect(lambda: self._export_single_component(component_index, component_data, time_vector))
+            controls_layout.addWidget(export_component_btn)
+            
+            layout.addLayout(controls_layout)
+            
             # Create larger figure for component
-            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
+            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 9))
+            
+            # Store figure reference for export
+            self.detail_figure = fig
+            self.detail_component_index = component_index
+            self.detail_component_data = component_data
+            self.detail_time_vector = time_vector
             
             # Main time series plot
             ax1.plot(time_vector, component_data, linewidth=1.5, color='#1f77b4', alpha=0.8)
@@ -614,22 +899,36 @@ class AdvancedProcessingPanel(BasePanel):
             ax1.text(0.02, 0.98, stats_text, transform=ax1.transAxes, fontsize=10, 
                     verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
             
-            # Power spectral density
-            from scipy import signal
-            sampling_rate = self.collector_service.get_sampling_rate()
-            if sampling_rate > 0:
-                freqs, psd = signal.welch(component_data, sampling_rate, nperseg=min(len(component_data)//4, 1024))
-                ax2.semilogy(freqs, psd, color='#ff7f0e', linewidth=1.5)
-                ax2.set_title(f"Component {component_index + 1} - Power Spectral Density", fontsize=16, fontweight='bold')
-                ax2.set_xlabel("Frequency (Hz)", fontsize=14)
-                ax2.set_ylabel("Power/Frequency (dB/Hz)", fontsize=14)
-                ax2.grid(True, alpha=0.3)
-                ax2.tick_params(axis='both', which='major', labelsize=12)
-                ax2.set_xlim(0, min(50, sampling_rate/2))  # Show up to 50 Hz or Nyquist
-            else:
-                ax2.text(0.5, 0.5, "Cannot compute PSD\n(sampling rate unknown)", 
-                        transform=ax2.transAxes, ha='center', va='center', fontsize=14)
-                ax2.set_title(f"Component {component_index + 1} - Power Spectral Density", fontsize=16)
+            # Initial power spectral density
+            def update_psd():
+                ax2.clear()
+                from scipy import signal
+                sampling_rate = self.collector_service.get_sampling_rate()
+                if sampling_rate > 0:
+                    freqs, psd = signal.welch(component_data, sampling_rate, nperseg=min(len(component_data)//4, 1024))
+                    ax2.semilogy(freqs, psd, color='#ff7f0e', linewidth=1.5)
+                    ax2.set_title(f"Component {component_index + 1} - Power Spectral Density", fontsize=16, fontweight='bold')
+                    ax2.set_xlabel("Frequency (Hz)", fontsize=14)
+                    ax2.set_ylabel("Power/Frequency (dB/Hz)", fontsize=14)
+                    ax2.grid(True, alpha=0.3)
+                    ax2.tick_params(axis='both', which='major', labelsize=12)
+                    
+                    # Set frequency range
+                    freq_min = self.freq_min_spin.value()
+                    freq_max = self.freq_max_spin.value()
+                    ax2.set_xlim(freq_min, min(freq_max, sampling_rate/2))
+                else:
+                    ax2.text(0.5, 0.5, "Cannot compute PSD\n(sampling rate unknown)", 
+                            transform=ax2.transAxes, ha='center', va='center', fontsize=14)
+                    ax2.set_title(f"Component {component_index + 1} - Power Spectral Density", fontsize=16)
+                
+                fig.canvas.draw()
+            
+            # Initial PSD
+            update_psd()
+            
+            # Connect frequency update button
+            update_freq_btn.clicked.connect(update_psd)
             
             plt.tight_layout()
             
@@ -643,10 +942,27 @@ class AdvancedProcessingPanel(BasePanel):
         except Exception as e:
             self.show_error("Component Detail Error", f"Error showing component detail: {str(e)}")
 
+    def _export_single_component(self, component_index, component_data, time_vector):
+        """Export a single component figure."""
+        try:
+            # Open file save dialog
+            from PyQt5.QtWidgets import QFileDialog
+            filename, _ = QFileDialog.getSaveFileName(
+                self, f"Save Component {component_index + 1}", 
+                f"ica_component_{component_index + 1}.png", "PNG files (*.png)"
+            )
+            
+            if filename:
+                self.detail_figure.savefig(filename, dpi=300, bbox_inches='tight')
+                self.show_status(f"Component {component_index + 1} exported to {filename}")
+                
+        except Exception as e:
+            self.show_error("Export Error", f"Error exporting component: {str(e)}")
+
     def _show_matrix_detail(self, matrix_type: str) -> None:
         """Show detailed view of mixing or unmixing matrix."""
         try:
-            from PyQt5.QtWidgets import QDialog, QVBoxLayout
+            from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QComboBox
             import matplotlib.pyplot as plt
             from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
             
@@ -667,53 +983,102 @@ class AdvancedProcessingPanel(BasePanel):
             # Create detail dialog
             detail_dialog = QDialog(self.ica_dialog)
             detail_dialog.setWindowTitle(f"{title} - Detailed View")
-            detail_dialog.resize(1200, 600)  # Make dialog wider
+            detail_dialog.resize(1200, 600)
             
             layout = QVBoxLayout(detail_dialog)
             
-            # Create figure with better proportions - use 2:1 ratio for matrix:histogram
+            # Add controls at the top
+            controls_layout = QHBoxLayout()
+            
+            # Colormap selection (MOVED HERE from main panel)
+            controls_layout.addWidget(QLabel("Colormap:"))
+            matrix_colormap_combo = QComboBox()
+            matrix_colormap_combo.addItem("Viridis", "viridis")
+            matrix_colormap_combo.addItem("Plasma", "plasma")
+            matrix_colormap_combo.addItem("Inferno", "inferno")
+            matrix_colormap_combo.addItem("Magma", "magma")
+            matrix_colormap_combo.addItem("Coolwarm", "coolwarm")
+            matrix_colormap_combo.addItem("RdBu", "RdBu")
+            matrix_colormap_combo.addItem("Spectral", "Spectral")
+            matrix_colormap_combo.addItem("Jet", "jet")
+            # Set to match main colormap
+            current_colormap = self.ica_colormap_combo.currentData()
+            for i in range(matrix_colormap_combo.count()):
+                if matrix_colormap_combo.itemData(i) == current_colormap:
+                    matrix_colormap_combo.setCurrentIndex(i)
+                    break
+            controls_layout.addWidget(matrix_colormap_combo)
+            
+            controls_layout.addStretch()
+            
+            # Export matrix button
+            export_matrix_btn = QPushButton("Export This Matrix")
+            export_matrix_btn.clicked.connect(lambda: self._export_single_matrix(matrix_type, matrix_data, matrix_colormap_combo.currentData()))
+            controls_layout.addWidget(export_matrix_btn)
+            
+            layout.addLayout(controls_layout)
+            
+            # Create figure with better proportions
             fig = plt.figure(figsize=(16, 7))
             
-            # Create custom subplot layout - matrix gets more width
-            ax1 = plt.subplot2grid((1, 3), (0, 0), colspan=2)  # Matrix takes 2/3 of width
-            ax2 = plt.subplot2grid((1, 3), (0, 2), colspan=1)  # Histogram takes 1/3 of width
+            # Store references for export and update
+            self.matrix_detail_figure = fig
+            self.matrix_detail_data = matrix_data
+            self.matrix_detail_type = matrix_type
             
-            # Matrix heatmap
-            im = ax1.imshow(matrix_data, aspect="auto", cmap="viridis", interpolation='nearest')
-            ax1.set_title(f"{title}\n{description}", fontsize=12, fontweight='bold')
-            ax1.set_xlabel(xlabel, fontsize=12)
-            ax1.set_ylabel(ylabel, fontsize=12)
+            def update_matrix_plot():
+                fig.clear()
+                
+                # Create custom subplot layout - matrix gets more width
+                ax1 = plt.subplot2grid((1, 3), (0, 0), colspan=2)  # Matrix takes 2/3 of width
+                ax2 = plt.subplot2grid((1, 3), (0, 2), colspan=1)  # Histogram takes 1/3 of width
+                
+                current_colormap = matrix_colormap_combo.currentData()
+                
+                # Matrix heatmap
+                im = ax1.imshow(matrix_data, aspect="auto", cmap=current_colormap, interpolation='nearest')
+                ax1.set_title(f"{title}\n{description}", fontsize=12, fontweight='bold')
+                ax1.set_xlabel(xlabel, fontsize=12)
+                ax1.set_ylabel(ylabel, fontsize=12)
+                
+                # Add colorbar
+                cbar = plt.colorbar(im, ax=ax1, shrink=0.8)
+                cbar.set_label('Weight', fontsize=12)
+                
+                # Add value annotations if matrix is small enough
+                if matrix_data.shape[0] <= 8 and matrix_data.shape[1] <= 8:
+                    for i in range(matrix_data.shape[0]):
+                        for j in range(matrix_data.shape[1]):
+                            ax1.text(j, i, f'{matrix_data[i, j]:.3f}', 
+                                    ha='center', va='center', color='white', fontsize=10)
+                
+                # Matrix statistics
+                ax2.hist(matrix_data.flatten(), bins=30, alpha=0.7, color='skyblue', edgecolor='black')
+                ax2.set_title("Weight Distribution", fontsize=14, fontweight='bold')
+                ax2.set_xlabel("Weight Value", fontsize=12)
+                ax2.set_ylabel("Frequency", fontsize=12)
+                ax2.grid(True, alpha=0.3)
+                
+                # Add statistics
+                stats_text = f"Shape: {matrix_data.shape}\n"
+                stats_text += f"Mean: {np.mean(matrix_data):.4f}\n"
+                stats_text += f"Std: {np.std(matrix_data):.4f}\n"
+                stats_text += f"Min: {np.min(matrix_data):.4f}\n"
+                stats_text += f"Max: {np.max(matrix_data):.4f}"
+                
+                ax2.text(0.02, 0.98, stats_text, transform=ax2.transAxes, fontsize=10,
+                        verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+                
+                # Better spacing
+                plt.subplots_adjust(left=0.08, right=0.95, bottom=0.1, top=0.85, wspace=0.3)
+                
+                fig.canvas.draw()
             
-            # Add colorbar
-            cbar = plt.colorbar(im, ax=ax1, shrink=0.8)
-            cbar.set_label('Weight', fontsize=12)
+            # Initial plot
+            update_matrix_plot()
             
-            # Add value annotations if matrix is small enough
-            if matrix_data.shape[0] <= 8 and matrix_data.shape[1] <= 8:
-                for i in range(matrix_data.shape[0]):
-                    for j in range(matrix_data.shape[1]):
-                        ax1.text(j, i, f'{matrix_data[i, j]:.3f}', 
-                                ha='center', va='center', color='white', fontsize=10)
-            
-            # Matrix statistics
-            ax2.hist(matrix_data.flatten(), bins=30, alpha=0.7, color='skyblue', edgecolor='black')
-            ax2.set_title("Weight Distribution", fontsize=14, fontweight='bold')
-            ax2.set_xlabel("Weight Value", fontsize=12)
-            ax2.set_ylabel("Frequency", fontsize=12)
-            ax2.grid(True, alpha=0.3)
-            
-            # Add statistics
-            stats_text = f"Shape: {matrix_data.shape}\n"
-            stats_text += f"Mean: {np.mean(matrix_data):.4f}\n"
-            stats_text += f"Std: {np.std(matrix_data):.4f}\n"
-            stats_text += f"Min: {np.min(matrix_data):.4f}\n"
-            stats_text += f"Max: {np.max(matrix_data):.4f}"
-            
-            ax2.text(0.02, 0.98, stats_text, transform=ax2.transAxes, fontsize=10,
-                    verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
-            
-            # Better spacing
-            plt.subplots_adjust(left=0.08, right=0.95, bottom=0.1, top=0.85, wspace=0.3)
+            # Connect colormap changes
+            matrix_colormap_combo.currentTextChanged.connect(lambda: update_matrix_plot())
             
             # Create canvas and add to dialog
             canvas = FigureCanvas(fig)
@@ -724,6 +1089,23 @@ class AdvancedProcessingPanel(BasePanel):
             
         except Exception as e:
             self.show_error("Matrix Detail Error", f"Error showing matrix detail: {str(e)}")
+
+    def _export_single_matrix(self, matrix_type, matrix_data, colormap):
+        """Export a single matrix figure."""
+        try:
+            # Open file save dialog
+            from PyQt5.QtWidgets import QFileDialog
+            filename, _ = QFileDialog.getSaveFileName(
+                self, f"Save {matrix_type.title()} Matrix", 
+                f"ica_{matrix_type}_matrix.png", "PNG files (*.png)"
+            )
+            
+            if filename:
+                self.matrix_detail_figure.savefig(filename, dpi=300, bbox_inches='tight')
+                self.show_status(f"{matrix_type.title()} matrix exported to {filename}")
+                
+        except Exception as e:
+            self.show_error("Export Error", f"Error exporting matrix: {str(e)}")
 
     def compute_wavelet(self) -> None:
         """Compute wavelet transform."""
