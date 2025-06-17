@@ -105,6 +105,16 @@ class DataAccessService:
             logging.info(f"Registered API callback (ID: {callback_id}), multiprocessing enabled")
             return callback_id
 
+    def register_api_callback_direct(self, callback: Callable[[np.ndarray, List[int]], None]) -> int:
+        """Register a DIRECT callback for API use (immediate, no multiprocessing for low latency)."""
+        with self._callback_lock:
+            callback_id = len(self._api_callbacks)
+            self._api_callbacks.append(callback)
+            
+            # DON'T enable multiprocessing for direct callbacks
+            logging.info(f"Registered DIRECT API callback (ID: {callback_id}), immediate processing")
+            return callback_id
+
     def unregister_local_callback(self, callback_id: int) -> bool:
         """Unregister a local callback."""
         with self._callback_lock:
@@ -427,55 +437,64 @@ class DataAccessService:
                     except Exception as e:
                         logging.error(f"Error in local data callback: {e}")
 
-        # PROCESSED notification for API callbacks (through multiprocessing if enabled)
+        # API callbacks handling - check if multiprocessing is enabled
         if self._api_callbacks and any(cb is not None for cb in self._api_callbacks):
             if self._use_api_multiprocessing and self._api_data_queue is not None:
-                # Queue for API processing
-                try:
-                    data_package = {
-                        "data": data,
-                        "timestamps": timestamps,
-                        "metadata": {
-                            "timestamp": time.time(),
-                            "sampling_rate": self._metadata.get("sampling_rate", 250),
-                            "chunk_size": data.shape[1] if data.size > 0 else 0,
-                        },
-                    }
-                    
-                    # Non-blocking send to queue
-                    try:
-                        self._api_data_queue.put_nowait(data_package)
-                        logging.debug(f"Queued {data.shape[1]} samples for API processing")
-                    except queue.Full:
-                        # If queue is full, try to make space but don't lose all data
-                        dropped_count = 0
-                        while dropped_count < 3:  # Don't drop too much
-                            try:
-                                old_package = self._api_data_queue.get_nowait()
-                                dropped_count += 1
-                                logging.warning(f"Dropped old API data package ({dropped_count}/3)")
-                            except queue.Empty:
-                                break
-                        
-                        # Try to queue new data
-                        try:
-                            self._api_data_queue.put_nowait(data_package)
-                            logging.debug(f"Queued {data.shape[1]} samples after dropping {dropped_count} old packages")
-                        except queue.Full:
-                            logging.warning("API queue still full, dropping current data package")
-                            
-                except Exception as e:
-                    logging.error(f"Error queuing data for API processing: {e}")
+                # Use multiprocessing (existing implementation)
+                self._notify_api_callbacks_multiprocessing(data, timestamps)
             else:
-                # Direct API callbacks (fallback when multiprocessing is disabled)
-                with self._callback_lock:
-                    for callback in self._api_callbacks:
-                        if callback is not None:
-                            try:
-                                callback(data, timestamps)
-                                logging.debug(f"Sent {data.shape[1]} samples to API callback directly")
-                            except Exception as e:
-                                logging.error(f"Error in API data callback: {e}")
+                # DIRECT callbacks for low latency (new implementation)
+                self._notify_api_callbacks_direct(data, timestamps)
+
+    def _notify_api_callbacks_direct(self, data: np.ndarray, timestamps: List[int]) -> None:
+        """Notify API callbacks directly for low latency."""
+        with self._callback_lock:
+            for callback in self._api_callbacks:
+                if callback is not None:
+                    try:
+                        # Send raw data immediately - API will handle filtering if needed
+                        callback(data, timestamps)
+                        logging.debug(f"Sent {data.shape[1]} samples to API callback DIRECTLY (low latency)")
+                    except Exception as e:
+                        logging.error(f"Error in direct API callback: {e}")
+
+    def _notify_api_callbacks_multiprocessing(self, data: np.ndarray, timestamps: List[int]) -> None:
+        """Notify API callbacks through multiprocessing (existing implementation)."""
+        try:
+            data_package = {
+                "data": data,
+                "timestamps": timestamps,
+                "metadata": {
+                    "timestamp": time.time(),
+                    "sampling_rate": self._metadata.get("sampling_rate", 250),
+                    "chunk_size": data.shape[1] if data.size > 0 else 0,
+                },
+            }
+            
+            # Non-blocking send to queue
+            try:
+                self._api_data_queue.put_nowait(data_package)
+                logging.debug(f"Queued {data.shape[1]} samples for API multiprocessing")
+            except queue.Full:
+                # If queue is full, try to make space but don't lose all data
+                dropped_count = 0
+                while dropped_count < 3:
+                    try:
+                        old_package = self._api_data_queue.get_nowait()
+                        dropped_count += 1
+                        logging.warning(f"Dropped old API data package ({dropped_count}/3)")
+                    except queue.Empty:
+                        break
+                
+                # Try to queue new data
+                try:
+                    self._api_data_queue.put_nowait(data_package)
+                    logging.debug(f"Queued {data.shape[1]} samples after dropping {dropped_count} old packages")
+                except queue.Full:
+                    logging.warning("API queue still full, dropping current data package")
+                    
+        except Exception as e:
+            logging.error(f"Error queuing data for API multiprocessing: {e}")
 
     def update_metadata(self, metadata: Dict[str, Any]) -> None:
         """Update stream metadata."""

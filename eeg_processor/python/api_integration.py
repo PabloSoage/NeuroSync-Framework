@@ -99,7 +99,7 @@ class EEGProcessorApiIntegration:
         # Get API Explorer instance
         self.explorer = ApiExplorer.get_instance()
 
-        # Register module - specify show_data_table=True for this module
+        # Register module
         self.explorer.register_module(
             module_id=self.module_id,
             name="EEG Processor",
@@ -113,9 +113,9 @@ class EEGProcessorApiIntegration:
         # Start server
         self.explorer.start_server(host=host, port=port, block=False)
 
-        # Register API callback with DataAccessService (this will automatically enable multiprocessing)
-        self.api_callback_id = self.data_service.register_api_callback(self._handle_data_callback)
-        logger.info("Registered API callback with DataAccessService")
+        # Register DIRECT callback for immediate latency (no multiprocessing)
+        self.api_callback_id = self.data_service.register_api_callback_direct(self._handle_data_callback)
+        logger.info("Registered DIRECT API callback with DataAccessService (no multiprocessing)")
 
         return True
 
@@ -1074,7 +1074,7 @@ class EEGProcessorApiIntegration:
     #
 
     def _handle_data_callback(self, data: Any, timestamps: Any) -> None:
-        """Handle incoming data for WebSocket broadcasting."""
+        """Handle incoming data for WebSocket broadcasting - IMMEDIATE PROCESSING."""
         if not self.explorer:
             return
 
@@ -1103,63 +1103,28 @@ class EEGProcessorApiIntegration:
                 processed_data = data
                 processed_timestamps = timestamps
             
-            # Instead of arbitrary limits, use time-based throttling
-            current_time = time.time()
+            # IMMEDIATE SEND - similar to original implementation
+            # Limit samples for WebSocket efficiency but send immediately
+            max_websocket_samples = 20  # Same as original
             
-            # Initialize throttling variables if needed
-            if not hasattr(self, '_last_websocket_time'):
-                self._last_websocket_time = 0
-                self._websocket_interval = 0.05  # 50ms = 20 events/second
-                self._pending_samples = np.array([]).reshape(0, 0)
-                self._pending_timestamps = []
-            
-            # Accumulate samples instead of truncating
-            if self._pending_samples.size == 0:
-                # First chunk or reset
-                self._pending_samples = processed_data.copy()
-                self._pending_timestamps = list(processed_timestamps)
+            if processed_data.shape[1] > max_websocket_samples:
+                websocket_data = processed_data[:, -max_websocket_samples:]
+                websocket_timestamps = processed_timestamps[-max_websocket_samples:]
             else:
-                # Append to pending if same number of channels
-                if self._pending_samples.shape[0] == processed_data.shape[0]:
-                    self._pending_samples = np.concatenate([self._pending_samples, processed_data], axis=1)
-                    self._pending_timestamps.extend(processed_timestamps)
-                else:
-                    # Channel count changed, reset
-                    self._pending_samples = processed_data.copy()
-                    self._pending_timestamps = list(processed_timestamps)
+                websocket_data = processed_data
+                websocket_timestamps = processed_timestamps
             
-            # Send accumulated data if enough time has passed
-            if current_time - self._last_websocket_time >= self._websocket_interval:
-                
-                # Limit total samples to prevent WebSocket overload but maintain recent continuity
-                max_websocket_samples = 50  # Reasonable for WebSocket efficiency
-                
-                if self._pending_samples.shape[1] > max_websocket_samples:
-                    # Keep the most recent samples for continuity
-                    websocket_data = self._pending_samples[:, -max_websocket_samples:]
-                    websocket_timestamps = self._pending_timestamps[-max_websocket_samples:]
-                else:
-                    websocket_data = self._pending_samples
-                    websocket_timestamps = self._pending_timestamps
-                
-                # Update tracking
-                self._total_samples_sent += len(websocket_timestamps)
-                
-                # Create and send payload
-                payload = self._create_visualization_payload(websocket_data, websocket_timestamps)
-                self._broadcast_event(payload)
-                
-                # Reset pending data
-                self._pending_samples = np.array([]).reshape(websocket_data.shape[0], 0) if websocket_data.size > 0 else np.array([]).reshape(0, 0)
-                self._pending_timestamps = []
-                self._last_websocket_time = current_time
-                
-                logger.debug(f"Sent {len(websocket_timestamps)} accumulated samples via WebSocket (from {processed_data.shape[1]} new samples)")
-            else:
-                logger.debug(f"Accumulated {processed_data.shape[1]} samples for WebSocket (total pending: {self._pending_samples.shape[1]})")
+            # Update tracking
+            self._total_samples_sent += len(websocket_timestamps)
+            
+            # Create and send payload IMMEDIATELY
+            payload = self._create_visualization_payload(websocket_data, websocket_timestamps)
+            self._broadcast_event(payload)
+            
+            logger.debug(f"Sent {len(websocket_timestamps)} samples IMMEDIATELY via WebSocket (latency optimized)")
             
         except Exception as e:
-            logger.error(f"Error in data callback: {e}")
+            logger.error(f"Error in immediate data callback: {e}")
 
     def _create_visualization_payload(
         self, data: Any, timestamps: Any

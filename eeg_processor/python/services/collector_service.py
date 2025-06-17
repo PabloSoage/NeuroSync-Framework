@@ -65,10 +65,9 @@ class CollectorService:
         self._last_timestamp = time.time()
         self._last_reported_time = self._last_timestamp
 
-        # Variables for data processing - IMPROVED for better consistency
-        min_event_interval = 0.02  # 50Hz event rate for smoother data flow
+        # Variables for IMMEDIATE processing (low latency)
+        min_event_interval = 0.01  # 10ms for very responsive updates
         last_event_time = 0.0
-        target_chunk_size = 5  # Target 5 samples per chunk at 250Hz = 20ms chunks
 
         # Get sampling information
         expected_sampling_rate = 0
@@ -78,10 +77,7 @@ class CollectorService:
             except:
                 expected_sampling_rate = 250
 
-        # Calculate target chunk size based on sampling rate
-        if expected_sampling_rate > 0:
-            target_chunk_size = max(1, int(expected_sampling_rate * min_event_interval))
-            logging.info(f"Target chunk size: {target_chunk_size} samples ({min_event_interval*1000:.1f}ms)")
+        logging.info(f"Data loop started with immediate processing (10ms intervals)")
 
         while not self._stop_event.is_set() and self.collector and self.is_streaming:
             try:
@@ -94,61 +90,49 @@ class CollectorService:
                     logging.debug(f"Error getting board data count: {e}")
                     available_count = 0
 
-                # Process data only if new data is available
+                # Process data immediately when available (no large chunking)
                 if available_count > self._last_sample_count:
                     new_samples = available_count - self._last_sample_count
-                    
-                    # Get data in reasonable chunks to maintain flow consistency
-                    # Don't take all available data at once if it's too much
-                    samples_to_get = min(new_samples, target_chunk_size * 3) # Max 3x target chunk
-                    
-                    if samples_to_get > 0:
-                        self._last_sample_count += samples_to_get
+                    self._last_sample_count = available_count
 
-                        # Get new data
-                        data, timestamps = self.collector.get_data(samples_to_get)
+                    # Get ALL new data immediately for low latency
+                    data, timestamps = self.collector.get_data(new_samples)
 
-                        if data.size > 0 and data.shape[1] > 0:
-                            # Update sampling rate metrics
-                            self._update_sample_metrics(data, current_time)
+                    if data.size > 0 and data.shape[1] > 0:
+                        # Update sampling rate metrics
+                        self._update_sample_metrics(data, current_time)
 
-                            # Update DataAccessService with consistent chunks
-                            data_access.update_data(data, timestamps)
+                        # IMMEDIATE update to DataAccessService
+                        data_access.update_data(data, timestamps)
 
-                            # Send event for other components
-                            if current_time - last_event_time >= min_event_interval:
-                                try:
-                                    from ..core.event_system import EventType, dispatch
-                                    dispatch(
-                                        EventType.DATA_UPDATED,
-                                        {"data": data, "timestamps": timestamps},
-                                        source="collector_service",
-                                    )
-                                    last_event_time = current_time
-                                except Exception as e:
-                                    logging.debug(f"Error dispatching data event: {e}")
-                            
-                            logging.debug(f"Collected {samples_to_get} samples (available: {new_samples})")
+                        # Send event for other components
+                        if current_time - last_event_time >= min_event_interval:
+                            try:
+                                from ..core.event_system import EventType, dispatch
+                                dispatch(
+                                    EventType.DATA_UPDATED,
+                                    {"data": data, "timestamps": timestamps},
+                                    source="collector_service",
+                                )
+                                last_event_time = current_time
+                            except Exception as e:
+                                logging.debug(f"Error dispatching data event: {e}")
+                        
+                        logging.debug(f"Collected {new_samples} samples IMMEDIATELY")
 
-                # Adaptive sleep based on data availability
+                # Very short sleep for immediate responsiveness
                 if expected_sampling_rate > 0:
-                    if available_count > self._last_sample_count + target_chunk_size * 2:
-                        # Data is accumulating, process faster
-                        sleep_time = min_event_interval * 0.5
-                    elif new_samples == 0:
-                        # No new data, sleep longer
-                        sleep_time = min_event_interval * 2
-                    else:
-                        # Normal processing
-                        sleep_time = min_event_interval
+                    # Sleep based on sampling rate for optimal responsiveness
+                    ideal_sleep = 1.0 / expected_sampling_rate
+                    sleep_time = min(0.005, ideal_sleep * 0.5)  # Max 5ms sleep
                 else:
-                    sleep_time = 0.01
+                    sleep_time = 0.005
 
                 time.sleep(sleep_time)
 
             except Exception as e:
-                logging.error(f"Error in data loop: {e}")
-                time.sleep(0.1)
+                logging.error(f"Error in immediate data loop: {e}")
+                time.sleep(0.001)  # Very short error recovery
 
     def stop_stream(self) -> bool:
         """
