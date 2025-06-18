@@ -36,6 +36,10 @@ class ICAProcessService(QObject):
         
         # Current ICA results
         self._current_ica_results = None
+        
+        # Visualization state
+        self._visualization_active = False
+        self._current_colormap = 'viridis'
 
     def initialize(self) -> bool:
         """Initialize the dedicated ICA process."""
@@ -93,17 +97,46 @@ class ICAProcessService(QObject):
             return
         
         try:
-            command = {
-                'type': 'visualize_ica',
-                'ica_components': ica_components,
-                'sampling_rate': sampling_rate,
-                'colormap': colormap
-            }
+            # Determine if this should be an update or new visualization
+            is_realtime = ica_components.get('realtime', False)
+            
+            if is_realtime and self._visualization_active:
+                # Real-time update to existing visualization
+                command = {
+                    'type': 'update_visualization',
+                    'ica_components': ica_components,
+                    'sampling_rate': sampling_rate,
+                    'colormap': colormap
+                }
+            else:
+                # New visualization (either manual request or first real-time)
+                command = {
+                    'type': 'visualize_ica',
+                    'ica_components': ica_components,
+                    'sampling_rate': sampling_rate,
+                    'colormap': colormap
+                }
+                # Mark that visualization will be active
+                self._visualization_active = True
+            
             self._command_queue.put(command)
+            self._current_colormap = colormap
             
         except Exception as e:
             logging.error(f"Error sending ICA visualization request: {e}")
             self.visualization_ready.emit(False, f"Error sending request: {str(e)}")
+
+    def close_visualization(self) -> None:
+        """Close the visualization dialog."""
+        if not self._is_initialized:
+            return
+        
+        try:
+            command = {'type': 'close_visualization'}
+            self._command_queue.put(command)
+            self._visualization_active = False
+        except Exception as e:
+            logging.error(f"Error sending close visualization request: {e}")
 
     def export_ica_overview(self, ica_components: Dict[str, Any], colormap: str, sampling_rate: float, filename: str) -> None:
         """Request ICA overview export in the dedicated process."""
@@ -160,6 +193,10 @@ class ICAProcessService(QObject):
         """Get the current ICA results."""
         return self._current_ica_results
 
+    def is_visualization_active(self) -> bool:
+        """Check if visualization is currently active."""
+        return self._visualization_active
+
     def _check_responses(self) -> None:
         """Check for responses from the ICA process."""
         try:
@@ -186,6 +223,13 @@ class ICAProcessService(QObject):
                 
             elif response_type == 'visualization_ready':
                 self.visualization_ready.emit(response.get('success', False), response.get('message', ''))
+                
+            elif response_type == 'visualization_updated':
+                # Silently handle updates - no need to emit signal for updates
+                pass
+                
+            elif response_type == 'visualization_closed':
+                self._visualization_active = False
                 
             elif response_type == 'export_progress':
                 self.export_progress.emit(response.get('percent', 0), response.get('status', ''))
@@ -224,22 +268,8 @@ class ICAProcessService(QObject):
                 except:
                     pass
             
-            # Clean up queues
-            if self._command_queue:
-                try:
-                    while not self._command_queue.empty():
-                        self._command_queue.get_nowait()
-                except:
-                    pass
-                    
-            if self._response_queue:
-                try:
-                    while not self._response_queue.empty():
-                        self._response_queue.get_nowait()
-                except:
-                    pass
-            
             self._is_initialized = False
+            self._visualization_active = False
             logging.info("ICA process service cleaned up")
             
         except Exception as e:
@@ -263,6 +293,7 @@ def _ica_worker_process(command_queue: mp.Queue, response_queue: mp.Queue):
         matplotlib.use('Qt5Agg')
         import matplotlib.pyplot as plt
         from PyQt5.QtWidgets import QApplication
+        from PyQt5.QtCore import QTimer
         import numpy as np
         
         # Create a QApplication for this process (needed for Qt widgets)
@@ -274,6 +305,35 @@ def _ica_worker_process(command_queue: mp.Queue, response_queue: mp.Queue):
         # Process state
         current_dialog = None
         current_operation = None
+        dialog_check_timer = None
+        
+        def check_dialog_status():
+            """Check if dialog is still alive and notify main process if closed."""
+            nonlocal current_dialog
+            if current_dialog is not None:
+                try:
+                    if not current_dialog.isVisible():
+                        # Dialog was closed
+                        current_dialog = None
+                        response_queue.put({
+                            'type': 'visualization_closed',
+                            'success': True
+                        })
+                        if dialog_check_timer:
+                            dialog_check_timer.stop()
+                except:
+                    # Dialog object is invalid, consider it closed
+                    current_dialog = None
+                    response_queue.put({
+                        'type': 'visualization_closed',
+                        'success': True
+                    })
+                    if dialog_check_timer:
+                        dialog_check_timer.stop()
+        
+        # Timer to check dialog status
+        dialog_check_timer = QTimer()
+        dialog_check_timer.timeout.connect(check_dialog_status)
         
         # Main process loop
         while True:
@@ -288,9 +348,17 @@ def _ica_worker_process(command_queue: mp.Queue, response_queue: mp.Queue):
                         
                     elif command_type == 'cancel':
                         current_operation = None
+                        
+                    elif command_type == 'close_visualization':
                         if current_dialog:
                             current_dialog.close()
                             current_dialog = None
+                        if dialog_check_timer and dialog_check_timer.isActive():
+                            dialog_check_timer.stop()
+                        response_queue.put({
+                            'type': 'visualization_closed',
+                            'success': True
+                        })
                         
                     elif command_type == 'compute_ica':
                         current_operation = 'compute_ica'
@@ -299,7 +367,63 @@ def _ica_worker_process(command_queue: mp.Queue, response_queue: mp.Queue):
                         
                     elif command_type == 'visualize_ica':
                         current_operation = 'visualize_ica'
-                        current_dialog = _handle_ica_visualization(command, response_queue)
+                        ica_components = command.get('ica_components', {})
+                        is_realtime = ica_components.get('realtime', False)
+                        
+                        # For real-time, if dialog exists, update it; otherwise create new
+                        if is_realtime and current_dialog is not None:
+                            # Update existing dialog
+                            try:
+                                colormap = command.get('colormap', 'viridis')
+                                current_dialog.update_visualization(ica_components, colormap)
+                                response_queue.put({
+                                    'type': 'visualization_updated',
+                                    'success': True,
+                                    'message': "Real-time ICA visualization updated"
+                                })
+                            except Exception as e:
+                                # If update fails, create new dialog
+                                current_dialog = _handle_ica_visualization(command, response_queue)
+                                if current_dialog and not dialog_check_timer.isActive():
+                                    dialog_check_timer.start(1000)  # Check every second
+                        else:
+                            # Create new dialog (manual request or first real-time)
+                            if current_dialog:
+                                current_dialog.close()
+                                current_dialog = None
+                            
+                            current_dialog = _handle_ica_visualization(command, response_queue)
+                            
+                            # Start monitoring dialog if it was created successfully
+                            if current_dialog:
+                                if not dialog_check_timer.isActive():
+                                    dialog_check_timer.start(1000)  # Check every second
+                        
+                        current_operation = None
+                        
+                    elif command_type == 'update_visualization':
+                        current_operation = 'update_visualization'
+                        if current_dialog:
+                            try:
+                                ica_components = command['ica_components']
+                                colormap = command.get('colormap', 'viridis')
+                                current_dialog.update_visualization(ica_components, colormap)
+                                response_queue.put({
+                                    'type': 'visualization_updated',
+                                    'success': True,
+                                    'message': "ICA visualization updated"
+                                })
+                            except Exception as e:
+                                response_queue.put({
+                                    'type': 'visualization_updated',
+                                    'success': False,
+                                    'message': f"Error updating visualization: {str(e)}"
+                                })
+                        else:
+                            # No dialog exists, create new one (fallback)
+                            current_dialog = _handle_ica_visualization(command, response_queue)
+                            if current_dialog and not dialog_check_timer.isActive():
+                                dialog_check_timer.start(1000)
                         current_operation = None
                         
                     elif command_type == 'export_overview':
@@ -323,6 +447,8 @@ def _ica_worker_process(command_queue: mp.Queue, response_queue: mp.Queue):
                 })
                 
         # Cleanup
+        if dialog_check_timer and dialog_check_timer.isActive():
+            dialog_check_timer.stop()
         if current_dialog:
             current_dialog.close()
         app.quit()
@@ -556,4 +682,27 @@ def _handle_ica_export_all(command: Dict[str, Any], response_queue: mp.Queue):
             'type': 'export_completed',
             'success': False,
             'message': f"Error in export all: {str(e)}"
+        })
+
+def _handle_ica_visualization_update(dialog, command: Dict[str, Any], response_queue: mp.Queue):
+    """Handle ICA visualization update for existing dialog."""
+    try:
+        ica_components = command['ica_components']
+        sampling_rate = command['sampling_rate']
+        colormap = command.get('colormap', 'viridis')
+        
+        # Update the dialog with new components
+        dialog.update_visualization(ica_components, colormap)
+        
+        response_queue.put({
+            'type': 'visualization_updated',
+            'success': True,
+            'message': "ICA visualization updated"
+        })
+        
+    except Exception as e:
+        response_queue.put({
+            'type': 'visualization_updated',
+            'success': False,
+            'message': f"Error updating ICA visualization: {str(e)}"
         })

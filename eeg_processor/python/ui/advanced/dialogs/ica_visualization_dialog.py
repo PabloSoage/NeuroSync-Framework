@@ -1,3 +1,4 @@
+import time
 from typing import Any, Dict, Optional
 
 from PyQt5.QtCore import Qt, pyqtSignal
@@ -38,6 +39,14 @@ class ICAVisualizationDialog(QDialog):
         self.ica_components = ica_components
         self.sampling_rate = sampling_rate
         
+        # Real-time state
+        self.is_realtime = ica_components.get('realtime', False)
+        self.realtime_update_pending = False
+        
+        # Figure management for memory leak prevention
+        self.figure = None
+        self.canvas = None
+        
         self._setup_ui()
         self._create_visualization()
 
@@ -46,9 +55,12 @@ class ICAVisualizationDialog(QDialog):
         # Setup dialog properties
         num_components = self.ica_components["num_components"]
         selected_channels = self.ica_components["selected_channels"]
-        self.setWindowTitle(
-            f"ICA Components Visualization - {num_components} Components on {len(selected_channels)} Channels"
-        )
+        
+        title = f"ICA Components Visualization - {num_components} Components on {len(selected_channels)} Channels"
+        if self.is_realtime:
+            title += " (Real-time)"
+        
+        self.setWindowTitle(title)
         self.setModal(False)
         self.resize(1400, 1000)
         
@@ -69,21 +81,37 @@ class ICAVisualizationDialog(QDialog):
         self.colormap_combo.addItem("RdBu", "RdBu")
         self.colormap_combo.addItem("Spectral", "Spectral")
         self.colormap_combo.addItem("Jet", "jet")
-        self.colormap_combo.currentTextChanged.connect(self._refresh_visualization)
+        
+        # Disable colormap changes during real-time mode to prevent lag
+        if self.is_realtime:
+            self.colormap_combo.setEnabled(False)
+            self.colormap_combo.setToolTip("Colormap changes disabled during real-time mode")
+        else:
+            self.colormap_combo.currentTextChanged.connect(self._refresh_visualization)
+        
         export_layout.addWidget(self.colormap_combo)
         
         export_layout.addStretch()
         
-        # Export buttons
+        # Export buttons (disabled during real-time)
         export_overview_btn = QPushButton("Export Overview")
         export_overview_btn.clicked.connect(self._request_export_overview)
+        export_overview_btn.setEnabled(not self.is_realtime)
         export_layout.addWidget(export_overview_btn)
         
         export_all_btn = QPushButton("Export All Images")
         export_all_btn.clicked.connect(self._request_export_all)
+        export_all_btn.setEnabled(not self.is_realtime)
         export_layout.addWidget(export_all_btn)
         
         main_layout.addLayout(export_layout)
+        
+        # Real-time status if applicable
+        if self.is_realtime:
+            status_label = QLabel("Real-time ICA monitoring")
+            status_label.setStyleSheet("color: #ff4444; font-weight: bold; font-size: 14px;")
+            status_label.setAlignment(Qt.AlignCenter)
+            main_layout.addWidget(status_label)
         
         # Create scroll area
         self.scroll_area = QScrollArea()
@@ -110,6 +138,12 @@ class ICAVisualizationDialog(QDialog):
 
     def _create_visualization(self) -> None:
         """Create the ICA visualization content."""
+        # Close previous figure if exists to prevent memory leaks
+        if self.figure is not None:
+            import matplotlib.pyplot as plt
+            plt.close(self.figure)
+            self.figure = None
+        
         # Import matplotlib with Qt5 backend
         import matplotlib
         matplotlib.use('Qt5Agg')
@@ -128,11 +162,12 @@ class ICAVisualizationDialog(QDialog):
         component_rows = int(np.ceil(num_components / plots_per_row))
         total_rows = matrix_rows + component_rows
         
-        # Create figure
+        # Create figure dimensions
         subplot_height = 4.0
         figure_width = 12
         total_figure_height = total_rows * subplot_height
         
+        # Create figure with explicit close handling
         fig = plt.figure(figsize=(figure_width, total_figure_height))
         self.figure = fig
         
@@ -209,7 +244,11 @@ class ICAVisualizationDialog(QDialog):
         
         fig.canvas.mpl_connect('button_press_event', on_plot_click)
         
-        # Create canvas
+        # Create canvas and replace old one
+        if self.canvas is not None:
+            self.canvas.setParent(None)
+            self.canvas.deleteLater()
+        
         canvas = FigureCanvas(fig)
         self.canvas = canvas
         
@@ -227,6 +266,10 @@ class ICAVisualizationDialog(QDialog):
 
     def _refresh_visualization(self) -> None:
         """Refresh the visualization with new colormap."""
+        # Skip if real-time mode or update pending
+        if self.is_realtime or self.realtime_update_pending:
+            return
+            
         try:
             # Clear existing layout
             for i in reversed(range(self.scroll_layout.count())):
@@ -533,8 +576,8 @@ class ICAVisualizationDialog(QDialog):
                         progress_dialog.setValue(100)
                         progress_dialog.setLabelText("Export completed")
                         QTimer.singleShot(1000, progress_dialog.close)
-                
-                check_progress()
+            
+            check_progress()
                     
         except Exception as e:
             print(f"Error exporting overview: {e}")
@@ -948,3 +991,145 @@ class ICAVisualizationDialog(QDialog):
                 'type': 'error',
                 'error': str(e)
             })
+
+    def update_visualization(self, new_ica_components: Dict[str, Any], colormap: str = None) -> None:
+        """
+        Update the visualization with new ICA components.
+        
+        Args:
+            new_ica_components: New ICA components data
+            colormap: Optional new colormap
+        """
+        try:
+            # Prevent multiple concurrent updates
+            if self.realtime_update_pending:
+                return
+                
+            self.realtime_update_pending = True
+            
+            # Update stored components
+            self.ica_components = new_ica_components
+            self.is_realtime = new_ica_components.get('realtime', False)
+            
+            # Update colormap if provided (but don't trigger refresh)
+            if colormap and not self.is_realtime:
+                for i in range(self.colormap_combo.count()):
+                    if self.colormap_combo.itemData(i) == colormap:
+                        self.colormap_combo.blockSignals(True)
+                        self.colormap_combo.setCurrentIndex(i)
+                        self.colormap_combo.blockSignals(False)
+                        break
+            
+            # For real-time updates, use optimized refresh
+            if self.is_realtime:
+                self._update_realtime_plots()
+            else:
+                # Regular full refresh for non-real-time
+                # Clear existing content
+                if hasattr(self, 'scroll_widget') and self.scroll_widget:
+                    for i in reversed(range(self.scroll_widget.layout().count())): 
+                        child = self.scroll_widget.layout().itemAt(i).widget()
+                        if child:
+                            child.setParent(None)
+                            child.deleteLater()
+                
+                # Recreate visualization with new data
+                self._create_visualization()
+            
+            # Update window title
+            if self.is_realtime:
+                timestamp = new_ica_components.get('timestamp', 0)
+                time_str = time.strftime('%H:%M:%S', time.localtime(timestamp))
+                self.setWindowTitle(f"ICA Components Visualization (Real-time - {time_str})")
+            
+            self.realtime_update_pending = False
+            
+        except Exception as e:
+            print(f"Error updating ICA visualization: {e}")
+            self.realtime_update_pending = False
+
+    def _update_realtime_plots(self) -> None:
+        """Optimized update for real-time mode - only update plot data, not recreate figures."""
+        try:
+            if not self.figure or not hasattr(self, 'canvas'):
+                # Fallback to full recreation if no figure exists
+                self._create_visualization()
+                return
+            
+            # Update matrices (they change with each ICA computation)
+            matrices_updated = False
+            for ax in self.figure.get_axes():
+                if hasattr(ax, 'matrix_type'):
+                    if ax.matrix_type == "mixing" and "a" in self.ica_components:
+                        # Update mixing matrix
+                        images = ax.get_images()
+                        if images:
+                            images[0].set_data(self.ica_components["a"])
+                            images[0].set_clim(vmin=self.ica_components["a"].min(), 
+                                             vmax=self.ica_components["a"].max())
+                            matrices_updated = True
+                    elif ax.matrix_type == "unmixing" and "w" in self.ica_components:
+                        # Update unmixing matrix
+                        images = ax.get_images()
+                        if images:
+                            images[0].set_data(self.ica_components["w"])
+                            images[0].set_clim(vmin=self.ica_components["w"].min(), 
+                                             vmax=self.ica_components["w"].max())
+                            matrices_updated = True
+            
+            # Update component signals
+            if "s" in self.ica_components:
+                s_data = self.ica_components["s"]
+                time_vec = np.linspace(0, s_data.shape[1] / self.sampling_rate, s_data.shape[1])
+                
+                # Update existing plot data instead of recreating
+                for ax in self.figure.get_axes():
+                    if hasattr(ax, 'component_index'):
+                        i = ax.component_index
+                        if i < s_data.shape[0]:
+                            # Update line data
+                            lines = ax.get_lines()
+                            if lines:
+                                lines[0].set_data(time_vec, s_data[i, :])
+                                
+                                # Update y-limits
+                                data_std = np.std(s_data[i, :])
+                                data_mean = np.mean(s_data[i, :])
+                                ax.set_ylim(data_mean - 3*data_std, data_mean + 3*data_std)
+                                
+                                # Update x-limits
+                                ax.set_xlim(time_vec[0], time_vec[-1])
+                                
+                                # Update component data for click events
+                                ax.component_data = s_data[i, :]
+                                ax.time_vector = time_vec
+            
+            # Refresh canvas
+            self.canvas.draw_idle()
+            
+        except Exception as e:
+            print(f"Error in optimized real-time update: {e}")
+            # Fallback to full recreation
+            self._create_visualization()
+
+    def closeEvent(self, event) -> None:
+        """Handle dialog close event."""
+        try:
+            # Clean up matplotlib figures to prevent memory leaks
+            if self.figure is not None:
+                import matplotlib.pyplot as plt
+                plt.close(self.figure)
+                self.figure = None
+            
+            # Clean up canvas
+            if self.canvas is not None:
+                self.canvas.setParent(None)
+                self.canvas.deleteLater()
+                self.canvas = None
+            
+            # Accept the close event
+            event.accept()
+            
+        except Exception as e:
+            print(f"Error during dialog cleanup: {e}")
+            event.accept()

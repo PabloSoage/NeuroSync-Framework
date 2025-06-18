@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import Any, Dict, List, Optional
 
 from PyQt5.QtCore import QObject, QTimer, pyqtSignal
@@ -11,7 +12,7 @@ from .widgets.advanced_filter_widget import AdvancedFilterWidget
 from ...services.advanced_processing_service import AdvancedProcessingService
 from ...services.ica.export_service import ExportService
 from ...services.ica.ica_process_service import ICAProcessService
-
+from ...services.ica.ica_realtime_service import ICARealtimeService
 
 class AdvancedPanelController(QObject):
     """
@@ -61,6 +62,10 @@ class AdvancedPanelController(QObject):
         # Create ICA process service for visualization only
         self.ica_process_service = ICAProcessService()
         
+        # Create ICA realtime service
+        self.ica_realtime_service = ICARealtimeService()
+        self.ica_realtime_service.initialize(processor_service)
+        
         # Export progress handling
         self.export_progress_dialog = None
         self.export_timer = None
@@ -71,6 +76,11 @@ class AdvancedPanelController(QObject):
         
         # Connect ICA process service signals (for visualization)
         self.ica_process_service.visualization_ready.connect(self._on_visualization_ready)
+        
+        # Connect ICA realtime service signals
+        self.ica_realtime_service.realtime_ica_updated.connect(self._on_realtime_ica_updated)
+        self.ica_realtime_service.realtime_status_changed.connect(self._on_realtime_status_changed)
+        self.ica_realtime_service.realtime_error.connect(self._on_realtime_error)
         
         # Connect widget signals
         self._connect_widget_signals()
@@ -89,6 +99,11 @@ class AdvancedPanelController(QObject):
         self.ica_widget.view_components_requested.connect(self._handle_ica_visualization)
         self.ica_widget.export_overview_requested.connect(self._handle_ica_export_overview)
         self.ica_widget.export_all_requested.connect(self._handle_ica_export_all)
+
+        # ICA real-time signals
+        self.ica_widget.realtime_start_requested.connect(self._handle_realtime_start)
+        self.ica_widget.realtime_stop_requested.connect(self._handle_realtime_stop)
+        self.ica_widget.realtime_interval_changed.connect(self._handle_realtime_interval_change)
         
         # Wavelet widget signals
         self.wavelet_widget.compute_requested.connect(self._handle_wavelet_computation)
@@ -178,6 +193,7 @@ class AdvancedPanelController(QObject):
                 colormap = params.get('colormap', self.ica_widget.get_colormap())
                 
                 self.status_message.emit("Opening ICA visualization in dedicated process...")
+                # Always use visualize_ica for manual requests (creates new window if needed)
                 self.ica_process_service.visualize_ica(ica_components, sampling_rate, colormap)
             else:
                 # Fallback to local visualization dialog
@@ -203,6 +219,99 @@ class AdvancedPanelController(QObject):
 
         except Exception as e:
             self.error_message.emit("ICA Error", f"Error displaying ICA components: {str(e)}")
+
+    # Real-time ICA handlers
+    def _handle_realtime_start(self, params: Dict[str, Any]) -> None:
+        """Handle real-time ICA start request."""
+        try:
+            # Validate parameters
+            num_components = params["num_components"]
+            selected_channels = params["selected_channels"]
+            update_interval = params["update_interval"]
+            
+            if not selected_channels:
+                self.error_message.emit("Real-time ICA Error", "Please select at least one channel")
+                return
+            
+            if len(selected_channels) < num_components:
+                self.error_message.emit(
+                    "Real-time ICA Error", 
+                    f"Number of selected channels ({len(selected_channels)}) must be >= number of components ({num_components})"
+                )
+                return
+
+            # Start real-time ICA
+            success = self.ica_realtime_service.start_realtime_ica(params)
+            
+            if not success:
+                # Error will be emitted by the service
+                return
+
+        except Exception as e:
+            self.error_message.emit("Real-time ICA Error", f"Error starting real-time ICA: {str(e)}")
+
+    def _handle_realtime_stop(self) -> None:
+        """Handle real-time ICA stop request."""
+        try:
+            self.ica_realtime_service.stop_realtime_ica()
+            
+            # Keep visualization open but stop updates
+            if (self.ica_process_service._is_initialized and 
+                self.ica_process_service.is_visualization_active()):
+                # Don't close the visualization, just stop sending updates
+                pass
+                
+        except Exception as e:
+            self.error_message.emit("Real-time ICA Error", f"Error stopping real-time ICA: {str(e)}")
+
+    def _handle_realtime_interval_change(self, interval: float) -> None:
+        """Handle real-time interval change."""
+        try:
+            self.ica_realtime_service.update_interval(interval)
+        except Exception as e:
+            self.error_message.emit("Real-time ICA Error", f"Error updating interval: {str(e)}")
+
+    def _on_realtime_ica_updated(self, ica_components: Dict[str, Any], message: str) -> None:
+        """Handle real-time ICA update."""
+        try:
+            # Update visualization if process service is available
+            if self.ica_process_service._is_initialized:
+                sampling_rate = self.collector_service.get_sampling_rate()
+                colormap = self.ica_widget.get_colormap()
+                
+                # Check if visualization is active - if not, create it; if yes, update it
+                if self.ica_process_service.is_visualization_active():
+                    # Update existing visualization
+                    self.ica_process_service.visualize_ica(ica_components, sampling_rate, colormap)
+                else:
+                    # Create new visualization for real-time (first real-time update)
+                    self.status_message.emit("Opening real-time ICA visualization...")
+                    self.ica_process_service.visualize_ica(ica_components, sampling_rate, colormap)
+            
+            # Update status less frequently to avoid spam
+            if hasattr(self, '_last_status_update'):
+                if time.time() - self._last_status_update < 2.0:  # Only update every 2 seconds
+                    return
+            
+            self.status_message.emit(message)
+            self._last_status_update = time.time()
+            
+        except Exception as e:
+            logging.error(f"Error handling real-time ICA update: {e}")
+
+    def _on_realtime_status_changed(self, is_active: bool, message: str) -> None:
+        """Handle real-time status change."""
+        try:
+            self.ica_widget.set_realtime_active(is_active, message)
+            self.status_message.emit(message)
+        except Exception as e:
+            logging.error(f"Error handling real-time status change: {e}")
+
+    def _on_realtime_error(self, error_message: str) -> None:
+        """Handle real-time ICA error."""
+        self.error_message.emit("Real-time ICA Error", error_message)
+        # Auto-disable real-time mode on error
+        self.ica_widget.set_realtime_active(False, "Error occurred")
 
     def _on_visualization_ready(self, success: bool, message: str) -> None:
         """Handle ICA visualization readiness from process service."""
@@ -497,5 +606,6 @@ class AdvancedPanelController(QObject):
         """Cleanup coordinator resources."""
         self._cleanup_export()
         self.export_service.cleanup()
+        self.ica_realtime_service.cleanup()
         self.ica_process_service.cleanup()
         self.processing_service.cleanup()

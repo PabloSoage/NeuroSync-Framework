@@ -9,6 +9,9 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QSpinBox,
     QComboBox,
+    QCheckBox,
+    QDoubleSpinBox,
+    QFrame,
 )
 
 from ...base_panel import BasePanel
@@ -27,6 +30,11 @@ class ICAWidget(BasePanel):
     view_components_requested = pyqtSignal(dict)  # Visualization parameters
     export_overview_requested = pyqtSignal()
     export_all_requested = pyqtSignal()
+    
+    # Real-time signals
+    realtime_start_requested = pyqtSignal(dict)  # Real-time parameters
+    realtime_stop_requested = pyqtSignal()
+    realtime_interval_changed = pyqtSignal(float)  # New interval
 
     def __init__(self, parent: Optional[Any] = None) -> None:
         """Initialize the ICA widget."""
@@ -36,6 +44,7 @@ class ICAWidget(BasePanel):
         self.channel_names: List[str] = []
         self.selected_channels: List[int] = []
         self.ica_results: Optional[Dict[str, Any]] = None
+        self.realtime_active: bool = False
         
         self._setup_ui()
 
@@ -84,7 +93,7 @@ class ICAWidget(BasePanel):
         
         ica_layout.addLayout(ica_params_layout)
 
-        # ICA Control buttons
+        # Standard ICA Control buttons
         ica_buttons_layout = QHBoxLayout()
         self.compute_ica_btn = QPushButton("Compute ICA")
         self.compute_ica_btn.clicked.connect(self._request_ica_computation)
@@ -97,6 +106,65 @@ class ICAWidget(BasePanel):
         ica_buttons_layout.addWidget(self.view_ica_components_btn)
 
         ica_layout.addLayout(ica_buttons_layout)
+        
+        # Add separator
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setFrameShadow(QFrame.Sunken)
+        ica_layout.addWidget(separator)
+        
+        # Real-time ICA section
+        realtime_layout = QVBoxLayout()
+        
+        # Real-time header
+        realtime_header = QHBoxLayout()
+        realtime_header.addWidget(QLabel("Real-time ICA Monitor"))
+        realtime_header.addWidget(HelpButton("ica_realtime", self))
+        realtime_header.addStretch()
+        realtime_layout.addLayout(realtime_header)
+        
+        # Real-time controls
+        realtime_controls_layout = QVBoxLayout()
+        
+        # Real-time enable checkbox
+        realtime_enable_layout = QHBoxLayout()
+        self.realtime_enable_check = QCheckBox("Enable Real-time ICA")
+        self.realtime_enable_check.stateChanged.connect(self._on_realtime_enable_changed)
+        realtime_enable_layout.addWidget(self.realtime_enable_check)
+        realtime_enable_layout.addStretch()
+        realtime_controls_layout.addLayout(realtime_enable_layout)
+        
+        # Update interval control
+        interval_layout = QHBoxLayout()
+        interval_layout.addWidget(QLabel("Update Interval:"))
+        self.interval_spin = QDoubleSpinBox()
+        self.interval_spin.setRange(0.5, 2.0)
+        self.interval_spin.setSingleStep(0.1)
+        self.interval_spin.setValue(1.0)
+        self.interval_spin.setSuffix(" s")
+        self.interval_spin.setEnabled(False)
+        self.interval_spin.valueChanged.connect(self._on_interval_changed)
+        interval_layout.addWidget(self.interval_spin)
+        
+        interval_layout.addWidget(QLabel("Window Size:"))
+        self.window_size_spin = QDoubleSpinBox()
+        self.window_size_spin.setRange(2.0, 10.0)
+        self.window_size_spin.setSingleStep(0.5)
+        self.window_size_spin.setValue(5.0)
+        self.window_size_spin.setSuffix(" s")
+        self.window_size_spin.setEnabled(False)
+        interval_layout.addWidget(self.window_size_spin)
+        
+        interval_layout.addStretch()
+        realtime_controls_layout.addLayout(interval_layout)
+        
+        # Real-time status
+        self.realtime_status_label = QLabel("Real-time mode: Disabled")
+        self.realtime_status_label.setStyleSheet("color: #888888; font-style: italic;")
+        realtime_controls_layout.addWidget(self.realtime_status_label)
+        
+        realtime_layout.addLayout(realtime_controls_layout)
+        ica_layout.addLayout(realtime_layout)
 
         self.layout.addWidget(ica_group)
         
@@ -167,6 +235,55 @@ class ICAWidget(BasePanel):
         }
         self.view_components_requested.emit(params)
 
+    def _on_realtime_enable_changed(self, state: int) -> None:
+        """Handle real-time enable checkbox change."""
+        enabled = state == 2  # Qt.Checked
+        
+        if enabled:
+            # Start real-time mode
+            params = {
+                "num_components": self.ica_components_spin.value(),
+                "selected_channels": self.selected_channels.copy(),
+                "update_interval": self.interval_spin.value(),
+                "window_size": self.window_size_spin.value()
+            }
+            self.realtime_start_requested.emit(params)
+        else:
+            # Stop real-time mode
+            self.realtime_stop_requested.emit()
+
+    def _on_interval_changed(self, value: float) -> None:
+        """Handle interval change."""
+        if self.realtime_active:
+            self.realtime_interval_changed.emit(value)
+
+    def set_realtime_active(self, active: bool, message: str = "") -> None:
+        """Set real-time mode status."""
+        self.realtime_active = active
+        
+        # Update UI
+        self.realtime_enable_check.blockSignals(True)
+        self.realtime_enable_check.setChecked(active)
+        self.realtime_enable_check.blockSignals(False)
+        
+        self.interval_spin.setEnabled(active)
+        self.window_size_spin.setEnabled(active)
+        
+        # Update status
+        if active:
+            self.realtime_status_label.setText(f"Real-time mode: Active - {message}")
+            self.realtime_status_label.setStyleSheet("color: #00AA00; font-weight: bold;")
+            
+            # Disable exports during real-time mode
+            self.view_ica_components_btn.setEnabled(False)
+        else:
+            self.realtime_status_label.setText(f"Real-time mode: Disabled - {message}")
+            self.realtime_status_label.setStyleSheet("color: #888888; font-style: italic;")
+            
+            # Re-enable exports if we have results
+            if self.ica_results:
+                self.view_ica_components_btn.setEnabled(True)
+
     def update_channels(self, channel_names: List[str]) -> None:
         """Update available channels."""
         self.channel_names = channel_names.copy()
@@ -178,7 +295,10 @@ class ICAWidget(BasePanel):
     def set_ica_results(self, ica_results: Dict[str, Any]) -> None:
         """Set ICA computation results."""
         self.ica_results = ica_results
-        self.view_ica_components_btn.setEnabled(True)
+        
+        # Only enable view button if not in real-time mode
+        if not self.realtime_active:
+            self.view_ica_components_btn.setEnabled(True)
 
     def get_ica_results(self) -> Optional[Dict[str, Any]]:
         """Get current ICA results."""
@@ -195,6 +315,10 @@ class ICAWidget(BasePanel):
         if not enabled:
             self.view_ica_components_btn.setEnabled(False)
             self.ica_results = None
+            
+            # Stop real-time mode if active
+            if self.realtime_active:
+                self.realtime_enable_check.setChecked(False)
 
     def get_ica_settings(self) -> Dict[str, Any]:
         """Get current ICA settings."""
@@ -202,4 +326,7 @@ class ICAWidget(BasePanel):
             "components": self.ica_components_spin.value(),
             "channels": self.selected_channels,
             "use_all_channels": len(self.selected_channels) == len(self.channel_names) if self.channel_names else True,
+            "realtime_enabled": self.realtime_active,
+            "update_interval": self.interval_spin.value(),
+            "window_size": self.window_size_spin.value(),
         }
