@@ -414,6 +414,7 @@ class AdvancedProcessingService:
                     "low_cut": new_settings.get("low_cut", 1.0),
                     "high_cut": new_settings.get("high_cut", 50.0),
                     "order": new_settings.get("order", 4),
+                    "selected_channels": new_settings.get("selected_channels", []),  # Update channels
                 }
             
             # Update the data access service

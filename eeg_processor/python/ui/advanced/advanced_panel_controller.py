@@ -554,10 +554,18 @@ class AdvancedPanelController(QObject):
             
             # Convert selected EEG indices to actual channel indices in data array
             actual_channel_indices = []
-            for eeg_idx in selected_eeg_indices:
-                if eeg_idx < len(eeg_channels):
-                    actual_channel_idx = eeg_channels[eeg_idx]
-                    actual_channel_indices.append(actual_channel_idx)
+            
+            if selected_eeg_indices:
+                # Specific channels selected
+                for eeg_idx in selected_eeg_indices:
+                    if eeg_idx < len(eeg_channels):
+                        actual_channel_idx = eeg_channels[eeg_idx]
+                        actual_channel_indices.append(actual_channel_idx)
+                channel_info = f"{len(selected_eeg_indices)} EEG channels"
+            else:
+                # No channels selected = all channels
+                actual_channel_indices = []  # Empty list means all channels in processor
+                channel_info = "all EEG channels"
             
             # Update params with actual channel indices
             params_with_mapped_channels = params.copy()
@@ -566,13 +574,8 @@ class AdvancedPanelController(QObject):
             result = self.processing_service.apply_advanced_filters(params_with_mapped_channels)
             
             if result.get('success'):
-                # Show info with EEG channel count for user clarity
-                channel_count = len(selected_eeg_indices)
-                total_eeg_channels = len(self.processing_service.get_channel_names())
-                
                 self.status_message.emit(
-                    f"Advanced filters {'applied' if params.get('apply') else 'removed'} "
-                    f"({channel_count}/{total_eeg_channels} EEG channels)" if params.get('apply') else
+                    f"Advanced filters {'applied to' if params.get('apply') else 'removed from'} {channel_info}" if params.get('apply') else
                     "Advanced filters removed from data stream"
                 )
             else:
@@ -716,10 +719,18 @@ class AdvancedPanelController(QObject):
                 
                 # Convert selected EEG indices to actual channel indices
                 actual_channel_indices = []
-                for eeg_idx in selected_eeg_indices:
-                    if eeg_idx < len(eeg_channels):
-                        actual_channel_idx = eeg_channels[eeg_idx]
-                        actual_channel_indices.append(actual_channel_idx)
+                
+                if selected_eeg_indices:
+                    # Specific channels selected
+                    for eeg_idx in selected_eeg_indices:
+                        if eeg_idx < len(eeg_channels):
+                            actual_channel_idx = eeg_channels[eeg_idx]
+                            actual_channel_indices.append(actual_channel_idx)
+                    channel_info = f"{len(selected_eeg_indices)} EEG channels"
+                else:
+                    # No channels selected = all channels
+                    actual_channel_indices = []
+                    channel_info = "all EEG channels"
                 
                 params = {
                     "apply": True,
@@ -739,11 +750,8 @@ class AdvancedPanelController(QObject):
                                        getattr(FilterTypes, item[0]) == settings["filter_type"]]
                     filter_name = filter_type_name[0] if filter_type_name else "Unknown"
                     
-                    channel_count = len(selected_eeg_indices)
-                    total_channels = len(self.processing_service.get_channel_names())
-                    
                     self.status_message.emit(
-                        f"Advanced filter settings updated dynamically (type: {filter_name}, EEG channels: {channel_count}/{total_channels})"
+                        f"Advanced filter settings updated dynamically (type: {filter_name}, {channel_info})"
                     )
                 else:
                     self.error_message.emit("Advanced Filter Update Error", 

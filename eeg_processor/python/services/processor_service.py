@@ -418,7 +418,7 @@ class ProcessorService:
             high_cutoff: High cutoff frequency in Hz
             filter_type: Type of filter to use
             order: Filter order
-            channels: Specific channels to filter (defaults to all)
+            channels: Specific channels to filter (defaults to all if None or empty)
 
         Returns:
             Filtered data
@@ -436,6 +436,7 @@ class ProcessorService:
                 f"Applying advanced bandpass filter {low_cutoff}-{high_cutoff} Hz, type {filter_type}, channels: {channels}"
             )
 
+            # If channels is None or empty list, apply to all channels
             if channels is not None and len(channels) > 0:
                 filtered_data = data.copy()
                 for channel in channels:
@@ -447,6 +448,7 @@ class ProcessorService:
                         filtered_data[channel : channel + 1, :] = filtered_channel_data
                 return filtered_data
             else:
+                # Apply to all channels (None or empty list)
                 return self.processor.perform_advanced_bandpass_filter(
                     data, low_cutoff, high_cutoff, order, filter_type
                 )

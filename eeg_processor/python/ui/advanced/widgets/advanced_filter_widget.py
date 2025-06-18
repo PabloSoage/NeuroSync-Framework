@@ -132,10 +132,13 @@ class AdvancedFilterWidget(QWidget):
         dialog.setWindowTitle("Select Channels for Advanced Filtering")
 
         if dialog.exec_() == QDialog.Accepted:
+            old_channels = self.selected_channels.copy()
             self.selected_channels = dialog.get_selected_channels()
             self._update_channel_display()
-            # Emit settings change if filters are currently applied
-            self._on_settings_changed()
+            
+            # Emit settings change for dynamic update (only if selection actually changed)
+            if old_channels != self.selected_channels:
+                self._on_settings_changed()
 
     def _update_channel_display(self) -> None:
         """Update the channel selection display."""
@@ -147,13 +150,17 @@ class AdvancedFilterWidget(QWidget):
         self.filter_channel_select_btn.setEnabled(True)
         
         if not self.selected_channels:
-            self.filter_channel_info_label.setText("No channels selected")
+            # If no channels selected, treat as "all channels" for filtering
+            self.filter_channel_info_label.setText("All channels (none selected)")
+            self.filter_channel_info_label.setStyleSheet("color: #FFB366; font-style: italic;")
         elif len(self.selected_channels) == len(self.channel_names):
             self.filter_channel_info_label.setText("All channels selected")
+            self.filter_channel_info_label.setStyleSheet("color: #AAAAAA; font-style: italic;")
         else:
             count = len(self.selected_channels)
             total = len(self.channel_names)
             self.filter_channel_info_label.setText(f"{count}/{total} channels selected")
+            self.filter_channel_info_label.setStyleSheet("color: #AAAAAA; font-style: italic;")
 
     def update_channels(self, channel_names: List[str]) -> None:
         """Update available channels."""
@@ -167,6 +174,9 @@ class AdvancedFilterWidget(QWidget):
         """Toggle advanced filters application."""
         self.applied = not self.applied
         
+        # If no channels selected, pass empty list to indicate "all channels"
+        channels_to_filter = self.selected_channels.copy() if self.selected_channels else []
+        
         params = {
             "apply": self.applied,
             "filter_type": self.filter_type_combo.currentData(),
@@ -174,7 +184,7 @@ class AdvancedFilterWidget(QWidget):
             "low_cut": 1.0,  # Could be made configurable
             "high_cut": 50.0,  # Could be made configurable
             "order": 4,
-            "selected_channels": self.selected_channels.copy(),
+            "selected_channels": channels_to_filter,
         }
         
         self.apply_requested.emit(params)
@@ -205,6 +215,9 @@ class AdvancedFilterWidget(QWidget):
 
     def get_advanced_filter_settings(self) -> Dict[str, Any]:
         """Get current advanced filter settings."""
+        # If no channels selected, pass empty list to indicate "all channels"
+        channels_to_filter = self.selected_channels.copy() if self.selected_channels else []
+        
         return {
             "filter_type": self.filter_type_combo.currentData(),
             "window_function": self.window_function_combo.currentData(),
@@ -212,5 +225,5 @@ class AdvancedFilterWidget(QWidget):
             "low_cut": 1.0,  # Could be made configurable
             "high_cut": 50.0,  # Could be made configurable
             "order": 4,
-            "selected_channels": self.selected_channels.copy(),
+            "selected_channels": channels_to_filter,
         }
