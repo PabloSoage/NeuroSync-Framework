@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 EEG Processor Application
 
@@ -8,11 +7,14 @@ visualizing EEG data from various devices including g.tec unicorn.
 
 import argparse
 import logging
+import os
 import sys
 
 from PyQt5.QtWidgets import QApplication
 
-from python.eeg_processor_app import EEGProcessorApp
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from eeg_processor.python.eeg_processor_app import EEGProcessorApp
 
 
 def parse_args() -> argparse.Namespace:
@@ -83,7 +85,7 @@ def main() -> None:
                 f"Web API EEG Processor ({api_type}) en http://{args.api_host}:{port}"
             )
         else:
-            print("Fallo inicializando Web API EEG Processor")
+            print("Failed to initialize Web API EEG Processor")
 
     # Initialize control API if enabled
     if args.enable_control_api:
@@ -102,12 +104,12 @@ def main() -> None:
                     f"Control API EEG Processor (data + control) en http://{args.control_api_host}:{args.control_api_port}"
                 )
             else:
-                print("Fallo inicializando Control API EEG Processor")
+                print("Failed to initialize Control API EEG Processor")
 
         except ImportError:
-            print("API Explorer no disponible. Control API deshabilitado.")
+            print("API Explorer not available. Control API disabled.")
         except Exception as e:
-            print(f"Error inicializando Control API: {e}")
+            print(f"Error initializing Control API: {e}")
 
     sys.exit(app.exec_())
 

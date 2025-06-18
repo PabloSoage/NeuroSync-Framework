@@ -14,11 +14,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Add parent directory to path for imports
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if parent_dir not in sys.path:
-    sys.path.append(parent_dir)
-
 try:
     from api_explorer import ApiExplorer
 
@@ -27,7 +22,7 @@ except ImportError:
     explorer_available = False
     logger.warning("API Explorer not found. Web API will not be available.")
 
-# Import core services - we need direct access to services, not just through API
+# Import core services
 from .data_access_api import EEGDataAPI
 from .services.data_access_service import DataAccessService
 

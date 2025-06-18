@@ -20,13 +20,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Add parent directory to path if needed
-parent_dir = os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-)
-if parent_dir not in sys.path:
-    sys.path.append(parent_dir)
-
 # Try to import the API Explorer
 try:
     from api_explorer import ApiExplorer

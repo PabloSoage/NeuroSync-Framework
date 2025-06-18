@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Run the input collector application.
 
@@ -11,14 +10,10 @@ import sys
 import threading
 from typing import Dict, Any
 
-# Add module root to path
-current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-    sys.path.append(current_dir)
-
 # Global CLI thread reference for cleanup
 cli_thread = None
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def parse_config() -> Dict[str, Any]:
     """

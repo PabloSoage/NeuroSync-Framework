@@ -287,7 +287,6 @@ def _ica_worker_process(command_queue: mp.Queue, response_queue: mp.Queue):
         # Configure matplotlib for Qt use in the worker process
         import sys
         import os
-        sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         
         import matplotlib
         matplotlib.use('Qt5Agg')
