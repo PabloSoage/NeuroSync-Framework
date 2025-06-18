@@ -12,7 +12,7 @@ import sys
 
 from PyQt5.QtWidgets import QApplication
 
-from eeg_processor.python.eeg_processor_app import EEGProcessorApp
+from python.eeg_processor_app import EEGProcessorApp
 
 
 def parse_args() -> argparse.Namespace:
