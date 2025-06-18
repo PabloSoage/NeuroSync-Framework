@@ -50,8 +50,6 @@ class EEGProcessorApp(QMainWindow):
         """Initialize the EEG processor application."""
         super().__init__()
 
-        # Initialize logging
-        logging.basicConfig(level=logging.INFO)
         BoardShim.enable_dev_board_logger()
 
         # Setup theme
