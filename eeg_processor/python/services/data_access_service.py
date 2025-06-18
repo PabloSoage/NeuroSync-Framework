@@ -454,7 +454,7 @@ class DataAccessService:
                     filtered_data = self._processor_service.apply_detrend(filtered_data)
 
             # Apply advanced processing
-            if getattr(self, '_advanced_processing_enabled', False) and hasattr(self, '_advanced_processing_settings'):
+            if getattr(self, '_advanced_processing_enabled', False):
                 filtered_data = self._apply_advanced_processing(filtered_data)
 
             logging.debug("Filters and advanced processing applied successfully to chunk in DataAccessService")
@@ -470,9 +470,10 @@ class DataAccessService:
             processed_data = data.copy()
             settings = getattr(self, '_advanced_processing_settings', {})
 
-            # Apply advanced filters
+            # Apply advanced filters first
             if settings.get("advanced_filters", {}).get("enabled", False):
                 adv_filters = settings["advanced_filters"]
+                logging.debug(f"Applying advanced filter type {adv_filters.get('filter_type')}")
                 processed_data = self._processor_service.apply_advanced_bandpass_filter(
                     processed_data,
                     adv_filters.get("low_cut", 1.0),
@@ -484,6 +485,7 @@ class DataAccessService:
             # Apply downsampling
             if settings.get("downsampling", {}).get("enabled", False):
                 ds = settings["downsampling"]
+                logging.debug(f"Applying downsampling with factor {ds.get('factor', 2)}")
                 processed_data = self._processor_service.perform_downsampling(
                     processed_data,
                     ds.get("factor", 2),
@@ -496,10 +498,24 @@ class DataAccessService:
                 wavelet_metadata = getattr(self, '_wavelet_metadata', None)
                 if wavelet_data is not None and wavelet_metadata is not None:
                     # Apply inverse wavelet transform to recent data
-                    recent_coeffs = wavelet_data[:, -processed_data.shape[1]:]
-                    processed_data = self._processor_service.apply_inverse_wavelet(
-                        recent_coeffs, wavelet_metadata
-                    )
+                    logging.debug("Applying inverse wavelet transform")
+                    # Ensure we don't exceed available coefficient data
+                    coeff_samples = min(wavelet_data.shape[1], processed_data.shape[1])
+                    recent_coeffs = wavelet_data[:, -coeff_samples:]
+                    
+                    # Ensure the processed_data has the same shape for wavelet processing
+                    if processed_data.shape[1] > coeff_samples:
+                        # Apply wavelet only to the part that has coefficients
+                        wavelet_part = processed_data[:, -coeff_samples:]
+                        reconstructed = self._processor_service.apply_inverse_wavelet(
+                            recent_coeffs, wavelet_metadata
+                        )
+                        # Replace the processed part with reconstructed data
+                        processed_data[:, -coeff_samples:] = reconstructed
+                    else:
+                        processed_data = self._processor_service.apply_inverse_wavelet(
+                            recent_coeffs[:, -processed_data.shape[1]:], wavelet_metadata
+                        )
 
             return processed_data
 
@@ -666,9 +682,14 @@ class DataAccessService:
             raw_data = self._current_data.copy()
             timestamps = self._timestamps.copy()
 
-            # Apply filters if enabled - but only to recent data for efficiency
-            if self._filters_enabled and raw_data.size > 0:
-                logging.debug("DataAccessService: Applying filters to current data")
+            # Apply filters and advanced processing if any are enabled
+            should_process = (
+                self._filters_enabled or 
+                getattr(self, '_advanced_processing_enabled', False)
+            )
+            
+            if should_process and raw_data.size > 0:
+                logging.debug("DataAccessService: Applying filters and/or advanced processing to current data")
 
                 # For large buffers, only filter recent data to avoid performance issues
                 if raw_data.shape[1] > 5000:  # If buffer is large
@@ -689,14 +710,14 @@ class DataAccessService:
                 if not np.array_equal(
                     filtered_data, raw_data[:, -filtered_data.shape[1] :]
                 ):
-                    logging.debug("DataAccessService: Data was successfully filtered")
+                    logging.debug("DataAccessService: Data was successfully processed")
                 else:
-                    logging.debug("DataAccessService: Data was not changed by filters")
+                    logging.debug("DataAccessService: Data was not changed by processing")
 
                 return filtered_data, filtered_timestamps
             else:
                 logging.debug(
-                    "DataAccessService: Returning raw data (filters disabled)"
+                    "DataAccessService: Returning raw data (no processing enabled)"
                 )
                 return raw_data, timestamps
 

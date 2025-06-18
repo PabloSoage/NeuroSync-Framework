@@ -192,7 +192,7 @@ class AdvancedProcessingService:
         """
         try:
             # Check if we have wavelet results
-            if not self._wavelet_results['coefficients'] is not None:
+            if self._wavelet_results['coefficients'] is None:
                 return {'success': False, 'error': "No wavelet coefficients available"}
                 
             if apply:
@@ -205,10 +205,30 @@ class AdvancedProcessingService:
                 
                 self._data_access_service.enable_advanced_processing(True, processing_settings)
                 self._inverse_wavelet_active = True
+                logging.info("Inverse wavelet transform enabled for data stream")
             else:
-                # Remove inverse wavelet transform
-                self._data_access_service.enable_advanced_processing(False)
+                # Remove inverse wavelet transform but keep other advanced processing if active
+                current_settings = getattr(self._data_access_service, '_advanced_processing_settings', {})
+                
+                # Remove wavelet settings
+                if 'wavelet' in current_settings:
+                    del current_settings['wavelet']
+                
+                # Check if any other advanced processing is still active
+                has_other_processing = (
+                    current_settings.get("downsampling", {}).get("enabled", False) or
+                    current_settings.get("advanced_filters", {}).get("enabled", False)
+                )
+                
+                if has_other_processing:
+                    # Update settings without wavelet
+                    self._data_access_service.enable_advanced_processing(True, current_settings)
+                else:
+                    # Disable all advanced processing
+                    self._data_access_service.enable_advanced_processing(False)
+                
                 self._inverse_wavelet_active = False
+                logging.info("Inverse wavelet transform disabled for data stream")
                 
             return {'success': True}
 
@@ -245,10 +265,30 @@ class AdvancedProcessingService:
                 
                 self._data_access_service.enable_advanced_processing(True, processing_settings)
                 self._downsampling_active = True
+                logging.info(f"Downsampling enabled for data stream (factor: {params['factor']})")
             else:
-                # Remove downsampling
-                self._data_access_service.enable_advanced_processing(False)
+                # Remove downsampling but keep other advanced processing if active
+                current_settings = getattr(self._data_access_service, '_advanced_processing_settings', {})
+                
+                # Remove downsampling settings
+                if 'downsampling' in current_settings:
+                    del current_settings['downsampling']
+                
+                # Check if any other advanced processing is still active
+                has_other_processing = (
+                    current_settings.get("wavelet", {}).get("inverse_enabled", False) or
+                    current_settings.get("advanced_filters", {}).get("enabled", False)
+                )
+                
+                if has_other_processing:
+                    # Update settings without downsampling
+                    self._data_access_service.enable_advanced_processing(True, current_settings)
+                else:
+                    # Disable all advanced processing
+                    self._data_access_service.enable_advanced_processing(False)
+                
                 self._downsampling_active = False
+                logging.info("Downsampling disabled for data stream")
                 
             return {'success': True}
 
@@ -289,10 +329,30 @@ class AdvancedProcessingService:
                 
                 self._data_access_service.enable_advanced_processing(True, processing_settings)
                 self._advanced_filters_active = True
+                logging.info(f"Advanced filters enabled for data stream (type: {params['filter_type']})")
             else:
-                # Remove advanced filters
-                self._data_access_service.enable_advanced_processing(False)
+                # Remove advanced filters but keep other advanced processing if active
+                current_settings = getattr(self._data_access_service, '_advanced_processing_settings', {})
+                
+                # Remove advanced filter settings
+                if 'advanced_filters' in current_settings:
+                    del current_settings['advanced_filters']
+                
+                # Check if any other advanced processing is still active
+                has_other_processing = (
+                    current_settings.get("wavelet", {}).get("inverse_enabled", False) or
+                    current_settings.get("downsampling", {}).get("enabled", False)
+                )
+                
+                if has_other_processing:
+                    # Update settings without advanced filters
+                    self._data_access_service.enable_advanced_processing(True, current_settings)
+                else:
+                    # Disable all advanced processing
+                    self._data_access_service.enable_advanced_processing(False)
+                
                 self._advanced_filters_active = False
+                logging.info("Advanced filters disabled for data stream")
                 
             return {'success': True}
 
@@ -310,6 +370,63 @@ class AdvancedProcessingService:
             return None
         return self._wavelet_results
     
+    def update_advanced_processing_settings(self, processing_type: str, new_settings: Dict[str, Any]) -> Dict[str, Any]:
+        """Update specific advanced processing settings dynamically.
+        
+        Args:
+            processing_type: Type of processing ("wavelet", "downsampling", "advanced_filters")
+            new_settings: New settings to apply
+            
+        Returns:
+            Dictionary with results containing:
+                success: Boolean indicating success
+                error: Error message (if failed)
+        """
+        try:
+            # Get current advanced processing settings
+            current_settings = getattr(self._data_access_service, '_advanced_processing_settings', {})
+            
+            # Update specific section
+            if processing_type == "wavelet" and new_settings.get('inverse_applied', False):
+                current_settings["wavelet"] = {
+                    "inverse_enabled": True,
+                }
+                
+            elif processing_type == "downsampling" and new_settings.get('applied', False):
+                current_settings["downsampling"] = {
+                    "enabled": True,
+                    "factor": new_settings["factor"],
+                    "operation": new_settings["aggregation"],
+                }
+                
+            elif processing_type == "advanced_filters" and new_settings.get('applied', False):
+                current_settings["advanced_filters"] = {
+                    "enabled": True,
+                    "filter_type": new_settings["filter_type"],
+                    "low_cut": new_settings.get("low_cut", 1.0),
+                    "high_cut": new_settings.get("high_cut", 50.0),
+                    "order": new_settings.get("order", 4),
+                }
+            
+            # Update the data access service
+            self._data_access_service.update_advanced_processing_settings(current_settings)
+            
+            return {'success': True}
+            
+        except Exception as e:
+            logging.error(f"Error updating {processing_type} settings: {e}")
+            return {'success': False, 'error': str(e)}
+
+    def get_current_advanced_settings(self) -> Dict[str, Any]:
+        """Get current advanced processing settings."""
+        return {
+            'downsampling_active': self._downsampling_active,
+            'advanced_filters_active': self._advanced_filters_active,
+            'inverse_wavelet_active': self._inverse_wavelet_active,
+            'wavelet_results_available': self._wavelet_results['coefficients'] is not None,
+            'ica_results_available': self._ica_results is not None,
+        }
+
     def _ensure_processor_initialized(self) -> None:
         """Ensure the processor is initialized."""
         from .data_access_service import DataAccessService

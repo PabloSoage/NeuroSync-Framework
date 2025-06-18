@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 
 from PyQt5.QtCore import QObject, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog, QMessageBox, QProgressDialog
+from brainflow import FilterTypes
 
 from .widgets.ica_widget import ICAWidget
 from .widgets.wavelet_widget import WaveletWidget
@@ -108,12 +109,18 @@ class AdvancedPanelController(QObject):
         # Wavelet widget signals
         self.wavelet_widget.compute_requested.connect(self._handle_wavelet_computation)
         self.wavelet_widget.apply_inverse_requested.connect(self._handle_wavelet_inverse)
+        # Connect dynamic update signal
+        self.wavelet_widget.settings_changed.connect(self._handle_wavelet_settings_changed)
         
         # Downsampling widget signals
         self.downsampling_widget.apply_requested.connect(self._handle_downsampling)
+        # Connect dynamic update signal
+        self.downsampling_widget.settings_changed.connect(self._handle_downsampling_settings_changed)
         
         # Advanced filter widget signals
         self.advanced_filter_widget.apply_requested.connect(self._handle_advanced_filters)
+        # Connect dynamic update signal
+        self.advanced_filter_widget.settings_changed.connect(self._handle_advanced_filter_settings_changed)
 
     def _initialize_channel_data(self) -> None:
         """Initialize channel data from data service."""
@@ -609,3 +616,96 @@ class AdvancedPanelController(QObject):
         self.ica_realtime_service.cleanup()
         self.ica_process_service.cleanup()
         self.processing_service.cleanup()
+
+    def _handle_wavelet_settings_changed(self, settings: Dict[str, Any]) -> None:
+        """Handle dynamic wavelet settings change."""
+        try:
+            # Only update if inverse transform is applied
+            if settings.get('inverse_applied', False):
+                # Re-compute wavelet with new settings
+                params = {
+                    "wavelet_type": settings["type"],
+                    "decomp_level": settings["level"],
+                    "channel_selection": settings["channel"]
+                }
+                
+                # Re-compute wavelet coefficients
+                result = self.processing_service.compute_wavelet(params)
+                
+                if result.get('success'):
+                    # Update wavelet widget with new results
+                    self.wavelet_widget.set_wavelet_results(
+                        result.get('coefficients'),
+                        result.get('metadata')
+                    )
+                    
+                    # Re-apply inverse transform with new coefficients
+                    inverse_result = self.processing_service.apply_wavelet_inverse(True)
+                    
+                    if inverse_result.get('success'):
+                        self.status_message.emit("Wavelet settings updated dynamically")
+                    else:
+                        self.error_message.emit("Wavelet Update Error", 
+                                               inverse_result.get('error', "Failed to update wavelet"))
+                else:
+                    self.error_message.emit("Wavelet Update Error", 
+                                           result.get('error', "Failed to recompute wavelet"))
+
+        except Exception as e:
+            self.error_message.emit("Wavelet Update Error", f"Error updating wavelet settings: {str(e)}")
+
+    def _handle_downsampling_settings_changed(self, settings: Dict[str, Any]) -> None:
+        """Handle dynamic downsampling settings change."""
+        try:
+            # Only update if downsampling is applied
+            if settings.get('applied', False):
+                params = {
+                    "apply": True,
+                    "factor": settings["factor"],
+                    "operation": settings["aggregation"]
+                }
+                
+                result = self.processing_service.apply_downsampling(params)
+                
+                if result.get('success'):
+                    self.status_message.emit(
+                        f"Downsampling settings updated dynamically (factor: {settings['factor']})"
+                    )
+                else:
+                    self.error_message.emit("Downsampling Update Error", 
+                                           result.get('error', "Failed to update downsampling"))
+
+        except Exception as e:
+            self.error_message.emit("Downsampling Update Error", f"Error updating downsampling settings: {str(e)}")
+
+    def _handle_advanced_filter_settings_changed(self, settings: Dict[str, Any]) -> None:
+        """Handle dynamic advanced filter settings change."""
+        try:
+            # Only update if advanced filters are applied
+            if settings.get('applied', False):
+                params = {
+                    "apply": True,
+                    "filter_type": settings["filter_type"],
+                    "window_function": settings["window_function"],
+                    "low_cut": settings.get("low_cut", 1.0),
+                    "high_cut": settings.get("high_cut", 50.0),
+                    "order": settings.get("order", 4)
+                }
+                
+                result = self.processing_service.apply_advanced_filters(params)
+                
+                if result.get('success'):
+                    filter_type_name = [item[0] for item in FilterTypes.__dict__.items() 
+                                       if hasattr(FilterTypes, item[0]) and 
+                                       getattr(FilterTypes, item[0]) == settings["filter_type"]]
+                    filter_name = filter_type_name[0] if filter_type_name else "Unknown"
+                    
+                    self.status_message.emit(
+                        f"Advanced filter settings updated dynamically (type: {filter_name})"
+                    )
+                else:
+                    self.error_message.emit("Advanced Filter Update Error", 
+                                           result.get('error', "Failed to update advanced filters"))
+
+        except Exception as e:
+            self.error_message.emit("Advanced Filter Update Error", f"Error updating advanced filter settings: {str(e)}")

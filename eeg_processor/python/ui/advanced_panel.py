@@ -1,6 +1,7 @@
 from typing import Any, Optional, Dict
 
 from PyQt5.QtGui import QCloseEvent
+from PyQt5.QtWidgets import QScrollArea, QWidget, QVBoxLayout
 
 from .base_panel import BasePanel
 from .advanced.advanced_panel_controller import AdvancedPanelController
@@ -30,16 +31,40 @@ class AdvancedProcessingPanel(BasePanel):
 
         self._setup_advanced_panel()
 
-        # Add stretch to push everything to the top
-        self.layout.addStretch()
-
     def _setup_advanced_panel(self) -> None:
         """Setup the advanced processing panel with widgets and controller."""
+        # Create a scroll area for the entire panel
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(1)  # Qt.ScrollBarAlwaysOff
+        scroll_area.setVerticalScrollBarPolicy(2)    # Qt.ScrollBarAsNeeded
+
+        # Create a container widget for all components
+        container_widget = QWidget()
+        container_layout = QVBoxLayout(container_widget)
+        container_layout.setContentsMargins(10, 10, 10, 10)
+        container_layout.setSpacing(10)
+
         # Create specialized widgets
         self.ica_widget = ICAWidget()
         self.wavelet_widget = WaveletWidget()
         self.downsampling_widget = DownsamplingWidget()
         self.advanced_filter_widget = AdvancedFilterWidget()
+
+        # Add widgets to container layout
+        container_layout.addWidget(self.ica_widget)
+        container_layout.addWidget(self.wavelet_widget)
+        container_layout.addWidget(self.downsampling_widget)
+        container_layout.addWidget(self.advanced_filter_widget)
+        
+        # Add stretch to push everything to the top
+        container_layout.addStretch()
+
+        # Set the container as the scroll area's widget
+        scroll_area.setWidget(container_widget)
+
+        # Add scroll area to main layout
+        self.layout.addWidget(scroll_area)
 
         # Create controller to coordinate widgets
         self.controller = AdvancedPanelController(
@@ -55,12 +80,6 @@ class AdvancedProcessingPanel(BasePanel):
         # Connect controller signals to panel signals
         self.controller.status_message.connect(self.status_message.emit)
         self.controller.error_message.connect(self.error_message.emit)
-
-        # Add widgets to layout
-        self.layout.addWidget(self.ica_widget)
-        self.layout.addWidget(self.wavelet_widget)
-        self.layout.addWidget(self.downsampling_widget)
-        self.layout.addWidget(self.advanced_filter_widget)
 
     def enable_processing(self, enabled: bool) -> None:
         """Enable or disable advanced processing controls."""

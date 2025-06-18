@@ -10,14 +10,14 @@ from PyQt5.QtWidgets import (
     QSpinBox,
     QComboBox,
     QGridLayout,
+    QWidget,
 )
 from brainflow.data_filter import WaveletTypes
 
-from ...base_panel import BasePanel
 from ....utils.help_system import HelpButton
 
 
-class WaveletWidget(BasePanel):
+class WaveletWidget(QWidget):
     """
     Widget for wavelet transform operations.
     
@@ -27,6 +27,7 @@ class WaveletWidget(BasePanel):
     # Signals for communication with controller
     compute_requested = pyqtSignal(dict)  # Wavelet parameters
     apply_inverse_requested = pyqtSignal(bool)  # Apply/remove inverse transform
+    settings_changed = pyqtSignal(dict)  # Settings changed for dynamic update
 
     def __init__(self, parent: Optional[Any] = None) -> None:
         """Initialize the wavelet widget."""
@@ -36,6 +37,10 @@ class WaveletWidget(BasePanel):
         self.channel_names: List[str] = []
         self.wavelet_results: Optional[Dict[str, Any]] = None
         self.inverse_applied = False
+        
+        # Create main layout
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
         
         self._setup_ui()
 
@@ -61,16 +66,22 @@ class WaveletWidget(BasePanel):
         self.wavelet_type_combo.addItem("DB6", WaveletTypes.DB6)
         self.wavelet_type_combo.addItem("BIOR3_9", WaveletTypes.BIOR3_9)
         self.wavelet_type_combo.addItem("HAAR", WaveletTypes.HAAR)
+        # Connect to dynamic update
+        self.wavelet_type_combo.currentIndexChanged.connect(self._on_settings_changed)
         wavelet_params_layout.addWidget(self.wavelet_type_combo, 0, 1)
 
         wavelet_params_layout.addWidget(QLabel("Decomposition Level:"), 0, 2)
         self.wavelet_level_spin = QSpinBox()
         self.wavelet_level_spin.setRange(1, 8)
         self.wavelet_level_spin.setValue(3)
+        # Connect to dynamic update
+        self.wavelet_level_spin.valueChanged.connect(self._on_settings_changed)
         wavelet_params_layout.addWidget(self.wavelet_level_spin, 0, 3)
 
         wavelet_params_layout.addWidget(QLabel("Channel:"), 1, 0)
         self.wavelet_channel_combo = QComboBox()
+        # Connect to dynamic update
+        self.wavelet_channel_combo.currentIndexChanged.connect(self._on_settings_changed)
         wavelet_params_layout.addWidget(self.wavelet_channel_combo, 1, 1)
 
         wavelet_layout.addLayout(wavelet_params_layout)
@@ -112,6 +123,13 @@ class WaveletWidget(BasePanel):
         else:
             self.inverse_wavelet_btn.setText("Apply Inverse Transform")
             self.inverse_wavelet_btn.setStyleSheet("")
+
+    def _on_settings_changed(self) -> None:
+        """Emit signal when settings change for dynamic update."""
+        # Only emit if inverse transform is currently applied
+        if hasattr(self, 'inverse_applied') and self.inverse_applied:
+            settings = self.get_wavelet_settings()
+            self.settings_changed.emit(settings)
 
     def update_channels(self, channel_names: List[str]) -> None:
         """Update available channels."""
@@ -161,4 +179,5 @@ class WaveletWidget(BasePanel):
             "type": self.wavelet_type_combo.currentData(),
             "level": self.wavelet_level_spin.value(),
             "channel": self.wavelet_channel_combo.currentData(),
+            "inverse_applied": self.inverse_applied,
         }

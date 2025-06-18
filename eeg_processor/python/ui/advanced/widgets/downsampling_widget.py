@@ -9,14 +9,14 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QSpinBox,
     QComboBox,
+    QWidget,
 )
 from brainflow.data_filter import AggOperations
 
-from ...base_panel import BasePanel
 from ....utils.help_system import HelpButton
 
 
-class DownsamplingWidget(BasePanel):
+class DownsamplingWidget(QWidget):
     """
     Widget for downsampling operations.
     
@@ -25,6 +25,7 @@ class DownsamplingWidget(BasePanel):
     
     # Signals for communication with controller
     apply_requested = pyqtSignal(dict)  # Downsampling parameters including apply/remove flag
+    settings_changed = pyqtSignal(dict)  # Settings changed for dynamic update
 
     def __init__(self, parent: Optional[Any] = None) -> None:
         """Initialize the downsampling widget."""
@@ -32,6 +33,10 @@ class DownsamplingWidget(BasePanel):
         
         # Downsampling state
         self.applied = False
+        
+        # Create main layout
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
         
         self._setup_ui()
 
@@ -54,6 +59,8 @@ class DownsamplingWidget(BasePanel):
         self.downsample_factor_spin = QSpinBox()
         self.downsample_factor_spin.setRange(2, 10)
         self.downsample_factor_spin.setValue(2)
+        # Connect to dynamic update
+        self.downsample_factor_spin.valueChanged.connect(self._on_settings_changed)
         downsample_params_layout.addWidget(self.downsample_factor_spin)
 
         downsample_params_layout.addWidget(QLabel("Aggregation Method:"))
@@ -61,6 +68,8 @@ class DownsamplingWidget(BasePanel):
         self.downsample_agg_combo.addItem("Mean", AggOperations.MEAN)
         self.downsample_agg_combo.addItem("Median", AggOperations.MEDIAN)
         self.downsample_agg_combo.addItem("Each", AggOperations.EACH)
+        # Connect to dynamic update
+        self.downsample_agg_combo.currentIndexChanged.connect(self._on_settings_changed)
         downsample_params_layout.addWidget(self.downsample_agg_combo)
 
         downsample_layout.addLayout(downsample_params_layout)
@@ -95,6 +104,13 @@ class DownsamplingWidget(BasePanel):
         else:
             self.apply_downsample_btn.setText("Apply Downsampling")
             self.apply_downsample_btn.setStyleSheet("")
+
+    def _on_settings_changed(self) -> None:
+        """Emit signal when settings change for dynamic update."""
+        # Only emit if downsampling is currently applied
+        if hasattr(self, 'applied') and self.applied:
+            settings = self.get_downsample_settings()
+            self.settings_changed.emit(settings)
 
     def set_enabled(self, enabled: bool) -> None:
         """Enable or disable the widget."""

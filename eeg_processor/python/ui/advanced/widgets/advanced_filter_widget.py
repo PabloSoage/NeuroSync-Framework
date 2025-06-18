@@ -8,14 +8,14 @@ from PyQt5.QtWidgets import (
     QLabel,
     QPushButton,
     QComboBox,
+    QWidget,
 )
 from brainflow.data_filter import FilterTypes, WindowOperations
 
-from ...base_panel import BasePanel
 from ....utils.help_system import HelpButton
 
 
-class AdvancedFilterWidget(BasePanel):
+class AdvancedFilterWidget(QWidget):
     """
     Widget for advanced filtering operations.
     
@@ -24,6 +24,7 @@ class AdvancedFilterWidget(BasePanel):
     
     # Signals for communication with controller
     apply_requested = pyqtSignal(dict)  # Filter parameters including apply/remove flag
+    settings_changed = pyqtSignal(dict)  # Settings changed for dynamic update
 
     def __init__(self, parent: Optional[Any] = None) -> None:
         """Initialize the advanced filter widget."""
@@ -31,6 +32,10 @@ class AdvancedFilterWidget(BasePanel):
         
         # Filter state
         self.applied = False
+        
+        # Create main layout
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
         
         self._setup_ui()
 
@@ -49,6 +54,8 @@ class AdvancedFilterWidget(BasePanel):
         self.filter_type_combo.addItem(
             "Butterworth Zero Phase", FilterTypes.BUTTERWORTH_ZERO_PHASE
         )
+        # Connect to dynamic update
+        self.filter_type_combo.currentIndexChanged.connect(self._on_settings_changed)
         filter_type_layout.addWidget(self.filter_type_combo)
 
         filter_type_layout.addWidget(QLabel("Window Function:"))
@@ -59,6 +66,8 @@ class AdvancedFilterWidget(BasePanel):
             "Blackman Harris", WindowOperations.BLACKMAN_HARRIS
         )
         self.window_function_combo.addItem("No Window", WindowOperations.NO_WINDOW)
+        # Connect to dynamic update
+        self.window_function_combo.currentIndexChanged.connect(self._on_settings_changed)
         filter_type_layout.addWidget(self.window_function_combo)
 
         adv_filter_layout.addLayout(filter_type_layout)
@@ -97,6 +106,13 @@ class AdvancedFilterWidget(BasePanel):
             self.apply_adv_filter_btn.setText("Apply Advanced Filters")
             self.apply_adv_filter_btn.setStyleSheet("")
 
+    def _on_settings_changed(self) -> None:
+        """Emit signal when settings change for dynamic update."""
+        # Only emit if advanced filters are currently applied
+        if hasattr(self, 'applied') and self.applied:
+            settings = self.get_advanced_filter_settings()
+            self.settings_changed.emit(settings)
+
     def set_enabled(self, enabled: bool) -> None:
         """Enable or disable the widget."""
         self.apply_adv_filter_btn.setEnabled(enabled)
@@ -112,4 +128,7 @@ class AdvancedFilterWidget(BasePanel):
             "filter_type": self.filter_type_combo.currentData(),
             "window_function": self.window_function_combo.currentData(),
             "applied": self.applied,
+            "low_cut": 1.0,  # Could be made configurable
+            "high_cut": 50.0,  # Could be made configurable
+            "order": 4,
         }

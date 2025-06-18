@@ -12,13 +12,13 @@ from PyQt5.QtWidgets import (
     QCheckBox,
     QDoubleSpinBox,
     QFrame,
+    QWidget,
 )
 
-from ...base_panel import BasePanel
 from ....utils.help_system import HelpButton
 
 
-class ICAWidget(BasePanel):
+class ICAWidget(QWidget):
     """
     Widget for Independent Component Analysis operations.
     
@@ -45,6 +45,10 @@ class ICAWidget(BasePanel):
         self.selected_channels: List[int] = []
         self.ica_results: Optional[Dict[str, Any]] = None
         self.realtime_active: bool = False
+        
+        # Create main layout
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
         
         self._setup_ui()
 
