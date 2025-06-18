@@ -123,6 +123,8 @@ class AdvancedProcessingService:
                 wavelet_type: Type of wavelet
                 decomp_level: Decomposition level
                 channel_selection: Channel index to use
+                extension_type: Extension type for boundary handling
+                apply_denoising: Whether to apply wavelet denoising
         
         Returns:
             Dictionary with results containing:
@@ -141,6 +143,16 @@ class AdvancedProcessingService:
             wavelet_type = params["wavelet_type"]
             decomp_level = params["decomp_level"]
             channel_selection = params["channel_selection"]
+            extension_type = params.get("extension_type", 0)  # Default to SYMMETRIC
+            apply_denoising = params.get("apply_denoising", False)
+
+            # Validate decomposition level vs data length
+            min_length_needed = 2 ** decomp_level
+            if data.shape[1] < min_length_needed:
+                return {
+                    'success': False, 
+                    'error': f"Need at least {min_length_needed} samples for decomposition level {decomp_level}. Current: {data.shape[1]}"
+                }
 
             # Select data for wavelet analysis
             if channel_selection < data.shape[0]:
@@ -151,12 +163,12 @@ class AdvancedProcessingService:
             # Initialize processor if needed
             self._ensure_processor_initialized()
 
-            # Compute wavelet coefficients
-            coefficients, metadata = self._processor_service.compute_wavelet_coefficients(
-                wavelet_data, wavelet_type, decomp_level
+            # Compute wavelet coefficients with new parameters
+            coefficients, metadata = self._processor_service.processor.get_wavelet_coefficients(
+                wavelet_data, wavelet_type, decomp_level, extension_type, apply_denoising
             )
 
-            if coefficients is not None:
+            if coefficients is not None and coefficients.size > 0:
                 # Store for later use
                 self._wavelet_results = {
                     'coefficients': coefficients,
@@ -173,7 +185,7 @@ class AdvancedProcessingService:
                     'metadata': metadata
                 }
             else:
-                return {'success': False, 'error': "Wavelet computation failed"}
+                return {'success': False, 'error': "Wavelet computation failed - no coefficients generated"}
 
         except Exception as e:
             logging.error(f"Error in wavelet computation: {e}")

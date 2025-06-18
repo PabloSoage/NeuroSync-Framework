@@ -408,6 +408,7 @@ class ProcessorService:
         filter_type: FilterTypes = FilterTypes.BUTTERWORTH,
         order: int = 4,
         channels: Optional[List[int]] = None,
+        ripple: float = 1.0,
     ) -> np.ndarray:
         """
         Apply advanced bandpass filter with specific filter type.
@@ -419,6 +420,7 @@ class ProcessorService:
             filter_type: Type of filter to use
             order: Filter order
             channels: Specific channels to filter (defaults to all if None or empty)
+            ripple: Ripple in passband (for Chebyshev filters, in dB)
 
         Returns:
             Filtered data
@@ -433,7 +435,7 @@ class ProcessorService:
                 data = data.reshape(1, -1)
 
             logging.debug(
-                f"Applying advanced bandpass filter {low_cutoff}-{high_cutoff} Hz, type {filter_type}, channels: {channels}"
+                f"Applying advanced bandpass filter {low_cutoff}-{high_cutoff} Hz, type {filter_type}, channels: {channels}, ripple: {ripple}dB"
             )
 
             # If channels is None or empty list, apply to all channels
@@ -443,14 +445,14 @@ class ProcessorService:
                     if channel < data.shape[0]:
                         channel_data = data[channel : channel + 1, :]
                         filtered_channel_data = self.processor.perform_advanced_bandpass_filter(
-                            channel_data, low_cutoff, high_cutoff, order, filter_type
+                            channel_data, low_cutoff, high_cutoff, order, filter_type, ripple
                         )
                         filtered_data[channel : channel + 1, :] = filtered_channel_data
                 return filtered_data
             else:
                 # Apply to all channels (None or empty list)
                 return self.processor.perform_advanced_bandpass_filter(
-                    data, low_cutoff, high_cutoff, order, filter_type
+                    data, low_cutoff, high_cutoff, order, filter_type, ripple
                 )
         except Exception as e:
             logging.error(f"Advanced bandpass filter error: {e}")

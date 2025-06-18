@@ -742,6 +742,7 @@ class AdvancedPanelController(QObject):
                     "low_cut": settings.get("low_cut", 1.0),
                     "high_cut": settings.get("high_cut", 50.0),
                     "order": settings.get("order", 4),
+                    "ripple": settings.get("ripple", 1.0),  # Add ripple parameter
                     "selected_channels": actual_channel_indices,  # Use mapped indices
                 }
                 

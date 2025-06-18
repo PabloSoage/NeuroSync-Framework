@@ -259,8 +259,13 @@ class EEGVisualizer:
             if data.size == 0 or len(self.eeg_channels) == 0:
                 return
 
-            # Use data as-is since it comes from the centralized filter pipeline
+            # Clean data before plotting to avoid NaN/Inf issues
             data_to_plot = data.copy()
+            
+            # Check for and clean NaN/Inf values that can come from Chebyshev filters
+            if not np.isfinite(data_to_plot).all():
+                logging.warning("Data contains NaN/Inf values, cleaning for visualization...")
+                data_to_plot = np.nan_to_num(data_to_plot, nan=0.0, posinf=0.0, neginf=0.0)
 
             # Calculate signal quality for each channel
             quality_scores = self.processor.get_all_channels_quality(
@@ -274,18 +279,32 @@ class EEGVisualizer:
                         # Get channel data and ensure it's 1D
                         channel_data = data_to_plot[channel][-self.num_points :]
                         if len(channel_data) > 0:
-                            # Force to 1D array even if it's already 1D
+                            # Force to 1D array and clean NaN/Inf
                             channel_data = np.asarray(channel_data).flatten()
+                            
+                            # Additional safety check for this specific channel
+                            if not np.isfinite(channel_data).all():
+                                logging.warning(f"Channel {channel} data contains NaN/Inf, cleaning...")
+                                channel_data = np.nan_to_num(channel_data, nan=0.0, posinf=0.0, neginf=0.0)
+                            
                             time_vector = self.time_vector[-len(channel_data) :]
                             self.curves[i].setData(time_vector, channel_data)
 
-                            # Update quality indicator
+                            # Update quality indicator with NaN safety
                             quality = quality_scores.get(channel, 0)
+                            
+                            # Ensure quality is finite
+                            if not np.isfinite(quality):
+                                quality = 0.0
 
                             # Position quality indicator at the latest data point
                             if len(time_vector) > 0 and len(channel_data) > 0:
                                 x = time_vector[-1]
                                 y = channel_data[-1]
+                                
+                                # Safety check for position values
+                                if not (np.isfinite(x) and np.isfinite(y)):
+                                    continue  # Skip this update if position is invalid
 
                                 # Determine color based on quality score
                                 color_idx = min(
@@ -315,7 +334,7 @@ class EEGVisualizer:
                             f"Error plotting time series for channel {channel}: {e}"
                         )
 
-            # Update FFT plots (for channels)
+            # Update FFT plots (for channels) with NaN safety
             nfft = DataFilter.get_nearest_power_of_two(self.sampling_rate)
             for i, channel in enumerate(self.eeg_channels):
                 if i < len(self.fft_curves) and channel < data_to_plot.shape[0]:
@@ -323,8 +342,13 @@ class EEGVisualizer:
                         # Get channel data and ensure it's 1D
                         channel_data = data_to_plot[channel][-self.num_points :]
                         if len(channel_data) > 0:
-                            # Force to 1D array
+                            # Force to 1D array and clean NaN/Inf
                             channel_data = np.asarray(channel_data).flatten()
+                            
+                            # Clean NaN/Inf values before FFT
+                            if not np.isfinite(channel_data).all():
+                                logging.warning(f"FFT: Channel {channel} data contains NaN/Inf, cleaning...")
+                                channel_data = np.nan_to_num(channel_data, nan=0.0, posinf=0.0, neginf=0.0)
 
                             # Check if we have enough data for FFT
                             if len(channel_data) > nfft:
@@ -345,8 +369,11 @@ class EEGVisualizer:
                                         WindowOperations.HANNING.value,
                                     )
 
-                                    # Ensure PSD is a 1D numpy array
+                                    # Ensure PSD is a 1D numpy array and clean NaN/Inf
                                     psd = np.asarray(psd).flatten()
+                                    if not np.isfinite(psd).all():
+                                        logging.warning(f"PSD contains NaN/Inf for channel {channel}, cleaning...")
+                                        psd = np.nan_to_num(psd, nan=1e-10, posinf=1e10, neginf=1e-10)
 
                                     # Generate frequency vector of the same length as PSD
                                     freq = np.linspace(

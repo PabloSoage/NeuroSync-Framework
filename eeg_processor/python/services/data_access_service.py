@@ -507,6 +507,7 @@ class DataAccessService:
                 
                 filter_type = adv_filters.get("filter_type", FilterTypes.BUTTERWORTH)
                 order = adv_filters.get("order", 4)
+                ripple = adv_filters.get("ripple", 1.0)
                 channels = adv_filters.get("selected_channels", None)
 
                 # call into processor_service with channels argument
@@ -517,6 +518,7 @@ class DataAccessService:
                     filter_type,
                     order,
                     channels,
+                    ripple,
                 )
 
             # Apply downsampling

@@ -51,6 +51,7 @@ class SignalProcessor:
         stop_freq: float,
         order: int,
         filter_type: FilterTypes = FilterTypes.BUTTERWORTH,
+        ripple: float = 1.0,
     ) -> np.ndarray:
         """
         Apply bandpass filter to the data.
@@ -61,25 +62,88 @@ class SignalProcessor:
             stop_freq: High cutoff frequency
             order: Filter order
             filter_type: Type of filter to use
+            ripple: Ripple in passband (for Chebyshev filters, in dB)
 
         Returns:
             Filtered data
         """
         filtered_data = data.copy()
+        
+        # Validate and adjust parameters for stability
+        if filter_type in [FilterTypes.CHEBYSHEV_TYPE_1, FilterTypes.CHEBYSHEV_TYPE_1_ZERO_PHASE]:
+            # Ensure ripple is in valid range for stability
+            ripple = max(0.5, min(ripple, 3.0))
+            # Ensure order is reasonable for Chebyshev
+            order = max(2, min(order, 6))
+            
+            # Additional validation for frequency range
+            nyquist = self.sampling_rate / 2
+            if stop_freq > 0.8 * nyquist:  # More conservative for Chebyshev
+                logging.warning(f"High cutoff frequency too close to Nyquist for Chebyshev filter, adjusting")
+                stop_freq = 0.8 * nyquist
+        else:
+            # For non-Chebyshev filters, set ripple to 0
+            ripple = 0.0
+        
+        # Convert ripple to int for BrainFlow (expects ripple in dB as integer)
+        ripple_int = int(round(ripple))
+        
+        # Validate frequency parameters
+        nyquist = self.sampling_rate / 2
+        if start_freq >= nyquist or stop_freq >= nyquist:
+            logging.warning(f"Filter frequencies too high for sampling rate {self.sampling_rate}Hz")
+            return data
+        
+        if start_freq >= stop_freq:
+            logging.warning(f"Invalid frequency range: {start_freq} >= {stop_freq}")
+            return data
+        
         for channel_idx in range(data.shape[0]):
-            DataFilter.perform_bandpass(
-                filtered_data[channel_idx],
-                self.sampling_rate,
-                start_freq,
-                stop_freq,
-                order,
-                filter_type,
-                0,
-            )
+            try:
+                # Check for NaN/Inf in input data
+                if not np.isfinite(filtered_data[channel_idx]).all():
+                    logging.warning(f"Channel {channel_idx} contains NaN/Inf values, cleaning...")
+                    # Replace NaN/Inf with zeros
+                    filtered_data[channel_idx] = np.nan_to_num(filtered_data[channel_idx], 
+                                                             nan=0.0, posinf=0.0, neginf=0.0)
+                
+                # Check if we have enough data for the filter
+                min_samples_needed = max(order * 3, 10)  # Conservative estimate
+                if len(filtered_data[channel_idx]) < min_samples_needed:
+                    logging.warning(f"Not enough samples for filter on channel {channel_idx}: {len(filtered_data[channel_idx])} < {min_samples_needed}")
+                    continue
+                
+                # Apply filter with error handling
+                try:
+                    DataFilter.perform_bandpass(
+                        filtered_data[channel_idx],
+                        self.sampling_rate,
+                        start_freq,
+                        stop_freq,
+                        order,
+                        filter_type,
+                        ripple_int,
+                    )
+                except Exception as filter_error:
+                    logging.error(f"Filter failed on channel {channel_idx}: {filter_error}")
+                    # Keep original data for this channel
+                    filtered_data[channel_idx] = data[channel_idx]
+                    continue
+                
+                # Check output for NaN/Inf and clean if necessary
+                if not np.isfinite(filtered_data[channel_idx]).all():
+                    logging.warning(f"Filter produced NaN/Inf on channel {channel_idx}, cleaning output...")
+                    filtered_data[channel_idx] = np.nan_to_num(filtered_data[channel_idx], 
+                                                             nan=0.0, posinf=0.0, neginf=0.0)
+                    
+            except Exception as e:
+                logging.error(f"Error filtering channel {channel_idx}: {e}")
+                # On error, keep original data for this channel
+                filtered_data[channel_idx] = data[channel_idx]
 
         self.processed_data = filtered_data
         logging.info(
-            f"Applied bandpass filter {start_freq}-{stop_freq}Hz, order {order}"
+            f"Applied bandpass filter {start_freq}-{stop_freq}Hz, order {order}, type {filter_type}, ripple {ripple_int}dB"
         )
         return filtered_data
 
@@ -556,6 +620,7 @@ class SignalProcessor:
         stop_freq: float,
         order: int,
         filter_type: FilterTypes = FilterTypes.BUTTERWORTH,
+        ripple: float = 1.0,
     ) -> np.ndarray:
         """
         Apply advanced bandpass filter with specific filter type to the data.
@@ -566,25 +631,88 @@ class SignalProcessor:
             stop_freq: High cutoff frequency
             order: Filter order
             filter_type: Type of filter to use
+            ripple: Ripple in passband (for Chebyshev filters, in dB)
 
         Returns:
             Filtered data
         """
         filtered_data = data.copy()
+        
+        # Validate and adjust parameters for stability
+        if filter_type in [FilterTypes.CHEBYSHEV_TYPE_1, FilterTypes.CHEBYSHEV_TYPE_1_ZERO_PHASE]:
+            # Ensure ripple is in valid range for stability
+            ripple = max(0.5, min(ripple, 3.0))
+            # Ensure order is reasonable for Chebyshev
+            order = max(2, min(order, 6))
+            
+            # Additional validation for frequency range
+            nyquist = self.sampling_rate / 2
+            if stop_freq > 0.8 * nyquist:  # More conservative for Chebyshev
+                logging.warning(f"High cutoff frequency too close to Nyquist for Chebyshev filter, adjusting")
+                stop_freq = 0.8 * nyquist
+        else:
+            # For non-Chebyshev filters, set ripple to 0
+            ripple = 0.0
+        
+        # Convert ripple to int for BrainFlow (expects ripple in dB as integer)
+        ripple_int = int(round(ripple))
+        
+        # Validate frequency parameters
+        nyquist = self.sampling_rate / 2
+        if start_freq >= nyquist or stop_freq >= nyquist:
+            logging.warning(f"Advanced filter frequencies too high for sampling rate {self.sampling_rate}Hz")
+            return data
+        
+        if start_freq >= stop_freq:
+            logging.warning(f"Invalid advanced filter frequency range: {start_freq} >= {stop_freq}")
+            return data
+        
         for channel_idx in range(data.shape[0]):
-            DataFilter.perform_bandpass(
-                filtered_data[channel_idx],
-                self.sampling_rate,
-                start_freq,
-                stop_freq,
-                order,
-                filter_type,
-                0,
-            )
+            try:
+                # Check for NaN/Inf in input data
+                if not np.isfinite(filtered_data[channel_idx]).all():
+                    logging.warning(f"Advanced filter: Channel {channel_idx} contains NaN/Inf values, cleaning...")
+                    # Replace NaN/Inf with zeros
+                    filtered_data[channel_idx] = np.nan_to_num(filtered_data[channel_idx], 
+                                                             nan=0.0, posinf=0.0, neginf=0.0)
+                
+                # Check if we have enough data for the filter
+                min_samples_needed = max(order * 3, 10)
+                if len(filtered_data[channel_idx]) < min_samples_needed:
+                    logging.warning(f"Not enough samples for advanced filter on channel {channel_idx}")
+                    continue
+                
+                # Apply filter with error handling
+                try:
+                    DataFilter.perform_bandpass(
+                        filtered_data[channel_idx],
+                        self.sampling_rate,
+                        start_freq,
+                        stop_freq,
+                        order,
+                        filter_type,
+                        ripple_int,
+                    )
+                except Exception as filter_error:
+                    logging.error(f"Advanced filter failed on channel {channel_idx}: {filter_error}")
+                    # Keep original data for this channel
+                    filtered_data[channel_idx] = data[channel_idx]
+                    continue
+                
+                # Check output for NaN/Inf and clean if necessary
+                if not np.isfinite(filtered_data[channel_idx]).all():
+                    logging.warning(f"Advanced filter produced NaN/Inf on channel {channel_idx}, cleaning output...")
+                    filtered_data[channel_idx] = np.nan_to_num(filtered_data[channel_idx], 
+                                                             nan=0.0, posinf=0.0, neginf=0.0)
+                    
+            except Exception as e:
+                logging.error(f"Error in advanced filtering channel {channel_idx}: {e}")
+                # On error, keep original data for this channel
+                filtered_data[channel_idx] = data[channel_idx]
 
         self.processed_data = filtered_data
         logging.info(
-            f"Applied advanced bandpass filter {start_freq}-{stop_freq}Hz, order {order}, type {filter_type}"
+            f"Applied advanced bandpass filter {start_freq}-{stop_freq}Hz, order {order}, type {filter_type}, ripple {ripple_int}dB"
         )
         return filtered_data
 
@@ -593,6 +721,8 @@ class SignalProcessor:
         data: np.ndarray,
         wavelet: WaveletTypes = WaveletTypes.DB4,
         decomposition_level: int = 3,
+        extension_type: int = 0,  # WaveletExtensionTypes.SYMMETRIC
+        apply_denoising: bool = False,
     ) -> Tuple[np.ndarray, Dict[str, Any]]:
         """
         Get wavelet coefficients for the data.
@@ -601,27 +731,88 @@ class SignalProcessor:
             data: Input data
             wavelet: Type of wavelet to use
             decomposition_level: Level of decomposition
+            extension_type: Extension type for wavelet transform
+            apply_denoising: Whether to apply denoising
 
         Returns:
             Tuple of (coefficients, metadata)
         """
-        coefficients_data = np.zeros_like(data)
-        metadata = {
-            "wavelet": wavelet,
-            "decomposition_level": decomposition_level,
-            "original_shape": data.shape,
-        }
+        if self.processor is None:
+            logging.warning("Processor not initialized for wavelet computation")
+            return data, {}
 
-        for channel_idx in range(data.shape[0]):
-            # Get wavelet coefficients using BrainFlow
-            coeffs = DataFilter.get_wavelet_coeffs(
-                data[channel_idx], wavelet, decomposition_level
-            )
-            # Store coefficients (note: this is a simplified version)
-            coefficients_data[channel_idx] = coeffs[:data.shape[1]]
+        try:
+            coefficients_list = []
+            metadata = {
+                "wavelet": wavelet,
+                "decomposition_level": decomposition_level,
+                "extension_type": extension_type,
+                "original_shape": data.shape,
+                "apply_denoising": apply_denoising,
+                "lengths": [],
+            }
 
-        logging.info(f"Computed wavelet coefficients with {wavelet}, level {decomposition_level}")
-        return coefficients_data, metadata
+            for channel_idx in range(data.shape[0]):
+                try:
+                    # Get wavelet coefficients using BrainFlow
+                    channel_data = data[channel_idx].copy()
+                    
+                    # Apply denoising if requested
+                    if apply_denoising:
+                        from brainflow.data_filter import WaveletDenoisingTypes, ThresholdTypes, WaveletExtensionTypes, NoiseEstimationLevelTypes
+                        DataFilter.perform_wavelet_denoising(
+                            channel_data,
+                            wavelet,
+                            decomposition_level,
+                            WaveletDenoisingTypes.SURESHRINK,
+                            ThresholdTypes.HARD,
+                            extension_type,
+                            NoiseEstimationLevelTypes.FIRST_LEVEL
+                        )
+                    
+                    # Perform wavelet transform
+                    coeffs, lengths = DataFilter.perform_wavelet_transform(
+                        channel_data, wavelet, decomposition_level, extension_type
+                    )
+                    
+                    coefficients_list.append(coeffs)
+                    if channel_idx == 0:  # Store lengths from first channel
+                        metadata["lengths"] = lengths
+                        
+                except Exception as e:
+                    logging.error(f"Error computing wavelet coefficients for channel {channel_idx}: {e}")
+                    # Add empty coefficients for failed channels
+                    coefficients_list.append(np.array([]))
+
+            # Convert to numpy array
+            if coefficients_list:
+                # Pad coefficients to same length if needed
+                max_length = max(len(coeffs) for coeffs in coefficients_list if len(coeffs) > 0)
+                if max_length > 0:
+                    padded_coeffs = []
+                    for coeffs in coefficients_list:
+                        if len(coeffs) > 0:
+                            if len(coeffs) < max_length:
+                                padded = np.zeros(max_length)
+                                padded[:len(coeffs)] = coeffs
+                                padded_coeffs.append(padded)
+                            else:
+                                padded_coeffs.append(coeffs)
+                        else:
+                            padded_coeffs.append(np.zeros(max_length))
+                    
+                    coefficients_data = np.array(padded_coeffs)
+                else:
+                    coefficients_data = np.array([])
+            else:
+                coefficients_data = np.array([])
+
+            logging.info(f"Computed wavelet coefficients with {wavelet}, level {decomposition_level}, denoising: {apply_denoising}")
+            return coefficients_data, metadata
+
+        except Exception as e:
+            logging.error(f"Error in wavelet computation: {e}")
+            return data, {}
 
     def apply_inverse_wavelet_transform(
         self,
@@ -638,18 +829,49 @@ class SignalProcessor:
         Returns:
             Reconstructed data
         """
-        wavelet = metadata.get("wavelet", WaveletTypes.DB4)
-        decomp_level = metadata.get("decomposition_level", 3)
-        
-        reconstructed_data = np.zeros_like(coefficients)
-        
-        for channel_idx in range(coefficients.shape[0]):
-            # For demonstration, we'll use the restore function
-            # In practice, you'd need to implement proper inverse transform
-            restored = DataFilter.restore_data_from_wavelet_detailed_coeffs(
-                coefficients[channel_idx], wavelet, decomp_level, decomp_level
-            )
-            reconstructed_data[channel_idx] = restored[:coefficients.shape[1]]
+        try:
+            wavelet = metadata.get("wavelet", WaveletTypes.DB4)
+            decomp_level = metadata.get("decomposition_level", 3)
+            extension_type = metadata.get("extension_type", 0)
+            lengths = metadata.get("lengths", [])
+            original_shape = metadata.get("original_shape", coefficients.shape)
+            
+            reconstructed_data = np.zeros(original_shape)
+            
+            for channel_idx in range(coefficients.shape[0]):
+                try:
+                    # Get coefficients for this channel
+                    channel_coeffs = coefficients[channel_idx]
+                    
+                    if len(channel_coeffs) > 0 and len(lengths) > 0:
+                        # Prepare coefficients tuple for inverse transform
+                        coeffs_tuple = (channel_coeffs, lengths)
+                        
+                        # Apply inverse wavelet transform
+                        restored = DataFilter.perform_inverse_wavelet_transform(
+                            coeffs_tuple, 
+                            original_shape[1], 
+                            wavelet, 
+                            decomp_level, 
+                            extension_type
+                        )
+                        
+                        # Ensure the restored data fits the original shape
+                        if len(restored) <= original_shape[1]:
+                            reconstructed_data[channel_idx, :len(restored)] = restored
+                        else:
+                            reconstructed_data[channel_idx] = restored[:original_shape[1]]
+                    else:
+                        # If no valid coefficients, keep original data or zeros
+                        logging.warning(f"No valid coefficients for channel {channel_idx}")
+                        
+                except Exception as e:
+                    logging.error(f"Error in inverse wavelet for channel {channel_idx}: {e}")
+                    # Keep zeros for this channel on error
 
-        logging.info("Applied inverse wavelet transform")
-        return reconstructed_data
+            logging.info("Applied inverse wavelet transform")
+            return reconstructed_data
+            
+        except Exception as e:
+            logging.error(f"Error in inverse wavelet transform: {e}")
+            return coefficients

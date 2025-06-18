@@ -11,8 +11,9 @@ from PyQt5.QtWidgets import (
     QComboBox,
     QGridLayout,
     QWidget,
+    QCheckBox,
 )
-from brainflow.data_filter import WaveletTypes
+from brainflow.data_filter import WaveletTypes, WaveletExtensionTypes
 
 from ....utils.help_system import HelpButton
 
@@ -59,13 +60,69 @@ class WaveletWidget(QWidget):
         # Wavelet Parameters
         wavelet_params_layout = QGridLayout()
 
+        # Wavelet Type - Add all available wavelets from BrainFlow
         wavelet_params_layout.addWidget(QLabel("Wavelet Type:"), 0, 0)
         self.wavelet_type_combo = QComboBox()
+        
+        # Daubechies wavelets
+        self.wavelet_type_combo.addItem("Haar", WaveletTypes.HAAR)
+        self.wavelet_type_combo.addItem("DB1", WaveletTypes.DB1)
+        self.wavelet_type_combo.addItem("DB2", WaveletTypes.DB2)
+        self.wavelet_type_combo.addItem("DB3", WaveletTypes.DB3)
         self.wavelet_type_combo.addItem("DB4", WaveletTypes.DB4)
         self.wavelet_type_combo.addItem("DB5", WaveletTypes.DB5)
         self.wavelet_type_combo.addItem("DB6", WaveletTypes.DB6)
+        self.wavelet_type_combo.addItem("DB7", WaveletTypes.DB7)
+        self.wavelet_type_combo.addItem("DB8", WaveletTypes.DB8)
+        self.wavelet_type_combo.addItem("DB9", WaveletTypes.DB9)
+        self.wavelet_type_combo.addItem("DB10", WaveletTypes.DB10)
+        self.wavelet_type_combo.addItem("DB11", WaveletTypes.DB11)
+        self.wavelet_type_combo.addItem("DB12", WaveletTypes.DB12)
+        self.wavelet_type_combo.addItem("DB13", WaveletTypes.DB13)
+        self.wavelet_type_combo.addItem("DB14", WaveletTypes.DB14)
+        self.wavelet_type_combo.addItem("DB15", WaveletTypes.DB15)
+        
+        # Biorthogonal wavelets
+        self.wavelet_type_combo.addItem("BIOR1_1", WaveletTypes.BIOR1_1)
+        self.wavelet_type_combo.addItem("BIOR1_3", WaveletTypes.BIOR1_3)
+        self.wavelet_type_combo.addItem("BIOR1_5", WaveletTypes.BIOR1_5)
+        self.wavelet_type_combo.addItem("BIOR2_2", WaveletTypes.BIOR2_2)
+        self.wavelet_type_combo.addItem("BIOR2_4", WaveletTypes.BIOR2_4)
+        self.wavelet_type_combo.addItem("BIOR2_6", WaveletTypes.BIOR2_6)
+        self.wavelet_type_combo.addItem("BIOR2_8", WaveletTypes.BIOR2_8)
+        self.wavelet_type_combo.addItem("BIOR3_1", WaveletTypes.BIOR3_1)
+        self.wavelet_type_combo.addItem("BIOR3_3", WaveletTypes.BIOR3_3)
+        self.wavelet_type_combo.addItem("BIOR3_5", WaveletTypes.BIOR3_5)
+        self.wavelet_type_combo.addItem("BIOR3_7", WaveletTypes.BIOR3_7)
         self.wavelet_type_combo.addItem("BIOR3_9", WaveletTypes.BIOR3_9)
-        self.wavelet_type_combo.addItem("HAAR", WaveletTypes.HAAR)
+        self.wavelet_type_combo.addItem("BIOR4_4", WaveletTypes.BIOR4_4)
+        self.wavelet_type_combo.addItem("BIOR5_5", WaveletTypes.BIOR5_5)
+        self.wavelet_type_combo.addItem("BIOR6_8", WaveletTypes.BIOR6_8)
+        
+        # Coiflets wavelets
+        self.wavelet_type_combo.addItem("COIF1", WaveletTypes.COIF1)
+        self.wavelet_type_combo.addItem("COIF2", WaveletTypes.COIF2)
+        self.wavelet_type_combo.addItem("COIF3", WaveletTypes.COIF3)
+        self.wavelet_type_combo.addItem("COIF4", WaveletTypes.COIF4)
+        self.wavelet_type_combo.addItem("COIF5", WaveletTypes.COIF5)
+        
+        # Symlets wavelets
+        self.wavelet_type_combo.addItem("SYM2", WaveletTypes.SYM2)
+        self.wavelet_type_combo.addItem("SYM3", WaveletTypes.SYM3)
+        self.wavelet_type_combo.addItem("SYM4", WaveletTypes.SYM4)
+        self.wavelet_type_combo.addItem("SYM5", WaveletTypes.SYM5)
+        self.wavelet_type_combo.addItem("SYM6", WaveletTypes.SYM6)
+        self.wavelet_type_combo.addItem("SYM7", WaveletTypes.SYM7)
+        self.wavelet_type_combo.addItem("SYM8", WaveletTypes.SYM8)
+        self.wavelet_type_combo.addItem("SYM9", WaveletTypes.SYM9)
+        self.wavelet_type_combo.addItem("SYM10", WaveletTypes.SYM10)
+        
+        # Set default to DB4 (commonly used for EEG)
+        for i in range(self.wavelet_type_combo.count()):
+            if self.wavelet_type_combo.itemData(i) == WaveletTypes.DB4:
+                self.wavelet_type_combo.setCurrentIndex(i)
+                break
+        
         # Connect to dynamic update
         self.wavelet_type_combo.currentIndexChanged.connect(self._on_settings_changed)
         wavelet_params_layout.addWidget(self.wavelet_type_combo, 0, 1)
@@ -74,6 +131,7 @@ class WaveletWidget(QWidget):
         self.wavelet_level_spin = QSpinBox()
         self.wavelet_level_spin.setRange(1, 8)
         self.wavelet_level_spin.setValue(3)
+        self.wavelet_level_spin.setToolTip("Number of decomposition levels. Higher levels = more frequency separation")
         # Connect to dynamic update
         self.wavelet_level_spin.valueChanged.connect(self._on_settings_changed)
         wavelet_params_layout.addWidget(self.wavelet_level_spin, 0, 3)
@@ -83,8 +141,26 @@ class WaveletWidget(QWidget):
         # Connect to dynamic update
         self.wavelet_channel_combo.currentIndexChanged.connect(self._on_settings_changed)
         wavelet_params_layout.addWidget(self.wavelet_channel_combo, 1, 1)
+        
+        # Extension type
+        wavelet_params_layout.addWidget(QLabel("Extension:"), 1, 2)
+        self.extension_combo = QComboBox()
+        self.extension_combo.addItem("Symmetric", WaveletExtensionTypes.SYMMETRIC)
+        self.extension_combo.addItem("Periodic", WaveletExtensionTypes.PERIODIC)
+        self.extension_combo.setToolTip("Boundary extension method for wavelet transform")
+        self.extension_combo.currentIndexChanged.connect(self._on_settings_changed)
+        wavelet_params_layout.addWidget(self.extension_combo, 1, 3)
 
         wavelet_layout.addLayout(wavelet_params_layout)
+        
+        # Wavelet denoising option
+        denoising_layout = QHBoxLayout()
+        self.apply_denoising_check = QCheckBox("Apply Wavelet Denoising")
+        self.apply_denoising_check.setToolTip("Apply wavelet denoising during computation")
+        self.apply_denoising_check.stateChanged.connect(self._on_settings_changed)
+        denoising_layout.addWidget(self.apply_denoising_check)
+        denoising_layout.addStretch()
+        wavelet_layout.addLayout(denoising_layout)
 
         # Wavelet Control buttons
         wavelet_buttons_layout = QHBoxLayout()
@@ -107,7 +183,9 @@ class WaveletWidget(QWidget):
         params = {
             "wavelet_type": self.wavelet_type_combo.currentData(),
             "decomp_level": self.wavelet_level_spin.value(),
-            "channel_selection": self.wavelet_channel_combo.currentData()
+            "channel_selection": self.wavelet_channel_combo.currentData(),
+            "extension_type": self.extension_combo.currentData(),
+            "apply_denoising": self.apply_denoising_check.isChecked()
         }
         self.compute_requested.emit(params)
 
@@ -179,5 +257,7 @@ class WaveletWidget(QWidget):
             "type": self.wavelet_type_combo.currentData(),
             "level": self.wavelet_level_spin.value(),
             "channel": self.wavelet_channel_combo.currentData(),
+            "extension_type": self.extension_combo.currentData(),
+            "apply_denoising": self.apply_denoising_check.isChecked(),
             "inverse_applied": self.inverse_applied,
         }

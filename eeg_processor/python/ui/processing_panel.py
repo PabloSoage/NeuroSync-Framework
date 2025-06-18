@@ -248,6 +248,26 @@ class ProcessingPanel(BasePanel):
             try:
                 # Get current filter settings
                 filter_settings = self.get_filter_settings()
+                
+                # Validate frequency settings
+                low_cut = self.bandpass_low_spin.value()
+                high_cut = self.bandpass_high_spin.value()
+                
+                # Get sampling rate to validate frequencies
+                sampling_rate = self.collector_service.get_sampling_rate()
+                if sampling_rate > 0:
+                    nyquist = sampling_rate / 2
+                    
+                    # Ensure frequencies are valid
+                    if high_cut >= nyquist:
+                        high_cut = nyquist * 0.95  # Set to 95% of Nyquist
+                        self.bandpass_high_spin.setValue(high_cut)
+                        self.show_status(f"High cut frequency adjusted to {high_cut:.1f} Hz (below Nyquist frequency)")
+                    
+                    if low_cut >= high_cut:
+                        low_cut = high_cut * 0.1  # Set to 10% of high cut
+                        self.bandpass_low_spin.setValue(low_cut)
+                        self.show_status(f"Low cut frequency adjusted to {low_cut:.1f} Hz")
 
                 # Apply the same filters as in apply_filters, but without changing button state
                 self.visualization_service.set_bandpass_filter(

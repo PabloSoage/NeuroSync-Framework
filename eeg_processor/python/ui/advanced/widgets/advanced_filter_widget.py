@@ -10,6 +10,8 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QComboBox,
     QWidget,
+    QDoubleSpinBox,
+    QSpinBox,
 )
 from brainflow.data_filter import FilterTypes, WindowOperations
 
@@ -63,29 +65,73 @@ class AdvancedFilterWidget(QWidget):
         filter_type_layout = QHBoxLayout()
         filter_type_layout.addWidget(QLabel("Filter Type:"))
         self.filter_type_combo = QComboBox()
+        
+        # Add all available filter types from BrainFlow
         self.filter_type_combo.addItem("Butterworth", FilterTypes.BUTTERWORTH)
         self.filter_type_combo.addItem("Chebyshev Type 1", FilterTypes.CHEBYSHEV_TYPE_1)
         self.filter_type_combo.addItem("Bessel", FilterTypes.BESSEL)
-        self.filter_type_combo.addItem(
-            "Butterworth Zero Phase", FilterTypes.BUTTERWORTH_ZERO_PHASE
-        )
+        self.filter_type_combo.addItem("Butterworth Zero Phase", FilterTypes.BUTTERWORTH_ZERO_PHASE)
+        self.filter_type_combo.addItem("Chebyshev Type 1 Zero Phase", FilterTypes.CHEBYSHEV_TYPE_1_ZERO_PHASE)
+        self.filter_type_combo.addItem("Bessel Zero Phase", FilterTypes.BESSEL_ZERO_PHASE)
+        
         # Connect to dynamic update
         self.filter_type_combo.currentIndexChanged.connect(self._on_settings_changed)
+        # Connect to enable/disable ripple control
+        self.filter_type_combo.currentIndexChanged.connect(self._on_filter_type_changed)
         filter_type_layout.addWidget(self.filter_type_combo)
 
-        filter_type_layout.addWidget(QLabel("Window Function:"))
-        self.window_function_combo = QComboBox()
-        self.window_function_combo.addItem("Hanning", WindowOperations.HANNING)
-        self.window_function_combo.addItem("Hamming", WindowOperations.HAMMING)
-        self.window_function_combo.addItem(
-            "Blackman Harris", WindowOperations.BLACKMAN_HARRIS
-        )
-        self.window_function_combo.addItem("No Window", WindowOperations.NO_WINDOW)
-        # Connect to dynamic update
-        self.window_function_combo.currentIndexChanged.connect(self._on_settings_changed)
-        filter_type_layout.addWidget(self.window_function_combo)
+        # Add filter order control
+        filter_type_layout.addWidget(QLabel("Order:"))
+        self.filter_order_spin = QSpinBox()
+        self.filter_order_spin.setRange(1, 10)
+        self.filter_order_spin.setValue(4)
+        self.filter_order_spin.valueChanged.connect(self._on_settings_changed)
+        filter_type_layout.addWidget(self.filter_order_spin)
 
         adv_filter_layout.addLayout(filter_type_layout)
+
+        # Window function selection
+        window_layout = QHBoxLayout()
+        window_layout.addWidget(QLabel("Window Function:"))
+        self.window_function_combo = QComboBox()
+        self.window_function_combo.addItem("No Window", WindowOperations.NO_WINDOW)
+        self.window_function_combo.addItem("Hanning", WindowOperations.HANNING)
+        self.window_function_combo.addItem("Hamming", WindowOperations.HAMMING)
+        self.window_function_combo.addItem("Blackman Harris", WindowOperations.BLACKMAN_HARRIS)
+        # Connect to dynamic update
+        self.window_function_combo.currentIndexChanged.connect(self._on_settings_changed)
+        window_layout.addWidget(self.window_function_combo)
+        window_layout.addStretch()
+        adv_filter_layout.addLayout(window_layout)
+
+        # Ripple control for Chebyshev filters (fixed parameters)
+        ripple_layout = QHBoxLayout()
+        self.ripple_label = QLabel("Ripple (dB):")
+        ripple_layout.addWidget(self.ripple_label)
+        
+        self.ripple_spin = QDoubleSpinBox()
+        self.ripple_spin.setRange(0.1, 3.0)  # Conservative range for stability
+        self.ripple_spin.setValue(1.0)
+        self.ripple_spin.setSuffix(" dB")
+        self.ripple_spin.setDecimals(1)
+        self.ripple_spin.setSingleStep(0.1)
+        self.ripple_spin.valueChanged.connect(self._on_settings_changed)
+        ripple_layout.addWidget(self.ripple_spin)
+        
+        # Add better tooltip with stability guidance
+        self.ripple_spin.setToolTip(
+            "Ripple in passband for Chebyshev filters.\n"
+            "Lower values = less ripple but potential instability.\n"
+            "Recommended: 0.5-2.0 dB for stable filtering.\n"
+            "Higher orders may require higher ripple values."
+        )
+        
+        ripple_layout.addStretch()
+        adv_filter_layout.addLayout(ripple_layout)
+        
+        # Initially hide ripple control (Butterworth is default)
+        self.ripple_label.hide()
+        self.ripple_spin.hide()
 
         # Channel selection
         channel_layout = QVBoxLayout()
@@ -192,6 +238,30 @@ class AdvancedFilterWidget(QWidget):
         # Fallback values
         return {"low_cut": 1.0, "high_cut": 50.0}
 
+    def _on_filter_type_changed(self) -> None:
+        """Handle filter type change to show/hide ripple control and adjust parameters."""
+        filter_type = self.filter_type_combo.currentData()
+        
+        # Show ripple control only for Chebyshev filters
+        is_chebyshev = filter_type in [FilterTypes.CHEBYSHEV_TYPE_1, FilterTypes.CHEBYSHEV_TYPE_1_ZERO_PHASE]
+        
+        self.ripple_label.setVisible(is_chebyshev)
+        self.ripple_spin.setVisible(is_chebyshev)
+        
+        # Adjust recommended parameters for stability
+        if is_chebyshev:
+            # For Chebyshev filters, adjust order and ripple for stability
+            current_order = self.filter_order_spin.value()
+            if current_order > 6:
+                self.filter_order_spin.setValue(4)  # Reduce order for stability
+                logging.info("Reduced filter order to 4 for Chebyshev filter stability")
+            
+            # Ensure ripple is in a stable range
+            current_ripple = self.ripple_spin.value()
+            if current_ripple < 0.5:
+                self.ripple_spin.setValue(1.0)
+                logging.info("Increased ripple to 1.0 dB for Chebyshev filter stability")
+
     def _toggle_advanced_filters(self) -> None:
         """Toggle advanced filters application."""
         self.applied = not self.applied
@@ -202,13 +272,32 @@ class AdvancedFilterWidget(QWidget):
         # Get dynamic basic bandpass parameters
         basic_params = self._get_basic_bandpass_params()
         
+        # Get filter-specific parameters
+        filter_type = self.filter_type_combo.currentData()
+        order = self.filter_order_spin.value()
+        ripple = self.ripple_spin.value()
+        
+        # Additional validation for Chebyshev filters
+        if filter_type in [FilterTypes.CHEBYSHEV_TYPE_1, FilterTypes.CHEBYSHEV_TYPE_1_ZERO_PHASE]:
+            # Ensure stable parameters for Chebyshev
+            if order > 6:
+                order = 4
+                self.filter_order_spin.setValue(4)
+                logging.warning("Reduced Chebyshev filter order to 4 for stability")
+            
+            if ripple < 0.5:
+                ripple = 1.0
+                self.ripple_spin.setValue(1.0)
+                logging.warning("Increased Chebyshev ripple to 1.0 dB for stability")
+        
         params = {
             "apply": self.applied,
-            "filter_type": self.filter_type_combo.currentData(),
+            "filter_type": filter_type,
             "window_function": self.window_function_combo.currentData(),
             "low_cut": basic_params["low_cut"],  # Use dynamic basic parameters
             "high_cut": basic_params["high_cut"],  # Use dynamic basic parameters
-            "order": 4,
+            "order": order,
+            "ripple": ripple,  # Will be converted to int in processor
             "selected_channels": channels_to_filter,
         }
         
@@ -243,7 +332,7 @@ class AdvancedFilterWidget(QWidget):
         # If no channels selected, pass empty list to indicate "all channels"
         channels_to_filter = self.selected_channels.copy() if self.selected_channels else []
         
-        # Get dynamic basic bandpass parameters
+        # Get dynamic bandpass parameters
         basic_params = self._get_basic_bandpass_params()
         
         return {
@@ -252,6 +341,7 @@ class AdvancedFilterWidget(QWidget):
             "applied": self.applied,
             "low_cut": basic_params["low_cut"],  # Use dynamic basic parameters
             "high_cut": basic_params["high_cut"],  # Use dynamic basic parameters
-            "order": 4,
+            "order": self.filter_order_spin.value(),
+            "ripple": self.ripple_spin.value(),
             "selected_channels": channels_to_filter,
         }
