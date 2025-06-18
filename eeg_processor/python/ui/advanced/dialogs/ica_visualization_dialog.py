@@ -1,7 +1,9 @@
 import time
 from typing import Any, Dict, Optional
+import multiprocessing as mp
+import queue
 
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -16,11 +18,98 @@ from PyQt5.QtWidgets import (
 import numpy as np
 
 
+def _computation_worker_process(command_queue: mp.Queue, result_queue: mp.Queue):
+    """
+    Worker process for heavy computations.
+    
+    This process handles CPU-intensive calculations without blocking the UI.
+    """
+    while True:
+        try:
+            # Get command from queue
+            command = command_queue.get()
+            
+            if command is None:  # Shutdown signal
+                break
+            
+            computation_type = command.get('type')
+            
+            if computation_type == 'statistics':
+                result = _compute_statistics_worker(command)
+                result_queue.put(result)
+                
+            elif computation_type == 'psd':
+                result = _compute_psd_worker(command)
+                result_queue.put(result)
+                
+        except Exception as e:
+            error_result = {
+                'type': 'error',
+                'error': str(e)
+            }
+            result_queue.put(error_result)
+
+
+def _compute_statistics_worker(command: Dict[str, Any]) -> Dict[str, Any]:
+    """Compute statistics for ICA components (runs in separate process)."""
+    import numpy as np
+    
+    ica_components = command['ica_components']
+    result = {'type': 'statistics', 'stats': {}}
+    
+    if "s" in ica_components:
+        s_data = ica_components["s"]
+        
+        for i in range(s_data.shape[0]):
+            component_data = s_data[i, :]
+            stats = {
+                'mean': float(np.mean(component_data)),
+                'std': float(np.std(component_data)),
+                'min': float(np.min(component_data)),
+                'max': float(np.max(component_data))
+            }
+            result['stats'][i] = stats
+    
+    return result
+
+
+def _compute_psd_worker(command: Dict[str, Any]) -> Dict[str, Any]:
+    """Compute Power Spectral Density (runs in separate process)."""
+    import numpy as np
+    
+    component_data = command['component_data']
+    sampling_rate = command['sampling_rate']
+    component_index = command['component_index']
+    
+    result = {'type': 'psd', 'success': False, 'component_index': component_index}
+    
+    if sampling_rate <= 0:
+        result['error'] = "Invalid sampling rate"
+        return result
+    
+    try:
+        from scipy import signal
+        freqs, psd = signal.welch(component_data, sampling_rate, 
+                                nperseg=min(len(component_data)//4, 1024))
+        result.update({
+            'success': True,
+            'freqs': freqs,
+            'psd': psd
+        })
+    except ImportError:
+        result['error'] = "Scipy not available"
+    except Exception as e:
+        result['error'] = str(e)
+    
+    return result
+
+
 class ICAVisualizationDialog(QDialog):
     """
     Dialog for visualizing ICA components.
     
     This dialog provides a scrollable view of ICA components with export capabilities.
+    Now with separate process for computations and matplotlib in main thread for responsiveness.
     """
     
     # Signals for export requests
@@ -47,8 +136,86 @@ class ICAVisualizationDialog(QDialog):
         self.figure = None
         self.canvas = None
         
+        # Process for heavy computations
+        self._computation_process = None
+        self._command_queue = None
+        self._result_queue = None
+        self._result_timer = None
+        
+        # Cache for computed values
+        self._component_stats = {}
+        
+        self._setup_computation_process()
         self._setup_ui()
         self._create_visualization()
+
+    def _setup_computation_process(self) -> None:
+        """Set up the computation process for heavy calculations."""
+        try:
+            # Create queues for communication
+            self._command_queue = mp.Queue()
+            self._result_queue = mp.Queue()
+            
+            # Start computation process
+            self._computation_process = mp.Process(
+                target=_computation_worker_process,
+                args=(self._command_queue, self._result_queue)
+            )
+            self._computation_process.start()
+            
+            # Timer to check for results
+            self._result_timer = QTimer()
+            self._result_timer.timeout.connect(self._check_computation_results)
+            self._result_timer.start(50)  # Check every 50ms
+            
+        except Exception as e:
+            print(f"Error setting up computation process: {e}")
+
+    def _check_computation_results(self) -> None:
+        """Check for results from computation process."""
+        try:
+            while not self._result_queue.empty():
+                try:
+                    result = self._result_queue.get_nowait()
+                    self._handle_computation_result(result)
+                except queue.Empty:
+                    break
+        except Exception as e:
+            print(f"Error checking computation results: {e}")
+
+    def _handle_computation_result(self, result: Dict[str, Any]) -> None:
+        """Handle computation result from process."""
+        try:
+            if result['type'] == 'statistics':
+                self._component_stats = result['stats']
+            elif result['type'] == 'psd':
+                self._handle_psd_result(result)
+            elif result['type'] == 'error':
+                print(f"Computation error: {result['error']}")
+        except Exception as e:
+            print(f"Error handling computation result: {e}")
+
+    def _handle_psd_result(self, result: Dict[str, Any]) -> None:
+        """Handle PSD computation result."""
+        # This will be used by the detail dialogs to update PSD plots
+        # Store result temporarily for any waiting detail dialogs
+        if hasattr(self, '_pending_psd_callbacks'):
+            component_index = result.get('component_index')
+            if component_index in self._pending_psd_callbacks:
+                callback = self._pending_psd_callbacks[component_index]
+                callback(result)
+                del self._pending_psd_callbacks[component_index]
+
+    def _request_computation(self, computation_type: str, **kwargs) -> None:
+        """Request a computation in the separate process."""
+        if self._command_queue is None:
+            return
+        
+        try:
+            command = {'type': computation_type, **kwargs}
+            self._command_queue.put(command)
+        except Exception as e:
+            print(f"Error requesting computation: {e}")
 
     def _setup_ui(self) -> None:
         """Set up the dialog UI."""
@@ -137,7 +304,7 @@ class ICAVisualizationDialog(QDialog):
         main_layout.addWidget(instruction_label)
 
     def _create_visualization(self) -> None:
-        """Create the ICA visualization content."""
+        """Create the ICA visualization content (matplotlib in main thread)."""
         # Close previous figure if exists to prevent memory leaks
         if self.figure is not None:
             import matplotlib.pyplot as plt
@@ -257,12 +424,26 @@ class ICAVisualizationDialog(QDialog):
         canvas.setMinimumHeight(canvas_height)
         canvas.setMinimumWidth(int(figure_width * 100))
         
+        # Clear existing layout
+        for i in reversed(range(self.scroll_layout.count())):
+            child = self.scroll_layout.itemAt(i).widget()
+            if child:
+                child.setParent(None)
+        
         # Add to layout
         self.scroll_layout.addWidget(canvas)
         
         # Set scroll widget size
         self.scroll_widget.setMinimumHeight(canvas_height + 20)
         self.scroll_widget.setMinimumWidth(int(figure_width * 100) + 20)
+        
+        # Request statistics computation in background if not real-time
+        if not self.is_realtime:
+            self._request_computation(
+                'statistics',
+                ica_components=self.ica_components,
+                sampling_rate=self.sampling_rate
+            )
 
     def _refresh_visualization(self) -> None:
         """Refresh the visualization with new colormap."""
@@ -271,12 +452,6 @@ class ICAVisualizationDialog(QDialog):
             return
             
         try:
-            # Clear existing layout
-            for i in reversed(range(self.scroll_layout.count())):
-                child = self.scroll_layout.itemAt(i).widget()
-                if child:
-                    child.setParent(None)
-            
             # Recreate visualization
             self._create_visualization()
             
@@ -319,36 +494,29 @@ class ICAVisualizationDialog(QDialog):
             ax1.set_ylabel("Amplitude", fontsize=12)
             ax1.grid(True, alpha=0.3)
             
-            # Add statistics
-            data_mean = np.mean(component_data)
-            data_std = np.std(component_data)
-            data_min = np.min(component_data)
-            data_max = np.max(component_data)
+            # Add statistics (use cached if available, otherwise compute inline)
+            if component_index in self._component_stats:
+                stats = self._component_stats[component_index]
+                data_mean = stats['mean']
+                data_std = stats['std']
+                data_min = stats['min']
+                data_max = stats['max']
+            else:
+                data_mean = np.mean(component_data)
+                data_std = np.std(component_data)
+                data_min = np.min(component_data)
+                data_max = np.max(component_data)
+            
             stats_text = f"Mean: {data_mean:.4f} | Std: {data_std:.4f} | Min: {data_min:.4f} | Max: {data_max:.4f}"
             ax1.text(0.02, 0.98, stats_text, transform=ax1.transAxes, fontsize=10,
                     verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
             
-            # Power spectral density
-            if self.sampling_rate > 0:
-                try:
-                    from scipy import signal
-                    freqs, psd = signal.welch(component_data, self.sampling_rate, 
-                                            nperseg=min(len(component_data)//4, 1024))
-                    ax2.semilogy(freqs, psd, color='#ff7f0e', linewidth=1.5)
-                    ax2.set_title(f"Component {component_index + 1} - Power Spectral Density", 
-                                 fontsize=16, fontweight='bold')
-                    ax2.set_xlabel("Frequency (Hz)", fontsize=12)
-                    ax2.set_ylabel("Power/Frequency (dB/Hz)", fontsize=12)
-                    ax2.grid(True, alpha=0.3)
-                    ax2.set_xlim(0, min(50, self.sampling_rate/2))
-                except ImportError:
-                    ax2.text(0.5, 0.5, "Scipy not available\nCannot compute PSD", 
-                            transform=ax2.transAxes, ha='center', va='center', fontsize=14)
-                    ax2.set_title(f"Component {component_index + 1} - Power Spectral Density", fontsize=16)
-            else:
-                ax2.text(0.5, 0.5, "Cannot compute PSD\n(sampling rate unknown)", 
-                        transform=ax2.transAxes, ha='center', va='center', fontsize=14)
-                ax2.set_title(f"Component {component_index + 1} - Power Spectral Density", fontsize=16)
+            # Power spectral density placeholder
+            ax2.text(0.5, 0.5, "Computing Power Spectral Density...", 
+                    transform=ax2.transAxes, ha='center', va='center', fontsize=14)
+            ax2.set_title(f"Component {component_index + 1} - Power Spectral Density", fontsize=16, fontweight='bold')
+            ax2.set_xlabel("Frequency (Hz)", fontsize=12)
+            ax2.set_ylabel("Power/Frequency (dB/Hz)", fontsize=12)
             
             plt.tight_layout()
             
@@ -357,6 +525,52 @@ class ICAVisualizationDialog(QDialog):
             layout.addWidget(canvas)
             
             detail_dialog.show()
+            
+            # Request PSD computation in background process
+            if self.sampling_rate > 0:
+                # Set up callback storage for this component
+                if not hasattr(self, '_pending_psd_callbacks'):
+                    self._pending_psd_callbacks = {}
+                
+                def update_psd(result):
+                    if (result['type'] == 'psd' and 
+                        result.get('component_index') == component_index and
+                        detail_dialog.isVisible()):
+                        
+                        if result['success']:
+                            ax2.clear()
+                            ax2.semilogy(result['freqs'], result['psd'], color='#ff7f0e', linewidth=1.5)
+                            ax2.set_title(f"Component {component_index + 1} - Power Spectral Density", 
+                                         fontsize=16, fontweight='bold')
+                            ax2.set_xlabel("Frequency (Hz)", fontsize=12)
+                            ax2.set_ylabel("Power/Frequency (dB/Hz)", fontsize=12)
+                            ax2.grid(True, alpha=0.3)
+                            ax2.set_xlim(0, min(50, self.sampling_rate/2))
+                        else:
+                            ax2.clear()
+                            ax2.text(0.5, 0.5, f"Error computing PSD:\n{result.get('error', 'Unknown error')}", 
+                                    transform=ax2.transAxes, ha='center', va='center', fontsize=14)
+                            ax2.set_title(f"Component {component_index + 1} - Power Spectral Density", fontsize=16)
+                        
+                        canvas.draw()
+                
+                # Store callback
+                self._pending_psd_callbacks[component_index] = update_psd
+                
+                # Request computation
+                self._request_computation(
+                    'psd',
+                    component_index=component_index,
+                    component_data=component_data.copy(),
+                    sampling_rate=self.sampling_rate
+                )
+                
+                # Cleanup callback when dialog closes
+                def cleanup():
+                    if hasattr(self, '_pending_psd_callbacks') and component_index in self._pending_psd_callbacks:
+                        del self._pending_psd_callbacks[component_index]
+                
+                detail_dialog.finished.connect(cleanup)
             
         except Exception as e:
             print(f"Error showing component detail: {e}")
@@ -1025,15 +1239,6 @@ class ICAVisualizationDialog(QDialog):
                 self._update_realtime_plots()
             else:
                 # Regular full refresh for non-real-time
-                # Clear existing content
-                if hasattr(self, 'scroll_widget') and self.scroll_widget:
-                    for i in reversed(range(self.scroll_widget.layout().count())): 
-                        child = self.scroll_widget.layout().itemAt(i).widget()
-                        if child:
-                            child.setParent(None)
-                            child.deleteLater()
-                
-                # Recreate visualization with new data
                 self._create_visualization()
             
             # Update window title
@@ -1115,6 +1320,27 @@ class ICAVisualizationDialog(QDialog):
     def closeEvent(self, event) -> None:
         """Handle dialog close event."""
         try:
+            # Stop the result timer
+            if self._result_timer:
+                self._result_timer.stop()
+                self._result_timer = None
+            
+            # Shutdown computation process
+            if self._computation_process and self._computation_process.is_alive():
+                # Send shutdown signal
+                try:
+                    self._command_queue.put(None)
+                    self._computation_process.join(timeout=2)
+                    
+                    if self._computation_process.is_alive():
+                        self._computation_process.terminate()
+                        self._computation_process.join(timeout=1)
+                        
+                        if self._computation_process.is_alive():
+                            self._computation_process.kill()
+                except:
+                    pass
+            
             # Clean up matplotlib figures to prevent memory leaks
             if self.figure is not None:
                 import matplotlib.pyplot as plt
@@ -1133,3 +1359,175 @@ class ICAVisualizationDialog(QDialog):
         except Exception as e:
             print(f"Error during dialog cleanup: {e}")
             event.accept()
+
+    @staticmethod
+    def _export_single_component_worker(export_data, progress_queue):
+        """Worker function to export a single component."""
+        try:
+            # Configure matplotlib for non-GUI use
+            import matplotlib
+            matplotlib.use('Agg')
+            import matplotlib.pyplot as plt
+            import numpy as np
+
+            component_index = export_data['component_index']
+            component_data = export_data['component_data']
+            time_vector = export_data['time_vector']
+            sampling_rate = export_data['sampling_rate']
+            filename = export_data['filename']
+            colormap = export_data.get('colormap', 'viridis')
+
+            progress_queue.put({
+                'type': 'progress',
+                'percent': 50,
+                'status': f'Exporting component {component_index + 1}...'
+            })
+
+            # Create larger figure for component
+            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 9))
+            
+            # Main time series plot
+            ax1.plot(time_vector, component_data, linewidth=1.5, color='#1f77b4', alpha=0.8)
+            ax1.set_title(f"Independent Component {component_index + 1} - Time Series", fontsize=16, fontweight='bold')
+            ax1.set_xlabel("Time (s)", fontsize=14)
+            ax1.set_ylabel("Amplitude", fontsize=14)
+            ax1.grid(True, alpha=0.3)
+            ax1.tick_params(axis='both', which='major', labelsize=12)
+            
+            # Add statistics text
+            data_mean = np.mean(component_data)
+            data_std = np.std(component_data)
+            data_min = np.min(component_data)
+            data_max = np.max(component_data)
+            stats_text = f"Mean: {data_mean:.4f} | Std: {data_std:.4f} | Min: {data_min:.4f} | Max: {data_max:.4f}"
+            ax1.text(0.02, 0.98, stats_text, transform=ax1.transAxes, fontsize=10, 
+                    verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+            
+            # Power spectral density
+            if sampling_rate > 0:
+                try:
+                    from scipy import signal
+                    freqs, psd = signal.welch(component_data, sampling_rate, nperseg=min(len(component_data)//4, 1024))
+                    ax2.semilogy(freqs, psd, color='#ff7f0e', linewidth=1.5)
+                    ax2.set_title(f"Component {component_index + 1} - Power Spectral Density", fontsize=16, fontweight='bold')
+                    ax2.set_xlabel("Frequency (Hz)", fontsize=14)
+                    ax2.set_ylabel("Power/Frequency (dB/Hz)", fontsize=14)
+                    ax2.grid(True, alpha=0.3)
+                    ax2.tick_params(axis='both', which='major', labelsize=12)
+                    ax2.set_xlim(0, min(50, sampling_rate/2))
+                except ImportError:
+                    ax2.text(0.5, 0.5, "Scipy not available\nCannot compute PSD", 
+                            transform=ax2.transAxes, ha='center', va='center', fontsize=14)
+                    ax2.set_title(f"Component {component_index + 1} - Power Spectral Density", fontsize=16)
+            else:
+                ax2.text(0.5, 0.5, "Cannot compute PSD\n(sampling rate unknown)", 
+                        transform=ax2.transAxes, ha='center', va='center', fontsize=14)
+                ax2.set_title(f"Component {component_index + 1} - Power Spectral Density", fontsize=16)
+            
+            plt.tight_layout()
+            fig.savefig(filename, dpi=300, bbox_inches='tight')
+            plt.close(fig)
+
+            progress_queue.put({
+                'type': 'finished',
+                'success': True,
+                'message': f"Component {component_index + 1} exported to {filename}"
+            })
+
+        except Exception as e:
+            progress_queue.put({
+                'type': 'error',
+                'error': str(e)
+            })
+
+    @staticmethod
+    def _export_single_matrix_worker(export_data, progress_queue):
+        """Worker function to export a single matrix."""
+        try:
+            # Configure matplotlib for non-GUI use
+            import matplotlib
+            matplotlib.use('Agg')
+            import matplotlib.pyplot as plt
+            import numpy as np
+
+            matrix_type = export_data['matrix_type']
+            matrix_data = export_data['matrix_data']
+            colormap = export_data['colormap']
+            filename = export_data['filename']
+
+            progress_queue.put({
+                'type': 'progress',
+                'percent': 50,
+                'status': f'Exporting {matrix_type} matrix...'
+            })
+
+            # Get matrix info
+            if matrix_type == "mixing":
+                title = "Mixing Matrix (A)"
+                xlabel = "Components"
+                ylabel = "Channels"
+                description = "How components combine to form channels"
+            else:  # unmixing
+                title = "Unmixing Matrix (W)"
+                xlabel = "Channels"
+                ylabel = "Components"
+                description = "How to extract components from channels"
+
+            # Create figure with better proportions
+            fig = plt.figure(figsize=(16, 7))
+            
+            # Create custom subplot layout
+            ax1 = plt.subplot2grid((1, 3), (0, 0), colspan=2)  # Matrix takes 2/3 of width
+            ax2 = plt.subplot2grid((1, 3), (0, 2), colspan=1)  # Histogram takes 1/3 of width
+            
+            # Matrix heatmap
+            im = ax1.imshow(matrix_data, aspect="auto", cmap=colormap, interpolation='nearest')
+            ax1.set_title(f"{title}\n{description}", fontsize=12, fontweight='bold')
+            ax1.set_xlabel(xlabel, fontsize=12)
+            ax1.set_ylabel(ylabel, fontsize=12)
+            
+            # Add colorbar
+            cbar = plt.colorbar(im, ax=ax1, shrink=0.8)
+            cbar.set_label('Weight', fontsize=12)
+            
+            # Add value annotations if matrix is small enough
+            if matrix_data.shape[0] <= 8 and matrix_data.shape[1] <= 8:
+                for i in range(matrix_data.shape[0]):
+                    for j in range(matrix_data.shape[1]):
+                        ax1.text(j, i, f'{matrix_data[i, j]:.3f}', 
+                                ha='center', va='center', color='white', fontsize=10)
+            
+            # Matrix statistics
+            ax2.hist(matrix_data.flatten(), bins=30, alpha=0.7, color='skyblue', edgecolor='black')
+            ax2.set_title("Weight Distribution", fontsize=14, fontweight='bold')
+            ax2.set_xlabel("Weight Value", fontsize=12)
+            ax2.set_ylabel("Frequency", fontsize=12)
+            ax2.grid(True, alpha=0.3)
+            
+            # Add statistics
+            stats_text = f"Shape: {matrix_data.shape}\n"
+            stats_text += f"Mean: {np.mean(matrix_data):.4f}\n"
+            stats_text += f"Std: {np.std(matrix_data):.4f}\n"
+            stats_text += f"Min: {np.min(matrix_data):.4f}\n"
+            stats_text += f"Max: {np.max(matrix_data):.4f}"
+            
+            ax2.text(0.02, 0.98, stats_text, transform=ax2.transAxes, fontsize=10,
+                    verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+            
+            # Better spacing
+            plt.subplots_adjust(left=0.08, right=0.95, bottom=0.1, top=0.85, wspace=0.3)
+            
+            fig.savefig(filename, dpi=300, bbox_inches='tight')
+            plt.close(fig)
+
+            progress_queue.put({
+                'type': 'finished',
+                'success': True,
+                'message': f"{matrix_type.title()} matrix exported to {filename}"
+            })
+
+        except Exception as e:
+            progress_queue.put({
+                'type': 'error',
+                'error': str(e)
+            })
