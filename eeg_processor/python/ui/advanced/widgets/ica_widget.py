@@ -180,14 +180,6 @@ class ICAWidget(BasePanel):
         self.ica_results = ica_results
         self.view_ica_components_btn.setEnabled(True)
 
-    def set_enabled(self, enabled: bool) -> None:
-        """Enable or disable the widget."""
-        self.compute_ica_btn.setEnabled(enabled)
-        
-        if not enabled:
-            self.view_ica_components_btn.setEnabled(False)
-            self.ica_results = None
-
     def get_ica_results(self) -> Optional[Dict[str, Any]]:
         """Get current ICA results."""
         return self.ica_results
@@ -203,33 +195,6 @@ class ICAWidget(BasePanel):
         if not enabled:
             self.view_ica_components_btn.setEnabled(False)
             self.ica_results = None
-
-    def get_ica_settings(self) -> Dict[str, Any]:
-        """Get current ICA settings."""
-        return {
-            "components": self.ica_components_spin.value(),
-            "channels": self.selected_channels,
-            "use_all_channels": len(self.selected_channels) == len(self.channel_names) if self.channel_names else True,
-        }
-        return self.ica_results
-
-    def get_colormap(self) -> str:
-        """Get selected colormap."""
-        return self.colormap_combo.currentData()
-
-    def set_enabled(self, enabled: bool) -> None:
-        """Enable or disable the widget."""
-        self.compute_ica_btn.setEnabled(enabled)
-        
-        if not enabled:
-            self.view_ica_components_btn.setEnabled(False)
-            self.ica_results = None
-            
-            # Hide export controls
-            for i in range(self.export_layout.count()):
-                item = self.export_layout.itemAt(i)
-                if item.widget():
-                    item.widget().setVisible(False)
 
     def get_ica_settings(self) -> Dict[str, Any]:
         """Get current ICA settings."""

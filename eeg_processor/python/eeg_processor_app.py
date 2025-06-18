@@ -312,7 +312,17 @@ class EEGProcessorApp(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """Handle application close event."""
-        # Clean up resources
+        # Clean up advanced panel ICA processes first
+        if hasattr(self, "advanced_panel") and hasattr(self.advanced_panel, "controller"):
+            try:
+                # Check if controller has ICA process service and clean it up
+                if hasattr(self.advanced_panel.controller, 'ica_process_service'):
+                    self.advanced_panel.controller.ica_process_service.cleanup()
+                    logging.info("ICA process service cleaned up")
+            except Exception as e:
+                logging.error(f"Error cleaning up ICA process service: {e}")
+        
+        # Clean up other resources
         self.collector_service.cleanup()
         self.visualization_service.cleanup()
         self.recording_service.cleanup()

@@ -457,43 +457,173 @@ class ICAVisualizationDialog(QDialog):
 
     def _request_export_overview(self) -> None:
         """Request export overview with current colormap."""
-        # Update the colormap in the main signal emission
-        from ..advanced_panel_controller import AdvancedPanelController
-        
-        # Find the controller through parent hierarchy
-        controller = None
-        parent = self.parent()
-        while parent and not controller:
-            if hasattr(parent, 'controller') and isinstance(parent.controller, AdvancedPanelController):
-                controller = parent.controller
-                break
-            parent = parent.parent() if hasattr(parent, 'parent') else None
-        
-        if controller:
-            # Use controller's export method with current colormap
-            controller._handle_ica_export_overview_with_colormap(self.colormap_combo.currentData())
-        else:
-            self.export_overview_requested.emit()
+        try:
+            from PyQt5.QtWidgets import QFileDialog, QProgressDialog, QApplication
+            from PyQt5.QtCore import QTimer
+            
+            ica_components = self.ica_components
+            if not ica_components:
+                return
+
+            # Open file save dialog
+            filename, _ = QFileDialog.getSaveFileName(
+                self, "Save ICA Overview", "ica_overview.png", "PNG files (*.png)"
+            )
+            
+            if filename:
+                # Create progress dialog
+                progress_dialog = QProgressDialog(
+                    "Exporting ICA overview...", "Cancel", 0, 100, self
+                )
+                progress_dialog.setWindowTitle("Export Progress")
+                progress_dialog.setModal(True)
+                progress_dialog.show()
+                
+                # Use the worker process for export with current colormap
+                export_data = {
+                    'ica_components': ica_components,
+                    'colormap': self.colormap_combo.currentData(),
+                    'sampling_rate': self.sampling_rate,
+                    'filename': filename
+                }
+                
+                # Import worker functions directly with correct path
+                import multiprocessing as mp
+                from ....services.ica.export_service import _export_enhanced_overview_worker
+                
+                # Create a simple queue for this export
+                progress_queue = mp.Queue()
+                
+                # Update progress to 25%
+                progress_dialog.setValue(25)
+                QApplication.processEvents()
+                
+                # Run export in separate process
+                process = mp.Process(target=_export_enhanced_overview_worker, 
+                                   args=(export_data, progress_queue))
+                process.start()
+                
+                # Monitor progress
+                def check_progress():
+                    if not progress_queue.empty():
+                        try:
+                            result = progress_queue.get_nowait()
+                            if result['type'] == 'finished':
+                                progress_dialog.setValue(100)
+                                if result['success']:
+                                    progress_dialog.setLabelText("Overview exported successfully!")
+                                else:
+                                    progress_dialog.setLabelText(f"Export failed: {result.get('message', 'Unknown error')}")
+                                QTimer.singleShot(1000, progress_dialog.close)
+                                return
+                            elif result['type'] == 'progress':
+                                progress_dialog.setValue(result['percent'])
+                                progress_dialog.setLabelText(result['status'])
+                            elif result['type'] == 'error':
+                                progress_dialog.setValue(100)
+                                progress_dialog.setLabelText(f"Export failed: {result.get('error', 'Unknown error')}")
+                                QTimer.singleShot(1000, progress_dialog.close)
+                                return
+                        except:
+                            pass
+                    
+                    if process.is_alive():
+                        QTimer.singleShot(100, check_progress)
+                    else:
+                        progress_dialog.setValue(100)
+                        progress_dialog.setLabelText("Export completed")
+                        QTimer.singleShot(1000, progress_dialog.close)
+                
+                check_progress()
+                    
+        except Exception as e:
+            print(f"Error exporting overview: {e}")
 
     def _request_export_all(self) -> None:
         """Request export all with current colormap."""
-        # Update the colormap in the main signal emission
-        from ..advanced_panel_controller import AdvancedPanelController
-        
-        # Find the controller through parent hierarchy
-        controller = None
-        parent = self.parent()
-        while parent and not controller:
-            if hasattr(parent, 'controller') and isinstance(parent.controller, AdvancedPanelController):
-                controller = parent.controller
-                break
-            parent = parent.parent() if hasattr(parent, 'parent') else None
-        
-        if controller:
-            # Use controller's export method with current colormap
-            controller._handle_ica_export_all_with_colormap(self.colormap_combo.currentData())
-        else:
-            self.export_all_requested.emit()
+        try:
+            from PyQt5.QtWidgets import QFileDialog, QProgressDialog, QApplication
+            from PyQt5.QtCore import QTimer
+            
+            ica_components = self.ica_components
+            if not ica_components:
+                return
+
+            # Open directory selection dialog
+            directory = QFileDialog.getExistingDirectory(
+                self, "Select Directory to Save ICA Images", ""
+            )
+            
+            if not directory:
+                return
+
+            # Create progress dialog
+            progress_dialog = QProgressDialog(
+                "Exporting ICA components...", "Cancel", 0, 100, self
+            )
+            progress_dialog.setWindowTitle("Export Progress")
+            progress_dialog.setModal(True)
+            progress_dialog.show()
+            
+            # Use the worker process for export with current colormap
+            export_data = {
+                'ica_components': ica_components,
+                'colormap': self.colormap_combo.currentData(),
+                'sampling_rate': self.sampling_rate,
+                'directory': directory
+            }
+            
+            # Import worker functions directly with correct path
+            import multiprocessing as mp
+            from ....services.ica.export_service import _export_enhanced_all_images_worker
+            
+            # Create a simple queue for this export
+            progress_queue = mp.Queue()
+            
+            # Update progress to 5%
+            progress_dialog.setValue(5)
+            QApplication.processEvents()
+            
+            # Run export in separate process
+            process = mp.Process(target=_export_enhanced_all_images_worker, 
+                               args=(export_data, progress_queue))
+            process.start()
+            
+            # Monitor progress
+            def check_progress():
+                if not progress_queue.empty():
+                    try:
+                        result = progress_queue.get_nowait()
+                        if result['type'] == 'finished':
+                            progress_dialog.setValue(100)
+                            if result['success']:
+                                progress_dialog.setLabelText("All images exported successfully!")
+                            else:
+                                progress_dialog.setLabelText(f"Export failed: {result.get('message', 'Unknown error')}")
+                            QTimer.singleShot(1000, progress_dialog.close)
+                            return
+                        elif result['type'] == 'progress':
+                            progress_dialog.setValue(result['percent'])
+                            progress_dialog.setLabelText(result['status'])
+                        elif result['type'] == 'error':
+                            progress_dialog.setValue(100)
+                            progress_dialog.setLabelText(f"Export failed: {result.get('error', 'Unknown error')}")
+                            QTimer.singleShot(1000, progress_dialog.close)
+                            return
+                    except:
+                        pass
+                
+                if process.is_alive():
+                    QTimer.singleShot(100, check_progress)
+                else:
+                    progress_dialog.setValue(100)
+                    progress_dialog.setLabelText("Export completed")
+                    QTimer.singleShot(1000, progress_dialog.close)
+            
+            check_progress()
+                
+        except Exception as e:
+            print(f"Error exporting all images: {e}")
 
     def _export_single_component(self, component_index: int, component_data: np.ndarray, time_vector: np.ndarray) -> None:
         """Export a single component to file with progress feedback."""

@@ -10,6 +10,7 @@ from .widgets.downsampling_widget import DownsamplingWidget
 from .widgets.advanced_filter_widget import AdvancedFilterWidget
 from ...services.advanced_processing_service import AdvancedProcessingService
 from ...services.ica.export_service import ExportService
+from ...services.ica.ica_process_service import ICAProcessService
 
 
 class AdvancedPanelController(QObject):
@@ -57,19 +58,29 @@ class AdvancedPanelController(QObject):
         
         self.export_service = ExportService()
         
+        # Create ICA process service for visualization only
+        self.ica_process_service = ICAProcessService()
+        
         # Export progress handling
         self.export_progress_dialog = None
         self.export_timer = None
         
-        # Connect export signals
+        # Connect export signals from local export service
         self.export_service.progress_updated.connect(self._update_export_progress)
         self.export_service.export_completed.connect(self._export_finished)
+        
+        # Connect ICA process service signals (for visualization)
+        self.ica_process_service.visualization_ready.connect(self._on_visualization_ready)
         
         # Connect widget signals
         self._connect_widget_signals()
         
         # Initialize channel data
         self._initialize_channel_data()
+        
+        # Initialize ICA process service for visualization
+        if not self.ica_process_service.initialize():
+            logging.warning("Failed to initialize ICA process service - visualizations will be local")
 
     def _connect_widget_signals(self) -> None:
         """Connect signals from widgets."""
@@ -137,7 +148,7 @@ class AdvancedPanelController(QObject):
                 self.error_message.emit("ICA Error", "Invalid sampling rate")
                 return
 
-            # Compute ICA using the service
+            # Compute ICA using the original local service
             result = self.processing_service.compute_ica(params)
             
             if result.get('success'):
@@ -154,39 +165,54 @@ class AdvancedPanelController(QObject):
             self.error_message.emit("ICA Error", f"Error computing ICA: {str(e)}")
 
     def _handle_ica_visualization(self, params: Dict[str, Any]) -> None:
-        """Handle ICA visualization request."""
+        """Handle ICA visualization request using the dedicated process for themed UI."""
         try:
             ica_components = self.processing_service.get_ica_results()
             if not ica_components:
                 self.error_message.emit("ICA Error", "No ICA components available. Compute ICA first.")
                 return
 
-            # Create visualization dialog
-            from .dialogs.ica_visualization_dialog import ICAVisualizationDialog
-            
-            dialog = ICAVisualizationDialog(
-                ica_components=ica_components,
-                sampling_rate=self.collector_service.get_sampling_rate(),
-                parent=self.parent()
-            )
-            
-            # Connect export signals from dialog
-            dialog.export_overview_requested.connect(self._handle_ica_export_overview)
-            dialog.export_all_requested.connect(self._handle_ica_export_all)
-            
-            dialog.show()
-            
-            num_components = ica_components["num_components"]
-            selected_channels = ica_components["selected_channels"]
-            self.status_message.emit(
-                f"ICA components visualization displayed - {num_components} components in scrollable view"
-            )
+            # Try to use the process service for themed visualization
+            if self.ica_process_service._is_initialized:
+                sampling_rate = self.collector_service.get_sampling_rate()
+                colormap = params.get('colormap', self.ica_widget.get_colormap())
+                
+                self.status_message.emit("Opening ICA visualization in dedicated process...")
+                self.ica_process_service.visualize_ica(ica_components, sampling_rate, colormap)
+            else:
+                # Fallback to local visualization dialog
+                from .dialogs.ica_visualization_dialog import ICAVisualizationDialog
+                
+                dialog = ICAVisualizationDialog(
+                    ica_components=ica_components,
+                    sampling_rate=self.collector_service.get_sampling_rate(),
+                    parent=self.parent()
+                )
+                
+                # Connect export signals from dialog
+                dialog.export_overview_requested.connect(self._handle_ica_export_overview)
+                dialog.export_all_requested.connect(self._handle_ica_export_all)
+                
+                dialog.show()
+                
+                num_components = ica_components["num_components"]
+                selected_channels = ica_components["selected_channels"]
+                self.status_message.emit(
+                    f"ICA components visualization displayed - {num_components} components in scrollable view"
+                )
 
         except Exception as e:
             self.error_message.emit("ICA Error", f"Error displaying ICA components: {str(e)}")
 
+    def _on_visualization_ready(self, success: bool, message: str) -> None:
+        """Handle ICA visualization readiness from process service."""
+        if success:
+            self.status_message.emit(message)
+        else:
+            self.error_message.emit("ICA Error", message)
+
     def _handle_ica_export_overview(self) -> None:
-        """Handle ICA overview export request."""
+        """Handle ICA overview export request using local export service."""
         try:
             ica_components = self.processing_service.get_ica_results()
             if not ica_components:
@@ -208,7 +234,7 @@ class AdvancedPanelController(QObject):
                 self.export_progress_dialog.canceled.connect(self._cancel_export)
                 self.export_progress_dialog.show()
                 
-                # Start export process
+                # Start export process using local export service
                 self.export_service.export_ica_overview(
                     ica_components,
                     self.ica_widget.get_colormap(),
@@ -225,7 +251,7 @@ class AdvancedPanelController(QObject):
             self.error_message.emit("Export Error", f"Error exporting overview: {str(e)}")
 
     def _handle_ica_export_all(self) -> None:
-        """Handle export all ICA images request."""
+        """Handle export all ICA images request using local export service."""
         try:
             ica_components = self.processing_service.get_ica_results()
             if not ica_components:
@@ -249,7 +275,7 @@ class AdvancedPanelController(QObject):
             self.export_progress_dialog.canceled.connect(self._cancel_export)
             self.export_progress_dialog.show()
             
-            # Start export process
+            # Start export process using local export service
             self.export_service.export_ica_components(
                 ica_components,
                 self.ica_widget.get_colormap(),
@@ -471,4 +497,5 @@ class AdvancedPanelController(QObject):
         """Cleanup coordinator resources."""
         self._cleanup_export()
         self.export_service.cleanup()
+        self.ica_process_service.cleanup()
         self.processing_service.cleanup()
