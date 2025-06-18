@@ -9,7 +9,7 @@ from .widgets.wavelet_widget import WaveletWidget
 from .widgets.downsampling_widget import DownsamplingWidget
 from .widgets.advanced_filter_widget import AdvancedFilterWidget
 from ...services.advanced_processing_service import AdvancedProcessingService
-from ...services.export_service import ExportService
+from ...services.ica.export_service import ExportService
 
 
 class AdvancedPanelController(QObject):
