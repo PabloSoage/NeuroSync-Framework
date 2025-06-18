@@ -318,6 +318,7 @@ class AdvancedProcessingService:
                 low_cut: Low cutoff frequency (optional)
                 high_cut: High cutoff frequency (optional)
                 order: Filter order (optional)
+                ripple: Ripple for Chebyshev filters (optional)
                 selected_channels: List of channel indices to filter (optional)
                 
         Returns:
@@ -329,6 +330,9 @@ class AdvancedProcessingService:
             apply = params["apply"]
             
             if apply:
+                # Log received parameters to verify ripple is being passed
+                logging.debug(f"Advanced filters - received params: {params}")
+                
                 # Apply advanced filters to the stream
                 processing_settings = {
                     "advanced_filters": {
@@ -337,19 +341,25 @@ class AdvancedProcessingService:
                         "low_cut": params.get("low_cut", 1.0),
                         "high_cut": params.get("high_cut", 50.0),
                         "order": params.get("order", 4),
+                        "ripple": params.get("ripple", 1.0),  # Ensure ripple is passed
                         "selected_channels": params.get("selected_channels", []),
                     }
                 }
                 
+                # Log the processing settings to verify ripple is included
+                logging.debug(f"Advanced filters - processing settings: {processing_settings}")
+                
                 self._data_access_service.enable_advanced_processing(True, processing_settings)
                 self._advanced_filters_active = True
                 
-                # Log channel selection info
+                # Log channel selection info with ripple
                 selected_channels = params.get("selected_channels", [])
+                ripple_val = params.get("ripple", 1.0)
+                filter_type_val = params["filter_type"]
                 if selected_channels:
-                    logging.info(f"Advanced filters enabled for data stream (type: {params['filter_type']}, data channels: {selected_channels})")
+                    logging.info(f"Advanced filters enabled for data stream (type: {filter_type_val}, ripple: {ripple_val:.1f}dB, channels: {selected_channels})")
                 else:
-                    logging.info(f"Advanced filters enabled for data stream (type: {params['filter_type']}, all channels)")
+                    logging.info(f"Advanced filters enabled for data stream (type: {filter_type_val}, ripple: {ripple_val:.1f}dB, all channels)")
             else:
                 # Remove advanced filters but keep other advanced processing if active
                 current_settings = getattr(self._data_access_service, '_advanced_processing_settings', {})

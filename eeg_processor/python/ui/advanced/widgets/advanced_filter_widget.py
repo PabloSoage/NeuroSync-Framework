@@ -250,17 +250,56 @@ class AdvancedFilterWidget(QWidget):
         
         # Adjust recommended parameters for stability
         if is_chebyshev:
-            # For Chebyshev filters, adjust order and ripple for stability
+            # Show warning about Chebyshev stability
+            from PyQt5.QtWidgets import QMessageBox
+            QMessageBox.information(
+                self, 
+                "Chebyshev Filter Notice", 
+                "Chebyshev filters provide sharper cutoffs but can be unstable.\n\n"
+                "Recommendations:\n"
+                "• Use with real EEG data, not synthetic boards\n"
+                "• Keep order ≤ 3 for stability\n"
+                "• Keep ripple between 1.0-2.0 dB\n"
+                "• Avoid frequencies close to Nyquist\n\n"
+                "For most applications, Butterworth filters are recommended."
+            )
+            
+            # For Chebyshev filters, force very conservative parameters
             current_order = self.filter_order_spin.value()
-            if current_order > 6:
-                self.filter_order_spin.setValue(4)  # Reduce order for stability
-                logging.info("Reduced filter order to 4 for Chebyshev filter stability")
+            if current_order > 3:  # Even more conservative
+                self.filter_order_spin.setValue(3)  # Set to 3 for better stability
+                logging.info("Reduced filter order to 3 for Chebyshev filter stability")
             
             # Ensure ripple is in a stable range
             current_ripple = self.ripple_spin.value()
-            if current_ripple < 0.5:
-                self.ripple_spin.setValue(1.0)
-                logging.info("Increased ripple to 1.0 dB for Chebyshev filter stability")
+            if current_ripple < 1.0:
+                self.ripple_spin.setValue(1.5)  # Increase default
+                logging.info("Increased ripple to 1.5 dB for Chebyshev filter stability")
+            
+            # Update range for Chebyshev to be more restrictive
+            self.ripple_spin.setRange(1.0, 2.0)  # More restrictive range
+            self.filter_order_spin.setRange(2, 3)  # Limit order even more
+            
+            # Update tooltip with stability warning
+            self.ripple_spin.setToolTip(
+                "Ripple in passband for Chebyshev filters.\n"
+                "⚠️ STABILITY WARNING: Use 1.0-2.0 dB only.\n"
+                "Lower values cause numerical instability.\n"
+                "Chebyshev filters work best with real EEG data.\n"
+                "For synthetic boards, use Butterworth filters."
+            )
+            
+            # Change button color to indicate potential instability
+            self.apply_adv_filter_btn.setStyleSheet("background-color: #CC6600; color: white;")
+        else:
+            # Restore normal ranges for other filters
+            self.filter_order_spin.setRange(1, 10)
+            if hasattr(self, 'ripple_spin'):  # Safety check
+                self.ripple_spin.setRange(0.1, 3.0)
+            
+            # Restore normal button color
+            if not self.applied:
+                self.apply_adv_filter_btn.setStyleSheet("")
 
     def _toggle_advanced_filters(self) -> None:
         """Toggle advanced filters application."""
@@ -277,18 +316,42 @@ class AdvancedFilterWidget(QWidget):
         order = self.filter_order_spin.value()
         ripple = self.ripple_spin.value()
         
-        # Additional validation for Chebyshev filters
+        # Log the parameters to verify they're being set correctly
+        logging.info(f"Advanced filter toggle: type={filter_type}, order={order}, ripple={ripple:.1f}dB")
+        
+        # More aggressive validation for Chebyshev filters
         if filter_type in [FilterTypes.CHEBYSHEV_TYPE_1, FilterTypes.CHEBYSHEV_TYPE_1_ZERO_PHASE]:
-            # Ensure stable parameters for Chebyshev
-            if order > 6:
-                order = 4
-                self.filter_order_spin.setValue(4)
-                logging.warning("Reduced Chebyshev filter order to 4 for stability")
+            # Force safer parameters for Chebyshev
+            if order > 3:
+                order = 3
+                self.filter_order_spin.setValue(3)
+                logging.warning("Forced Chebyshev filter order to 3 for stability")
             
-            if ripple < 0.5:
-                ripple = 1.0
-                self.ripple_spin.setValue(1.0)
-                logging.warning("Increased Chebyshev ripple to 1.0 dB for stability")
+            if ripple < 1.0:
+                ripple = 1.5
+                self.ripple_spin.setValue(1.5)
+                logging.warning("Forced Chebyshev ripple to 1.5 dB for stability")
+                
+            # Show additional warning for synthetic data
+            from PyQt5.QtWidgets import QMessageBox
+            if self.applied:  # Only show warning when applying, not removing
+                reply = QMessageBox.warning(
+                    self, 
+                    "⚠️ Chebyshev Filter Warning", 
+                    f"Chebyshev filters are highly unstable with synthetic data!\n\n"
+                    f"Current settings: Order={order}, Ripple={ripple:.1f}dB\n\n"
+                    f"If you're using a synthetic board (demo mode), this filter\n"
+                    f"WILL produce NaN/Inf values and corrupt your visualization.\n\n"
+                    f"Recommendations:\n"
+                    f"• Use real EEG hardware, not synthetic boards\n"
+                    f"• Or switch to Butterworth filter for synthetic data\n\n"
+                    f"Continue anyway? (NOT recommended for synthetic data)",
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No  # Default to No
+                )
+                if reply == QMessageBox.No:
+                    self.applied = False  # Revert state
+                    return
         
         params = {
             "apply": self.applied,
@@ -297,19 +360,28 @@ class AdvancedFilterWidget(QWidget):
             "low_cut": basic_params["low_cut"],  # Use dynamic basic parameters
             "high_cut": basic_params["high_cut"],  # Use dynamic basic parameters
             "order": order,
-            "ripple": ripple,  # Will be converted to int in processor
+            "ripple": ripple,  # Ensure ripple is passed through
             "selected_channels": channels_to_filter,
         }
+        
+        # Log the complete params to verify ripple is included
+        logging.debug(f"Emitting advanced filter params: {params}")
         
         self.apply_requested.emit(params)
         
         # Update button appearance
         if self.applied:
             self.apply_adv_filter_btn.setText("Remove Advanced Filters")
-            self.apply_adv_filter_btn.setStyleSheet("background-color: #AA3333; color: white;")
+            if filter_type in [FilterTypes.CHEBYSHEV_TYPE_1, FilterTypes.CHEBYSHEV_TYPE_1_ZERO_PHASE]:
+                self.apply_adv_filter_btn.setStyleSheet("background-color: #DD4444; color: white;")  # Red for Chebyshev
+            else:
+                self.apply_adv_filter_btn.setStyleSheet("background-color: #AA3333; color: white;")
         else:
             self.apply_adv_filter_btn.setText("Apply Advanced Filters")
-            self.apply_adv_filter_btn.setStyleSheet("")
+            if filter_type in [FilterTypes.CHEBYSHEV_TYPE_1, FilterTypes.CHEBYSHEV_TYPE_1_ZERO_PHASE]:
+                self.apply_adv_filter_btn.setStyleSheet("background-color: #CC6600; color: white;")  # Orange warning for Chebyshev
+            else:
+                self.apply_adv_filter_btn.setStyleSheet("")
 
     def _on_settings_changed(self) -> None:
         """Emit signal when settings change for dynamic update."""

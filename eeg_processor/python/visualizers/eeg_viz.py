@@ -259,18 +259,42 @@ class EEGVisualizer:
             if data.size == 0 or len(self.eeg_channels) == 0:
                 return
 
-            # Clean data before plotting to avoid NaN/Inf issues
+            # More aggressive data cleaning for visualization stability
             data_to_plot = data.copy()
             
-            # Check for and clean NaN/Inf values that can come from Chebyshev filters
+            # Check for and clean NaN/Inf values
             if not np.isfinite(data_to_plot).all():
                 logging.warning("Data contains NaN/Inf values, cleaning for visualization...")
                 data_to_plot = np.nan_to_num(data_to_plot, nan=0.0, posinf=0.0, neginf=0.0)
+            
+            # Additional check for extreme values that can cause visualization issues
+            for ch_idx in range(data_to_plot.shape[0]):
+                channel_data = data_to_plot[ch_idx]
+                if len(channel_data) > 0:
+                    # Check for extreme outliers
+                    data_std = np.std(channel_data)
+                    data_mean = np.mean(channel_data)
+                    
+                    if np.isfinite(data_std) and data_std > 0:
+                        # Clip extreme outliers (beyond 10 standard deviations)
+                        outlier_mask = np.abs(channel_data - data_mean) > (10 * data_std)
+                        if np.any(outlier_mask):
+                            logging.debug(f"Clipping {np.sum(outlier_mask)} outliers in channel {ch_idx}")
+                            data_to_plot[ch_idx] = np.clip(
+                                channel_data, 
+                                data_mean - 10*data_std, 
+                                data_mean + 10*data_std
+                            )
 
-            # Calculate signal quality for each channel
-            quality_scores = self.processor.get_all_channels_quality(
-                data_to_plot, self.eeg_channels
-            )
+            # Calculate signal quality for each channel with additional safety
+            try:
+                quality_scores = self.processor.get_all_channels_quality(
+                    data_to_plot, self.eeg_channels
+                )
+            except Exception as e:
+                logging.debug(f"Error calculating signal quality: {e}")
+                # Fallback to default quality scores
+                quality_scores = {ch: 0.5 for ch in self.eeg_channels}
 
             # Update time series plots
             for i, channel in enumerate(self.eeg_channels):
@@ -284,18 +308,25 @@ class EEGVisualizer:
                             
                             # Additional safety check for this specific channel
                             if not np.isfinite(channel_data).all():
-                                logging.warning(f"Channel {channel} data contains NaN/Inf, cleaning...")
-                                channel_data = np.nan_to_num(channel_data, nan=0.0, posinf=0.0, neginf=0.0)
+                                logging.debug(f"Channel {channel} data contains NaN/Inf after cleaning, zeroing...")
+                                channel_data = np.zeros_like(channel_data)
                             
+                            # Check for valid data range
+                            if len(channel_data) > 0 and np.ptp(channel_data) == 0:
+                                # All values are the same, add small noise for visualization
+                                channel_data = channel_data + np.random.normal(0, 1e-6, len(channel_data))
+                            
+
                             time_vector = self.time_vector[-len(channel_data) :]
                             self.curves[i].setData(time_vector, channel_data)
 
-                            # Update quality indicator with NaN safety
+                            # Update quality indicator with extra safety
                             quality = quality_scores.get(channel, 0)
                             
-                            # Ensure quality is finite
+                            # Ensure quality is finite and in valid range
                             if not np.isfinite(quality):
                                 quality = 0.0
+                            quality = max(0.0, min(1.0, quality))  # Clamp to [0,1]
 
                             # Position quality indicator at the latest data point
                             if len(time_vector) > 0 and len(channel_data) > 0:
@@ -314,7 +345,7 @@ class EEGVisualizer:
                                 color_tuple = self.quality_colors[color_idx]
 
                                 # Set size based on quality (better quality = smaller dot)
-                                size = 12 - (quality * 5)  # Size between 7-12px
+                                size = max(7, 12 - (quality * 5))  # Size between 7-12px
 
                                 # Update position and appearance
                                 self.quality_indicators[i].setData(
@@ -330,9 +361,7 @@ class EEGVisualizer:
                                     pg.mkPen("w", width=0.5)
                                 )
                     except Exception as e:
-                        logging.error(
-                            f"Error plotting time series for channel {channel}: {e}"
-                        )
+                        logging.debug(f"Error plotting time series for channel {channel}: {e}")
 
             # Update FFT plots (for channels) with NaN safety
             nfft = DataFilter.get_nearest_power_of_two(self.sampling_rate)

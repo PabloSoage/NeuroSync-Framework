@@ -341,6 +341,210 @@ HELP_CONTENT = {
         meaningful results with fewer channels.</p>
         """,
     },
+    "ica_realtime": {
+        "title": "Real-time ICA Monitoring",
+        "content": """
+        <h3>Real-time ICA Monitoring</h3>
+        <p>Real-time ICA continuously computes Independent Component Analysis on a sliding window 
+        of EEG data, allowing you to monitor brain activity patterns in real-time.</p>
+
+        <h4>How it Works:</h4>
+        <ul>
+            <li><b>Sliding Window</b>: Maintains a buffer of recent EEG data (2-10 seconds)</li>
+            <li><b>Continuous Update</b>: Recomputes ICA components at regular intervals</li>
+            <li><b>Live Visualization</b>: Updates the ICA visualization dialog with new components</li>
+            <li><b>Optimized Processing</b>: Uses efficient algorithms to minimize computational load</li>
+        </ul>
+
+        <h4>Parameters:</h4>
+        <ul>
+            <li><b>Update Interval</b>: How often to recompute ICA (0.5-2.0 seconds)
+                <ul>
+                    <li>Shorter intervals: More responsive but higher CPU usage</li>
+                    <li>Longer intervals: More stable but less responsive</li>
+                </ul>
+            </li>
+            <li><b>Window Size</b>: Amount of data to analyze (2-10 seconds)
+                <ul>
+                    <li>Smaller windows: Faster computation, less stable results</li>
+                    <li>Larger windows: More stable results, slower computation</li>
+                </ul>
+            </li>
+            <li><b>Number of Components</b>: Same as standard ICA (typically 2-8)</li>
+            <li><b>Channel Selection</b>: Which channels to include in real-time analysis</li>
+        </ul>
+
+        <h4>Use Cases:</h4>
+        <ul>
+            <li><b>Neurofeedback</b>: Monitor specific brain activity patterns in real-time</li>
+            <li><b>Artifact Monitoring</b>: Continuously track and identify artifacts as they occur</li>
+            <li><b>Brain State Monitoring</b>: Observe changes in cognitive states during tasks</li>
+            <li><b>Research Applications</b>: Real-time analysis during experiments</li>
+            <li><b>BCI Development</b>: Component analysis for brain-computer interfaces</li>
+        </ul>
+
+        <h4>Performance Considerations:</h4>
+        <ul>
+            <li><b>CPU Usage</b>: Real-time ICA is computationally intensive</li>
+            <li><b>Channel Count</b>: More channels require exponentially more processing power</li>
+            <li><b>Update Rate</b>: Faster updates increase CPU load significantly</li>
+            <li><b>Memory Usage</b>: Larger windows consume more memory</li>
+        </ul>
+
+        <h4>Best Practices:</h4>
+        <ul>
+            <li>Start with 2-4 components for initial testing</li>
+            <li>Use 1-2 second update intervals for most applications</li>
+            <li>Select 8-16 channels for optimal balance of information and performance</li>
+            <li>Monitor system performance and adjust parameters accordingly</li>
+            <li>Ensure good signal quality before enabling real-time mode</li>
+        </ul>
+
+        <h4>Limitations:</h4>
+        <ul>
+            <li><b>Minimum Channels</b>: Requires at least as many channels as components</li>
+            <li><b>Data Quality</b>: Poor signal quality affects real-time results significantly</li>
+            <li><b>Computational Delay</b>: Some delay is inherent due to processing time</li>
+            <li><b>Stability</b>: Results may vary more than static ICA due to shorter data windows</li>
+        </ul>
+
+        <p><b>Note:</b> Real-time ICA is primarily for monitoring and research purposes. 
+        For final analysis, it's recommended to also perform static ICA on longer data segments.</p>
+        """,
+    },
+    "advanced_filters": {
+        "title": "Advanced Digital Filters",
+        "content": """
+        <h3>Advanced Digital Filters</h3>
+        <p>Advanced filtering provides more sophisticated signal processing options beyond basic bandpass filtering, 
+        offering different filter types with specific characteristics for various EEG analysis needs.</p>
+
+        <h4>Filter Types:</h4>
+
+        <h5>Butterworth Filters</h5>
+        <ul>
+            <li><b>Characteristics</b>: Maximally flat frequency response in the passband</li>
+            <li><b>Advantages</b>: No ripple in passband, stable and predictable</li>
+            <li><b>Best for</b>: General-purpose filtering, standard EEG preprocessing</li>
+            <li><b>Recommended</b>: Default choice for most EEG applications</li>
+        </ul>
+
+        <h5>Chebyshev Type I Filters</h5>
+        <ul>
+            <li><b>Characteristics</b>: Sharper cutoff than Butterworth but with ripple in passband</li>
+            <li><b>Ripple Parameter</b>: Controls amount of fluctuation in passband (1.0-2.0 dB recommended)</li>
+            <li><b>Advantages</b>: Steeper transition between pass and stop bands</li>
+            <li><b>Disadvantages</b>: Can be numerically unstable, especially with synthetic data</li>
+            <li><b>Best for</b>: Real EEG data when sharp frequency separation is needed</li>
+            <li><b>⚠️ Warning</b>: Not recommended for synthetic boards or demonstration data</li>
+        </ul>
+
+        <h5>Bessel Filters</h5>
+        <ul>
+            <li><b>Characteristics</b>: Linear phase response, minimal time-domain distortion</li>
+            <li><b>Advantages</b>: Preserves signal waveform shape, good transient response</li>
+            <li><b>Best for</b>: Event-related potential (ERP) analysis, spike detection</li>
+            <li><b>Trade-off</b>: Less sharp frequency cutoff than other filter types</li>
+        </ul>
+
+        <h5>Zero-Phase Variants</h5>
+        <ul>
+            <li><b>Zero-Phase Filtering</b>: Applies filter forward and backward to eliminate phase distortion</li>
+            <li><b>Advantages</b>: No phase shift, symmetric impulse response</li>
+            <li><b>Disadvantages</b>: Cannot be used in real-time applications</li>
+            <li><b>Best for</b>: Offline analysis where preserving exact timing is critical</li>
+        </ul>
+
+        <h4>Filter Parameters:</h4>
+        <ul>
+            <li><b>Filter Order</b>: Higher orders provide steeper cutoffs but may introduce instability
+                <ul>
+                    <li>Butterworth/Bessel: 1-10 (typically 4-6)</li>
+                    <li>Chebyshev: 2-4 (maximum 4 for stability)</li>
+                </ul>
+            </li>
+            <li><b>Ripple (Chebyshev only)</b>: Amount of fluctuation in passband
+                <ul>
+                    <li>Lower values: Less ripple but potential instability</li>
+                    <li>Recommended range: 1.0-2.0 dB</li>
+                    <li>Higher values: More stable but more passband distortion</li>
+                </ul>
+            </li>
+            <li><b>Window Function</b>: Mathematical function applied to filter design
+                <ul>
+                    <li>No Window: Standard filter design</li>
+                    <li>Hanning: Smooth transitions, reduces side lobes</li>
+                    <li>Hamming: Similar to Hanning with different characteristics</li>
+                    <li>Blackman-Harris: Maximum side lobe suppression</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h4>Channel Selection:</h4>
+        <ul>
+            <li><b>All Channels</b>: Apply filtering to entire dataset (default)</li>
+            <li><b>Selected Channels</b>: Apply only to specific channels of interest</li>
+            <li><b>Use Cases</b>: 
+                <ul>
+                    <li>Focus processing on specific brain regions</li>
+                    <li>Preserve unfiltered data in other channels for comparison</li>
+                    <li>Reduce computational load</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h4>Application Guidelines:</h4>
+
+        <h5>Standard EEG Preprocessing</h5>
+        <ul>
+            <li><b>Filter Type</b>: Butterworth</li>
+            <li><b>Order</b>: 4-6</li>
+            <li><b>Frequency Range</b>: 1-50 Hz (typical)</li>
+            <li><b>Reasoning</b>: Stable, predictable, widely accepted</li>
+        </ul>
+
+        <h5>Precise Frequency Isolation</h5>
+        <ul>
+            <li><b>Filter Type</b>: Chebyshev Type I (with real data only)</li>
+            <li><b>Order</b>: 3-4</li>
+            <li><b>Ripple</b>: 1.0-1.5 dB</li>
+            <li><b>Use Case</b>: Isolating specific brain rhythms (alpha, beta bands)</li>
+        </ul>
+
+        <h5>ERP/Spike Analysis</h5>
+        <ul>
+            <li><b>Filter Type</b>: Bessel or Butterworth Zero-Phase</li>
+            <li><b>Order</b>: 4-6</li>
+            <li><b>Reasoning</b>: Preserves waveform shape and timing</li>
+        </ul>
+
+        <h4>Stability and Performance:</h4>
+        <ul>
+            <li><b>Data Type Considerations</b>:
+                <ul>
+                    <li>Real EEG data: All filter types generally work well</li>
+                    <li>Synthetic data: Butterworth and Bessel recommended</li>
+                    <li>Repetitive patterns: Avoid high-order Chebyshev filters</li>
+                </ul>
+            </li>
+            <li><b>Automatic Adjustments</b>: Application automatically adjusts unstable parameters</li>
+            <li><b>Error Handling</b>: Graceful fallback to original data if filtering fails</li>
+            <li><b>Real-time Performance</b>: All filters work in real-time streaming mode</li>
+        </ul>
+
+        <h4>Common Issues and Solutions:</h4>
+        <ul>
+            <li><b>Filter Instability</b>: Reduce order, increase ripple (Chebyshev), or switch to Butterworth</li>
+            <li><b>Frequency Artifacts</b>: Check cutoff frequencies relative to sampling rate</li>
+            <li><b>Signal Distortion</b>: Try lower order or different filter type</li>
+            <li><b>Poor Performance</b>: Reduce number of selected channels</li>
+        </ul>
+
+        <p><b>Recommendation:</b> For most EEG applications, start with Butterworth filters. 
+        Only use Chebyshev when you specifically need sharper frequency separation and are working with real EEG data. 
+        Always validate your filtering results by comparing before and after signals.</p>
+        """,
+    },
     "wavelet": {
         "title": "Wavelet Transforms",
         "content": """
@@ -355,53 +559,89 @@ HELP_CONTENT = {
             <li>Can focus analysis on specific frequency ranges or time points</li>
         </ul>
 
-        <h4>Parameters:</h4>
+        <h4>Available Wavelets:</h4>
+        
+        <h5>Daubechies Wavelets (DB1-DB15)</h5>
         <ul>
-            <li><b>Wavelet Type</b>: The mother wavelet to use (DB4, DB6, etc.). Different wavelets
-            are better suited for different types of signals.</li>
-            <li><b>Decomposition Level</b>: How many levels of detail to decompose the signal into.
-            Higher levels allow analysis of lower frequencies.</li>
-            <li><b>Channel</b>: Which EEG channel to transform.</li>
+            <li><b>DB1 (Haar)</b>: Simplest wavelet, good for step-like features</li>
+            <li><b>DB4</b>: Most commonly used, good balance of properties</li>
+            <li><b>DB6-DB8</b>: Better frequency resolution, good for EEG analysis</li>
+            <li><b>Higher orders</b>: More oscillations, better frequency resolution</li>
         </ul>
 
-        <p>After computing the wavelet transform, you can view the coefficients and reconstruct the
-        signal using only selected components, which can be used for filtering or feature extraction.</p>
-
-        <p>Wavelets are particularly useful for analyzing ERP (Event-Related Potential) components,
-        sleep spindles, seizure activity, and other non-stationary EEG features.</p>
-        """,
-    },
-    "downsampling": {
-        "title": "Downsampling",
-        "content": """
-        <h3>Downsampling</h3>
-        <p>Downsampling reduces the sampling rate of a signal by removing samples.</p>
-
-        <h4>Use cases:</h4>
+        <h5>Biorthogonal Wavelets (BIOR)</h5>
         <ul>
-            <li>Reducing computational load for processing</li>
-            <li>Decreasing file sizes for storage</li>
-            <li>Matching sampling rates between different data sets</li>
+            <li><b>BIOR1_1</b>: Linear reconstruction</li>
+            <li><b>BIOR2_2, BIOR2_4</b>: Good for image-like data</li>
+            <li><b>BIOR3_3, BIOR3_5</b>: Balanced properties for general use</li>
+            <li><b>BIOR4_4</b>: Symmetric, good for signal reconstruction</li>
+        </ul>
+
+        <h5>Coiflets Wavelets (COIF1-COIF5)</h5>
+        <ul>
+            <li>More symmetric than Daubechies</li>
+            <li>Good for applications requiring symmetry</li>
+            <li>COIF2-COIF3 recommended for EEG</li>
+        </ul>
+
+        <h5>Symlets Wavelets (SYM2-SYM10)</h5>
+        <ul>
+            <li>Nearly symmetric versions of Daubechies</li>
+            <li>SYM4-SYM6 good for EEG applications</li>
+            <li>Better phase properties than standard Daubechies</li>
         </ul>
 
         <h4>Parameters:</h4>
         <ul>
-            <li><b>Factor</b>: The factor by which to reduce sampling rate (e.g., factor of 2
-            reduces 500Hz to 250Hz)</li>
-            <li><b>Aggregation Method</b>:
+            <li><b>Wavelet Type</b>: Choose based on your signal characteristics
                 <ul>
-                    <li><b>Mean</b>: Average of samples (smooths data)</li>
-                    <li><b>Median</b>: Middle value (better for outlier rejection)</li>
-                    <li><b>Each</b>: Takes every Nth sample (no aggregation)</li>
+                    <li>DB4: General-purpose, widely used for EEG</li>
+                    <li>DB6-DB8: Better frequency resolution</li>
+                    <li>BIOR wavelets: When reconstruction quality is important</li>
+                    <li>SYM wavelets: When phase preservation is critical</li>
                 </ul>
             </li>
+            <li><b>Decomposition Level</b>: How many levels of detail to decompose (1-8)
+                <ul>
+                    <li>Level 1: Highest frequencies (finest detail)</li>
+                    <li>Higher levels: Lower frequencies (coarser features)</li>
+                    <li>Rule of thumb: log2(signal_length) - 1</li>
+                </ul>
+            </li>
+            <li><b>Channel</b>: Which EEG channel to transform</li>
+            <li><b>Extension Type</b>: How to handle signal boundaries
+                <ul>
+                    <li>Symmetric: Reflects signal at boundaries (default)</li>
+                    <li>Periodic: Assumes signal is periodic</li>
+                </ul>
+            </li>
+            <li><b>Apply Denoising</b>: Automatically remove noise using wavelet thresholding</li>
         </ul>
 
-        <p>Important: When downsampling, be aware of the <i>Nyquist frequency</i> - you must sample
-        at least twice the frequency of the highest frequency component in your signal to avoid aliasing.</p>
+        <h4>Applications in EEG:</h4>
+        <ul>
+            <li><b>Artifact Removal</b>: Identify and remove specific frequency components</li>
+            <li><b>Feature Extraction</b>: Extract time-frequency features for classification</li>
+            <li><b>Signal Compression</b>: Reduce data size while preserving important features</li>
+            <li><b>Event Detection</b>: Detect transient events like spikes or K-complexes</li>
+            <li><b>Time-Frequency Analysis</b>: Analyze how frequency content changes over time</li>
+        </ul>
 
-        <p>For example, if you're interested in brain activity up to 40Hz, you should maintain a
-        sampling rate of at least 80Hz after downsampling.</p>
+        <h4>Workflow:</h4>
+        <ol>
+            <li><b>Compute Transform</b>: Decompose signal into wavelet coefficients</li>
+            <li><b>Analyze Coefficients</b>: Examine time-frequency content</li>
+            <li><b>Modify Coefficients</b>: Optional - threshold or modify specific components</li>
+            <li><b>Inverse Transform</b>: Reconstruct signal from modified coefficients</li>
+        </ol>
+
+        <p>After computing the wavelet transform, you can view the coefficients and apply
+        inverse transform to reconstruct the signal using only selected components. This can be used 
+        for filtering, denoising, or feature extraction.</p>
+
+        <p>Wavelets are particularly useful for analyzing ERP (Event-Related Potential) components,
+        sleep spindles, seizure activity, and other non-stationary EEG features where both time 
+        and frequency information are important.</p>
         """,
     },
     # Streaming Tab
@@ -951,7 +1191,7 @@ class EEGConceptsHelpDialog(QDialog):
             "Visualization", ["eeg_visualization", "brain_map", "multi_modality"]
         )
         self.add_tab("Recording", ["recording", "streaming", "streamers"])
-        self.add_tab("Advanced Analysis", ["ica", "wavelet", "downsampling"])
+        self.add_tab("Advanced Analysis", ["ica", "ica_realtime", "advanced_filters", "wavelet", "downsampling"])
         # Add comprehensive MNE Integration tab
         self.add_tab(
             "MNE Integration",

@@ -434,8 +434,10 @@ class ProcessorService:
             if data.ndim == 1:
                 data = data.reshape(1, -1)
 
+            # Log parameters to verify ripple is being passed
             logging.debug(
-                f"Applying advanced bandpass filter {low_cutoff}-{high_cutoff} Hz, type {filter_type}, channels: {channels}, ripple: {ripple}dB"
+                f"ProcessorService: Applying advanced bandpass filter {low_cutoff}-{high_cutoff} Hz, "
+                f"type {filter_type}, order {order}, channels: {channels}, ripple: {ripple}dB"
             )
 
             # If channels is None or empty list, apply to all channels
@@ -444,13 +446,14 @@ class ProcessorService:
                 for channel in channels:
                     if channel < data.shape[0]:
                         channel_data = data[channel : channel + 1, :]
+                        # Ensure ripple parameter is passed correctly
                         filtered_channel_data = self.processor.perform_advanced_bandpass_filter(
                             channel_data, low_cutoff, high_cutoff, order, filter_type, ripple
                         )
                         filtered_data[channel : channel + 1, :] = filtered_channel_data
                 return filtered_data
             else:
-                # Apply to all channels (None or empty list)
+                # Apply to all channels - ensure ripple parameter is passed correctly
                 return self.processor.perform_advanced_bandpass_filter(
                     data, low_cutoff, high_cutoff, order, filter_type, ripple
                 )

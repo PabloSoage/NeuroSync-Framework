@@ -69,52 +69,141 @@ class SignalProcessor:
         """
         filtered_data = data.copy()
         
-        # Validate and adjust parameters for stability
-        if filter_type in [FilterTypes.CHEBYSHEV_TYPE_1, FilterTypes.CHEBYSHEV_TYPE_1_ZERO_PHASE]:
-            # Ensure ripple is in valid range for stability
-            ripple = max(0.5, min(ripple, 3.0))
-            # Ensure order is reasonable for Chebyshev
-            order = max(2, min(order, 6))
+        # Validate input data first
+        if data.size == 0:
+            logging.warning("Empty data provided to bandpass filter")
+            return data
             
-            # Additional validation for frequency range
+        # Check for synthetic board data patterns (all zeros or identical values)
+        is_synthetic_data = self._is_synthetic_or_problematic_data(data)
+        
+        # Force Butterworth for synthetic/problematic data
+        if is_synthetic_data and filter_type in [FilterTypes.CHEBYSHEV_TYPE_1, FilterTypes.CHEBYSHEV_TYPE_1_ZERO_PHASE]:
+            logging.warning("Detected synthetic/problematic data - forcing Butterworth filter instead of Chebyshev for stability")
+            filter_type = FilterTypes.BUTTERWORTH
+            ripple = 0.0
+        
+        # Enhanced parameter validation for Chebyshev filters
+        if filter_type in [FilterTypes.CHEBYSHEV_TYPE_1, FilterTypes.CHEBYSHEV_TYPE_1_ZERO_PHASE]:
+            # Even more conservative parameters for Chebyshev
+            original_ripple = ripple
+            ripple = max(1.0, min(ripple, 2.0))  # Force ripple between 1-2 dB
+            order = max(2, min(order, 3))        # Limit order to 2-3 for maximum stability
+            
+            if original_ripple != ripple:
+                logging.info(f"Adjusted Chebyshev ripple from {original_ripple:.1f} to {ripple:.1f} dB for stability")
+            
+            # Very conservative frequency validation for Chebyshev
             nyquist = self.sampling_rate / 2
-            if stop_freq > 0.8 * nyquist:  # More conservative for Chebyshev
-                logging.warning(f"High cutoff frequency too close to Nyquist for Chebyshev filter, adjusting")
-                stop_freq = 0.8 * nyquist
+            max_freq_ratio = 0.4  # Even more conservative for Chebyshev
+            
+            if stop_freq > max_freq_ratio * nyquist:
+                new_stop = max_freq_ratio * nyquist
+                logging.warning(f"Reducing Chebyshev high cutoff from {stop_freq:.1f} to {new_stop:.1f} Hz for stability")
+                stop_freq = new_stop
+                
+            if start_freq > max_freq_ratio * nyquist * 0.6:
+                new_start = max_freq_ratio * nyquist * 0.05  # Very low
+                logging.warning(f"Reducing Chebyshev low cutoff from {start_freq:.1f} to {new_start:.1f} Hz for stability")
+                start_freq = new_start
+                
+            # Ensure minimum bandwidth for Chebyshev
+            min_bandwidth = 5.0  # Increased minimum bandwidth
+            if (stop_freq - start_freq) < min_bandwidth:
+                logging.warning(f"Adjusting Chebyshev bandwidth to minimum {min_bandwidth} Hz")
+                center_freq = (start_freq + stop_freq) / 2
+                start_freq = max(0.1, center_freq - min_bandwidth/2)
+                stop_freq = min(nyquist * max_freq_ratio, center_freq + min_bandwidth/2)
+                
+            # Final safety check - if frequencies are still problematic, force Butterworth
+            if start_freq >= stop_freq or stop_freq > nyquist * 0.8:
+                logging.error(f"Chebyshev frequencies still problematic after adjustment, forcing Butterworth")
+                filter_type = FilterTypes.BUTTERWORTH
+                ripple = 0.0
         else:
             # For non-Chebyshev filters, set ripple to 0
             ripple = 0.0
         
-        # Convert ripple to int for BrainFlow (expects ripple in dB as integer)
+        # Convert ripple to int for BrainFlow - ENSURE it's being used
         ripple_int = int(round(ripple))
         
-        # Validate frequency parameters
+        # Log the actual parameters being used
+        logging.info(f"Applying bandpass filter: {start_freq:.1f}-{stop_freq:.1f}Hz, order={order}, type={filter_type}, ripple={ripple_int}dB")
+        
+        # Standard frequency validation
         nyquist = self.sampling_rate / 2
         if start_freq >= nyquist or stop_freq >= nyquist:
             logging.warning(f"Filter frequencies too high for sampling rate {self.sampling_rate}Hz")
             return data
         
         if start_freq >= stop_freq:
-            logging.warning(f"Invalid frequency range: {start_freq} >= {stop_freq}")
+            logging.warning(f"Invalid frequency range: {start_freq:.1f} >= {stop_freq:.1f}")
             return data
         
+        # Process each channel with enhanced error handling
         for channel_idx in range(data.shape[0]):
             try:
+                # Pre-validate channel data
+                channel_data = filtered_data[channel_idx]
+                
                 # Check for NaN/Inf in input data
-                if not np.isfinite(filtered_data[channel_idx]).all():
+                if not np.isfinite(channel_data).all():
                     logging.warning(f"Channel {channel_idx} contains NaN/Inf values, cleaning...")
-                    # Replace NaN/Inf with zeros
-                    filtered_data[channel_idx] = np.nan_to_num(filtered_data[channel_idx], 
-                                                             nan=0.0, posinf=0.0, neginf=0.0)
+                    channel_data = np.nan_to_num(channel_data, nan=0.0, posinf=0.0, neginf=0.0)
+                    filtered_data[channel_idx] = channel_data
+                
+                # Enhanced data quality checks
+                data_std = np.std(channel_data)
+                data_mean = np.mean(channel_data)
+                data_range = np.ptp(channel_data)  # Peak-to-peak
+                
+                # Skip filtering if data is problematic
+                if data_std == 0 or not np.isfinite(data_std):
+                    logging.warning(f"Channel {channel_idx} has zero or invalid variance, skipping filter")
+                    continue
+                    
+                # Check for constant or near-constant data (common in synthetic boards)
+                if data_range < 1e-10:
+                    logging.warning(f"Channel {channel_idx} has near-constant data (range: {data_range:.2e}), skipping filter")
+                    continue
+                    
+                if data_range > 1e6:  # Very large range can cause numerical issues
+                    logging.warning(f"Channel {channel_idx} has very large range ({data_range:.2e}), normalizing...")
+                    # Normalize to prevent numerical issues
+                    if data_std > 0:
+                        channel_data = (channel_data - data_mean) / data_std
+                        filtered_data[channel_idx] = channel_data
                 
                 # Check if we have enough data for the filter
-                min_samples_needed = max(order * 3, 10)  # Conservative estimate
-                if len(filtered_data[channel_idx]) < min_samples_needed:
-                    logging.warning(f"Not enough samples for filter on channel {channel_idx}: {len(filtered_data[channel_idx])} < {min_samples_needed}")
+                min_samples_needed = max(order * 10, 50)  # Even more conservative
+                if len(channel_data) < min_samples_needed:
+                    logging.warning(f"Not enough samples for filter on channel {channel_idx}: {len(channel_data)} < {min_samples_needed}")
                     continue
                 
-                # Apply filter with error handling
+                # Apply filter with additional safeguards for Chebyshev
                 try:
+                    if filter_type in [FilterTypes.CHEBYSHEV_TYPE_1, FilterTypes.CHEBYSHEV_TYPE_1_ZERO_PHASE]:
+                        # Additional pre-processing for Chebyshev stability
+                        # Remove DC component more aggressively
+                        dc_removed = channel_data - np.mean(channel_data)
+                        
+                        # Apply a very light smoothing to reduce high-frequency noise that can destabilize Chebyshev
+                        from scipy import signal as scipy_signal
+                        try:
+                            # Light smoothing with a simple moving average
+                            window_size = min(5, len(dc_removed) // 10)
+                            if window_size >= 3:
+                                smoothed = scipy_signal.savgol_filter(dc_removed, window_size, 1)
+                                filtered_data[channel_idx] = smoothed
+                            else:
+                                filtered_data[channel_idx] = dc_removed
+                        except:
+                            # Fallback to simple detrend
+                            filtered_data[channel_idx] = dc_removed
+                        
+                        logging.debug(f"Applying Chebyshev filter to channel {channel_idx} with enhanced preprocessing")
+                    
+                    # Apply the actual filter - pass ripple_int correctly
                     DataFilter.perform_bandpass(
                         filtered_data[channel_idx],
                         self.sampling_rate,
@@ -122,19 +211,34 @@ class SignalProcessor:
                         stop_freq,
                         order,
                         filter_type,
-                        ripple_int,
+                        ripple_int,  # This should now be properly passed through
                     )
+                    
                 except Exception as filter_error:
                     logging.error(f"Filter failed on channel {channel_idx}: {filter_error}")
                     # Keep original data for this channel
                     filtered_data[channel_idx] = data[channel_idx]
                     continue
                 
-                # Check output for NaN/Inf and clean if necessary
+                # Enhanced post-filter validation
                 if not np.isfinite(filtered_data[channel_idx]).all():
-                    logging.warning(f"Filter produced NaN/Inf on channel {channel_idx}, cleaning output...")
-                    filtered_data[channel_idx] = np.nan_to_num(filtered_data[channel_idx], 
-                                                             nan=0.0, posinf=0.0, neginf=0.0)
+                    logging.warning(f"Filter produced NaN/Inf on channel {channel_idx}, reverting to original data")
+                    filtered_data[channel_idx] = data[channel_idx]
+                    continue
+                    
+                # Check if filter output is reasonable
+                output_std = np.std(filtered_data[channel_idx])
+                if output_std == 0 or not np.isfinite(output_std):
+                    logging.warning(f"Filter produced invalid output on channel {channel_idx}, reverting to original data")
+                    filtered_data[channel_idx] = data[channel_idx]
+                    continue
+                    
+                # Check for filter artifacts (all same values, etc.)
+                output_range = np.ptp(filtered_data[channel_idx])
+                if output_range < 1e-12:
+                    logging.warning(f"Filter output has no variation on channel {channel_idx}, reverting to original data")
+                    filtered_data[channel_idx] = data[channel_idx]
+                    continue
                     
             except Exception as e:
                 logging.error(f"Error filtering channel {channel_idx}: {e}")
@@ -142,9 +246,7 @@ class SignalProcessor:
                 filtered_data[channel_idx] = data[channel_idx]
 
         self.processed_data = filtered_data
-        logging.info(
-            f"Applied bandpass filter {start_freq}-{stop_freq}Hz, order {order}, type {filter_type}, ripple {ripple_int}dB"
-        )
+        logging.info(f"Applied bandpass filter {start_freq:.1f}-{stop_freq:.1f}Hz, order {order}, type {filter_type}, ripple {ripple_int}dB")
         return filtered_data
 
     def bandstop_filter(
@@ -624,97 +726,11 @@ class SignalProcessor:
     ) -> np.ndarray:
         """
         Apply advanced bandpass filter with specific filter type to the data.
-
-        Args:
-            data: Input data to filter
-            start_freq: Low cutoff frequency
-            stop_freq: High cutoff frequency
-            order: Filter order
-            filter_type: Type of filter to use
-            ripple: Ripple in passband (for Chebyshev filters, in dB)
-
-        Returns:
-            Filtered data
+        This method uses the same logic as bandpass_filter for consistency.
         """
-        filtered_data = data.copy()
-        
-        # Validate and adjust parameters for stability
-        if filter_type in [FilterTypes.CHEBYSHEV_TYPE_1, FilterTypes.CHEBYSHEV_TYPE_1_ZERO_PHASE]:
-            # Ensure ripple is in valid range for stability
-            ripple = max(0.5, min(ripple, 3.0))
-            # Ensure order is reasonable for Chebyshev
-            order = max(2, min(order, 6))
-            
-            # Additional validation for frequency range
-            nyquist = self.sampling_rate / 2
-            if stop_freq > 0.8 * nyquist:  # More conservative for Chebyshev
-                logging.warning(f"High cutoff frequency too close to Nyquist for Chebyshev filter, adjusting")
-                stop_freq = 0.8 * nyquist
-        else:
-            # For non-Chebyshev filters, set ripple to 0
-            ripple = 0.0
-        
-        # Convert ripple to int for BrainFlow (expects ripple in dB as integer)
-        ripple_int = int(round(ripple))
-        
-        # Validate frequency parameters
-        nyquist = self.sampling_rate / 2
-        if start_freq >= nyquist or stop_freq >= nyquist:
-            logging.warning(f"Advanced filter frequencies too high for sampling rate {self.sampling_rate}Hz")
-            return data
-        
-        if start_freq >= stop_freq:
-            logging.warning(f"Invalid advanced filter frequency range: {start_freq} >= {stop_freq}")
-            return data
-        
-        for channel_idx in range(data.shape[0]):
-            try:
-                # Check for NaN/Inf in input data
-                if not np.isfinite(filtered_data[channel_idx]).all():
-                    logging.warning(f"Advanced filter: Channel {channel_idx} contains NaN/Inf values, cleaning...")
-                    # Replace NaN/Inf with zeros
-                    filtered_data[channel_idx] = np.nan_to_num(filtered_data[channel_idx], 
-                                                             nan=0.0, posinf=0.0, neginf=0.0)
-                
-                # Check if we have enough data for the filter
-                min_samples_needed = max(order * 3, 10)
-                if len(filtered_data[channel_idx]) < min_samples_needed:
-                    logging.warning(f"Not enough samples for advanced filter on channel {channel_idx}")
-                    continue
-                
-                # Apply filter with error handling
-                try:
-                    DataFilter.perform_bandpass(
-                        filtered_data[channel_idx],
-                        self.sampling_rate,
-                        start_freq,
-                        stop_freq,
-                        order,
-                        filter_type,
-                        ripple_int,
-                    )
-                except Exception as filter_error:
-                    logging.error(f"Advanced filter failed on channel {channel_idx}: {filter_error}")
-                    # Keep original data for this channel
-                    filtered_data[channel_idx] = data[channel_idx]
-                    continue
-                
-                # Check output for NaN/Inf and clean if necessary
-                if not np.isfinite(filtered_data[channel_idx]).all():
-                    logging.warning(f"Advanced filter produced NaN/Inf on channel {channel_idx}, cleaning output...")
-                    filtered_data[channel_idx] = np.nan_to_num(filtered_data[channel_idx], 
-                                                             nan=0.0, posinf=0.0, neginf=0.0)
-                    
-            except Exception as e:
-                logging.error(f"Error in advanced filtering channel {channel_idx}: {e}")
-                # On error, keep original data for this channel
-                filtered_data[channel_idx] = data[channel_idx]
-
-        self.processed_data = filtered_data
-        logging.info(
-            f"Applied advanced bandpass filter {start_freq}-{stop_freq}Hz, order {order}, type {filter_type}, ripple {ripple_int}dB"
-        )
-        return filtered_data
+        # Log the parameters being received
+        logging.debug(f"Advanced bandpass filter called with: freq={start_freq:.1f}-{stop_freq:.1f}Hz, order={order}, type={filter_type}, ripple={ripple:.1f}dB")
+        return self.bandpass_filter(data, start_freq, stop_freq, order, filter_type, ripple)
 
     def get_wavelet_coefficients(
         self,
@@ -737,10 +753,6 @@ class SignalProcessor:
         Returns:
             Tuple of (coefficients, metadata)
         """
-        if self.processor is None:
-            logging.warning("Processor not initialized for wavelet computation")
-            return data, {}
-
         try:
             coefficients_list = []
             metadata = {
@@ -759,7 +771,6 @@ class SignalProcessor:
                     
                     # Apply denoising if requested
                     if apply_denoising:
-                        from brainflow.data_filter import WaveletDenoisingTypes, ThresholdTypes, WaveletExtensionTypes, NoiseEstimationLevelTypes
                         DataFilter.perform_wavelet_denoising(
                             channel_data,
                             wavelet,
@@ -875,3 +886,87 @@ class SignalProcessor:
         except Exception as e:
             logging.error(f"Error in inverse wavelet transform: {e}")
             return coefficients
+            reconstructed_data = np.zeros(original_shape)
+            
+            for channel_idx in range(coefficients.shape[0]):
+                try:
+                    # Get coefficients for this channel
+                    channel_coeffs = coefficients[channel_idx]
+                    
+                    if len(channel_coeffs) > 0 and len(lengths) > 0:
+                        # Prepare coefficients tuple for inverse transform
+                        coeffs_tuple = (channel_coeffs, lengths)
+                        
+                        # Apply inverse wavelet transform
+                        restored = DataFilter.perform_inverse_wavelet_transform(
+                            coeffs_tuple, 
+                            original_shape[1], 
+                            wavelet, 
+                            decomp_level, 
+                            extension_type
+                        )
+                        
+                        # Ensure the restored data fits the original shape
+                        if len(restored) <= original_shape[1]:
+                            reconstructed_data[channel_idx, :len(restored)] = restored
+                        else:
+                            reconstructed_data[channel_idx] = restored[:original_shape[1]]
+                    else:
+                        # If no valid coefficients, keep original data or zeros
+                        logging.warning(f"No valid coefficients for channel {channel_idx}")
+                        
+                except Exception as e:
+                    logging.error(f"Error in inverse wavelet for channel {channel_idx}: {e}")
+                    # Keep zeros for this channel on error
+
+            logging.info("Applied inverse wavelet transform")
+            return reconstructed_data
+            
+        except Exception as e:
+            logging.error(f"Error in inverse wavelet transform: {e}")
+            return coefficients
+
+    def _is_synthetic_or_problematic_data(self, data: np.ndarray) -> bool:
+        """Check if data appears to be synthetic or problematic for advanced filtering."""
+        try:
+            # Check if all channels have the same values (synthetic board pattern)
+            if data.shape[0] > 1:
+                first_channel = data[0]
+                for i in range(1, data.shape[0]):
+                    if np.allclose(data[i], first_channel, rtol=1e-10):
+                        return True
+            
+            # Check for all zeros or near-constant data
+            for channel_idx in range(data.shape[0]):
+                channel_data = data[channel_idx]
+                if len(channel_data) == 0:
+                    continue
+                    
+                # Check for all zeros
+                if np.allclose(channel_data, 0, atol=1e-12):
+                    return True
+                    
+                # Check for near-constant data
+                data_range = np.ptp(channel_data)
+                if data_range < 1e-10:
+                    return True
+                    
+                # Check for repeating patterns (synthetic data)
+                if len(channel_data) > 10:
+                    # Check if the data repeats every few samples
+                    for period in [2, 3, 4, 5]:
+                        if len(channel_data) >= period * 3:
+                            first_period = channel_data[:period]
+                            is_repeating = True
+                            for start in range(period, len(channel_data) - period, period):
+                                if not np.allclose(channel_data[start:start+period], first_period, rtol=1e-10):
+                                    is_repeating = False
+                                    break
+                            if is_repeating:
+                                return True
+            
+            return False
+            
+        except Exception as e:
+            logging.debug(f"Error checking for synthetic data: {e}")
+            return False
