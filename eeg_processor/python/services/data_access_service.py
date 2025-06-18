@@ -431,33 +431,40 @@ class DataAccessService:
                     )
                     return data
 
-            # Apply basic filters
+            # Check if advanced filters include bandpass
+            advanced_has_bandpass = False
+            if getattr(self, '_advanced_processing_enabled', False):
+                settings = getattr(self, '_advanced_processing_settings', {})
+                advanced_has_bandpass = settings.get("advanced_filters", {}).get("enabled", False)
+
+            # Apply basic filters with coordination
             if self._filters_enabled and self._filter_settings:
-                # Apply bandpass filter if enabled
-                if self._filter_settings.get("bandpass", {}).get("enabled", False):
+                # Apply bandpass filter ONLY if advanced filters don't include bandpass
+                if (self._filter_settings.get("bandpass", {}).get("enabled", False) and 
+                    not advanced_has_bandpass):
                     bp = self._filter_settings["bandpass"]
                     low_cut = bp.get("low_cut", bp.get("low", 1.0))
                     high_cut = bp.get("high_cut", bp.get("high", 50.0))
-                    logging.debug(f"Applying bandpass filter {low_cut}-{high_cut} Hz to chunk")
+                    logging.info(f"Applying basic bandpass filter {low_cut}-{high_cut} Hz to chunk")
                     filtered_data = self._processor_service.apply_bandpass_filter(
                         filtered_data, low_cut, high_cut
                     )
 
-                # Apply notch filter if enabled
+                # Apply notch filter if enabled (always applied)
                 if self._filter_settings.get("notch", {}).get("enabled", False):
                     notch = self._filter_settings["notch"]
                     freq = notch.get("frequency", 50)
-                    logging.debug(f"Applying notch filter {freq} Hz to chunk")
+                    logging.info(f"Applying notch filter {freq} Hz to chunk")
                     filtered_data = self._processor_service.apply_notch_filter(
                         filtered_data, freq
                     )
 
-                # Apply detrend if enabled
+                # Apply detrend if enabled (always applied)
                 if self._filter_settings.get("detrend", False):
-                    logging.debug("Applying detrend to chunk")
+                    logging.info("Applying detrend to chunk")
                     filtered_data = self._processor_service.apply_detrend(filtered_data)
 
-            # Apply advanced processing
+            # Apply advanced processing (including advanced bandpass if enabled)
             if getattr(self, '_advanced_processing_enabled', False):
                 filtered_data = self._apply_advanced_processing(filtered_data)
 
@@ -474,15 +481,33 @@ class DataAccessService:
             processed_data = data.copy()
             settings = getattr(self, '_advanced_processing_settings', {})
 
-            # Apply advanced filters first
+            # Apply advanced filters first (including bandpass with basic filter parameters)
             if settings.get("advanced_filters", {}).get("enabled", False):
                 adv_filters = settings["advanced_filters"]
-                logging.debug(f"Applying advanced filter type {adv_filters.get('filter_type')}")
+                
+                # Get basic filter parameters for coordination
+                basic_bandpass_params = None
+                if self._filters_enabled and self._filter_settings:
+                    bp_settings = self._filter_settings.get("bandpass", {})
+                    if bp_settings.get("enabled", False):
+                        basic_bandpass_params = {
+                            "low_cut": bp_settings.get("low_cut", bp_settings.get("low", 1.0)),
+                            "high_cut": bp_settings.get("high_cut", bp_settings.get("high", 50.0))
+                        }
+                
+                # Use basic bandpass parameters if available, otherwise use advanced filter defaults
+                if basic_bandpass_params:
+                    low_cut = basic_bandpass_params["low_cut"]
+                    high_cut = basic_bandpass_params["high_cut"]
+                    logging.info(f"Applying advanced bandpass filter with basic parameters {low_cut}-{high_cut}Hz, type {adv_filters.get('filter_type')}")
+                else:
+                    low_cut = adv_filters.get("low_cut", 1.0)
+                    high_cut = adv_filters.get("high_cut", 50.0)
+                    logging.info(f"Applying advanced bandpass filter {low_cut}-{high_cut}Hz, type {adv_filters.get('filter_type')}")
+                
                 filter_type = adv_filters.get("filter_type", FilterTypes.BUTTERWORTH)
-                low_cut = adv_filters.get("low_cut", 1.0)
-                high_cut = adv_filters.get("high_cut", 50.0)
                 order = adv_filters.get("order", 4)
-                channels = adv_filters.get("selected_channels", None)  # Get selected channels if any
+                channels = adv_filters.get("selected_channels", None)
 
                 # call into processor_service with channels argument
                 processed_data = self._processor_service.apply_advanced_bandpass_filter(

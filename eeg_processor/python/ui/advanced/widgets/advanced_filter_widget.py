@@ -1,4 +1,5 @@
 from typing import Any, Dict, Optional, List
+import logging
 
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import (
@@ -36,6 +37,9 @@ class AdvancedFilterWidget(QWidget):
         # Channel state
         self.channel_names: List[str] = []
         self.selected_channels: List[int] = []
+        
+        # Reference to processing panel for dynamic parameter reading
+        self._processing_panel = None
         
         # Create main layout
         self.layout = QVBoxLayout(self)
@@ -170,6 +174,24 @@ class AdvancedFilterWidget(QWidget):
         self.selected_channels = list(range(len(self.channel_names)))
         self._update_channel_display()
 
+    def set_processing_panel_reference(self, processing_panel) -> None:
+        """Set reference to processing panel for reading basic filter parameters."""
+        self._processing_panel = processing_panel
+
+    def _get_basic_bandpass_params(self) -> Dict[str, float]:
+        """Get current basic bandpass parameters from processing panel."""
+        if self._processing_panel:
+            try:
+                return {
+                    "low_cut": self._processing_panel.bandpass_low_spin.value(),
+                    "high_cut": self._processing_panel.bandpass_high_spin.value()
+                }
+            except Exception as e:
+                logging.debug(f"Error reading basic bandpass params: {e}")
+        
+        # Fallback values
+        return {"low_cut": 1.0, "high_cut": 50.0}
+
     def _toggle_advanced_filters(self) -> None:
         """Toggle advanced filters application."""
         self.applied = not self.applied
@@ -177,12 +199,15 @@ class AdvancedFilterWidget(QWidget):
         # If no channels selected, pass empty list to indicate "all channels"
         channels_to_filter = self.selected_channels.copy() if self.selected_channels else []
         
+        # Get dynamic basic bandpass parameters
+        basic_params = self._get_basic_bandpass_params()
+        
         params = {
             "apply": self.applied,
             "filter_type": self.filter_type_combo.currentData(),
             "window_function": self.window_function_combo.currentData(),
-            "low_cut": 1.0,  # Could be made configurable
-            "high_cut": 50.0,  # Could be made configurable
+            "low_cut": basic_params["low_cut"],  # Use dynamic basic parameters
+            "high_cut": basic_params["high_cut"],  # Use dynamic basic parameters
             "order": 4,
             "selected_channels": channels_to_filter,
         }
@@ -218,12 +243,15 @@ class AdvancedFilterWidget(QWidget):
         # If no channels selected, pass empty list to indicate "all channels"
         channels_to_filter = self.selected_channels.copy() if self.selected_channels else []
         
+        # Get dynamic basic bandpass parameters
+        basic_params = self._get_basic_bandpass_params()
+        
         return {
             "filter_type": self.filter_type_combo.currentData(),
             "window_function": self.window_function_combo.currentData(),
             "applied": self.applied,
-            "low_cut": 1.0,  # Could be made configurable
-            "high_cut": 50.0,  # Could be made configurable
+            "low_cut": basic_params["low_cut"],  # Use dynamic basic parameters
+            "high_cut": basic_params["high_cut"],  # Use dynamic basic parameters
             "order": 4,
             "selected_channels": channels_to_filter,
         }

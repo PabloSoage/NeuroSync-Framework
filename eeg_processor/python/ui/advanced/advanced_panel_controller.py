@@ -54,6 +54,9 @@ class AdvancedPanelController(QObject):
         self.collector_service = collector_service
         self.processor_service = processor_service
         
+        # Try to get processing panel reference for dynamic bandpass parameters
+        self._setup_processing_panel_reference()
+        
         # Create service instances
         self.processing_service = AdvancedProcessingService()
         self.processing_service.initialize(processor_service)
@@ -759,3 +762,17 @@ class AdvancedPanelController(QObject):
 
         except Exception as e:
             self.error_message.emit("Advanced Filter Update Error", f"Error updating advanced filter settings: {str(e)}")
+
+    def _setup_processing_panel_reference(self) -> None:
+        """Setup reference to processing panel for reading basic filter parameters."""
+        try:
+            # Try to get processing panel from parent hierarchy
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'processing_panel'):
+                    self.advanced_filter_widget.set_processing_panel_reference(parent.processing_panel)
+                    logging.info("Advanced filter widget connected to processing panel for dynamic parameters")
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            logging.debug(f"Could not setup processing panel reference: {e}")
