@@ -597,6 +597,11 @@ class ConnectionPanel(BasePanel):
             success = self.collector_service.disconnect_from_board()
 
             if success:
+                # IMPORTANT: Destroy visualizer completely when disconnecting
+                # This clears the cache since we're changing collectors
+                if hasattr(self, 'visualization_service'):
+                    self.visualization_service.destroy_eeg_visualizer()
+
                 # Update UI
                 self.connect_btn.setEnabled(True)
                 self.disconnect_btn.setEnabled(False)
@@ -686,7 +691,7 @@ class ConnectionPanel(BasePanel):
             success = self.collector_service.stop_stream()
 
             if success:
-                # Stop visualization if running
+                # Stop visualization if running (but keep cache)
                 self.visualization_service.stop_eeg_visualization()
 
                 # Update UI

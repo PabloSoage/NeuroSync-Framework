@@ -18,40 +18,38 @@ class VisualizationService:
         self.eeg_visualizer: Optional[EEGVisualizer] = None
         self.brain_map_visualizer: Optional[BrainMapVisualizer] = None
 
-    def create_eeg_visualizer(self, collector: Any, processor: Any) -> bool:
+    def create_eeg_visualizer(self, collector, processor) -> bool:
         """
-        Create an EEG visualizer.
+        Create EEG visualizer.
 
         Args:
-            collector: The data collector object
-            processor: The signal processor object
+            collector: EEG collector instance
+            processor: Signal processor instance
 
         Returns:
-            True if visualizer was created successfully, False otherwise
+            True if visualizer was created successfully
         """
         try:
-            # Handle case where processor is None but we need one
-            if processor is None:
-                try:
-                    from ..processors.signal_processor import SignalProcessor
+            # CACHING: Don't destroy existing visualizer if same collector
+            if (self.eeg_visualizer is not None and 
+                hasattr(self.eeg_visualizer, 'collector') and
+                self.eeg_visualizer.collector == collector):
+                
+                # Same collector, reuse existing visualizer but create new window
+                logging.info("Reusing existing visualizer for same collector")
+                if hasattr(self.eeg_visualizer, 'main_widget'):
+                    self.eeg_visualizer.main_widget.show()
+                return True
 
-                    # Try to create a basic processor if possible
-                    if (
-                        hasattr(collector, "sampling_rate")
-                        and collector.sampling_rate > 0
-                    ):
-                        processor = SignalProcessor(collector.sampling_rate)
-                        logging.info(
-                            f"Created fallback signal processor with sampling rate {collector.sampling_rate}Hz"
-                        )
-                except Exception as e:
-                    logging.warning(f"Could not create fallback processor: {e}")
-                    # Continue without a processor - visualizer should handle this case
+            # Different collector or no existing visualizer
+            from ..visualizers.eeg_viz import MultiSignalVisualizer
 
-            self.eeg_visualizer = EEGVisualizer(collector, processor)
+            self.eeg_visualizer = MultiSignalVisualizer(collector, processor)
+            self.visualization_active = True
+            logging.info("EEG visualizer created successfully")
             return True
         except Exception as e:
-            logging.error(f"EEG visualizer creation error: {e}")
+            logging.error(f"Error creating EEG visualizer: {e}")
             return False
 
     def create_brain_map_visualizer(self, collector: Any, processor: Any) -> bool:
@@ -115,19 +113,48 @@ class VisualizationService:
 
     def stop_eeg_visualization(self) -> bool:
         """
-        Stop the EEG visualization.
+        Stop EEG visualization - now preserves cache.
 
         Returns:
-            True if visualization stopped successfully, False otherwise
+            True if visualization was stopped successfully
         """
-        if not self.eeg_visualizer:
+        try:
+            if self.eeg_visualizer:
+                # Just stop the timer, don't destroy the visualizer
+                self.eeg_visualizer.stop()
+                
+                # Hide the window instead of destroying it
+                if hasattr(self.eeg_visualizer, 'main_widget'):
+                    self.eeg_visualizer.main_widget.hide()
+                
+                self.visualization_active = False
+                logging.info("EEG visualization stopped (cached)")
+                return True
+            return False
+        except Exception as e:
+            logging.error(f"Error stopping EEG visualization: {e}")
             return False
 
+    def destroy_eeg_visualizer(self) -> bool:
+        """
+        Completely destroy EEG visualizer and clear cache.
+        Called when collector disconnects.
+
+        Returns:
+            True if visualizer was destroyed successfully
+        """
         try:
-            self.eeg_visualizer.stop()
-            return True
+            if self.eeg_visualizer:
+                # Properly cleanup for disconnect (this clears cache)
+                self.eeg_visualizer.cleanup_for_disconnect()
+                self.eeg_visualizer = None
+                
+                self.visualization_active = False
+                logging.info("EEG visualizer destroyed and cache cleared")
+                return True
+            return False
         except Exception as e:
-            logging.error(f"EEG visualization stop error: {e}")
+            logging.error(f"Error destroying EEG visualizer: {e}")
             return False
 
     def start_brain_map_visualization(self) -> bool:
@@ -175,12 +202,21 @@ class VisualizationService:
 
     def visualization_closed(self) -> bool:
         """
-        Check if EEG visualization was closed.
+        Check if visualization window is closed.
 
         Returns:
-            True if visualization is closed, False otherwise
+            True if visualization window is closed or doesn't exist
         """
-        return self.eeg_visualizer is not None and not self.eeg_visualizer.is_visible()
+        if not self.eeg_visualizer:
+            return True
+
+        try:
+            # Check if window exists and is visible
+            if hasattr(self.eeg_visualizer, 'main_widget'):
+                return not self.eeg_visualizer.main_widget.isVisible()
+            return True
+        except:
+            return True
 
     def brain_map_visible(self) -> bool:
         """

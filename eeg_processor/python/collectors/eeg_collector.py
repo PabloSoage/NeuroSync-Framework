@@ -85,58 +85,93 @@ class BrainFlowCollector(
             logging.warning(f"Could not get available presets: {e}")
             self.available_presets = [BrainFlowPresets.DEFAULT_PRESET]
 
-        # Get board information
+        # Validate that the requested preset is available
+        if self.preset not in self.available_presets:
+            logging.warning(f"Requested preset {self.preset} not available for board {self.board_id}. Using default preset.")
+            self.preset = BrainFlowPresets.DEFAULT_PRESET.value
+
+        # Get board information with error handling for each field
         try:
             self.sampling_rate = BoardShim.get_sampling_rate(self.board_id, self.preset)
+        except Exception as e:
+            logging.warning(f"Could not get sampling rate for preset {self.preset}: {e}")
+            # Try with default preset as fallback
+            try:
+                self.sampling_rate = BoardShim.get_sampling_rate(self.board_id, BrainFlowPresets.DEFAULT_PRESET)
+                logging.info(f"Using sampling rate from default preset: {self.sampling_rate}")
+            except Exception as e2:
+                logging.error(f"Could not get sampling rate even with default preset: {e2}")
+                self.sampling_rate = 250  # Reasonable default
+
+        try:
             self.eeg_channels = BoardShim.get_eeg_channels(self.board_id, self.preset)
-            self.timestamp_channel = BoardShim.get_timestamp_channel(
-                self.board_id, self.preset
-            )
-            self.marker_channel = BoardShim.get_marker_channel(
-                self.board_id, self.preset
-            )
-
-            # Get additional channel types if available
+        except Exception as e:
+            logging.warning(f"Could not get EEG channels for preset {self.preset}: {e}")
+            # Try with default preset as fallback
             try:
-                self.exg_channels = BoardShim.get_exg_channels(
-                    self.board_id, self.preset
-                )
+                self.eeg_channels = BoardShim.get_eeg_channels(self.board_id, BrainFlowPresets.DEFAULT_PRESET)
+                logging.info(f"Using EEG channels from default preset: {self.eeg_channels}")
+            except Exception as e2:
+                logging.warning(f"Could not get EEG channels even with default preset: {e2}")
+                self.eeg_channels = []
+
+        try:
+            self.timestamp_channel = BoardShim.get_timestamp_channel(self.board_id, self.preset)
+        except Exception as e:
+            logging.warning(f"Could not get timestamp channel for preset {self.preset}: {e}")
+            try:
+                self.timestamp_channel = BoardShim.get_timestamp_channel(self.board_id, BrainFlowPresets.DEFAULT_PRESET)
             except:
-                self.exg_channels = self.eeg_channels
+                self.timestamp_channel = -1
 
-            # Get other channel types
-            self.channel_types = {
-                "eeg": self.eeg_channels,
-                "emg": self._get_channels_safely(BoardShim.get_emg_channels, "EMG"),
-                "ecg": self._get_channels_safely(BoardShim.get_ecg_channels, "ECG"),
-                "eog": self._get_channels_safely(BoardShim.get_eog_channels, "EOG"),
-                "eda": self._get_channels_safely(BoardShim.get_eda_channels, "EDA"),
-                "ppg": self._get_channels_safely(BoardShim.get_ppg_channels, "PPG"),
-                "accel": self._get_channels_safely(
-                    BoardShim.get_accel_channels, "Accel"
-                ),
-                "gyro": self._get_channels_safely(BoardShim.get_gyro_channels, "Gyro"),
-                "temperature": self._get_channels_safely(
-                    BoardShim.get_temperature_channels, "Temperature"
-                ),
-                "resistance": self._get_channels_safely(
-                    BoardShim.get_resistance_channels, "Resistance"
-                ),
-                "other": self._get_channels_safely(
-                    BoardShim.get_other_channels, "Other"
-                ),
-            }
-
-            # Try to get EEG names if available
+        try:
+            self.marker_channel = BoardShim.get_marker_channel(self.board_id, self.preset)
+        except Exception as e:
+            logging.warning(f"Could not get marker channel for preset {self.preset}: {e}")
             try:
-                self.eeg_names = BoardShim.get_eeg_names(self.board_id, self.preset)
+                self.marker_channel = BoardShim.get_marker_channel(self.board_id, BrainFlowPresets.DEFAULT_PRESET)
+            except:
+                self.marker_channel = -1
+
+        # Get additional channel types if available
+        try:
+            self.exg_channels = BoardShim.get_exg_channels(self.board_id, self.preset)
+        except:
+            self.exg_channels = self.eeg_channels
+
+        # Get other channel types with safe fallbacks
+        self.channel_types = {
+            "eeg": self.eeg_channels,
+            "emg": self._get_channels_safely(BoardShim.get_emg_channels, "EMG"),
+            "ecg": self._get_channels_safely(BoardShim.get_ecg_channels, "ECG"),
+            "eog": self._get_channels_safely(BoardShim.get_eog_channels, "EOG"),
+            "eda": self._get_channels_safely(BoardShim.get_eda_channels, "EDA"),
+            "ppg": self._get_channels_safely(BoardShim.get_ppg_channels, "PPG"),
+            "accel": self._get_channels_safely(BoardShim.get_accel_channels, "Accel"),
+            "gyro": self._get_channels_safely(BoardShim.get_gyro_channels, "Gyro"),
+            "temperature": self._get_channels_safely(BoardShim.get_temperature_channels, "Temperature"),
+            "resistance": self._get_channels_safely(BoardShim.get_resistance_channels, "Resistance"),
+            "other": self._get_channels_safely(BoardShim.get_other_channels, "Other"),
+        }
+
+        # Try to get EEG names if available
+        try:
+            self.eeg_names = BoardShim.get_eeg_names(self.board_id, self.preset)
+            if isinstance(self.eeg_names, str):
+                self.eeg_names = self.eeg_names.split(",")
+        except Exception as e:
+            logging.debug(f"Could not get EEG names for preset {self.preset}: {e}")
+            # Try with default preset
+            try:
+                self.eeg_names = BoardShim.get_eeg_names(self.board_id, BrainFlowPresets.DEFAULT_PRESET)
                 if isinstance(self.eeg_names, str):
                     self.eeg_names = self.eeg_names.split(",")
             except:
-                self.eeg_names = [f"Channel {i}" for i in self.eeg_channels]
-        except Exception as e:
-            logging.error(f"Error initializing board information: {e}")
-            raise
+                # Generate generic names based on available channels
+                if self.eeg_channels:
+                    self.eeg_names = [f"Channel {i}" for i in range(len(self.eeg_channels))]
+                else:
+                    self.eeg_names = []
 
         # Get device name
         try:
@@ -147,8 +182,12 @@ class BrainFlowCollector(
         # Get number of rows
         try:
             self.num_rows = BoardShim.get_num_rows(self.board_id, self.preset)
-        except:
-            self.num_rows = 0
+        except Exception as e:
+            logging.warning(f"Could not get number of rows for preset {self.preset}: {e}")
+            try:
+                self.num_rows = BoardShim.get_num_rows(self.board_id, BrainFlowPresets.DEFAULT_PRESET)
+            except:
+                self.num_rows = len(self.eeg_channels) + 2  # EEG channels + timestamp + marker
 
         logging.info(
             f"BrainFlow Collector initialized with board_id: {self.board_id}, preset: {self.preset}"
@@ -157,6 +196,7 @@ class BrainFlowCollector(
             f"Device: {self.device_name}, Sampling rate: {self.sampling_rate}Hz"
         )
         logging.info(f"EEG channels: {self.eeg_channels}")
+        logging.info(f"Available presets: {self.available_presets}")
 
     def _get_channels_safely(self, channel_func: Any, channel_type: str) -> List[int]:
         """
@@ -173,8 +213,15 @@ class BrainFlowCollector(
             channels = channel_func(self.board_id, self.preset)
             return channels
         except Exception as e:
-            logging.debug(f"No {channel_type} channels available: {e}")
-            return []
+            logging.debug(f"No {channel_type} channels available for preset {self.preset}: {e}")
+            # Try with default preset as fallback
+            try:
+                channels = channel_func(self.board_id, BrainFlowPresets.DEFAULT_PRESET)
+                logging.debug(f"Using {channel_type} channels from default preset: {channels}")
+                return channels
+            except Exception as e2:
+                logging.debug(f"No {channel_type} channels available even with default preset: {e2}")
+                return []
 
     # CollectorInterface implementation
     def prepare_session(self) -> None:
