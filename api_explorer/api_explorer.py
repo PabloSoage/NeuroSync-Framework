@@ -488,18 +488,18 @@ class ApiExplorer:
 
             @router.post(f"/{method_id}")
             async def endpoint(
-                request_data: Any,  # RequestModel
-            ) -> Any:  # Use Any for dynamically created model
+                request_data: RequestModel  # type: ignore[valid-type]
+            ) -> Any:  # Use specific model type
                 # Safely extract data from the Pydantic model
                 try:
                     if hasattr(request_data, "model_dump"):
                         # Pydantic v2
-                        data_dict = request_data.model_dump(
+                        data_dict = request_data.model_dump(  # type: ignore[attr-defined]
                             exclude_unset=True, exclude_none=True
                         )
                     elif hasattr(request_data, "dict"):
                         # Pydantic v1
-                        data_dict = request_data.dict(
+                        data_dict = request_data.dict(  # type: ignore[attr-defined]
                             exclude_unset=True, exclude_none=True
                         )
                     else:
