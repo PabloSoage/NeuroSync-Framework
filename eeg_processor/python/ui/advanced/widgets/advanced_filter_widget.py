@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import (
@@ -33,6 +33,10 @@ class AdvancedFilterWidget(QWidget):
         # Filter state
         self.applied = False
         
+        # Channel state
+        self.channel_names: List[str] = []
+        self.selected_channels: List[int] = []
+        
         # Create main layout
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -43,6 +47,13 @@ class AdvancedFilterWidget(QWidget):
         """Set up the advanced filter widget UI."""
         adv_filter_group = QGroupBox("Advanced Filtering Options")
         adv_filter_layout = QVBoxLayout(adv_filter_group)
+
+        # Add help button
+        filter_header_layout = QHBoxLayout()
+        filter_header_layout.addWidget(QLabel("Advanced Filters Configuration"))
+        filter_header_layout.addWidget(HelpButton("advanced_filters", self))
+        filter_header_layout.addStretch()
+        adv_filter_layout.addLayout(filter_header_layout)
 
         # Filter Type Selection
         filter_type_layout = QHBoxLayout()
@@ -72,6 +83,24 @@ class AdvancedFilterWidget(QWidget):
 
         adv_filter_layout.addLayout(filter_type_layout)
 
+        # Channel selection
+        channel_layout = QVBoxLayout()
+        channel_layout.addWidget(QLabel("Channel Selection:"))
+        
+        # Channel selection button and info
+        channel_selection_layout = QHBoxLayout()
+        self.filter_channel_select_btn = QPushButton("Select Channels")
+        self.filter_channel_select_btn.clicked.connect(self._open_channel_selection)
+        channel_selection_layout.addWidget(self.filter_channel_select_btn)
+        
+        self.filter_channel_info_label = QLabel("All channels")
+        self.filter_channel_info_label.setStyleSheet("color: #AAAAAA; font-style: italic;")
+        channel_selection_layout.addWidget(self.filter_channel_info_label)
+        channel_selection_layout.addStretch()
+        
+        channel_layout.addLayout(channel_selection_layout)
+        adv_filter_layout.addLayout(channel_layout)
+
         # Apply Advanced Filtering
         filter_buttons_layout = QHBoxLayout()
         self.apply_adv_filter_btn = QPushButton("Apply Advanced Filters")
@@ -82,6 +111,57 @@ class AdvancedFilterWidget(QWidget):
         adv_filter_layout.addLayout(filter_buttons_layout)
 
         self.layout.addWidget(adv_filter_group)
+
+    def _open_channel_selection(self) -> None:
+        """Open channel selection dialog."""
+        if not self.channel_names:
+            from PyQt5.QtWidgets import QMessageBox
+            QMessageBox.warning(
+                self, "Channel Selection", "No channels available. Start streaming first."
+            )
+            return
+
+        from ...mne.widgets.channel_selection_dialog import ChannelSelectionDialog
+        from PyQt5.QtWidgets import QDialog
+
+        dialog = ChannelSelectionDialog(
+            channel_names=self.channel_names,
+            selected_channels=self.selected_channels,
+            parent=self,
+        )
+        dialog.setWindowTitle("Select Channels for Advanced Filtering")
+
+        if dialog.exec_() == QDialog.Accepted:
+            self.selected_channels = dialog.get_selected_channels()
+            self._update_channel_display()
+            # Emit settings change if filters are currently applied
+            self._on_settings_changed()
+
+    def _update_channel_display(self) -> None:
+        """Update the channel selection display."""
+        if not self.channel_names:
+            self.filter_channel_info_label.setText("No channels available")
+            self.filter_channel_select_btn.setEnabled(False)
+            return
+        
+        self.filter_channel_select_btn.setEnabled(True)
+        
+        if not self.selected_channels:
+            self.filter_channel_info_label.setText("No channels selected")
+        elif len(self.selected_channels) == len(self.channel_names):
+            self.filter_channel_info_label.setText("All channels selected")
+        else:
+            count = len(self.selected_channels)
+            total = len(self.channel_names)
+            self.filter_channel_info_label.setText(f"{count}/{total} channels selected")
+
+    def update_channels(self, channel_names: List[str]) -> None:
+        """Update available channels."""
+        self.channel_names = channel_names.copy()
+        
+        # Reset selected channels to all channels
+        self.selected_channels = list(range(len(self.channel_names)))
+        self._update_channel_display()
 
     def _toggle_advanced_filters(self) -> None:
         """Toggle advanced filters application."""
@@ -94,6 +174,7 @@ class AdvancedFilterWidget(QWidget):
             "low_cut": 1.0,  # Could be made configurable
             "high_cut": 50.0,  # Could be made configurable
             "order": 4,
+            "selected_channels": self.selected_channels.copy(),
         }
         
         self.apply_requested.emit(params)
@@ -131,4 +212,5 @@ class AdvancedFilterWidget(QWidget):
             "low_cut": 1.0,  # Could be made configurable
             "high_cut": 50.0,  # Could be made configurable
             "order": 4,
+            "selected_channels": self.selected_channels.copy(),
         }

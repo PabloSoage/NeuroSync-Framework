@@ -306,6 +306,7 @@ class AdvancedProcessingService:
                 low_cut: Low cutoff frequency (optional)
                 high_cut: High cutoff frequency (optional)
                 order: Filter order (optional)
+                selected_channels: List of channel indices to filter (optional)
                 
         Returns:
             Dictionary with results containing:
@@ -324,12 +325,19 @@ class AdvancedProcessingService:
                         "low_cut": params.get("low_cut", 1.0),
                         "high_cut": params.get("high_cut", 50.0),
                         "order": params.get("order", 4),
+                        "selected_channels": params.get("selected_channels", []),
                     }
                 }
                 
                 self._data_access_service.enable_advanced_processing(True, processing_settings)
                 self._advanced_filters_active = True
-                logging.info(f"Advanced filters enabled for data stream (type: {params['filter_type']})")
+                
+                # Log channel selection info
+                selected_channels = params.get("selected_channels", [])
+                if selected_channels:
+                    logging.info(f"Advanced filters enabled for data stream (type: {params['filter_type']}, data channels: {selected_channels})")
+                else:
+                    logging.info(f"Advanced filters enabled for data stream (type: {params['filter_type']}, all channels)")
             else:
                 # Remove advanced filters but keep other advanced processing if active
                 current_settings = getattr(self._data_access_service, '_advanced_processing_settings', {})

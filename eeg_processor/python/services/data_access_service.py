@@ -79,6 +79,9 @@ class DataAccessService:
 
         logging.info("Data access service initialized with separated callback flows")
 
+        # Advanced processing settings
+        self._advanced_processing_settings: Dict[str, Any] = {}
+
     def _init_collector_reference(self) -> None:
         """Initialize reference to collector service (if available)."""
         try:
@@ -365,20 +368,21 @@ class DataAccessService:
         logging.debug("DataAccessService filter settings updated")
 
     def enable_advanced_processing(
-        self, enabled: bool, processing_settings: Optional[Dict[str, Any]] = None
+        self, enabled: bool, settings: Optional[Dict[str, Any]] = None
     ) -> None:
         """
         Enable or disable advanced processing for data served by this service.
 
         Args:
             enabled: Whether to enable advanced processing
-            processing_settings: Advanced processing configuration
+            settings: Advanced processing configuration
         """
         with self._data_lock:
             self._advanced_processing_enabled = getattr(self, '_advanced_processing_enabled', False)
             self._advanced_processing_enabled = enabled
-            if processing_settings is not None:
-                self._advanced_processing_settings = processing_settings
+            if settings is not None:
+                # merge new settings into existing advanced settings
+                self._advanced_processing_settings.update(settings)
 
         action = "enabled" if enabled else "disabled"
         logging.info(f"DataAccessService advanced processing {action}")
@@ -474,12 +478,20 @@ class DataAccessService:
             if settings.get("advanced_filters", {}).get("enabled", False):
                 adv_filters = settings["advanced_filters"]
                 logging.debug(f"Applying advanced filter type {adv_filters.get('filter_type')}")
+                filter_type = adv_filters.get("filter_type", FilterTypes.BUTTERWORTH)
+                low_cut = adv_filters.get("low_cut", 1.0)
+                high_cut = adv_filters.get("high_cut", 50.0)
+                order = adv_filters.get("order", 4)
+                channels = adv_filters.get("selected_channels", None)  # Get selected channels if any
+
+                # call into processor_service with channels argument
                 processed_data = self._processor_service.apply_advanced_bandpass_filter(
                     processed_data,
-                    adv_filters.get("low_cut", 1.0),
-                    adv_filters.get("high_cut", 50.0),
-                    adv_filters.get("filter_type", FilterTypes.BUTTERWORTH),
-                    adv_filters.get("order", 4),
+                    low_cut,
+                    high_cut,
+                    filter_type,
+                    order,
+                    channels,
                 )
 
             # Apply downsampling

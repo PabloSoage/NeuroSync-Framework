@@ -130,6 +130,7 @@ class AdvancedPanelController(QObject):
             # Update widgets with channel information
             self.ica_widget.update_channels(channel_names)
             self.wavelet_widget.update_channels(channel_names)
+            self.advanced_filter_widget.update_channels(channel_names)
 
         except Exception as e:
             logging.debug(f"Error initializing channel data: {e}")
@@ -544,11 +545,34 @@ class AdvancedPanelController(QObject):
     def _handle_advanced_filters(self, params: Dict[str, Any]) -> None:
         """Handle advanced filters request."""
         try:
-            result = self.processing_service.apply_advanced_filters(params)
+            # Convert EEG channel indices to data array indices
+            selected_eeg_indices = params.get("selected_channels", [])
+            
+            # Map EEG indices to actual data array indices
+            metadata = self.processing_service._data_access_service.get_metadata()
+            eeg_channels = metadata.get("eeg_channels", [])
+            
+            # Convert selected EEG indices to actual channel indices in data array
+            actual_channel_indices = []
+            for eeg_idx in selected_eeg_indices:
+                if eeg_idx < len(eeg_channels):
+                    actual_channel_idx = eeg_channels[eeg_idx]
+                    actual_channel_indices.append(actual_channel_idx)
+            
+            # Update params with actual channel indices
+            params_with_mapped_channels = params.copy()
+            params_with_mapped_channels["selected_channels"] = actual_channel_indices
+            
+            result = self.processing_service.apply_advanced_filters(params_with_mapped_channels)
             
             if result.get('success'):
+                # Show info with EEG channel count for user clarity
+                channel_count = len(selected_eeg_indices)
+                total_eeg_channels = len(self.processing_service.get_channel_names())
+                
                 self.status_message.emit(
-                    "Advanced filters applied to data stream" if params.get('apply') else
+                    f"Advanced filters {'applied' if params.get('apply') else 'removed'} "
+                    f"({channel_count}/{total_eeg_channels} EEG channels)" if params.get('apply') else
                     "Advanced filters removed from data stream"
                 )
             else:
@@ -604,6 +628,7 @@ class AdvancedPanelController(QObject):
         try:
             self.ica_widget.update_channels(channel_names)
             self.wavelet_widget.update_channels(channel_names)
+            self.advanced_filter_widget.update_channels(channel_names)
             return True
         except Exception as e:
             self.error_message.emit("Channel List Update Error", str(e))
@@ -683,13 +708,27 @@ class AdvancedPanelController(QObject):
         try:
             # Only update if advanced filters are applied
             if settings.get('applied', False):
+                # Map EEG indices to actual data indices
+                selected_eeg_indices = settings.get("selected_channels", [])
+                
+                metadata = self.processing_service._data_access_service.get_metadata()
+                eeg_channels = metadata.get("eeg_channels", [])
+                
+                # Convert selected EEG indices to actual channel indices
+                actual_channel_indices = []
+                for eeg_idx in selected_eeg_indices:
+                    if eeg_idx < len(eeg_channels):
+                        actual_channel_idx = eeg_channels[eeg_idx]
+                        actual_channel_indices.append(actual_channel_idx)
+                
                 params = {
                     "apply": True,
                     "filter_type": settings["filter_type"],
                     "window_function": settings["window_function"],
                     "low_cut": settings.get("low_cut", 1.0),
                     "high_cut": settings.get("high_cut", 50.0),
-                    "order": settings.get("order", 4)
+                    "order": settings.get("order", 4),
+                    "selected_channels": actual_channel_indices,  # Use mapped indices
                 }
                 
                 result = self.processing_service.apply_advanced_filters(params)
@@ -700,8 +739,11 @@ class AdvancedPanelController(QObject):
                                        getattr(FilterTypes, item[0]) == settings["filter_type"]]
                     filter_name = filter_type_name[0] if filter_type_name else "Unknown"
                     
+                    channel_count = len(selected_eeg_indices)
+                    total_channels = len(self.processing_service.get_channel_names())
+                    
                     self.status_message.emit(
-                        f"Advanced filter settings updated dynamically (type: {filter_name})"
+                        f"Advanced filter settings updated dynamically (type: {filter_name}, EEG channels: {channel_count}/{total_channels})"
                     )
                 else:
                     self.error_message.emit("Advanced Filter Update Error", 

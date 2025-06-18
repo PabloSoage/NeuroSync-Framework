@@ -433,10 +433,10 @@ class ProcessorService:
                 data = data.reshape(1, -1)
 
             logging.debug(
-                f"Applying advanced bandpass filter {low_cutoff}-{high_cutoff} Hz, type {filter_type}"
+                f"Applying advanced bandpass filter {low_cutoff}-{high_cutoff} Hz, type {filter_type}, channels: {channels}"
             )
 
-            if channels is not None:
+            if channels is not None and len(channels) > 0:
                 filtered_data = data.copy()
                 for channel in channels:
                     if channel < data.shape[0]:
