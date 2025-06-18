@@ -128,7 +128,7 @@ class SignalProcessor:
         ripple_int = int(round(ripple))
         
         # Log the actual parameters being used
-        logging.info(f"Applying bandpass filter: {start_freq:.1f}-{stop_freq:.1f}Hz, order={order}, type={filter_type}, ripple={ripple_int}dB")
+        logging.debug(f"Applying bandpass filter: {start_freq:.1f}-{stop_freq:.1f}Hz, order={order}, type={filter_type}, ripple={ripple_int}dB")
         
         # Standard frequency validation
         nyquist = self.sampling_rate / 2
@@ -246,7 +246,7 @@ class SignalProcessor:
                 filtered_data[channel_idx] = data[channel_idx]
 
         self.processed_data = filtered_data
-        logging.info(f"Applied bandpass filter {start_freq:.1f}-{stop_freq:.1f}Hz, order {order}, type {filter_type}, ripple {ripple_int}dB")
+        logging.debug(f"Applied bandpass filter {start_freq:.1f}-{stop_freq:.1f}Hz, order {order}, type {filter_type}, ripple {ripple_int}dB")
         return filtered_data
 
     def bandstop_filter(
@@ -283,7 +283,7 @@ class SignalProcessor:
             )
 
         self.processed_data = filtered_data
-        logging.info(
+        logging.debug(
             f"Applied bandstop filter {start_freq}-{stop_freq}Hz, order {order}"
         )
         return filtered_data
@@ -319,7 +319,7 @@ class SignalProcessor:
             )
 
         self.processed_data = filtered_data
-        logging.info(f"Applied lowpass filter {cutoff_freq}Hz, order {order}")
+        logging.debug(f"Applied lowpass filter {cutoff_freq}Hz, order {order}")
         return filtered_data
 
     def highpass_filter(
@@ -353,7 +353,7 @@ class SignalProcessor:
             )
 
         self.processed_data = filtered_data
-        logging.info(f"Applied highpass filter {cutoff_freq}Hz, order {order}")
+        logging.debug(f"Applied highpass filter {cutoff_freq}Hz, order {order}")
         return filtered_data
 
     def denoise(
@@ -382,7 +382,7 @@ class SignalProcessor:
             )
 
         self.processed_data = denoised_data
-        logging.info(f"Applied wavelet denoising with {wavelet}")
+        logging.debug(f"Applied wavelet denoising with {wavelet}")
         return denoised_data
 
     def remove_environmental_noise(

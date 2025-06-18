@@ -445,7 +445,7 @@ class DataAccessService:
                     bp = self._filter_settings["bandpass"]
                     low_cut = bp.get("low_cut", bp.get("low", 1.0))
                     high_cut = bp.get("high_cut", bp.get("high", 50.0))
-                    logging.info(f"Applying basic bandpass filter {low_cut}-{high_cut} Hz to chunk")
+                    logging.debug(f"Applying basic bandpass filter {low_cut}-{high_cut} Hz to chunk")
                     filtered_data = self._processor_service.apply_bandpass_filter(
                         filtered_data, low_cut, high_cut
                     )
@@ -454,14 +454,14 @@ class DataAccessService:
                 if self._filter_settings.get("notch", {}).get("enabled", False):
                     notch = self._filter_settings["notch"]
                     freq = notch.get("frequency", 50)
-                    logging.info(f"Applying notch filter {freq} Hz to chunk")
+                    logging.debug(f"Applying notch filter {freq} Hz to chunk")
                     filtered_data = self._processor_service.apply_notch_filter(
                         filtered_data, freq
                     )
 
                 # Apply detrend if enabled (always applied)
                 if self._filter_settings.get("detrend", False):
-                    logging.info("Applying detrend to chunk")
+                    logging.debug("Applying detrend to chunk")
                     filtered_data = self._processor_service.apply_detrend(filtered_data)
 
             # Apply advanced processing (including advanced bandpass if enabled)
@@ -499,11 +499,11 @@ class DataAccessService:
                 if basic_bandpass_params:
                     low_cut = basic_bandpass_params["low_cut"]
                     high_cut = basic_bandpass_params["high_cut"]
-                    logging.info(f"Applying advanced bandpass filter with basic parameters {low_cut}-{high_cut}Hz, type {adv_filters.get('filter_type')}")
+                    logging.debug(f"Applying advanced bandpass filter with basic parameters {low_cut}-{high_cut}Hz, type {adv_filters.get('filter_type')}")
                 else:
                     low_cut = adv_filters.get("low_cut", 1.0)
                     high_cut = adv_filters.get("high_cut", 50.0)
-                    logging.info(f"Applying advanced bandpass filter {low_cut}-{high_cut}Hz, type {adv_filters.get('filter_type')}")
+                    logging.debug(f"Applying advanced bandpass filter {low_cut}-{high_cut}Hz, type {adv_filters.get('filter_type')}")
                 
                 filter_type = adv_filters.get("filter_type", FilterTypes.BUTTERWORTH)
                 order = adv_filters.get("order", 4)
@@ -549,16 +549,16 @@ class DataAccessService:
                     # Calculate time since computation
                     time_since_computation = time.time() - computation_time if computation_time > 0 else "Unknown"
                     
-                    logging.info(f"🔄 WAVELET INVERSE TRANSFORM ACTIVE:")
-                    logging.info(f"   📊 Target Channel: {target_channel}")
-                    logging.info(f"   🌊 Wavelet Type: {wavelet_type}")
-                    logging.info(f"   📏 Decomposition Level: {decomp_level}")
-                    logging.info(f"   🔧 Extension Type: {extension_type}")
-                    logging.info(f"   🧹 Denoising: {'Yes' if apply_denoising else 'No'}")
-                    logging.info(f"   📐 Original Window Size: {original_window_size} samples")
-                    logging.info(f"   ⏱️  Computed: {time_since_computation:.1f}s ago" if isinstance(time_since_computation, float) else f"   ⏱️  Computed: {time_since_computation}")
-                    logging.info(f"   📊 Current Data Shape: {processed_data.shape}")
-                    logging.info(f"   📊 Wavelet Coeffs Shape: {wavelet_data.shape}")
+                    logging.debug(f"🔄 WAVELET INVERSE TRANSFORM ACTIVE:")
+                    logging.debug(f"   📊 Target Channel: {target_channel}")
+                    logging.debug(f"   🌊 Wavelet Type: {wavelet_type}")
+                    logging.debug(f"   📏 Decomposition Level: {decomp_level}")
+                    logging.debug(f"   🔧 Extension Type: {extension_type}")
+                    logging.debug(f"   🧹 Denoising: {'Yes' if apply_denoising else 'No'}")
+                    logging.debug(f"   📐 Original Window Size: {original_window_size} samples")
+                    logging.debug(f"   ⏱️  Computed: {time_since_computation:.1f}s ago" if isinstance(time_since_computation, float) else f"   ⏱️  Computed: {time_since_computation}")
+                    logging.debug(f"   📊 Current Data Shape: {processed_data.shape}")
+                    logging.debug(f"   📊 Wavelet Coeffs Shape: {wavelet_data.shape}")
                     
                     # Ensure target channel is valid
                     if target_channel >= processed_data.shape[0]:
@@ -583,8 +583,8 @@ class DataAccessService:
                                 # Use the most recent coefficients (or all if they match)
                                 recent_coeffs = wavelet_data[:, -coeff_samples:]
                                 
-                                logging.info(f"   🔄 Processing sliding window: samples {window_start} to {current_samples}")
-                                logging.info(f"   🔄 Using {coeff_samples} wavelet coefficients")
+                                logging.debug(f"   🔄 Processing sliding window: samples {window_start} to {current_samples}")
+                                logging.debug(f"   🔄 Using {coeff_samples} wavelet coefficients")
                                 
                                 # Create metadata for this window
                                 working_metadata = wavelet_metadata.copy()
@@ -613,10 +613,10 @@ class DataAccessService:
                                         max_diff = np.max(np.abs(reconstructed_segment - original_segment))
                                         mean_diff = np.mean(np.abs(reconstructed_segment - original_segment))
                                         
-                                        logging.info(f"   ✅ Applied inverse wavelet to channel {target_channel}")
-                                        logging.info(f"   📊 Processed {samples_to_replace} samples")
-                                        logging.info(f"   📈 Max difference: {max_diff:.6f}")
-                                        logging.info(f"   📈 Mean difference: {mean_diff:.6f}")
+                                        logging.debug(f"   ✅ Applied inverse wavelet to channel {target_channel}")
+                                        logging.debug(f"   📊 Processed {samples_to_replace} samples")
+                                        logging.debug(f"   📈 Max difference: {max_diff:.6f}")
+                                        logging.debug(f"   📈 Mean difference: {mean_diff:.6f}")
                                         
                                         # If difference is very small, it might not be visible
                                         if max_diff < 1e-6:
