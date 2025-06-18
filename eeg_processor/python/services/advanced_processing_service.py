@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -157,6 +158,29 @@ class AdvancedProcessingService:
             # Select data for wavelet analysis
             if channel_selection < data.shape[0]:
                 wavelet_data = data[channel_selection:channel_selection+1, :]
+                
+                # Get channel name for logging
+                channel_names = self.get_channel_names()
+                channel_name = channel_names[channel_selection] if channel_selection < len(channel_names) else f"Channel {channel_selection}"
+                
+                logging.info(f"🌊 COMPUTING WAVELET TRANSFORM:")
+                logging.info(f"   📊 Channel: {channel_selection} ({channel_name})")
+                logging.info(f"   🌊 Wavelet Type: {wavelet_type}")
+                logging.info(f"   📏 Decomposition Level: {decomp_level}")
+                logging.info(f"   🔧 Extension Type: {extension_type}")
+                logging.info(f"   🧹 Apply Denoising: {'Yes' if apply_denoising else 'No'}")
+                logging.info(f"   📐 Data Shape: {wavelet_data.shape}")
+                logging.info(f"   📊 Total Samples: {wavelet_data.shape[1]}")
+                
+                # Calculate data statistics for logging
+                data_mean = np.mean(wavelet_data)
+                data_std = np.std(wavelet_data)
+                data_min = np.min(wavelet_data)
+                data_max = np.max(wavelet_data)
+                
+                logging.info(f"   📈 Data Stats - Mean: {data_mean:.6f}, Std: {data_std:.6f}")
+                logging.info(f"   📈 Data Range: {data_min:.6f} to {data_max:.6f}")
+                
             else:
                 return {'success': False, 'error': "Selected channel not available"}
 
@@ -169,15 +193,38 @@ class AdvancedProcessingService:
             )
 
             if coefficients is not None and coefficients.size > 0:
+                # Store the target channel and original window info in metadata
+                metadata["target_channel"] = channel_selection
+                metadata["computation_timestamp"] = time.time()
+                metadata["original_data_shape"] = wavelet_data.shape
+                metadata["original_window_samples"] = wavelet_data.shape[1]
+                
                 # Store for later use
                 self._wavelet_results = {
                     'coefficients': coefficients,
                     'metadata': metadata
                 }
                 
-                # Store in data access service for stream processing (if needed)
+                # Store in data access service for stream processing
                 self._data_access_service._wavelet_coefficients = coefficients
                 self._data_access_service._wavelet_metadata = metadata
+                # Store the target channel for advanced processing
+                self._data_access_service._wavelet_target_channel = channel_selection
+                
+                # Log details for debugging
+                logging.info(f"   ✅ Wavelet computation successful!")
+                logging.info(f"   📊 Coefficients shape: {coefficients.shape}")
+                logging.info(f"   📊 Total coefficients: {coefficients.size}")
+                
+                # Calculate coefficient statistics
+                coeff_mean = np.mean(coefficients)
+                coeff_std = np.std(coefficients)
+                coeff_min = np.min(coefficients)
+                coeff_max = np.max(coefficients)
+                
+                logging.info(f"   📈 Coefficient Stats - Mean: {coeff_mean:.6f}, Std: {coeff_std:.6f}")
+                logging.info(f"   📈 Coefficient Range: {coeff_min:.6f} to {coeff_max:.6f}")
+                logging.info(f"   💾 Stored for inverse transform")
                 
                 return {
                     'success': True, 
@@ -185,10 +232,11 @@ class AdvancedProcessingService:
                     'metadata': metadata
                 }
             else:
+                logging.error(f"   ❌ Wavelet computation failed - no coefficients generated")
                 return {'success': False, 'error': "Wavelet computation failed - no coefficients generated"}
 
         except Exception as e:
-            logging.error(f"Error in wavelet computation: {e}")
+            logging.error(f"❌ Error in wavelet computation: {e}")
             return {'success': False, 'error': str(e)}
 
     def apply_wavelet_inverse(self, apply: bool) -> Dict[str, Any]:
@@ -208,6 +256,16 @@ class AdvancedProcessingService:
                 return {'success': False, 'error': "No wavelet coefficients available"}
                 
             if apply:
+                # Get metadata for logging
+                metadata = self._wavelet_results.get('metadata', {})
+                target_channel = metadata.get("target_channel", 0)
+                wavelet_type = metadata.get("wavelet", "Unknown")
+                decomp_level = metadata.get("decomposition_level", 0)
+                
+                # Get channel name for logging
+                channel_names = self.get_channel_names()
+                channel_name = channel_names[target_channel] if target_channel < len(channel_names) else f"Channel {target_channel}"
+                
                 # Apply inverse wavelet transform to the stream
                 processing_settings = {
                     "wavelet": {
@@ -217,7 +275,15 @@ class AdvancedProcessingService:
                 
                 self._data_access_service.enable_advanced_processing(True, processing_settings)
                 self._inverse_wavelet_active = True
-                logging.info("Inverse wavelet transform enabled for data stream")
+                
+                logging.info(f"🔄 INVERSE WAVELET TRANSFORM ENABLED:")
+                logging.info(f"   📊 Target Channel: {target_channel} ({channel_name})")
+                logging.info(f"   🌊 Wavelet Type: {wavelet_type}")
+                logging.info(f"   📏 Decomposition Level: {decomp_level}")
+                logging.info(f"   🎯 Stream Processing: ACTIVE")
+                logging.info(f"   ⚡ Real-time Application: Every data chunk will be processed")
+                logging.info(f"   💡 Check visualization for changes in channel {target_channel}")
+                
             else:
                 # Remove inverse wavelet transform but keep other advanced processing if active
                 current_settings = getattr(self._data_access_service, '_advanced_processing_settings', {})
@@ -240,12 +306,14 @@ class AdvancedProcessingService:
                     self._data_access_service.enable_advanced_processing(False)
                 
                 self._inverse_wavelet_active = False
-                logging.info("Inverse wavelet transform disabled for data stream")
+                logging.info(f"🔄 INVERSE WAVELET TRANSFORM DISABLED:")
+                logging.info(f"   🎯 Stream Processing: INACTIVE")
+                logging.info(f"   ⚡ Real-time Application: STOPPED")
                 
             return {'success': True}
 
         except Exception as e:
-            logging.error(f"Error in applying inverse wavelet: {e}")
+            logging.error(f"❌ Error in applying inverse wavelet: {e}")
             return {'success': False, 'error': str(e)}
 
     def apply_downsampling(self, params: Dict[str, Any]) -> Dict[str, Any]:

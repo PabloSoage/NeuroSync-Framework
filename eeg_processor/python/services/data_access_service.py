@@ -536,25 +536,109 @@ class DataAccessService:
                 wavelet_data = getattr(self, '_wavelet_coefficients', None)
                 wavelet_metadata = getattr(self, '_wavelet_metadata', None)
                 if wavelet_data is not None and wavelet_metadata is not None:
-                    # Apply inverse wavelet transform to recent data
-                    logging.debug("Applying inverse wavelet transform")
-                    # Ensure we don't exceed available coefficient data
-                    coeff_samples = min(wavelet_data.shape[1], processed_data.shape[1])
-                    recent_coeffs = wavelet_data[:, -coeff_samples:]
+                    # Get detailed information for logging
+                    target_channel = getattr(self, '_wavelet_target_channel', 0)
+                    original_shape = wavelet_metadata.get("original_shape", (1, 0))
+                    original_window_size = original_shape[1]
+                    wavelet_type = wavelet_metadata.get("wavelet", "Unknown")
+                    decomp_level = wavelet_metadata.get("decomposition_level", 0)
+                    extension_type = wavelet_metadata.get("extension_type", 0)
+                    apply_denoising = wavelet_metadata.get("apply_denoising", False)
+                    computation_time = wavelet_metadata.get("computation_timestamp", 0)
                     
-                    # Ensure the processed_data has the same shape for wavelet processing
-                    if processed_data.shape[1] > coeff_samples:
-                        # Apply wavelet only to the part that has coefficients
-                        wavelet_part = processed_data[:, -coeff_samples:]
-                        reconstructed = self._processor_service.apply_inverse_wavelet(
-                            recent_coeffs, wavelet_metadata
-                        )
-                        # Replace the processed part with reconstructed data
-                        processed_data[:, -coeff_samples:] = reconstructed
+                    # Calculate time since computation
+                    time_since_computation = time.time() - computation_time if computation_time > 0 else "Unknown"
+                    
+                    logging.info(f"🔄 WAVELET INVERSE TRANSFORM ACTIVE:")
+                    logging.info(f"   📊 Target Channel: {target_channel}")
+                    logging.info(f"   🌊 Wavelet Type: {wavelet_type}")
+                    logging.info(f"   📏 Decomposition Level: {decomp_level}")
+                    logging.info(f"   🔧 Extension Type: {extension_type}")
+                    logging.info(f"   🧹 Denoising: {'Yes' if apply_denoising else 'No'}")
+                    logging.info(f"   📐 Original Window Size: {original_window_size} samples")
+                    logging.info(f"   ⏱️  Computed: {time_since_computation:.1f}s ago" if isinstance(time_since_computation, float) else f"   ⏱️  Computed: {time_since_computation}")
+                    logging.info(f"   📊 Current Data Shape: {processed_data.shape}")
+                    logging.info(f"   📊 Wavelet Coeffs Shape: {wavelet_data.shape}")
+                    
+                    # Ensure target channel is valid
+                    if target_channel >= processed_data.shape[0]:
+                        target_channel = 0
+                        logging.warning(f"⚠️  Wavelet target channel out of range, using channel 0")
+                    
+                    # Only apply to sliding window, not entire buffer
+                    current_samples = processed_data.shape[1]
+                    
+                    if original_window_size > 0 and current_samples >= original_window_size:
+                        try:
+                            # Work with a sliding window of the original size
+                            window_start = current_samples - original_window_size
+                            window_data = processed_data[target_channel:target_channel+1, window_start:current_samples]
+                            
+                            # Store original data for comparison
+                            original_window_data = window_data.copy()
+                            
+                            # Ensure we have the right amount of coefficients
+                            coeff_samples = min(wavelet_data.shape[1], original_window_size)
+                            if coeff_samples > 0:
+                                # Use the most recent coefficients (or all if they match)
+                                recent_coeffs = wavelet_data[:, -coeff_samples:]
+                                
+                                logging.info(f"   🔄 Processing sliding window: samples {window_start} to {current_samples}")
+                                logging.info(f"   🔄 Using {coeff_samples} wavelet coefficients")
+                                
+                                # Create metadata for this window
+                                working_metadata = wavelet_metadata.copy()
+                                working_metadata["original_shape"] = (1, coeff_samples)
+                                
+                                # Apply inverse wavelet transform to the window
+                                reconstructed = self._processor_service.apply_inverse_wavelet(
+                                    recent_coeffs, working_metadata
+                                )
+                                
+                                # Replace only the window in the target channel
+                                if (reconstructed.shape[0] == 1 and 
+                                    reconstructed.shape[1] <= original_window_size):
+                                    
+                                    # Calculate how much to replace
+                                    samples_to_replace = min(reconstructed.shape[1], coeff_samples, original_window_size)
+                                    replacement_start = current_samples - samples_to_replace
+                                    
+                                    # Replace the window data
+                                    processed_data[target_channel, replacement_start:replacement_start+samples_to_replace] = reconstructed[0, :samples_to_replace]
+                                    
+                                    # Calculate the difference to show impact
+                                    if samples_to_replace > 0:
+                                        original_segment = original_window_data[0, -samples_to_replace:]
+                                        reconstructed_segment = reconstructed[0, :samples_to_replace]
+                                        max_diff = np.max(np.abs(reconstructed_segment - original_segment))
+                                        mean_diff = np.mean(np.abs(reconstructed_segment - original_segment))
+                                        
+                                        logging.info(f"   ✅ Applied inverse wavelet to channel {target_channel}")
+                                        logging.info(f"   📊 Processed {samples_to_replace} samples")
+                                        logging.info(f"   📈 Max difference: {max_diff:.6f}")
+                                        logging.info(f"   📈 Mean difference: {mean_diff:.6f}")
+                                        
+                                        # If difference is very small, it might not be visible
+                                        if max_diff < 1e-6:
+                                            logging.warning(f"   ⚠️  Very small changes detected - may not be visible in visualization")
+                                            logging.warning(f"   💡 Try different wavelet settings or use real EEG data for more noticeable effects")
+                                    
+                                    logging.debug(f"Applied inverse wavelet to sliding window of {samples_to_replace} samples on channel {target_channel}")
+                                else:
+                                    logging.error(f"   ❌ Wavelet reconstruction shape mismatch: {reconstructed.shape} vs expected (1, {coeff_samples})")
+                            else:
+                                logging.warning("   ⚠️  No valid coefficients available for wavelet reconstruction")
+                                
+                        except Exception as e:
+                            logging.error(f"   ❌ Error applying sliding window inverse wavelet: {e}")
                     else:
-                        processed_data = self._processor_service.apply_inverse_wavelet(
-                            recent_coeffs[:, -processed_data.shape[1]:], wavelet_metadata
-                        )
+                        # Not enough data yet, or invalid window size
+                        if original_window_size <= 0:
+                            logging.warning("   ⚠️  Invalid original window size for wavelet reconstruction")
+                        else:
+                            logging.info(f"   ⏳ Waiting for sufficient data: {current_samples} < {original_window_size} samples")
+                else:
+                    logging.warning("   ❌ No wavelet coefficients available - compute wavelet first")
 
             return processed_data
 

@@ -546,102 +546,149 @@ HELP_CONTENT = {
         """,
     },
     "wavelet": {
-        "title": "Wavelet Transforms",
+        "title": "Wavelet Transform Analysis",
         "content": """
-        <h3>Wavelet Transforms</h3>
-        <p>Wavelet transforms decompose a signal into a set of wavelets at different scales,
-        allowing time-frequency analysis of EEG data.</p>
-
-        <h4>Advantages over Fourier transforms:</h4>
-        <ul>
-            <li>Provides both time and frequency information</li>
-            <li>Better represents transient events and non-stationary signals</li>
-            <li>Can focus analysis on specific frequency ranges or time points</li>
-        </ul>
-
-        <h4>Available Wavelets:</h4>
+        <h2>Wavelet Transform Analysis</h2>
+        
+        <h3>Overview</h3>
+        <p>Wavelet transforms provide time-frequency analysis of EEG signals, allowing you to analyze signal characteristics at different time scales and frequencies simultaneously.</p>
+        
+        <h3>Parameters</h3>
+        
+        <h4>Wavelet Type</h4>
+        <p>Different wavelets are suited for different types of analysis:</p>
         
         <h5>Daubechies Wavelets (DB1-DB15)</h5>
         <ul>
-            <li><b>DB1 (Haar)</b>: Simplest wavelet, good for step-like features</li>
-            <li><b>DB4</b>: Most commonly used, good balance of properties</li>
-            <li><b>DB6-DB8</b>: Better frequency resolution, good for EEG analysis</li>
-            <li><b>Higher orders</b>: More oscillations, better frequency resolution</li>
+            <li><strong>Haar (DB1)</strong>: Simplest wavelet, good for detecting step-like changes and discontinuities</li>
+            <li><strong>DB2</strong>: Better frequency resolution than Haar, still computationally efficient</li>
+            <li><strong>DB3</strong>: Good balance of time and frequency resolution</li>
+            <li><strong>DB4</strong>: Most commonly used for EEG, excellent general-purpose wavelet</li>
+            <li><strong>DB5-DB6</strong>: Better frequency resolution, good for detailed spectral analysis</li>
+            <li><strong>DB7-DB8</strong>: High frequency resolution, suitable for complex signal decomposition</li>
+            <li><strong>DB9-DB15</strong>: Very high frequency resolution but increased computational cost</li>
         </ul>
-
+        
         <h5>Biorthogonal Wavelets (BIOR)</h5>
         <ul>
-            <li><b>BIOR1_1</b>: Linear reconstruction</li>
-            <li><b>BIOR2_2, BIOR2_4</b>: Good for image-like data</li>
-            <li><b>BIOR3_3, BIOR3_5</b>: Balanced properties for general use</li>
-            <li><b>BIOR4_4</b>: Symmetric, good for signal reconstruction</li>
+            <li><strong>BIOR1_1</strong>: Linear spline wavelet, good for smooth signals</li>
+            <li><strong>BIOR1_3, BIOR1_5</strong>: Cubic and quintic splines, better reconstruction</li>
+            <li><strong>BIOR2_2</strong>: Quadratic spline, balanced properties</li>
+            <li><strong>BIOR2_4, BIOR2_6, BIOR2_8</strong>: Higher-order splines, excellent for signal reconstruction</li>
+            <li><strong>BIOR3_1, BIOR3_3</strong>: Good for signals with sharp transitions</li>
+            <li><strong>BIOR3_5, BIOR3_7, BIOR3_9</strong>: High-quality reconstruction wavelets</li>
+            <li><strong>BIOR4_4</strong>: Symmetric, widely used for image and signal processing</li>
+            <li><strong>BIOR5_5, BIOR6_8</strong>: Very high reconstruction quality</li>
         </ul>
-
+        
         <h5>Coiflets Wavelets (COIF1-COIF5)</h5>
         <ul>
-            <li>More symmetric than Daubechies</li>
-            <li>Good for applications requiring symmetry</li>
-            <li>COIF2-COIF3 recommended for EEG</li>
+            <li><strong>COIF1</strong>: Basic coiflet, more symmetric than DB wavelets</li>
+            <li><strong>COIF2</strong>: Good balance of symmetry and efficiency, recommended for EEG</li>
+            <li><strong>COIF3</strong>: Better frequency resolution, suitable for detailed analysis</li>
+            <li><strong>COIF4-COIF5</strong>: High-quality wavelets for precise applications</li>
         </ul>
-
+        
         <h5>Symlets Wavelets (SYM2-SYM10)</h5>
         <ul>
-            <li>Nearly symmetric versions of Daubechies</li>
-            <li>SYM4-SYM6 good for EEG applications</li>
-            <li>Better phase properties than standard Daubechies</li>
+            <li><strong>SYM2-SYM3</strong>: Nearly symmetric versions of DB wavelets</li>
+            <li><strong>SYM4</strong>: Excellent for EEG, combines DB4 properties with better symmetry</li>
+            <li><strong>SYM5-SYM6</strong>: Good for applications requiring phase preservation</li>
+            <li><strong>SYM7-SYM10</strong>: High-order wavelets for specialized applications</li>
         </ul>
-
-        <h4>Parameters:</h4>
+        
+        <h4>Wavelet Selection Guidelines for EEG</h4>
         <ul>
-            <li><b>Wavelet Type</b>: Choose based on your signal characteristics
-                <ul>
-                    <li>DB4: General-purpose, widely used for EEG</li>
-                    <li>DB6-DB8: Better frequency resolution</li>
-                    <li>BIOR wavelets: When reconstruction quality is important</li>
-                    <li>SYM wavelets: When phase preservation is critical</li>
-                </ul>
-            </li>
-            <li><b>Decomposition Level</b>: How many levels of detail to decompose (1-8)
-                <ul>
-                    <li>Level 1: Highest frequencies (finest detail)</li>
-                    <li>Higher levels: Lower frequencies (coarser features)</li>
-                    <li>Rule of thumb: log2(signal_length) - 1</li>
-                </ul>
-            </li>
-            <li><b>Channel</b>: Which EEG channel to transform</li>
-            <li><b>Extension Type</b>: How to handle signal boundaries
-                <ul>
-                    <li>Symmetric: Reflects signal at boundaries (default)</li>
-                    <li>Periodic: Assumes signal is periodic</li>
-                </ul>
-            </li>
-            <li><b>Apply Denoising</b>: Automatically remove noise using wavelet thresholding</li>
+            <li><strong>General EEG Analysis</strong>: DB4, SYM4, or COIF2</li>
+            <li><strong>Event Detection</strong>: Haar, DB2, or BIOR2_2</li>
+            <li><strong>Artifact Removal</strong>: DB6, SYM5, or BIOR3_3</li>
+            <li><strong>High-Quality Reconstruction</strong>: BIOR4_4, COIF3, or SYM6</li>
+            <li><strong>Sleep Analysis</strong>: DB6, COIF3 (good for slow waves)</li>
+            <li><strong>Spike Detection</strong>: DB4, SYM4 (good time localization)</li>
         </ul>
-
-        <h4>Applications in EEG:</h4>
+        
+        <h4>Decomposition Level</h4>
+        <p>Higher levels provide better frequency resolution but lower time resolution. For EEG:</p>
         <ul>
-            <li><b>Artifact Removal</b>: Identify and remove specific frequency components</li>
-            <li><b>Feature Extraction</b>: Extract time-frequency features for classification</li>
-            <li><b>Signal Compression</b>: Reduce data size while preserving important features</li>
-            <li><b>Event Detection</b>: Detect transient events like spikes or K-complexes</li>
-            <li><b>Time-Frequency Analysis</b>: Analyze how frequency content changes over time</li>
+            <li><strong>Level 1-2</strong>: Best for high-frequency artifacts (EMG, line noise)</li>
+            <li><strong>Level 3-4</strong>: Good for general EEG analysis (alpha, beta rhythms)</li>
+            <li><strong>Level 5-6</strong>: Better for slow wave analysis (theta, delta)</li>
+            <li><strong>Level 7-8</strong>: Very slow components, DC trends</li>
         </ul>
-
-        <h4>Workflow:</h4>
+        <p><strong>Rule of thumb</strong>: Maximum useful level ≈ log₂(signal_length) - 2</p>
+        
+        <h4>Channel Selection</h4>
+        <p>Select the EEG channel to analyze. Wavelet analysis is performed on a single channel at a time for computational efficiency and clarity of results.</p>
+        
+        <h4>Extension Type</h4>
+        <p>Boundary handling for the wavelet transform:</p>
+        <ul>
+            <li><strong>Symmetric (Recommended)</strong>: Reflects signal at boundaries, reduces boundary artifacts</li>
+            <li><strong>Periodic</strong>: Assumes signal is periodic, can introduce artifacts if signal isn't truly periodic</li>
+        </ul>
+        
+        <h4>Apply Wavelet Denoising</h4>
+        <p><strong>Important:</strong> This checkbox applies denoising <em>during</em> the wavelet coefficient computation, not during visualization. It's a preprocessing step that removes noise from the signal <em>before</em> computing the transform.</p>
+        <p><strong>When to use:</strong></p>
+        <ul>
+            <li>When your signal has high-frequency noise artifacts</li>
+            <li>When you want cleaner wavelet coefficients for analysis</li>
+            <li>The denoised coefficients are then used for the inverse transform</li>
+        </ul>
+        <p><strong>Note:</strong> With synthetic/regular data, denoising effects may be minimal. With real EEG data containing noise, the effects will be more visible.</p>
+        
+        <h3>Workflow</h3>
         <ol>
-            <li><b>Compute Transform</b>: Decompose signal into wavelet coefficients</li>
-            <li><b>Analyze Coefficients</b>: Examine time-frequency content</li>
-            <li><b>Modify Coefficients</b>: Optional - threshold or modify specific components</li>
-            <li><b>Inverse Transform</b>: Reconstruct signal from modified coefficients</li>
+            <li><strong>Compute Wavelet Transform</strong>: Analyzes the selected channel and generates wavelet coefficients</li>
+            <li><strong>Apply Inverse Transform</strong>: Reconstructs the signal from coefficients and applies it to the data stream in real-time</li>
         </ol>
-
-        <p>After computing the wavelet transform, you can view the coefficients and apply
-        inverse transform to reconstruct the signal using only selected components. This can be used 
-        for filtering, denoising, or feature extraction.</p>
-
-        <p>Wavelets are particularly useful for analyzing ERP (Event-Related Potential) components,
-        sleep spindles, seizure activity, and other non-stationary EEG features where both time 
-        and frequency information are important.</p>
+        
+        <h3>Real-time Application</h3>
+        <p>When "Apply Inverse Transform" is enabled:</p>
+        <ul>
+            <li>The inverse transform is applied to a sliding window of the original data size</li>
+            <li>Only the selected channel is modified in the visualization</li>
+            <li>The effect is applied continuously to incoming data</li>
+            <li>Changes may be subtle with synthetic data but significant with real EEG</li>
+        </ul>
+        
+        <h3>Applications</h3>
+        <ul>
+            <li><strong>Artifact Removal</strong>: Remove specific frequency components (eye blinks, muscle artifacts)</li>
+            <li><strong>Feature Extraction</strong>: Analyze time-frequency patterns for BCI or classification</li>
+            <li><strong>Signal Compression</strong>: Represent signals with fewer coefficients</li>
+            <li><strong>Denoising</strong>: Remove unwanted noise while preserving signal features</li>
+            <li><strong>Event Detection</strong>: Detect transient events like K-complexes, sleep spindles</li>
+            <li><strong>Frequency Band Analysis</strong>: Isolate specific brain rhythms</li>
+        </ul>
+        
+        <h3>Advanced Applications in EEG</h3>
+        <ul>
+            <li><strong>Sleep Stage Classification</strong>: Using DB4 or DB6 for sleep spindle detection</li>
+            <li><strong>Seizure Detection</strong>: High-frequency components with DB8 or BIOR wavelets</li>
+            <li><strong>P300 Detection</strong>: Event-related potentials using SYM wavelets</li>
+            <li><strong>Motor Imagery</strong>: Mu rhythm analysis with COIF wavelets</li>
+            <li><strong>Meditation Analysis</strong>: Alpha/theta analysis with DB4 or SYM4</li>
+        </ul>
+        
+        <h3>Tips</h3>
+        <ul>
+            <li>Start with DB4 wavelet and level 3 for general EEG analysis</li>
+            <li>Use real EEG data to see more dramatic effects</li>
+            <li>Monitor the logging output to see the magnitude of changes being applied</li>
+            <li>The inverse transform affects only the selected channel - check that specific channel in the visualization</li>
+            <li>For artifact removal, compute wavelets on clean segments first to understand normal patterns</li>
+            <li>Higher decomposition levels are better for removing slow drifts and trends</li>
+            <li>Lower decomposition levels are better for removing high-frequency noise</li>
+        </ul>
+        
+        <h3>Computational Considerations</h3>
+        <ul>
+            <li><strong>Memory Usage</strong>: Higher decomposition levels require more memory</li>
+            <li><strong>Processing Time</strong>: Complex wavelets (BIOR, COIF) take longer to compute</li>
+            <li><strong>Real-time Performance</strong>: DB wavelets are fastest, BIOR wavelets are slowest</li>
+            <li><strong>Reconstruction Quality</strong>: BIOR wavelets provide best reconstruction, Haar provides fastest</li>
+        </ul>
         """,
     },
     # Streaming Tab

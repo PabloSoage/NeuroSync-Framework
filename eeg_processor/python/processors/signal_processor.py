@@ -847,6 +847,19 @@ class SignalProcessor:
             lengths = metadata.get("lengths", [])
             original_shape = metadata.get("original_shape", coefficients.shape)
             
+            # Validate inputs
+            if coefficients.size == 0:
+                logging.warning("Empty coefficients provided to inverse wavelet transform")
+                return np.zeros(original_shape)
+                
+            if len(lengths) == 0:
+                logging.warning("No lengths provided for inverse wavelet transform")
+                return np.zeros(original_shape)
+            
+            # Check if we have the expected coefficient length
+            expected_length = sum(lengths)
+            logging.debug(f"Inverse wavelet: coefficients shape {coefficients.shape}, expected length {expected_length}, original shape {original_shape}")
+            
             reconstructed_data = np.zeros(original_shape)
             
             for channel_idx in range(coefficients.shape[0]):
@@ -855,6 +868,18 @@ class SignalProcessor:
                     channel_coeffs = coefficients[channel_idx]
                     
                     if len(channel_coeffs) > 0 and len(lengths) > 0:
+                        # Handle coefficient length mismatch more gracefully
+                        if len(channel_coeffs) < expected_length:
+                            logging.debug(f"Padding coefficients for channel {channel_idx}: {len(channel_coeffs)} -> {expected_length}")
+                            # Pad with zeros if necessary
+                            padded_coeffs = np.zeros(expected_length)
+                            padded_coeffs[:len(channel_coeffs)] = channel_coeffs
+                            channel_coeffs = padded_coeffs
+                        elif len(channel_coeffs) > expected_length:
+                            logging.debug(f"Truncating coefficients for channel {channel_idx}: {len(channel_coeffs)} -> {expected_length}")
+                            # Truncate if too long
+                            channel_coeffs = channel_coeffs[:expected_length]
+                        
                         # Prepare coefficients tuple for inverse transform
                         coeffs_tuple = (channel_coeffs, lengths)
                         
@@ -872,59 +897,24 @@ class SignalProcessor:
                             reconstructed_data[channel_idx, :len(restored)] = restored
                         else:
                             reconstructed_data[channel_idx] = restored[:original_shape[1]]
+                            
+                        logging.debug(f"Successfully reconstructed channel {channel_idx} with {len(restored)} samples")
                     else:
-                        # If no valid coefficients, keep original data or zeros
+                        # If no valid coefficients, keep zeros
                         logging.warning(f"No valid coefficients for channel {channel_idx}")
                         
                 except Exception as e:
                     logging.error(f"Error in inverse wavelet for channel {channel_idx}: {e}")
                     # Keep zeros for this channel on error
 
-            logging.info("Applied inverse wavelet transform")
+            logging.debug(f"Completed inverse wavelet transform: output shape {reconstructed_data.shape}")
             return reconstructed_data
             
         except Exception as e:
             logging.error(f"Error in inverse wavelet transform: {e}")
-            return coefficients
-            reconstructed_data = np.zeros(original_shape)
-            
-            for channel_idx in range(coefficients.shape[0]):
-                try:
-                    # Get coefficients for this channel
-                    channel_coeffs = coefficients[channel_idx]
-                    
-                    if len(channel_coeffs) > 0 and len(lengths) > 0:
-                        # Prepare coefficients tuple for inverse transform
-                        coeffs_tuple = (channel_coeffs, lengths)
-                        
-                        # Apply inverse wavelet transform
-                        restored = DataFilter.perform_inverse_wavelet_transform(
-                            coeffs_tuple, 
-                            original_shape[1], 
-                            wavelet, 
-                            decomp_level, 
-                            extension_type
-                        )
-                        
-                        # Ensure the restored data fits the original shape
-                        if len(restored) <= original_shape[1]:
-                            reconstructed_data[channel_idx, :len(restored)] = restored
-                        else:
-                            reconstructed_data[channel_idx] = restored[:original_shape[1]]
-                    else:
-                        # If no valid coefficients, keep original data or zeros
-                        logging.warning(f"No valid coefficients for channel {channel_idx}")
-                        
-                except Exception as e:
-                    logging.error(f"Error in inverse wavelet for channel {channel_idx}: {e}")
-                    # Keep zeros for this channel on error
-
-            logging.info("Applied inverse wavelet transform")
-            return reconstructed_data
-            
-        except Exception as e:
-            logging.error(f"Error in inverse wavelet transform: {e}")
-            return coefficients
+            # Return zeros with correct shape instead of original coefficients
+            original_shape = metadata.get("original_shape", (1, 1000))
+            return np.zeros(original_shape)
 
     def _is_synthetic_or_problematic_data(self, data: np.ndarray) -> bool:
         """Check if data appears to be synthetic or problematic for advanced filtering."""

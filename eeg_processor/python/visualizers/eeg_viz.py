@@ -79,10 +79,18 @@ class EEGVisualizer:
             "Sample Rate: --- Hz</span>"
         )
 
+        # Add processing status display (NEW)
+        self.processing_status_label = pg.LabelItem(justify="left")
+        self.processing_status_label.setText(
+            '<span style="font-family: Arial; font-size: 10pt; color: #888888;">'
+            "Processing: None Active</span>"
+        )
+
         # Add header plot for labels and info (NEW)
         self.win.addItem(self.sample_rate_label, row=0, col=0, colspan=2)
+        self.win.addItem(self.processing_status_label, row=1, col=0, colspan=2)
 
-        # Create plots for each EEG channel - shift down by 1 for header
+        # Create plots for each EEG channel - shift down by 2 for header
         self.plots = []
         self.curves = []
 
@@ -99,7 +107,7 @@ class EEGVisualizer:
         ]
 
         for i in range(self.num_channels):
-            plot = self.win.addPlot(row=i + 1, col=0)  # Offset by 1 for header
+            plot = self.win.addPlot(row=i + 2, col=0)  # Offset by 2 for headers
             plot.showAxis("left", True)
             plot.setMenuEnabled("left", False)
 
@@ -136,8 +144,8 @@ class EEGVisualizer:
             plot.addItem(quality_indicator)
             self.quality_indicators.append(quality_indicator)
 
-        # Add FFT plot - also offset by 1
-        self.fft_plot = self.win.addPlot(row=1, col=1, rowspan=self.num_channels // 2)
+        # Add FFT plot - also offset by 2
+        self.fft_plot = self.win.addPlot(row=2, col=1, rowspan=self.num_channels // 2)
         self.fft_plot.setTitle("Power Spectrum")
         self.fft_plot.setLabel("bottom", "Frequency", "Hz")
         self.fft_plot.setLabel("left", "Power", "µV²/Hz")
@@ -255,6 +263,13 @@ class EEGVisualizer:
                     f'<span style="color:{color}">Actual: {actual_sample_rate:.1f} Hz ({efficiency:.1f}%)</span>'
                     f"</span>"
                 )
+
+            # Update processing status display
+            processing_status = self._get_processing_status()
+            self.processing_status_label.setText(
+                f'<span style="font-family: Arial; font-size: 10pt; color: #888888;">'
+                f"{processing_status}</span>"
+            )
 
             if data.size == 0 or len(self.eeg_channels) == 0:
                 return
@@ -480,3 +495,68 @@ class EEGVisualizer:
     def is_visible(self) -> bool:
         """Check if the visualization window is visible."""
         return self.win.isVisible()
+
+    def _get_processing_status(self) -> str:
+        """Get current processing status for display."""
+        try:
+            # Check advanced processing settings
+            advanced_settings = getattr(self.data_service, '_advanced_processing_settings', {})
+            status_parts = []
+            
+            # Check for wavelet processing
+            if advanced_settings.get("wavelet", {}).get("inverse_enabled", False):
+                target_channel = getattr(self.data_service, '_wavelet_target_channel', 0)
+                wavelet_metadata = getattr(self.data_service, '_wavelet_metadata', {})
+                wavelet_type = wavelet_metadata.get("wavelet", "Unknown")
+                decomp_level = wavelet_metadata.get("decomposition_level", 0)
+                
+                # Get channel name
+                channel_names = self.data_service.get_channel_names()
+                channel_name = channel_names[target_channel] if target_channel < len(channel_names) else f"CH{target_channel}"
+                
+                status_parts.append(f'<span style="color: #4CAF50;">Wavelet({wavelet_type}, L{decomp_level}) → {channel_name}</span>')
+            
+            # Check for advanced filters
+            if advanced_settings.get("advanced_filters", {}).get("enabled", False):
+                filter_info = advanced_settings["advanced_filters"]
+                filter_type = str(filter_info.get("filter_type", "Unknown")).split('.')[-1]  # Get enum name
+                channels = filter_info.get("selected_channels", [])
+                channel_info = f"{len(channels)} channels" if channels else "all channels"
+                status_parts.append(f'<span style="color: #FF9800;">AdvFilter({filter_type}) → {channel_info}</span>')
+            
+            # Check for downsampling
+            if advanced_settings.get("downsampling", {}).get("enabled", False):
+                ds_info = advanced_settings["downsampling"]
+                factor = ds_info.get("factor", 1)
+                status_parts.append(f'<span style="color: #2196F3;">Downsample(÷{factor})</span>')
+            
+            # Check basic filters
+            if getattr(self.data_service, '_filters_enabled', False):
+                filter_settings = getattr(self.data_service, '_filter_settings', {})
+                basic_parts = []
+                
+                if filter_settings.get("bandpass", {}).get("enabled", False):
+                    bp = filter_settings["bandpass"]
+                    low = bp.get("low_cut", bp.get("low", 0))
+                    high = bp.get("high_cut", bp.get("high", 0))
+                    basic_parts.append(f"BP({low:.0f}-{high:.0f}Hz)")
+                
+                if filter_settings.get("notch", {}).get("enabled", False):
+                    notch = filter_settings["notch"]
+                    freq = notch.get("frequency", 50)
+                    basic_parts.append(f"Notch({freq}Hz)")
+                
+                if filter_settings.get("detrend", False):
+                    basic_parts.append("Detrend")
+                
+                if basic_parts:
+                    status_parts.append(f'<span style="color: #9C27B0;">{", ".join(basic_parts)}</span>')
+            
+            if status_parts:
+                return f"Processing: {' | '.join(status_parts)}"
+            else:
+                return "Processing: None Active"
+                
+        except Exception as e:
+            logging.debug(f"Error getting processing status: {e}")
+            return "Processing: Status Unknown"

@@ -657,8 +657,13 @@ class AdvancedPanelController(QObject):
                 params = {
                     "wavelet_type": settings["type"],
                     "decomp_level": settings["level"],
-                    "channel_selection": settings["channel"]
+                    "channel_selection": settings["channel"],
+                    "extension_type": settings.get("extension_type", 0),
+                    "apply_denoising": settings.get("apply_denoising", False)
                 }
+                
+                # Log the channel being used
+                logging.info(f"Updating wavelet settings for channel {settings['channel']}")
                 
                 # Re-compute wavelet coefficients
                 result = self.processing_service.compute_wavelet(params)
@@ -674,7 +679,7 @@ class AdvancedPanelController(QObject):
                     inverse_result = self.processing_service.apply_wavelet_inverse(True)
                     
                     if inverse_result.get('success'):
-                        self.status_message.emit("Wavelet settings updated dynamically")
+                        self.status_message.emit(f"Wavelet settings updated dynamically for channel {settings['channel']}")
                     else:
                         self.error_message.emit("Wavelet Update Error", 
                                                inverse_result.get('error', "Failed to update wavelet"))

@@ -156,7 +156,12 @@ class WaveletWidget(QWidget):
         # Wavelet denoising option
         denoising_layout = QHBoxLayout()
         self.apply_denoising_check = QCheckBox("Apply Wavelet Denoising")
-        self.apply_denoising_check.setToolTip("Apply wavelet denoising during computation")
+        self.apply_denoising_check.setToolTip(
+            "Apply wavelet denoising during wavelet coefficient computation.\n"
+            "This removes noise from the signal BEFORE computing the transform.\n"
+            "The denoised coefficients are then used for inverse transform.\n"
+            "Use this if your signal has high-frequency noise artifacts."
+        )
         self.apply_denoising_check.stateChanged.connect(self._on_settings_changed)
         denoising_layout.addWidget(self.apply_denoising_check)
         denoising_layout.addStretch()
