@@ -27,6 +27,9 @@ class MultiSignalVisualizer:
             collector: EEG data collector (for metadata only)
             processor: Signal processor for data filtering
         """
+        pg.setConfigOption('background', '#000000')  # Pure black background
+        pg.setConfigOption('foreground', '#ffffff')
+        
         # Only use collector for metadata, not for data
         self.collector = collector
         self.processor = processor
@@ -380,10 +383,6 @@ class MultiSignalVisualizer:
             Graphics layout widget with plots
         """
         widget = pg.GraphicsLayoutWidget()
-        
-        # Apply dark theme to pyqtgraph ONCE
-        pg.setConfigOption('background', '#2b2b2b')
-        pg.setConfigOption('foreground', '#ffffff')
         
         channels = ch_info['channels']
         names = ch_info['names']
