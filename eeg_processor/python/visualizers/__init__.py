@@ -1,10 +1,132 @@
 """
-Visualizers package for EEG data visualization.
+Visualizers Package for EEG and Biosignal Data Visualization.
 
-This package provides various visualization tools for EEG and other biosignal data,
-including real-time plotting, topographic brain maps, and multi-modality displays.
+This package provides comprehensive, real-time visualization tools for EEG and other
+biosignal data types. It implements a modular architecture supporting multiple
+visualization modalities with optimized performance, caching mechanisms, and
+professional-grade scientific visualization capabilities.
+
+Core Visualizers:
+
+- MultiSignalVisualizer: Advanced multi-page biosignal visualization system
+  * Intelligent channel type detection from connected boards with preset-specific configurations
+  * Lazy loading visualization architecture with caching for performance optimization
+  * Multi-tab interface supporting EEG, EMG, ECG, EOG, EDA, PPG, accelerometer, and gyroscope data
+  * Real-time data integration with DataAccessService for immediate updates and low-latency processing
+  * Advanced signal processing status monitoring with filter, wavelet, and downsampling indicators
+  * Performance-optimized rendering with selective tab updates and memory-efficient operations
+  * Professional dark theme integration with scientific visualization standards
+
+- BrainMapVisualizer: Topographic brain mapping for EEG signal quality monitoring
+  * International 10-20/10-10 electrode positioning system with comprehensive standard positions
+  * Real-time signal quality visualization using color-coded quality indicators (5-level system)
+  * Anatomical brain region overlays (frontal, central, parietal, occipital) with proper coloring
+  * Intelligent electrode name matching with alias support for various hardware manufacturers
+  * G.tec Unicorn compatibility with automatic channel mapping to standard positions
+  * Performance monitoring with adaptive update rates and quality calculation optimization
+  * Interactive electrode labels with quality legend and orientation markers
+
+- MultiModalityVisualizer: Specialized multi-channel biosignal visualization
+  * Automatic detection of available modalities from connected hardware configurations
+  * Separate visualization windows for each signal type with optimized plotting parameters
+  * Real-time FFT analysis with power spectral density computation for frequency domain analysis
+  * Channel-specific visualization with proper scaling, coloring, and legend management
+  * Performance optimization with configurable update rates and data window management
+  * Memory-efficient operations with proper resource cleanup and window lifecycle management
+
+- ModalitySelector: Interactive dialog for modality selection and visualization control
+  * User-friendly interface for selecting which signal modalities to visualize simultaneously
+  * Real-time status tracking showing which visualization windows are currently active
+  * Batch operations for opening/closing multiple visualization windows efficiently
+  * Integration with MultiModalityVisualizer for coordinated window management
+
+Key Features:
+
+Real-time Processing Capabilities:
+- High-frequency data updates (50-100ms) with optimized rendering pipelines
+- Intelligent caching system preserving visualizers across board reconnections
+- Selective update mechanisms preventing UI blocking during intensive operations
+- Performance monitoring with CPU usage optimization and adaptive timeout management
+- Memory-efficient buffer management with automatic cleanup and resource optimization
+
+Advanced Visualization Features:
+- Scientific-grade visualization with professional color schemes and proper scaling
+- Multiple plot types: time series, power spectral density, topographic maps, band powers
+- Quality indicators with 5-level color coding (excellent, good, fair, poor, bad)
+- Interactive elements with mouse wheel scrolling, zoom, and pan capabilities
+- High-resolution rendering suitable for research documentation and publication
+
+Channel Detection and Management:
+- Intelligent channel type detection from actual connected hardware and preset configurations
+- Support for multiple hardware manufacturers (OpenBCI, g.tec, Muse, ANT Neuro, etc.)
+- Automatic electrode positioning with standard 10-20/10-10 system compliance
+- Fallback mechanisms ensuring visualization availability even with unrecognized hardware
+- Dynamic channel mapping with real-time updates based on device configuration changes
+
+Performance Optimization:
+- Lazy loading architecture reducing startup time and memory usage
+- Caching mechanisms with intelligent invalidation based on board and preset changes
+- Selective rendering updating only visible components to maintain responsiveness
+- Thread-safe operations with proper UI thread marshalling for real-time updates
+- Resource lifecycle management with comprehensive cleanup procedures
+
+Signal Processing Integration:
+- Real-time filter status monitoring with visual indicators for active processing
+- Integration with advanced processing pipeline showing wavelet, ICA, and downsampling status
+- Quality calculation coordination with signal processor for accurate quality metrics
+- Dynamic processing parameter updates with immediate visual feedback
+
+Scientific Visualization Standards:
+- International electrode positioning standards (10-20/10-10 system) with precise coordinates
+- Anatomically correct brain region visualization with proper proportions and coloring
+- Professional color schemes optimized for extended viewing and scientific accuracy
+- High-contrast dark theme reducing eye strain during long analysis sessions
+- Publication-ready output with proper scaling, fonts, and professional appearance
+
+User Experience Enhancements:
+- Intuitive tab-based interface with clear modality separation and easy navigation
+- Real-time status indicators showing processing state, sample rates, and efficiency metrics
+- Context-sensitive help integration with detailed parameter guidance
+- Responsive layout adapting to different screen sizes and channel counts
+- Professional error handling with user-friendly messages and automatic recovery
+
+Integration Capabilities:
+- Seamless coordination with DataAccessService for centralized data management
+- Filter integration showing real-time processing effects and parameter synchronization
+- Event system integration for application-wide state updates and cross-component communication
+- Service dependency injection enabling testing, modularity, and flexible service replacement
+- Backward compatibility with existing visualization workflows and API interfaces
+
+Technical Implementation:
+- PyQtGraph framework providing high-performance scientific visualization capabilities
+- Qt5 integration with proper signal/slot architecture for responsive UI updates
+- NumPy-optimized data processing with efficient array operations and memory management
+- Thread-safe operations with appropriate UI thread marshalling for real-time processing
+- Comprehensive error handling with detailed logging and automatic recovery mechanisms
+
+Data Flow Architecture:
+1. Channel detection from connected hardware with preset-specific configuration analysis
+2. Lazy visualization creation with caching for performance optimization
+3. Real-time data integration from DataAccessService with immediate update processing
+4. Quality calculation coordination with signal processor for accurate metrics
+5. Dynamic rendering with selective updates and memory-efficient operations
+6. Professional presentation with scientific visualization standards and user experience optimization
+
+The visualizers package provides a complete, production-ready solution for
+sophisticated EEG and biosignal visualization, enabling researchers and practitioners
+to monitor, analyze, and document signal quality and characteristics through
+intuitive, high-performance, scientifically-accurate visualization interfaces
+with comprehensive real-time processing support and professional-grade output quality.
 """
 
+from .brain_map_viz import BrainMapVisualizer
 from .eeg_viz import MultiSignalVisualizer
+from .modality_selector import ModalitySelector
+from .multi_modality_viz import MultiModalityVisualizer
 
-__all__ = ["MultiSignalVisualizer"]
+__all__ = [
+    "MultiSignalVisualizer",
+    "BrainMapVisualizer",
+    "MultiModalityVisualizer",
+    "ModalitySelector",
+]
