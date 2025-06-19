@@ -2,7 +2,7 @@
 
 ## Resumen
 
-API Explorer es un framework web integral diseñado para proporcionar capacidades dinámicas de exploración y prueba de APIs para módulos Python. Construido sobre FastAPI con soporte WebSocket avanzado, ofrece una interfaz moderna y responsiva que permite a múltiples módulos registrar sus APIs en tiempo de ejecución, proporcionando formularios de parámetros interactivos, transmisión de eventos en tiempo real de alto rendimiento, visualización de datos avanzada y capacidades de prueba comprehensivas. El sistema implementa un patrón singleton para accesibilidad global mientras mantiene operaciones thread-safe, arquitectura de worker pools escalable y procesamiento de eventos optimizado.
+API Explorer es un framework web integral diseñado para proporcionar capacidades dinámicas de exploración y prueba de APIs para módulos Python. Construido sobre FastAPI con soporte WebSocket avanzado, ofrece una interfaz moderna y responsiva que permite a múltiples módulos registrar sus APIs en tiempo de ejecución, proporcionando formularios de parámetros interactivos, transmisión de eventos en tiempo real de alto rendimiento, visualización de datos avanzada y capacidades de prueba. El sistema implementa un patrón singleton para accesibilidad global mientras mantiene operaciones thread-safe, arquitectura de worker pools escalable y procesamiento de eventos optimizado.
 
 ## Arquitectura General
 

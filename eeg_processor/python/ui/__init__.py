@@ -1,7 +1,7 @@
 """
 User Interface Package for EEG Processor Application.
 
-This package provides a comprehensive, modular user interface built with PyQt5 for
+This package provides a modular user interface built with PyQt5 for
 EEG data processing applications. It implements a panel-based architecture where each
 component handles specific aspects of the EEG processing workflow, from data collection
 to advanced signal analysis.
@@ -15,7 +15,7 @@ Core UI Panels:
   * Consistent styling and theme integration across all panels
 
 - ConnectionPanel: Board connection and streaming control interface
-  * Comprehensive board selection with intelligent filtering and categorization
+  * Board selection with intelligent filtering and categorization
   * Dynamic parameter validation with visual feedback (required/optional/disabled fields)
   * Advanced streaming board configuration with preset synchronization validation
   * Real-time board information display with channel mapping and sampling rate details
@@ -34,7 +34,7 @@ Core UI Panels:
   * Multi-format recording support (raw, processed, both) with real-time data streaming
   * Marker insertion during recording with precise timestamp synchronization
   * File browser integration with automatic path validation and format detection
-  * Recording status monitoring with comprehensive error handling and recovery
+  * Recording status monitoring with error handling and recovery
   * API compatibility for external recording control and status updates
 
 - StreamingPanel: Data streaming configuration and management interface
@@ -49,7 +49,7 @@ Core UI Panels:
   * Multi-mode conversion support: Flexible (all channels), Performance (selected), Real-time
   * Advanced visualization with PSD, topomaps, spectrograms, and raw data displays
   * Real-time processing sessions with dynamic parameter updates and performance monitoring
-  * Comprehensive error handling with graceful degradation when MNE is unavailable
+  * Error handling with graceful degradation when MNE is unavailable
 
 - AdvancedProcessingPanel: Advanced signal processing operations interface
   * Independent Component Analysis with real-time monitoring and export capabilities
@@ -61,7 +61,7 @@ Core UI Panels:
 Specialized UI Packages:
 
 - advanced: Advanced processing UI components
-  * AdvancedPanelController: Sophisticated controller coordinating multiple specialized widgets
+  * AdvancedPanelController: Controller coordinating multiple specialized widgets
   * widgets: Specialized widgets for ICA, wavelet, filtering, and downsampling operations
   * dialogs: Advanced visualization dialogs for interactive result exploration
 
@@ -90,7 +90,7 @@ State Management and Synchronization:
 - Filter state synchronization between panels and backend services
 
 Error Handling and Recovery:
-- Comprehensive exception handling with detailed error reporting and user-friendly messages
+- Exception handling with detailed error reporting and user-friendly messages
 - Graceful degradation when advanced features are unavailable or system resources are limited
 - Automatic recovery from failed operations with state preservation and user notification
 - Service initialization fallbacks ensuring core functionality remains available
@@ -99,18 +99,18 @@ User Experience Enhancements:
 - Intelligent parameter validation with real-time feedback and stability warnings
 - Performance optimization guidance with actionable suggestions for improving processing efficiency
 - Context-sensitive help integration with detailed parameter guidance and best practices
-- Professional dark theme integration with consistent styling across all components
+- Dark theme integration with consistent styling across all components
 
 Integration Capabilities:
 - Seamless coordination with backend services for data collection, processing, and analysis
 - Real-time data stream management with optimized buffer operations and low-latency updates
-- Visualization service integration for immediate feedback and comprehensive result display
-- Export service coordination for professional documentation and result archiving
+- Visualization service integration for immediate feedback and result display
+- Export service coordination for documentation and result archiving
 
 Technical Implementation:
 - Qt5 framework with proper signal/slot architecture for responsive UI updates
 - Thread-safe operations with appropriate UI thread marshalling for real-time processing
-- Resource lifecycle management with comprehensive cleanup procedures and memory optimization
+- Resource lifecycle management with cleanup procedures and memory optimization
 - Scrollable layouts with adaptive content management for varying screen sizes and content
 
 Validation and Stability:
@@ -119,10 +119,9 @@ Validation and Stability:
 - Real-time stability monitoring for filter configurations and processing parameters
 - Performance impact assessment with warnings for CPU-intensive operations
 
-The UI package provides a complete, production-ready interface for sophisticated
-EEG analysis, enabling researchers and practitioners to leverage advanced signal
+The UI package provides a interface for EEG analysis, enabling researchers and practitioners to leverage advanced signal
 processing techniques through an intuitive, feature-rich Qt-based interface with
-comprehensive real-time processing support, professional-grade result documentation,
+real-time processing support, result documentation,
 and robust error handling throughout all operations.
 """
 

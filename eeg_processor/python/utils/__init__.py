@@ -2,30 +2,30 @@
 Utilities Package for EEG Processor Application.
 
 This package provides essential utility components and support systems for the EEG
-processing application, including theme management, comprehensive help system, and
+processing application, including theme management, help system and
 common functionality used across the application.
 
 Core Utilities:
 
 - ThemeManager: Advanced application styling and theme management
-  * Professional dark theme implementation with comprehensive Qt widget styling
+  * Dark theme implementation with Qt widget styling
   * Consistent color scheme across all application components (panels, dialogs, widgets)
   * Predefined color palette for status indicators (success, warning, error, accent)
-  * Comprehensive Qt stylesheet covering all widget types with hover and disabled states
-  * Professional appearance optimized for long-term usage and reduced eye strain
+  * Qt stylesheet covering all widget types with hover and disabled states
+  * Appearance optimized for long-term usage and reduced eye strain
   * Consistent visual hierarchy with proper contrast ratios and accessibility considerations
 
-- HelpSystem: Comprehensive contextual help and documentation system
+- HelpSystem: Contextual help and documentation system
   * Modular help content dictionary with 25+ detailed topics covering all application aspects
   * Context-sensitive help buttons (HelpButton) integrated throughout the UI
-  * Comprehensive help dialogs with HTML content rendering and external link support
+  * Help dialogs with HTML content rendering and external link support
   * Tabbed help interface (EEGConceptsHelpDialog) organizing information by functional areas
   * Educational content covering EEG basics, signal processing theory, and advanced analysis
   * Practical guidance for hardware setup, parameter configuration, and troubleshooting
 
 Help System Features:
 
-Comprehensive Topic Coverage:
+Topic Coverage:
 - EEG Fundamentals: Brain rhythms, artifacts, basic concepts, and measurement principles
 - Hardware Configuration: Board selection, connection parameters, preset management
 - Signal Processing: Bandpass/notch filtering, detrending, wavelet denoising theory and practice
@@ -44,25 +44,24 @@ Educational Content Quality:
 User Experience Features:
 - Context-sensitive help buttons positioned near relevant controls
 - Quick access help topics for immediate assistance during operation
-- Comprehensive help dialog with searchable, organized content across functional tabs
-- Professional HTML rendering with proper formatting, lists, and hierarchical organization
+- Help dialog with searchable, organized content across functional tabs
+- HTML rendering with proper formatting, lists, and hierarchical organization
 - Cross-referenced topics with logical information architecture
 
 Theme Management Features:
 
 Visual Design System:
-- Professional dark theme optimized for extended use and reduced eye strain
+- Dark theme optimized for extended use and reduced eye strain
 - Consistent color palette with semantic meaning (accent, success, warning, error colors)
-- Comprehensive styling covering all Qt widget types and states
+- Styling covering all Qt widget types and states
 - Proper contrast ratios ensuring accessibility and readability
-- Modern, professional appearance suitable for research and clinical environments
 
 Qt Widget Styling:
 - Complete coverage: buttons, inputs, dropdowns, checkboxes, tabs, scrollbars, groups
 - State-specific styling: normal, hover, pressed, disabled, selected states
 - Consistent spacing, padding, and border radius for unified appearance
 - Color-coded status indicators and interactive feedback
-- Professional button styling with proper hover states and accessibility
+- Button styling with proper hover states and accessibility
 
 Technical Implementation:
 
@@ -97,7 +96,7 @@ Maintenance and Extension:
 - Documentation standards supporting collaborative development and knowledge transfer
 
 The utilities package provides essential infrastructure supporting the entire EEG
-processing application with professional presentation, comprehensive user guidance,
+processing application with presentation, user guidance,
 and maintainable architecture designed for both novice users and advanced researchers.
 """
 

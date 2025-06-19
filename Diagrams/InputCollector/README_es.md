@@ -99,7 +99,7 @@ dispatch(EventType.INPUT, {
 - **`AbstractVisualizerProvider/Controller`**: Protocolos para gestión de UI
 
 #### Características:
-- **Dataclass comprehensiva**: Soporte para todos los tipos de entrada y modos de tracking
+- **Dataclass**: Soporte para todos los tipos de entrada y modos de tracking
 - **Contratos consistentes**: Interfaces que garantizan comportamiento uniforme
 - **Tipado estructural**: Protocolos Python para flexibilidad
 - **Serialización**: Método `to_dict()` optimizado para logging y APIs
@@ -272,7 +272,7 @@ TRACKING_MODES = {
 #### Características:
 - **Thread-safe execution**: Timeouts y error handling para operaciones cross-thread
 - **Framework isolation**: Separación clara entre Qt y servicios core
-- **API comprehensiva**: Soporte completo para todas las operaciones de aplicación
+- **API**: Soporte completo para todas las operaciones de aplicación
 
 ### 11. **CLI** (`cli/`)
 

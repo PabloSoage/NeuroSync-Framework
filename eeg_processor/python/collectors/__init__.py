@@ -14,7 +14,7 @@ devices using the BrainFlow library. It includes:
   * Supports streaming boards with master board configuration
 
 - BrainFlowBoardConfiguration: Board configuration and management utilities
-  * Provides comprehensive board information and requirements
+  * Provides board information and requirements
   * Handles parameter validation and BrainFlowInputParams creation
   * Groups boards by manufacturer and type for easier selection
   * Manages preset information and board descriptions
@@ -30,7 +30,7 @@ The collectors support various features including:
 - Real-time marker insertion for event-related experiments
 - Multi-preset data collection (EEG, auxiliary sensors, ancillary data)
 - Automatic device detection and configuration
-- Comprehensive error handling and logging
+- Error handling and logging
 - Data export and storage capabilities
 """
 
