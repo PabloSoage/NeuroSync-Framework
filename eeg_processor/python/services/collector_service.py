@@ -190,10 +190,31 @@ class CollectorService:
                 # Update metadata in DataAccessService
                 data_access = DataAccessService.get_instance()
 
-                # Update metadata with complete board info
+                # Get device info from collector
                 device_info = self.collector.get_device_info()
 
-                # Update metadata with device info
+                # FIXED: For streaming boards, get channel info from master board if available
+                if self._is_streaming_board(board_id) and 'master_board' in params:
+                    master_board_id = params['master_board']
+                    try:
+                        # Get channel information from master board
+                        master_device_info = self._get_master_board_info(master_board_id, preset)
+                        if master_device_info:
+                            # Override channel information with master board's info
+                            device_info.update({
+                                'eeg_channels': master_device_info.get('eeg_channels', device_info.get('eeg_channels', [])),
+                                'eeg_names': master_device_info.get('eeg_names', device_info.get('eeg_names', [])),
+                                'num_channels': len(master_device_info.get('eeg_channels', [])),
+                                'channel_types': master_device_info.get('channel_types', {}),
+                                'master_board_info': master_device_info,  # Store master board info
+                            })
+                            logging.info(f"Updated streaming board with master board {master_board_id} channel configuration")
+                            logging.info(f"EEG channels from master: {device_info.get('eeg_channels', [])}")
+                            logging.info(f"Channel names from master: {device_info.get('eeg_names', [])}")
+                    except Exception as e:
+                        logging.warning(f"Could not get master board channel info: {e}")
+
+                # Update metadata with device info (now includes master board info if applicable)
                 data_access.update_metadata(
                     {
                         "sampling_rate": device_info.get("sampling_rate", 0),
@@ -212,6 +233,105 @@ class CollectorService:
             logging.error(f"Connection error: {e}")
             self.collector = None
             return False
+
+    def _is_streaming_board(self, board_id: int) -> bool:
+        """Check if the board is a streaming board."""
+        try:
+            from brainflow.board_shim import BoardIds
+            return board_id == BoardIds.STREAMING_BOARD.value
+        except:
+            # Fallback check
+            return board_id == 22  # Known streaming board ID
+
+    def _get_master_board_info(self, master_board_id: int, preset: int) -> Optional[Dict[str, Any]]:
+        """
+        Get channel information from master board.
+
+        Args:
+            master_board_id: ID of the master board
+            preset: Preset to use
+
+        Returns:
+            Dictionary with master board info or None if failed
+        """
+        try:
+            from brainflow.board_shim import BoardShim
+            from brainflow.data_filter import DataFilter
+            
+            # Get board information directly from BrainFlow
+            master_info = {}
+            
+            # Get sampling rate
+            try:
+                master_info['sampling_rate'] = BoardShim.get_sampling_rate(master_board_id, preset)
+            except Exception as e:
+                logging.debug(f"Could not get sampling rate from master board: {e}")
+                master_info['sampling_rate'] = 250  # Default
+            
+            # Get EEG channels
+            try:
+                master_info['eeg_channels'] = BoardShim.get_eeg_channels(master_board_id, preset)
+            except Exception as e:
+                logging.debug(f"Could not get EEG channels from master board: {e}")
+                master_info['eeg_channels'] = []
+            
+            # Get EEG names
+            try:
+                eeg_names = BoardShim.get_eeg_names(master_board_id, preset)
+                if isinstance(eeg_names, str):
+                    eeg_names = eeg_names.split(",")
+                master_info['eeg_names'] = eeg_names
+            except Exception as e:
+                logging.debug(f"Could not get EEG names from master board: {e}")
+                # Generate generic names based on channels
+                eeg_channels = master_info.get('eeg_channels', [])
+                master_info['eeg_names'] = [f"CH{i}" for i in range(len(eeg_channels))]
+            
+            # Get other channel types
+            channel_types = {}
+            channel_types['eeg'] = master_info.get('eeg_channels', [])
+            
+            # Try to get other channel types
+            for ch_type, func_name in [
+                ('emg', 'get_emg_channels'),
+                ('ecg', 'get_ecg_channels'), 
+                ('eog', 'get_eog_channels'),
+                ('eda', 'get_eda_channels'),
+                ('ppg', 'get_ppg_channels'),
+                ('accel', 'get_accel_channels'),
+                ('gyro', 'get_gyro_channels'),
+                ('temperature', 'get_temperature_channels'),
+                ('resistance', 'get_resistance_channels'),
+                ('other', 'get_other_channels'),
+            ]:
+                try:
+                    func = getattr(BoardShim, func_name)
+                    channels = func(master_board_id, preset)
+                    if channels:
+                        channel_types[ch_type] = channels
+                        logging.debug(f"Master board {ch_type} channels: {channels}")
+                except Exception as e:
+                    logging.debug(f"No {ch_type} channels for master board: {e}")
+                    channel_types[ch_type] = []
+            
+            master_info['channel_types'] = channel_types
+            master_info['board_id'] = master_board_id
+            
+            # Get device name
+            try:
+                master_info['board_name'] = BoardShim.get_device_name(master_board_id)
+            except:
+                master_info['board_name'] = f"Master Board ID {master_board_id}"
+            
+            logging.info(f"Retrieved master board info: {master_board_id}")
+            logging.info(f"Master board EEG channels: {master_info.get('eeg_channels', [])}")
+            logging.info(f"Master board channel types: {list(master_info.get('channel_types', {}).keys())}")
+            
+            return master_info
+            
+        except Exception as e:
+            logging.error(f"Error getting master board info: {e}")
+            return None
 
     def disconnect_from_board(self) -> bool:
         """
@@ -385,10 +505,17 @@ class CollectorService:
             True if streamer was added successfully, False otherwise
         """
         if not self.collector:
+            logging.error("No collector available to add streamer")
             return False
 
         try:
+            # Must be connected but NOT streaming to add streamers in BrainFlow
+            if self.is_streaming:
+                logging.error("Cannot add streamer while streaming - stop stream first")
+                return False
+
             self.collector.add_streamer(streamer_params)
+            logging.info(f"Added streamer: {streamer_params}")
             return True
         except Exception as e:
             logging.error(f"Adding streamer error: {e}")
@@ -405,10 +532,17 @@ class CollectorService:
             True if streamer was removed successfully, False otherwise
         """
         if not self.collector:
+            logging.error("No collector available to remove streamer")
             return False
 
         try:
+            # Must NOT be streaming to remove streamers in BrainFlow
+            if self.is_streaming:
+                logging.error("Cannot remove streamer while streaming - stop stream first")
+                return False
+
             self.collector.delete_streamer(streamer_params)
+            logging.info(f"Removed streamer: {streamer_params}")
             return True
         except Exception as e:
             logging.error(f"Removing streamer error: {e}")

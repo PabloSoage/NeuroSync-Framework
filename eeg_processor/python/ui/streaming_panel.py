@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (
     QListWidget,
     QLineEdit,
     QTextEdit,
+    QMessageBox,
 )
 
 from .base_panel import BasePanel
@@ -22,6 +23,17 @@ class StreamingPanel(BasePanel):
         """Initialize the streaming panel."""
         super().__init__(parent)
         self.collector_service = collector_service
+        
+        # Import recording service for file streaming
+        try:
+            from ..services.recording_service import RecordingService
+            self.recording_service = RecordingService()
+        except Exception as e:
+            self.recording_service = None
+            self.show_error("Import Error", f"Could not load recording service: {e}")
+
+        # Track active streamers
+        self.active_streamers: List[Dict[str, str]] = []
 
         # Setup UI components
         self.setup_streamer_configuration()
@@ -46,12 +58,12 @@ class StreamingPanel(BasePanel):
         file_streamer_layout = QHBoxLayout()
         file_streamer_layout.addWidget(QLabel("File Streamer:"))
         self.file_streamer_path = QLineEdit()
-        self.file_streamer_path.setText("file://eeg_stream.csv:w")
+        self.file_streamer_path.setText("recordings/eeg_stream.csv")
         file_streamer_layout.addWidget(self.file_streamer_path)
 
         file_streamer_btn = QPushButton("Add File Streamer")
         file_streamer_btn.clicked.connect(
-            lambda: self.add_streamer(self.file_streamer_path.text())
+            lambda: self.add_file_streamer(self.file_streamer_path.text())
         )
         file_streamer_layout.addWidget(file_streamer_btn)
 
@@ -66,7 +78,7 @@ class StreamingPanel(BasePanel):
 
         network_streamer_btn = QPushButton("Add Network Streamer")
         network_streamer_btn.clicked.connect(
-            lambda: self.add_streamer(self.network_streamer_path.text())
+            lambda: self.add_network_streamer(self.network_streamer_path.text())
         )
         network_streamer_layout.addWidget(network_streamer_btn)
 
@@ -80,7 +92,7 @@ class StreamingPanel(BasePanel):
 
         custom_streamer_btn = QPushButton("Add Custom Streamer")
         custom_streamer_btn.clicked.connect(
-            lambda: self.add_streamer(self.custom_streamer_path.text())
+            lambda: self.add_custom_streamer(self.custom_streamer_path.text())
         )
         custom_streamer_layout.addWidget(custom_streamer_btn)
 
@@ -132,39 +144,150 @@ class StreamingPanel(BasePanel):
 
         self.layout.addWidget(config_group)
 
-    def add_streamer(self, streamer_params: str) -> None:
-        """Add a streamer to the board."""
-        if not streamer_params:
-            self.show_error("Streamer Error", "No streamer parameters specified")
+    def add_file_streamer(self, file_path: str) -> None:
+        """Add a file streamer using the recording service."""
+        if not file_path:
+            self.show_error("Streamer Error", "No file path specified")
+            return
+
+        if not self.recording_service:
+            self.show_error("Service Error", "Recording service not available")
             return
 
         try:
+            # FIXED: Check if we can start streaming - board must be connected and streaming
+            if not self.collector_service.is_connected():
+                self.show_error("Connection Error", "Board must be connected to add file streamer")
+                return
+                
+            if not self.collector_service.is_streaming_active():
+                self.show_error("Streaming Error", "Board must be streaming to add file streamer")
+                return
+
+            # FIXED: Use the correct method name and pass the collector service
+            success = self.recording_service.start_recording(
+                self.collector_service, file_path, "raw"
+            )
+
+            if success:
+                streamer_info = {
+                    "type": "file",
+                    "params": file_path,
+                    "display": f"File: {file_path}"
+                }
+                self.active_streamers.append(streamer_info)
+                self.streamers_list.addItem(streamer_info["display"])
+                self.show_status(f"Added file streamer: {file_path}")
+            else:
+                self.show_error("Streamer Error", "Failed to start file recording")
+
+        except Exception as e:
+            self.show_error("Streamer Error", f"Error adding file streamer: {str(e)}")
+
+    def add_network_streamer(self, streamer_params: str) -> None:
+        """Add a network streamer using BrainFlow's streaming functionality."""
+        if not streamer_params:
+            self.show_error("Streamer Error", "No network parameters specified")
+            return
+
+        try:
+            # Check if collector is available and connected
+            if not self.collector_service.is_connected():
+                self.show_error("Connection Error", "Board must be connected to add network streamer")
+                return
+
+            # Try to add the streamer through BrainFlow
             success = self.collector_service.add_streamer(streamer_params)
 
             if success:
-                self.streamers_list.addItem(streamer_params)
-                self.show_status(f"Added streamer: {streamer_params}")
+                streamer_info = {
+                    "type": "network",
+                    "params": streamer_params,
+                    "display": f"Network: {streamer_params}"
+                }
+                self.active_streamers.append(streamer_info)
+                self.streamers_list.addItem(streamer_info["display"])
+                self.show_status(f"Added network streamer: {streamer_params}")
             else:
-                self.show_error("Streamer Error", "Failed to add streamer")
+                self.show_error("Streamer Error", "Failed to add network streamer")
+
         except Exception as e:
-            self.show_error("Streamer Error", f"Error adding streamer: {str(e)}")
+            self.show_error("Streamer Error", f"Error adding network streamer: {str(e)}")
+
+    def add_custom_streamer(self, streamer_params: str) -> None:
+        """Add a custom streamer."""
+        if not streamer_params:
+            self.show_error("Streamer Error", "No custom parameters specified")
+            return
+
+        try:
+            # Determine streamer type based on parameters
+            if streamer_params.startswith("file://"):
+                # Handle as file streamer
+                file_path = streamer_params.replace("file://", "").split(":")[0]
+                self.add_file_streamer(file_path)
+                return
+            elif any(proto in streamer_params for proto in ["://", "udp://", "tcp://"]):
+                # Handle as network streamer
+                self.add_network_streamer(streamer_params)
+                return
+            else:
+                # Try as BrainFlow streamer
+                success = self.collector_service.add_streamer(streamer_params)
+                
+                if success:
+                    streamer_info = {
+                        "type": "custom",
+                        "params": streamer_params,
+                        "display": f"Custom: {streamer_params}"
+                    }
+                    self.active_streamers.append(streamer_info)
+                    self.streamers_list.addItem(streamer_info["display"])
+                    self.show_status(f"Added custom streamer: {streamer_params}")
+                else:
+                    self.show_error("Streamer Error", "Failed to add custom streamer")
+
+        except Exception as e:
+            self.show_error("Streamer Error", f"Error adding custom streamer: {str(e)}")
 
     def delete_selected_streamer(self) -> None:
         """Delete the selected streamer."""
-        selected = self.streamers_list.currentItem()
-        if not selected:
+        selected_item = self.streamers_list.currentItem()
+        if not selected_item:
             self.show_error("Streamer Error", "No streamer selected")
             return
 
         try:
-            streamer_params = selected.text()
-            success = self.collector_service.remove_streamer(streamer_params)
+            selected_row = self.streamers_list.row(selected_item)
+            if selected_row >= len(self.active_streamers):
+                self.show_error("Streamer Error", "Invalid streamer selection")
+                return
+
+            streamer_info = self.active_streamers[selected_row]
+            streamer_type = streamer_info["type"]
+            streamer_params = streamer_info["params"]
+
+            success = False
+
+            if streamer_type == "file":
+                # Stop file recording
+                if self.recording_service and self.recording_service.is_recording():
+                    success = self.recording_service.stop_recording(self.collector_service)
+                else:
+                    success = True  # Already stopped or not recording
+
+            elif streamer_type in ["network", "custom"]:
+                # Remove BrainFlow streamer
+                success = self.collector_service.remove_streamer(streamer_params)
 
             if success:
-                self.streamers_list.takeItem(self.streamers_list.row(selected))
-                self.show_status(f"Removed streamer: {streamer_params}")
+                # Remove from UI and tracking
+                self.streamers_list.takeItem(selected_row)
+                self.active_streamers.pop(selected_row)
+                self.show_status(f"Removed {streamer_type} streamer: {streamer_params}")
             else:
-                self.show_error("Streamer Error", "Failed to remove streamer")
+                self.show_error("Streamer Error", f"Failed to remove {streamer_type} streamer")
+
         except Exception as e:
             self.show_error("Streamer Error", f"Error removing streamer: {str(e)}")
 
@@ -187,38 +310,42 @@ class StreamingPanel(BasePanel):
         # Enable/disable all buttons and inputs related to streaming
         self.send_config_btn.setEnabled(enabled)
 
-    # Add methods for API interaction
-    def update_streamer_list(self, streamers_list: List[str]) -> bool:
-        """Update the list of streamers from the API."""
-        try:
-            self.streamers_list.clear()
-            for streamer in streamers_list:
-                self.streamers_list.addItem(streamer)
-            return True
-        except Exception as e:
-            self.show_error("Streamer List Update Error", str(e))
-            return False
+        # If disabling, stop all active streamers
+        if not enabled:
+            self.stop_all_streamers()
 
-    def update_config_response(self, response_text: str) -> bool:
-        """Update the configuration response text from the API."""
-        try:
-            self.config_response_text.setText(response_text)
-            return True
-        except Exception as e:
-            self.show_error("Config Response Update Error", str(e))
-            return False
-
-    def get_streamer_params(self) -> Dict[str, str]:
-        """Get currently configured streamer parameters."""
-        return {
-            "file": self.file_streamer_path.text(),
-            "network": self.network_streamer_path.text(),
-            "custom": self.custom_streamer_path.text(),
-        }
+    def stop_all_streamers(self) -> None:
+        """Stop all active streamers."""
+        while self.active_streamers:
+            # Select first item and delete it
+            if self.streamers_list.count() > 0:
+                self.streamers_list.setCurrentRow(0)
+                self.delete_selected_streamer()
+            else:
+                break
 
     def get_active_streamers(self) -> List[str]:
         """Get list of currently active streamers."""
-        streamers = []
-        for i in range(self.streamers_list.count()):
-            streamers.append(self.streamers_list.item(i).text())
-        return streamers
+        return [streamer["display"] for streamer in self.active_streamers]
+
+    def show_error(self, title: str, message: str) -> None:
+        """Show error message to user."""
+        try:
+            msg_box = QMessageBox()
+            msg_box.setIcon(QMessageBox.Critical)
+            msg_box.setWindowTitle(title)
+            msg_box.setText(message)
+            msg_box.exec_()
+        except Exception as e:
+            print(f"Error showing message box: {e}")
+
+    def show_status(self, message: str) -> None:
+        """Show status message to user."""
+        try:
+            # Try to send to status bar if parent has one
+            if hasattr(self.parent(), 'statusBar'):
+                self.parent().statusBar().showMessage(message, 3000)
+            else:
+                print(f"Status: {message}")
+        except Exception as e:
+            print(f"Status: {message}")
