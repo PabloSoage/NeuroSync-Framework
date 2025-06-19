@@ -109,7 +109,7 @@ class StreamingPanel(BasePanel):
         network_data_type_layout.addWidget(self.network_data_type_combo)
         network_streamer_layout.addLayout(network_data_type_layout)
 
-        # Add network streamer button - FIXED: use addWidget instead of addLayout
+        # Add network streamer button
         network_streamer_btn = QPushButton("Add Network Streamer")
         network_streamer_btn.clicked.connect(
             lambda: self.add_network_streamer(
@@ -209,7 +209,7 @@ class StreamingPanel(BasePanel):
             return
 
         try:
-            # FIXED: Check if we can start streaming - board must be connected and streaming
+            # Check if we can start streaming - board must be connected and streaming
             if not self.collector_service.is_connected():
                 self.show_error("Connection Error", "Board must be connected to add file streamer")
                 return
@@ -218,10 +218,13 @@ class StreamingPanel(BasePanel):
                 self.show_error("Streaming Error", "Board must be streaming to add file streamer")
                 return
 
+            # Check if already recording
+            if self.recording_service.is_recording():
+                self.show_error("Recording Error", "A file recording is already in progress. Stop current recording first.")
+                return
+
             # Start file recording with specified data type
-            success = self.recording_service.start_recording(
-                self.collector_service, file_path, data_type
-            )
+            success = self.recording_service.start_recording(file_path, data_type)
 
             if success:
                 data_type_label = {
@@ -257,7 +260,7 @@ class StreamingPanel(BasePanel):
                 self.show_error("Connection Error", "Board must be connected to add network streamer")
                 return
 
-            # FIXED: Special validation for streaming board setup
+            # Validate streaming board setup
             collector = self.collector_service.collector
             if collector and hasattr(collector, 'board_id'):
                 from brainflow.board_shim import BoardIds
@@ -301,8 +304,7 @@ class StreamingPanel(BasePanel):
                         if reply == QMessageBox.No:
                             return
 
-            # For BrainFlow streamers, we can only use raw data directly
-            # But we can create a custom wrapper that uses DataAccessService
+            # For processed data, we need a custom implementation using DataAccessService
             if data_type == "processed":
                 success = self._add_data_access_network_streamer(streamer_params, data_type)
             else:
@@ -444,9 +446,9 @@ class StreamingPanel(BasePanel):
             success = False
 
             if streamer_type == "file":
-                # Stop file recording
+                # Stop file recording using recording service
                 if self.recording_service and self.recording_service.is_recording():
-                    success = self.recording_service.stop_recording(self.collector_service)
+                    success = self.recording_service.stop_recording()
                 else:
                     success = True  # Already stopped or not recording
 
@@ -461,7 +463,7 @@ class StreamingPanel(BasePanel):
                                 self._data_access_streamers.pop(i)
                             break
                 else:
-                    # FIXED: Check if collector is available before trying to remove streamer
+                    # Check if collector is available before trying to remove streamer
                     if not self.collector_service.is_connected():
                         logging.warning(f"Board disconnected, removing {streamer_type} streamer from UI only")
                         success = True  # Just remove from UI since board is gone
@@ -475,7 +477,7 @@ class StreamingPanel(BasePanel):
                 self.active_streamers.pop(selected_row)
                 self.show_status(f"Removed {streamer_type} streamer: {streamer_params}")
             else:
-                # FIXED: Don't show error dialog if board is disconnected
+                # Don't show error dialog if board is disconnected
                 if self.collector_service.is_connected():
                     self.show_error("Streamer Error", f"Failed to remove {streamer_type} streamer")
                 else:
@@ -486,7 +488,7 @@ class StreamingPanel(BasePanel):
                     self.show_status(f"Removed {streamer_type} streamer from UI (board disconnected)")
 
         except Exception as e:
-            # FIXED: Don't show error dialog if board is disconnected
+            # Don't show error dialog if board is disconnected
             if self.collector_service.is_connected():
                 self.show_error("Streamer Error", f"Error removing streamer: {str(e)}")
             else:
@@ -527,7 +529,14 @@ class StreamingPanel(BasePanel):
                         logging.error(f"Error stopping DataAccess streamer: {e}")
                 self._data_access_streamers.clear()
 
-            # FIXED: If board is disconnected, just clear the UI without trying to stop streamers
+            # Stop recording service if active
+            if self.recording_service and self.recording_service.is_recording():
+                try:
+                    self.recording_service.stop_recording()
+                except Exception as e:
+                    logging.debug(f"Error stopping recording on cleanup: {e}")
+
+            # If board is disconnected, just clear the UI without trying to stop streamers
             if not self.collector_service.is_connected():
                 logging.info("Board disconnected, clearing streamers from UI only")
                 # Clear all streamers from UI
@@ -537,22 +546,28 @@ class StreamingPanel(BasePanel):
 
             # Stop traditional streamers using the UI method
             while self.active_streamers:
-                # Select first item and delete it
+                # Select first item and delete it (but skip file streamers, already handled)
                 if self.streamers_list.count() > 0:
-                    self.streamers_list.setCurrentRow(0)
-                    self.delete_selected_streamer()
+                    # Check if it's a file streamer (already stopped above)
+                    if self.active_streamers[0]["type"] == "file":
+                        # Just remove from UI since recording is already stopped
+                        self.streamers_list.takeItem(0)
+                        self.active_streamers.pop(0)
+                    else:
+                        # Use the delete method for network/custom streamers
+                        self.streamers_list.setCurrentRow(0)
+                        self.delete_selected_streamer()
                 else:
                     break
                     
         except Exception as e:
             logging.error(f"Error stopping all streamers: {e}")
-            # FIXED: Force clear UI if there's an error
+            # Force clear UI if there's an error
             self.streamers_list.clear()
             self.active_streamers.clear()
             if hasattr(self, '_data_access_streamers'):
                 self._data_access_streamers.clear()
 
-    # FIXED: Add method to handle board disconnection
     def on_board_disconnected(self) -> None:
         """Handle board disconnection by cleaning up streamers."""
         try:
@@ -570,8 +585,7 @@ class StreamingPanel(BasePanel):
             # Stop recording service if active
             if self.recording_service and self.recording_service.is_recording():
                 try:
-                    # Pass None as collector_service since it's disconnected
-                    self.recording_service.stop_recording(None)
+                    self.recording_service.stop_recording()
                 except Exception as e:
                     logging.debug(f"Error stopping recording on disconnect: {e}")
 

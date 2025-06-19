@@ -6,7 +6,7 @@ from typing import Any, Optional, List
 
 import numpy as np
 
-from ..interfaces.collector_interface import (
+from ..interfaces.recording_interface import (
     DataStorageInterface,
     ContinuousRecordingInterface,
 )

@@ -32,12 +32,12 @@ class ProcessorService:
         logging.info(f"Processor initialized with sampling rate {sampling_rate}Hz")
 
     def apply_bandpass_filter(
-        self,
-        data: np.ndarray,
-        low_cutoff: float,
-        high_cutoff: float,
-        channels: Optional[List[int]] = None,
-    ) -> np.ndarray:
+    self,
+    data: np.ndarray,
+    low_cutoff: float,
+    high_cutoff: float,
+    channels: Optional[List[int]] = None,
+) -> np.ndarray:
         """
         Apply bandpass filter to the data.
 
@@ -45,7 +45,7 @@ class ProcessorService:
             data: Data to filter (2D array: channels x samples)
             low_cutoff: Low cutoff frequency in Hz
             high_cutoff: High cutoff frequency in Hz
-            channels: Specific channels to filter (defaults to all)
+            channels: Specific channels to filter (defaults to EEG channels only)
 
         Returns:
             Filtered data
@@ -63,21 +63,27 @@ class ProcessorService:
                 f"Applying bandpass filter {low_cutoff}-{high_cutoff} Hz to data shape {data.shape}"
             )
 
-            # Apply filter to specific channels or all data
-            if channels is not None:
-                filtered_data = data.copy()
-                for channel in channels:
-                    if channel < data.shape[0]:
-                        # Apply filter to single channel
-                        channel_data = data[channel : channel + 1, :]  # Keep 2D
-                        filtered_channel_data = self.processor.bandpass_filter(
-                            channel_data, low_cutoff, high_cutoff, 4
-                        )
-                        filtered_data[channel : channel + 1, :] = filtered_channel_data
-                return filtered_data
-            else:
-                # Apply to all channels
-                return self.processor.bandpass_filter(data, low_cutoff, high_cutoff, 4)
+            # If no specific channels provided, get EEG channels from DataAccessService
+            if channels is None:
+                channels = self._get_eeg_channels_only()
+                if not channels:
+                    logging.warning("No EEG channels found, skipping bandpass filter")
+                    return data
+                logging.debug(f"Auto-detected EEG channels for filtering: {channels}")
+
+            # Apply filter only to specified channels (EEG by default)
+            filtered_data = data.copy()
+            for channel in channels:
+                if channel < data.shape[0]:
+                    # Apply filter to single channel
+                    channel_data = data[channel : channel + 1, :]  # Keep 2D
+                    filtered_channel_data = self.processor.bandpass_filter(
+                        channel_data, low_cutoff, high_cutoff, 4
+                    )
+                    filtered_data[channel : channel + 1, :] = filtered_channel_data
+                    logging.debug(f"Applied bandpass filter to EEG channel {channel}")
+                    
+            return filtered_data
         except Exception as e:
             logging.error(f"Bandpass filter error: {e}")
             return data
@@ -91,7 +97,7 @@ class ProcessorService:
         Args:
             data: Data to filter (2D array: channels x samples)
             notch_freq: Notch frequency in Hz
-            channels: Specific channels to filter (defaults to all)
+            channels: Specific channels to filter (defaults to EEG channels only)
 
         Returns:
             Filtered data
@@ -109,24 +115,30 @@ class ProcessorService:
                 f"Applying notch filter {notch_freq} Hz to data shape {data.shape}"
             )
 
-            # Use environmental noise removal which includes notch filtering
-            if channels is not None:
-                filtered_data = data.copy()
-                for channel in channels:
-                    if channel < data.shape[0]:
-                        # Apply filter to single channel
-                        channel_data = data[channel : channel + 1, :]  # Keep 2D
-                        filtered_channel_data = (
-                            self.processor.remove_environmental_noise(channel_data)
-                        )
-                        filtered_data[channel : channel + 1, :] = filtered_channel_data
-                return filtered_data
-            else:
-                # Apply to all channels
-                return self.processor.remove_environmental_noise(data)
+            # If no specific channels provided, get EEG channels only
+            if channels is None:
+                channels = self._get_eeg_channels_only()
+                if not channels:
+                    logging.warning("No EEG channels found, skipping notch filter")
+                    return data
+                logging.debug(f"Auto-detected EEG channels for notch filtering: {channels}")
+
+            # Apply filter only to EEG channels
+            filtered_data = data.copy()
+            for channel in channels:
+                if channel < data.shape[0]:
+                    # Apply filter to single channel
+                    channel_data = data[channel : channel + 1, :]  # Keep 2D
+                    filtered_channel_data = (
+                        self.processor.remove_environmental_noise(channel_data)
+                    )
+                    filtered_data[channel : channel + 1, :] = filtered_channel_data
+                    logging.debug(f"Applied notch filter to EEG channel {channel}")
+                    
+            return filtered_data
         except Exception as e:
             logging.error(f"Notch filter error: {e}")
-            # Fallback: try bandstop filter
+            # Fallback: try bandstop filter on EEG channels only
             try:
                 bandwidth = 2.0  # 2Hz bandwidth around notch frequency
                 return self.apply_bandstop_filter(
@@ -198,7 +210,7 @@ class ProcessorService:
 
         Args:
             data: Data to detrend (2D array: channels x samples)
-            channels: Specific channels to detrend (defaults to all)
+            channels: Specific channels to detrend (defaults to EEG channels only)
 
         Returns:
             Detrended data
@@ -214,20 +226,27 @@ class ProcessorService:
 
             logging.debug(f"Applying detrend to data shape {data.shape}")
 
-            if channels is not None:
-                detrended_data = data.copy()
-                for channel in channels:
-                    if channel < data.shape[0]:
-                        # Apply detrend to single channel
-                        channel_data = data[channel : channel + 1, :]  # Keep 2D
-                        detrended_channel_data = self.processor.detrend(channel_data)
-                        detrended_data[channel : channel + 1, :] = (
-                            detrended_channel_data
-                        )
-                return detrended_data
-            else:
-                # Apply to all channels
-                return self.processor.detrend(data)
+            # If no specific channels provided, get EEG channels only
+            if channels is None:
+                channels = self._get_eeg_channels_only()
+                if not channels:
+                    logging.warning("No EEG channels found, skipping detrend")
+                    return data
+                logging.debug(f"Auto-detected EEG channels for detrending: {channels}")
+
+            # Apply detrend only to EEG channels
+            detrended_data = data.copy()
+            for channel in channels:
+                if channel < data.shape[0]:
+                    # Apply detrend to single channel
+                    channel_data = data[channel : channel + 1, :]  # Keep 2D
+                    detrended_channel_data = self.processor.detrend(channel_data)
+                    detrended_data[channel : channel + 1, :] = (
+                        detrended_channel_data
+                    )
+                    logging.debug(f"Applied detrend to EEG channel {channel}")
+                    
+            return detrended_data
         except Exception as e:
             logging.error(f"Detrend error: {e}")
             return data
@@ -419,7 +438,7 @@ class ProcessorService:
             high_cutoff: High cutoff frequency in Hz
             filter_type: Type of filter to use
             order: Filter order
-            channels: Specific channels to filter (defaults to all if None or empty)
+            channels: Specific channels to filter (defaults to EEG channels only)
             ripple: Ripple in passband (for Chebyshev filters, in dB)
 
         Returns:
@@ -440,23 +459,27 @@ class ProcessorService:
                 f"type {filter_type}, order {order}, channels: {channels}, ripple: {ripple}dB"
             )
 
-            # If channels is None or empty list, apply to all channels
-            if channels is not None and len(channels) > 0:
-                filtered_data = data.copy()
-                for channel in channels:
-                    if channel < data.shape[0]:
-                        channel_data = data[channel : channel + 1, :]
-                        # Ensure ripple parameter is passed correctly
-                        filtered_channel_data = self.processor.perform_advanced_bandpass_filter(
-                            channel_data, low_cutoff, high_cutoff, order, filter_type, ripple
-                        )
-                        filtered_data[channel : channel + 1, :] = filtered_channel_data
-                return filtered_data
-            else:
-                # Apply to all channels - ensure ripple parameter is passed correctly
-                return self.processor.perform_advanced_bandpass_filter(
-                    data, low_cutoff, high_cutoff, order, filter_type, ripple
-                )
+            # If no specific channels provided, get EEG channels only
+            if channels is None:
+                channels = self._get_eeg_channels_only()
+                if not channels:
+                    logging.warning("No EEG channels found, skipping advanced bandpass filter")
+                    return data
+                logging.debug(f"Auto-detected EEG channels for advanced filtering: {channels}")
+
+            # Apply filter only to EEG channels
+            filtered_data = data.copy()
+            for channel in channels:
+                if channel < data.shape[0]:
+                    channel_data = data[channel : channel + 1, :]
+                    # Ensure ripple parameter is passed correctly
+                    filtered_channel_data = self.processor.perform_advanced_bandpass_filter(
+                        channel_data, low_cutoff, high_cutoff, order, filter_type, ripple
+                    )
+                    filtered_data[channel : channel + 1, :] = filtered_channel_data
+                    logging.debug(f"Applied advanced bandpass filter to EEG channel {channel}")
+                    
+            return filtered_data
         except Exception as e:
             logging.error(f"Advanced bandpass filter error: {e}")
             return data
@@ -514,3 +537,44 @@ class ProcessorService:
         except Exception as e:
             logging.error(f"Inverse wavelet error: {e}")
             return coefficients
+        
+    
+    def _get_eeg_channels_only(self) -> List[int]:
+        """
+        Get only EEG channel indices from the data access service.
+        
+        Returns:
+            List of EEG channel indices
+        """
+        try:
+            from ..services.data_access_service import DataAccessService
+            
+            data_access = DataAccessService.get_instance()
+            metadata = data_access.get_metadata()
+            
+            # Get EEG channels from metadata
+            eeg_channels = metadata.get("eeg_channels", [])
+            if eeg_channels:
+                logging.debug(f"Found EEG channels from metadata: {eeg_channels}")
+                return eeg_channels
+                
+            # Fallback: try to get from collector
+            collector = data_access._get_active_collector()
+            if collector and hasattr(collector, "eeg_channels"):
+                eeg_channels = collector.eeg_channels
+                logging.debug(f"Found EEG channels from collector: {eeg_channels}")
+                return eeg_channels
+                
+            # Fallback: try to get channel types
+            if collector and hasattr(collector, "channel_types"):
+                channel_types = collector.channel_types
+                eeg_channels = channel_types.get("eeg", [])
+                logging.debug(f"Found EEG channels from channel types: {eeg_channels}")
+                return eeg_channels
+                
+            logging.warning("No EEG channels found in any source")
+            return []
+            
+        except Exception as e:
+            logging.error(f"Error getting EEG channels: {e}")
+            return []

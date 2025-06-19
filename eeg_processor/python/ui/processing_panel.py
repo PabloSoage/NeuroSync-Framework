@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Optional, Dict
 
 from PyQt5.QtCore import QTimer
@@ -194,6 +195,28 @@ class ProcessingPanel(BasePanel):
             if not self.filters_applied:
                 # Get current filter settings
                 filter_settings = self.get_filter_settings()
+                
+                # Get EEG channels to show what will be filtered
+                try:
+                    metadata = self.data_access_service.get_metadata()
+                    eeg_channels = metadata.get("eeg_channels", [])
+                    channel_names = metadata.get("channel_names", [])
+                    
+                    if eeg_channels:
+                        # Create readable channel list
+                        eeg_channel_names = []
+                        for i, ch_idx in enumerate(eeg_channels):
+                            if i < len(channel_names):
+                                eeg_channel_names.append(f"{channel_names[i]} (CH{ch_idx})")
+                            else:
+                                eeg_channel_names.append(f"CH{ch_idx}")
+                        
+                        logging.info(f"Applying filters to EEG channels only: {', '.join(eeg_channel_names)}")
+                    else:
+                        logging.warning("No EEG channels found - filters may not be applied correctly")
+                        
+                except Exception as e:
+                    logging.debug(f"Could not get channel info: {e}")
 
                 # Apply filters to visualization
                 self.visualization_service.set_bandpass_filter(
@@ -218,9 +241,17 @@ class ProcessingPanel(BasePanel):
                 self.apply_filters_btn.setStyleSheet(
                     "background-color: #AA3333; color: white;"
                 )
-                self.show_status(
-                    "Filters applied to visualization, MNE, and WebSocket API with same settings"
-                )
+                
+                # More informative status message
+                if eeg_channels:
+                    self.show_status(
+                        f"Filters applied to {len(eeg_channels)} EEG channels only "
+                        f"(Timestamp, Markers, Accel, Gyro, etc. preserved)"
+                    )
+                else:
+                    self.show_status(
+                        "Filters applied - Note: No EEG channels detected, filters may not work correctly"
+                    )
             else:
                 # Remove filters from visualization
                 self.visualization_service.set_bandpass_filter(False, 1.0, 50.0)
