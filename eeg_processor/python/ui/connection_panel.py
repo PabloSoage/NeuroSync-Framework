@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QScrollArea,
     QWidget,
+    QMessageBox,
 )
 
 from .base_panel import BasePanel
@@ -379,6 +380,43 @@ class ConnectionPanel(BasePanel):
             return
 
         try:
+            # FIXED: Add special handling for streaming board
+            from brainflow.board_shim import BoardIds
+            
+            if board_id == BoardIds.STREAMING_BOARD.value:
+                # Show warning about streaming board configuration
+                info_text = (
+                    "<b style='color: orange'>⚠️ STREAMING BOARD SELECTED</b><br><br>"
+                    "<b>Important Configuration Notes:</b><br>"
+                    "• <b>IP Address:</b> Must match sender's multicast address<br>"
+                    "• <b>IP Port:</b> Must match sender's port<br>"
+                    "• <b>Master Board:</b> Must match sender's board type<br>"
+                    "• <b>Preset:</b> Must match sender's preset exactly<br><br>"
+                    "<b style='color: red'>⚠️ Preset Sync Critical:</b><br>"
+                    "If sender and receiver use different presets, you will get socket timeout errors.<br>"
+                    "Always ensure both sides use the same preset.<br><br>"
+                    "<b>Troubleshooting Socket Errors:</b><br>"
+                    "• Check IP address and port match exactly<br>"
+                    "• Verify both sides use same preset<br>"
+                    "• Stop all streams before changing presets<br>"
+                    "• Use Raw Data streamers when possible"
+                )
+                
+                # Update UI to show warning
+                QMessageBox.information(
+                    self,
+                    "Streaming Board Configuration",
+                    "Important: Streaming boards require exact preset synchronization between sender and receiver.\n\n"
+                    "Socket timeout errors (WSAGetLastError 10060) occur when:\n"
+                    "• Sender and receiver use different presets\n"
+                    "• IP address/port don't match exactly\n"
+                    "• Processed data streamers cause sync issues\n\n"
+                    "For best results:\n"
+                    "• Use preset 0 (Default) on both sides\n"
+                    "• Use Raw Data streamers\n"
+                    "• Stop streaming before changing presets"
+                )
+
             # Get requirements for this board
             requirements = BoardConfiguration.get_board_requirements(board_id)
 
@@ -591,6 +629,18 @@ class ConnectionPanel(BasePanel):
     def disconnect_board(self) -> None:
         """Disconnect from the EEG board."""
         try:
+            # FIXED: Stop all active streamers BEFORE disconnecting
+            try:
+                # Get streaming panel and stop all streamers first
+                if hasattr(self.parent(), 'streaming_panel'):
+                    streaming_panel = self.parent().streaming_panel
+                    if streaming_panel:
+                        logging.info("Stopping all streamers before disconnecting board...")
+                        streaming_panel.stop_all_streamers()
+                        logging.info("All streamers stopped successfully")
+            except Exception as e:
+                logging.warning(f"Error stopping streamers before disconnect: {e}")
+
             if self.collector_service.is_streaming_active():
                 self.stop_stream()
 

@@ -12,7 +12,6 @@ from PyQt5.QtWidgets import (
     QSpinBox,
     QLineEdit,
 )
-
 from .base_panel import BasePanel
 from ..utils.help_system import HelpButton
 
@@ -149,9 +148,7 @@ class RecordingPanel(BasePanel):
                 data_type = "raw"
 
             # Start recording through service
-            success = self.recording_service.start_recording(
-                self.collector_service.collector, filename, data_type
-            )
+            success = self.recording_service.start_recording(filename, data_type)
 
             if success:
                 # Update UI
@@ -171,9 +168,7 @@ class RecordingPanel(BasePanel):
     def stop_recording(self) -> None:
         """Stop recording and save data to file."""
         try:
-            success = self.recording_service.stop_recording(
-                self.collector_service.collector
-            )
+            success = self.recording_service.stop_recording()
 
             if success:
                 # Update UI
@@ -195,9 +190,7 @@ class RecordingPanel(BasePanel):
         """Add a marker to the data stream."""
         try:
             marker_value = self.marker_value_spin.value()
-            success = self.recording_service.insert_marker(
-                self.collector_service.collector, marker_value
-            )
+            success = self.recording_service.insert_marker(marker_value)
 
             if success:
                 self.show_status(f"Marker {marker_value} added")
@@ -212,10 +205,9 @@ class RecordingPanel(BasePanel):
             filename, _ = QFileDialog.getSaveFileName(
                 self, "Save Data", "", "CSV files (*.csv)"
             )
-
-            if filename and self.collector_service.collector:
+            if filename and self.recording_service:
                 data_type = "processed" if self.processed_radio.isChecked() else "raw"
-                self.collector_service.collector.save_data(filename, data_type)
+                self.recording_service.save_data(filename, data_type)
                 self.show_status(f"Data saved to {filename}")
         except Exception as e:
             self.show_error("Save Error", f"Failed to save data: {str(e)}")

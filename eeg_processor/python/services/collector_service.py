@@ -514,6 +514,25 @@ class CollectorService:
                 logging.error("Cannot add streamer while streaming - stop stream first")
                 return False
 
+            # FIXED: For streaming board connections, validate preset compatibility
+            if self._is_streaming_board(self.collector.board_id):
+                # Get current preset from collector
+                current_preset = getattr(self.collector, 'preset', 0)
+                
+                # Extract master board info to validate preset compatibility
+                master_board_id = None
+                if hasattr(self.collector.params, 'master_board'):
+                    master_board_id = self.collector.params.master_board
+                
+                if master_board_id:
+                    # Ensure the master board can provide data for current preset
+                    try:
+                        master_device_info = self._get_master_board_info(master_board_id, current_preset)
+                        if not master_device_info or not master_device_info.get('eeg_channels'):
+                            logging.warning(f"Master board {master_board_id} may not support preset {current_preset}")
+                    except Exception as e:
+                        logging.warning(f"Could not validate master board preset compatibility: {e}")
+
             self.collector.add_streamer(streamer_params)
             logging.info(f"Added streamer: {streamer_params}")
             return True
@@ -532,8 +551,8 @@ class CollectorService:
             True if streamer was removed successfully, False otherwise
         """
         if not self.collector:
-            logging.error("No collector available to remove streamer")
-            return False
+            logging.warning("No collector available to remove streamer - board may be disconnected")
+            return True  # Return True to avoid error dialogs when board is disconnected
 
         try:
             # Must NOT be streaming to remove streamers in BrainFlow
@@ -632,7 +651,34 @@ class CollectorService:
             return False
 
         try:
-            return self.collector.set_preset(preset)
+            # FIXED: For streaming boards, preset changes require special handling
+            if self._is_streaming_board(self.collector.board_id):
+                logging.warning("Cannot change preset on streaming board - preset is determined by master board")
+                return False
+            
+            # FIXED: Cannot change preset while streaming for most boards
+            if self.is_streaming:
+                logging.error("Cannot change preset while streaming - stop stream first")
+                return False
+
+            success = self.collector.set_preset(preset)
+            
+            if success:
+                # Update metadata with new preset info
+                data_access = DataAccessService.get_instance()
+                device_info = self.collector.get_device_info()
+                
+                data_access.update_metadata({
+                    "preset": preset,
+                    "eeg_channels": device_info.get("eeg_channels", []),
+                    "channel_names": device_info.get("eeg_names", []),
+                    "num_channels": len(device_info.get("eeg_channels", [])),
+                    "board_info": device_info,
+                })
+                
+                logging.info(f"Successfully changed preset to {preset}")
+            
+            return success
         except Exception as e:
             logging.error(f"Setting preset error: {e}")
             return False
