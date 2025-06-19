@@ -384,25 +384,25 @@ class ConnectionPanel(BasePanel):
             from brainflow.board_shim import BoardIds
             
             if board_id == BoardIds.STREAMING_BOARD.value:
-                # Show warning about streaming board configuration
-                info_text = (
-                    "<b style='color: orange'>⚠️ STREAMING BOARD SELECTED</b><br><br>"
-                    "<b>Important Configuration Notes:</b><br>"
-                    "• <b>IP Address:</b> Must match sender's multicast address<br>"
-                    "• <b>IP Port:</b> Must match sender's port<br>"
-                    "• <b>Master Board:</b> Must match sender's board type<br>"
-                    "• <b>Preset:</b> Must match sender's preset exactly<br><br>"
-                    "<b style='color: red'>⚠️ Preset Sync Critical:</b><br>"
-                    "If sender and receiver use different presets, you will get socket timeout errors.<br>"
-                    "Always ensure both sides use the same preset.<br><br>"
-                    "<b>Troubleshooting Socket Errors:</b><br>"
-                    "• Check IP address and port match exactly<br>"
-                    "• Verify both sides use same preset<br>"
-                    "• Stop all streams before changing presets<br>"
-                    "• Use Raw Data streamers when possible"
-                )
+                # For streaming boards, connect preset change validation
+                # FIXED: Safely disconnect any existing connections first
+                try:
+                    # Try to disconnect - if it fails, it means no connection exists (which is fine)
+                    self.preset_combo.currentIndexChanged.disconnect()
+                except TypeError:
+                    # No connections exist - this is fine
+                    pass
                 
-                # Update UI to show warning
+                # Connect the validation function
+                self.preset_combo.currentIndexChanged.connect(self._validate_streaming_board_preset)
+                
+                # Set default preset to 0 for streaming boards
+                for i in range(self.preset_combo.count()):
+                    if self.preset_combo.itemData(i) == 0:  # Preset 0 (Default)
+                        self.preset_combo.setCurrentIndex(i)
+                        break
+                        
+                # Show warning about streaming board configuration
                 QMessageBox.information(
                     self,
                     "Streaming Board Configuration",
@@ -414,8 +414,17 @@ class ConnectionPanel(BasePanel):
                     "For best results:\n"
                     "• Use preset 0 (Default) on both sides\n"
                     "• Use Raw Data streamers\n"
-                    "• Stop streaming before changing presets"
+                    "• Stop streaming before changing presets\n\n"
+                    "Preset has been automatically set to 0 (Default)."
                 )
+            else:
+                # For other boards, remove preset validation
+                # FIXED: Safely disconnect any existing connections
+                try:
+                    self.preset_combo.currentIndexChanged.disconnect()
+                except TypeError:
+                    # No connections exist - this is fine
+                    pass
 
             # Get requirements for this board
             requirements = BoardConfiguration.get_board_requirements(board_id)
@@ -519,6 +528,13 @@ class ConnectionPanel(BasePanel):
                             eeg_names = str(description["eeg_names"]).split(",")
                         desc_text += f"<b>Channel Names:</b> {', '.join(eeg_names)}<br>"
 
+                    # Add warning for streaming boards
+                    if board_id == BoardIds.STREAMING_BOARD.value:
+                        desc_text += "<br><b style='color: orange'>⚠️ Streaming Board Notes:</b><br>"
+                        desc_text += "• IP Address must match sender exactly<br>"
+                        desc_text += "• Master Board must match sender's board type<br>"
+                        desc_text += "• Preset locked to 0 (Default) for compatibility<br>"
+
                     self.board_info_label.setText(desc_text)
                 else:
                     # Handle case where no valid description is available
@@ -537,9 +553,54 @@ class ConnectionPanel(BasePanel):
                     self.board_info_label.setText(f"Selected board ID: {board_id}")
 
         except Exception as e:
+            logging.error(f"Error in on_board_type_changed: {str(e)}")
             self.show_error(
                 "Board Selection Error", f"Error updating board parameters: {str(e)}"
             )
+
+    def _validate_streaming_board_preset(self) -> None:
+        """Validate preset selection for streaming boards."""
+        try:
+            board_id = self.board_type_combo.currentData()
+            if board_id is None:
+                return
+                
+            from brainflow.board_shim import BoardIds
+            
+            if board_id == BoardIds.STREAMING_BOARD.value:
+                selected_preset = self.preset_combo.currentData()
+                
+                if selected_preset != 0:  # Non-default preset
+                    logging.info(f"Streaming board preset validation: reverting from {selected_preset} to 0")
+                    
+                    # Show error and revert to preset 0
+                    QMessageBox.critical(
+                        self,
+                        "Streaming Board Preset Error",
+                        f"Streaming boards require preset 0 (Default) for optimal compatibility.\n\n"
+                        f"Preset {selected_preset} can cause socket timeout errors and connection failures.\n\n"
+                        f"Reverting to preset 0..."
+                    )
+                    
+                    # Temporarily disconnect signal to avoid recursion
+                    try:
+                        self.preset_combo.currentIndexChanged.disconnect()
+                    except TypeError:
+                        pass
+                    
+                    # Revert to preset 0
+                    for i in range(self.preset_combo.count()):
+                        if self.preset_combo.itemData(i) == 0:  # Preset 0 (Default)
+                            self.preset_combo.setCurrentIndex(i)
+                            break
+                    
+                    # Reconnect signal
+                    self.preset_combo.currentIndexChanged.connect(self._validate_streaming_board_preset)
+                    
+                    self.show_status("Preset reverted to 0 for streaming board compatibility")
+                    
+        except Exception as e:
+            logging.error(f"Error validating streaming board preset: {e}")
 
     def filter_boards(self) -> None:
         """Filter the boards in the dropdown based on search text."""
@@ -572,13 +633,37 @@ class ConnectionPanel(BasePanel):
             self.show_status(f"Connecting to {selected_board_name}, ID: {board_id}")
 
             # Fix validation to ensure synthetic board (ID=0) isn't rejected
-            # Original condition rejected board_id == -1, but synthetic board is 0
             if board_id is None:
                 self.show_error("Connection Error", "Please select a valid board")
                 return
 
             # Get selected preset
             preset = self.preset_combo.currentData()
+            
+            # ADDITIONAL VALIDATION: Check streaming board preset before connection
+            from brainflow.board_shim import BoardIds
+            if board_id == BoardIds.STREAMING_BOARD.value and preset != 0:
+                reply = QMessageBox.question(
+                    self,
+                    "Streaming Board Preset Warning",
+                    f"You are trying to connect a streaming board with preset {preset}.\n\n"
+                    f"This can cause socket timeout errors and connection failures.\n\n"
+                    f"Do you want to change to preset 0 (Default) before connecting?",
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.Yes
+                )
+                
+                if reply == QMessageBox.Yes:
+                    # Change to preset 0
+                    for i in range(self.preset_combo.count()):
+                        if self.preset_combo.itemData(i) == 0:  # Preset 0 (Default)
+                            self.preset_combo.setCurrentIndex(i)
+                            preset = 0
+                            break
+                    self.show_status("Changed to preset 0 for streaming board compatibility")
+                else:
+                    self.show_status("Connection cancelled - streaming board requires preset 0")
+                    return
 
             # Build parameters dictionary from UI fields
             params = {}
