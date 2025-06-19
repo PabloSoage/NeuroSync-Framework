@@ -21,7 +21,7 @@ from ..interfaces.collector_interface import (
 )
 
 
-class BrainFlowCollector(
+class EEGCollector(
     CollectorInterface,
     MarkerInterface,
     ConfigurableCollectorInterface,
@@ -623,7 +623,3 @@ class BrainFlowCollector(
         else:
             logging.warning(f"Unknown channel type: {channel_type}")
             return []
-
-
-# Add this line at the end of the file to maintain backward compatibility
-EEGCollector = BrainFlowCollector
