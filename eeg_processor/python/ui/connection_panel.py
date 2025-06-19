@@ -646,7 +646,8 @@ class ConnectionPanel(BasePanel):
                         if processor_service is not None:
                             processor_service.initialize_processor(sampling_rate)
 
-                            # Create visualizer with the processor
+                            # IMPORTANT: Create visualizer AFTER connection is established
+                            # This ensures the visualizer uses the correct preset and channel information
                             self.visualization_service.create_eeg_visualizer(
                                 self.collector_service.collector,
                                 processor_service.processor,
@@ -659,11 +660,12 @@ class ConnectionPanel(BasePanel):
                         self.show_status(
                             f"Note: Signal processing unavailable - {str(e)}"
                         )
+                        # IMPORTANT: Create visualizer AFTER connection is established
                         self.visualization_service.create_eeg_visualizer(
                             self.collector_service.collector, None
                         )
                 else:
-                    # Create visualizer without processor
+                    # IMPORTANT: Create visualizer AFTER connection is established
                     self.visualization_service.create_eeg_visualizer(
                         self.collector_service.collector, None
                     )

@@ -90,9 +90,12 @@ class BrainFlowCollector(
             logging.warning(f"Requested preset {self.preset} not available for board {self.board_id}. Using default preset.")
             self.preset = BrainFlowPresets.DEFAULT_PRESET.value
 
-        # Get board information with error handling for each field
+        # CRITICAL FIX: Get board information using the ACTUAL preset, not default
+        logging.info(f"Initializing board info for preset {self.preset}")
+        
         try:
             self.sampling_rate = BoardShim.get_sampling_rate(self.board_id, self.preset)
+            logging.info(f"Sampling rate for preset {self.preset}: {self.sampling_rate}")
         except Exception as e:
             logging.warning(f"Could not get sampling rate for preset {self.preset}: {e}")
             # Try with default preset as fallback
@@ -105,15 +108,21 @@ class BrainFlowCollector(
 
         try:
             self.eeg_channels = BoardShim.get_eeg_channels(self.board_id, self.preset)
+            logging.info(f"EEG channels for preset {self.preset}: {self.eeg_channels}")
         except Exception as e:
             logging.warning(f"Could not get EEG channels for preset {self.preset}: {e}")
-            # Try with default preset as fallback
-            try:
-                self.eeg_channels = BoardShim.get_eeg_channels(self.board_id, BrainFlowPresets.DEFAULT_PRESET)
-                logging.info(f"Using EEG channels from default preset: {self.eeg_channels}")
-            except Exception as e2:
-                logging.warning(f"Could not get EEG channels even with default preset: {e2}")
+            # For auxiliary presets, EEG channels might not exist - this is normal
+            if self.preset == BrainFlowPresets.AUXILIARY_PRESET.value:
+                logging.info("Auxiliary preset typically has no EEG channels - this is expected")
                 self.eeg_channels = []
+            else:
+                # Try with default preset as fallback
+                try:
+                    self.eeg_channels = BoardShim.get_eeg_channels(self.board_id, BrainFlowPresets.DEFAULT_PRESET)
+                    logging.info(f"Using EEG channels from default preset: {self.eeg_channels}")
+                except Exception as e2:
+                    logging.warning(f"Could not get EEG channels even with default preset: {e2}")
+                    self.eeg_channels = []
 
         try:
             self.timestamp_channel = BoardShim.get_timestamp_channel(self.board_id, self.preset)
@@ -133,13 +142,13 @@ class BrainFlowCollector(
             except:
                 self.marker_channel = -1
 
-        # Get additional channel types if available
+        # Get additional channel types if available - USING THE CORRECT PRESET
         try:
             self.exg_channels = BoardShim.get_exg_channels(self.board_id, self.preset)
         except:
             self.exg_channels = self.eeg_channels
 
-        # Get other channel types with safe fallbacks
+        # CRITICAL FIX: Get other channel types with CORRECT preset
         self.channel_types = {
             "eeg": self.eeg_channels,
             "emg": self._get_channels_safely(BoardShim.get_emg_channels, "EMG"),
@@ -154,24 +163,35 @@ class BrainFlowCollector(
             "other": self._get_channels_safely(BoardShim.get_other_channels, "Other"),
         }
 
+        # Log detected channel types for debugging
+        for ch_type, channels in self.channel_types.items():
+            if channels:
+                logging.info(f"Detected {ch_type} channels for preset {self.preset}: {channels}")
+
         # Try to get EEG names if available
         try:
             self.eeg_names = BoardShim.get_eeg_names(self.board_id, self.preset)
             if isinstance(self.eeg_names, str):
                 self.eeg_names = self.eeg_names.split(",")
+            logging.info(f"EEG names for preset {self.preset}: {self.eeg_names}")
         except Exception as e:
             logging.debug(f"Could not get EEG names for preset {self.preset}: {e}")
-            # Try with default preset
-            try:
-                self.eeg_names = BoardShim.get_eeg_names(self.board_id, BrainFlowPresets.DEFAULT_PRESET)
-                if isinstance(self.eeg_names, str):
-                    self.eeg_names = self.eeg_names.split(",")
-            except:
-                # Generate generic names based on available channels
-                if self.eeg_channels:
-                    self.eeg_names = [f"Channel {i}" for i in range(len(self.eeg_channels))]
-                else:
-                    self.eeg_names = []
+            # For auxiliary presets, EEG names might not exist - this is normal
+            if self.preset == BrainFlowPresets.AUXILIARY_PRESET.value:
+                logging.info("Auxiliary preset typically has no EEG names - this is expected")
+                self.eeg_names = []
+            else:
+                # Try with default preset
+                try:
+                    self.eeg_names = BoardShim.get_eeg_names(self.board_id, BrainFlowPresets.DEFAULT_PRESET)
+                    if isinstance(self.eeg_names, str):
+                        self.eeg_names = self.eeg_names.split(",")
+                except:
+                    # Generate generic names based on available channels
+                    if self.eeg_channels:
+                        self.eeg_names = [f"Channel {i}" for i in range(len(self.eeg_channels))]
+                    else:
+                        self.eeg_names = []
 
         # Get device name
         try:
@@ -182,6 +202,7 @@ class BrainFlowCollector(
         # Get number of rows
         try:
             self.num_rows = BoardShim.get_num_rows(self.board_id, self.preset)
+            logging.info(f"Number of rows for preset {self.preset}: {self.num_rows}")
         except Exception as e:
             logging.warning(f"Could not get number of rows for preset {self.preset}: {e}")
             try:
@@ -196,6 +217,7 @@ class BrainFlowCollector(
             f"Device: {self.device_name}, Sampling rate: {self.sampling_rate}Hz"
         )
         logging.info(f"EEG channels: {self.eeg_channels}")
+        logging.info(f"Channel types detected: {[k for k, v in self.channel_types.items() if v]}")
         logging.info(f"Available presets: {self.available_presets}")
 
     def _get_channels_safely(self, channel_func: Any, channel_type: str) -> List[int]:
@@ -210,18 +232,33 @@ class BrainFlowCollector(
             List of channel indices
         """
         try:
+            # CRITICAL FIX: Use the current preset, not default
             channels = channel_func(self.board_id, self.preset)
+            
+            # VALIDATION: Filter out invalid "other" channels for auxiliary presets
+            if channel_type == "Other" and self.preset == BrainFlowPresets.AUXILIARY_PRESET.value:
+                # For auxiliary presets, "other" channels often contain garbage data
+                # We should filter them out to avoid confusion
+                if channels:
+                    logging.info(f"Found {len(channels)} {channel_type} channels for preset {self.preset}, but filtering them out as they typically contain invalid data")
+                return []  # Return empty list for "other" channels in auxiliary preset
+            
+            if channels:
+                logging.debug(f"Found {channel_type} channels for preset {self.preset}: {channels}")
             return channels
         except Exception as e:
             logging.debug(f"No {channel_type} channels available for preset {self.preset}: {e}")
-            # Try with default preset as fallback
-            try:
-                channels = channel_func(self.board_id, BrainFlowPresets.DEFAULT_PRESET)
-                logging.debug(f"Using {channel_type} channels from default preset: {channels}")
-                return channels
-            except Exception as e2:
-                logging.debug(f"No {channel_type} channels available even with default preset: {e2}")
-                return []
+            # ONLY fallback to default preset if we're not already using auxiliary preset
+            # For auxiliary preset, it's normal that some channel types don't exist
+            if self.preset != BrainFlowPresets.AUXILIARY_PRESET.value:
+                try:
+                    channels = channel_func(self.board_id, BrainFlowPresets.DEFAULT_PRESET)
+                    if channels:
+                        logging.debug(f"Using {channel_type} channels from default preset: {channels}")
+                    return channels
+                except Exception as e2:
+                    logging.debug(f"No {channel_type} channels available even with default preset: {e2}")
+            return []
 
     # CollectorInterface implementation
     def prepare_session(self) -> None:

@@ -30,7 +30,31 @@ class VisualizationService:
             True if visualizer was created successfully
         """
         try:
-            # CACHING: Don't destroy existing visualizer if same collector
+            # CACHE MANAGEMENT: Check if we need to clear cache due to board/preset change
+            should_clear_cache = False
+            
+            if (self.eeg_visualizer is not None and 
+                hasattr(self.eeg_visualizer, 'collector')):
+                
+                old_collector = self.eeg_visualizer.collector
+                old_preset = getattr(old_collector, 'preset', None)
+                old_board_id = getattr(old_collector, 'board_id', None)
+                
+                new_preset = getattr(collector, 'preset', None)
+                new_board_id = getattr(collector, 'board_id', None)
+                
+                # Clear cache if board or preset changed
+                if old_preset != new_preset or old_board_id != new_board_id:
+                    should_clear_cache = True
+                    logging.info(f"Board/preset changed: {old_board_id}/{old_preset} -> {new_board_id}/{new_preset}")
+            
+            # Clear cache if needed
+            if should_clear_cache:
+                from ..visualizers.eeg_viz import MultiSignalVisualizer
+                MultiSignalVisualizer._clear_cache()
+                logging.info("Cleared visualizer cache due to board/preset change")
+            
+            # CACHING: Don't destroy existing visualizer if same collector AND same preset
             if (self.eeg_visualizer is not None and 
                 hasattr(self.eeg_visualizer, 'collector') and
                 self.eeg_visualizer.collector == collector):

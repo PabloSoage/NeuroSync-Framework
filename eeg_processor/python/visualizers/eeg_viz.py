@@ -27,9 +27,6 @@ class MultiSignalVisualizer:
             collector: EEG data collector (for metadata only)
             processor: Signal processor for data filtering
         """
-        pg.setConfigOption('background', '#000000')  # Pure black background
-        pg.setConfigOption('foreground', '#ffffff')
-        
         # Only use collector for metadata, not for data
         self.collector = collector
         self.processor = processor
@@ -51,10 +48,10 @@ class MultiSignalVisualizer:
         # Data for plotting
         self.time_vector = np.linspace(0, self.window_size, self.num_points)
 
-        # OPTIMIZATION: Detect channel types EFFICIENTLY using cached collector data
-        self.channel_types = self._detect_channel_types_fast()
+        # IMPORTANT: Detect channel types AFTER connection using actual preset data
+        self.channel_types = self._detect_channel_types_from_connected_board()
         
-        # CACHING: Check if we have cached visualizers from previous instance
+        # CACHING: Check if we have cached visualizers from previous instance WITH SAME BOARD AND PRESET
         self._load_cached_visualizers()
         
         # Setup UI elements IMMEDIATELY
@@ -62,24 +59,107 @@ class MultiSignalVisualizer:
 
         logging.info(f"Multi-signal visualizer initialized with channel types: {list(self.channel_types.keys())}")
 
+    def _detect_channel_types_from_connected_board(self) -> Dict[str, Dict]:
+        """
+        OPTIMIZED: Detect available channel types using the ACTUAL connected board and preset.
+        
+        Returns:
+            Dictionary with channel type info
+        """
+        channel_types = {}
+        
+        # Get the actual device info from the connected collector
+        try:
+            device_info = self.collector.get_device_info()
+            current_preset = device_info.get('preset', 'unknown')
+            logging.info(f"Visualizer: Using device info from connected board with preset {current_preset}")
+            logging.info(f"Visualizer: Available channel types in collector: {list(self.collector.channel_types.keys())}")
+            
+            # Log which channel types have actual channels
+            for ch_type, channels in self.collector.channel_types.items():
+                if channels:
+                    logging.info(f"Visualizer: {ch_type} channels found: {channels}")
+                else:
+                    logging.debug(f"Visualizer: No {ch_type} channels for preset {current_preset}")
+            
+            # Use the channel information from the actual connected board
+            if hasattr(self.collector, 'channel_types') and self.collector.channel_types:
+                collector_types = self.collector.channel_types
+                
+                for ch_type, channels in collector_types.items():
+                    if channels:  # Only include types that ACTUALLY have channels in this preset
+                        # Generate names efficiently
+                        if ch_type == 'eeg' and hasattr(self.collector, 'eeg_names'):
+                            channel_names = self.collector.eeg_names[:len(channels)]
+                        else:
+                            # Quick name generation
+                            if ch_type == 'accel':
+                                channel_names = [f"ACCEL_{['X', 'Y', 'Z'][i % 3]}" for i in range(len(channels))]
+                            elif ch_type == 'gyro':
+                                channel_names = [f"GYRO_{['X', 'Y', 'Z'][i % 3]}" for i in range(len(channels))]
+                            else:
+                                channel_names = [f"{ch_type.upper()}_{i}" for i in range(len(channels))]
+                        
+                        channel_types[ch_type] = {
+                            'channels': channels,
+                            'names': channel_names,
+                            'count': len(channels)
+                        }
+                        logging.info(f"Visualizer: Added {ch_type} tab with {len(channels)} channels")
+                
+                logging.info(f"Visualizer: Final channel types for preset {current_preset}: {list(channel_types.keys())}")
+                return channel_types
+            
+        except Exception as e:
+            logging.warning(f"Error getting device info from connected board: {e}")
+        
+        # FALLBACK: Simple EEG-only detection if collector data isn't available
+        eeg_channels = getattr(self.collector, 'eeg_channels', [])
+        if not eeg_channels:
+            try:
+                eeg_channels = self.collector.get_eeg_channels()
+            except:
+                eeg_channels = []
+        
+        if eeg_channels:
+            eeg_names = getattr(self.collector, 'eeg_names', [f"CH{i}" for i in range(len(eeg_channels))])
+            channel_types['eeg'] = {
+                'channels': eeg_channels,
+                'names': eeg_names[:len(eeg_channels)],
+                'count': len(eeg_channels)
+            }
+            logging.info(f"Fallback: Using EEG channels only: {len(eeg_channels)} channels")
+        else:
+            logging.warning("No channels detected - this may indicate a preset with no data or configuration error")
+        
+        return channel_types
+
     def _load_cached_visualizers(self) -> None:
-        """Load cached visualizers if available and still valid."""
+        """Load cached visualizers if available and still valid for THIS board and preset."""
         try:
             # Get cached visualizers from class-level storage
             cached_data = getattr(MultiSignalVisualizer, '_cached_visualizers', None)
             
             if cached_data is not None:
                 cached_collector_id = cached_data.get('collector_id')
-                current_collector_id = id(self.collector)
+                cached_preset = cached_data.get('preset')
+                cached_board_id = cached_data.get('board_id')
                 
-                # Check if cache is for the same collector instance
-                if cached_collector_id == current_collector_id:
+                current_collector_id = id(self.collector)
+                current_preset = getattr(self.collector, 'preset', None)
+                current_board_id = getattr(self.collector, 'board_id', None)
+                
+                # Check if cache is for the same collector, preset, AND board
+                if (cached_collector_id == current_collector_id and 
+                    cached_preset == current_preset and 
+                    cached_board_id == current_board_id):
                     self._cached_tabs = cached_data.get('tabs', {})
-                    logging.info(f"Loaded {len(self._cached_tabs)} cached visualizer tabs")
+                    logging.info(f"Loaded {len(self._cached_tabs)} cached visualizer tabs for preset {current_preset}")
                 else:
-                    # Different collector, clear cache
+                    # Different collector, preset, or board - clear cache
                     self._clear_cache()
                     self._cached_tabs = {}
+                    logging.info(f"Cache invalidated: collector/preset/board changed (cached: {cached_preset}/{cached_board_id}, current: {current_preset}/{current_board_id})")
             else:
                 self._cached_tabs = {}
                 
@@ -88,7 +168,7 @@ class MultiSignalVisualizer:
             self._cached_tabs = {}
 
     def _save_cached_visualizers(self) -> None:
-        """Save current visualizers to cache."""
+        """Save current visualizers to cache with board and preset info."""
         try:
             # Only cache actually created visualizers (not placeholders)
             tabs_to_cache = {}
@@ -97,13 +177,18 @@ class MultiSignalVisualizer:
                 if not isinstance(visualizer, QtWidgets.QLabel):  # Not a placeholder
                     tabs_to_cache[ch_type] = visualizer
             
-            # Store at class level so it persists across instances
+            # Store at class level with board and preset information
+            current_preset = getattr(self.collector, 'preset', None)
+            current_board_id = getattr(self.collector, 'board_id', None)
+            
             MultiSignalVisualizer._cached_visualizers = {
                 'collector_id': id(self.collector),
+                'preset': current_preset,
+                'board_id': current_board_id,
                 'tabs': tabs_to_cache
             }
             
-            logging.info(f"Cached {len(tabs_to_cache)} visualizer tabs")
+            logging.info(f"Cached {len(tabs_to_cache)} visualizer tabs for preset {current_preset}, board {current_board_id}")
             
         except Exception as e:
             logging.debug(f"Error saving cached visualizers: {e}")
