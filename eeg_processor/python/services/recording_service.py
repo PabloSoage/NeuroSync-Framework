@@ -1,16 +1,15 @@
 import logging
 import os
 import time
-import threading
 from typing import Any, Optional, List
 
 import numpy as np
 
+from .data_access_service import DataAccessService
 from ..interfaces.recording_interface import (
     DataStorageInterface,
     ContinuousRecordingInterface,
 )
-from .data_access_service import DataAccessService
 
 
 class RecordingService(DataStorageInterface, ContinuousRecordingInterface):
@@ -26,7 +25,7 @@ class RecordingService(DataStorageInterface, ContinuousRecordingInterface):
         self.start_time: float = 0
         self.filename = ""
         self.data_type = "raw"
-        
+
         # Initialize the data manager for recording operations
         self.data_manager = RecordingDataManager(self)
 
@@ -197,9 +196,9 @@ class RecordingService(DataStorageInterface, ContinuousRecordingInterface):
         try:
             # Get DataAccessService for data access
             data_access = DataAccessService.get_instance()
-            
+
             data = None
-            
+
             if data_type == "raw":
                 raw_data, _ = data_access.get_raw_data()
                 if raw_data.size > 0:
@@ -207,16 +206,20 @@ class RecordingService(DataStorageInterface, ContinuousRecordingInterface):
                 else:
                     logging.warning("No raw data available to save")
                     return
-                    
+
             elif data_type == "processed":
-                processed_data, _ = data_access.get_current_data()  # This applies filters
+                processed_data, _ = (
+                    data_access.get_current_data()
+                )  # This applies filters
                 if processed_data.size > 0:
                     data = processed_data
                 else:
                     logging.warning("No processed data available to save")
                     return
             else:
-                logging.warning(f"Invalid data type '{data_type}'. Use 'raw' or 'processed'")
+                logging.warning(
+                    f"Invalid data type '{data_type}'. Use 'raw' or 'processed'"
+                )
                 return
 
             # Get active collector for metadata
@@ -252,7 +255,11 @@ class RecordingService(DataStorageInterface, ContinuousRecordingInterface):
         try:
             data_access = DataAccessService.get_instance()
             with data_access._data_lock:
-                return data_access._current_data.shape[1] if data_access._current_data.size > 0 else 0
+                return (
+                    data_access._current_data.shape[1]
+                    if data_access._current_data.size > 0
+                    else 0
+                )
         except Exception as e:
             logging.error(f"Error getting board data count: {e}")
             return 0
@@ -282,7 +289,7 @@ class RecordingDataManager:
         # REMOVED: self.last_data_count - no longer needed
         self.data_type = "raw"
         self.is_recording_both = False
-        
+
         # NEW: Direct callback approach
         self.data_callback_id: Optional[int] = None
 
@@ -319,7 +326,9 @@ class RecordingDataManager:
                 self._start_file_recording(self.raw_filename, "raw", collector)
 
                 # Start recording processed data
-                self._start_file_recording(self.processed_filename, "processed", collector)
+                self._start_file_recording(
+                    self.processed_filename, "processed", collector
+                )
 
                 logging.info(
                     f"Dual continuous recording started in {self.raw_filename} and {self.processed_filename}"
@@ -335,8 +344,12 @@ class RecordingDataManager:
             self.recording_start_time = time.time()
 
             # NEW: Register direct callback for immediate data streaming
-            self.data_callback_id = data_access.register_local_callback(self._on_new_data)
-            logging.info("Registered direct callback for recording - no data duplication")
+            self.data_callback_id = data_access.register_local_callback(
+                self._on_new_data
+            )
+            logging.info(
+                "Registered direct callback for recording - no data duplication"
+            )
 
         except Exception as e:
             logging.error(f"Error starting continuous recording: {e}")
@@ -355,21 +368,21 @@ class RecordingDataManager:
         """
         Handle new data from DataAccessService callback.
         This receives only NEW data chunks - no duplication.
-        
+
         Args:
             data: New data chunk (only new samples)
             timestamps: Corresponding timestamps
         """
         if not self.recording:
             return
-            
+
         try:
             # Get the size of the new chunk
             new_samples = data.shape[1] if data.size > 0 else 0
-            
+
             if new_samples == 0:
                 return
-                
+
             logging.debug(f"Recording received {new_samples} new samples via callback")
 
             # Record raw data if needed
@@ -377,28 +390,32 @@ class RecordingDataManager:
                 # data is already raw from the callback
                 self._write_data_to_file(data, "raw")
 
-            # Record processed data if needed  
+            # Record processed data if needed
             if self.data_type == "processed" or self.data_type == "both":
                 # Get the same samples but already filtered from DataAccessService
                 data_access = DataAccessService.get_instance()
-                
+
                 # Get the filtered buffer and extract the same number of new samples
                 filtered_buffer, _ = data_access.get_current_data()
-                
+
                 if filtered_buffer.size > 0 and filtered_buffer.shape[1] >= new_samples:
                     # Get the last 'new_samples' from the filtered buffer
                     # These correspond to the same samples as the raw data callback
                     processed_chunk = filtered_buffer[:, -new_samples:]
                     self._write_data_to_file(processed_chunk, "processed")
-                    logging.debug(f"Wrote {new_samples} pre-filtered samples to processed file")
+                    logging.debug(
+                        f"Wrote {new_samples} pre-filtered samples to processed file"
+                    )
                 else:
                     # Fallback: use raw data if filtered buffer is not available
-                    logging.warning("Filtered buffer not available, using raw data for processed recording")
+                    logging.warning(
+                        "Filtered buffer not available, using raw data for processed recording"
+                    )
                     self._write_data_to_file(data, "processed")
 
             # Update sample counter
             self.total_recorded_samples += new_samples
-            
+
         except Exception as e:
             logging.error(f"Error in recording data callback: {e}")
 
@@ -525,7 +542,9 @@ class RecordingDataManager:
             logging.error(f"Error inserting marker: {e}")
             return False
 
-    def _start_file_recording(self, filename: str, data_type: str, collector: Any) -> None:
+    def _start_file_recording(
+        self, filename: str, data_type: str, collector: Any
+    ) -> None:
         """
         Start recording to a specific file with correct metadata.
 
@@ -579,9 +598,9 @@ class RecordingDataManager:
         """
         try:
             # Select appropriate file handle
-            if data_type == "processed" and hasattr(self, 'processed_recording_file'):
+            if data_type == "processed" and hasattr(self, "processed_recording_file"):
                 file_handle = self.processed_recording_file
-            elif data_type == "raw" and hasattr(self, 'recording_file'):
+            elif data_type == "raw" and hasattr(self, "recording_file"):
                 file_handle = self.recording_file
             else:
                 logging.warning(f"No file handle available for {data_type} data")
@@ -630,7 +649,7 @@ class RecordingFileWriter:
             data_type: Type of data ('raw' or 'processed')
         """
         import numpy as np
-        
+
         # For CSV files, use our format with headers
         if filename.endswith(".csv"):
             # Create directory if it doesn't exist
@@ -676,8 +695,7 @@ class RecordingFileWriter:
         Returns:
             List of column names
         """
-        from typing import List
-        
+
         column_names = []
 
         # Generate names for the number of rows in the board data

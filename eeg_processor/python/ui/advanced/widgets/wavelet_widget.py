@@ -21,10 +21,10 @@ from ....utils.help_system import HelpButton
 class WaveletWidget(QWidget):
     """
     Widget for wavelet transform operations.
-    
+
     This widget handles wavelet-specific configuration and user interactions.
     """
-    
+
     # Signals for communication with controller
     compute_requested = pyqtSignal(dict)  # Wavelet parameters
     apply_inverse_requested = pyqtSignal(bool)  # Apply/remove inverse transform
@@ -33,16 +33,16 @@ class WaveletWidget(QWidget):
     def __init__(self, parent: Optional[Any] = None) -> None:
         """Initialize the wavelet widget."""
         super().__init__(parent)
-        
+
         # Wavelet state
         self.channel_names: List[str] = []
         self.wavelet_results: Optional[Dict[str, Any]] = None
         self.inverse_applied = False
-        
+
         # Create main layout
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
-        
+
         self._setup_ui()
 
     def _setup_ui(self) -> None:
@@ -63,7 +63,7 @@ class WaveletWidget(QWidget):
         # Wavelet Type - Add all available wavelets from BrainFlow
         wavelet_params_layout.addWidget(QLabel("Wavelet Type:"), 0, 0)
         self.wavelet_type_combo = QComboBox()
-        
+
         # Daubechies wavelets
         self.wavelet_type_combo.addItem("Haar", WaveletTypes.HAAR)
         self.wavelet_type_combo.addItem("DB1", WaveletTypes.DB1)
@@ -81,7 +81,7 @@ class WaveletWidget(QWidget):
         self.wavelet_type_combo.addItem("DB13", WaveletTypes.DB13)
         self.wavelet_type_combo.addItem("DB14", WaveletTypes.DB14)
         self.wavelet_type_combo.addItem("DB15", WaveletTypes.DB15)
-        
+
         # Biorthogonal wavelets
         self.wavelet_type_combo.addItem("BIOR1_1", WaveletTypes.BIOR1_1)
         self.wavelet_type_combo.addItem("BIOR1_3", WaveletTypes.BIOR1_3)
@@ -98,14 +98,14 @@ class WaveletWidget(QWidget):
         self.wavelet_type_combo.addItem("BIOR4_4", WaveletTypes.BIOR4_4)
         self.wavelet_type_combo.addItem("BIOR5_5", WaveletTypes.BIOR5_5)
         self.wavelet_type_combo.addItem("BIOR6_8", WaveletTypes.BIOR6_8)
-        
+
         # Coiflets wavelets
         self.wavelet_type_combo.addItem("COIF1", WaveletTypes.COIF1)
         self.wavelet_type_combo.addItem("COIF2", WaveletTypes.COIF2)
         self.wavelet_type_combo.addItem("COIF3", WaveletTypes.COIF3)
         self.wavelet_type_combo.addItem("COIF4", WaveletTypes.COIF4)
         self.wavelet_type_combo.addItem("COIF5", WaveletTypes.COIF5)
-        
+
         # Symlets wavelets
         self.wavelet_type_combo.addItem("SYM2", WaveletTypes.SYM2)
         self.wavelet_type_combo.addItem("SYM3", WaveletTypes.SYM3)
@@ -116,13 +116,13 @@ class WaveletWidget(QWidget):
         self.wavelet_type_combo.addItem("SYM8", WaveletTypes.SYM8)
         self.wavelet_type_combo.addItem("SYM9", WaveletTypes.SYM9)
         self.wavelet_type_combo.addItem("SYM10", WaveletTypes.SYM10)
-        
+
         # Set default to DB4 (commonly used for EEG)
         for i in range(self.wavelet_type_combo.count()):
             if self.wavelet_type_combo.itemData(i) == WaveletTypes.DB4:
                 self.wavelet_type_combo.setCurrentIndex(i)
                 break
-        
+
         # Connect to dynamic update
         self.wavelet_type_combo.currentIndexChanged.connect(self._on_settings_changed)
         wavelet_params_layout.addWidget(self.wavelet_type_combo, 0, 1)
@@ -131,7 +131,9 @@ class WaveletWidget(QWidget):
         self.wavelet_level_spin = QSpinBox()
         self.wavelet_level_spin.setRange(1, 8)
         self.wavelet_level_spin.setValue(3)
-        self.wavelet_level_spin.setToolTip("Number of decomposition levels. Higher levels = more frequency separation")
+        self.wavelet_level_spin.setToolTip(
+            "Number of decomposition levels. Higher levels = more frequency separation"
+        )
         # Connect to dynamic update
         self.wavelet_level_spin.valueChanged.connect(self._on_settings_changed)
         wavelet_params_layout.addWidget(self.wavelet_level_spin, 0, 3)
@@ -139,20 +141,24 @@ class WaveletWidget(QWidget):
         wavelet_params_layout.addWidget(QLabel("Channel:"), 1, 0)
         self.wavelet_channel_combo = QComboBox()
         # Connect to dynamic update
-        self.wavelet_channel_combo.currentIndexChanged.connect(self._on_settings_changed)
+        self.wavelet_channel_combo.currentIndexChanged.connect(
+            self._on_settings_changed
+        )
         wavelet_params_layout.addWidget(self.wavelet_channel_combo, 1, 1)
-        
+
         # Extension type
         wavelet_params_layout.addWidget(QLabel("Extension:"), 1, 2)
         self.extension_combo = QComboBox()
         self.extension_combo.addItem("Symmetric", WaveletExtensionTypes.SYMMETRIC)
         self.extension_combo.addItem("Periodic", WaveletExtensionTypes.PERIODIC)
-        self.extension_combo.setToolTip("Boundary extension method for wavelet transform")
+        self.extension_combo.setToolTip(
+            "Boundary extension method for wavelet transform"
+        )
         self.extension_combo.currentIndexChanged.connect(self._on_settings_changed)
         wavelet_params_layout.addWidget(self.extension_combo, 1, 3)
 
         wavelet_layout.addLayout(wavelet_params_layout)
-        
+
         # Wavelet denoising option
         denoising_layout = QHBoxLayout()
         self.apply_denoising_check = QCheckBox("Apply Wavelet Denoising")
@@ -190,7 +196,7 @@ class WaveletWidget(QWidget):
             "decomp_level": self.wavelet_level_spin.value(),
             "channel_selection": self.wavelet_channel_combo.currentData(),
             "extension_type": self.extension_combo.currentData(),
-            "apply_denoising": self.apply_denoising_check.isChecked()
+            "apply_denoising": self.apply_denoising_check.isChecked(),
         }
         self.compute_requested.emit(params)
 
@@ -198,11 +204,13 @@ class WaveletWidget(QWidget):
         """Toggle inverse transform application."""
         self.inverse_applied = not self.inverse_applied
         self.apply_inverse_requested.emit(self.inverse_applied)
-        
+
         # Update button appearance
         if self.inverse_applied:
             self.inverse_wavelet_btn.setText("Remove Inverse Transform")
-            self.inverse_wavelet_btn.setStyleSheet("background-color: #AA3333; color: white;")
+            self.inverse_wavelet_btn.setStyleSheet(
+                "background-color: #AA3333; color: white;"
+            )
         else:
             self.inverse_wavelet_btn.setText("Apply Inverse Transform")
             self.inverse_wavelet_btn.setStyleSheet("")
@@ -210,14 +218,14 @@ class WaveletWidget(QWidget):
     def _on_settings_changed(self) -> None:
         """Emit signal when settings change for dynamic update."""
         # Only emit if inverse transform is currently applied
-        if hasattr(self, 'inverse_applied') and self.inverse_applied:
+        if hasattr(self, "inverse_applied") and self.inverse_applied:
             settings = self.get_wavelet_settings()
             self.settings_changed.emit(settings)
 
     def update_channels(self, channel_names: List[str]) -> None:
         """Update available channels."""
         self.channel_names = channel_names.copy()
-        
+
         # Update channel combo
         current_selection = self.wavelet_channel_combo.currentData()
         self.wavelet_channel_combo.clear()
@@ -235,10 +243,7 @@ class WaveletWidget(QWidget):
 
     def set_wavelet_results(self, coefficients: Any, metadata: Dict[str, Any]) -> None:
         """Set wavelet computation results."""
-        self.wavelet_results = {
-            "coefficients": coefficients,
-            "metadata": metadata
-        }
+        self.wavelet_results = {"coefficients": coefficients, "metadata": metadata}
         self.inverse_wavelet_btn.setEnabled(True)
 
     def has_wavelet_results(self) -> bool:
@@ -248,7 +253,7 @@ class WaveletWidget(QWidget):
     def set_enabled(self, enabled: bool) -> None:
         """Enable or disable the widget."""
         self.compute_wavelet_btn.setEnabled(enabled)
-        
+
         if not enabled:
             self.inverse_wavelet_btn.setEnabled(False)
             self.wavelet_results = None

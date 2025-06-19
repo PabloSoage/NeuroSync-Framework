@@ -631,9 +631,7 @@ class InteractionService:
                     "error": "NO_COLLECTOR",
                 }
 
-            success = recording_service.start_recording(
-                collector_service.collector, filename, data_type
-            )
+            success = recording_service.start_recording(filename, data_type)
 
             if success:
                 self._set_status(True, "Recording started successfully")
@@ -707,7 +705,7 @@ class InteractionService:
                     "error": "NO_COLLECTOR",
                 }
 
-            success = recording_service.stop_recording(collector_service.collector)
+            success = recording_service.stop_recording()
 
             if success:
                 self._set_status(True, "Recording stopped successfully")
@@ -758,9 +756,7 @@ class InteractionService:
             recording_service = self._get_recording_service()
             collector_service = self._get_collector_service()
 
-            success = recording_service.insert_marker(
-                collector_service.collector, marker_value
-            )
+            success = recording_service.insert_marker(marker_value)
 
             result = {
                 "success": success,
@@ -1235,16 +1231,20 @@ class InteractionService:
             Dictionary with save result information
         """
         try:
-            collector_service = self._get_collector_service()
+            data_service = self._get_data_access_service()
+            recording_service = self._get_recording_service()
 
-            if not collector_service.collector:
+            # Get current data
+            data, timestamps = data_service.get_current_data()
+
+            if data.size == 0:
                 return {
                     "success": False,
-                    "message": "No collector available to save data",
+                    "message": "No data available to save",
                 }
 
-            # Save data using collector's save method
-            collector_service.collector.save_data(filename, data_type)
+            # Save data using recording service
+            recording_service.save_data(filename, data_type)
 
             result = {
                 "success": True,
@@ -1276,4 +1276,5 @@ class InteractionService:
             self._initialized = False
             logging.info("Interaction service cleaned up")
         except Exception as e:
+            logging.error(f"Error during interaction service cleanup: {e}")
             logging.error(f"Error during interaction service cleanup: {e}")

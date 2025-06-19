@@ -732,7 +732,9 @@ class BrainMapVisualizer:
             if not hasattr(self.data_service, "get_current_data") or not hasattr(
                 self.processor, "get_all_channels_quality"
             ):
-                logging.warning("DataAccessService or processor missing required methods")
+                logging.warning(
+                    "DataAccessService or processor missing required methods"
+                )
                 return
 
             # Get data from DataAccessService instead of collector

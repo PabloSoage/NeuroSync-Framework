@@ -3,7 +3,6 @@ import multiprocessing as mp
 import queue
 import threading
 import time
-import os
 from typing import Dict, List, Any, Tuple, Callable, Optional
 
 import numpy as np
@@ -82,6 +81,11 @@ class DataAccessService:
 
         # Advanced processing settings
         self._advanced_processing_settings: Dict[str, Any] = {}
+
+        # Wavelet processing attributes
+        self._wavelet_coefficients: Optional[np.ndarray] = None
+        self._wavelet_metadata: Optional[Dict[str, Any]] = None
+        self._wavelet_target_channel: int = 0
 
     def _init_collector_reference(self) -> None:
         """Initialize reference to collector service (if available)."""
@@ -379,7 +383,9 @@ class DataAccessService:
             settings: Advanced processing configuration
         """
         with self._data_lock:
-            self._advanced_processing_enabled = getattr(self, '_advanced_processing_enabled', False)
+            self._advanced_processing_enabled = getattr(
+                self, "_advanced_processing_enabled", False
+            )
             self._advanced_processing_enabled = enabled
             if settings is not None:
                 # merge new settings into existing advanced settings
@@ -388,7 +394,9 @@ class DataAccessService:
         action = "enabled" if enabled else "disabled"
         logging.info(f"DataAccessService advanced processing {action}")
 
-    def update_advanced_processing_settings(self, processing_settings: Dict[str, Any]) -> None:
+    def update_advanced_processing_settings(
+        self, processing_settings: Dict[str, Any]
+    ) -> None:
         """Update advanced processing settings."""
         with self._data_lock:
             self._advanced_processing_settings = processing_settings
@@ -398,7 +406,7 @@ class DataAccessService:
         """Apply filters to data if enabled and processor is available."""
         if (
             not self._filters_enabled
-            and not getattr(self, '_advanced_processing_enabled', False)
+            and not getattr(self, "_advanced_processing_enabled", False)
         ) or not self._processor_service:
             return data
 
@@ -434,19 +442,25 @@ class DataAccessService:
 
             # Check if advanced filters include bandpass
             advanced_has_bandpass = False
-            if getattr(self, '_advanced_processing_enabled', False):
-                settings = getattr(self, '_advanced_processing_settings', {})
-                advanced_has_bandpass = settings.get("advanced_filters", {}).get("enabled", False)
+            if getattr(self, "_advanced_processing_enabled", False):
+                settings = getattr(self, "_advanced_processing_settings", {})
+                advanced_has_bandpass = settings.get("advanced_filters", {}).get(
+                    "enabled", False
+                )
 
             # Apply basic filters with coordination
             if self._filters_enabled and self._filter_settings:
                 # Apply bandpass filter ONLY if advanced filters don't include bandpass
-                if (self._filter_settings.get("bandpass", {}).get("enabled", False) and 
-                    not advanced_has_bandpass):
+                if (
+                    self._filter_settings.get("bandpass", {}).get("enabled", False)
+                    and not advanced_has_bandpass
+                ):
                     bp = self._filter_settings["bandpass"]
                     low_cut = bp.get("low_cut", bp.get("low", 1.0))
                     high_cut = bp.get("high_cut", bp.get("high", 50.0))
-                    logging.debug(f"Applying basic bandpass filter {low_cut}-{high_cut} Hz to chunk")
+                    logging.debug(
+                        f"Applying basic bandpass filter {low_cut}-{high_cut} Hz to chunk"
+                    )
                     filtered_data = self._processor_service.apply_bandpass_filter(
                         filtered_data, low_cut, high_cut
                     )
@@ -466,46 +480,65 @@ class DataAccessService:
                     filtered_data = self._processor_service.apply_detrend(filtered_data)
 
             # Apply advanced processing (including advanced bandpass if enabled)
-            if getattr(self, '_advanced_processing_enabled', False):
+            if getattr(self, "_advanced_processing_enabled", False):
                 filtered_data = self._apply_advanced_processing(filtered_data)
 
-            logging.debug("Filters and advanced processing applied successfully to chunk in DataAccessService")
+            logging.debug(
+                "Filters and advanced processing applied successfully to chunk in DataAccessService"
+            )
             return filtered_data
 
         except Exception as e:
-            logging.error(f"Error applying filters/processing to chunk in DataAccessService: {e}")
+            logging.error(
+                f"Error applying filters/processing to chunk in DataAccessService: {e}"
+            )
             return data
 
     def _apply_advanced_processing(self, data: np.ndarray) -> np.ndarray:
         """Apply advanced processing to data chunk."""
         try:
             processed_data = data.copy()
-            settings = getattr(self, '_advanced_processing_settings', {})
+            settings = getattr(self, "_advanced_processing_settings", {})
+
+            # Ensure processor service is available
+            if not self._processor_service:
+                logging.warning(
+                    "No processor service available for advanced processing"
+                )
+                return data
 
             # Apply advanced filters first (including bandpass with basic filter parameters)
             if settings.get("advanced_filters", {}).get("enabled", False):
                 adv_filters = settings["advanced_filters"]
-                
+
                 # Get basic filter parameters for coordination
                 basic_bandpass_params = None
                 if self._filters_enabled and self._filter_settings:
                     bp_settings = self._filter_settings.get("bandpass", {})
                     if bp_settings.get("enabled", False):
                         basic_bandpass_params = {
-                            "low_cut": bp_settings.get("low_cut", bp_settings.get("low", 1.0)),
-                            "high_cut": bp_settings.get("high_cut", bp_settings.get("high", 50.0))
+                            "low_cut": bp_settings.get(
+                                "low_cut", bp_settings.get("low", 1.0)
+                            ),
+                            "high_cut": bp_settings.get(
+                                "high_cut", bp_settings.get("high", 50.0)
+                            ),
                         }
-                
+
                 # Use basic bandpass parameters if available, otherwise use advanced filter defaults
                 if basic_bandpass_params:
                     low_cut = basic_bandpass_params["low_cut"]
                     high_cut = basic_bandpass_params["high_cut"]
-                    logging.debug(f"Applying advanced bandpass filter with basic parameters {low_cut}-{high_cut}Hz, type {adv_filters.get('filter_type')}")
+                    logging.debug(
+                        f"Applying advanced bandpass filter with basic parameters {low_cut}-{high_cut}Hz, type {adv_filters.get('filter_type')}"
+                    )
                 else:
                     low_cut = adv_filters.get("low_cut", 1.0)
                     high_cut = adv_filters.get("high_cut", 50.0)
-                    logging.debug(f"Applying advanced bandpass filter {low_cut}-{high_cut}Hz, type {adv_filters.get('filter_type')}")
-                
+                    logging.debug(
+                        f"Applying advanced bandpass filter {low_cut}-{high_cut}Hz, type {adv_filters.get('filter_type')}"
+                    )
+
                 filter_type = adv_filters.get("filter_type", FilterTypes.BUTTERWORTH)
                 order = adv_filters.get("order", 4)
                 ripple = adv_filters.get("ripple", 1.0)
@@ -525,7 +558,9 @@ class DataAccessService:
             # Apply downsampling
             if settings.get("downsampling", {}).get("enabled", False):
                 ds = settings["downsampling"]
-                logging.debug(f"Applying downsampling with factor {ds.get('factor', 2)}")
+                logging.debug(
+                    f"Applying downsampling with factor {ds.get('factor', 2)}"
+                )
                 processed_data = self._processor_service.perform_downsampling(
                     processed_data,
                     ds.get("factor", 2),
@@ -534,11 +569,11 @@ class DataAccessService:
 
             # Apply wavelet processing (if inverse transform is enabled)
             if settings.get("wavelet", {}).get("inverse_enabled", False):
-                wavelet_data = getattr(self, '_wavelet_coefficients', None)
-                wavelet_metadata = getattr(self, '_wavelet_metadata', None)
+                wavelet_data = getattr(self, "_wavelet_coefficients", None)
+                wavelet_metadata = getattr(self, "_wavelet_metadata", None)
                 if wavelet_data is not None and wavelet_metadata is not None:
                     # Get detailed information for logging
-                    target_channel = getattr(self, '_wavelet_target_channel', 0)
+                    target_channel = getattr(self, "_wavelet_target_channel", 0)
                     original_shape = wavelet_metadata.get("original_shape", (1, 0))
                     original_window_size = original_shape[1]
                     wavelet_type = wavelet_metadata.get("wavelet", "Unknown")
@@ -546,100 +581,178 @@ class DataAccessService:
                     extension_type = wavelet_metadata.get("extension_type", 0)
                     apply_denoising = wavelet_metadata.get("apply_denoising", False)
                     computation_time = wavelet_metadata.get("computation_timestamp", 0)
-                    
+
                     # Calculate time since computation
-                    time_since_computation = time.time() - computation_time if computation_time > 0 else "Unknown"
-                    
+                    time_since_computation = (
+                        time.time() - computation_time
+                        if computation_time > 0
+                        else "Unknown"
+                    )
+
                     logging.debug(f"🔄 WAVELET INVERSE TRANSFORM ACTIVE:")
                     logging.debug(f"   📊 Target Channel: {target_channel}")
                     logging.debug(f"   🌊 Wavelet Type: {wavelet_type}")
                     logging.debug(f"   📏 Decomposition Level: {decomp_level}")
                     logging.debug(f"   🔧 Extension Type: {extension_type}")
-                    logging.debug(f"   🧹 Denoising: {'Yes' if apply_denoising else 'No'}")
-                    logging.debug(f"   📐 Original Window Size: {original_window_size} samples")
-                    logging.debug(f"   ⏱️  Computed: {time_since_computation:.1f}s ago" if isinstance(time_since_computation, float) else f"   ⏱️  Computed: {time_since_computation}")
+                    logging.debug(
+                        f"   🧹 Denoising: {'Yes' if apply_denoising else 'No'}"
+                    )
+                    logging.debug(
+                        f"   📐 Original Window Size: {original_window_size} samples"
+                    )
+                    logging.debug(
+                        f"   ⏱️  Computed: {time_since_computation:.1f}s ago"
+                        if isinstance(time_since_computation, float)
+                        else f"   ⏱️  Computed: {time_since_computation}"
+                    )
                     logging.debug(f"   📊 Current Data Shape: {processed_data.shape}")
                     logging.debug(f"   📊 Wavelet Coeffs Shape: {wavelet_data.shape}")
-                    
+
                     # Ensure target channel is valid
                     if target_channel >= processed_data.shape[0]:
                         target_channel = 0
-                        logging.warning(f"⚠️  Wavelet target channel out of range, using channel 0")
-                    
+                        logging.warning(
+                            f"⚠️  Wavelet target channel out of range, using channel 0"
+                        )
+
                     # Only apply to sliding window, not entire buffer
                     current_samples = processed_data.shape[1]
-                    
-                    if original_window_size > 0 and current_samples >= original_window_size:
+
+                    if (
+                        original_window_size > 0
+                        and current_samples >= original_window_size
+                    ):
                         try:
                             # Work with a sliding window of the original size
                             window_start = current_samples - original_window_size
-                            window_data = processed_data[target_channel:target_channel+1, window_start:current_samples]
-                            
+                            window_data = processed_data[
+                                target_channel : target_channel + 1,
+                                window_start:current_samples,
+                            ]
+
                             # Store original data for comparison
                             original_window_data = window_data.copy()
-                            
+
                             # Ensure we have the right amount of coefficients
-                            coeff_samples = min(wavelet_data.shape[1], original_window_size)
+                            coeff_samples = min(
+                                wavelet_data.shape[1], original_window_size
+                            )
                             if coeff_samples > 0:
                                 # Use the most recent coefficients (or all if they match)
                                 recent_coeffs = wavelet_data[:, -coeff_samples:]
-                                
-                                logging.debug(f"   🔄 Processing sliding window: samples {window_start} to {current_samples}")
-                                logging.debug(f"   🔄 Using {coeff_samples} wavelet coefficients")
-                                
+
+                                logging.debug(
+                                    f"   🔄 Processing sliding window: samples {window_start} to {current_samples}"
+                                )
+                                logging.debug(
+                                    f"   🔄 Using {coeff_samples} wavelet coefficients"
+                                )
+
                                 # Create metadata for this window
                                 working_metadata = wavelet_metadata.copy()
                                 working_metadata["original_shape"] = (1, coeff_samples)
-                                
+
                                 # Apply inverse wavelet transform to the window
-                                reconstructed = self._processor_service.apply_inverse_wavelet(
-                                    recent_coeffs, working_metadata
+                                reconstructed = (
+                                    self._processor_service.apply_inverse_wavelet(
+                                        recent_coeffs, working_metadata
+                                    )
                                 )
-                                
+
                                 # Replace only the window in the target channel
-                                if (reconstructed.shape[0] == 1 and 
-                                    reconstructed.shape[1] <= original_window_size):
-                                    
+                                if (
+                                    reconstructed.shape[0] == 1
+                                    and reconstructed.shape[1] <= original_window_size
+                                ):
+
                                     # Calculate how much to replace
-                                    samples_to_replace = min(reconstructed.shape[1], coeff_samples, original_window_size)
-                                    replacement_start = current_samples - samples_to_replace
-                                    
+                                    samples_to_replace = min(
+                                        reconstructed.shape[1],
+                                        coeff_samples,
+                                        original_window_size,
+                                    )
+                                    replacement_start = (
+                                        current_samples - samples_to_replace
+                                    )
+
                                     # Replace the window data
-                                    processed_data[target_channel, replacement_start:replacement_start+samples_to_replace] = reconstructed[0, :samples_to_replace]
-                                    
+                                    processed_data[
+                                        target_channel,
+                                        replacement_start : replacement_start
+                                        + samples_to_replace,
+                                    ] = reconstructed[0, :samples_to_replace]
+
                                     # Calculate the difference to show impact
                                     if samples_to_replace > 0:
-                                        original_segment = original_window_data[0, -samples_to_replace:]
-                                        reconstructed_segment = reconstructed[0, :samples_to_replace]
-                                        max_diff = np.max(np.abs(reconstructed_segment - original_segment))
-                                        mean_diff = np.mean(np.abs(reconstructed_segment - original_segment))
-                                        
-                                        logging.debug(f"   ✅ Applied inverse wavelet to channel {target_channel}")
-                                        logging.debug(f"   📊 Processed {samples_to_replace} samples")
-                                        logging.debug(f"   📈 Max difference: {max_diff:.6f}")
-                                        logging.debug(f"   📈 Mean difference: {mean_diff:.6f}")
-                                        
+                                        original_segment = original_window_data[
+                                            0, -samples_to_replace:
+                                        ]
+                                        reconstructed_segment = reconstructed[
+                                            0, :samples_to_replace
+                                        ]
+                                        max_diff = np.max(
+                                            np.abs(
+                                                reconstructed_segment - original_segment
+                                            )
+                                        )
+                                        mean_diff = np.mean(
+                                            np.abs(
+                                                reconstructed_segment - original_segment
+                                            )
+                                        )
+
+                                        logging.debug(
+                                            f"   ✅ Applied inverse wavelet to channel {target_channel}"
+                                        )
+                                        logging.debug(
+                                            f"   📊 Processed {samples_to_replace} samples"
+                                        )
+                                        logging.debug(
+                                            f"   📈 Max difference: {max_diff:.6f}"
+                                        )
+                                        logging.debug(
+                                            f"   📈 Mean difference: {mean_diff:.6f}"
+                                        )
+
                                         # If difference is very small, it might not be visible
                                         if max_diff < 1e-6:
-                                            logging.warning(f"   ⚠️  Very small changes detected - may not be visible in visualization")
-                                            logging.warning(f"   💡 Try different wavelet settings or use real EEG data for more noticeable effects")
-                                    
-                                    logging.debug(f"Applied inverse wavelet to sliding window of {samples_to_replace} samples on channel {target_channel}")
+                                            logging.warning(
+                                                f"   ⚠️  Very small changes detected - may not be visible in visualization"
+                                            )
+                                            logging.warning(
+                                                f"   💡 Try different wavelet settings or use real EEG data for more noticeable effects"
+                                            )
+
+                                    logging.debug(
+                                        f"Applied inverse wavelet to sliding window of {samples_to_replace} samples on channel {target_channel}"
+                                    )
                                 else:
-                                    logging.error(f"   ❌ Wavelet reconstruction shape mismatch: {reconstructed.shape} vs expected (1, {coeff_samples})")
+                                    logging.error(
+                                        f"   ❌ Wavelet reconstruction shape mismatch: {reconstructed.shape} vs expected (1, {coeff_samples})"
+                                    )
                             else:
-                                logging.warning("   ⚠️  No valid coefficients available for wavelet reconstruction")
-                                
+                                logging.warning(
+                                    "   ⚠️  No valid coefficients available for wavelet reconstruction"
+                                )
+
                         except Exception as e:
-                            logging.error(f"   ❌ Error applying sliding window inverse wavelet: {e}")
+                            logging.error(
+                                f"   ❌ Error applying sliding window inverse wavelet: {e}"
+                            )
                     else:
                         # Not enough data yet, or invalid window size
                         if original_window_size <= 0:
-                            logging.warning("   ⚠️  Invalid original window size for wavelet reconstruction")
+                            logging.warning(
+                                "   ⚠️  Invalid original window size for wavelet reconstruction"
+                            )
                         else:
-                            logging.info(f"   ⏳ Waiting for sufficient data: {current_samples} < {original_window_size} samples")
+                            logging.info(
+                                f"   ⏳ Waiting for sufficient data: {current_samples} < {original_window_size} samples"
+                            )
                 else:
-                    logging.warning("   ❌ No wavelet coefficients available - compute wavelet first")
+                    logging.warning(
+                        "   ❌ No wavelet coefficients available - compute wavelet first"
+                    )
 
             return processed_data
 
@@ -807,13 +920,14 @@ class DataAccessService:
             timestamps = self._timestamps.copy()
 
             # Apply filters and advanced processing if any are enabled
-            should_process = (
-                self._filters_enabled or 
-                getattr(self, '_advanced_processing_enabled', False)
+            should_process = self._filters_enabled or getattr(
+                self, "_advanced_processing_enabled", False
             )
-            
+
             if should_process and raw_data.size > 0:
-                logging.debug("DataAccessService: Applying filters and/or advanced processing to current data")
+                logging.debug(
+                    "DataAccessService: Applying filters and/or advanced processing to current data"
+                )
 
                 # For large buffers, only filter recent data to avoid performance issues
                 if raw_data.shape[1] > 5000:  # If buffer is large
@@ -836,7 +950,9 @@ class DataAccessService:
                 ):
                     logging.debug("DataAccessService: Data was successfully processed")
                 else:
-                    logging.debug("DataAccessService: Data was not changed by processing")
+                    logging.debug(
+                        "DataAccessService: Data was not changed by processing"
+                    )
 
                 return filtered_data, filtered_timestamps
             else:

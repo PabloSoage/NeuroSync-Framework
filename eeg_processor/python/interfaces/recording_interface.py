@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+
 class DataStorageInterface(ABC):
     """Interface for data storage operations."""
 

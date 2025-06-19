@@ -345,7 +345,7 @@ HELP_CONTENT = {
         "title": "Real-time ICA Monitoring",
         "content": """
         <h3>Real-time ICA Monitoring</h3>
-        <p>Real-time ICA continuously computes Independent Component Analysis on a sliding window 
+        <p>Real-time ICA continuously computes Independent Component Analysis on a sliding window
         of EEG data, allowing you to monitor brain activity patterns in real-time.</p>
 
         <h4>How it Works:</h4>
@@ -408,7 +408,7 @@ HELP_CONTENT = {
             <li><b>Stability</b>: Results may vary more than static ICA due to shorter data windows</li>
         </ul>
 
-        <p><b>Note:</b> Real-time ICA is primarily for monitoring and research purposes. 
+        <p><b>Note:</b> Real-time ICA is primarily for monitoring and research purposes.
         For final analysis, it's recommended to also perform static ICA on longer data segments.</p>
         """,
     },
@@ -416,7 +416,7 @@ HELP_CONTENT = {
         "title": "Advanced Digital Filters",
         "content": """
         <h3>Advanced Digital Filters</h3>
-        <p>Advanced filtering provides more sophisticated signal processing options beyond basic bandpass filtering, 
+        <p>Advanced filtering provides more sophisticated signal processing options beyond basic bandpass filtering,
         offering different filter types with specific characteristics for various EEG analysis needs.</p>
 
         <h4>Filter Types:</h4>
@@ -484,7 +484,7 @@ HELP_CONTENT = {
         <ul>
             <li><b>All Channels</b>: Apply filtering to entire dataset (default)</li>
             <li><b>Selected Channels</b>: Apply only to specific channels of interest</li>
-            <li><b>Use Cases</b>: 
+            <li><b>Use Cases</b>:
                 <ul>
                     <li>Focus processing on specific brain regions</li>
                     <li>Preserve unfiltered data in other channels for comparison</li>
@@ -540,8 +540,8 @@ HELP_CONTENT = {
             <li><b>Poor Performance</b>: Reduce number of selected channels</li>
         </ul>
 
-        <p><b>Recommendation:</b> For most EEG applications, start with Butterworth filters. 
-        Only use Chebyshev when you specifically need sharper frequency separation and are working with real EEG data. 
+        <p><b>Recommendation:</b> For most EEG applications, start with Butterworth filters.
+        Only use Chebyshev when you specifically need sharper frequency separation and are working with real EEG data.
         Always validate your filtering results by comparing before and after signals.</p>
         """,
     },
@@ -549,15 +549,15 @@ HELP_CONTENT = {
         "title": "Wavelet Transform Analysis",
         "content": """
         <h2>Wavelet Transform Analysis</h2>
-        
+
         <h3>Overview</h3>
         <p>Wavelet transforms provide time-frequency analysis of EEG signals, allowing you to analyze signal characteristics at different time scales and frequencies simultaneously.</p>
-        
+
         <h3>Parameters</h3>
-        
+
         <h4>Wavelet Type</h4>
         <p>Different wavelets are suited for different types of analysis:</p>
-        
+
         <h5>Daubechies Wavelets (DB1-DB15)</h5>
         <ul>
             <li><strong>Haar (DB1)</strong>: Simplest wavelet, good for detecting step-like changes and discontinuities</li>
@@ -568,7 +568,7 @@ HELP_CONTENT = {
             <li><strong>DB7-DB8</strong>: High frequency resolution, suitable for complex signal decomposition</li>
             <li><strong>DB9-DB15</strong>: Very high frequency resolution but increased computational cost</li>
         </ul>
-        
+
         <h5>Biorthogonal Wavelets (BIOR)</h5>
         <ul>
             <li><strong>BIOR1_1</strong>: Linear spline wavelet, good for smooth signals</li>
@@ -580,7 +580,7 @@ HELP_CONTENT = {
             <li><strong>BIOR4_4</strong>: Symmetric, widely used for image and signal processing</li>
             <li><strong>BIOR5_5, BIOR6_8</strong>: Very high reconstruction quality</li>
         </ul>
-        
+
         <h5>Coiflets Wavelets (COIF1-COIF5)</h5>
         <ul>
             <li><strong>COIF1</strong>: Basic coiflet, more symmetric than DB wavelets</li>
@@ -588,7 +588,7 @@ HELP_CONTENT = {
             <li><strong>COIF3</strong>: Better frequency resolution, suitable for detailed analysis</li>
             <li><strong>COIF4-COIF5</strong>: High-quality wavelets for precise applications</li>
         </ul>
-        
+
         <h5>Symlets Wavelets (SYM2-SYM10)</h5>
         <ul>
             <li><strong>SYM2-SYM3</strong>: Nearly symmetric versions of DB wavelets</li>
@@ -596,7 +596,7 @@ HELP_CONTENT = {
             <li><strong>SYM5-SYM6</strong>: Good for applications requiring phase preservation</li>
             <li><strong>SYM7-SYM10</strong>: High-order wavelets for specialized applications</li>
         </ul>
-        
+
         <h4>Wavelet Selection Guidelines for EEG</h4>
         <ul>
             <li><strong>General EEG Analysis</strong>: DB4, SYM4, or COIF2</li>
@@ -606,7 +606,7 @@ HELP_CONTENT = {
             <li><strong>Sleep Analysis</strong>: DB6, COIF3 (good for slow waves)</li>
             <li><strong>Spike Detection</strong>: DB4, SYM4 (good time localization)</li>
         </ul>
-        
+
         <h4>Decomposition Level</h4>
         <p>Higher levels provide better frequency resolution but lower time resolution. For EEG:</p>
         <ul>
@@ -616,17 +616,17 @@ HELP_CONTENT = {
             <li><strong>Level 7-8</strong>: Very slow components, DC trends</li>
         </ul>
         <p><strong>Rule of thumb</strong>: Maximum useful level ≈ log₂(signal_length) - 2</p>
-        
+
         <h4>Channel Selection</h4>
         <p>Select the EEG channel to analyze. Wavelet analysis is performed on a single channel at a time for computational efficiency and clarity of results.</p>
-        
+
         <h4>Extension Type</h4>
         <p>Boundary handling for the wavelet transform:</p>
         <ul>
             <li><strong>Symmetric (Recommended)</strong>: Reflects signal at boundaries, reduces boundary artifacts</li>
             <li><strong>Periodic</strong>: Assumes signal is periodic, can introduce artifacts if signal isn't truly periodic</li>
         </ul>
-        
+
         <h4>Apply Wavelet Denoising</h4>
         <p><strong>Important:</strong> This checkbox applies denoising <em>during</em> the wavelet coefficient computation, not during visualization. It's a preprocessing step that removes noise from the signal <em>before</em> computing the transform.</p>
         <p><strong>When to use:</strong></p>
@@ -636,13 +636,13 @@ HELP_CONTENT = {
             <li>The denoised coefficients are then used for the inverse transform</li>
         </ul>
         <p><strong>Note:</strong> With synthetic/regular data, denoising effects may be minimal. With real EEG data containing noise, the effects will be more visible.</p>
-        
+
         <h3>Workflow</h3>
         <ol>
             <li><strong>Compute Wavelet Transform</strong>: Analyzes the selected channel and generates wavelet coefficients</li>
             <li><strong>Apply Inverse Transform</strong>: Reconstructs the signal from coefficients and applies it to the data stream in real-time</li>
         </ol>
-        
+
         <h3>Real-time Application</h3>
         <p>When "Apply Inverse Transform" is enabled:</p>
         <ul>
@@ -651,7 +651,7 @@ HELP_CONTENT = {
             <li>The effect is applied continuously to incoming data</li>
             <li>Changes may be subtle with synthetic data but significant with real EEG</li>
         </ul>
-        
+
         <h3>Applications</h3>
         <ul>
             <li><strong>Artifact Removal</strong>: Remove specific frequency components (eye blinks, muscle artifacts)</li>
@@ -661,7 +661,7 @@ HELP_CONTENT = {
             <li><strong>Event Detection</strong>: Detect transient events like K-complexes, sleep spindles</li>
             <li><strong>Frequency Band Analysis</strong>: Isolate specific brain rhythms</li>
         </ul>
-        
+
         <h3>Advanced Applications in EEG</h3>
         <ul>
             <li><strong>Sleep Stage Classification</strong>: Using DB4 or DB6 for sleep spindle detection</li>
@@ -670,7 +670,7 @@ HELP_CONTENT = {
             <li><strong>Motor Imagery</strong>: Mu rhythm analysis with COIF wavelets</li>
             <li><strong>Meditation Analysis</strong>: Alpha/theta analysis with DB4 or SYM4</li>
         </ul>
-        
+
         <h3>Tips</h3>
         <ul>
             <li>Start with DB4 wavelet and level 3 for general EEG analysis</li>
@@ -681,7 +681,7 @@ HELP_CONTENT = {
             <li>Higher decomposition levels are better for removing slow drifts and trends</li>
             <li>Lower decomposition levels are better for removing high-frequency noise</li>
         </ul>
-        
+
         <h3>Computational Considerations</h3>
         <ul>
             <li><strong>Memory Usage</strong>: Higher decomposition levels require more memory</li>
@@ -1238,7 +1238,10 @@ class EEGConceptsHelpDialog(QDialog):
             "Visualization", ["eeg_visualization", "brain_map", "multi_modality"]
         )
         self.add_tab("Recording", ["recording", "streaming", "streamers"])
-        self.add_tab("Advanced Analysis", ["ica", "ica_realtime", "advanced_filters", "wavelet", "downsampling"])
+        self.add_tab(
+            "Advanced Analysis",
+            ["ica", "ica_realtime", "advanced_filters", "wavelet", "downsampling"],
+        )
         # Add comprehensive MNE Integration tab
         self.add_tab(
             "MNE Integration",

@@ -24,15 +24,15 @@ def parse_args() -> argparse.Namespace:
         argparse.Namespace: Parsed command line arguments including API configuration options.
     """
     p = argparse.ArgumentParser(description="EEG Processor Application")
-    
+
     # Logging configuration
     p.add_argument(
         "--logging",
         choices=["debug", "info", "warning", "error", "critical"],
         default="info",
-        help="Set logging level (default: info)"
+        help="Set logging level (default: info)",
     )
-    
+
     p.add_argument("--enable-web-api", action="store_true")
     p.add_argument("--api-host", default="127.0.0.1")
     p.add_argument("--api-port", type=int, default=8000)
@@ -60,7 +60,7 @@ def main() -> None:
         "info": logging.INFO,
         "warning": logging.WARNING,
         "error": logging.ERROR,
-        "critical": logging.CRITICAL
+        "critical": logging.CRITICAL,
     }
 
     # Configure logging - only to console by default, file logging controlled by UI

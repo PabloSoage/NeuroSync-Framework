@@ -18,7 +18,7 @@ class VisualizationService:
         self.eeg_visualizer: Optional[MultiSignalVisualizer] = None
         self.brain_map_visualizer: Optional[BrainMapVisualizer] = None
 
-    def create_eeg_visualizer(self, collector, processor) -> bool:
+    def create_eeg_visualizer(self, collector: Any, processor: Any) -> bool:
         """
         Create EEG visualizer.
 
@@ -32,36 +32,42 @@ class VisualizationService:
         try:
             # CACHE MANAGEMENT: Check if we need to clear cache due to board/preset change
             should_clear_cache = False
-            
-            if (self.eeg_visualizer is not None and 
-                hasattr(self.eeg_visualizer, 'collector')):
-                
+
+            if self.eeg_visualizer is not None and hasattr(
+                self.eeg_visualizer, "collector"
+            ):
+
                 old_collector = self.eeg_visualizer.collector
-                old_preset = getattr(old_collector, 'preset', None)
-                old_board_id = getattr(old_collector, 'board_id', None)
-                
-                new_preset = getattr(collector, 'preset', None)
-                new_board_id = getattr(collector, 'board_id', None)
-                
+                old_preset = getattr(old_collector, "preset", None)
+                old_board_id = getattr(old_collector, "board_id", None)
+
+                new_preset = getattr(collector, "preset", None)
+                new_board_id = getattr(collector, "board_id", None)
+
                 # Clear cache if board or preset changed
                 if old_preset != new_preset or old_board_id != new_board_id:
                     should_clear_cache = True
-                    logging.info(f"Board/preset changed: {old_board_id}/{old_preset} -> {new_board_id}/{new_preset}")
-            
+                    logging.info(
+                        f"Board/preset changed: {old_board_id}/{old_preset} -> {new_board_id}/{new_preset}"
+                    )
+
             # Clear cache if needed
             if should_clear_cache:
                 from ..visualizers.eeg_viz import MultiSignalVisualizer
+
                 MultiSignalVisualizer._clear_cache()
                 logging.info("Cleared visualizer cache due to board/preset change")
-            
+
             # CACHING: Don't destroy existing visualizer if same collector AND same preset
-            if (self.eeg_visualizer is not None and 
-                hasattr(self.eeg_visualizer, 'collector') and
-                self.eeg_visualizer.collector == collector):
-                
+            if (
+                self.eeg_visualizer is not None
+                and hasattr(self.eeg_visualizer, "collector")
+                and self.eeg_visualizer.collector == collector
+            ):
+
                 # Same collector, reuse existing visualizer but create new window
                 logging.info("Reusing existing visualizer for same collector")
-                if hasattr(self.eeg_visualizer, 'main_widget'):
+                if hasattr(self.eeg_visualizer, "main_widget"):
                     self.eeg_visualizer.main_widget.show()
                 return True
 
@@ -146,11 +152,11 @@ class VisualizationService:
             if self.eeg_visualizer:
                 # Just stop the timer, don't destroy the visualizer
                 self.eeg_visualizer.stop()
-                
+
                 # Hide the window instead of destroying it
-                if hasattr(self.eeg_visualizer, 'main_widget'):
+                if hasattr(self.eeg_visualizer, "main_widget"):
                     self.eeg_visualizer.main_widget.hide()
-                
+
                 self.visualization_active = False
                 logging.info("EEG visualization stopped (cached)")
                 return True
@@ -172,7 +178,7 @@ class VisualizationService:
                 # Properly cleanup for disconnect (this clears cache)
                 self.eeg_visualizer.cleanup_for_disconnect()
                 self.eeg_visualizer = None
-                
+
                 self.visualization_active = False
                 logging.info("EEG visualizer destroyed and cache cleared")
                 return True
@@ -236,7 +242,7 @@ class VisualizationService:
 
         try:
             # Check if window exists and is visible
-            if hasattr(self.eeg_visualizer, 'main_widget'):
+            if hasattr(self.eeg_visualizer, "main_widget"):
                 return not self.eeg_visualizer.main_widget.isVisible()
             return True
         except:
@@ -290,7 +296,9 @@ class VisualizationService:
 
         # Note: Visualizers now get filtered data from DataAccessService
         # No need to configure filters on individual visualizers
-        logging.info(f"Filter settings stored: bandpass {enabled} ({low_cutoff}-{high_cutoff}Hz)")
+        logging.info(
+            f"Filter settings stored: bandpass {enabled} ({low_cutoff}-{high_cutoff}Hz)"
+        )
 
         return success
 

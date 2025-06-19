@@ -1,8 +1,8 @@
 import logging
 import multiprocessing as mp
-from multiprocessing.pool import AsyncResult, Pool
 import threading
 import time
+from multiprocessing.pool import AsyncResult, Pool
 from typing import Dict, Any, Callable, Optional
 
 from ...interfaces.mne_interfaces import MNEProcessManagerInterface

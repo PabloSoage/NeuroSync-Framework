@@ -3,12 +3,12 @@ from typing import Any, Optional, Dict
 from PyQt5.QtGui import QCloseEvent
 from PyQt5.QtWidgets import QScrollArea, QWidget, QVBoxLayout
 
-from .base_panel import BasePanel
 from .advanced.advanced_panel_controller import AdvancedPanelController
+from .advanced.widgets.advanced_filter_widget import AdvancedFilterWidget
+from .advanced.widgets.downsampling_widget import DownsamplingWidget
 from .advanced.widgets.ica_widget import ICAWidget
 from .advanced.widgets.wavelet_widget import WaveletWidget
-from .advanced.widgets.downsampling_widget import DownsamplingWidget
-from .advanced.widgets.advanced_filter_widget import AdvancedFilterWidget
+from .base_panel import BasePanel
 
 
 class AdvancedProcessingPanel(BasePanel):
@@ -37,7 +37,7 @@ class AdvancedProcessingPanel(BasePanel):
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setHorizontalScrollBarPolicy(1)  # Qt.ScrollBarAlwaysOff
-        scroll_area.setVerticalScrollBarPolicy(2)    # Qt.ScrollBarAsNeeded
+        scroll_area.setVerticalScrollBarPolicy(2)  # Qt.ScrollBarAsNeeded
 
         # Create a container widget for all components
         container_widget = QWidget()
@@ -56,7 +56,7 @@ class AdvancedProcessingPanel(BasePanel):
         container_layout.addWidget(self.wavelet_widget)
         container_layout.addWidget(self.downsampling_widget)
         container_layout.addWidget(self.advanced_filter_widget)
-        
+
         # Add stretch to push everything to the top
         container_layout.addStretch()
 

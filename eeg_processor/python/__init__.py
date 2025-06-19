@@ -18,4 +18,9 @@ from .eeg_processor_app import EEGProcessorApp
 from .processors import SignalProcessor
 from .visualizers import MultiSignalVisualizer
 
-__all__ = ["EEGProcessorApp", "EEGCollector", "SignalProcessor", "MultiSignalVisualizer"]
+__all__ = [
+    "EEGProcessorApp",
+    "EEGCollector",
+    "SignalProcessor",
+    "MultiSignalVisualizer",
+]

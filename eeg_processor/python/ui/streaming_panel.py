@@ -22,14 +22,18 @@ from ..utils.help_system import HelpButton
 class StreamingPanel(BasePanel):
     """Panel for managing data streaming options."""
 
-    def __init__(self, collector_service: CollectorService, parent: Optional[Any] = None) -> None:
+    def __init__(
+        self, collector_service: CollectorService, parent: Optional[Any] = None
+    ) -> None:
         """Initialize the streaming panel."""
         super().__init__(parent)
         self.collector_service = collector_service
-        
+
         # Import recording service for file streaming
+        self.recording_service: Optional[Any] = None
         try:
             from ..services.recording_service import RecordingService
+
             self.recording_service = RecordingService()
         except Exception as e:
             self.recording_service = None
@@ -59,7 +63,7 @@ class StreamingPanel(BasePanel):
 
         # File streamer
         file_streamer_layout = QVBoxLayout()
-        
+
         # File path row
         file_path_layout = QHBoxLayout()
         file_path_layout.addWidget(QLabel("File Streamer:"))
@@ -76,13 +80,13 @@ class StreamingPanel(BasePanel):
         self.file_data_type_combo.addItem("Processed Data", "processed")
         self.file_data_type_combo.addItem("Both Raw+Processed", "both")
         file_type_layout.addWidget(self.file_data_type_combo)
-        
+
         file_streamer_btn = QPushButton("Add File Streamer")
         file_streamer_btn.clicked.connect(
             lambda: self.add_streamer(
-                self.file_streamer_path.text(), 
+                self.file_streamer_path.text(),
                 streamer_type="file",
-                data_type=self.file_data_type_combo.currentData()
+                data_type=self.file_data_type_combo.currentData(),
             )
         )
         file_type_layout.addWidget(file_streamer_btn)
@@ -100,8 +104,7 @@ class StreamingPanel(BasePanel):
         network_streamer_btn = QPushButton("Add Network Streamer")
         network_streamer_btn.clicked.connect(
             lambda: self.add_streamer(
-                self.network_streamer_path.text(),
-                streamer_type="network"
+                self.network_streamer_path.text(), streamer_type="network"
             )
         )
         network_streamer_layout.addWidget(network_streamer_btn)
@@ -117,8 +120,7 @@ class StreamingPanel(BasePanel):
         custom_streamer_btn = QPushButton("Add Custom Streamer")
         custom_streamer_btn.clicked.connect(
             lambda: self.add_streamer(
-                self.custom_streamer_path.text(),
-                streamer_type="custom"
+                self.custom_streamer_path.text(), streamer_type="custom"
             )
         )
         custom_streamer_layout.addWidget(custom_streamer_btn)
@@ -171,7 +173,9 @@ class StreamingPanel(BasePanel):
 
         self.layout.addWidget(config_group)
 
-    def add_streamer(self, streamer_params: str, streamer_type: str = "auto", data_type: str = "raw") -> None:
+    def add_streamer(
+        self, streamer_params: str, streamer_type: str = "auto", data_type: str = "raw"
+    ) -> None:
         """Add a streamer to the board (unified method like the old version)."""
         if not streamer_params:
             self.show_error("Streamer Error", "No streamer parameters specified")
@@ -180,9 +184,14 @@ class StreamingPanel(BasePanel):
         try:
             # Auto-detect streamer type if not specified
             if streamer_type == "auto":
-                if streamer_params.startswith("file://") or streamer_params.endswith(('.csv', '.txt')):
+                if streamer_params.startswith("file://") or streamer_params.endswith(
+                    (".csv", ".txt")
+                ):
                     streamer_type = "file"
-                elif any(proto in streamer_params for proto in ["streaming_board://", "udp://", "tcp://"]):
+                elif any(
+                    proto in streamer_params
+                    for proto in ["streaming_board://", "udp://", "tcp://"]
+                ):
                     streamer_type = "network"
                 else:
                     streamer_type = "custom"
@@ -200,24 +209,37 @@ class StreamingPanel(BasePanel):
                 logging.info("Processing file streamer - no preset validation required")
                 success = self._add_file_streamer(streamer_params, data_type)
                 if success:
-                    data_type_label = {"raw": "Raw", "processed": "Processed", "both": "Raw+Processed"}.get(data_type, data_type)
+                    data_type_label = {
+                        "raw": "Raw",
+                        "processed": "Processed",
+                        "both": "Raw+Processed",
+                    }.get(data_type, data_type)
                     display_text = f"File: {streamer_params} ({data_type_label})"
-                    
+
             elif streamer_type in ["network", "custom"]:
                 # Handle network/custom streaming with BrainFlow (raw only)
-                logging.info(f"Processing {streamer_type} streamer - preset validation REQUIRED")
-                
+                logging.info(
+                    f"Processing {streamer_type} streamer - preset validation REQUIRED"
+                )
+
                 if not self.collector_service.is_connected():
-                    self.show_error("Connection Error", "Board must be connected to add network/custom streamer")
+                    self.show_error(
+                        "Connection Error",
+                        "Board must be connected to add network/custom streamer",
+                    )
                     return
 
-                logging.info(f"Board is connected, starting preset validation for {streamer_type} streamer...")
-                
+                logging.info(
+                    f"Board is connected, starting preset validation for {streamer_type} streamer..."
+                )
+
                 # CRITICAL: Validate preset for network/custom streamers
                 try:
                     logging.info("Calling _validate_streaming_board_setup()...")
                     self._validate_streaming_board_setup()
-                    logging.info("Preset validation PASSED, proceeding with streamer addition")
+                    logging.info(
+                        "Preset validation PASSED, proceeding with streamer addition"
+                    )
                 except Exception as validation_error:
                     logging.error(f"Preset validation FAILED: {validation_error}")
                     # If validation fails (user cancels), don't add the streamer
@@ -226,12 +248,14 @@ class StreamingPanel(BasePanel):
                 # If we get here, validation passed - add the streamer
                 logging.info("Attempting to add streamer to collector...")
                 success = self.collector_service.add_streamer(streamer_params)
-                
+
                 if success:
                     display_text = f"{streamer_type.title()}: {streamer_params} (Raw)"
                     logging.info(f"Successfully added {streamer_type} streamer")
                 else:
-                    logging.error(f"Failed to add {streamer_type} streamer to collector")
+                    logging.error(
+                        f"Failed to add {streamer_type} streamer to collector"
+                    )
 
             if success:
                 # Track the streamer
@@ -239,14 +263,18 @@ class StreamingPanel(BasePanel):
                     "type": streamer_type,
                     "params": streamer_params,
                     "data_type": data_type,
-                    "display": display_text
+                    "display": display_text,
                 }
                 self.active_streamers.append(streamer_info)
                 self.streamers_list.addItem(display_text)
                 self.show_status(f"Added {streamer_type} streamer: {streamer_params}")
-                logging.info(f"Streamer tracking added - Total active streamers: {len(self.active_streamers)}")
+                logging.info(
+                    f"Streamer tracking added - Total active streamers: {len(self.active_streamers)}"
+                )
             else:
-                self.show_error("Streamer Error", f"Failed to add {streamer_type} streamer")
+                self.show_error(
+                    "Streamer Error", f"Failed to add {streamer_type} streamer"
+                )
                 logging.error(f"Failed to add {streamer_type} streamer")
 
             logging.info(f"=== END ADDING STREAMER ===")
@@ -263,15 +291,22 @@ class StreamingPanel(BasePanel):
 
         # Check prerequisites
         if not self.collector_service.is_connected():
-            self.show_error("Connection Error", "Board must be connected to add file streamer")
+            self.show_error(
+                "Connection Error", "Board must be connected to add file streamer"
+            )
             return False
-            
+
         if not self.collector_service.is_streaming_active():
-            self.show_error("Streaming Error", "Board must be streaming to add file streamer")
+            self.show_error(
+                "Streaming Error", "Board must be streaming to add file streamer"
+            )
             return False
 
         if self.recording_service.is_recording():
-            self.show_error("Recording Error", "A file recording is already in progress. Stop current recording first.")
+            self.show_error(
+                "Recording Error",
+                "A file recording is already in progress. Stop current recording first.",
+            )
             return False
 
         # Start recording
@@ -283,78 +318,107 @@ class StreamingPanel(BasePanel):
             collector = self.collector_service.collector
             if not collector:
                 raise Exception("No collector available for validation")
-            
+
             # Import BrainFlow presets for proper comparison
             from brainflow.board_shim import BrainFlowPresets
-            
+
             # DEBUGGING: Log all collector attributes related to preset
             logging.info(f"=== PRESET VALIDATION DEBUG ===")
             logging.info(f"Collector type: {type(collector)}")
-            logging.info(f"Collector attributes: {[attr for attr in dir(collector) if 'preset' in attr.lower()]}")
-            
+            logging.info(
+                f"Collector attributes: {[attr for attr in dir(collector) if 'preset' in attr.lower()]}"
+            )
+
             # Try multiple ways to get the preset
             current_preset = None
-            
+
             # Method 1: Direct attribute
-            if hasattr(collector, 'preset'):
+            if hasattr(collector, "preset"):
                 current_preset = collector.preset
                 logging.info(f"Method 1 - collector.preset: {current_preset}")
-            
+
             # Method 2: getattr with default
-            preset_getattr = getattr(collector, 'preset', BrainFlowPresets.DEFAULT_PRESET.value)
-            logging.info(f"Method 2 - getattr(collector, 'preset', DEFAULT): {preset_getattr}")
-            
+            preset_getattr = getattr(
+                collector, "preset", BrainFlowPresets.DEFAULT_PRESET.value
+            )
+            logging.info(
+                f"Method 2 - getattr(collector, 'preset', DEFAULT): {preset_getattr}"
+            )
+
             # Method 3: Check if collector has board_id and params to infer preset
-            if hasattr(collector, 'board_id'):
+            if hasattr(collector, "board_id"):
                 logging.info(f"Collector board_id: {collector.board_id}")
-            
-            if hasattr(collector, 'params'):
+
+            if hasattr(collector, "params"):
                 logging.info(f"Collector params type: {type(collector.params)}")
-                if hasattr(collector.params, '__dict__'):
-                    logging.info(f"Collector params attributes: {collector.params.__dict__}")
-            
+                if hasattr(collector.params, "__dict__"):
+                    logging.info(
+                        f"Collector params attributes: {collector.params.__dict__}"
+                    )
+
             # Use the direct attribute if available, otherwise getattr
             if current_preset is None:
                 current_preset = preset_getattr
-            
-            logging.info(f"Final current_preset value: {current_preset} (type: {type(current_preset)})")
-            logging.info(f"Comparing with DEFAULT_PRESET: {BrainFlowPresets.DEFAULT_PRESET.value}")
-            
+
+            logging.info(
+                f"Final current_preset value: {current_preset} (type: {type(current_preset)})"
+            )
+            logging.info(
+                f"Comparing with DEFAULT_PRESET: {BrainFlowPresets.DEFAULT_PRESET.value}"
+            )
+
             # CRITICAL: Check for non-zero preset for ANY board when adding network/custom streamers
             if current_preset != BrainFlowPresets.DEFAULT_PRESET.value:
-                logging.info(f"NON-DEFAULT PRESET DETECTED! current_preset={current_preset}, showing reconnection dialog")
-                
+                logging.info(
+                    f"NON-DEFAULT PRESET DETECTED! current_preset={current_preset}, showing reconnection dialog"
+                )
+
                 reply = QMessageBox.question(
                     self,
-                    "Preset Compatibility Error", 
+                    "Preset Compatibility Error",
                     f"Network and custom streamers require preset {BrainFlowPresets.DEFAULT_PRESET.value} (Default) for optimal compatibility.\n\n"
                     f"Current preset: {current_preset}\n\n"
                     f"Non-default presets can cause socket timeout errors and streaming failures.\n\n"
                     f"Do you want to disconnect and reconnect with preset {BrainFlowPresets.DEFAULT_PRESET.value}?",
                     QMessageBox.Yes | QMessageBox.No,
-                    QMessageBox.Yes
+                    QMessageBox.Yes,
                 )
-                
+
                 if reply == QMessageBox.Yes:
                     logging.info("User chose to reconnect with default preset")
                     # Disconnect and reconnect with preset 0
                     self._reconnect_with_preset_zero()
                     logging.info("Reconnection completed successfully")
                 else:
-                    logging.info("User cancelled due to preset compatibility requirements")
-                    raise Exception("User cancelled due to preset compatibility requirements")
+                    logging.info(
+                        "User cancelled due to preset compatibility requirements"
+                    )
+                    raise Exception(
+                        "User cancelled due to preset compatibility requirements"
+                    )
             else:
-                logging.info(f"DEFAULT PRESET DETECTED - validation passed (current_preset={current_preset})")
-            
+                logging.info(
+                    f"DEFAULT PRESET DETECTED - validation passed (current_preset={current_preset})"
+                )
+
             # Additional validation for streaming boards
             from brainflow.board_shim import BoardIds
-            if hasattr(collector, 'board_id') and collector.board_id == BoardIds.STREAMING_BOARD.value:
-                if hasattr(collector.params, 'master_board') and collector.params.master_board:
+
+            if (
+                hasattr(collector, "board_id")
+                and collector.board_id == BoardIds.STREAMING_BOARD.value
+            ):
+                if (
+                    hasattr(collector.params, "master_board")
+                    and collector.params.master_board
+                ):
                     master_board_id = collector.params.master_board
-                    logging.info(f"Streaming board validation passed: preset {current_preset}, master board {master_board_id}")
-            
+                    logging.info(
+                        f"Streaming board validation passed: preset {current_preset}, master board {master_board_id}"
+                    )
+
             logging.info(f"=== END PRESET VALIDATION DEBUG ===")
-                    
+
         except Exception as e:
             logging.error(f"Validation failed: {e}")
             raise e
@@ -363,41 +427,48 @@ class StreamingPanel(BasePanel):
         """Disconnect current board and reconnect with preset 0."""
         try:
             from brainflow.board_shim import BrainFlowPresets
-            
+
             # Get current connection settings
-            if not hasattr(self.collector_service, 'collector') or not self.collector_service.collector:
+            if (
+                not hasattr(self.collector_service, "collector")
+                or not self.collector_service.collector
+            ):
                 raise Exception("No collector available for reconnection")
-                
+
             collector = self.collector_service.collector
             current_board_id = collector.board_id
             current_params = collector.params
-            
-            logging.info(f"Reconnecting board {current_board_id} with preset {BrainFlowPresets.DEFAULT_PRESET.value}...")
-            
+
+            logging.info(
+                f"Reconnecting board {current_board_id} with preset {BrainFlowPresets.DEFAULT_PRESET.value}..."
+            )
+
             # Find connection panel through parent widget hierarchy
             connection_panel = None
             parent_widget = self.parent()
             while parent_widget is not None:
-                if hasattr(parent_widget, 'connection_panel'):
+                if hasattr(parent_widget, "connection_panel"):
                     connection_panel = parent_widget.connection_panel
                     break
-                parent_widget = parent_widget.parent() if hasattr(parent_widget, 'parent') else None
-            
+                parent_widget = (
+                    parent_widget.parent() if hasattr(parent_widget, "parent") else None
+                )
+
             if not connection_panel:
                 raise Exception("Could not find connection panel for reconnection")
-            
+
             # Stop streaming if active
             was_streaming = self.collector_service.is_streaming_active()
             if was_streaming:
                 logging.info("Stopping stream for reconnection...")
                 self.collector_service.stop_stream()
-            
+
             # Disconnect current board
             logging.info("Disconnecting current board...")
             success = self.collector_service.disconnect_from_board()
             if not success:
                 raise Exception("Failed to disconnect current board")
-            
+
             # Update connection panel preset to default
             logging.info("Setting preset to default in connection panel...")
             preset_combo = connection_panel.preset_combo
@@ -405,25 +476,23 @@ class StreamingPanel(BasePanel):
                 if preset_combo.itemData(i) == BrainFlowPresets.DEFAULT_PRESET.value:
                     preset_combo.setCurrentIndex(i)
                     break
-            
+
             # Convert BrainFlowInputParams to dictionary for reconnection
             params_dict = self._convert_params_to_dict(current_params)
-            
+
             # Reconnect with default preset
             logging.info("Reconnecting with default preset...")
             success = self.collector_service.connect_to_board(
-                current_board_id, 
-                params_dict, 
-                BrainFlowPresets.DEFAULT_PRESET.value
+                current_board_id, params_dict, BrainFlowPresets.DEFAULT_PRESET.value
             )
             if not success:
                 raise Exception("Failed to reconnect with default preset")
-            
+
             # Update connection panel UI
             connection_panel.connect_btn.setEnabled(False)
             connection_panel.disconnect_btn.setEnabled(True)
             connection_panel.start_stream_btn.setEnabled(True)
-            
+
             # Update board info display
             board_info = self.collector_service.get_board_info()
             if board_info:
@@ -432,9 +501,11 @@ class StreamingPanel(BasePanel):
                     if key == "eeg_names" and isinstance(value, list):
                         info_text += f"<b>{key.replace('_', ' ').title()}:</b> {', '.join(value)}<br>"
                     elif not isinstance(value, list) or len(value) < 10:
-                        info_text += f"<b>{key.replace('_', ' ').title()}:</b> {value}<br>"
+                        info_text += (
+                            f"<b>{key.replace('_', ' ').title()}:</b> {value}<br>"
+                        )
                 connection_panel.board_info_label.setText(info_text)
-            
+
             # Restart streaming if it was active
             if was_streaming:
                 logging.info("Restarting stream...")
@@ -445,28 +516,39 @@ class StreamingPanel(BasePanel):
                     logging.info("Stream restarted successfully")
                 else:
                     logging.warning("Failed to restart stream after reconnection")
-            
-            self.show_status(f"Board reconnected with preset {BrainFlowPresets.DEFAULT_PRESET.value} for optimal streaming compatibility")
+
+            self.show_status(
+                f"Board reconnected with preset {BrainFlowPresets.DEFAULT_PRESET.value} for optimal streaming compatibility"
+            )
             logging.info("Reconnection with default preset completed successfully")
-            
+
         except Exception as e:
             error_msg = f"Failed to reconnect with default preset: {str(e)}"
             logging.error(error_msg)
             self.show_error("Reconnection Error", error_msg)
             raise
 
-    def _convert_params_to_dict(self, params):
+    def _convert_params_to_dict(self, params: Any) -> Dict[str, Any]:
         """Convert BrainFlowInputParams to dictionary."""
         params_dict = {}
-        param_attrs = ['serial_port', 'mac_address', 'ip_address', 'ip_port', 
-                    'other_info', 'serial_number', 'file', 'master_board', 'timeout']
-        
+        param_attrs = [
+            "serial_port",
+            "mac_address",
+            "ip_address",
+            "ip_port",
+            "other_info",
+            "serial_number",
+            "file",
+            "master_board",
+            "timeout",
+        ]
+
         for attr in param_attrs:
             if hasattr(params, attr):
                 value = getattr(params, attr)
                 if value:  # Only add non-empty values
                     params_dict[attr] = value
-        
+
         return params_dict
 
     def delete_selected_streamer(self) -> None:
@@ -495,9 +577,13 @@ class StreamingPanel(BasePanel):
             if self.collector_service.is_connected():
                 self.show_error("Streamer Error", f"Error removing streamer: {str(e)}")
             else:
-                logging.warning(f"Error removing streamer (board disconnected): {str(e)}")
+                logging.warning(
+                    f"Error removing streamer (board disconnected): {str(e)}"
+                )
 
-    def _delete_tracked_streamer(self, streamer_info: Dict[str, str], selected_row: int) -> bool:
+    def _delete_tracked_streamer(
+        self, streamer_info: Dict[str, str], selected_row: int
+    ) -> bool:
         """Delete a tracked streamer using the appropriate method."""
         streamer_type = streamer_info["type"]
         streamer_params = streamer_info["params"]
@@ -516,13 +602,19 @@ class StreamingPanel(BasePanel):
         elif streamer_type in ["network", "custom"]:
             # Remove BrainFlow streamer
             if not self.collector_service.is_connected():
-                logging.warning(f"Board disconnected, removing {streamer_type} streamer from UI only")
-                self.show_status(f"Removed {streamer_type} streamer from UI (board disconnected)")
+                logging.warning(
+                    f"Board disconnected, removing {streamer_type} streamer from UI only"
+                )
+                self.show_status(
+                    f"Removed {streamer_type} streamer from UI (board disconnected)"
+                )
                 return True
             else:
                 success = self.collector_service.remove_streamer(streamer_params)
                 if success:
-                    self.show_status(f"Removed {streamer_type} streamer: {streamer_params}")
+                    self.show_status(
+                        f"Removed {streamer_type} streamer: {streamer_params}"
+                    )
                 return success
 
         return False
@@ -556,7 +648,7 @@ class StreamingPanel(BasePanel):
     def enable_streaming(self, enabled: bool) -> None:
         """Enable or disable streaming controls."""
         self.send_config_btn.setEnabled(enabled)
-        
+
         # If disabling, stop all active streamers
         if not enabled:
             self.stop_all_streamers()
@@ -574,7 +666,7 @@ class StreamingPanel(BasePanel):
             # Clear UI regardless of board connection status
             self.streamers_list.clear()
             self.active_streamers.clear()
-            
+
         except Exception as e:
             logging.error(f"Error stopping all streamers: {e}")
             # Force clear UI if there's an error
@@ -600,12 +692,14 @@ class StreamingPanel(BasePanel):
             for streamer in streamers_list:
                 self.streamers_list.addItem(streamer)
                 # Create minimal tracking info for legacy streamers
-                self.active_streamers.append({
-                    "type": "legacy",
-                    "params": streamer,
-                    "data_type": "raw",
-                    "display": streamer
-                })
+                self.active_streamers.append(
+                    {
+                        "type": "legacy",
+                        "params": streamer,
+                        "data_type": "raw",
+                        "display": streamer,
+                    }
+                )
             return True
         except Exception as e:
             self.show_error("Streamer List Update Error", str(e))
@@ -646,7 +740,7 @@ class StreamingPanel(BasePanel):
     def show_status(self, message: str) -> None:
         """Show status message to user."""
         try:
-            if hasattr(self.parent(), 'statusBar'):
+            if hasattr(self.parent(), "statusBar"):
                 self.parent().statusBar().showMessage(message, 3000)
             else:
                 print(f"Status: {message}")

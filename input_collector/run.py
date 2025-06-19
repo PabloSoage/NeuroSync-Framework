@@ -15,6 +15,7 @@ cli_thread = None
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+
 def parse_config() -> Dict[str, Any]:
     """
     Parse configuration from command line arguments.

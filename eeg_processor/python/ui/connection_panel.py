@@ -382,7 +382,7 @@ class ConnectionPanel(BasePanel):
         try:
             # FIXED: Add special handling for streaming board
             from brainflow.board_shim import BoardIds
-            
+
             if board_id == BoardIds.STREAMING_BOARD.value:
                 # For streaming boards, connect preset change validation
                 # FIXED: Safely disconnect any existing connections first
@@ -392,16 +392,18 @@ class ConnectionPanel(BasePanel):
                 except TypeError:
                     # No connections exist - this is fine
                     pass
-                
+
                 # Connect the validation function
-                self.preset_combo.currentIndexChanged.connect(self._validate_streaming_board_preset)
-                
+                self.preset_combo.currentIndexChanged.connect(
+                    self._validate_streaming_board_preset
+                )
+
                 # Set default preset to 0 for streaming boards
                 for i in range(self.preset_combo.count()):
                     if self.preset_combo.itemData(i) == 0:  # Preset 0 (Default)
                         self.preset_combo.setCurrentIndex(i)
                         break
-                        
+
                 # Show warning about streaming board configuration
                 QMessageBox.information(
                     self,
@@ -415,7 +417,7 @@ class ConnectionPanel(BasePanel):
                     "• Use preset 0 (Default) on both sides\n"
                     "• Use Raw Data streamers\n"
                     "• Stop streaming before changing presets\n\n"
-                    "Preset has been automatically set to 0 (Default)."
+                    "Preset has been automatically set to 0 (Default).",
                 )
             else:
                 # For other boards, remove preset validation
@@ -533,7 +535,9 @@ class ConnectionPanel(BasePanel):
                         desc_text += "<br><b style='color: orange'>⚠️ Streaming Board Notes:</b><br>"
                         desc_text += "• IP Address must match sender exactly<br>"
                         desc_text += "• Master Board must match sender's board type<br>"
-                        desc_text += "• Preset locked to 0 (Default) for compatibility<br>"
+                        desc_text += (
+                            "• Preset locked to 0 (Default) for compatibility<br>"
+                        )
 
                     self.board_info_label.setText(desc_text)
                 else:
@@ -564,41 +568,47 @@ class ConnectionPanel(BasePanel):
             board_id = self.board_type_combo.currentData()
             if board_id is None:
                 return
-                
+
             from brainflow.board_shim import BoardIds
-            
+
             if board_id == BoardIds.STREAMING_BOARD.value:
                 selected_preset = self.preset_combo.currentData()
-                
+
                 if selected_preset != 0:  # Non-default preset
-                    logging.info(f"Streaming board preset validation: reverting from {selected_preset} to 0")
-                    
+                    logging.info(
+                        f"Streaming board preset validation: reverting from {selected_preset} to 0"
+                    )
+
                     # Show error and revert to preset 0
                     QMessageBox.critical(
                         self,
                         "Streaming Board Preset Error",
                         f"Streaming boards require preset 0 (Default) for optimal compatibility.\n\n"
                         f"Preset {selected_preset} can cause socket timeout errors and connection failures.\n\n"
-                        f"Reverting to preset 0..."
+                        f"Reverting to preset 0...",
                     )
-                    
+
                     # Temporarily disconnect signal to avoid recursion
                     try:
                         self.preset_combo.currentIndexChanged.disconnect()
                     except TypeError:
                         pass
-                    
+
                     # Revert to preset 0
                     for i in range(self.preset_combo.count()):
                         if self.preset_combo.itemData(i) == 0:  # Preset 0 (Default)
                             self.preset_combo.setCurrentIndex(i)
                             break
-                    
+
                     # Reconnect signal
-                    self.preset_combo.currentIndexChanged.connect(self._validate_streaming_board_preset)
-                    
-                    self.show_status("Preset reverted to 0 for streaming board compatibility")
-                    
+                    self.preset_combo.currentIndexChanged.connect(
+                        self._validate_streaming_board_preset
+                    )
+
+                    self.show_status(
+                        "Preset reverted to 0 for streaming board compatibility"
+                    )
+
         except Exception as e:
             logging.error(f"Error validating streaming board preset: {e}")
 
@@ -639,9 +649,10 @@ class ConnectionPanel(BasePanel):
 
             # Get selected preset
             preset = self.preset_combo.currentData()
-            
+
             # ADDITIONAL VALIDATION: Check streaming board preset before connection
             from brainflow.board_shim import BoardIds
+
             if board_id == BoardIds.STREAMING_BOARD.value and preset != 0:
                 reply = QMessageBox.question(
                     self,
@@ -650,9 +661,9 @@ class ConnectionPanel(BasePanel):
                     f"This can cause socket timeout errors and connection failures.\n\n"
                     f"Do you want to change to preset 0 (Default) before connecting?",
                     QMessageBox.Yes | QMessageBox.No,
-                    QMessageBox.Yes
+                    QMessageBox.Yes,
                 )
-                
+
                 if reply == QMessageBox.Yes:
                     # Change to preset 0
                     for i in range(self.preset_combo.count()):
@@ -660,9 +671,13 @@ class ConnectionPanel(BasePanel):
                             self.preset_combo.setCurrentIndex(i)
                             preset = 0
                             break
-                    self.show_status("Changed to preset 0 for streaming board compatibility")
+                    self.show_status(
+                        "Changed to preset 0 for streaming board compatibility"
+                    )
                 else:
-                    self.show_status("Connection cancelled - streaming board requires preset 0")
+                    self.show_status(
+                        "Connection cancelled - streaming board requires preset 0"
+                    )
                     return
 
             # Build parameters dictionary from UI fields
@@ -717,10 +732,12 @@ class ConnectionPanel(BasePanel):
             # FIXED: Stop all active streamers BEFORE disconnecting
             try:
                 # Get streaming panel and stop all streamers first
-                if hasattr(self.parent(), 'streaming_panel'):
+                if hasattr(self.parent(), "streaming_panel"):
                     streaming_panel = self.parent().streaming_panel
                     if streaming_panel:
-                        logging.info("Stopping all streamers before disconnecting board...")
+                        logging.info(
+                            "Stopping all streamers before disconnecting board..."
+                        )
                         streaming_panel.stop_all_streamers()
                         logging.info("All streamers stopped successfully")
             except Exception as e:
@@ -734,7 +751,7 @@ class ConnectionPanel(BasePanel):
             if success:
                 # IMPORTANT: Destroy visualizer completely when disconnecting
                 # This clears the cache since we're changing collectors
-                if hasattr(self, 'visualization_service'):
+                if hasattr(self, "visualization_service"):
                     self.visualization_service.destroy_eeg_visualizer()
 
                 # Update UI

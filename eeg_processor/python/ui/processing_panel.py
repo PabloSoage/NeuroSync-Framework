@@ -195,26 +195,32 @@ class ProcessingPanel(BasePanel):
             if not self.filters_applied:
                 # Get current filter settings
                 filter_settings = self.get_filter_settings()
-                
+
                 # Get EEG channels to show what will be filtered
                 try:
                     metadata = self.data_access_service.get_metadata()
                     eeg_channels = metadata.get("eeg_channels", [])
                     channel_names = metadata.get("channel_names", [])
-                    
+
                     if eeg_channels:
                         # Create readable channel list
                         eeg_channel_names = []
                         for i, ch_idx in enumerate(eeg_channels):
                             if i < len(channel_names):
-                                eeg_channel_names.append(f"{channel_names[i]} (CH{ch_idx})")
+                                eeg_channel_names.append(
+                                    f"{channel_names[i]} (CH{ch_idx})"
+                                )
                             else:
                                 eeg_channel_names.append(f"CH{ch_idx}")
-                        
-                        logging.info(f"Applying filters to EEG channels only: {', '.join(eeg_channel_names)}")
+
+                        logging.info(
+                            f"Applying filters to EEG channels only: {', '.join(eeg_channel_names)}"
+                        )
                     else:
-                        logging.warning("No EEG channels found - filters may not be applied correctly")
-                        
+                        logging.warning(
+                            "No EEG channels found - filters may not be applied correctly"
+                        )
+
                 except Exception as e:
                     logging.debug(f"Could not get channel info: {e}")
 
@@ -241,7 +247,7 @@ class ProcessingPanel(BasePanel):
                 self.apply_filters_btn.setStyleSheet(
                     "background-color: #AA3333; color: white;"
                 )
-                
+
                 # More informative status message
                 if eeg_channels:
                     self.show_status(
@@ -279,26 +285,30 @@ class ProcessingPanel(BasePanel):
             try:
                 # Get current filter settings
                 filter_settings = self.get_filter_settings()
-                
+
                 # Validate frequency settings
                 low_cut = self.bandpass_low_spin.value()
                 high_cut = self.bandpass_high_spin.value()
-                
+
                 # Get sampling rate to validate frequencies
                 sampling_rate = self.collector_service.get_sampling_rate()
                 if sampling_rate > 0:
                     nyquist = sampling_rate / 2
-                    
+
                     # Ensure frequencies are valid
                     if high_cut >= nyquist:
                         high_cut = nyquist * 0.95  # Set to 95% of Nyquist
                         self.bandpass_high_spin.setValue(high_cut)
-                        self.show_status(f"High cut frequency adjusted to {high_cut:.1f} Hz (below Nyquist frequency)")
-                    
+                        self.show_status(
+                            f"High cut frequency adjusted to {high_cut:.1f} Hz (below Nyquist frequency)"
+                        )
+
                     if low_cut >= high_cut:
                         low_cut = high_cut * 0.1  # Set to 10% of high cut
                         self.bandpass_low_spin.setValue(low_cut)
-                        self.show_status(f"Low cut frequency adjusted to {low_cut:.1f} Hz")
+                        self.show_status(
+                            f"Low cut frequency adjusted to {low_cut:.1f} Hz"
+                        )
 
                 # Apply the same filters as in apply_filters, but without changing button state
                 self.visualization_service.set_bandpass_filter(

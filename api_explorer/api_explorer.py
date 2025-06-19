@@ -488,7 +488,7 @@ class ApiExplorer:
 
             @router.post(f"/{method_id}")
             async def endpoint(
-                request_data: RequestModel  # type: ignore[valid-type]
+                request_data: RequestModel,  # type: ignore[valid-type]
             ) -> Any:  # Use specific model type
                 # Safely extract data from the Pydantic model
                 try:

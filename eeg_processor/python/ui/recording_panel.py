@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import (
     QSpinBox,
     QLineEdit,
 )
+
 from .base_panel import BasePanel
 from ..utils.help_system import HelpButton
 

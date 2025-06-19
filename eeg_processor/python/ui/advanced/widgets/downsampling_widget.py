@@ -19,25 +19,27 @@ from ....utils.help_system import HelpButton
 class DownsamplingWidget(QWidget):
     """
     Widget for downsampling operations.
-    
+
     This widget handles downsampling-specific configuration and user interactions.
     """
-    
+
     # Signals for communication with controller
-    apply_requested = pyqtSignal(dict)  # Downsampling parameters including apply/remove flag
+    apply_requested = pyqtSignal(
+        dict
+    )  # Downsampling parameters including apply/remove flag
     settings_changed = pyqtSignal(dict)  # Settings changed for dynamic update
 
     def __init__(self, parent: Optional[Any] = None) -> None:
         """Initialize the downsampling widget."""
         super().__init__(parent)
-        
+
         # Downsampling state
         self.applied = False
-        
+
         # Create main layout
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
-        
+
         self._setup_ui()
 
     def _setup_ui(self) -> None:
@@ -88,19 +90,21 @@ class DownsamplingWidget(QWidget):
     def _toggle_downsampling(self) -> None:
         """Toggle downsampling application."""
         self.applied = not self.applied
-        
+
         params = {
             "apply": self.applied,
             "factor": self.downsample_factor_spin.value(),
-            "operation": self.downsample_agg_combo.currentData()
+            "operation": self.downsample_agg_combo.currentData(),
         }
-        
+
         self.apply_requested.emit(params)
-        
+
         # Update button appearance
         if self.applied:
             self.apply_downsample_btn.setText("Remove Downsampling")
-            self.apply_downsample_btn.setStyleSheet("background-color: #AA3333; color: white;")
+            self.apply_downsample_btn.setStyleSheet(
+                "background-color: #AA3333; color: white;"
+            )
         else:
             self.apply_downsample_btn.setText("Apply Downsampling")
             self.apply_downsample_btn.setStyleSheet("")
@@ -108,14 +112,14 @@ class DownsamplingWidget(QWidget):
     def _on_settings_changed(self) -> None:
         """Emit signal when settings change for dynamic update."""
         # Only emit if downsampling is currently applied
-        if hasattr(self, 'applied') and self.applied:
+        if hasattr(self, "applied") and self.applied:
             settings = self.get_downsample_settings()
             self.settings_changed.emit(settings)
 
     def set_enabled(self, enabled: bool) -> None:
         """Enable or disable the widget."""
         self.apply_downsample_btn.setEnabled(enabled)
-        
+
         if not enabled:
             self.applied = False
             self.apply_downsample_btn.setText("Apply Downsampling")

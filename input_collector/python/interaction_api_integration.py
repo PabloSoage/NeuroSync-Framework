@@ -7,8 +7,6 @@ registering its methods and handling API requests.
 
 import asyncio
 import logging
-import os
-import sys
 import time
 from typing import Optional, Dict, List, Any, Callable, Union, Set
 
