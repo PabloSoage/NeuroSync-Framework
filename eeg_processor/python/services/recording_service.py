@@ -275,17 +275,20 @@ class RecordingDataManager:
         self.recording = False
         self.recording_file: Optional[Any] = None
         self.processed_recording_file: Optional[Any] = None
-        self.recording_thread: Optional[threading.Thread] = None
-        self.recording_stop_event = threading.Event()
+        # REMOVED: self.recording_thread - no longer needed
+        # REMOVED: self.recording_stop_event - no longer needed
         self.total_recorded_samples = 0
         self.recording_start_time: float = 0
-        self.last_data_count = 0
+        # REMOVED: self.last_data_count - no longer needed
         self.data_type = "raw"
         self.is_recording_both = False
+        
+        # NEW: Direct callback approach
+        self.data_callback_id: Optional[int] = None
 
     def start_recording(self, filename: str, data_type: str = "raw") -> None:
         """
-        Start recording data to a file.
+        Start recording data to a file using direct callbacks.
 
         Args:
             filename: Path to save the file
@@ -330,14 +333,10 @@ class RecordingDataManager:
             self.recording = True
             self.total_recorded_samples = 0
             self.recording_start_time = time.time()
-            self.last_data_count = self.recording_service.get_board_data_count()
 
-            # Start recording thread
-            self.recording_stop_event.clear()
-            self.recording_thread = threading.Thread(
-                target=self._recording_thread_func, daemon=True
-            )
-            self.recording_thread.start()
+            # NEW: Register direct callback for immediate data streaming
+            self.data_callback_id = data_access.register_local_callback(self._on_new_data)
+            logging.info("Registered direct callback for recording - no data duplication")
 
         except Exception as e:
             logging.error(f"Error starting continuous recording: {e}")
@@ -352,147 +351,56 @@ class RecordingDataManager:
                 self.processed_recording_file = None
             raise
 
-    def _start_file_recording(self, filename: str, data_type: str, collector: Any) -> None:
+    def _on_new_data(self, data: np.ndarray, timestamps: List[int]) -> None:
         """
-        Start recording to a specific file with correct metadata.
-
-        Args:
-            filename: Path to save the file
-            data_type: Type of data ('raw' or 'processed')
-            collector: The collector instance for metadata
-        """
-        # Create directory if it doesn't exist
-        os.makedirs(os.path.dirname(os.path.abspath(filename)), exist_ok=True)
-
-        # Open file and write header
-        file_handle = open(filename, "w", newline="")
-
-        # Write initial metadata
-        header = [
-            f"# EEG Recording - {time.strftime('%Y-%m-%d %H:%M:%S')}",
-            f"# Board: {collector.device_name} (ID: {collector.board_id})",
-            f"# Preset: {collector.preset}",
-            f"# Sampling Rate: {collector.sampling_rate} Hz",
-            f"# Data Type: {data_type}",
-            f"# Channels: {collector.num_rows}",
-            f"# Samples: 0",  # Placeholder to be updated at the end
-            f"# Duration: 0.00 seconds",  # Placeholder to be updated at the end
-        ]
-
-        # Add column names using the RecordingFileWriter
-        writer = RecordingFileWriter(collector)
-        column_names = writer.generate_column_names()
-
-        # Add column names line to header
-        header.append(", ".join(column_names))
-
-        # Write header lines with line breaks
-        for line in header:
-            file_handle.write(line + "\n")
-
-        # Store file handle based on data type
-        if data_type == "raw":
-            self.recording_file = file_handle
-        elif data_type == "processed":
-            self.processed_recording_file = file_handle
-
-    def _recording_thread_func(self) -> None:
-        """
-        Function executed in a separate thread for continuous recording.
-        Monitors new data and writes it to file.
-        """
-        try:
-            # Keep track of last processed data count
-            last_count = self.last_data_count
-            data_access = DataAccessService.get_instance()
-
-            while self.recording and not self.recording_stop_event.is_set():
-                # Get current data count in buffer
-                current_count = self.recording_service.get_board_data_count()
-
-                # If new data is available
-                if current_count > last_count:
-                    # Calculate how many new samples we have
-                    new_samples = current_count - last_count
-
-                    # Get raw data for raw recording
-                    if self.data_type == "raw" or self.data_type == "both":
-                        raw_data, _ = data_access.get_raw_data()
-                        if raw_data.size > 0 and new_samples > 0:
-                            # Get only the new samples
-                            new_raw_data = raw_data[:, -new_samples:]
-                            self._write_data_to_file(new_raw_data, "raw")
-
-                    # Get processed data for processed recording
-                    if self.data_type == "processed" or self.data_type == "both":
-                        processed_data, _ = data_access.get_current_data()  # This applies filters
-                        if processed_data.size > 0 and new_samples > 0:
-                            # Get only the new samples
-                            new_processed_data = processed_data[:, -new_samples:]
-                            self._write_data_to_file(new_processed_data, "processed")
-
-                    # Update sample counter and last count
-                    self.total_recorded_samples += new_samples
-                    last_count = current_count
-
-                # Short pause to avoid CPU overload
-                time.sleep(0.1)
-
-        except Exception as e:
-            logging.error(f"Error in recording thread: {e}")
-
-    def _write_data_to_file(self, data: np.ndarray, data_type: str) -> None:
-        """
-        Write data to the corresponding file.
-
-        Args:
-            data: Data to write
-            data_type: Type of data ('raw' or 'processed')
-        """
-        # Select correct file
-        file_handle = None
-        if data_type == "raw":
-            file_handle = self.recording_file
-        elif data_type == "processed":
-            file_handle = self.processed_recording_file
-
-        if file_handle is None:
-            return
-
-        # Get collector for marker channel detection
-        data_access = DataAccessService.get_instance()
-        collector = data_access._get_active_collector()
+        Handle new data from DataAccessService callback.
+        This receives only NEW data chunks - no duplication.
         
-        # Check for markers in the data
-        if (
-            collector and hasattr(collector, "marker_channel")
-            and collector.marker_channel < data.shape[0]
-        ):
-            # Check for non-zero values in marker channel
-            markers = data[collector.marker_channel]
-            non_zero_markers = markers[markers != 0]
-            if len(non_zero_markers) > 0:
-                logging.info(
-                    f"Detected markers in {data_type} data: {non_zero_markers}"
-                )
+        Args:
+            data: New data chunk (only new samples)
+            timestamps: Corresponding timestamps
+        """
+        if not self.recording:
+            return
+            
+        try:
+            # Get the size of the new chunk
+            new_samples = data.shape[1] if data.size > 0 else 0
+            
+            if new_samples == 0:
+                return
+                
+            logging.debug(f"Recording received {new_samples} new samples via callback")
 
-        # Write each sample as a row in CSV
-        for i in range(data.shape[1]):  # For each column (sample)
-            sample = data[:, i]  # This is a sample with all channels
+            # Record raw data if needed
+            if self.data_type == "raw" or self.data_type == "both":
+                # data is already raw from the callback
+                self._write_data_to_file(data, "raw")
 
-            # Log if there's a marker in this sample
-            if (collector and hasattr(collector, "marker_channel") 
-                and collector.marker_channel < len(sample)):
-                if sample[collector.marker_channel] != 0:
-                    logging.info(
-                        f"Writing marker value {sample[collector.marker_channel]} to {data_type} CSV"
-                    )
+            # Record processed data if needed  
+            if self.data_type == "processed" or self.data_type == "both":
+                # Get the same samples but already filtered from DataAccessService
+                data_access = DataAccessService.get_instance()
+                
+                # Get the filtered buffer and extract the same number of new samples
+                filtered_buffer, _ = data_access.get_current_data()
+                
+                if filtered_buffer.size > 0 and filtered_buffer.shape[1] >= new_samples:
+                    # Get the last 'new_samples' from the filtered buffer
+                    # These correspond to the same samples as the raw data callback
+                    processed_chunk = filtered_buffer[:, -new_samples:]
+                    self._write_data_to_file(processed_chunk, "processed")
+                    logging.debug(f"Wrote {new_samples} pre-filtered samples to processed file")
+                else:
+                    # Fallback: use raw data if filtered buffer is not available
+                    logging.warning("Filtered buffer not available, using raw data for processed recording")
+                    self._write_data_to_file(data, "processed")
 
-            line = ",".join(str(val) for val in sample)
-            file_handle.write(line + "\n")
-
-        # Flush to ensure data is written to disk
-        file_handle.flush()
+            # Update sample counter
+            self.total_recorded_samples += new_samples
+            
+        except Exception as e:
+            logging.error(f"Error in recording data callback: {e}")
 
     def stop_recording(self) -> None:
         """
@@ -503,13 +411,15 @@ class RecordingDataManager:
             return
 
         try:
-            # Mark as not recording to stop the thread
+            # Mark as not recording
             self.recording = False
-            self.recording_stop_event.set()
 
-            # Wait for thread to finish
-            if self.recording_thread is not None:
-                self.recording_thread.join(timeout=2.0)  # Wait maximum 2 seconds
+            # NEW: Unregister callback instead of stopping thread
+            if self.data_callback_id is not None:
+                data_access = DataAccessService.get_instance()
+                data_access.unregister_local_callback(self.data_callback_id)
+                self.data_callback_id = None
+                logging.info("Unregistered recording callback")
 
             # Calculate actual duration
             recording_duration = time.time() - self.recording_start_time
@@ -558,7 +468,7 @@ class RecordingDataManager:
             # Reset variables
             self.recording = False
             self.is_recording_both = False
-            self.recording_thread = None
+            # REMOVED: self.recording_thread = None - no longer used
 
     def _finalize_recording_file(
         self, file_handle: Any, recording_duration: float
@@ -614,6 +524,86 @@ class RecordingDataManager:
         except Exception as e:
             logging.error(f"Error inserting marker: {e}")
             return False
+
+    def _start_file_recording(self, filename: str, data_type: str, collector: Any) -> None:
+        """
+        Start recording to a specific file with correct metadata.
+
+        Args:
+            filename: Path to save the file
+            data_type: Type of data ('raw' or 'processed')
+            collector: The collector instance for metadata
+        """
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(os.path.abspath(filename)), exist_ok=True)
+
+        # Open file and write header
+        file_handle = open(filename, "w", newline="")
+
+        # Write initial metadata
+        header = [
+            f"# EEG Recording - {time.strftime('%Y-%m-%d %H:%M:%S')}",
+            f"# Board: {collector.device_name} (ID: {collector.board_id})",
+            f"# Preset: {collector.preset}",
+            f"# Sampling Rate: {collector.sampling_rate} Hz",
+            f"# Data Type: {data_type}",
+            f"# Channels: {collector.num_rows}",
+            f"# Samples: 0",  # Placeholder to be updated at the end
+            f"# Duration: 0.00 seconds",  # Placeholder to be updated at the end
+        ]
+
+        # Add column names using the RecordingFileWriter logic
+        writer = RecordingFileWriter(collector)
+        column_names = writer.generate_column_names()
+
+        # Add column names line to header
+        header.append(", ".join(column_names))
+
+        # Write header lines with line breaks
+        for line in header:
+            file_handle.write(line + "\n")
+
+        # Store file handle based on data type
+        if data_type == "raw":
+            self.recording_file = file_handle
+        elif data_type == "processed":
+            self.processed_recording_file = file_handle
+
+    def _write_data_to_file(self, data: np.ndarray, data_type: str) -> None:
+        """
+        Write data to the appropriate recording file.
+
+        Args:
+            data: Data to write
+            data_type: Type of data ('raw' or 'processed')
+        """
+        try:
+            # Select appropriate file handle
+            if data_type == "processed" and hasattr(self, 'processed_recording_file'):
+                file_handle = self.processed_recording_file
+            elif data_type == "raw" and hasattr(self, 'recording_file'):
+                file_handle = self.recording_file
+            else:
+                logging.warning(f"No file handle available for {data_type} data")
+                return
+
+            if file_handle is None:
+                logging.warning(f"File handle is None for {data_type} data")
+                return
+
+            # Write each sample as a row in CSV format
+            for i in range(data.shape[1]):  # For each sample
+                sample = data[:, i]  # Get all channels for this sample
+                line = ",".join(str(val) for val in sample)
+                file_handle.write(line + "\n")
+
+            # Flush to ensure data is written immediately
+            file_handle.flush()
+
+            logging.debug(f"Wrote {data.shape[1]} samples of {data_type} data to file")
+
+        except Exception as e:
+            logging.error(f"Error writing {data_type} data to file: {e}")
 
 
 class RecordingFileWriter:
