@@ -51,7 +51,7 @@ class BrainMapVisualizer:
         logging.debug(f"DataAccessService has get_current_data: {has_get_data}")
         logging.debug(f"Processor has get_all_channels_quality: {has_quality_method}")
 
-        # Increase the update frequency to be faster than EEGVisualizer
+        # Increase the update frequency to be faster than MultiSignalVisualizer
         self.update_speed_ms = 100  # Faster than before (200ms)
 
         # Indicators for debugging
@@ -60,11 +60,11 @@ class BrainMapVisualizer:
 
         self.timer: Optional[QTimer] = None
 
-        # Add window size to match EEGVisualizer
-        self.window_size = 4  # Display 4 seconds of data like EEGVisualizer
+        # Add window size to match MultiSignalVisualizer
+        self.window_size = 4  # Display 4 seconds of data
         self.num_points = int(self.window_size * self.collector.sampling_rate)
 
-        # Store EEG channels directly like EEGVisualizer does
+        # Store EEG channels directly
         self.eeg_channels = collector.get_eeg_channels()
 
         # Create visualization window
@@ -742,11 +742,9 @@ class BrainMapVisualizer:
                 logging.warning("No data available for brain map update")
                 return
 
-            # Use data as-is since it comes from the centralized filter pipeline
-            # Remove local filtering - DataAccessService handles this
             data_copy = data.copy()
 
-            # Calculate quality directly as EEGVisualizer does
+            # Calculate quality directly
             quality_dict = self.processor.get_all_channels_quality(
                 data_copy, self.eeg_channels
             )
@@ -815,7 +813,7 @@ class BrainMapVisualizer:
                 # Get quality value directly from electrode_quality
                 quality = self.electrode_quality.get(name, 0.0)
 
-                # Map quality to color index - exactly like in EEGVisualizer
+                # Map quality to color index
                 color_idx = min(
                     int(quality * len(quality_colors)), len(quality_colors) - 1
                 )

@@ -2,7 +2,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from ..visualizers.brain_map_viz import BrainMapVisualizer
-from ..visualizers.eeg_viz import EEGVisualizer
+from ..visualizers.eeg_viz import MultiSignalVisualizer
 
 
 class VisualizationService:
@@ -15,7 +15,7 @@ class VisualizationService:
 
     def __init__(self) -> None:
         """Initialize the visualization service."""
-        self.eeg_visualizer: Optional[EEGVisualizer] = None
+        self.eeg_visualizer: Optional[MultiSignalVisualizer] = None
         self.brain_map_visualizer: Optional[BrainMapVisualizer] = None
 
     def create_eeg_visualizer(self, collector, processor) -> bool:

@@ -16,6 +16,6 @@ collectors, processors, visualizers, services, and UI components.
 from .collectors import EEGCollector
 from .eeg_processor_app import EEGProcessorApp
 from .processors import SignalProcessor
-from .visualizers import EEGVisualizer
+from .visualizers import MultiSignalVisualizer
 
-__all__ = ["EEGProcessorApp", "EEGCollector", "SignalProcessor", "EEGVisualizer"]
+__all__ = ["EEGProcessorApp", "EEGCollector", "SignalProcessor", "MultiSignalVisualizer"]

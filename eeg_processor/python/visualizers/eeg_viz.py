@@ -467,7 +467,7 @@ class MultiSignalVisualizer:
         
         fft_legend = fft_plot.addLegend(offset=(-10, 10), colCount=legend_columns)
         
-        max_fft_channels = min(max_channels_to_show, 8)  # Limit FFT curves for performance
+        max_fft_channels = min(max_channels_to_show, 16)
         for i in range(max_fft_channels):
             color = pg.mkPen(
                 color=(i * 50 % 255, 255 - i * 30 % 255, i * 20 % 255), width=2
@@ -855,7 +855,3 @@ class MultiSignalVisualizer:
         except Exception as e:
             logging.debug(f"Error getting processing status: {e}")
             return "Processing: Status Unknown"
-
-
-# Keep backward compatibility
-EEGVisualizer = MultiSignalVisualizer
