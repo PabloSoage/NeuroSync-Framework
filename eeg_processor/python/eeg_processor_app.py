@@ -72,7 +72,7 @@ class EEGProcessorApp(QMainWindow):
         self.collector_service = CollectorService.get_instance()
         self.processor_service = ProcessorService()
         self.visualization_service = VisualizationService()
-        self.recording_service = RecordingService()
+        self.recording_service = RecordingService.get_instance()  # Use singleton
 
         # Initialize MNE service
         self.mne_service: Optional["MNEService"] = None

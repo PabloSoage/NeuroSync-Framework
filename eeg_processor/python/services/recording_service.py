@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+import threading
 from typing import Any, Optional, List
 
 import numpy as np
@@ -19,8 +20,22 @@ class RecordingService(DataStorageInterface, ContinuousRecordingInterface):
     This service handles recording start/stop, status tracking, and file operations.
     """
 
+    _instance: Optional["RecordingService"] = None
+    _lock = threading.RLock()
+
+    @classmethod
+    def get_instance(cls) -> "RecordingService":
+        """Get the singleton instance."""
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = RecordingService()
+            return cls._instance
+
     def __init__(self) -> None:
         """Initialize the recording service."""
+        if RecordingService._instance is not None:
+            raise RuntimeError("RecordingService is a singleton. Use get_instance()")
+        
         self.recording = False
         self.start_time: float = 0
         self.filename = ""
@@ -28,6 +43,8 @@ class RecordingService(DataStorageInterface, ContinuousRecordingInterface):
 
         # Initialize the data manager for recording operations
         self.data_manager = RecordingDataManager(self)
+        
+        logging.info("RecordingService singleton initialized")
 
     def start_recording(self, filename: str, data_type: str = "raw") -> bool:
         """

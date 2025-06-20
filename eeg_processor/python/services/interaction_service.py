@@ -146,7 +146,7 @@ class InteractionService:
         if self._recording_service is None:
             from .recording_service import RecordingService
 
-            self._recording_service = RecordingService()
+            self._recording_service = RecordingService.get_instance()  # Use singleton
             self.register_component("recording_service", self._recording_service)
         return self._recording_service
 

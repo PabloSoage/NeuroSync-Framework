@@ -833,12 +833,20 @@ class EEGProcessorInteractionApiIntegration:
                     "filename": {
                         "type": "text",
                         "description": "Recording filename",
-                        "required": True,
+                        "required": False,
+                        "placeholder": "recordings/eeg_recording.csv",
+                        "default": "recordings/eeg_recording.csv",
                     },
                     "data_type": {
-                        "type": "text",
-                        "description": "Type of data to record (raw, processed, both)",
+                        "type": "select",
+                        "description": "Type of data to record",
                         "required": False,
+                        "options": [
+                            {"value": "raw", "label": "Raw Data"},
+                            {"value": "processed", "label": "Processed Data"},
+                            {"value": "both", "label": "Both Raw + Processed"},
+                        ],
+                        "default": "raw",
                     },
                 },
             },
@@ -906,12 +914,19 @@ class EEGProcessorInteractionApiIntegration:
                     "filename": {
                         "type": "text",
                         "description": "Filename to save to",
-                        "required": True,
+                        "required": False,
+                        "placeholder": "recordings/eeg_recording.csv",
+                        "default": "recordings/eeg_recording.csv",
                     },
                     "data_type": {
-                        "type": "text",
-                        "description": "Type of data to save (raw, processed)",
+                        "type": "select",
+                        "description": "Type of data to save",
                         "required": False,
+                        "options": [
+                            {"value": "raw", "label": "Raw Data"},
+                            {"value": "processed", "label": "Processed Data"},
+                        ],
+                        "default": "raw",
                     },
                 },
             },
@@ -1388,7 +1403,7 @@ class EEGProcessorInteractionApiIntegration:
             }
 
     async def _handle_start_recording(
-        self, filename: str, data_type: str = "raw"
+        self, filename: str = "recordings/eeg_recording.csv", data_type: str = "raw"
     ) -> Dict[str, Any]:
         """Handle start_recording."""
         return EEGProcessorInteractionAPI.start_recording(filename, data_type)
@@ -1406,7 +1421,7 @@ class EEGProcessorInteractionApiIntegration:
         return EEGProcessorInteractionAPI.get_recording_status()
 
     async def _handle_save_current_data(
-        self, filename: str, data_type: str = "raw"
+        self, filename: str = "recordings/eeg_recording.csv", data_type: str = "raw"
     ) -> Dict[str, Any]:
         """Handle save_current_data."""
         return EEGProcessorInteractionAPI.save_current_data(filename, data_type)
