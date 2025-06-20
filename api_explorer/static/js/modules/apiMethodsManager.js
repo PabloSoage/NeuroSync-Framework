@@ -97,21 +97,31 @@ export class APIMethodsManager {
 
     async loadTemplateForField(targetField, sourceValue) {
         try {
-            // For board_id template source, load board parameter template
-            if (targetField.dataset.templateSource === 'board_id') {
-                console.log('Loading template for board ID:', sourceValue);
-                const template = await this.getBoardTemplate(sourceValue);
+            const templateSource = targetField.dataset.templateSource;
+            const moduleId = targetField.dataset.moduleId;
+            const methodId = targetField.dataset.methodId;
 
-                if (Object.keys(template).length > 0) {
-                    // Format the template with comments for required fields
-                    let formattedTemplate = this.formatTemplateWithComments(template);
+            console.log(`Loading template for ${templateSource} with value: ${sourceValue}`);
 
-                    targetField.value = JSON.stringify(formattedTemplate, null, 2);
-                    console.log('Template loaded successfully');
-                } else {
-                    console.warn('No template data received');
-                    targetField.value = JSON.stringify({}, null, 2);
-                }
+            let template = {};
+
+            // Handle different template sources
+            if (templateSource === 'board_id') {
+                template = await this.getBoardTemplate(sourceValue, moduleId);
+            } else if (templateSource === 'streamer_type') {
+                template = await this.getStreamerTemplate(sourceValue, moduleId);
+            } else {
+                console.warn(`Unknown template source: ${templateSource}`);
+                return;
+            }
+
+            if (Object.keys(template).length > 0) {
+                let formattedTemplate = this.formatTemplateWithComments(template);
+                targetField.value = JSON.stringify(formattedTemplate, null, 2);
+                console.log('Template loaded successfully');
+            } else {
+                console.warn('No template data received');
+                targetField.value = JSON.stringify({}, null, 2);
             }
         } catch (error) {
             console.error('Error loading template for field:', error);
@@ -151,27 +161,25 @@ export class APIMethodsManager {
         return result;
     }
 
-    async getBoardTemplate(boardId) {
+    async getBoardTemplate(boardId, moduleId = null) {
         try {
-            // Detectar el módulo correcto dinámicamente
-            let moduleId = 'eeg_processor_control';
-
-            // Intentar detectar el módulo correcto basado en el contexto del textarea
-            const templateFields = document.querySelectorAll('[data-template-source="board_id"]');
-            if (templateFields.length > 0) {
-                const field = templateFields[0];
-                const moduleFromField = field.dataset.moduleId;
-                if (moduleFromField) {
-                    moduleId = moduleFromField;
+            // Auto-detect module if not provided
+            if (!moduleId) {
+                moduleId = 'eeg_processor_control';
+                const templateFields = document.querySelectorAll('[data-template-source="board_id"]');
+                if (templateFields.length > 0) {
+                    const field = templateFields[0];
+                    const moduleFromField = field.dataset.moduleId;
+                    if (moduleFromField) {
+                        moduleId = moduleFromField;
+                    }
                 }
             }
 
-            // Construir la URL correcta
             const url = `/api/${moduleId}/get_board_template?board_id=${boardId}`;
             console.log('Fetching board template from:', url);
 
             const response = await fetch(url);
-
             if (!response.ok) {
                 console.error('API response not OK:', response.status, response.statusText);
                 return {};
@@ -181,27 +189,7 @@ export class APIMethodsManager {
             console.log('Board template response:', data);
 
             if (data && data.template) {
-                // Convert the enhanced template to a simple object for JSON display
-                const template = {};
-                const templateData = data.template;
-
-                for (const [key, fieldInfo] of Object.entries(templateData)) {
-                    if (typeof fieldInfo === 'object' && fieldInfo.hasOwnProperty('value')) {
-                        // Enhanced template format with metadata
-                        template[key] = fieldInfo.value;
-
-                        // Add comment for required fields
-                        if (fieldInfo.required) {
-                            template[`${key}_REQUIRED`] = true;
-                            template[`${key}_DESCRIPTION`] = fieldInfo.description || '';
-                        }
-                    } else {
-                        // Simple template format (fallback)
-                        template[key] = fieldInfo;
-                    }
-                }
-
-                return template;
+                return this.convertTemplateFormat(data.template);
             }
 
             console.warn('No template data in response');
@@ -210,6 +198,68 @@ export class APIMethodsManager {
             console.error('Error fetching board template:', error);
             return {};
         }
+    }
+
+    async getStreamerTemplate(streamerType, moduleId = null) {
+        try {
+            // Auto-detect module if not provided
+            if (!moduleId) {
+                moduleId = 'eeg_processor_control';
+                const templateFields = document.querySelectorAll('[data-template-source="streamer_type"]');
+                if (templateFields.length > 0) {
+                    const field = templateFields[0];
+                    const moduleFromField = field.dataset.moduleId;
+                    if (moduleFromField) {
+                        moduleId = moduleFromField;
+                    }
+                }
+            }
+
+            const url = `/api/${moduleId}/get_streamer_template?streamer_type=${streamerType}`;
+            console.log('Fetching streamer template from:', url);
+
+            const response = await fetch(url);
+            if (!response.ok) {
+                console.error('API response not OK:', response.status, response.statusText);
+                return {};
+            }
+
+            const data = await response.json();
+            console.log('Streamer template response:', data);
+
+            if (data && data.template) {
+                return this.convertTemplateFormat(data.template);
+            }
+
+            console.warn('No template data in response');
+            return {};
+        } catch (error) {
+            console.error('Error fetching streamer template:', error);
+            return {};
+        }
+    }
+
+    convertTemplateFormat(templateData) {
+        // Convert the enhanced template to a simple object for JSON display
+        const template = {};
+
+        for (const [key, fieldInfo] of Object.entries(templateData)) {
+            if (typeof fieldInfo === 'object' && fieldInfo.hasOwnProperty('value')) {
+                // Enhanced template format with metadata
+                template[key] = fieldInfo.value;
+
+                // Add comment for required fields
+                if (fieldInfo.required) {
+                    template[`${key}_REQUIRED`] = true;
+                    template[`${key}_DESCRIPTION`] = fieldInfo.description || '';
+                }
+            } else {
+                // Simple template format (fallback) or _COMMENTS array
+                template[key] = fieldInfo;
+            }
+        }
+
+        return template;
     }
 
     formatJson(button) {

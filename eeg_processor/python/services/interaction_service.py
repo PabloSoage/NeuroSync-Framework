@@ -509,31 +509,127 @@ class InteractionService:
         Returns:
             Dictionary with streamer result information
         """
+        if not self._check_initialized():
+            return {
+                "success": False,
+                "message": self._last_status["message"],
+                "error": "NOT_INITIALIZED",
+            }
+
         try:
             collector_service = self._get_collector_service()
-            success = collector_service.add_streamer(streamer_params)
+
+            # Validate that we're connected before adding streamer
+            if not collector_service.is_connected():
+                self._set_status(
+                    False, "No board connected. Please connect to a board first."
+                )
+                return {
+                    "success": False,
+                    "message": "No board connected. Please connect to a board first.",
+                    "error": "NOT_CONNECTED",
+                }
+
+            # Determine streamer type and validate accordingly
+            streamer_type = self._determine_streamer_type(streamer_params)
+            
+            if streamer_type == "file":
+                # For file streamers, we need recording service and streaming to be active
+                recording_service = self._get_recording_service()
+                
+                if not collector_service.is_streaming_active():
+                    self._set_status(
+                        False, "Board must be streaming to add file streamer"
+                    )
+                    return {
+                        "success": False,
+                        "message": "Board must be streaming to add file streamer",
+                        "error": "NOT_STREAMING",
+                    }
+
+                if recording_service.is_recording():
+                    self._set_status(
+                        False, "A file recording is already in progress"
+                    )
+                    return {
+                        "success": False,
+                        "message": "A file recording is already in progress. Stop current recording first.",
+                        "error": "ALREADY_RECORDING",
+                    }
+
+                # Parse file streamer params (format: "file_path|data_type" or just "file_path")
+                if "|" in streamer_params:
+                    file_path, data_type = streamer_params.split("|", 1)
+                else:
+                    file_path, data_type = streamer_params, "raw"
+
+                success = recording_service.start_recording(file_path, data_type)
+                
+            elif streamer_type in ["network", "custom"]:
+                # For network/custom streamers, validate preset compatibility
+                try:
+                    self._validate_streaming_board_preset()
+                except Exception as validation_error:
+                    self._set_status(False, f"Preset validation failed: {validation_error}")
+                    return {
+                        "success": False,
+                        "message": f"Preset validation failed: {validation_error}",
+                        "error": "PRESET_VALIDATION_FAILED",
+                    }
+
+                success = collector_service.add_streamer(streamer_params)
+            else:
+                # Unknown streamer type
+                self._set_status(False, f"Unknown streamer type for: {streamer_params}")
+                return {
+                    "success": False,
+                    "message": f"Unknown streamer type for: {streamer_params}",
+                    "error": "UNKNOWN_STREAMER_TYPE",
+                }
+
+            if success:
+                self._set_status(True, f"Streamer added successfully: {streamer_params}")
+            else:
+                self._set_status(False, f"Failed to add streamer: {streamer_params}")
 
             result = {
                 "success": success,
                 "streamer_params": streamer_params,
-                "message": (
-                    "Streamer added successfully"
-                    if success
-                    else "Failed to add streamer"
-                ),
+                "streamer_type": streamer_type,
+                "message": self._last_status["message"],
             }
 
-            # Dispatch event for UI updates
+            # Dispatch event for UI updates - ENSURE THIS ALWAYS HAPPENS
             dispatch(
                 EventType.STREAMER_ADD,
-                {"streamer_params": streamer_params, "success": success},
+                {
+                    "streamer_params": streamer_params,
+                    "streamer_type": streamer_type,
+                    "success": success
+                },
                 source="interaction_service",
             )
+
+            logging.info(f"Dispatched STREAMER_ADD event: success={success}, type={streamer_type}, params={streamer_params}")
 
             return result
 
         except Exception as e:
+            self._set_status(False, f"Error adding streamer: {e}")
             logging.error(f"Error adding streamer: {e}")
+            
+            # Dispatch failed event
+            dispatch(
+                EventType.STREAMER_ADD,
+                {
+                    "streamer_params": streamer_params,
+                    "streamer_type": "unknown",
+                    "success": False,
+                    "error": str(e)
+                },
+                source="interaction_service",
+            )
+            
             return {
                 "success": False,
                 "error": str(e),
@@ -550,36 +646,216 @@ class InteractionService:
         Returns:
             Dictionary with streamer result information
         """
+        if not self._check_initialized():
+            return {
+                "success": False,
+                "message": self._last_status["message"],
+                "error": "NOT_INITIALIZED",
+            }
+
         try:
             collector_service = self._get_collector_service()
-            success = collector_service.remove_streamer(streamer_params)
+
+            # Determine streamer type
+            streamer_type = self._determine_streamer_type(streamer_params)
+
+            if streamer_type == "file":
+                # For file streamers, stop recording
+                recording_service = self._get_recording_service()
+
+                if recording_service.is_recording():
+                    success = recording_service.stop_recording()
+                else:
+                    # Already stopped, consider it successful
+                    success = True
+
+            elif streamer_type in ["network", "custom"]:
+                # For network/custom streamers, use collector service
+                if not collector_service.is_connected():
+                    # If board is disconnected, consider removal successful (cleanup)
+                    success = True
+                    logging.warning("Board disconnected, removing streamer from tracking only")
+                else:
+                    success = collector_service.remove_streamer(streamer_params)
+            else:
+                # Try generic removal through collector service
+                if collector_service.is_connected():
+                    success = collector_service.remove_streamer(streamer_params)
+                else:
+                    success = True  # Cleanup mode
+
+            if success:
+                self._set_status(True, f"Streamer removed successfully: {streamer_params}")
+            else:
+                self._set_status(False, f"Failed to remove streamer: {streamer_params}")
 
             result = {
                 "success": success,
                 "streamer_params": streamer_params,
-                "message": (
-                    "Streamer removed successfully"
-                    if success
-                    else "Failed to remove streamer"
-                ),
+                "streamer_type": streamer_type,
+                "message": self._last_status["message"],
             }
 
-            # Dispatch event for UI updates
+            # Dispatch event for UI updates - ENSURE THIS ALWAYS HAPPENS
             dispatch(
                 EventType.STREAMER_REMOVE,
-                {"streamer_params": streamer_params, "success": success},
+                {
+                    "streamer_params": streamer_params,
+                    "streamer_type": streamer_type,
+                    "success": success
+                },
+                source="interaction_service",
+            )
+
+            logging.info(f"Dispatched STREAMER_REMOVE event: success={success}, type={streamer_type}, params={streamer_params}")
+
+            return result
+
+        except Exception as e:
+            self._set_status(False, f"Error removing streamer: {e}")
+            logging.error(f"Error removing streamer: {e}")
+            
+            # Dispatch failed event
+            dispatch(
+                EventType.STREAMER_REMOVE,
+                {
+                    "streamer_params": streamer_params,
+                    "streamer_type": "unknown",
+                    "success": False,
+                    "error": str(e)
+                },
+                source="interaction_service",
+            )
+            
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Remove streamer failed: {str(e)}",
+            }
+
+    def send_board_config(self, config_cmd: str) -> Dict[str, Any]:
+        """
+        Send configuration command to the device.
+
+        Args:
+            config_cmd: Configuration command string
+
+        Returns:
+            Dictionary with configuration result information
+        """
+        if not self._check_initialized():
+            return {
+                "success": False,
+                "message": self._last_status["message"],
+                "error": "NOT_INITIALIZED",
+            }
+
+        try:
+            collector_service = self._get_collector_service()
+
+            # Validate that we're connected before sending config
+            if not collector_service.is_connected():
+                self._set_status(
+                    False, "No board connected. Please connect to a board first."
+                )
+                return {
+                    "success": False,
+                    "message": "No board connected. Please connect to a board first.",
+                    "error": "NOT_CONNECTED",
+                }
+
+            response = collector_service.config_device(config_cmd)
+
+            result = {
+                "success": True,
+                "config_command": config_cmd,
+                "response": response,
+                "message": "Configuration command sent successfully",
+            }
+
+            self._set_status(True, f"Configuration command sent: {config_cmd}")
+
+            # Dispatch events for UI updates
+            dispatch(
+                EventType.BOARD_CONFIG_SENT,
+                {"config_command": config_cmd, "response": response},
+                source="interaction_service",
+            )
+
+            dispatch(
+                EventType.DEVICE_CONFIG_RESPONSE,
+                {"response": response},
                 source="interaction_service",
             )
 
             return result
 
         except Exception as e:
-            logging.error(f"Error removing streamer: {e}")
+            self._set_status(False, f"Error sending config command: {e}")
+            logging.error(f"Error sending config command: {e}")
             return {
                 "success": False,
                 "error": str(e),
-                "message": f"Remove streamer failed: {str(e)}",
+                "message": f"Configuration failed: {str(e)}",
             }
+
+    def _determine_streamer_type(self, streamer_params: str) -> str:
+        """
+        Determine the type of streamer based on parameters.
+
+        Args:
+            streamer_params: Streamer parameters string
+
+        Returns:
+            Streamer type: "file", "network", or "custom"
+        """
+        # Handle both string and potential JSON format for file streamers
+        if "|" in streamer_params:
+            return "file"
+        elif streamer_params.endswith((".csv", ".txt")):
+            return "file"
+        elif "file_path" in streamer_params:  # Añadir esta condición para JSON de file streamer
+            return "file"
+        elif any(proto in streamer_params for proto in ["streaming_board://", "udp://", "tcp://"]):
+            return "network"
+        else:
+            return "custom"
+
+    def _validate_streaming_board_preset(self) -> None:
+        """
+        Validate that the current board preset is compatible with streaming.
+
+        Raises:
+            Exception: If preset validation fails or user cancels
+        """
+        try:
+            from brainflow.board_shim import BrainFlowPresets
+
+            collector_service = self._get_collector_service()
+            collector = collector_service.collector
+
+            if not collector:
+                raise Exception("No collector available for preset validation")
+
+            # Get current preset
+            current_preset = getattr(collector, "preset", BrainFlowPresets.DEFAULT_PRESET.value)
+
+            # Check if preset is non-default (which can cause streaming issues)
+            if current_preset != BrainFlowPresets.DEFAULT_PRESET.value:
+                logging.warning(
+                    f"Non-default preset detected ({current_preset}). "
+                    f"This may cause streaming compatibility issues. "
+                    f"Consider using preset {BrainFlowPresets.DEFAULT_PRESET.value} for optimal compatibility."
+                )
+
+                # Optionally raise an exception here to force preset validation: (if not blocked, GUI will handle it)
+                raise Exception(f"Non-default preset {current_preset} detected. Use preset {BrainFlowPresets.DEFAULT_PRESET.value} for streaming compatibility.")
+
+            logging.info(f"Preset validation passed: current_preset={current_preset}")
+
+        except Exception as e:
+            logging.error(f"Preset validation failed: {e}")
+            raise e
 
     def start_recording(self, filename: str, data_type: str = "raw") -> Dict[str, Any]:
         """

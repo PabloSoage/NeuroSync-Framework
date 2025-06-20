@@ -17,6 +17,7 @@ from PyQt5.QtWidgets import (
 from .base_panel import BasePanel
 from ..services.collector_service import CollectorService
 from ..utils.help_system import HelpButton
+from ..core.event_system import EventDispatcher, EventType, subscribe
 
 
 class StreamingPanel(BasePanel):
@@ -48,6 +49,136 @@ class StreamingPanel(BasePanel):
 
         # Add stretch to push everything to the top
         self.layout.addStretch()
+
+        # Subscribe to API events for synchronization
+        self._setup_event_listeners()
+
+    def _setup_event_listeners(self) -> None:
+        """Set up event listeners for API synchronization."""
+        try:
+            # Subscribe to streamer events
+            subscribe(EventType.STREAMER_ADD, self._on_streamer_added_via_api)
+            subscribe(EventType.STREAMER_REMOVE, self._on_streamer_removed_via_api)
+            subscribe(EventType.DEVICE_CONFIG_RESPONSE, self._on_config_response_via_api)
+            
+            logging.info("Streaming panel event listeners set up successfully")
+            logging.info(f"Subscribed to events: {[EventType.STREAMER_ADD, EventType.STREAMER_REMOVE, EventType.DEVICE_CONFIG_RESPONSE]}")
+        except Exception as e:
+            logging.error(f"Error setting up event listeners: {e}")
+
+    def _on_streamer_added_via_api(self, event) -> None:
+        """Handle streamer added via API."""
+        try:
+            logging.info(f"=== STREAMER ADD EVENT RECEIVED ===")
+            logging.info(f"Event source: {event.source}")
+            logging.info(f"Event data: {event.data}")
+            
+            data = event.data
+            streamer_params = data.get("streamer_params", "")
+            streamer_type = data.get("streamer_type", "auto")
+            success = data.get("success", False)
+            
+            logging.info(f"Parsed - params: {streamer_params}, type: {streamer_type}, success: {success}")
+            
+            if not success:
+                logging.warning("Event indicates failure, skipping UI update")
+                return
+
+            logging.info(f"API streamer added, updating UI: {streamer_params}")
+
+            # Determine display text based on streamer type
+            display_text = ""
+            data_type = "raw"
+
+            if streamer_type == "file":
+                # Parse file streamer params (format: "file_path|data_type")
+                if "|" in streamer_params:
+                    file_path, data_type = streamer_params.split("|", 1)
+                else:
+                    file_path, data_type = streamer_params, "raw"
+
+                data_type_label = {
+                    "raw": "Raw",
+                    "processed": "Processed",
+                    "both": "Raw+Processed",
+                }.get(data_type, data_type)
+                display_text = f"File: {file_path} ({data_type_label})"
+
+            elif streamer_type in ["network", "custom"]:
+                display_text = f"{streamer_type.title()}: {streamer_params} (Raw)"
+            else:
+                display_text = f"Streamer: {streamer_params}"
+
+            # Add to tracking and UI
+            streamer_info = {
+                "type": streamer_type,
+                "params": streamer_params,
+                "data_type": data_type,
+                "display": display_text,
+                "original_template": data.get("original_params", {}).get("template_params", {}),  # Añadir parámetros originales
+            }
+
+            # Check if already exists (avoid duplicates)
+            exists = any(
+                s["params"] == streamer_params and s["type"] == streamer_type
+                for s in self.active_streamers
+            )
+
+            if not exists:
+                self.active_streamers.append(streamer_info)
+                self.streamers_list.addItem(display_text)
+                logging.info(f"Added streamer to UI: {display_text}")
+            else:
+                logging.info(f"Streamer already exists in UI: {display_text}")
+
+            logging.info(f"=== END STREAMER ADD EVENT ===")
+                
+        except Exception as e:
+            logging.error(f"Error handling API streamer add event: {e}")
+            import traceback
+            logging.error(f"Traceback: {traceback.format_exc()}")
+
+    def _on_streamer_removed_via_api(self, event) -> None:
+        """Handle streamer removed via API."""
+        try:
+            data = event.data
+            streamer_params = data.get("streamer_params", "")
+            streamer_type = data.get("streamer_type", "auto")
+            success = data.get("success", False)
+
+            if not success:
+                return
+
+            logging.info(f"API streamer removed, updating UI: {streamer_params}")
+
+            # Find and remove from tracking
+            for i, streamer_info in enumerate(self.active_streamers):
+                if streamer_info["params"] == streamer_params and streamer_info["type"] == streamer_type:
+
+                    # Remove from UI list
+                    self.streamers_list.takeItem(i)
+                    # Remove from tracking
+                    self.active_streamers.pop(i)
+                    logging.info(f"Removed streamer from UI: {streamer_info['display']}")
+                    break
+            else:
+                logging.warning(f"Streamer not found in UI for removal: {streamer_params}")
+
+        except Exception as e:
+            logging.error(f"Error handling API streamer remove event: {e}")
+
+    def _on_config_response_via_api(self, event) -> None:
+        """Handle config response via API."""
+        try:
+            data = event.data
+            response = data.get("response", "")
+
+            if response:
+                logging.info(f"API config response, updating UI: {response}")
+                self.config_response_text.setText(response)
+
+        except Exception as e:
+            logging.error(f"Error handling API config response event: {e}")
 
     def setup_streamer_configuration(self) -> None:
         """Set up streamer configuration group."""

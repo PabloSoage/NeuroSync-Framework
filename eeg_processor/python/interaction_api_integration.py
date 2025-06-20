@@ -250,6 +250,7 @@ class EEGProcessorInteractionApiIntegration:
                         "type": "number",
                         "description": "Buffer size for data",
                         "required": False,
+                        "default": 450000,
                     }
                 },
             },
@@ -270,21 +271,34 @@ class EEGProcessorInteractionApiIntegration:
             self._handle_stop_stream,
         )
 
+        # Get streamer type options for dropdown
+        streamer_type_options = self._get_streamer_type_options()
+
         # Add streamer
         api_explorer.register_method(
             self._target_module_id,
             "streaming",
             "add_streamer",
             {
-                "name": "add_streamer(streamer_params)",
+                "name": "add_streamer(streamer_type, streamer_params)",
                 "description": "Add a data streamer",
                 "type": "POST",
                 "params": {
-                    "streamer_params": {
-                        "type": "text",
-                        "description": "Streamer parameters",
+                    "streamer_type": {
+                        "type": "select",
+                        "description": "Type of streamer to add",
                         "required": True,
-                    }
+                        "options": streamer_type_options,
+                        "default": "file",
+                    },
+                    "streamer_params": {
+                        "type": "object",
+                        "description": "Streamer parameters (will be populated based on selected type)",
+                        "required": True,
+                        "template_source": "streamer_type",
+                        "placeholder": "Parameters will appear based on streamer type selection",
+                        "ui_type": "json_template",
+                    },
                 },
             },
             self._handle_add_streamer,
@@ -296,14 +310,25 @@ class EEGProcessorInteractionApiIntegration:
             "streaming",
             "remove_streamer",
             {
-                "name": "remove_streamer(streamer_params)",
+                "name": "remove_streamer(streamer_type, streamer_params)",
                 "description": "Remove a data streamer",
                 "type": "POST",
                 "params": {
-                    "streamer_params": {
-                        "type": "text",
-                        "description": "Streamer parameters",
+                    "streamer_type": {
+                        "type": "select",
+                        "description": "Type of streamer to remove",
                         "required": True,
+                        "options": streamer_type_options,
+                        "default": "file",
+                    },
+                    "streamer_params": {
+                        "type": "object",  # Cambiar de "text" a "object"
+                        "description": "Streamer parameters (same as used when adding)",
+                        "required": True,
+                        "template_source": "streamer_type",  # Añadir template_source
+                        "placeholder": "Parameters will appear based on streamer type selection",
+                        "ui_type": "json_template",  # Añadir UI hint
+                        "help_text": "Use the exact same parameter object that was used to add this streamer"
                     }
                 },
             },
@@ -322,13 +347,362 @@ class EEGProcessorInteractionApiIntegration:
                 "params": {
                     "config_cmd": {
                         "type": "text",
-                        "description": "Configuration command",
+                        "description": "Configuration command string",
                         "required": True,
+                        "placeholder": "Enter board configuration command",
                     }
                 },
             },
             self._handle_send_board_config,
         )
+
+        # Get streamer template (helper method for UI)
+        api_explorer.register_method(
+            self._target_module_id,
+            "streaming",
+            "get_streamer_template",
+            {
+                "name": "get_streamer_template(streamer_type)",
+                "description": "Get parameter template for a specific streamer type (UI helper)",
+                "type": "GET",
+                "params": {
+                    "streamer_type": {
+                        "type": "select",
+                        "description": "Type of streamer",
+                        "required": True,
+                        "options": streamer_type_options,
+                        "default": "file",
+                    }
+                },
+            },
+            self._handle_get_streamer_template,
+        )
+
+    async def _handle_add_streamer(
+            self, streamer_type: str, streamer_params: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Handle add_streamer."""
+        try:
+            logging.info(f"Adding streamer: type={streamer_type}, params={streamer_params}")
+
+            # Convert template params to streamer_params string
+            streamer_params_str = self._convert_streamer_template_to_params(
+                streamer_type, streamer_params
+            )
+
+            logging.info(f"Converted to streamer string: {streamer_params_str}")
+
+            result = EEGProcessorInteractionAPI.add_streamer(streamer_params_str)
+
+            # Enhance the result with the original parameters for reference
+            if "success" in result:
+                result["original_params"] = {
+                    "streamer_type": streamer_type,
+                    "template_params": streamer_params,
+                    "converted_params": streamer_params_str
+                }
+
+            return result
+        except Exception as e:
+            logging.error(f"Error in add_streamer handler: {e}")
+            import traceback
+            logging.error(f"Traceback: {traceback.format_exc()}")
+            return {
+                "success": False,
+                "message": f"Add streamer failed: {e}",
+                "error": str(e),
+            }
+
+    async def _handle_remove_streamer(
+            self, streamer_type: str, streamer_params: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Handle remove_streamer."""
+        try:
+            logging.info(f"Removing streamer: type={streamer_type}, params={streamer_params}")
+
+            # Convert template params to streamer_params string if it's a dict
+            if isinstance(streamer_params, dict):
+                streamer_params_str = self._convert_streamer_template_to_params(
+                    streamer_type, streamer_params
+                )
+            else:
+                streamer_params_str = streamer_params
+
+            logging.info(f"Converted streamer params to string: {streamer_params_str}")
+
+            result = EEGProcessorInteractionAPI.remove_streamer(streamer_params_str)
+
+            # Enhance the result with the original parameters for reference
+            if "success" in result:
+                result["original_params"] = {
+                    "streamer_type": streamer_type,
+                    "streamer_params": streamer_params_str
+                }
+
+            return result
+        except Exception as e:
+            logging.error(f"Error in remove_streamer handler: {e}")
+            return {
+                "success": False,
+                "message": f"Remove streamer failed: {e}",
+                "error": str(e),
+            }
+
+    async def _handle_send_board_config(self, config_cmd: str) -> Dict[str, Any]:
+        """Handle send_board_config."""
+        return EEGProcessorInteractionAPI.send_board_config(config_cmd)
+
+    async def _handle_get_streamer_template(self, streamer_type: str) -> Dict[str, Any]:
+        """Handle get_streamer_template."""
+        try:
+            logging.info(f"Getting streamer template for type: {streamer_type}")
+            template = self._get_streamer_template(streamer_type)
+            logging.info(f"Generated streamer template: {template}")
+
+            result = {"template": template, "streamer_type": streamer_type}
+            logging.info(f"Returning streamer template result: {result}")
+            return result
+        except Exception as e:
+            logging.error(f"Error in _handle_get_streamer_template: {e}")
+            return {"template": {}, "streamer_type": streamer_type, "error": str(e)}
+
+    def _get_streamer_type_options(self) -> List[Dict[str, Any]]:
+        """Get available streamer type options for dropdown."""
+        return [
+            {"value": "file", "label": "File Streamer (Save to file)"},
+            {"value": "network", "label": "Network Streamer (UDP/TCP)"},
+            {"value": "custom", "label": "Custom Streamer (Other protocols)"},
+        ]
+
+    def _get_streamer_template(self, streamer_type: str) -> Dict[str, Any]:
+        """Get parameter template for a specific streamer type."""
+        try:
+            logging.info(f"Building template for streamer_type: {streamer_type}")
+
+            template: Dict[str, Any] = {}
+
+            if streamer_type == "file":
+                template = {
+                    "file_path": {
+                        "value": "recordings/eeg_stream.csv",
+                        "description": "Path where to save the streaming data file",
+                        "type": "text",
+                        "required": True
+                    },
+                    "data_type": {
+                        "value": "raw",
+                        "description": "Type of data to record: 'raw', 'processed', or 'both'",
+                        "type": "select",
+                        "options": [
+                            {"value": "raw", "label": "Raw Data"},
+                            {"value": "processed", "label": "Processed Data"},
+                            {"value": "both", "label": "Both Raw + Processed"}
+                        ],
+                        "required": True
+                    },
+                    "_COMMENTS": [
+                        "FILE STREAMER - Saves streaming data to a file",
+                        "",
+                        "Required fields:",
+                        "  - file_path: Path where to save the file (e.g., 'recordings/stream.csv')",
+                        "  - data_type: Type of data to save ('raw', 'processed', or 'both')",
+                        "",
+                        "Notes:",
+                        "  - File will be created with EEG headers and metadata",
+                        "  - Directory will be created automatically if it doesn't exist",
+                        "  - Board must be connected and streaming before adding file streamer",
+                        "",
+                        "Remove this _COMMENTS field before executing"
+                    ]
+                }
+
+            elif streamer_type == "network":
+                template = {
+                    "protocol": {
+                        "value": "streaming_board",
+                        "description": "Protocol to use: 'streaming_board' for BrainFlow network streaming",
+                        "type": "text",
+                        "required": True
+                    },
+                    "ip_address": {
+                        "value": "225.1.1.1",
+                        "description": "IP address for network streaming (default multicast: 225.1.1.1)",
+                        "type": "text",
+                        "required": True
+                    },
+                    "ip_port": {
+                        "value": 6677,
+                        "description": "Port for network streaming (default: 6677)",
+                        "type": "number",
+                        "required": True
+                    },
+                    "_COMMENTS": [
+                        "NETWORK STREAMER - Streams data over network using BrainFlow protocol",
+                        "",
+                        "Required fields:",
+                        "  - protocol: Usually 'streaming_board' for BrainFlow compatibility",
+                        "  - ip_address: Target IP address (225.1.1.1 for multicast)",
+                        "  - ip_port: Target port (default: 6677)",
+                        "",
+                        "Format: 'streaming_board://ip_address:port'",
+                        "Example: 'streaming_board://225.1.1.1:6677'",
+                        "",
+                        "Notes:",
+                        "  - Only streams raw data",
+                        "  - Requires preset 0 (Default) for optimal compatibility",
+                        "  - Board must be connected before adding network streamer",
+                        "",
+                        "Remove this _COMMENTS field before executing"
+                    ]
+                }
+
+            elif streamer_type == "custom":
+                template = {
+                    "protocol": {
+                        "value": "udp",
+                        "description": "Custom protocol: 'udp', 'tcp', or other custom protocol",
+                        "type": "select",
+                        "options": [
+                            {"value": "udp", "label": "UDP"},
+                            {"value": "tcp", "label": "TCP"},
+                            {"value": "other", "label": "Other (specify in address)"}
+                        ],
+                        "required": True
+                    },
+                    "address": {
+                        "value": "127.0.0.1",
+                        "description": "Target address for custom streaming",
+                        "type": "text",
+                        "required": True
+                    },
+                    "port": {
+                        "value": 8080,
+                        "description": "Target port for custom streaming",
+                        "type": "number",
+                        "required": True
+                    },
+                    "additional_params": {
+                        "value": "",
+                        "description": "Additional parameters if needed (optional)",
+                        "type": "text",
+                        "required": False
+                    },
+                    "_COMMENTS": [
+                        "CUSTOM STREAMER - Streams data using custom protocols",
+                        "",
+                        "Required fields:",
+                        "  - protocol: Protocol type (udp, tcp, etc.)",
+                        "  - address: Target address",
+                        "  - port: Target port",
+                        "",
+                        "Optional fields:",
+                        "  - additional_params: Any additional parameters needed",
+                        "",
+                        "Format examples:",
+                        "  - UDP: 'udp://127.0.0.1:8080'",
+                        "  - TCP: 'tcp://192.168.1.100:9090'",
+                        "  - Custom: 'custom_protocol://params'",
+                        "",
+                        "Notes:",
+                        "  - Only streams raw data",
+                        "  - Board must be connected before adding custom streamer",
+                        "  - Specific format depends on your custom implementation",
+                        "",
+                        "Remove this _COMMENTS field before executing"
+                    ]
+                }
+            else:
+                # Unknown streamer type
+                template = {
+                    "streamer_params": {
+                        "value": "",
+                        "description": f"Parameters for {streamer_type} streamer",
+                        "type": "text",
+                        "required": True
+                    },
+                    "_COMMENTS": [
+                        f"UNKNOWN STREAMER TYPE: {streamer_type}",
+                        "",
+                        "Please specify the complete streamer parameters string.",
+                        "",
+                        "Remove this _COMMENTS field before executing"
+                    ]
+                }
+
+            logging.info(f"Built template with {len(template)} fields: {list(template.keys())}")
+            return template
+
+        except Exception as e:
+            logging.error(f"Error getting streamer template: {e}")
+            import traceback
+            logging.error(f"Traceback: {traceback.format_exc()}")
+            return {}
+
+    def _convert_streamer_template_to_params(
+            self, streamer_type: str, template_params: Dict[str, Any]
+    ) -> str:
+        """Convert template parameters to streamer_params string."""
+        try:
+            logging.info(f"Converting template: type={streamer_type}, params={template_params}")
+
+            # Remove comments if present
+            params = {k: v for k, v in template_params.items() if k != "_COMMENTS"}
+
+            # Extract values if template uses {value, description} format
+            clean_params = {}
+            for key, value in params.items():
+                if isinstance(value, dict) and "value" in value:
+                    clean_params[key] = value["value"]
+                else:
+                    clean_params[key] = value
+
+            logging.info(f"Cleaned params: {clean_params}")
+
+            if streamer_type == "file":
+                file_path = clean_params.get("file_path", "recordings/stream.csv")
+                data_type = clean_params.get("data_type", "raw")
+
+                # For file streamers, use format: "file_path|data_type"
+                result = f"{file_path}|{data_type}"
+                logging.info(f"File streamer result: {result}")
+                return result
+
+            elif streamer_type == "network":
+                protocol = clean_params.get("protocol", "streaming_board")
+                ip_address = clean_params.get("ip_address", "225.1.1.1")
+                ip_port = clean_params.get("ip_port", 6677)
+
+                # Format: protocol://ip_address:port
+                result = f"{protocol}://{ip_address}:{ip_port}"
+                logging.info(f"Network streamer result: {result}")
+                return result
+
+            elif streamer_type == "custom":
+                protocol = clean_params.get("protocol", "udp")
+                address = clean_params.get("address", "127.0.0.1")
+                port = clean_params.get("port", 8080)
+                additional = clean_params.get("additional_params", "")
+
+                # Format: protocol://address:port[additional]
+                base_params = f"{protocol}://{address}:{port}"
+                if additional:
+                    base_params += f"/{additional}"
+                result = base_params
+                logging.info(f"Custom streamer result: {result}")
+                return result
+
+            else:
+                # For unknown types, try to get a direct params string
+                result = clean_params.get("streamer_params", str(template_params))
+                logging.info(f"Unknown type result: {result}")
+                return result
+
+        except Exception as e:
+            logging.error(f"Error converting streamer template to params: {e}")
+            import traceback
+            logging.error(f"Traceback: {traceback.format_exc()}")
+            # Fallback: return the template as is (might work for some cases)
+            return str(template_params)
 
     def _register_processing_methods(self, api_explorer: Any) -> None:
         """Register processing-related methods."""
@@ -688,13 +1062,75 @@ class EEGProcessorInteractionApiIntegration:
         """Handle stop_stream."""
         return EEGProcessorInteractionAPI.stop_stream()
 
-    async def _handle_add_streamer(self, streamer_params: str) -> Dict[str, Any]:
+    async def _handle_add_streamer(
+            self, streamer_type: str, streamer_params: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Handle add_streamer."""
-        return EEGProcessorInteractionAPI.add_streamer(streamer_params)
+        try:
+            logging.info(f"Adding streamer: type={streamer_type}, params={streamer_params}")
 
-    async def _handle_remove_streamer(self, streamer_params: str) -> Dict[str, Any]:
+            # Convert template params to streamer_params string
+            streamer_params_str = self._convert_streamer_template_to_params(
+                streamer_type, streamer_params
+            )
+
+            logging.info(f"Converted to streamer string: {streamer_params_str}")
+
+            result = EEGProcessorInteractionAPI.add_streamer(streamer_params_str)
+
+            # Enhance the result with the original parameters for reference
+            if "success" in result:
+                result["original_params"] = {
+                    "streamer_type": streamer_type,
+                    "template_params": streamer_params,
+                    "converted_params": streamer_params_str
+                }
+
+            return result
+        except Exception as e:
+            logging.error(f"Error in add_streamer handler: {e}")
+            import traceback
+            logging.error(f"Traceback: {traceback.format_exc()}")
+            return {
+                "success": False,
+                "message": f"Add streamer failed: {e}",
+                "error": str(e),
+            }
+
+    async def _handle_remove_streamer(
+            self, streamer_type: str, streamer_params: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Handle remove_streamer."""
-        return EEGProcessorInteractionAPI.remove_streamer(streamer_params)
+        try:
+            logging.info(f"Removing streamer: type={streamer_type}, params={streamer_params}")
+
+            # Convert template params to streamer_params string if it's a dict
+            if isinstance(streamer_params, dict):
+                streamer_params_str = self._convert_streamer_template_to_params(
+                    streamer_type, streamer_params
+                )
+            else:
+                streamer_params_str = streamer_params
+
+            logging.info(f"Converted streamer params to string: {streamer_params_str}")
+
+            result = EEGProcessorInteractionAPI.remove_streamer(streamer_params_str)
+
+            # Enhance the result with the original parameters for reference
+            if "success" in result:
+                result["original_params"] = {
+                    "streamer_type": streamer_type,
+                    "streamer_params": streamer_params_str
+                }
+
+            return result
+        except Exception as e:
+            logging.error(f"Error in remove_streamer handler: {e}")
+            return {
+                "success": False,
+                "message": f"Remove streamer failed: {e}",
+                "error": str(e),
+            }
 
     async def _handle_send_board_config(self, config_cmd: str) -> Dict[str, Any]:
         """Handle send_board_config."""
@@ -1022,6 +1458,9 @@ class EEGProcessorInteractionApiIntegration:
                 return param in ["timeout"]
 
         except Exception as e:
+            logging.warning(f"Error determining optional fields for {board_name}: {e}")
+            # Conservative fallback: consider timeout as optional for most boards
+            return param in ["timeout"]
             logging.warning(f"Error determining optional fields for {board_name}: {e}")
             # Conservative fallback: consider timeout as optional for most boards
             return param in ["timeout"]

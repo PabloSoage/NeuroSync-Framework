@@ -398,7 +398,7 @@ class EEGProcessorInteractionAPI:
         """
         try:
             service = InteractionService.get_instance()
-            return service.config_device(config_cmd)
+            return service.send_board_config(config_cmd)
         except Exception as e:
             logging.error(f"Error sending board config: {e}")
             return {
