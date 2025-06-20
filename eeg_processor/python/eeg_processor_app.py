@@ -92,7 +92,9 @@ class EEGProcessorApp(QMainWindow):
         self.app_event_handler.stream_start_signal.connect(self.on_stream_started)
         self.app_event_handler.stream_stop_signal.connect(self.on_stream_stopped)
         self.app_event_handler.board_connect_signal.connect(self.on_board_connected)
-        self.app_event_handler.board_disconnect_signal.connect(self.on_board_disconnected)
+        self.app_event_handler.board_disconnect_signal.connect(
+            self.on_board_disconnected
+        )
 
         # Application state
         self.is_streaming = False
@@ -230,7 +232,8 @@ class EEGProcessorApp(QMainWindow):
                 EventType.BOARD_CONNECT, self._handle_api_board_connect_thread_safe
             )
             event_dispatcher.subscribe(
-                EventType.BOARD_DISCONNECT, self._handle_api_board_disconnect_thread_safe
+                EventType.BOARD_DISCONNECT,
+                self._handle_api_board_disconnect_thread_safe,
             )
 
         except Exception as e:

@@ -532,11 +532,11 @@ class InteractionService:
 
             # Determine streamer type and validate accordingly
             streamer_type = self._determine_streamer_type(streamer_params)
-            
+
             if streamer_type == "file":
                 # For file streamers, we need recording service and streaming to be active
                 recording_service = self._get_recording_service()
-                
+
                 if not collector_service.is_streaming_active():
                     self._set_status(
                         False, "Board must be streaming to add file streamer"
@@ -548,9 +548,7 @@ class InteractionService:
                     }
 
                 if recording_service.is_recording():
-                    self._set_status(
-                        False, "A file recording is already in progress"
-                    )
+                    self._set_status(False, "A file recording is already in progress")
                     return {
                         "success": False,
                         "message": "A file recording is already in progress. Stop current recording first.",
@@ -564,13 +562,15 @@ class InteractionService:
                     file_path, data_type = streamer_params, "raw"
 
                 success = recording_service.start_recording(file_path, data_type)
-                
+
             elif streamer_type in ["network", "custom"]:
                 # For network/custom streamers, validate preset compatibility
                 try:
                     self._validate_streaming_board_preset()
                 except Exception as validation_error:
-                    self._set_status(False, f"Preset validation failed: {validation_error}")
+                    self._set_status(
+                        False, f"Preset validation failed: {validation_error}"
+                    )
                     return {
                         "success": False,
                         "message": f"Preset validation failed: {validation_error}",
@@ -588,7 +588,9 @@ class InteractionService:
                 }
 
             if success:
-                self._set_status(True, f"Streamer added successfully: {streamer_params}")
+                self._set_status(
+                    True, f"Streamer added successfully: {streamer_params}"
+                )
             else:
                 self._set_status(False, f"Failed to add streamer: {streamer_params}")
 
@@ -605,19 +607,21 @@ class InteractionService:
                 {
                     "streamer_params": streamer_params,
                     "streamer_type": streamer_type,
-                    "success": success
+                    "success": success,
                 },
                 source="interaction_service",
             )
 
-            logging.info(f"Dispatched STREAMER_ADD event: success={success}, type={streamer_type}, params={streamer_params}")
+            logging.info(
+                f"Dispatched STREAMER_ADD event: success={success}, type={streamer_type}, params={streamer_params}"
+            )
 
             return result
 
         except Exception as e:
             self._set_status(False, f"Error adding streamer: {e}")
             logging.error(f"Error adding streamer: {e}")
-            
+
             # Dispatch failed event
             dispatch(
                 EventType.STREAMER_ADD,
@@ -625,11 +629,11 @@ class InteractionService:
                     "streamer_params": streamer_params,
                     "streamer_type": "unknown",
                     "success": False,
-                    "error": str(e)
+                    "error": str(e),
                 },
                 source="interaction_service",
             )
-            
+
             return {
                 "success": False,
                 "error": str(e),
@@ -674,7 +678,9 @@ class InteractionService:
                 if not collector_service.is_connected():
                     # If board is disconnected, consider removal successful (cleanup)
                     success = True
-                    logging.warning("Board disconnected, removing streamer from tracking only")
+                    logging.warning(
+                        "Board disconnected, removing streamer from tracking only"
+                    )
                 else:
                     success = collector_service.remove_streamer(streamer_params)
             else:
@@ -685,7 +691,9 @@ class InteractionService:
                     success = True  # Cleanup mode
 
             if success:
-                self._set_status(True, f"Streamer removed successfully: {streamer_params}")
+                self._set_status(
+                    True, f"Streamer removed successfully: {streamer_params}"
+                )
             else:
                 self._set_status(False, f"Failed to remove streamer: {streamer_params}")
 
@@ -702,19 +710,21 @@ class InteractionService:
                 {
                     "streamer_params": streamer_params,
                     "streamer_type": streamer_type,
-                    "success": success
+                    "success": success,
                 },
                 source="interaction_service",
             )
 
-            logging.info(f"Dispatched STREAMER_REMOVE event: success={success}, type={streamer_type}, params={streamer_params}")
+            logging.info(
+                f"Dispatched STREAMER_REMOVE event: success={success}, type={streamer_type}, params={streamer_params}"
+            )
 
             return result
 
         except Exception as e:
             self._set_status(False, f"Error removing streamer: {e}")
             logging.error(f"Error removing streamer: {e}")
-            
+
             # Dispatch failed event
             dispatch(
                 EventType.STREAMER_REMOVE,
@@ -722,11 +732,11 @@ class InteractionService:
                     "streamer_params": streamer_params,
                     "streamer_type": "unknown",
                     "success": False,
-                    "error": str(e)
+                    "error": str(e),
                 },
                 source="interaction_service",
             )
-            
+
             return {
                 "success": False,
                 "error": str(e),
@@ -814,9 +824,14 @@ class InteractionService:
             return "file"
         elif streamer_params.endswith((".csv", ".txt")):
             return "file"
-        elif "file_path" in streamer_params:  # Añadir esta condición para JSON de file streamer
+        elif (
+            "file_path" in streamer_params
+        ):  # Añadir esta condición para JSON de file streamer
             return "file"
-        elif any(proto in streamer_params for proto in ["streaming_board://", "udp://", "tcp://"]):
+        elif any(
+            proto in streamer_params
+            for proto in ["streaming_board://", "udp://", "tcp://"]
+        ):
             return "network"
         else:
             return "custom"
@@ -838,7 +853,9 @@ class InteractionService:
                 raise Exception("No collector available for preset validation")
 
             # Get current preset
-            current_preset = getattr(collector, "preset", BrainFlowPresets.DEFAULT_PRESET.value)
+            current_preset = getattr(
+                collector, "preset", BrainFlowPresets.DEFAULT_PRESET.value
+            )
 
             # Check if preset is non-default (which can cause streaming issues)
             if current_preset != BrainFlowPresets.DEFAULT_PRESET.value:
@@ -849,7 +866,9 @@ class InteractionService:
                 )
 
                 # Optionally raise an exception here to force preset validation: (if not blocked, GUI will handle it)
-                raise Exception(f"Non-default preset {current_preset} detected. Use preset {BrainFlowPresets.DEFAULT_PRESET.value} for streaming compatibility.")
+                raise Exception(
+                    f"Non-default preset {current_preset} detected. Use preset {BrainFlowPresets.DEFAULT_PRESET.value} for streaming compatibility."
+                )
 
             logging.info(f"Preset validation passed: current_preset={current_preset}")
 
@@ -1085,7 +1104,10 @@ class InteractionService:
             # Initialize processor if needed
             collector_service = self._get_collector_service()
             sampling_rate = collector_service.get_sampling_rate()
-            if sampling_rate > 0 and (not hasattr(processor_service, "processor") or processor_service.processor is None):
+            if sampling_rate > 0 and (
+                not hasattr(processor_service, "processor")
+                or processor_service.processor is None
+            ):
                 processor_service.initialize_processor(sampling_rate)
 
             # Enable filters in data access service first
@@ -1095,7 +1117,9 @@ class InteractionService:
             if force_update:
                 current_data, current_timestamps = data_service.get_raw_data()
                 if current_data.size > 0:
-                    logging.info(f"Force updating filters on existing data buffer of {current_data.shape}")
+                    logging.info(
+                        f"Force updating filters on existing data buffer of {current_data.shape}"
+                    )
                     # This will trigger the callbacks with filtered data
                     data_service.update_data(current_data, current_timestamps)
 
@@ -1103,48 +1127,56 @@ class InteractionService:
             if apply_to_viz:
                 try:
                     visualization_service = self._get_visualization_service()
-                    
+
                     # Apply bandpass filter
                     if filter_config.get("bandpass", {}).get("enabled", False):
                         bp_config = filter_config["bandpass"]
                         visualization_service.set_bandpass_filter(
                             True,
                             bp_config.get("low_cut", bp_config.get("low", 1.0)),
-                            bp_config.get("high_cut", bp_config.get("high", 50.0))
+                            bp_config.get("high_cut", bp_config.get("high", 50.0)),
                         )
                     else:
                         visualization_service.set_bandpass_filter(False)
 
-                    # Apply notch filter  
+                    # Apply notch filter
                     if filter_config.get("notch", {}).get("enabled", False):
                         notch_config = filter_config["notch"]
                         visualization_service.set_notch_filter(
                             True,
-                            notch_config.get("frequency", notch_config.get("freq", 50.0))
+                            notch_config.get(
+                                "frequency", notch_config.get("freq", 50.0)
+                            ),
                         )
                     else:
                         visualization_service.set_notch_filter(False)
 
                     # Apply detrend
-                    visualization_service.set_detrend(filter_config.get("detrend", False))
+                    visualization_service.set_detrend(
+                        filter_config.get("detrend", False)
+                    )
 
                     logging.info("Filters applied to visualization")
                 except Exception as viz_error:
-                    logging.warning(f"Could not apply filters to visualization: {viz_error}")
+                    logging.warning(
+                        f"Could not apply filters to visualization: {viz_error}"
+                    )
             else:
                 try:
                     visualization_service = self._get_visualization_service()
-                    
+
                     # Remove filters from visualization
                     visualization_service.set_bandpass_filter(False, 1.0, 50.0)
                     visualization_service.set_notch_filter(False)
                     visualization_service.set_detrend(False)
 
                     DataAccessService.get_instance().enable_filters(False)
-                    
+
                     logging.info("Filters removed from data stream and visualization")
                 except Exception as viz_error:
-                    logging.warning(f"Could not remove filters from visualization: {viz_error}")
+                    logging.warning(
+                        f"Could not remove filters from visualization: {viz_error}"
+                    )
 
             result = {
                 "success": True,
@@ -1158,9 +1190,9 @@ class InteractionService:
             dispatch(
                 EventType.FILTER_APPLY,
                 {
-                    "filter_config": filter_config, 
+                    "filter_config": filter_config,
                     "success": True,
-                    "applied_to_visualization": apply_to_viz
+                    "applied_to_visualization": apply_to_viz,
                 },
                 source="interaction_service",
             )
@@ -1427,13 +1459,15 @@ class InteractionService:
             # Convert NumPy arrays to Python lists for JSON serialization
             serializable_metrics = {}
             for metric_name, metric_value in raw_metrics.items():
-                if hasattr(metric_value, 'tolist'):
+                if hasattr(metric_value, "tolist"):
                     # NumPy array
                     serializable_metrics[metric_name] = metric_value.tolist()
-                elif hasattr(metric_value, '__iter__') and not isinstance(metric_value, str):
+                elif hasattr(metric_value, "__iter__") and not isinstance(
+                    metric_value, str
+                ):
                     # Other iterable
                     serializable_metrics[metric_name] = list(metric_value)
-                elif hasattr(metric_value, 'item'):
+                elif hasattr(metric_value, "item"):
                     # NumPy scalar
                     serializable_metrics[metric_name] = metric_value.item()
                 else:
@@ -1458,6 +1492,7 @@ class InteractionService:
         except Exception as e:
             logging.error(f"Error calculating EEG metrics: {e}")
             import traceback
+
             logging.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "success": False,

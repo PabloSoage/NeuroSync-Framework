@@ -59,10 +59,14 @@ class StreamingPanel(BasePanel):
             # Subscribe to streamer events
             subscribe(EventType.STREAMER_ADD, self._on_streamer_added_via_api)
             subscribe(EventType.STREAMER_REMOVE, self._on_streamer_removed_via_api)
-            subscribe(EventType.DEVICE_CONFIG_RESPONSE, self._on_config_response_via_api)
-            
+            subscribe(
+                EventType.DEVICE_CONFIG_RESPONSE, self._on_config_response_via_api
+            )
+
             logging.info("Streaming panel event listeners set up successfully")
-            logging.info(f"Subscribed to events: {[EventType.STREAMER_ADD, EventType.STREAMER_REMOVE, EventType.DEVICE_CONFIG_RESPONSE]}")
+            logging.info(
+                f"Subscribed to events: {[EventType.STREAMER_ADD, EventType.STREAMER_REMOVE, EventType.DEVICE_CONFIG_RESPONSE]}"
+            )
         except Exception as e:
             logging.error(f"Error setting up event listeners: {e}")
 
@@ -72,14 +76,16 @@ class StreamingPanel(BasePanel):
             logging.info(f"=== STREAMER ADD EVENT RECEIVED ===")
             logging.info(f"Event source: {event.source}")
             logging.info(f"Event data: {event.data}")
-            
+
             data = event.data
             streamer_params = data.get("streamer_params", "")
             streamer_type = data.get("streamer_type", "auto")
             success = data.get("success", False)
-            
-            logging.info(f"Parsed - params: {streamer_params}, type: {streamer_type}, success: {success}")
-            
+
+            logging.info(
+                f"Parsed - params: {streamer_params}, type: {streamer_type}, success: {success}"
+            )
+
             if not success:
                 logging.warning("Event indicates failure, skipping UI update")
                 return
@@ -115,7 +121,9 @@ class StreamingPanel(BasePanel):
                 "params": streamer_params,
                 "data_type": data_type,
                 "display": display_text,
-                "original_template": data.get("original_params", {}).get("template_params", {}),  # Añadir parámetros originales
+                "original_template": data.get("original_params", {}).get(
+                    "template_params", {}
+                ),  # Añadir parámetros originales
             }
 
             # Check if already exists (avoid duplicates)
@@ -132,10 +140,11 @@ class StreamingPanel(BasePanel):
                 logging.info(f"Streamer already exists in UI: {display_text}")
 
             logging.info(f"=== END STREAMER ADD EVENT ===")
-                
+
         except Exception as e:
             logging.error(f"Error handling API streamer add event: {e}")
             import traceback
+
             logging.error(f"Traceback: {traceback.format_exc()}")
 
     def _on_streamer_removed_via_api(self, event) -> None:
@@ -153,16 +162,23 @@ class StreamingPanel(BasePanel):
 
             # Find and remove from tracking
             for i, streamer_info in enumerate(self.active_streamers):
-                if streamer_info["params"] == streamer_params and streamer_info["type"] == streamer_type:
+                if (
+                    streamer_info["params"] == streamer_params
+                    and streamer_info["type"] == streamer_type
+                ):
 
                     # Remove from UI list
                     self.streamers_list.takeItem(i)
                     # Remove from tracking
                     self.active_streamers.pop(i)
-                    logging.info(f"Removed streamer from UI: {streamer_info['display']}")
+                    logging.info(
+                        f"Removed streamer from UI: {streamer_info['display']}"
+                    )
                     break
             else:
-                logging.warning(f"Streamer not found in UI for removal: {streamer_params}")
+                logging.warning(
+                    f"Streamer not found in UI for removal: {streamer_params}"
+                )
 
         except Exception as e:
             logging.error(f"Error handling API streamer remove event: {e}")

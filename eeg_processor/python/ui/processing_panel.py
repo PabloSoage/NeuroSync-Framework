@@ -16,13 +16,15 @@ from PyQt5.QtWidgets import (
 from .base_panel import BasePanel
 from ..utils.help_system import HelpButton
 
+
 class ApiEventHandler(QObject):
     """Thread-safe handler for API events."""
-    
+
     filter_apply_signal = pyqtSignal(dict, bool)
-    
+
     def __init__(self):
         super().__init__()
+
 
 class ProcessingPanel(BasePanel):
     """Panel for signal processing operations."""
@@ -53,7 +55,9 @@ class ProcessingPanel(BasePanel):
 
         # Setup thread-safe event handler
         self.api_event_handler = ApiEventHandler()
-        self.api_event_handler.filter_apply_signal.connect(self._handle_api_filter_apply_safe)
+        self.api_event_handler.filter_apply_signal.connect(
+            self._handle_api_filter_apply_safe
+        )
 
         # Setup event system subscriptions for API synchronization
         self._setup_event_subscriptions()
@@ -79,34 +83,48 @@ class ProcessingPanel(BasePanel):
             )
 
         except Exception as e:
-            logging.error(f"Error setting up event subscriptions in processing panel: {e}")
+            logging.error(
+                f"Error setting up event subscriptions in processing panel: {e}"
+            )
 
     def _handle_api_filter_apply_thread_safe(self, event: Any) -> None:
         """Handle filter apply events from API in a thread-safe way."""
         try:
             filter_config = event.data.get("filter_config", {})
             applied_to_viz = event.data.get("applied_to_visualization", True)
-            
-            logging.info(f"Processing panel received API filter event: config={filter_config}, apply_to_viz={applied_to_viz}")
+
+            logging.info(
+                f"Processing panel received API filter event: config={filter_config}, apply_to_viz={applied_to_viz}"
+            )
 
             # Emit signal to handle in main thread
-            self.api_event_handler.filter_apply_signal.emit(filter_config, applied_to_viz)
+            self.api_event_handler.filter_apply_signal.emit(
+                filter_config, applied_to_viz
+            )
 
         except Exception as e:
             logging.error(f"Error handling API filter apply event thread-safe: {e}")
 
-    def _handle_api_filter_apply_safe(self, filter_config: Dict[str, Any], applied_to_visualization: bool) -> None:
+    def _handle_api_filter_apply_safe(
+        self, filter_config: Dict[str, Any], applied_to_visualization: bool
+    ) -> None:
         """Handle filter apply events from API safely in main thread."""
         try:
-            logging.info(f"Processing panel updating controls: config={filter_config}, apply_to_viz={applied_to_visualization}")
+            logging.info(
+                f"Processing panel updating controls: config={filter_config}, apply_to_viz={applied_to_visualization}"
+            )
 
             # Update the UI controls to reflect the API settings
-            self._update_filter_controls_from_api(filter_config, applied_to_visualization)
+            self._update_filter_controls_from_api(
+                filter_config, applied_to_visualization
+            )
 
         except Exception as e:
             logging.error(f"Error handling API filter apply event safely: {e}")
 
-    def _update_filter_controls_from_api(self, filter_config: Dict[str, Any], applied_to_visualization: bool) -> None:
+    def _update_filter_controls_from_api(
+        self, filter_config: Dict[str, Any], applied_to_visualization: bool
+    ) -> None:
         """Update filter controls based on API filter configuration."""
         try:
             # Temporarily disconnect signals to prevent recursive updates
@@ -167,10 +185,16 @@ class ProcessingPanel(BasePanel):
         """Temporarily disconnect filter signals to prevent recursive updates."""
         try:
             self.bandpass_check.toggled.disconnect(self.on_filter_option_changed)
-            self.bandpass_low_spin.valueChanged.disconnect(self.on_filter_option_changed)
-            self.bandpass_high_spin.valueChanged.disconnect(self.on_filter_option_changed)
+            self.bandpass_low_spin.valueChanged.disconnect(
+                self.on_filter_option_changed
+            )
+            self.bandpass_high_spin.valueChanged.disconnect(
+                self.on_filter_option_changed
+            )
             self.notch_check.toggled.disconnect(self.on_filter_option_changed)
-            self.notch_type_combo.currentIndexChanged.disconnect(self.on_filter_option_changed)
+            self.notch_type_combo.currentIndexChanged.disconnect(
+                self.on_filter_option_changed
+            )
             self.detrend_check.toggled.disconnect(self.on_filter_option_changed)
         except Exception:
             pass  # Signals might not be connected yet
@@ -182,7 +206,9 @@ class ProcessingPanel(BasePanel):
             self.bandpass_low_spin.valueChanged.connect(self.on_filter_option_changed)
             self.bandpass_high_spin.valueChanged.connect(self.on_filter_option_changed)
             self.notch_check.toggled.connect(self.on_filter_option_changed)
-            self.notch_type_combo.currentIndexChanged.connect(self.on_filter_option_changed)
+            self.notch_type_combo.currentIndexChanged.connect(
+                self.on_filter_option_changed
+            )
             self.detrend_check.toggled.connect(self.on_filter_option_changed)
         except Exception as e:
             logging.error(f"Error reconnecting filter signals: {e}")
@@ -366,12 +392,18 @@ class ProcessingPanel(BasePanel):
 
                 # Apply filters to data access service (for MNE and other consumers)
                 self.data_access_service.enable_filters(True, filter_settings)
-                
+
                 # Force update all current data through filters
-                current_data, current_timestamps = self.data_access_service.get_raw_data()
+                current_data, current_timestamps = (
+                    self.data_access_service.get_raw_data()
+                )
                 if current_data.size > 0:
-                    logging.info(f"Applying filters to existing data buffer of {current_data.shape}")
-                    self.data_access_service.update_data(current_data, current_timestamps)
+                    logging.info(
+                        f"Applying filters to existing data buffer of {current_data.shape}"
+                    )
+                    self.data_access_service.update_data(
+                        current_data, current_timestamps
+                    )
 
                 # Update button state
                 self.filters_applied = True

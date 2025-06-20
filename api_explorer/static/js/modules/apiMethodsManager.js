@@ -363,7 +363,7 @@ export class APIMethodsManager {
                 if (paramName === 'bandpass_low' || paramName === 'bandpass_high') {
                     // Ensure it's a number
                     paramValue = parseFloat(paramValue);
-                    
+
                     // Validate bandpass range
                     if (paramName === 'bandpass_low') {
                         const highElement = document.getElementById(`${moduleId}-${methodId}_param_bandpass_high`);

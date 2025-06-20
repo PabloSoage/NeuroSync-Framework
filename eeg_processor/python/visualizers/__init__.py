@@ -108,6 +108,6 @@ from .brain_map_viz import BrainMapVisualizer
 from .eeg_viz import MultiSignalVisualizer
 
 __all__ = [
-    "MultiSignalVisualizer", 
+    "MultiSignalVisualizer",
     "BrainMapVisualizer",
 ]

@@ -313,17 +313,17 @@
         function updateRangeDisplay(rangeInput, displayFormat) {
             const value = rangeInput.value;
             const displaySpan = rangeInput.nextElementSibling;
-            
+
             try {
                 // Replace {value} placeholder and evaluate any Math expressions
                 let displayText = displayFormat.replace('{value}', value);
-                
+
                 // Handle Math.floor expressions safely
                 if (displayText.includes('Math.floor(360/')) {
                     const result = Math.floor(360 / parseFloat(value));
                     displayText = displayText.replace(/Math\.floor\(360\/[^)]+\)/, result);
                 }
-                
+
                 displaySpan.innerHTML = displayText;
             } catch (error) {
                 console.error('Error formatting range display:', error);

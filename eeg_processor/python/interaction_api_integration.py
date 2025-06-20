@@ -328,8 +328,8 @@ class EEGProcessorInteractionApiIntegration:
                         "template_source": "streamer_type",  # Añadir template_source
                         "placeholder": "Parameters will appear based on streamer type selection",
                         "ui_type": "json_template",  # Añadir UI hint
-                        "help_text": "Use the exact same parameter object that was used to add this streamer"
-                    }
+                        "help_text": "Use the exact same parameter object that was used to add this streamer",
+                    },
                 },
             },
             self._handle_remove_streamer,
@@ -379,11 +379,13 @@ class EEGProcessorInteractionApiIntegration:
         )
 
     async def _handle_add_streamer(
-            self, streamer_type: str, streamer_params: Dict[str, Any]
+        self, streamer_type: str, streamer_params: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Handle add_streamer."""
         try:
-            logging.info(f"Adding streamer: type={streamer_type}, params={streamer_params}")
+            logging.info(
+                f"Adding streamer: type={streamer_type}, params={streamer_params}"
+            )
 
             # Convert template params to streamer_params string
             streamer_params_str = self._convert_streamer_template_to_params(
@@ -399,13 +401,14 @@ class EEGProcessorInteractionApiIntegration:
                 result["original_params"] = {
                     "streamer_type": streamer_type,
                     "template_params": streamer_params,
-                    "converted_params": streamer_params_str
+                    "converted_params": streamer_params_str,
                 }
 
             return result
         except Exception as e:
             logging.error(f"Error in add_streamer handler: {e}")
             import traceback
+
             logging.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "success": False,
@@ -414,11 +417,13 @@ class EEGProcessorInteractionApiIntegration:
             }
 
     async def _handle_remove_streamer(
-            self, streamer_type: str, streamer_params: Dict[str, Any]
+        self, streamer_type: str, streamer_params: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Handle remove_streamer."""
         try:
-            logging.info(f"Removing streamer: type={streamer_type}, params={streamer_params}")
+            logging.info(
+                f"Removing streamer: type={streamer_type}, params={streamer_params}"
+            )
 
             # Convert template params to streamer_params string if it's a dict
             if isinstance(streamer_params, dict):
@@ -436,7 +441,7 @@ class EEGProcessorInteractionApiIntegration:
             if "success" in result:
                 result["original_params"] = {
                     "streamer_type": streamer_type,
-                    "streamer_params": streamer_params_str
+                    "streamer_params": streamer_params_str,
                 }
 
             return result
@@ -487,7 +492,7 @@ class EEGProcessorInteractionApiIntegration:
                         "value": "recordings/eeg_stream.csv",
                         "description": "Path where to save the streaming data file",
                         "type": "text",
-                        "required": True
+                        "required": True,
                     },
                     "data_type": {
                         "value": "raw",
@@ -496,9 +501,9 @@ class EEGProcessorInteractionApiIntegration:
                         "options": [
                             {"value": "raw", "label": "Raw Data"},
                             {"value": "processed", "label": "Processed Data"},
-                            {"value": "both", "label": "Both Raw + Processed"}
+                            {"value": "both", "label": "Both Raw + Processed"},
                         ],
-                        "required": True
+                        "required": True,
                     },
                     "_COMMENTS": [
                         "FILE STREAMER - Saves streaming data to a file",
@@ -512,8 +517,8 @@ class EEGProcessorInteractionApiIntegration:
                         "  - Directory will be created automatically if it doesn't exist",
                         "  - Board must be connected and streaming before adding file streamer",
                         "",
-                        "Remove this _COMMENTS field before executing"
-                    ]
+                        "Remove this _COMMENTS field before executing",
+                    ],
                 }
 
             elif streamer_type == "network":
@@ -522,19 +527,19 @@ class EEGProcessorInteractionApiIntegration:
                         "value": "streaming_board",
                         "description": "Protocol to use: 'streaming_board' for BrainFlow network streaming",
                         "type": "text",
-                        "required": True
+                        "required": True,
                     },
                     "ip_address": {
                         "value": "225.1.1.1",
                         "description": "IP address for network streaming (default multicast: 225.1.1.1)",
                         "type": "text",
-                        "required": True
+                        "required": True,
                     },
                     "ip_port": {
                         "value": 6677,
                         "description": "Port for network streaming (default: 6677)",
                         "type": "number",
-                        "required": True
+                        "required": True,
                     },
                     "_COMMENTS": [
                         "NETWORK STREAMER - Streams data over network using BrainFlow protocol",
@@ -552,8 +557,8 @@ class EEGProcessorInteractionApiIntegration:
                         "  - Requires preset 0 (Default) for optimal compatibility",
                         "  - Board must be connected before adding network streamer",
                         "",
-                        "Remove this _COMMENTS field before executing"
-                    ]
+                        "Remove this _COMMENTS field before executing",
+                    ],
                 }
 
             elif streamer_type == "custom":
@@ -565,27 +570,27 @@ class EEGProcessorInteractionApiIntegration:
                         "options": [
                             {"value": "udp", "label": "UDP"},
                             {"value": "tcp", "label": "TCP"},
-                            {"value": "other", "label": "Other (specify in address)"}
+                            {"value": "other", "label": "Other (specify in address)"},
                         ],
-                        "required": True
+                        "required": True,
                     },
                     "address": {
                         "value": "127.0.0.1",
                         "description": "Target address for custom streaming",
                         "type": "text",
-                        "required": True
+                        "required": True,
                     },
                     "port": {
                         "value": 8080,
                         "description": "Target port for custom streaming",
                         "type": "number",
-                        "required": True
+                        "required": True,
                     },
                     "additional_params": {
                         "value": "",
                         "description": "Additional parameters if needed (optional)",
                         "type": "text",
-                        "required": False
+                        "required": False,
                     },
                     "_COMMENTS": [
                         "CUSTOM STREAMER - Streams data using custom protocols",
@@ -608,8 +613,8 @@ class EEGProcessorInteractionApiIntegration:
                         "  - Board must be connected before adding custom streamer",
                         "  - Specific format depends on your custom implementation",
                         "",
-                        "Remove this _COMMENTS field before executing"
-                    ]
+                        "Remove this _COMMENTS field before executing",
+                    ],
                 }
             else:
                 # Unknown streamer type
@@ -618,32 +623,37 @@ class EEGProcessorInteractionApiIntegration:
                         "value": "",
                         "description": f"Parameters for {streamer_type} streamer",
                         "type": "text",
-                        "required": True
+                        "required": True,
                     },
                     "_COMMENTS": [
                         f"UNKNOWN STREAMER TYPE: {streamer_type}",
                         "",
                         "Please specify the complete streamer parameters string.",
                         "",
-                        "Remove this _COMMENTS field before executing"
-                    ]
+                        "Remove this _COMMENTS field before executing",
+                    ],
                 }
 
-            logging.info(f"Built template with {len(template)} fields: {list(template.keys())}")
+            logging.info(
+                f"Built template with {len(template)} fields: {list(template.keys())}"
+            )
             return template
 
         except Exception as e:
             logging.error(f"Error getting streamer template: {e}")
             import traceback
+
             logging.error(f"Traceback: {traceback.format_exc()}")
             return {}
 
     def _convert_streamer_template_to_params(
-            self, streamer_type: str, template_params: Dict[str, Any]
+        self, streamer_type: str, template_params: Dict[str, Any]
     ) -> str:
         """Convert template parameters to streamer_params string."""
         try:
-            logging.info(f"Converting template: type={streamer_type}, params={template_params}")
+            logging.info(
+                f"Converting template: type={streamer_type}, params={template_params}"
+            )
 
             # Remove comments if present
             params = {k: v for k, v in template_params.items() if k != "_COMMENTS"}
@@ -700,6 +710,7 @@ class EEGProcessorInteractionApiIntegration:
         except Exception as e:
             logging.error(f"Error converting streamer template to params: {e}")
             import traceback
+
             logging.error(f"Traceback: {traceback.format_exc()}")
             # Fallback: return the template as is (might work for some cases)
             return str(template_params)
@@ -722,9 +733,9 @@ class EEGProcessorInteractionApiIntegration:
                         "required": False,
                         "options": [
                             {"value": "true", "label": "True"},
-                            {"value": "false", "label": "False"}
+                            {"value": "false", "label": "False"},
                         ],
-                        "default": "true"
+                        "default": "true",
                     },
                     "bandpass_low": {
                         "type": "range",
@@ -735,7 +746,7 @@ class EEGProcessorInteractionApiIntegration:
                         "display_value": True,
                         "display_format": "{value} Hz",
                         "required": False,
-                        "default": 1.0
+                        "default": 1.0,
                     },
                     "bandpass_high": {
                         "type": "range",
@@ -746,7 +757,7 @@ class EEGProcessorInteractionApiIntegration:
                         "display_value": True,
                         "display_format": "{value} Hz",
                         "required": False,
-                        "default": 50.0
+                        "default": 50.0,
                     },
                     "notch_enabled": {
                         "type": "select",
@@ -754,9 +765,9 @@ class EEGProcessorInteractionApiIntegration:
                         "required": False,
                         "options": [
                             {"value": "true", "label": "True"},
-                            {"value": "false", "label": "False"}
+                            {"value": "false", "label": "False"},
                         ],
-                        "default": "true"
+                        "default": "true",
                     },
                     "notch_frequency": {
                         "type": "select",
@@ -764,9 +775,9 @@ class EEGProcessorInteractionApiIntegration:
                         "required": False,
                         "options": [
                             {"value": "50", "label": "50 Hz"},
-                            {"value": "60", "label": "60 Hz"}
+                            {"value": "60", "label": "60 Hz"},
                         ],
-                        "default": "50"
+                        "default": "50",
                     },
                     "detrend_enabled": {
                         "type": "select",
@@ -774,9 +785,9 @@ class EEGProcessorInteractionApiIntegration:
                         "required": False,
                         "options": [
                             {"value": "true", "label": "True"},
-                            {"value": "false", "label": "False"}
+                            {"value": "false", "label": "False"},
                         ],
-                        "default": "true"
+                        "default": "true",
                     },
                     "apply_to_visualization": {
                         "type": "select",
@@ -784,10 +795,10 @@ class EEGProcessorInteractionApiIntegration:
                         "required": False,
                         "options": [
                             {"value": "true", "label": "True"},
-                            {"value": "false", "label": "False"}
+                            {"value": "false", "label": "False"},
                         ],
-                        "default": "true"
-                    }
+                        "default": "true",
+                    },
                 },
             },
             self._handle_apply_filters,
@@ -1130,11 +1141,13 @@ class EEGProcessorInteractionApiIntegration:
         return EEGProcessorInteractionAPI.stop_stream()
 
     async def _handle_add_streamer(
-            self, streamer_type: str, streamer_params: Dict[str, Any]
+        self, streamer_type: str, streamer_params: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Handle add_streamer."""
         try:
-            logging.info(f"Adding streamer: type={streamer_type}, params={streamer_params}")
+            logging.info(
+                f"Adding streamer: type={streamer_type}, params={streamer_params}"
+            )
 
             # Convert template params to streamer_params string
             streamer_params_str = self._convert_streamer_template_to_params(
@@ -1150,13 +1163,14 @@ class EEGProcessorInteractionApiIntegration:
                 result["original_params"] = {
                     "streamer_type": streamer_type,
                     "template_params": streamer_params,
-                    "converted_params": streamer_params_str
+                    "converted_params": streamer_params_str,
                 }
 
             return result
         except Exception as e:
             logging.error(f"Error in add_streamer handler: {e}")
             import traceback
+
             logging.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "success": False,
@@ -1165,11 +1179,13 @@ class EEGProcessorInteractionApiIntegration:
             }
 
     async def _handle_remove_streamer(
-            self, streamer_type: str, streamer_params: Dict[str, Any]
+        self, streamer_type: str, streamer_params: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Handle remove_streamer."""
         try:
-            logging.info(f"Removing streamer: type={streamer_type}, params={streamer_params}")
+            logging.info(
+                f"Removing streamer: type={streamer_type}, params={streamer_params}"
+            )
 
             # Convert template params to streamer_params string if it's a dict
             if isinstance(streamer_params, dict):
@@ -1187,7 +1203,7 @@ class EEGProcessorInteractionApiIntegration:
             if "success" in result:
                 result["original_params"] = {
                     "streamer_type": streamer_type,
-                    "streamer_params": streamer_params_str
+                    "streamer_params": streamer_params_str,
                 }
 
             return result
@@ -1204,14 +1220,14 @@ class EEGProcessorInteractionApiIntegration:
         return EEGProcessorInteractionAPI.send_board_config(config_cmd)
 
     async def _handle_apply_filters(
-        self, 
+        self,
         bandpass_enabled: str = "true",
         bandpass_low: float = 1.0,
         bandpass_high: float = 50.0,
-        notch_enabled: str = "true", 
+        notch_enabled: str = "true",
         notch_frequency: str = "50",
         detrend_enabled: str = "true",
-        apply_to_visualization: str = "true"
+        apply_to_visualization: str = "true",
     ) -> Dict[str, Any]:
         """Handle apply_filters with enhanced visual configuration."""
         try:
@@ -1226,7 +1242,7 @@ class EEGProcessorInteractionApiIntegration:
                 return {
                     "success": False,
                     "message": "Bandpass low frequency must be less than high frequency",
-                    "error": "INVALID_FREQUENCY_RANGE"
+                    "error": "INVALID_FREQUENCY_RANGE",
                 }
 
             # Build filter configuration
@@ -1246,7 +1262,7 @@ class EEGProcessorInteractionApiIntegration:
                 "detrend": detrend_enabled_bool,
                 "apply_to_visualization": apply_to_viz_bool,
                 "apply": True,  # Mark that filters should be applied
-                "force_update": True  # Force immediate update of existing data
+                "force_update": True,  # Force immediate update of existing data
             }
 
             logging.info(f"Applying filters with config: {filter_config}")
@@ -1258,10 +1274,16 @@ class EEGProcessorInteractionApiIntegration:
             if "success" in result:
                 result["filter_config"] = filter_config
                 result["applied_filters"] = {
-                    "bandpass": f"{bandpass_low}-{bandpass_high} Hz" if bandpass_enabled_bool else "disabled",
-                    "notch": f"{notch_frequency} Hz" if notch_enabled_bool else "disabled", 
+                    "bandpass": (
+                        f"{bandpass_low}-{bandpass_high} Hz"
+                        if bandpass_enabled_bool
+                        else "disabled"
+                    ),
+                    "notch": (
+                        f"{notch_frequency} Hz" if notch_enabled_bool else "disabled"
+                    ),
                     "detrend": "enabled" if detrend_enabled_bool else "disabled",
-                    "visualization": "applied" if apply_to_viz_bool else "not applied"
+                    "visualization": "applied" if apply_to_viz_bool else "not applied",
                 }
 
             return result
@@ -1286,9 +1308,11 @@ class EEGProcessorInteractionApiIntegration:
                 # Convert NumPy arrays to Python lists for JSON serialization
                 serializable_metrics = {}
                 for metric_name, metric_value in metrics.items():
-                    if hasattr(metric_value, "__iter__") and not isinstance(metric_value, str):
+                    if hasattr(metric_value, "__iter__") and not isinstance(
+                        metric_value, str
+                    ):
                         # Handle arrays/lists - convert to Python list
-                        if hasattr(metric_value, 'tolist'):
+                        if hasattr(metric_value, "tolist"):
                             # NumPy array
                             serializable_metrics[metric_name] = metric_value.tolist()
                         else:
@@ -1296,7 +1320,7 @@ class EEGProcessorInteractionApiIntegration:
                             serializable_metrics[metric_name] = list(metric_value)
                     else:
                         # Scalar value - convert to Python native type
-                        if hasattr(metric_value, 'item'):
+                        if hasattr(metric_value, "item"):
                             # NumPy scalar
                             serializable_metrics[metric_name] = metric_value.item()
                         else:
@@ -1311,39 +1335,51 @@ class EEGProcessorInteractionApiIntegration:
                 for metric_name, metric_value in serializable_metrics.items():
                     if isinstance(metric_value, list) and len(metric_value) > 0:
                         formatted_metrics[metric_name] = {
-                            "value": float(metric_value[0]) if len(metric_value) == 1 else float(
-                                sum(metric_value) / len(metric_value)),
+                            "value": (
+                                float(metric_value[0])
+                                if len(metric_value) == 1
+                                else float(sum(metric_value) / len(metric_value))
+                            ),
                             "raw_data": [float(x) for x in metric_value],
-                            "channels": len(metric_value)
+                            "channels": len(metric_value),
                         }
                     elif isinstance(metric_value, list):
-                        formatted_metrics[metric_name] = {"value": 0.0, "raw_data": [], "channels": 0}
+                        formatted_metrics[metric_name] = {
+                            "value": 0.0,
+                            "raw_data": [],
+                            "channels": 0,
+                        }
                     else:
                         formatted_metrics[metric_name] = {
                             "value": float(metric_value),
                             "raw_data": [float(metric_value)],
-                            "channels": 1
+                            "channels": 1,
                         }
 
                 result["formatted_metrics"] = formatted_metrics
 
                 # Add summary statistics
-                all_values = [m["value"] for m in formatted_metrics.values() if m["value"] != 0]
+                all_values = [
+                    m["value"] for m in formatted_metrics.values() if m["value"] != 0
+                ]
                 if all_values:
                     result["summary"] = {
                         "total_metrics": len(formatted_metrics),
                         "average_value": sum(all_values) / len(all_values),
                         "min_value": min(all_values),
-                        "max_value": max(all_values)
+                        "max_value": max(all_values),
                     }
 
-                logging.info(f"EEG metrics calculated: {len(formatted_metrics)} metrics")
+                logging.info(
+                    f"EEG metrics calculated: {len(formatted_metrics)} metrics"
+                )
 
             return result
 
         except Exception as e:
             logging.error(f"Error in get_eeg_metrics handler: {e}")
             import traceback
+
             logging.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "success": False,
