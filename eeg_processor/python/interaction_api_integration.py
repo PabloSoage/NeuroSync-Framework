@@ -706,20 +706,87 @@ class EEGProcessorInteractionApiIntegration:
 
     def _register_processing_methods(self, api_explorer: Any) -> None:
         """Register processing-related methods."""
-        # Apply filters
+        # Apply filters with enhanced visual controls
         api_explorer.register_method(
             self._target_module_id,
             "processing",
             "apply_filters",
             {
-                "name": "apply_filters(filter_config)",
-                "description": "Apply signal processing filters",
+                "name": "apply_filters(bandpass_enabled, bandpass_low, bandpass_high, notch_enabled, notch_frequency, detrend_enabled, apply_to_visualization)",
+                "description": "Apply signal processing filters with visual configuration",
                 "type": "POST",
                 "params": {
-                    "filter_config": {
-                        "type": "object",
-                        "description": "Filter configuration (JSON object)",
-                        "required": True,
+                    "bandpass_enabled": {
+                        "type": "select",
+                        "description": "Enable bandpass filter",
+                        "required": False,
+                        "options": [
+                            {"value": "true", "label": "True"},
+                            {"value": "false", "label": "False"}
+                        ],
+                        "default": "true"
+                    },
+                    "bandpass_low": {
+                        "type": "range",
+                        "description": "<span style='color:#f0f0f0;'>Bandpass low cutoff frequency (0.1-50 Hz)</span>",
+                        "min": 0.1,
+                        "max": 50.0,
+                        "step": 0.1,
+                        "display_value": True,
+                        "display_format": "{value} Hz",
+                        "required": False,
+                        "default": 1.0
+                    },
+                    "bandpass_high": {
+                        "type": "range",
+                        "description": "<span style='color:#f0f0f0;'>Bandpass high cutoff frequency (1-200 Hz)</span>",
+                        "min": 1.0,
+                        "max": 200.0,
+                        "step": 0.1,
+                        "display_value": True,
+                        "display_format": "{value} Hz",
+                        "required": False,
+                        "default": 50.0
+                    },
+                    "notch_enabled": {
+                        "type": "select",
+                        "description": "Enable notch filter",
+                        "required": False,
+                        "options": [
+                            {"value": "true", "label": "True"},
+                            {"value": "false", "label": "False"}
+                        ],
+                        "default": "true"
+                    },
+                    "notch_frequency": {
+                        "type": "select",
+                        "description": "Notch filter frequency",
+                        "required": False,
+                        "options": [
+                            {"value": "50", "label": "50 Hz"},
+                            {"value": "60", "label": "60 Hz"}
+                        ],
+                        "default": "50"
+                    },
+                    "detrend_enabled": {
+                        "type": "select",
+                        "description": "Enable detrend",
+                        "required": False,
+                        "options": [
+                            {"value": "true", "label": "True"},
+                            {"value": "false", "label": "False"}
+                        ],
+                        "default": "true"
+                    },
+                    "apply_to_visualization": {
+                        "type": "select",
+                        "description": "Apply filters to visualization",
+                        "required": False,
+                        "options": [
+                            {"value": "true", "label": "True"},
+                            {"value": "false", "label": "False"}
+                        ],
+                        "default": "true"
                     }
                 },
             },
@@ -733,7 +800,7 @@ class EEGProcessorInteractionApiIntegration:
             "get_eeg_metrics",
             {
                 "name": "get_eeg_metrics()",
-                "description": "Calculate EEG metrics from current data",
+                "description": "Calculate EEG metrics from current data (power spectral density, frequency bands, etc.)",
                 "type": "GET",
                 "params": {},
             },
@@ -1137,14 +1204,151 @@ class EEGProcessorInteractionApiIntegration:
         return EEGProcessorInteractionAPI.send_board_config(config_cmd)
 
     async def _handle_apply_filters(
-        self, filter_config: Dict[str, Any]
+        self, 
+        bandpass_enabled: str = "true",
+        bandpass_low: float = 1.0,
+        bandpass_high: float = 50.0,
+        notch_enabled: str = "true", 
+        notch_frequency: str = "50",
+        detrend_enabled: str = "true",
+        apply_to_visualization: str = "true"
     ) -> Dict[str, Any]:
-        """Handle apply_filters."""
-        return EEGProcessorInteractionAPI.apply_filters(filter_config)
+        """Handle apply_filters with enhanced visual configuration."""
+        try:
+            # Convert string boolean values to actual booleans
+            bandpass_enabled_bool = bandpass_enabled.lower() == "true"
+            notch_enabled_bool = notch_enabled.lower() == "true"
+            detrend_enabled_bool = detrend_enabled.lower() == "true"
+            apply_to_viz_bool = apply_to_visualization.lower() == "true"
+
+            # Validate frequency ranges
+            if bandpass_low >= bandpass_high:
+                return {
+                    "success": False,
+                    "message": "Bandpass low frequency must be less than high frequency",
+                    "error": "INVALID_FREQUENCY_RANGE"
+                }
+
+            # Build filter configuration
+            filter_config = {
+                "bandpass": {
+                    "enabled": bandpass_enabled_bool,
+                    "low_cut": bandpass_low,
+                    "high_cut": bandpass_high,
+                    "low": bandpass_low,  # For backward compatibility
+                    "high": bandpass_high,  # For backward compatibility
+                },
+                "notch": {
+                    "enabled": notch_enabled_bool,
+                    "frequency": float(notch_frequency),
+                    "freq": float(notch_frequency),  # For backward compatibility
+                },
+                "detrend": detrend_enabled_bool,
+                "apply_to_visualization": apply_to_viz_bool,
+                "apply": True  # Mark that filters should be applied
+            }
+
+            logging.info(f"Applying filters with config: {filter_config}")
+
+            # Use the existing API method but with enhanced configuration
+            result = EEGProcessorInteractionAPI.apply_filters(filter_config)
+
+            # Enhance result with configuration details
+            if "success" in result:
+                result["filter_config"] = filter_config
+                result["applied_filters"] = {
+                    "bandpass": f"{bandpass_low}-{bandpass_high} Hz" if bandpass_enabled_bool else "disabled",
+                    "notch": f"{notch_frequency} Hz" if notch_enabled_bool else "disabled", 
+                    "detrend": "enabled" if detrend_enabled_bool else "disabled",
+                    "visualization": "applied" if apply_to_viz_bool else "not applied"
+                }
+
+            return result
+
+        except Exception as e:
+            logging.error(f"Error in apply_filters handler: {e}")
+            return {
+                "success": False,
+                "message": f"Filter application failed: {e}",
+                "error": str(e),
+            }
 
     async def _handle_get_eeg_metrics(self) -> Dict[str, Any]:
-        """Handle get_eeg_metrics."""
-        return EEGProcessorInteractionAPI.get_eeg_metrics()
+        """Handle get_eeg_metrics with detailed response."""
+        try:
+            result = EEGProcessorInteractionAPI.get_eeg_metrics()
+
+            # Enhance the result with additional context
+            if result.get("success", False) and "metrics" in result:
+                metrics = result["metrics"]
+
+                # Convert NumPy arrays to Python lists for JSON serialization
+                serializable_metrics = {}
+                for metric_name, metric_value in metrics.items():
+                    if hasattr(metric_value, "__iter__") and not isinstance(metric_value, str):
+                        # Handle arrays/lists - convert to Python list
+                        if hasattr(metric_value, 'tolist'):
+                            # NumPy array
+                            serializable_metrics[metric_name] = metric_value.tolist()
+                        else:
+                            # Regular list/tuple
+                            serializable_metrics[metric_name] = list(metric_value)
+                    else:
+                        # Scalar value - convert to Python native type
+                        if hasattr(metric_value, 'item'):
+                            # NumPy scalar
+                            serializable_metrics[metric_name] = metric_value.item()
+                        else:
+                            # Regular scalar
+                            serializable_metrics[metric_name] = float(metric_value)
+
+                # Replace the original metrics with serializable version
+                result["metrics"] = serializable_metrics
+
+                # Add formatted metrics for better readability
+                formatted_metrics = {}
+                for metric_name, metric_value in serializable_metrics.items():
+                    if isinstance(metric_value, list) and len(metric_value) > 0:
+                        formatted_metrics[metric_name] = {
+                            "value": float(metric_value[0]) if len(metric_value) == 1 else float(
+                                sum(metric_value) / len(metric_value)),
+                            "raw_data": [float(x) for x in metric_value],
+                            "channels": len(metric_value)
+                        }
+                    elif isinstance(metric_value, list):
+                        formatted_metrics[metric_name] = {"value": 0.0, "raw_data": [], "channels": 0}
+                    else:
+                        formatted_metrics[metric_name] = {
+                            "value": float(metric_value),
+                            "raw_data": [float(metric_value)],
+                            "channels": 1
+                        }
+
+                result["formatted_metrics"] = formatted_metrics
+
+                # Add summary statistics
+                all_values = [m["value"] for m in formatted_metrics.values() if m["value"] != 0]
+                if all_values:
+                    result["summary"] = {
+                        "total_metrics": len(formatted_metrics),
+                        "average_value": sum(all_values) / len(all_values),
+                        "min_value": min(all_values),
+                        "max_value": max(all_values)
+                    }
+
+                logging.info(f"EEG metrics calculated: {len(formatted_metrics)} metrics")
+
+            return result
+
+        except Exception as e:
+            logging.error(f"Error in get_eeg_metrics handler: {e}")
+            import traceback
+            logging.error(f"Traceback: {traceback.format_exc()}")
+            return {
+                "success": False,
+                "message": f"EEG metrics calculation failed: {e}",
+                "error": str(e),
+            }
 
     async def _handle_start_recording(
         self, filename: str, data_type: str = "raw"

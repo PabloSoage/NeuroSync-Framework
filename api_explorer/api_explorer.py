@@ -425,7 +425,7 @@ class ApiExplorer:
                 param_dict: Dict[str, Any] = {}
                 for param_id, param_info in method_info.get("params", {}).items():
                     param_type = param_info.get("type", "string").lower()
-                    if param_type in ["number", "float"]:
+                    if param_type in ["number", "float", "range"]:  # Add "range" here
                         param_dict[param_id] = (Optional[float], Query(None))
                     elif param_type in ["integer", "int"]:
                         param_dict[param_id] = (Optional[int], Query(None))
@@ -461,7 +461,7 @@ class ApiExplorer:
                     type[List[Any]],
                     type[str],
                 ]
-                if param_type in ["number", "float"]:
+                if param_type in ["number", "float", "range"]:  # Add "range" here
                     field_type = float
                 elif param_type in ["integer", "int"]:
                     field_type = int

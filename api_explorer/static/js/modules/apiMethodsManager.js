@@ -344,10 +344,35 @@ export class APIMethodsManager {
                     console.error(`Invalid JSON in ${paramName}:`, error);
                     paramValue = {};
                 }
+            } else if (param.type === 'range') {
+                // Handle range inputs (sliders) - ensure they're sent as numbers
+                paramValue = parseFloat(param.value);
+                console.log(`Range input ${paramName}: ${paramValue} (type: ${typeof paramValue})`);
+            } else if (param.type === 'number') {
+                // Handle number inputs - ensure they're sent as numbers
+                paramValue = parseFloat(param.value);
+                console.log(`Number input ${paramName}: ${paramValue} (type: ${typeof paramValue})`);
             } else {
                 // Handle regular text inputs - ensure value exists before trim
                 const rawValue = param.value || '';
                 paramValue = rawValue.trim();
+            }
+
+            // Special validation for bandpass filter ranges
+            if (methodId === 'apply_filters') {
+                if (paramName === 'bandpass_low' || paramName === 'bandpass_high') {
+                    // Ensure it's a number
+                    paramValue = parseFloat(paramValue);
+                    
+                    // Validate bandpass range
+                    if (paramName === 'bandpass_low') {
+                        const highElement = document.getElementById(`${moduleId}-${methodId}_param_bandpass_high`);
+                        if (highElement && paramValue >= parseFloat(highElement.value)) {
+                            alert('Bandpass low frequency must be less than high frequency');
+                            return { url, options: { ...options, error: 'Invalid frequency range' } };
+                        }
+                    }
+                }
             }
 
             // Only add non-empty values
@@ -362,10 +387,12 @@ export class APIMethodsManager {
                         }
                     }
                 } else {
-                    // For primitive values
+                    // For primitive values (including numbers)
                     if (options.method === 'GET') {
+                        // For GET requests, convert numbers to strings in URL
                         queryParams.push(`${paramName}=${encodeURIComponent(paramValue)}`);
                     } else {
+                        // For POST requests, keep the correct type
                         body[paramName] = paramValue;
                     }
                 }
@@ -379,6 +406,7 @@ export class APIMethodsManager {
         if (options.method === 'POST' && body) {
             options.headers = { 'Content-Type': 'application/json' };
             options.body = JSON.stringify(body);
+            console.log('POST request body:', options.body);
         }
 
         return { url, options };

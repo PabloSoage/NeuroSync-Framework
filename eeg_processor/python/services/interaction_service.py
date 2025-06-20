@@ -1078,11 +1078,20 @@ class InteractionService:
             processor_service = ProcessorService()
             data_service = DataAccessService.get_instance()
 
+            # Check if we should apply to visualization
+            apply_to_viz = filter_config.get("apply_to_visualization", True)
+
             # Get current data
             data, timestamps = data_service.get_current_data()
 
             if data.size == 0:
                 return {"success": False, "message": "No data available for filtering"}
+
+            # Initialize processor if needed
+            collector_service = self._get_collector_service()
+            sampling_rate = collector_service.get_sampling_rate()
+            if sampling_rate > 0 and (not hasattr(processor_service, "processor") or processor_service.processor is None):
+                processor_service.initialize_processor(sampling_rate)
 
             # Apply filters
             filtered_data = processor_service.apply_all_filters(data, filter_config)
@@ -1090,9 +1099,44 @@ class InteractionService:
             # Update data service with filtered data
             data_service.update_data(filtered_data, timestamps)
 
+            # Apply to visualization if requested
+            if apply_to_viz:
+                try:
+                    visualization_service = self._get_visualization_service()
+                    
+                    # Apply bandpass filter
+                    if filter_config.get("bandpass", {}).get("enabled", False):
+                        bp_config = filter_config["bandpass"]
+                        visualization_service.set_bandpass_filter(
+                            True,
+                            bp_config.get("low_cut", bp_config.get("low", 1.0)),
+                            bp_config.get("high_cut", bp_config.get("high", 50.0))
+                        )
+                    else:
+                        visualization_service.set_bandpass_filter(False)
+
+                    # Apply notch filter  
+                    if filter_config.get("notch", {}).get("enabled", False):
+                        notch_config = filter_config["notch"]
+                        visualization_service.set_notch_filter(
+                            True,
+                            notch_config.get("frequency", notch_config.get("freq", 50.0))
+                        )
+                    else:
+                        visualization_service.set_notch_filter(False)
+
+                    # Apply detrend
+                    visualization_service.set_detrend(filter_config.get("detrend", False))
+
+                    logging.info("Filters applied to visualization")
+                except Exception as viz_error:
+                    logging.warning(f"Could not apply filters to visualization: {viz_error}")
+
             result = {
                 "success": True,
                 "filter_config": filter_config,
+                "data_shape": filtered_data.shape,
+                "applied_to_visualization": apply_to_viz,
                 "message": "Filters applied successfully",
             }
 
@@ -1360,18 +1404,34 @@ class InteractionService:
                 }
 
             # Calculate metrics
-            metrics = processor_service.get_eeg_metrics(data, eeg_channels)
+            raw_metrics = processor_service.get_eeg_metrics(data, eeg_channels)
+
+            # Convert NumPy arrays to Python lists for JSON serialization
+            serializable_metrics = {}
+            for metric_name, metric_value in raw_metrics.items():
+                if hasattr(metric_value, 'tolist'):
+                    # NumPy array
+                    serializable_metrics[metric_name] = metric_value.tolist()
+                elif hasattr(metric_value, '__iter__') and not isinstance(metric_value, str):
+                    # Other iterable
+                    serializable_metrics[metric_name] = list(metric_value)
+                elif hasattr(metric_value, 'item'):
+                    # NumPy scalar
+                    serializable_metrics[metric_name] = metric_value.item()
+                else:
+                    # Regular scalar
+                    serializable_metrics[metric_name] = float(metric_value)
 
             result = {
                 "success": True,
-                "metrics": metrics,
+                "metrics": serializable_metrics,
                 "message": "EEG metrics calculated successfully",
             }
 
             # Dispatch event for UI updates
             dispatch(
                 EventType.METRICS_CALCULATED,
-                {"metrics": metrics, "success": True},
+                {"metrics": serializable_metrics, "success": True},
                 source="interaction_service",
             )
 
@@ -1379,6 +1439,8 @@ class InteractionService:
 
         except Exception as e:
             logging.error(f"Error calculating EEG metrics: {e}")
+            import traceback
+            logging.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "success": False,
                 "error": str(e),

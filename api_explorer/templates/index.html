@@ -150,18 +150,18 @@
                                                                                max="{{ param_info.max|default(100) }}"
                                                                                step="{{ param_info.step|default(1) }}"
                                                                                value="{{ param_info.default|default(param_info.min|default(0)) }}"
-                                                                               {% if param_id == 'angle_grouping' %}
-                                                                               oninput="this.nextElementSibling.textContent = `${this.value}° (${Math.floor(360/this.value)} values)`"
-                                                                               onchange="this.nextElementSibling.textContent = `${this.value}° (${Math.floor(360/this.value)} values)`"
+                                                                               data-param-type="range"
+                                                                               {% if param_info.display_format %}
+                                                                               oninput="updateRangeDisplay(this, '{{ param_info.display_format }}')"
+                                                                               onchange="updateRangeDisplay(this, '{{ param_info.display_format }}')"
                                                                                {% else %}
-                                                                               oninput="this.nextElementSibling.textContent=this.value"
-                                                                               onchange="this.nextElementSibling.textContent=this.value"
+                                                                               oninput="this.nextElementSibling.innerHTML=this.value"
+                                                                               onchange="this.nextElementSibling.innerHTML=this.value"
                                                                                {% endif %}>
                                                                         <span class="ms-2 range-value-display">
-                                                                          {% if param_id == 'angle_grouping' %}
-                                                                            {# compute initial format #}
-                                                                            {% set v = param_info.default|default(param_info.min|default(1))|int %}
-                                                                            {{ v }}° ({{ (360 // v) }} values)
+                                                                          {% if param_info.display_format %}
+                                                                            {% set v = param_info.default|default(param_info.min|default(0))|float %}
+                                                                            {{ param_info.display_format.replace('{value}', v|string) }}
                                                                           {% else %}
                                                                             {{ param_info.default|default(param_info.min|default(0)) }}
                                                                           {% endif %}
@@ -308,16 +308,29 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <script type="module" src="/static/js/script.js"></script>
-</body>
-</html>
-    <script type="module" src="/static/js/script.js"></script>
-</body>
-</html>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <script type="module" src="/static/js/script.js"></script>
-</body>
-</html>
+    <script>
+        // Helper function for range display formatting
+        function updateRangeDisplay(rangeInput, displayFormat) {
+            const value = rangeInput.value;
+            const displaySpan = rangeInput.nextElementSibling;
+            
+            try {
+                // Replace {value} placeholder and evaluate any Math expressions
+                let displayText = displayFormat.replace('{value}', value);
+                
+                // Handle Math.floor expressions safely
+                if (displayText.includes('Math.floor(360/')) {
+                    const result = Math.floor(360 / parseFloat(value));
+                    displayText = displayText.replace(/Math\.floor\(360\/[^)]+\)/, result);
+                }
+                
+                displaySpan.innerHTML = displayText;
+            } catch (error) {
+                console.error('Error formatting range display:', error);
+                displaySpan.innerHTML = value;
+            }
+        }
+    </script>
     <script type="module" src="/static/js/script.js"></script>
 </body>
 </html>
