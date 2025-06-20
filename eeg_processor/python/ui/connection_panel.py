@@ -1,7 +1,7 @@
 import logging
 from typing import Optional, Dict, Any
 
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal, QObject
 from PyQt5.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
@@ -21,6 +21,21 @@ from .base_panel import BasePanel
 from ..collectors.board_configuration import BoardConfiguration
 from ..core.event_system import EventDispatcher, EventType
 from ..utils.help_system import HelpButton
+
+
+class ApiEventHandler(QObject):
+    """Thread-safe handler for API events."""
+
+    ui_update_signal = pyqtSignal(dict)
+    stream_start_signal = pyqtSignal()
+    stream_stop_signal = pyqtSignal()
+    board_connect_signal = pyqtSignal()
+    board_disconnect_signal = pyqtSignal()
+    visualization_start_signal = pyqtSignal(str)
+    visualization_stop_signal = pyqtSignal(str)
+
+    def __init__(self):
+        super().__init__()
 
 
 class ConnectionPanel(BasePanel):
@@ -43,6 +58,16 @@ class ConnectionPanel(BasePanel):
         self.collector_service = collector_service
         self.visualization_service = visualization_service
 
+        # Setup thread-safe event handler
+        self.api_event_handler = ApiEventHandler()
+        self.api_event_handler.ui_update_signal.connect(self._handle_ui_update_event_safe)
+        self.api_event_handler.stream_start_signal.connect(self._handle_stream_start_event_safe)
+        self.api_event_handler.stream_stop_signal.connect(self._handle_stream_stop_event_safe)
+        self.api_event_handler.board_connect_signal.connect(self._handle_board_connect_event_safe)
+        self.api_event_handler.board_disconnect_signal.connect(self._handle_board_disconnect_event_safe)
+        self.api_event_handler.visualization_start_signal.connect(self._handle_visualization_start_event_safe)
+        self.api_event_handler.visualization_stop_signal.connect(self._handle_visualization_stop_event_safe)
+
         # Subscribe to events for API synchronization
         self._setup_event_subscriptions()
 
@@ -61,36 +86,121 @@ class ConnectionPanel(BasePanel):
 
             # Subscribe to UI update events from API
             event_dispatcher.subscribe(
-                EventType.UI_UPDATE_CONTROLS, self._handle_ui_update_event
+                EventType.UI_UPDATE_CONTROLS, self._handle_ui_update_event_thread_safe
             )
             event_dispatcher.subscribe(
-                EventType.STREAM_START, self._handle_stream_start_event
+                EventType.STREAM_START, self._handle_stream_start_event_thread_safe
             )
             event_dispatcher.subscribe(
-                EventType.STREAM_STOP, self._handle_stream_stop_event
+                EventType.STREAM_STOP, self._handle_stream_stop_event_thread_safe
             )
             event_dispatcher.subscribe(
-                EventType.BOARD_CONNECT, self._handle_board_connect_event
+                EventType.BOARD_CONNECT, self._handle_board_connect_event_thread_safe
             )
             event_dispatcher.subscribe(
-                EventType.BOARD_DISCONNECT, self._handle_board_disconnect_event
+                EventType.BOARD_DISCONNECT, self._handle_board_disconnect_event_thread_safe
             )
             
             # Subscribe to visualization events from API
             event_dispatcher.subscribe(
-                EventType.VISUALIZATION_START, self._handle_visualization_start_event
+                EventType.VISUALIZATION_START, self._handle_visualization_start_event_thread_safe
             )
             event_dispatcher.subscribe(
-                EventType.VISUALIZATION_STOP, self._handle_visualization_stop_event
+                EventType.VISUALIZATION_STOP, self._handle_visualization_stop_event_thread_safe
             )
 
         except Exception as e:
             logging.error(f"Error setting up event subscriptions: {e}")
 
-    def _handle_ui_update_event(self, event: Any) -> None:
-        """Handle UI update events from API."""
+    def _handle_ui_update_event_thread_safe(self, event: Any) -> None:
+        """Handle UI update events from API in a thread-safe way."""
         try:
             data = event.data
+            logging.info(f"Connection panel received UI update event: {data}")
+            
+            # Emit signal to handle in main thread
+            self.api_event_handler.ui_update_signal.emit(data)
+        except Exception as e:
+            logging.error(f"Error handling UI update event thread-safe: {e}")
+
+    def _handle_stream_start_event_thread_safe(self, event: Any) -> None:
+        """Handle stream start events from API in a thread-safe way."""
+        try:
+            logging.info("Connection panel received stream start event")
+            
+            # Emit signal to handle in main thread
+            self.api_event_handler.stream_start_signal.emit()
+        except Exception as e:
+            logging.error(f"Error handling stream start event thread-safe: {e}")
+
+    def _handle_stream_stop_event_thread_safe(self, event: Any) -> None:
+        """Handle stream stop events from API in a thread-safe way."""
+        try:
+            logging.info("Connection panel received stream stop event")
+            
+            # Emit signal to handle in main thread
+            self.api_event_handler.stream_stop_signal.emit()
+        except Exception as e:
+            logging.error(f"Error handling stream stop event thread-safe: {e}")
+
+    def _handle_board_connect_event_thread_safe(self, event: Any) -> None:
+        """Handle board connect events from API in a thread-safe way."""
+        try:
+            logging.info("Connection panel received board connect event")
+            
+            # Emit signal to handle in main thread
+            self.api_event_handler.board_connect_signal.emit()
+        except Exception as e:
+            logging.error(f"Error handling board connect event thread-safe: {e}")
+
+    def _handle_board_disconnect_event_thread_safe(self, event: Any) -> None:
+        """Handle board disconnect events from API in a thread-safe way."""
+        try:
+            logging.info("Connection panel received board disconnect event")
+            
+            # Emit signal to handle in main thread
+            self.api_event_handler.board_disconnect_signal.emit()
+        except Exception as e:
+            logging.error(f"Error handling board disconnect event thread-safe: {e}")
+
+    def _handle_visualization_start_event_thread_safe(self, event: Any) -> None:
+        """Handle visualization start events from API in a thread-safe way."""
+        try:
+            data = event.data
+            viz_type = data.get("visualization_type", "eeg")
+            source = data.get("source", "unknown")
+            
+            logging.info(f"Connection panel received visualization start event: type={viz_type}, source={source}")
+
+            # Only handle EEG visualization requests in connection panel
+            if viz_type == "eeg" and source == "api":
+                # Emit signal to handle in main thread
+                self.api_event_handler.visualization_start_signal.emit(viz_type)
+
+        except Exception as e:
+            logging.error(f"Error handling visualization start event thread-safe: {e}")
+
+    def _handle_visualization_stop_event_thread_safe(self, event: Any) -> None:
+        """Handle visualization stop events from API in a thread-safe way."""
+        try:
+            data = event.data
+            viz_type = data.get("visualization_type", "eeg")
+            source = data.get("source", "unknown")
+            
+            logging.info(f"Connection panel received visualization stop event: type={viz_type}, source={source}")
+
+            # Only handle EEG visualization requests in connection panel
+            if viz_type == "eeg" and source == "api":
+                # Emit signal to handle in main thread
+                self.api_event_handler.visualization_stop_signal.emit(viz_type)
+
+        except Exception as e:
+            logging.error(f"Error handling visualization stop event thread-safe: {e}")
+
+    # Thread-safe event handlers (run in main thread via Qt signals)
+    def _handle_ui_update_event_safe(self, data: dict) -> None:
+        """Handle UI update events from API safely in main thread."""
+        try:
             streaming = data.get("streaming", False)
             connected = data.get("connected", False)
 
@@ -101,8 +211,8 @@ class ConnectionPanel(BasePanel):
         except Exception as e:
             logging.error(f"Error handling UI update event: {e}")
 
-    def _handle_stream_start_event(self, event: Any) -> None:
-        """Handle stream start events from API."""
+    def _handle_stream_start_event_safe(self) -> None:
+        """Handle stream start events from API safely in main thread."""
         try:
             # Update UI to reflect streaming started
             self.start_stream_btn.setEnabled(False)
@@ -114,10 +224,10 @@ class ConnectionPanel(BasePanel):
             self.stream_started.emit()
 
         except Exception as e:
-            logging.error(f"Error handling stream start event: {e}")
+            logging.error(f"Error handling stream start event safely: {e}")
 
-    def _handle_stream_stop_event(self, event: Any) -> None:
-        """Handle stream stop events from API."""
+    def _handle_stream_stop_event_safe(self) -> None:
+        """Handle stream stop events from API safely in main thread."""
         try:
             # Update UI to reflect streaming stopped
             self.start_stream_btn.setEnabled(True)
@@ -128,10 +238,10 @@ class ConnectionPanel(BasePanel):
             self.stream_stopped.emit()
 
         except Exception as e:
-            logging.error(f"Error handling stream stop event: {e}")
+            logging.error(f"Error handling stream stop event safely: {e}")
 
-    def _handle_board_connect_event(self, event: Any) -> None:
-        """Handle board connect events from API."""
+    def _handle_board_connect_event_safe(self) -> None:
+        """Handle board connect events from API safely in main thread."""
         try:
             # Update UI to reflect board connected
             self.connect_btn.setEnabled(False)
@@ -142,10 +252,10 @@ class ConnectionPanel(BasePanel):
             self.board_connected.emit()
 
         except Exception as e:
-            logging.error(f"Error handling board connect event: {e}")
+            logging.error(f"Error handling board connect event safely: {e}")
 
-    def _handle_board_disconnect_event(self, event: Any) -> None:
-        """Handle board disconnect events from API."""
+    def _handle_board_disconnect_event_safe(self) -> None:
+        """Handle board disconnect events from API safely in main thread."""
         try:
             # Update UI to reflect board disconnected
             self.connect_btn.setEnabled(True)
@@ -158,19 +268,14 @@ class ConnectionPanel(BasePanel):
             self.board_disconnected.emit()
 
         except Exception as e:
-            logging.error(f"Error handling board disconnect event: {e}")
+            logging.error(f"Error handling board disconnect event safely: {e}")
 
-    def _handle_visualization_start_event(self, event: Any) -> None:
-        """Handle visualization start events from API."""
+    def _handle_visualization_start_event_safe(self, viz_type: str) -> None:
+        """Handle visualization start events from API safely in main thread."""
         try:
-            data = event.data
-            viz_type = data.get("visualization_type", "eeg")
-            source = data.get("source", "unknown")
-            
-            logging.info(f"Connection panel received visualization start event: type={viz_type}, source={source}")
+            logging.info(f"Connection panel starting {viz_type} visualization via API")
 
-            # Only handle EEG visualization requests in connection panel
-            if viz_type == "eeg" and source == "api":
+            if viz_type == "eeg":
                 # Check if show visualization button is enabled (means it can be opened)
                 if hasattr(self, "show_viz_btn") and self.show_viz_btn.isEnabled():
                     self.show_visualization()
@@ -181,17 +286,12 @@ class ConnectionPanel(BasePanel):
         except Exception as e:
             logging.error(f"Error handling visualization start event: {e}")
 
-    def _handle_visualization_stop_event(self, event: Any) -> None:
-        """Handle visualization stop events from API."""
+    def _handle_visualization_stop_event_safe(self, viz_type: str) -> None:
+        """Handle visualization stop events from API safely in main thread."""
         try:
-            data = event.data
-            viz_type = data.get("visualization_type", "eeg")
-            source = data.get("source", "unknown")
-            
-            logging.info(f"Connection panel received visualization stop event: type={viz_type}, source={source}")
+            logging.info(f"Connection panel stopping {viz_type} visualization via API")
 
-            # Only handle EEG visualization requests in connection panel
-            if viz_type == "eeg" and source == "api":
+            if viz_type == "eeg":
                 # Stop EEG visualization if it's running
                 if hasattr(self, "visualization_service") and self.visualization_service.visualization_visible():
                     success = self.visualization_service.stop_eeg_visualization()
