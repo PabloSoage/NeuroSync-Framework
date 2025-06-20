@@ -206,7 +206,7 @@ class VisualizationService:
 
     def stop_brain_map_visualization(self) -> bool:
         """
-        Stop the brain map visualization.
+        Stop the brain map visualization and close the window.
 
         Returns:
             True if visualization stopped successfully, False otherwise
@@ -215,7 +215,8 @@ class VisualizationService:
             return False
 
         try:
-            self.brain_map_visualizer.stop()
+            # Stop the timer and close the window
+            self.brain_map_visualizer.close()
             return True
         except Exception as e:
             logging.error(f"Brain map visualization stop error: {e}")
