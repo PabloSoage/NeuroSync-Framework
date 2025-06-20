@@ -75,6 +75,14 @@ class ConnectionPanel(BasePanel):
             event_dispatcher.subscribe(
                 EventType.BOARD_DISCONNECT, self._handle_board_disconnect_event
             )
+            
+            # Subscribe to visualization events from API
+            event_dispatcher.subscribe(
+                EventType.VISUALIZATION_START, self._handle_visualization_start_event
+            )
+            event_dispatcher.subscribe(
+                EventType.VISUALIZATION_STOP, self._handle_visualization_stop_event
+            )
 
         except Exception as e:
             logging.error(f"Error setting up event subscriptions: {e}")
@@ -151,6 +159,52 @@ class ConnectionPanel(BasePanel):
 
         except Exception as e:
             logging.error(f"Error handling board disconnect event: {e}")
+
+    def _handle_visualization_start_event(self, event: Any) -> None:
+        """Handle visualization start events from API."""
+        try:
+            data = event.data
+            viz_type = data.get("visualization_type", "eeg")
+            source = data.get("source", "unknown")
+            
+            logging.info(f"Connection panel received visualization start event: type={viz_type}, source={source}")
+
+            # Only handle EEG visualization requests in connection panel
+            if viz_type == "eeg" and source == "api":
+                # Check if show visualization button is enabled (means it can be opened)
+                if hasattr(self, "show_viz_btn") and self.show_viz_btn.isEnabled():
+                    self.show_visualization()
+                    logging.info("EEG visualization started via API")
+                else:
+                    logging.warning("EEG visualization button is disabled - cannot start visualization")
+
+        except Exception as e:
+            logging.error(f"Error handling visualization start event: {e}")
+
+    def _handle_visualization_stop_event(self, event: Any) -> None:
+        """Handle visualization stop events from API."""
+        try:
+            data = event.data
+            viz_type = data.get("visualization_type", "eeg")
+            source = data.get("source", "unknown")
+            
+            logging.info(f"Connection panel received visualization stop event: type={viz_type}, source={source}")
+
+            # Only handle EEG visualization requests in connection panel
+            if viz_type == "eeg" and source == "api":
+                # Stop EEG visualization if it's running
+                if hasattr(self, "visualization_service") and self.visualization_service.visualization_visible():
+                    success = self.visualization_service.stop_eeg_visualization()
+                    if success:
+                        self.show_viz_btn.setEnabled(True)
+                        logging.info("EEG visualization stopped via API")
+                    else:
+                        logging.warning("Failed to stop EEG visualization via API")
+                else:
+                    logging.warning("EEG visualization is not currently running")
+
+        except Exception as e:
+            logging.error(f"Error handling visualization stop event: {e}")
 
     def setup_visualization_control(self) -> None:
         """Set up visualization control group."""
@@ -865,22 +919,52 @@ class ConnectionPanel(BasePanel):
     def show_visualization(self) -> None:
         """Show the EEG visualization if it was closed."""
         try:
+            # Check if button is enabled (which means visualization can be shown)
+            if not self.show_viz_btn.isEnabled():
+                self.show_status("Visualization window is already open or streaming is not active")
+                return
+
             # Create if none exists, or reopen if it was closed
             if (
                 self.visualization_service.eeg_visualizer is None
                 or self.visualization_service.visualization_closed()
             ):
+                # Ensure processor is available
+                sampling_rate = self.collector_service.get_sampling_rate()
+                processor = None
+                if sampling_rate > 0:
+                    try:
+                        from ..services.processor_service import ProcessorService
+                        processor_service = ProcessorService()
+                        processor_service.initialize_processor(sampling_rate)
+                        processor = processor_service.processor
+                    except Exception as e:
+                        logging.warning(f"Could not initialize processor: {e}")
+
                 success = self.visualization_service.create_eeg_visualizer(
-                    self.collector_service.collector, None
+                    self.collector_service.collector, processor
                 )
                 if success:
-                    self.visualization_service.start_eeg_visualization()
+                    success = self.visualization_service.start_eeg_visualization()
+                    
+                if success:
                     self.show_viz_btn.setEnabled(False)
                     self.show_status("Visualization window reopened")
                 else:
                     self.show_error(
-                        "Visualization Error", "Failed to create visualization"
+                        "Visualization Error", "Failed to create or start visualization"
                     )
+            else:
+                # Visualization exists but window might be hidden, try to show it
+                success = self.visualization_service.start_eeg_visualization()
+                if success:
+                    self.show_viz_btn.setEnabled(False)
+                    self.show_status("Visualization window shown")
+                else:
+                    self.show_error(
+                        "Visualization Error", "Failed to show visualization window"
+                    )
+
         except Exception as e:
             self.show_error("Visualization Error", f"Error showing visualization: {e}")
 

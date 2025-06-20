@@ -1224,10 +1224,18 @@ class InteractionService:
             Dictionary with visualization result information
         """
         try:
-            # Use singleton instances
-            viz_service = self._get_visualization_service()
+            logging.info(f"InteractionService: Starting {viz_type} visualization")
+
+            # Validate viz_type
+            if viz_type not in ["eeg", "brain_map"]:
+                return {
+                    "success": False,
+                    "message": f"Invalid visualization type: {viz_type}. Supported: eeg, brain_map",
+                    "error": "INVALID_VIZ_TYPE",
+                }
+
+            # Get required services for validation only
             collector_service = self._get_collector_service()
-            processor_service = self._get_processor_service()
 
             # Validate that we have a connected collector and are streaming
             if not collector_service.is_connected():
@@ -1244,54 +1252,26 @@ class InteractionService:
                     "error": "NOT_STREAMING",
                 }
 
-            success = False
-            if viz_type == "eeg":
-                success = viz_service.create_eeg_visualizer(
-                    collector_service.collector, processor_service.processor
-                )
-                if success:
-                    success = viz_service.start_eeg_visualization()
-            elif viz_type == "brain_map":
-                success = viz_service.create_brain_map_visualizer(
-                    collector_service.collector, processor_service.processor
-                )
-                if success:
-                    success = viz_service.start_brain_map_visualization()
-
-            result = {
-                "success": success,
-                "visualization_type": viz_type,
-                "message": (
-                    f"{viz_type.title()} visualization started successfully"
-                    if success
-                    else f"Failed to start {viz_type} visualization"
-                ),
-            }
-
-            # Dispatch event for UI updates
-            event_type = (
-                EventType.BRAIN_MAP_SHOW
-                if viz_type == "brain_map"
-                else EventType.VISUALIZATION_START
-            )
+            # Instead of calling visualization service directly, dispatch event for GUI to handle
             dispatch(
-                event_type,
-                {"visualization_type": viz_type, "success": success},
+                EventType.VISUALIZATION_START,
+                {"visualization_type": viz_type, "source": "api"},
                 source="interaction_service",
             )
 
-            # Additional UI update for show visualization button
-            if success:
-                dispatch(
-                    EventType.UI_UPDATE_CONTROLS,
-                    {"visualization_visible": True, "streaming": True},
-                    source="interaction_service",
-                )
+            result = {
+                "success": True,
+                "visualization_type": viz_type,
+                "message": f"{viz_type.title()} visualization start requested",
+            }
 
+            logging.info(f"InteractionService: {viz_type} visualization start event dispatched")
             return result
 
         except Exception as e:
             logging.error(f"Error starting visualization: {e}")
+            import traceback
+            logging.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "success": False,
                 "error": str(e),
@@ -1309,48 +1289,36 @@ class InteractionService:
             Dictionary with visualization result information
         """
         try:
-            viz_service = self._get_visualization_service()
+            logging.info(f"InteractionService: Stopping {viz_type} visualization")
 
-            success = False
-            if viz_type == "eeg":
-                success = viz_service.stop_eeg_visualization()
-            elif viz_type == "brain_map":
-                success = viz_service.stop_brain_map_visualization()
+            # Validate viz_type
+            if viz_type not in ["eeg", "brain_map"]:
+                return {
+                    "success": False,
+                    "message": f"Invalid visualization type: {viz_type}. Supported: eeg, brain_map",
+                    "error": "INVALID_VIZ_TYPE",
+                }
 
-            result = {
-                "success": success,
-                "visualization_type": viz_type,
-                "message": (
-                    f"{viz_type.title()} visualization stopped successfully"
-                    if success
-                    else f"Failed to stop {viz_type} visualization"
-                ),
-            }
-
-            # Dispatch event for UI updates
-            event_type = (
-                EventType.BRAIN_MAP_HIDE
-                if viz_type == "brain_map"
-                else EventType.VISUALIZATION_STOP
-            )
+            # Instead of calling visualization service directly, dispatch event for GUI to handle
             dispatch(
-                event_type,
-                {"visualization_type": viz_type, "success": success},
+                EventType.VISUALIZATION_STOP,
+                {"visualization_type": viz_type, "source": "api"},
                 source="interaction_service",
             )
 
-            # Additional UI update for show visualization button
-            if success:
-                dispatch(
-                    EventType.UI_UPDATE_CONTROLS,
-                    {"visualization_visible": False, "streaming": True},
-                    source="interaction_service",
-                )
+            result = {
+                "success": True,
+                "visualization_type": viz_type,
+                "message": f"{viz_type.title()} visualization stop requested",
+            }
 
+            logging.info(f"InteractionService: {viz_type} visualization stop event dispatched")
             return result
 
         except Exception as e:
             logging.error(f"Error stopping visualization: {e}")
+            import traceback
+            logging.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "success": False,
                 "error": str(e),

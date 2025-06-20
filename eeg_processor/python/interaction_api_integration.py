@@ -935,6 +935,9 @@ class EEGProcessorInteractionApiIntegration:
 
     def _register_visualization_methods(self, api_explorer: Any) -> None:
         """Register visualization-related methods."""
+        # Get visualization type options
+        viz_type_options = self._get_visualization_type_options()
+
         # Start visualization
         api_explorer.register_method(
             self._target_module_id,
@@ -946,9 +949,11 @@ class EEGProcessorInteractionApiIntegration:
                 "type": "POST",
                 "params": {
                     "viz_type": {
-                        "type": "text",
-                        "description": "Type of visualization (eeg, brain_map)",
-                        "required": False,
+                        "type": "select",
+                        "description": "Type of visualization to start",
+                        "required": True,
+                        "options": viz_type_options,
+                        "default": "eeg",
                     }
                 },
             },
@@ -966,14 +971,103 @@ class EEGProcessorInteractionApiIntegration:
                 "type": "POST",
                 "params": {
                     "viz_type": {
-                        "type": "text",
-                        "description": "Type of visualization (eeg, brain_map)",
-                        "required": False,
+                        "type": "select",
+                        "description": "Type of visualization to stop",
+                        "required": True,
+                        "options": viz_type_options,
+                        "default": "eeg",
                     }
                 },
             },
             self._handle_stop_visualization,
         )
+
+    def _get_visualization_type_options(self) -> List[Dict[str, Any]]:
+        """Get available visualization type options for dropdown."""
+        return [
+            {"value": "eeg", "label": "EEG Real-time Visualization"},
+            {"value": "brain_map", "label": "Brain Map Visualization"},
+        ]
+
+    async def _handle_start_visualization(
+        self, viz_type: str = "eeg"
+    ) -> Dict[str, Any]:
+        """Handle start_visualization with proper validation."""
+        try:
+            logging.info(f"Starting visualization type: {viz_type}")
+
+            # Validate viz_type
+            if viz_type not in ["eeg", "brain_map"]:
+                return {
+                    "success": False,
+                    "message": f"Invalid visualization type: {viz_type}. Supported types: eeg, brain_map",
+                    "error": "INVALID_VIZ_TYPE",
+                }
+
+            # Check system state before starting visualization
+            connection_status = EEGProcessorInteractionAPI.get_connection_status()
+            
+            if not connection_status.get("connected", False):
+                return {
+                    "success": False,
+                    "message": "No board connected. Please connect to a board first.",
+                    "error": "NOT_CONNECTED",
+                }
+
+            if not connection_status.get("streaming", False):
+                return {
+                    "success": False,
+                    "message": "No active stream. Please start streaming first.",
+                    "error": "NOT_STREAMING",
+                }
+
+            # Use the existing API method with validation
+            result = EEGProcessorInteractionAPI.start_visualization(viz_type)
+
+            # Add additional context to result
+            if result.get("success", False):
+                result["viz_type"] = viz_type
+                result["connection_status"] = connection_status
+
+            return result
+
+        except Exception as e:
+            logging.error(f"Error in start_visualization handler: {e}")
+            return {
+                "success": False,
+                "message": f"Visualization start failed: {e}",
+                "error": str(e),
+            }
+
+    async def _handle_stop_visualization(self, viz_type: str = "eeg") -> Dict[str, Any]:
+        """Handle stop_visualization with proper validation."""
+        try:
+            logging.info(f"Stopping visualization type: {viz_type}")
+
+            # Validate viz_type
+            if viz_type not in ["eeg", "brain_map"]:
+                return {
+                    "success": False,
+                    "message": f"Invalid visualization type: {viz_type}. Supported types: eeg, brain_map",
+                    "error": "INVALID_VIZ_TYPE",
+                }
+
+            # Use the existing API method
+            result = EEGProcessorInteractionAPI.stop_visualization(viz_type)
+
+            # Add additional context to result
+            if result.get("success", False):
+                result["viz_type"] = viz_type
+
+            return result
+
+        except Exception as e:
+            logging.error(f"Error in stop_visualization handler: {e}")
+            return {
+                "success": False,
+                "message": f"Visualization stop failed: {e}",
+                "error": str(e),
+            }
 
     def _register_advanced_methods(self, api_explorer: Any) -> None:
         """Register advanced processing methods."""
@@ -1429,12 +1523,82 @@ class EEGProcessorInteractionApiIntegration:
     async def _handle_start_visualization(
         self, viz_type: str = "eeg"
     ) -> Dict[str, Any]:
-        """Handle start_visualization."""
-        return EEGProcessorInteractionAPI.start_visualization(viz_type)
+        """Handle start_visualization with proper validation."""
+        try:
+            logging.info(f"Starting visualization type: {viz_type}")
+
+            # Validate viz_type
+            if viz_type not in ["eeg", "brain_map"]:
+                return {
+                    "success": False,
+                    "message": f"Invalid visualization type: {viz_type}. Supported types: eeg, brain_map",
+                    "error": "INVALID_VIZ_TYPE",
+                }
+
+            # Check system state before starting visualization
+            connection_status = EEGProcessorInteractionAPI.get_connection_status()
+            
+            if not connection_status.get("connected", False):
+                return {
+                    "success": False,
+                    "message": "No board connected. Please connect to a board first.",
+                    "error": "NOT_CONNECTED",
+                }
+
+            if not connection_status.get("streaming", False):
+                return {
+                    "success": False,
+                    "message": "No active stream. Please start streaming first.",
+                    "error": "NOT_STREAMING",
+                }
+
+            # Use the existing API method with validation
+            result = EEGProcessorInteractionAPI.start_visualization(viz_type)
+
+            # Add additional context to result
+            if result.get("success", False):
+                result["viz_type"] = viz_type
+                result["connection_status"] = connection_status
+
+            return result
+
+        except Exception as e:
+            logging.error(f"Error in start_visualization handler: {e}")
+            return {
+                "success": False,
+                "message": f"Visualization start failed: {e}",
+                "error": str(e),
+            }
 
     async def _handle_stop_visualization(self, viz_type: str = "eeg") -> Dict[str, Any]:
-        """Handle stop_visualization."""
-        return EEGProcessorInteractionAPI.stop_visualization(viz_type)
+        """Handle stop_visualization with proper validation."""
+        try:
+            logging.info(f"Stopping visualization type: {viz_type}")
+
+            # Validate viz_type
+            if viz_type not in ["eeg", "brain_map"]:
+                return {
+                    "success": False,
+                    "message": f"Invalid visualization type: {viz_type}. Supported types: eeg, brain_map",
+                    "error": "INVALID_VIZ_TYPE",
+                }
+
+            # Use the existing API method
+            result = EEGProcessorInteractionAPI.stop_visualization(viz_type)
+
+            # Add additional context to result
+            if result.get("success", False):
+                result["viz_type"] = viz_type
+
+            return result
+
+        except Exception as e:
+            logging.error(f"Error in stop_visualization handler: {e}")
+            return {
+                "success": False,
+                "message": f"Visualization stop failed: {e}",
+                "error": str(e),
+            }
 
     async def _handle_perform_ica(self, num_components: int) -> Dict[str, Any]:
         """Handle perform_ica."""

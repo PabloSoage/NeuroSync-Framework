@@ -21,6 +21,8 @@ class ApiEventHandler(QObject):
     """Thread-safe handler for API events."""
 
     filter_apply_signal = pyqtSignal(dict, bool)
+    visualization_start_signal = pyqtSignal(str)
+    visualization_stop_signal = pyqtSignal(str)
 
     def __init__(self):
         super().__init__()
@@ -58,6 +60,12 @@ class ProcessingPanel(BasePanel):
         self.api_event_handler.filter_apply_signal.connect(
             self._handle_api_filter_apply_safe
         )
+        self.api_event_handler.visualization_start_signal.connect(
+            self._handle_api_visualization_start_safe
+        )
+        self.api_event_handler.visualization_stop_signal.connect(
+            self._handle_api_visualization_stop_safe
+        )
 
         # Setup event system subscriptions for API synchronization
         self._setup_event_subscriptions()
@@ -80,6 +88,14 @@ class ProcessingPanel(BasePanel):
             # Subscribe to filter events from API
             event_dispatcher.subscribe(
                 EventType.FILTER_APPLY, self._handle_api_filter_apply_thread_safe
+            )
+            
+            # Subscribe to visualization events from API
+            event_dispatcher.subscribe(
+                EventType.VISUALIZATION_START, self._handle_api_visualization_start_thread_safe
+            )
+            event_dispatcher.subscribe(
+                EventType.VISUALIZATION_STOP, self._handle_api_visualization_stop_thread_safe
             )
 
         except Exception as e:
@@ -105,6 +121,44 @@ class ProcessingPanel(BasePanel):
         except Exception as e:
             logging.error(f"Error handling API filter apply event thread-safe: {e}")
 
+    def _handle_api_visualization_start_thread_safe(self, event: Any) -> None:
+        """Handle visualization start events from API in a thread-safe way."""
+        try:
+            data = event.data
+            viz_type = data.get("visualization_type", "eeg")
+            source = data.get("source", "unknown")
+
+            logging.info(
+                f"Processing panel received visualization start event: type={viz_type}, source={source}"
+            )
+
+            # Only handle brain_map visualization requests in processing panel
+            if viz_type == "brain_map" and source == "api":
+                # Emit signal to handle in main thread
+                self.api_event_handler.visualization_start_signal.emit(viz_type)
+
+        except Exception as e:
+            logging.error(f"Error handling API visualization start event thread-safe: {e}")
+
+    def _handle_api_visualization_stop_thread_safe(self, event: Any) -> None:
+        """Handle visualization stop events from API in a thread-safe way."""
+        try:
+            data = event.data
+            viz_type = data.get("visualization_type", "eeg")
+            source = data.get("source", "unknown")
+
+            logging.info(
+                f"Processing panel received visualization stop event: type={viz_type}, source={source}"
+            )
+
+            # Only handle brain_map visualization requests in processing panel
+            if viz_type == "brain_map" and source == "api":
+                # Emit signal to handle in main thread
+                self.api_event_handler.visualization_stop_signal.emit(viz_type)
+
+        except Exception as e:
+            logging.error(f"Error handling API visualization stop event thread-safe: {e}")
+
     def _handle_api_filter_apply_safe(
         self, filter_config: Dict[str, Any], applied_to_visualization: bool
     ) -> None:
@@ -121,6 +175,42 @@ class ProcessingPanel(BasePanel):
 
         except Exception as e:
             logging.error(f"Error handling API filter apply event safely: {e}")
+
+    def _handle_api_visualization_start_safe(self, viz_type: str) -> None:
+        """Handle visualization start events from API safely in main thread."""
+        try:
+            logging.info(f"Processing panel starting {viz_type} visualization via API")
+
+            if viz_type == "brain_map":
+                # Check if brain map button is enabled (means it can be opened)
+                if hasattr(self, "brain_map_btn") and self.brain_map_btn.isEnabled():
+                    self.show_brain_map()
+                    logging.info("Brain map visualization started via API")
+                else:
+                    logging.warning("Brain map button is disabled - cannot start brain map")
+
+        except Exception as e:
+            logging.error(f"Error handling API visualization start event safely: {e}")
+
+    def _handle_api_visualization_stop_safe(self, viz_type: str) -> None:
+        """Handle visualization stop events from API safely in main thread."""
+        try:
+            logging.info(f"Processing panel stopping {viz_type} visualization via API")
+
+            if viz_type == "brain_map":
+                # Stop brain map visualization if it's running
+                if hasattr(self, "visualization_service") and self.visualization_service.brain_map_visible():
+                    success = self.visualization_service.stop_brain_map_visualization()
+                    if success:
+                        self.brain_map_btn.setEnabled(True)
+                        logging.info("Brain map visualization stopped via API")
+                    else:
+                        logging.warning("Failed to stop brain map visualization via API")
+                else:
+                    logging.warning("Brain map visualization is not currently running")
+
+        except Exception as e:
+            logging.error(f"Error handling API visualization stop event safely: {e}")
 
     def _update_filter_controls_from_api(
         self, filter_config: Dict[str, Any], applied_to_visualization: bool
@@ -523,6 +613,11 @@ class ProcessingPanel(BasePanel):
     def show_brain_map(self) -> None:
         """Show brain map visualization."""
         try:
+            # Check if button is enabled (which means brain map can be shown)
+            if not self.brain_map_btn.isEnabled():
+                self.show_status("Brain map is already running or prerequisites not met")
+                return
+
             # Make sure processor is initialized before creating brain map
             sampling_rate = self.collector_service.get_sampling_rate()
             if sampling_rate <= 0:
@@ -539,18 +634,33 @@ class ProcessingPanel(BasePanel):
                     f"Initialized processor with sampling rate {sampling_rate} Hz"
                 )
 
-            # Now create brain map visualizer with initialized processor
-            success = self.visualization_service.create_brain_map_visualizer(
-                self.collector_service.collector, self.processor_service.processor
-            )
+            # Check if brain map already exists
+            if (
+                self.visualization_service.brain_map_visualizer is None
+                or self.visualization_service.brain_map_closed()
+            ):
+                # Create brain map visualizer with initialized processor
+                success = self.visualization_service.create_brain_map_visualizer(
+                    self.collector_service.collector, self.processor_service.processor
+                )
 
+                if not success:
+                    self.show_error(
+                        "Visualization Error", "Failed to create brain map visualizer"
+                    )
+                    return
+
+            # Start brain map visualization
+            success = self.visualization_service.start_brain_map_visualization()
+            
             if success:
-                self.visualization_service.start_brain_map_visualization()
+                self.brain_map_btn.setEnabled(False)
                 self.show_status("Brain map visualization started")
             else:
                 self.show_error(
-                    "Visualization Error", "Failed to create brain map visualizer"
+                    "Visualization Error", "Failed to start brain map visualization"
                 )
+
         except Exception as e:
             self.show_error("Visualization Error", f"Error showing brain map: {e}")
 
