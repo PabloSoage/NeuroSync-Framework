@@ -1245,7 +1245,8 @@ class EEGProcessorInteractionApiIntegration:
                 },
                 "detrend": detrend_enabled_bool,
                 "apply_to_visualization": apply_to_viz_bool,
-                "apply": True  # Mark that filters should be applied
+                "apply": True,  # Mark that filters should be applied
+                "force_update": True  # Force immediate update of existing data
             }
 
             logging.info(f"Applying filters with config: {filter_config}")

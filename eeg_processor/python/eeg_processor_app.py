@@ -2,7 +2,7 @@ import logging
 from typing import Optional, Any
 
 from PyQt5 import QtWidgets
-from PyQt5.QtCore import QTimer, pyqtSlot
+from PyQt5.QtCore import QTimer, pyqtSlot, QObject, pyqtSignal
 from PyQt5.QtGui import QCloseEvent
 from PyQt5.QtWidgets import (
     QMainWindow,
@@ -36,6 +36,15 @@ from .ui.streaming_panel import StreamingPanel
 # Import utils
 from .utils.help_system import show_eeg_concepts_help
 from .utils.theme_manager import ThemeManager
+
+
+class AppEventHandler(QObject):
+    """Thread-safe handler for app-level events."""
+
+    stream_start_signal = pyqtSignal()
+    stream_stop_signal = pyqtSignal()
+    board_connect_signal = pyqtSignal()
+    board_disconnect_signal = pyqtSignal()
 
 
 class EEGProcessorApp(QMainWindow):
@@ -77,6 +86,13 @@ class EEGProcessorApp(QMainWindow):
 
         # Initialize Qt interaction adapter
         self.qt_adapter = QtInteractionAdapter(self)
+
+        # Setup thread-safe event handler
+        self.app_event_handler = AppEventHandler()
+        self.app_event_handler.stream_start_signal.connect(self.on_stream_started)
+        self.app_event_handler.stream_stop_signal.connect(self.on_stream_stopped)
+        self.app_event_handler.board_connect_signal.connect(self.on_board_connected)
+        self.app_event_handler.board_disconnect_signal.connect(self.on_board_disconnected)
 
         # Application state
         self.is_streaming = False
@@ -205,41 +221,36 @@ class EEGProcessorApp(QMainWindow):
 
             # Subscribe to events that need app-level handling
             event_dispatcher.subscribe(
-                EventType.STREAM_START, self._handle_api_stream_start
+                EventType.STREAM_START, self._handle_api_stream_start_thread_safe
             )
             event_dispatcher.subscribe(
-                EventType.STREAM_STOP, self._handle_api_stream_stop
+                EventType.STREAM_STOP, self._handle_api_stream_stop_thread_safe
             )
             event_dispatcher.subscribe(
-                EventType.BOARD_CONNECT, self._handle_api_board_connect
+                EventType.BOARD_CONNECT, self._handle_api_board_connect_thread_safe
             )
             event_dispatcher.subscribe(
-                EventType.BOARD_DISCONNECT, self._handle_api_board_disconnect
+                EventType.BOARD_DISCONNECT, self._handle_api_board_disconnect_thread_safe
             )
 
         except Exception as e:
             logging.error(f"Error setting up API event subscriptions: {e}")
 
-    @pyqtSlot()
-    def _handle_api_stream_start(self, event: Any) -> None:
+    def _handle_api_stream_start_thread_safe(self, event: Any) -> None:
         """Handle stream start from API with thread safety."""
-        # Use Qt's thread-safe mechanism to update GUI
-        QTimer.singleShot(0, self.on_stream_started)
+        self.app_event_handler.stream_start_signal.emit()
 
-    @pyqtSlot()
-    def _handle_api_stream_stop(self, event: Any) -> None:
+    def _handle_api_stream_stop_thread_safe(self, event: Any) -> None:
         """Handle stream stop from API with thread safety."""
-        QTimer.singleShot(0, self.on_stream_stopped)
+        self.app_event_handler.stream_stop_signal.emit()
 
-    @pyqtSlot()
-    def _handle_api_board_connect(self, event: Any) -> None:
+    def _handle_api_board_connect_thread_safe(self, event: Any) -> None:
         """Handle board connect from API with thread safety."""
-        QTimer.singleShot(0, self.on_board_connected)
+        self.app_event_handler.board_connect_signal.emit()
 
-    @pyqtSlot()
-    def _handle_api_board_disconnect(self, event: Any) -> None:
+    def _handle_api_board_disconnect_thread_safe(self, event: Any) -> None:
         """Handle board disconnect from API with thread safety."""
-        QTimer.singleShot(0, self.on_board_disconnected)
+        self.app_event_handler.board_disconnect_signal.emit()
 
     def update_status(self) -> None:
         """Update status information periodically."""

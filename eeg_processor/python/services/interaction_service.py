@@ -1080,12 +1080,7 @@ class InteractionService:
 
             # Check if we should apply to visualization
             apply_to_viz = filter_config.get("apply_to_visualization", True)
-
-            # Get current data
-            data, timestamps = data_service.get_current_data()
-
-            if data.size == 0:
-                return {"success": False, "message": "No data available for filtering"}
+            force_update = filter_config.get("force_update", False)
 
             # Initialize processor if needed
             collector_service = self._get_collector_service()
@@ -1093,11 +1088,16 @@ class InteractionService:
             if sampling_rate > 0 and (not hasattr(processor_service, "processor") or processor_service.processor is None):
                 processor_service.initialize_processor(sampling_rate)
 
-            # Apply filters
-            filtered_data = processor_service.apply_all_filters(data, filter_config)
+            # Enable filters in data access service first
+            data_service.enable_filters(True, filter_config)
 
-            # Update data service with filtered data
-            data_service.update_data(filtered_data, timestamps)
+            # If force_update is enabled, reprocess existing data
+            if force_update:
+                current_data, current_timestamps = data_service.get_raw_data()
+                if current_data.size > 0:
+                    logging.info(f"Force updating filters on existing data buffer of {current_data.shape}")
+                    # This will trigger the callbacks with filtered data
+                    data_service.update_data(current_data, current_timestamps)
 
             # Apply to visualization if requested
             if apply_to_viz:
@@ -1131,25 +1131,43 @@ class InteractionService:
                     logging.info("Filters applied to visualization")
                 except Exception as viz_error:
                     logging.warning(f"Could not apply filters to visualization: {viz_error}")
+            else:
+                try:
+                    visualization_service = self._get_visualization_service()
+                    
+                    # Remove filters from visualization
+                    visualization_service.set_bandpass_filter(False, 1.0, 50.0)
+                    visualization_service.set_notch_filter(False)
+                    visualization_service.set_detrend(False)
+
+                    DataAccessService.get_instance().enable_filters(False)
+                    
+                    logging.info("Filters removed from data stream and visualization")
+                except Exception as viz_error:
+                    logging.warning(f"Could not remove filters from visualization: {viz_error}")
 
             result = {
                 "success": True,
                 "filter_config": filter_config,
-                "data_shape": filtered_data.shape,
                 "applied_to_visualization": apply_to_viz,
+                "force_updated": force_update,
                 "message": "Filters applied successfully",
             }
 
-            # Dispatch event for UI updates
+            # Dispatch event for UI updates (this will update the processing panel)
             dispatch(
                 EventType.FILTER_APPLY,
-                {"filter_config": filter_config, "success": True},
+                {
+                    "filter_config": filter_config, 
+                    "success": True,
+                    "applied_to_visualization": apply_to_viz
+                },
                 source="interaction_service",
             )
 
             dispatch(
                 EventType.PROCESSING_COMPLETED,
-                {"data_shape": filtered_data.shape},
+                {"filter_config": filter_config},
                 source="interaction_service",
             )
 

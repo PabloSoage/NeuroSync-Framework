@@ -146,8 +146,6 @@ from .processors import SignalProcessor
 from .visualizers import (
     MultiSignalVisualizer,
     BrainMapVisualizer,
-    MultiModalityVisualizer,
-    ModalitySelector,
 )
 
 # Core infrastructure
@@ -234,8 +232,6 @@ __all__ = [
     "SignalProcessor",
     "MultiSignalVisualizer",
     "BrainMapVisualizer",
-    "MultiModalityVisualizer",
-    "ModalitySelector",
     # Board configuration
     "BrainFlowBoardConfiguration",
     "BoardConfiguration",

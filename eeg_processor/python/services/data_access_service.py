@@ -803,8 +803,12 @@ class DataAccessService:
                     except Exception as e:
                         logging.error(f"Error in local data callback: {e}")
 
-        # API callbacks handling - check if multiprocessing is enabled
-        if self._api_callbacks and any(cb is not None for cb in self._api_callbacks):
+        # API callbacks handling - check if we have any active API callbacks first
+        active_api_callbacks = []
+        with self._callback_lock:
+            active_api_callbacks = [cb for cb in self._api_callbacks if cb is not None]
+
+        if active_api_callbacks:
             if self._use_api_multiprocessing and self._api_data_queue is not None:
                 # Use multiprocessing (existing implementation)
                 self._notify_api_callbacks_multiprocessing(data, timestamps)

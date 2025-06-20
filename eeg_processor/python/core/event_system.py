@@ -197,11 +197,27 @@ class EventDispatcher:
         # Call subscribers outside the lock to avoid deadlocks
         for callback in subscribers:
             try:
-                callback(event)
+                # Execute callback in a separate thread to avoid blocking main thread
+                import threading
+                thread = threading.Thread(
+                    target=self._safe_callback_wrapper,
+                    args=(callback, event),
+                    daemon=True
+                )
+                thread.start()
             except Exception as e:
-                logging.error(f"Error in event callback for {event.event_type}: {e}")
+                logging.error(f"Error dispatching event {event.event_type}: {e}")
 
         logging.debug(f"Dispatched event {event.event_type}")
+
+    def _safe_callback_wrapper(self, callback: Callable, event: Event) -> None:
+        """Safely execute callback in thread."""
+        try:
+            callback(event)
+        except Exception as e:
+            logging.error(f"Error in event callback for {event.event_type}: {e}")
+            import traceback
+            logging.error(f"Callback traceback: {traceback.format_exc()}")
 
     def dispatch_event(
         self,

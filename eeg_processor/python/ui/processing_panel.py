@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Optional, Dict
 
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, pyqtSignal, QObject
 from PyQt5.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
@@ -16,6 +16,13 @@ from PyQt5.QtWidgets import (
 from .base_panel import BasePanel
 from ..utils.help_system import HelpButton
 
+class ApiEventHandler(QObject):
+    """Thread-safe handler for API events."""
+    
+    filter_apply_signal = pyqtSignal(dict, bool)
+    
+    def __init__(self):
+        super().__init__()
 
 class ProcessingPanel(BasePanel):
     """Panel for signal processing operations."""
@@ -44,6 +51,13 @@ class ProcessingPanel(BasePanel):
         # Set processor service in data access service for filtering
         self.data_access_service.set_filter_processor(self.processor_service)
 
+        # Setup thread-safe event handler
+        self.api_event_handler = ApiEventHandler()
+        self.api_event_handler.filter_apply_signal.connect(self._handle_api_filter_apply_safe)
+
+        # Setup event system subscriptions for API synchronization
+        self._setup_event_subscriptions()
+
         # Setup UI components
         self.setup_filter_options()
         self.setup_metrics_section()
@@ -51,6 +65,127 @@ class ProcessingPanel(BasePanel):
 
         # Add stretch to push everything to the top
         self.layout.addStretch()
+
+    def _setup_event_subscriptions(self) -> None:
+        """Setup subscriptions for API-generated events."""
+        try:
+            from ..core.event_system import EventDispatcher, EventType
+
+            event_dispatcher = EventDispatcher.get_instance()
+
+            # Subscribe to filter events from API
+            event_dispatcher.subscribe(
+                EventType.FILTER_APPLY, self._handle_api_filter_apply_thread_safe
+            )
+
+        except Exception as e:
+            logging.error(f"Error setting up event subscriptions in processing panel: {e}")
+
+    def _handle_api_filter_apply_thread_safe(self, event: Any) -> None:
+        """Handle filter apply events from API in a thread-safe way."""
+        try:
+            filter_config = event.data.get("filter_config", {})
+            applied_to_viz = event.data.get("applied_to_visualization", True)
+            
+            logging.info(f"Processing panel received API filter event: config={filter_config}, apply_to_viz={applied_to_viz}")
+
+            # Emit signal to handle in main thread
+            self.api_event_handler.filter_apply_signal.emit(filter_config, applied_to_viz)
+
+        except Exception as e:
+            logging.error(f"Error handling API filter apply event thread-safe: {e}")
+
+    def _handle_api_filter_apply_safe(self, filter_config: Dict[str, Any], applied_to_visualization: bool) -> None:
+        """Handle filter apply events from API safely in main thread."""
+        try:
+            logging.info(f"Processing panel updating controls: config={filter_config}, apply_to_viz={applied_to_visualization}")
+
+            # Update the UI controls to reflect the API settings
+            self._update_filter_controls_from_api(filter_config, applied_to_visualization)
+
+        except Exception as e:
+            logging.error(f"Error handling API filter apply event safely: {e}")
+
+    def _update_filter_controls_from_api(self, filter_config: Dict[str, Any], applied_to_visualization: bool) -> None:
+        """Update filter controls based on API filter configuration."""
+        try:
+            # Temporarily disconnect signals to prevent recursive updates
+            self._disconnect_filter_signals()
+
+            # Update bandpass filter controls
+            if "bandpass" in filter_config:
+                bp_config = filter_config["bandpass"]
+                self.bandpass_check.setChecked(bp_config.get("enabled", False))
+                if "low_cut" in bp_config:
+                    self.bandpass_low_spin.setValue(bp_config["low_cut"])
+                elif "low" in bp_config:
+                    self.bandpass_low_spin.setValue(bp_config["low"])
+                if "high_cut" in bp_config:
+                    self.bandpass_high_spin.setValue(bp_config["high_cut"])
+                elif "high" in bp_config:
+                    self.bandpass_high_spin.setValue(bp_config["high"])
+
+            # Update notch filter controls
+            if "notch" in filter_config:
+                notch_config = filter_config["notch"]
+                self.notch_check.setChecked(notch_config.get("enabled", False))
+                if "frequency" in notch_config:
+                    # Find and select the appropriate frequency
+                    freq = str(int(notch_config["frequency"]))
+                    for i in range(self.notch_type_combo.count()):
+                        if self.notch_type_combo.itemData(i) == freq:
+                            self.notch_type_combo.setCurrentIndex(i)
+                            break
+
+            # Update detrend controls
+            if "detrend" in filter_config:
+                self.detrend_check.setChecked(filter_config["detrend"])
+
+            # Update button state based on whether filters were applied to visualization
+            if applied_to_visualization:
+                self.filters_applied = True
+                self.apply_filters_btn.setText("Remove Filters from Visualization")
+                self.apply_filters_btn.setStyleSheet(
+                    "background-color: #AA3333; color: white;"
+                )
+                self.show_status("Filters applied via API")
+            else:
+                self.filters_applied = False
+                self.apply_filters_btn.setText("Apply Filters to Visualization")
+                self.apply_filters_btn.setStyleSheet("")
+                self.show_status("Filters applied via API")
+
+            # Reconnect signals
+            self._connect_filter_signals()
+
+        except Exception as e:
+            logging.error(f"Error updating filter controls from API: {e}")
+            # Always reconnect signals even if there was an error
+            self._connect_filter_signals()
+
+    def _disconnect_filter_signals(self) -> None:
+        """Temporarily disconnect filter signals to prevent recursive updates."""
+        try:
+            self.bandpass_check.toggled.disconnect(self.on_filter_option_changed)
+            self.bandpass_low_spin.valueChanged.disconnect(self.on_filter_option_changed)
+            self.bandpass_high_spin.valueChanged.disconnect(self.on_filter_option_changed)
+            self.notch_check.toggled.disconnect(self.on_filter_option_changed)
+            self.notch_type_combo.currentIndexChanged.disconnect(self.on_filter_option_changed)
+            self.detrend_check.toggled.disconnect(self.on_filter_option_changed)
+        except Exception:
+            pass  # Signals might not be connected yet
+
+    def _connect_filter_signals(self) -> None:
+        """Reconnect filter signals."""
+        try:
+            self.bandpass_check.toggled.connect(self.on_filter_option_changed)
+            self.bandpass_low_spin.valueChanged.connect(self.on_filter_option_changed)
+            self.bandpass_high_spin.valueChanged.connect(self.on_filter_option_changed)
+            self.notch_check.toggled.connect(self.on_filter_option_changed)
+            self.notch_type_combo.currentIndexChanged.connect(self.on_filter_option_changed)
+            self.detrend_check.toggled.connect(self.on_filter_option_changed)
+        except Exception as e:
+            logging.error(f"Error reconnecting filter signals: {e}")
 
     def setup_filter_options(self) -> None:
         """Set up filtering options group."""
@@ -61,24 +196,18 @@ class ProcessingPanel(BasePanel):
         bandpass_layout = QHBoxLayout()
         self.bandpass_check = QCheckBox("Bandpass Filter")
         self.bandpass_check.setChecked(True)
-        # Connect changes to the dynamic update function
-        self.bandpass_check.toggled.connect(self.on_filter_option_changed)
 
         bandpass_low_label = QLabel("Low Cut:")
         self.bandpass_low_spin = QDoubleSpinBox()
         self.bandpass_low_spin.setRange(0.1, 100.0)
         self.bandpass_low_spin.setValue(1.0)
         self.bandpass_low_spin.setSuffix(" Hz")
-        # Connect changes to the dynamic update function
-        self.bandpass_low_spin.valueChanged.connect(self.on_filter_option_changed)
 
         bandpass_high_label = QLabel("High Cut:")
         self.bandpass_high_spin = QDoubleSpinBox()
         self.bandpass_high_spin.setRange(0.1, 200.0)
         self.bandpass_high_spin.setValue(50.0)
         self.bandpass_high_spin.setSuffix(" Hz")
-        # Connect changes to the dynamic update function
-        self.bandpass_high_spin.valueChanged.connect(self.on_filter_option_changed)
 
         bandpass_layout.addWidget(self.bandpass_check)
         bandpass_layout.addWidget(bandpass_low_label)
@@ -92,15 +221,11 @@ class ProcessingPanel(BasePanel):
         notch_layout = QHBoxLayout()
         self.notch_check = QCheckBox("Notch Filter")
         self.notch_check.setChecked(True)
-        # Connect changes to the dynamic update function
-        self.notch_check.toggled.connect(self.on_filter_option_changed)
 
         notch_type_label = QLabel("Type:")
         self.notch_type_combo = QComboBox()
         self.notch_type_combo.addItem("50 Hz", "50")
         self.notch_type_combo.addItem("60 Hz", "60")
-        # Connect changes to the dynamic update function
-        self.notch_type_combo.currentIndexChanged.connect(self.on_filter_option_changed)
 
         notch_layout.addWidget(self.notch_check)
         notch_layout.addWidget(notch_type_label)
@@ -112,8 +237,6 @@ class ProcessingPanel(BasePanel):
         detrend_layout = QHBoxLayout()
         self.detrend_check = QCheckBox("Detrend")
         self.detrend_check.setChecked(True)
-        # Connect changes to the dynamic update function
-        self.detrend_check.toggled.connect(self.on_filter_option_changed)
         detrend_layout.addWidget(self.detrend_check)
         detrend_layout.addWidget(HelpButton("detrend", self))
         filter_layout.addLayout(detrend_layout)
@@ -127,6 +250,9 @@ class ProcessingPanel(BasePanel):
         filter_layout.addLayout(apply_layout)
 
         self.layout.addWidget(filter_group)
+
+        # Connect filter signals AFTER all controls are created
+        self._connect_filter_signals()
 
     def setup_metrics_section(self) -> None:
         """Set up EEG metrics section."""
@@ -240,6 +366,12 @@ class ProcessingPanel(BasePanel):
 
                 # Apply filters to data access service (for MNE and other consumers)
                 self.data_access_service.enable_filters(True, filter_settings)
+                
+                # Force update all current data through filters
+                current_data, current_timestamps = self.data_access_service.get_raw_data()
+                if current_data.size > 0:
+                    logging.info(f"Applying filters to existing data buffer of {current_data.shape}")
+                    self.data_access_service.update_data(current_data, current_timestamps)
 
                 # Update button state
                 self.filters_applied = True
@@ -338,28 +470,6 @@ class ProcessingPanel(BasePanel):
             sampling_rate = self.collector_service.get_sampling_rate()
             if sampling_rate <= 0:
                 self.show_error("Metrics Error", "Invalid sampling rate")
-                return
-
-            # Make sure processor is initialized
-            if (
-                not hasattr(self.processor_service, "processor")
-                or self.processor_service.processor is None
-            ):
-                self.processor_service.initialize_processor(sampling_rate)
-                self.show_status(
-                    "Initialized processor with sampling rate " + str(sampling_rate)
-                )
-
-            # Get 4 seconds of data if available
-            data, _ = self.collector_service.get_board_data(4 * sampling_rate)
-            if data.size == 0:
-                self.show_error("Metrics Error", "No data available")
-                return
-
-            # Get EEG channels
-            eeg_channels = self.collector_service.get_eeg_channels()
-            if not eeg_channels:
-                self.show_error("Metrics Error", "No EEG channels available")
                 return
 
             # Calculate metrics

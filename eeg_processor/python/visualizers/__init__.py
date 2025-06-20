@@ -1,7 +1,7 @@
 """
 Visualizers Package for EEG and Biosignal Data Visualization.
 
-This package provides, real-time visualization tools for EEG and other
+This package provides real-time visualization tools for EEG and other
 biosignal data types. It implements a modular architecture supporting multiple
 visualization modalities with optimized performance, caching mechanisms, and
 scientific visualization capabilities.
@@ -25,20 +25,6 @@ Core Visualizers:
   * G.tec Unicorn compatibility with automatic channel mapping to standard positions
   * Performance monitoring with adaptive update rates and quality calculation optimization
   * Interactive electrode labels with quality legend and orientation markers
-
-- MultiModalityVisualizer: Specialized multi-channel biosignal visualization
-  * Automatic detection of available modalities from connected hardware configurations
-  * Separate visualization windows for each signal type with optimized plotting parameters
-  * Real-time FFT analysis with power spectral density computation for frequency domain analysis
-  * Channel-specific visualization with proper scaling, coloring, and legend management
-  * Performance optimization with configurable update rates and data window management
-  * Memory-efficient operations with proper resource cleanup and window lifecycle management
-
-- ModalitySelector: Interactive dialog for modality selection and visualization control
-  * User-friendly interface for selecting which signal modalities to visualize simultaneously
-  * Real-time status tracking showing which visualization windows are currently active
-  * Batch operations for opening/closing multiple visualization windows efficiently
-  * Integration with MultiModalityVisualizer for coordinated window management
 
 Key Features:
 
@@ -120,12 +106,8 @@ with real-time processing support and output quality.
 
 from .brain_map_viz import BrainMapVisualizer
 from .eeg_viz import MultiSignalVisualizer
-from .modality_selector import ModalitySelector
-from .multi_modality_viz import MultiModalityVisualizer
 
 __all__ = [
-    "MultiSignalVisualizer",
+    "MultiSignalVisualizer", 
     "BrainMapVisualizer",
-    "MultiModalityVisualizer",
-    "ModalitySelector",
 ]
