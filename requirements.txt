@@ -5,10 +5,12 @@ pyqt5
 pyqtgraph
 matplotlib
 pandas
-pysdl2
-pysdl2-dll
 pylsl
 h5py
+
+# Optional dependencies for Peripherals like PS4 controllers
+pysdl2
+pysdl2-dll
 
 # Optional dependencies for API testing
 fastapi
