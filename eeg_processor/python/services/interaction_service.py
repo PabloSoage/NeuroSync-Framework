@@ -1582,8 +1582,6 @@ class InteractionService:
                 "connected": collector_service.is_connected(),
                 "streaming": collector_service.is_streaming_active(),
                 "recording": recording_service.is_recording(),
-                "visualization_visible": viz_service.visualization_visible(),
-                "brain_map_visible": viz_service.brain_map_visible(),
                 "sampling_rate": metadata.get("sampling_rate", 0),
                 "board_id": metadata.get("board_id", -1),
                 "board_name": metadata.get("board_name", ""),
