@@ -51,6 +51,8 @@ class EventType(Enum):
     # Advanced processing events
     ICA_COMPUTE = auto()
     ICA_COMPLETED = auto()
+    ICA_VIEW_COMPONENTS = auto()
+    ICA_SELECT_CHANNELS = auto()
     WAVELET_COMPUTE = auto()
     WAVELET_COMPLETED = auto()
     DOWNSAMPLE_APPLY = auto()

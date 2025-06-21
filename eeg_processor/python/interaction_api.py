@@ -408,24 +408,69 @@ class EEGProcessorInteractionAPI:
             }
 
     @staticmethod
-    def perform_ica(num_components: int) -> Dict[str, Any]:
+    def perform_ica(num_components: int, selected_channels: Optional[List[int]] = None) -> Dict[str, Any]:
         """
         Perform Independent Component Analysis.
 
         Args:
-            num_components: Number of ICA components
+            num_components: Number of ICA components (2-16)
+            selected_channels: Optional list of channel indices to use
 
         Returns:
             Dictionary with ICA result
         """
         try:
             service = InteractionService.get_instance()
-            return service.perform_ica(num_components)
+            return service.perform_ica(num_components, selected_channels or [])
         except Exception as e:
             logging.error(f"Error performing ICA: {e}")
             return {
                 "success": False,
                 "message": "Error performing ICA",
+                "error": str(e),
+            }
+
+    @staticmethod
+    def view_ica_components(colormap: str = "viridis") -> Dict[str, Any]:
+        """
+        View ICA components visualization.
+
+        Args:
+            colormap: Colormap to use for visualization
+
+        Returns:
+            Dictionary with visualization result
+        """
+        try:
+            service = InteractionService.get_instance()
+            return service.view_ica_components(colormap)
+        except Exception as e:
+            logging.error(f"Error viewing ICA components: {e}")
+            return {
+                "success": False,
+                "message": "Error viewing ICA components",
+                "error": str(e),
+            }
+
+    @staticmethod
+    def select_ica_channels(channel_indices: List[int]) -> Dict[str, Any]:
+        """
+        Select channels for ICA analysis.
+
+        Args:
+            channel_indices: List of channel indices to select
+
+        Returns:
+            Dictionary with selection result
+        """
+        try:
+            service = InteractionService.get_instance()
+            return service.select_ica_channels(channel_indices)
+        except Exception as e:
+            logging.error(f"Error selecting ICA channels: {e}")
+            return {
+                "success": False,
+                "message": "Error selecting ICA channels",
                 "error": str(e),
             }
 

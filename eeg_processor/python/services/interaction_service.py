@@ -1325,69 +1325,163 @@ class InteractionService:
                 "message": f"Visualization stop failed: {str(e)}",
             }
 
-    def perform_ica(self, num_components: int) -> Dict[str, Any]:
+    def perform_ica(self, num_components: int, selected_channels: Optional[List[int]] = None) -> Dict[str, Any]:
         """
         Perform Independent Component Analysis.
 
         Args:
             num_components: Number of ICA components
+            selected_channels: Optional list of channel indices to use
 
         Returns:
             Dictionary with ICA result information
         """
         try:
-            from .processor_service import ProcessorService
-            from .data_access_service import DataAccessService
+            # Validate parameters
+            if num_components < 2:
+                return {
+                    "success": False,
+                    "message": "Number of components must be at least 2",
+                    "error": "INVALID_COMPONENTS"
+                }
 
-            processor_service = ProcessorService()
-            data_service = DataAccessService.get_instance()
+            # Si no se proporcionan canales, obtener todos los canales disponibles
+            if not selected_channels:
+                try:
+                    data_service = self._get_data_access_service()
+                    metadata = data_service.get_metadata()
+                    eeg_channels = metadata.get("eeg_channels", [])
 
-            # Get current data
-            data, timestamps = data_service.get_current_data()
+                    if eeg_channels:
+                        # Usar todos los canales EEG (índices 0, 1, 2, ... len-1)
+                        selected_channels = list(range(len(eeg_channels)))
+                        logging.info(f"No channels specified, using all {len(selected_channels)} EEG channels")
+                    else:
+                        selected_channels = []
+                        logging.warning("No EEG channels available")
+                except Exception as e:
+                    logging.warning(f"Could not get channel info, using empty list: {e}")
+                    selected_channels = []
 
-            if data.size == 0:
-                return {"success": False, "message": "No data available for ICA"}
+            # Log debug info
+            logging.info(f"ICA request: num_components={num_components}, selected_channels={selected_channels}")
 
-            # Perform ICA
-            w, k, a, s = processor_service.perform_ica(data, num_components)
-
-            success = (
-                w is not None and k is not None and a is not None and s is not None
-            )
-
-            result = {
-                "success": success,
-                "num_components": num_components,
-                "message": (
-                    "ICA computed successfully" if success else "Failed to compute ICA"
-                ),
-            }
-
-            if success:
-                result["components_shape"] = s.shape
-
-            # Dispatch event for UI updates
+            # Dispatch event for GUI to handle ICA computation
             dispatch(
-                EventType.ICA_COMPUTE if success else EventType.ERROR_OCCURRED,
-                {"num_components": num_components, "success": success},
+                EventType.ICA_COMPUTE,
+                {
+                    "num_components": num_components,
+                    "selected_channels": selected_channels,
+                    "source": "api"
+                },
                 source="interaction_service",
             )
 
-            if success:
-                dispatch(
-                    EventType.ICA_COMPLETED,
-                    {"components_shape": s.shape},
-                    source="interaction_service",
-                )
+            result = {
+                "success": True,
+                "num_components": num_components,
+                "selected_channels": selected_channels,
+                "message": f"ICA computation requested with {len(selected_channels)} channels"
+            }
 
             return result
 
         except Exception as e:
-            logging.error(f"Error performing ICA: {e}")
+            logging.error(f"Error requesting ICA: {e}")
             return {
                 "success": False,
                 "error": str(e),
-                "message": f"ICA computation failed: {str(e)}",
+                "message": f"ICA request failed: {str(e)}",
+            }
+
+    def view_ica_components(self, colormap: str = "viridis") -> Dict[str, Any]:
+        """
+        View ICA components visualization.
+
+        Args:
+            colormap: Colormap to use for visualization
+
+        Returns:
+            Dictionary with visualization result
+        """
+        try:
+            # Dispatch event for GUI to show ICA components
+            dispatch(
+                EventType.ICA_VIEW_COMPONENTS,
+                {
+                    "colormap": colormap,
+                    "source": "api"
+                },
+                source="interaction_service",
+            )
+
+            result = {
+                "success": True,
+                "message": "ICA components visualization requested"
+            }
+
+            return result
+
+        except Exception as e:
+            logging.error(f"Error viewing ICA components: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"ICA visualization failed: {str(e)}",
+            }
+
+    def select_ica_channels(self, channel_indices: List[int]) -> Dict[str, Any]:
+        """
+        Select channels for ICA analysis.
+
+        Args:
+            channel_indices: List of channel indices to select
+
+        Returns:
+            Dictionary with selection result
+        """
+        try:
+            # Si la lista está vacía, usar todos los canales
+            if not channel_indices:
+                try:
+                    data_service = self._get_data_access_service()
+                    metadata = data_service.get_metadata()
+                    eeg_channels = metadata.get("eeg_channels", [])
+
+                    if eeg_channels:
+                        channel_indices = list(range(len(eeg_channels)))
+                        logging.info(f"No channels specified, selecting all {len(channel_indices)} EEG channels")
+                    else:
+                        channel_indices = []
+                        logging.warning("No EEG channels available")
+                except Exception as e:
+                    logging.warning(f"Could not get channel info: {e}")
+                    channel_indices = []
+
+            # Dispatch event for GUI to update channel selection
+            dispatch(
+                EventType.ICA_SELECT_CHANNELS,
+                {
+                    "channel_indices": channel_indices,
+                    "source": "api"
+                },
+                source="interaction_service",
+            )
+
+            result = {
+                "success": True,
+                "channel_indices": channel_indices,
+                "message": f"Selected {len(channel_indices)} channels for ICA"
+            }
+
+            return result
+
+        except Exception as e:
+            logging.error(f"Error selecting ICA channels: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Channel selection failed: {str(e)}",
             }
 
     def get_eeg_metrics(self) -> Dict[str, Any]:

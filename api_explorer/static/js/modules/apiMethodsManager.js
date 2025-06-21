@@ -350,8 +350,47 @@ export class APIMethodsManager {
                 console.log(`Range input ${paramName}: ${paramValue} (type: ${typeof paramValue})`);
             } else if (param.type === 'number') {
                 // Handle number inputs - ensure they're sent as numbers
-                paramValue = parseFloat(param.value);
+                const rawValue = param.value.trim();
+                if (rawValue === '' || isNaN(rawValue)) {
+                    // For required number fields, don't send empty values
+                    if (param.required) {
+                        console.error(`Required number field ${paramName} is empty`);
+                        return { url, options: { ...options, error: `Required field ${paramName} is empty` } };
+                    }
+                    // For optional number fields, skip
+                    return;
+                }
+                paramValue = parseFloat(rawValue);
                 console.log(`Number input ${paramName}: ${paramValue} (type: ${typeof paramValue})`);
+            } else if (param.dataset.type === 'array') {
+                // Handle array inputs (for ICA methods)
+                const rawValue = param.value.trim();
+                if (rawValue === '') {
+                    paramValue = [];
+                } else {
+                    try {
+                        // Try to parse as JSON array first
+                        paramValue = JSON.parse(rawValue);
+                        if (!Array.isArray(paramValue)) {
+                            throw new Error('Not an array');
+                        }
+                    } catch (error) {
+                        // If JSON parsing fails, try comma-separated values
+                        try {
+                            paramValue = rawValue.split(',').map(val => {
+                                const num = parseInt(val.trim(), 10);
+                                if (isNaN(num)) {
+                                    throw new Error(`Invalid number: ${val}`);
+                                }
+                                return num;
+                            });
+                        } catch (parseError) {
+                            console.error(`Invalid array format in ${paramName}:`, parseError);
+                            paramValue = [];
+                        }
+                    }
+                }
+                console.log(`Array input ${paramName}:`, paramValue);
             } else {
                 // Handle regular text inputs - ensure value exists before trim
                 const rawValue = param.value || '';
@@ -377,9 +416,9 @@ export class APIMethodsManager {
 
             // Only add non-empty values
             if (paramValue !== null && paramValue !== undefined && paramValue !== '') {
-                // For objects, check if they have any actual content
+                // For objects and arrays, check if they have any actual content
                 if (typeof paramValue === 'object') {
-                    if (Object.keys(paramValue).length > 0) {
+                    if (Array.isArray(paramValue) || Object.keys(paramValue).length > 0) {
                         if (options.method === 'GET') {
                             queryParams.push(`${paramName}=${encodeURIComponent(JSON.stringify(paramValue))}`);
                         } else {

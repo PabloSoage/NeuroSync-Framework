@@ -989,106 +989,93 @@ class EEGProcessorInteractionApiIntegration:
             {"value": "brain_map", "label": "Brain Map Visualization"},
         ]
 
-    async def _handle_start_visualization(
-        self, viz_type: str = "eeg"
-    ) -> Dict[str, Any]:
-        """Handle start_visualization with proper validation."""
-        try:
-            logging.info(f"Starting visualization type: {viz_type}")
-
-            # Validate viz_type
-            if viz_type not in ["eeg", "brain_map"]:
-                return {
-                    "success": False,
-                    "message": f"Invalid visualization type: {viz_type}. Supported types: eeg, brain_map",
-                    "error": "INVALID_VIZ_TYPE",
-                }
-
-            # Check system state before starting visualization
-            connection_status = EEGProcessorInteractionAPI.get_connection_status()
-            
-            if not connection_status.get("connected", False):
-                return {
-                    "success": False,
-                    "message": "No board connected. Please connect to a board first.",
-                    "error": "NOT_CONNECTED",
-                }
-
-            if not connection_status.get("streaming", False):
-                return {
-                    "success": False,
-                    "message": "No active stream. Please start streaming first.",
-                    "error": "NOT_STREAMING",
-                }
-
-            # Use the existing API method with validation
-            result = EEGProcessorInteractionAPI.start_visualization(viz_type)
-
-            # Add additional context to result
-            if result.get("success", False):
-                result["viz_type"] = viz_type
-                result["connection_status"] = connection_status
-
-            return result
-
-        except Exception as e:
-            logging.error(f"Error in start_visualization handler: {e}")
-            return {
-                "success": False,
-                "message": f"Visualization start failed: {e}",
-                "error": str(e),
-            }
-
-    async def _handle_stop_visualization(self, viz_type: str = "eeg") -> Dict[str, Any]:
-        """Handle stop_visualization with proper validation."""
-        try:
-            logging.info(f"Stopping visualization type: {viz_type}")
-
-            # Validate viz_type
-            if viz_type not in ["eeg", "brain_map"]:
-                return {
-                    "success": False,
-                    "message": f"Invalid visualization type: {viz_type}. Supported types: eeg, brain_map",
-                    "error": "INVALID_VIZ_TYPE",
-                }
-
-            # Use the existing API method
-            result = EEGProcessorInteractionAPI.stop_visualization(viz_type)
-
-            # Add additional context to result
-            if result.get("success", False):
-                result["viz_type"] = viz_type
-
-            return result
-
-        except Exception as e:
-            logging.error(f"Error in stop_visualization handler: {e}")
-            return {
-                "success": False,
-                "message": f"Visualization stop failed: {e}",
-                "error": str(e),
-            }
-
     def _register_advanced_methods(self, api_explorer: Any) -> None:
         """Register advanced processing methods."""
-        # Perform ICA
+        # Perform ICA with channel selection
         api_explorer.register_method(
             self._target_module_id,
             "advanced",
             "perform_ica",
             {
-                "name": "perform_ica(num_components)",
+                "name": "perform_ica(num_components, selected_channels)",
                 "description": "Perform Independent Component Analysis",
                 "type": "POST",
                 "params": {
                     "num_components": {
                         "type": "number",
-                        "description": "Number of ICA components",
+                        "description": "Number of ICA components (2-16)",
                         "required": True,
+                        "min": 2,
+                        "max": 16,
+                        "default": 2,
+                    },
+                    "selected_channels": {
+                        "type": "text",  # Change from "array" to "text" for better JS handling
+                        "description": "List of channel indices (comma-separated: 0,1,2 or JSON: [0,1,2]) - leave empty for all channels",
+                        "required": False,
+                        "default": "",
+                        "placeholder": "0,1,2,3 or [0,1,2,3] or leave empty",
+                        "data-type": "array",  # Add data attribute for JS processing
+                        "help_text": "Enter channel indices as comma-separated values (0,1,2) or JSON array ([0,1,2]). Leave empty to use all channels."
                     }
                 },
             },
             self._handle_perform_ica,
+        )
+
+        # View ICA components
+        api_explorer.register_method(
+            self._target_module_id,
+            "advanced",
+            "view_ica_components",
+            {
+                "name": "view_ica_components(colormap)",
+                "description": "View ICA components visualization",
+                "type": "POST",
+                "params": {
+                    "colormap": {
+                        "type": "select",
+                        "description": "Colormap for visualization",
+                        "required": False,
+                        "options": [
+                            {"value": "viridis", "label": "Viridis"},
+                            {"value": "plasma", "label": "Plasma"},
+                            {"value": "inferno", "label": "Inferno"},
+                            {"value": "magma", "label": "Magma"},
+                            {"value": "coolwarm", "label": "Cool/Warm"},
+                            {"value": "RdBu", "label": "Red/Blue"},
+                            {"value": "Spectral", "label": "Spectral"},
+                            {"value": "jet", "label": "Jet"},
+                        ],
+                        "default": "viridis",
+                    }
+                },
+            },
+            self._handle_view_ica_components,
+        )
+
+        # Select ICA channels
+        api_explorer.register_method(
+            self._target_module_id,
+            "advanced",
+            "select_ica_channels",
+            {
+                "name": "select_ica_channels(channel_indices)",
+                "description": "Select channels for ICA analysis",
+                "type": "POST",
+                "params": {
+                    "channel_indices": {
+                        "type": "text",
+                        "description": "List of channel indices (comma-separated: 0,1,2 or JSON: [0,1,2]) - leave empty for all channels",
+                        "required": False,
+                        "default": "",
+                        "placeholder": "0,1,2,3 or [0,1,2,3] or leave empty for all",
+                        "data-type": "array",
+                        "help_text": "Enter channel indices as comma-separated values (0,1,2) or JSON array ([0,1,2]). Leave empty to select all channels."
+                    }
+                },
+            },
+            self._handle_select_ica_channels,
         )
 
         # Convert to MNE
@@ -1160,6 +1147,75 @@ class EEGProcessorInteractionApiIntegration:
             },
             self._handle_compute_wavelet,
         )
+
+    async def _handle_perform_ica(self, num_components: float, selected_channels: str = "") -> Dict[str, Any]:
+        """Handle perform_ica with proper numeric conversion."""
+        try:
+            num_components_int = int(round(num_components))
+
+            # Validate the converted value
+            if num_components_int < 2 or num_components_int > 16:
+                return {
+                    "success": False,
+                    "message": f"Number of components must be between 2 and 16, got {num_components_int}",
+                    "error": "INVALID_COMPONENTS"
+                }
+
+            # Convert string to array
+            channel_list = self._parse_channel_string(selected_channels)
+
+            logging.info(
+                f"ICA handler: num_components={num_components} -> {num_components_int}, channels={len(channel_list)}")
+
+            return EEGProcessorInteractionAPI.perform_ica(num_components_int, channel_list)
+        except Exception as e:
+            logging.error(f"Error in perform_ica handler: {e}")
+            return {
+                "success": False,
+                "message": f"ICA computation failed: {e}",
+                "error": str(e),
+            }
+
+    async def _handle_view_ica_components(self, colormap: str = "viridis") -> Dict[str, Any]:
+        """Handle view_ica_components."""
+        return EEGProcessorInteractionAPI.view_ica_components(colormap)
+
+    async def _handle_select_ica_channels(self, channel_indices: str = "") -> Dict[str, Any]:
+        """Handle select_ica_channels with string-to-array conversion."""
+        try:
+            # Convert string to array
+            channel_list = self._parse_channel_string(channel_indices)
+            return EEGProcessorInteractionAPI.select_ica_channels(channel_list)
+        except Exception as e:
+            logging.error(f"Error in select_ica_channels handler: {e}")
+            return {
+                "success": False,
+                "message": f"Channel selection failed: {e}",
+                "error": str(e),
+            }
+
+    def _parse_channel_string(self, channel_str: str) -> List[int]:
+        """Parse channel string to list of integers."""
+        if not channel_str or channel_str.strip() == "":
+            return []
+
+        channel_str = channel_str.strip()
+
+        try:
+            # Try to parse as JSON array first
+            if channel_str.startswith('[') and channel_str.endswith(']'):
+                import json
+                parsed = json.loads(channel_str)
+                if isinstance(parsed, list):
+                    return [int(x) for x in parsed]
+
+            # If not JSON, try comma-separated values
+            return [int(x.strip()) for x in channel_str.split(',') if x.strip()]
+
+        except (ValueError, json.JSONDecodeError) as e:
+            logging.error(f"Error parsing channel string '{channel_str}': {e}")
+            raise ValueError(
+                f"Invalid channel format: {channel_str}. Use comma-separated values (0,1,2) or JSON array ([0,1,2])")
 
     def _register_status_methods(self, api_explorer: Any) -> None:
         """Register status-related methods."""
@@ -1599,10 +1655,6 @@ class EEGProcessorInteractionApiIntegration:
                 "message": f"Visualization stop failed: {e}",
                 "error": str(e),
             }
-
-    async def _handle_perform_ica(self, num_components: int) -> Dict[str, Any]:
-        """Handle perform_ica."""
-        return EEGProcessorInteractionAPI.perform_ica(num_components)
 
     async def _handle_convert_to_mne(self, duration: int = 5) -> Dict[str, Any]:
         """Handle convert_to_mne."""
