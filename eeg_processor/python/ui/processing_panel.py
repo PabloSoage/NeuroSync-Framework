@@ -24,7 +24,7 @@ class ApiEventHandler(QObject):
     visualization_start_signal = pyqtSignal(str)
     visualization_stop_signal = pyqtSignal(str)
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 
@@ -89,13 +89,15 @@ class ProcessingPanel(BasePanel):
             event_dispatcher.subscribe(
                 EventType.FILTER_APPLY, self._handle_api_filter_apply_thread_safe
             )
-            
+
             # Subscribe to visualization events from API
             event_dispatcher.subscribe(
-                EventType.VISUALIZATION_START, self._handle_api_visualization_start_thread_safe
+                EventType.VISUALIZATION_START,
+                self._handle_api_visualization_start_thread_safe,
             )
             event_dispatcher.subscribe(
-                EventType.VISUALIZATION_STOP, self._handle_api_visualization_stop_thread_safe
+                EventType.VISUALIZATION_STOP,
+                self._handle_api_visualization_stop_thread_safe,
             )
 
         except Exception as e:
@@ -138,7 +140,9 @@ class ProcessingPanel(BasePanel):
                 self.api_event_handler.visualization_start_signal.emit(viz_type)
 
         except Exception as e:
-            logging.error(f"Error handling API visualization start event thread-safe: {e}")
+            logging.error(
+                f"Error handling API visualization start event thread-safe: {e}"
+            )
 
     def _handle_api_visualization_stop_thread_safe(self, event: Any) -> None:
         """Handle visualization stop events from API in a thread-safe way."""
@@ -157,7 +161,9 @@ class ProcessingPanel(BasePanel):
                 self.api_event_handler.visualization_stop_signal.emit(viz_type)
 
         except Exception as e:
-            logging.error(f"Error handling API visualization stop event thread-safe: {e}")
+            logging.error(
+                f"Error handling API visualization stop event thread-safe: {e}"
+            )
 
     def _handle_api_filter_apply_safe(
         self, filter_config: Dict[str, Any], applied_to_visualization: bool
@@ -187,7 +193,9 @@ class ProcessingPanel(BasePanel):
                     self.show_brain_map()
                     logging.info("Brain map visualization started via API")
                 else:
-                    logging.warning("Brain map button is disabled - cannot start brain map")
+                    logging.warning(
+                        "Brain map button is disabled - cannot start brain map"
+                    )
 
         except Exception as e:
             logging.error(f"Error handling API visualization start event safely: {e}")
@@ -199,13 +207,18 @@ class ProcessingPanel(BasePanel):
 
             if viz_type == "brain_map":
                 # Stop brain map visualization if it's running
-                if hasattr(self, "visualization_service") and self.visualization_service.brain_map_visible():
+                if (
+                    hasattr(self, "visualization_service")
+                    and self.visualization_service.brain_map_visible()
+                ):
                     success = self.visualization_service.stop_brain_map_visualization()
                     if success:
                         self.brain_map_btn.setEnabled(True)
                         logging.info("Brain map visualization stopped via API")
                     else:
-                        logging.warning("Failed to stop brain map visualization via API")
+                        logging.warning(
+                            "Failed to stop brain map visualization via API"
+                        )
                 else:
                     logging.warning("Brain map visualization is not currently running")
 
@@ -594,6 +607,11 @@ class ProcessingPanel(BasePanel):
                 self.show_error("Metrics Error", "Invalid sampling rate")
                 return
 
+            # Get data and EEG channels
+            data, _ = self.data_access_service.get_raw_data()
+            metadata = self.data_access_service.get_metadata()
+            eeg_channels = metadata.get("eeg_channels", [])
+
             # Calculate metrics
             metrics = self.processor_service.get_eeg_metrics(data, eeg_channels)
 
@@ -601,7 +619,7 @@ class ProcessingPanel(BasePanel):
             metrics_text = ""
             for name, value in metrics.items():
                 # Handle numpy arrays by taking first value
-                if hasattr(value, "__iter__"):
+                if hasattr(value, "__iter__") and not isinstance(value, str):
                     value = value[0]
                 metrics_text += f"{name.capitalize()}: {value:.2f}\n"
 
@@ -615,7 +633,9 @@ class ProcessingPanel(BasePanel):
         try:
             # Check if button is enabled (which means brain map can be shown)
             if not self.brain_map_btn.isEnabled():
-                self.show_status("Brain map is already running or prerequisites not met")
+                self.show_status(
+                    "Brain map is already running or prerequisites not met"
+                )
                 return
 
             # Make sure processor is initialized before creating brain map
@@ -652,7 +672,7 @@ class ProcessingPanel(BasePanel):
 
             # Start brain map visualization
             success = self.visualization_service.start_brain_map_visualization()
-            
+
             if success:
                 self.brain_map_btn.setEnabled(False)
                 self.show_status("Brain map visualization started")

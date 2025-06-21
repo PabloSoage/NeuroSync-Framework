@@ -3,6 +3,7 @@ CLI application for EEG Processor.
 
 This module provides a Typer CLI application for interacting with the EEG Processor.
 """
+
 import atexit
 import signal
 import sys
@@ -22,7 +23,7 @@ from .cli_config import (
 
 # Import command modules
 from .commands.data_commands import data_app
-from .commands.interaction_commands import control_app  
+from .commands.interaction_commands import control_app
 from .commands.monitor_commands import monitor_app
 
 # Create console for output
@@ -54,9 +55,13 @@ def run_cli() -> None:
         if is_main_thread:
             signal.signal(signal.SIGINT, signal_handler)
             signal.signal(signal.SIGTERM, signal_handler)
-            console.print("[dim]Running in main thread - signal handlers registered[/dim]")
+            console.print(
+                "[dim]Running in main thread - signal handlers registered[/dim]"
+            )
         else:
-            console.print("[dim]Running in secondary thread - signal handlers skipped[/dim]")
+            console.print(
+                "[dim]Running in secondary thread - signal handlers skipped[/dim]"
+            )
 
         # Import here to avoid circular imports
         from .cli_shell import run_shell
@@ -91,6 +96,7 @@ def shutdown_cli() -> None:
         # Clean up API connections if needed
         try:
             from ..api_integration import get_api_integration
+
             api = get_api_integration()
             if api and hasattr(api, "shutdown"):
                 api.shutdown()
@@ -139,7 +145,7 @@ def info() -> None:
 
         if system_status.get("success"):
             status = system_status.get("status", {})
-            
+
             table.add_row("Connected", str(status.get("connected", False)))
             table.add_row("Streaming", str(status.get("streaming", False)))
             table.add_row("Recording", str(status.get("recording", False)))

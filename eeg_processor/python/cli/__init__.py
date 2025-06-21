@@ -15,7 +15,6 @@ All modules are designed to be imported and used by the main CLI entry point.
 """
 
 from .cli_app import app
-from .cli_shell import run_shell
 from .cli_config import (
     headless_mode,
     set_gui_mode,
@@ -25,6 +24,7 @@ from .cli_config import (
     get_interaction_service,
     get_collector_service,
 )
+from .cli_shell import run_shell
 
 __all__ = [
     "app",

@@ -53,14 +53,24 @@ def parse_config() -> Dict[str, Any]:
     )
 
     # Data API configuration
-    parser.add_argument("--enable-web-api", action="store_true", help="Enable the data access web API")
+    parser.add_argument(
+        "--enable-web-api", action="store_true", help="Enable the data access web API"
+    )
     parser.add_argument("--api-host", default="127.0.0.1", help="Host for the web API")
-    parser.add_argument("--api-port", type=int, default=8000, help="Port for the web API")
+    parser.add_argument(
+        "--api-port", type=int, default=8000, help="Port for the web API"
+    )
 
     # Control API configuration
-    parser.add_argument("--enable-control-api", action="store_true", help="Enable the control web API")
-    parser.add_argument("--control-api-host", default="127.0.0.1", help="Host for the control API")
-    parser.add_argument("--control-api-port", type=int, default=8001, help="Port for the control API")
+    parser.add_argument(
+        "--enable-control-api", action="store_true", help="Enable the control web API"
+    )
+    parser.add_argument(
+        "--control-api-host", default="127.0.0.1", help="Host for the control API"
+    )
+    parser.add_argument(
+        "--control-api-port", type=int, default=8001, help="Port for the control API"
+    )
     parser.add_argument(
         "--control-api-only",
         action="store_true",
@@ -101,7 +111,10 @@ def cleanup_cli_thread() -> None:
     if cli_thread and cli_thread.is_alive():
         try:
             # Use the CLI's own shutdown mechanism
-            from eeg_processor.python.cli.cli_config import set_cli_running, wait_for_cli_exit
+            from eeg_processor.python.cli.cli_config import (
+                set_cli_running,
+                wait_for_cli_exit,
+            )
             from eeg_processor.python.cli.cli_app import shutdown_cli
 
             # Signal the CLI to shut down
@@ -139,7 +152,9 @@ def main() -> None:
     )
 
     # Initialize data access API if enabled
-    if config.get("enable_web_api", False) and not config.get("control_api_only", False):
+    if config.get("enable_web_api", False) and not config.get(
+        "control_api_only", False
+    ):
         from eeg_processor.python.api_integration import (
             initialize_api,
             get_api_integration,
@@ -213,7 +228,7 @@ def main() -> None:
         app = QApplication(sys.argv)
         app.setStyle("Fusion")
         ex = EEGProcessorApp()
-        
+
         if config.get("fullscreen", False):
             ex.showFullScreen()
         else:
@@ -228,7 +243,7 @@ def main() -> None:
 
         # GUI has closed, clean up CLI thread if needed
         cleanup_cli_thread()
-        
+
         # Don't call sys.exit() to avoid terminal closure
         print("Application shutting down...")
 

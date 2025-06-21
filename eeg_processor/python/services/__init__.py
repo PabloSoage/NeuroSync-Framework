@@ -108,6 +108,9 @@ signal processing applications with real-time capabilities, advanced analysis
 features, and comprehensive data management.
 """
 
+# Import specialized service packages
+from . import ica
+from . import mne
 from .advanced_processing_service import AdvancedProcessingService
 from .collector_service import CollectorService
 from .data_access_service import DataAccessService
@@ -116,10 +119,6 @@ from .mne_service import MNEService
 from .processor_service import ProcessorService
 from .recording_service import RecordingService
 from .visualization_service import VisualizationService
-
-# Import specialized service packages
-from . import ica
-from . import mne
 
 __all__ = [
     # Core services

@@ -125,6 +125,9 @@ real-time processing support, result documentation,
 and robust error handling throughout all operations.
 """
 
+# Import specialized UI packages
+from . import advanced
+from . import mne
 from .advanced_panel import AdvancedProcessingPanel
 from .base_panel import BasePanel
 from .connection_panel import ConnectionPanel
@@ -132,10 +135,6 @@ from .mne_panel import MNEPanel
 from .processing_panel import ProcessingPanel
 from .recording_panel import RecordingPanel
 from .streaming_panel import StreamingPanel
-
-# Import specialized UI packages
-from . import advanced
-from . import mne
 
 __all__ = [
     # Core UI panels

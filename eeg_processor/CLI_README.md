@@ -36,7 +36,7 @@ Enable web APIs alongside CLI:
 # With data access API
 python run.py --cli --enable-web-api --api-port 8000
 
-# With control API  
+# With control API
 python run.py --cli --enable-control-api --control-api-port 8001
 ```
 
@@ -155,7 +155,7 @@ control start-viz --type brain_map
 When in the interactive shell, you can use these special commands:
 
 - `help` - Show available commands
-- `status` - Show current system status  
+- `status` - Show current system status
 - `clear` - Clear the screen
 - `exit` or `quit` - Exit the CLI
 

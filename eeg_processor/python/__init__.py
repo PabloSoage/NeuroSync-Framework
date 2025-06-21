@@ -139,14 +139,14 @@ enabling researchers, clinicians, and developers to leverage advanced neurophysi
 analysis techniques through an intuitive, high-performance interface with real-time processing support and extensive hardware compatibility.
 """
 
-# Core application and main components
-from .eeg_processor_app import EEGProcessorApp
-from .collectors import EEGCollector, BrainFlowBoardConfiguration, BoardConfiguration
-from .processors import SignalProcessor
-from .visualizers import (
-    MultiSignalVisualizer,
-    BrainMapVisualizer,
+# Adapters for external integration
+from .adapters import QtInteractionAdapter
+from .api_integration import (
+    EEGProcessorApiIntegration,
+    get_api_integration,
+    initialize_api,
 )
+from .collectors import EEGCollector, BrainFlowBoardConfiguration, BoardConfiguration
 
 # Core infrastructure
 from .core import (
@@ -162,17 +162,13 @@ from .core import (
     clear_event_history,
 )
 
-# Services layer
-from .services import (
-    CollectorService,
-    DataAccessService,
-    ProcessorService,
-    RecordingService,
-    VisualizationService,
-    InteractionService,
-    AdvancedProcessingService,
-    MNEService,
-)
+# API components
+from .data_access_api import EEGDataAPI
+
+# Core application and main components
+from .eeg_processor_app import EEGProcessorApp
+from .interaction_api import EEGProcessorInteractionAPI
+from .interaction_api_integration import EEGProcessorInteractionApiIntegration
 
 # Interfaces for modular architecture
 from .interfaces import (
@@ -187,6 +183,19 @@ from .interfaces import (
     MNEResultStorageInterface,
     MNEProcessManagerInterface,
     MNERealtimeInterface,
+)
+from .processors import SignalProcessor
+
+# Services layer
+from .services import (
+    CollectorService,
+    DataAccessService,
+    ProcessorService,
+    RecordingService,
+    VisualizationService,
+    InteractionService,
+    AdvancedProcessingService,
+    MNEService,
 )
 
 # UI components
@@ -210,19 +219,10 @@ from .utils import (
     show_help_topic,
     show_eeg_concepts_help,
 )
-
-# Adapters for external integration
-from .adapters import QtInteractionAdapter
-
-# API components
-from .data_access_api import EEGDataAPI
-from .interaction_api import EEGProcessorInteractionAPI
-from .api_integration import (
-    EEGProcessorApiIntegration,
-    get_api_integration,
-    initialize_api,
+from .visualizers import (
+    MultiSignalVisualizer,
+    BrainMapVisualizer,
 )
-from .interaction_api_integration import EEGProcessorInteractionApiIntegration
 
 __all__ = [
     # Core application

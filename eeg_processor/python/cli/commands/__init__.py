@@ -14,8 +14,8 @@ All modules are designed to be imported and registered in the main CLI applicati
 """
 
 from .data_commands import data_app
-from .monitor_commands import monitor_app
 from .interaction_commands import control_app
+from .monitor_commands import monitor_app
 
 __all__ = [
     "data_app",

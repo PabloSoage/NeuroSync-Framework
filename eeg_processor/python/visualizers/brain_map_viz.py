@@ -649,13 +649,13 @@ class BrainMapVisualizer:
     def close(self) -> None:
         """Close the visualization window."""
         self.stop()
-        if hasattr(self, 'win'):
+        if hasattr(self, "win"):
             self.win.close()
         logging.info("Brain map visualizer window closed")
 
     def is_visible(self) -> bool:
         """Check if the visualization window is visible."""
-        return hasattr(self, 'win') and self.win.isVisible()
+        return hasattr(self, "win") and self.win.isVisible()
 
     def update_quality_map(self) -> None:
         """Update the signal quality map."""

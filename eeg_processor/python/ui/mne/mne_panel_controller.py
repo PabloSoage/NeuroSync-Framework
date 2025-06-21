@@ -1,7 +1,6 @@
 import logging
 from typing import Any, Optional, Dict, List, Tuple
 
-import numpy as np
 from PyQt5.QtCore import QObject, pyqtSignal, QTimer
 from PyQt5.QtWidgets import QDialog
 

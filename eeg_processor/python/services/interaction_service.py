@@ -1137,7 +1137,11 @@ class InteractionService:
                             bp_config.get("high_cut", bp_config.get("high", 50.0)),
                         )
                     else:
-                        visualization_service.set_bandpass_filter(False)
+                        visualization_service.set_bandpass_filter(
+                            False,
+                            bp_config.get("low_cut", bp_config.get("low", 1.0)),
+                            bp_config.get("high_cut", bp_config.get("high", 50.0)),
+                        )
 
                     # Apply notch filter
                     if filter_config.get("notch", {}).get("enabled", False):
@@ -1265,12 +1269,15 @@ class InteractionService:
                 "message": f"{viz_type.title()} visualization start requested",
             }
 
-            logging.info(f"InteractionService: {viz_type} visualization start event dispatched")
+            logging.info(
+                f"InteractionService: {viz_type} visualization start event dispatched"
+            )
             return result
 
         except Exception as e:
             logging.error(f"Error starting visualization: {e}")
             import traceback
+
             logging.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "success": False,
@@ -1312,12 +1319,15 @@ class InteractionService:
                 "message": f"{viz_type.title()} visualization stop requested",
             }
 
-            logging.info(f"InteractionService: {viz_type} visualization stop event dispatched")
+            logging.info(
+                f"InteractionService: {viz_type} visualization stop event dispatched"
+            )
             return result
 
         except Exception as e:
             logging.error(f"Error stopping visualization: {e}")
             import traceback
+
             logging.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "success": False,
@@ -1325,7 +1335,9 @@ class InteractionService:
                 "message": f"Visualization stop failed: {str(e)}",
             }
 
-    def perform_ica(self, num_components: int, selected_channels: Optional[List[int]] = None) -> Dict[str, Any]:
+    def perform_ica(
+        self, num_components: int, selected_channels: Optional[List[int]] = None
+    ) -> Dict[str, Any]:
         """
         Perform Independent Component Analysis.
 
@@ -1342,7 +1354,7 @@ class InteractionService:
                 return {
                     "success": False,
                     "message": "Number of components must be at least 2",
-                    "error": "INVALID_COMPONENTS"
+                    "error": "INVALID_COMPONENTS",
                 }
 
             # Si no se proporcionan canales, obtener todos los canales disponibles
@@ -1355,16 +1367,22 @@ class InteractionService:
                     if eeg_channels:
                         # Usar todos los canales EEG (índices 0, 1, 2, ... len-1)
                         selected_channels = list(range(len(eeg_channels)))
-                        logging.info(f"No channels specified, using all {len(selected_channels)} EEG channels")
+                        logging.info(
+                            f"No channels specified, using all {len(selected_channels)} EEG channels"
+                        )
                     else:
                         selected_channels = []
                         logging.warning("No EEG channels available")
                 except Exception as e:
-                    logging.warning(f"Could not get channel info, using empty list: {e}")
+                    logging.warning(
+                        f"Could not get channel info, using empty list: {e}"
+                    )
                     selected_channels = []
 
             # Log debug info
-            logging.info(f"ICA request: num_components={num_components}, selected_channels={selected_channels}")
+            logging.info(
+                f"ICA request: num_components={num_components}, selected_channels={selected_channels}"
+            )
 
             # Dispatch event for GUI to handle ICA computation
             dispatch(
@@ -1372,7 +1390,7 @@ class InteractionService:
                 {
                     "num_components": num_components,
                     "selected_channels": selected_channels,
-                    "source": "api"
+                    "source": "api",
                 },
                 source="interaction_service",
             )
@@ -1381,7 +1399,7 @@ class InteractionService:
                 "success": True,
                 "num_components": num_components,
                 "selected_channels": selected_channels,
-                "message": f"ICA computation requested with {len(selected_channels)} channels"
+                "message": f"ICA computation requested with {len(selected_channels)} channels",
             }
 
             return result
@@ -1408,16 +1426,13 @@ class InteractionService:
             # Dispatch event for GUI to show ICA components
             dispatch(
                 EventType.ICA_VIEW_COMPONENTS,
-                {
-                    "colormap": colormap,
-                    "source": "api"
-                },
+                {"colormap": colormap, "source": "api"},
                 source="interaction_service",
             )
 
             result = {
                 "success": True,
-                "message": "ICA components visualization requested"
+                "message": "ICA components visualization requested",
             }
 
             return result
@@ -1450,7 +1465,9 @@ class InteractionService:
 
                     if eeg_channels:
                         channel_indices = list(range(len(eeg_channels)))
-                        logging.info(f"No channels specified, selecting all {len(channel_indices)} EEG channels")
+                        logging.info(
+                            f"No channels specified, selecting all {len(channel_indices)} EEG channels"
+                        )
                     else:
                         channel_indices = []
                         logging.warning("No EEG channels available")
@@ -1461,17 +1478,14 @@ class InteractionService:
             # Dispatch event for GUI to update channel selection
             dispatch(
                 EventType.ICA_SELECT_CHANNELS,
-                {
-                    "channel_indices": channel_indices,
-                    "source": "api"
-                },
+                {"channel_indices": channel_indices, "source": "api"},
                 source="interaction_service",
             )
 
             result = {
                 "success": True,
                 "channel_indices": channel_indices,
-                "message": f"Selected {len(channel_indices)} channels for ICA"
+                "message": f"Selected {len(channel_indices)} channels for ICA",
             }
 
             return result
@@ -1738,17 +1752,13 @@ class InteractionService:
                 return {
                     "success": False,
                     "message": "Duration must be between 1 and 60 seconds",
-                    "error": "INVALID_DURATION"
+                    "error": "INVALID_DURATION",
                 }
 
             # Dispatch event for GUI to handle MNE conversion
             dispatch(
                 EventType.MNE_CONVERT,
-                {
-                    "duration": duration,
-                    "use_filters": use_filters,
-                    "source": "api"
-                },
+                {"duration": duration, "use_filters": use_filters, "source": "api"},
                 source="interaction_service",
             )
 
@@ -1756,7 +1766,7 @@ class InteractionService:
                 "success": True,
                 "duration": duration,
                 "use_filters": use_filters,
-                "message": f"MNE conversion requested for {duration} seconds"
+                "message": f"MNE conversion requested for {duration} seconds",
             }
 
             return result
@@ -1770,15 +1780,15 @@ class InteractionService:
             }
 
     def plot_mne_visualization(
-            self,
-            plot_type: str = "PSD",
-            freq_min: int = 1,
-            freq_max: int = 50,
-            topomap_band: str = "Alpha (8-13 Hz)",
-            topomap_freq_min: int = 8,
-            topomap_freq_max: int = 13,
-            psd_individual_mode: bool = True,
-            selected_channels: Optional[List[int]] = None
+        self,
+        plot_type: str = "PSD",
+        freq_min: int = 1,
+        freq_max: int = 50,
+        topomap_band: str = "Alpha (8-13 Hz)",
+        topomap_freq_min: int = 8,
+        topomap_freq_max: int = 13,
+        psd_individual_mode: bool = True,
+        selected_channels: Optional[List[int]] = None,
     ) -> Dict[str, Any]:
         """
         Generate MNE visualization plot.
@@ -1803,7 +1813,7 @@ class InteractionService:
                 return {
                     "success": False,
                     "message": f"Invalid plot type. Must be one of: {valid_plot_types}",
-                    "error": "INVALID_PLOT_TYPE"
+                    "error": "INVALID_PLOT_TYPE",
                 }
 
             # Validate frequency range
@@ -1811,7 +1821,7 @@ class InteractionService:
                 return {
                     "success": False,
                     "message": "Invalid frequency range",
-                    "error": "INVALID_FREQUENCY_RANGE"
+                    "error": "INVALID_FREQUENCY_RANGE",
                 }
 
             # If no channels specified, use all channels
@@ -1823,7 +1833,9 @@ class InteractionService:
 
                     if eeg_channels:
                         selected_channels = list(range(len(eeg_channels)))
-                        logging.info(f"No channels specified, using all {len(selected_channels)} EEG channels")
+                        logging.info(
+                            f"No channels specified, using all {len(selected_channels)} EEG channels"
+                        )
                     else:
                         selected_channels = []
                         logging.warning("No EEG channels available")
@@ -1843,7 +1855,7 @@ class InteractionService:
                     "topomap_freq_max": topomap_freq_max,
                     "psd_individual_mode": psd_individual_mode,
                     "selected_channels": selected_channels,
-                    "source": "api"
+                    "source": "api",
                 },
                 source="interaction_service",
             )
@@ -1853,7 +1865,7 @@ class InteractionService:
                 "plot_type": plot_type,
                 "freq_range": [freq_min, freq_max],
                 "selected_channels": selected_channels,
-                "message": f"MNE {plot_type} visualization requested"
+                "message": f"MNE {plot_type} visualization requested",
             }
 
             return result
@@ -1886,7 +1898,9 @@ class InteractionService:
 
                     if eeg_channels:
                         channel_indices = list(range(len(eeg_channels)))
-                        logging.info(f"No channels specified, selecting all {len(channel_indices)} EEG channels")
+                        logging.info(
+                            f"No channels specified, selecting all {len(channel_indices)} EEG channels"
+                        )
                     else:
                         channel_indices = []
                         logging.warning("No EEG channels available")
@@ -1897,17 +1911,14 @@ class InteractionService:
             # Dispatch event for GUI to update channel selection
             dispatch(
                 EventType.MNE_SELECT_CHANNELS,
-                {
-                    "channel_indices": channel_indices,
-                    "source": "api"
-                },
+                {"channel_indices": channel_indices, "source": "api"},
                 source="interaction_service",
             )
 
             result = {
                 "success": True,
                 "channel_indices": channel_indices,
-                "message": f"Selected {len(channel_indices)} channels for MNE"
+                "message": f"Selected {len(channel_indices)} channels for MNE",
             }
 
             return result
@@ -1921,12 +1932,12 @@ class InteractionService:
             }
 
     def compute_wavelet(
-            self,
-            wavelet_type: int,
-            decomposition_level: int,
-            channel: int,
-            extension_type: int = 0,
-            apply_denoising: bool = False
+        self,
+        wavelet_type: int,
+        decomposition_level: int,
+        channel: int,
+        extension_type: int = 0,
+        apply_denoising: bool = False,
     ) -> Dict[str, Any]:
         """
         Compute wavelet transform.
@@ -1947,7 +1958,7 @@ class InteractionService:
                 return {
                     "success": False,
                     "message": "Decomposition level must be between 1 and 8",
-                    "error": "INVALID_DECOMPOSITION_LEVEL"
+                    "error": "INVALID_DECOMPOSITION_LEVEL",
                 }
 
             # Validate channel index
@@ -1959,7 +1970,7 @@ class InteractionService:
                 return {
                     "success": False,
                     "message": f"Invalid channel index: {channel}. Available channels: 0-{len(eeg_channels) - 1}",
-                    "error": "INVALID_CHANNEL"
+                    "error": "INVALID_CHANNEL",
                 }
 
             # Dispatch event for GUI to handle wavelet computation
@@ -1971,7 +1982,7 @@ class InteractionService:
                     "channel": channel,
                     "extension_type": extension_type,
                     "apply_denoising": apply_denoising,
-                    "source": "api"
+                    "source": "api",
                 },
                 source="interaction_service",
             )
@@ -1983,7 +1994,7 @@ class InteractionService:
                 "channel": channel,
                 "extension_type": extension_type,
                 "apply_denoising": apply_denoising,
-                "message": f"Wavelet computation requested for channel {channel}"
+                "message": f"Wavelet computation requested for channel {channel}",
             }
 
             return result
@@ -2017,17 +2028,13 @@ class InteractionService:
                 return {
                     "success": False,
                     "message": f"Invalid channel index: {channel}. Available channels: 0-{len(eeg_channels) - 1}",
-                    "error": "INVALID_CHANNEL"
+                    "error": "INVALID_CHANNEL",
                 }
 
             # Dispatch event for GUI to handle inverse transform
             dispatch(
                 EventType.WAVELET_APPLY_INVERSE,
-                {
-                    "channel": channel,
-                    "apply": apply,
-                    "source": "api"
-                },
+                {"channel": channel, "apply": apply, "source": "api"},
                 source="interaction_service",
             )
 
@@ -2035,7 +2042,7 @@ class InteractionService:
                 "success": True,
                 "channel": channel,
                 "apply": apply,
-                "message": f"Wavelet inverse transform {'applied to' if apply else 'removed from'} channel {channel}"
+                "message": f"Wavelet inverse transform {'applied to' if apply else 'removed from'} channel {channel}",
             }
 
             return result
@@ -2049,10 +2056,7 @@ class InteractionService:
             }
 
     def apply_downsampling(
-            self,
-            factor: int = 2,
-            aggregation_method: int = 0,
-            apply: bool = True
+        self, factor: int = 2, aggregation_method: int = 0, apply: bool = True
     ) -> Dict[str, Any]:
         """
         Apply or remove downsampling to data stream.
@@ -2071,7 +2075,7 @@ class InteractionService:
                 return {
                     "success": False,
                     "message": "Downsampling factor must be between 2 and 10",
-                    "error": "INVALID_FACTOR"
+                    "error": "INVALID_FACTOR",
                 }
 
             # Validate aggregation method (0=Mean, 1=Median, 2=Each)
@@ -2079,7 +2083,7 @@ class InteractionService:
                 return {
                     "success": False,
                     "message": "Invalid aggregation method. Must be 0 (Mean), 1 (Median), or 2 (Each)",
-                    "error": "INVALID_AGGREGATION_METHOD"
+                    "error": "INVALID_AGGREGATION_METHOD",
                 }
 
             # Dispatch event for GUI to handle downsampling
@@ -2089,7 +2093,7 @@ class InteractionService:
                     "factor": factor,
                     "aggregation_method": aggregation_method,
                     "apply": apply,
-                    "source": "api"
+                    "source": "api",
                 },
                 source="interaction_service",
             )
@@ -2099,7 +2103,7 @@ class InteractionService:
                 "factor": factor,
                 "aggregation_method": aggregation_method,
                 "apply": apply,
-                "message": f"Downsampling {'applied' if apply else 'removed'} with factor {factor}"
+                "message": f"Downsampling {'applied' if apply else 'removed'} with factor {factor}",
             }
 
             return result
@@ -2113,12 +2117,12 @@ class InteractionService:
             }
 
     def apply_advanced_filters(
-            self,
-            filter_type: int,
-            order: int = 4,
-            window_function: int = 0,
-            selected_channels: Optional[List[int]] = None,
-            apply: bool = True
+        self,
+        filter_type: int,
+        order: int = 4,
+        window_function: int = 0,
+        selected_channels: Optional[List[int]] = None,
+        apply: bool = True,
     ) -> Dict[str, Any]:
         """
         Apply or remove advanced filters to data stream.
@@ -2139,7 +2143,7 @@ class InteractionService:
                 return {
                     "success": False,
                     "message": "Filter order must be between 1 and 10",
-                    "error": "INVALID_ORDER"
+                    "error": "INVALID_ORDER",
                 }
 
             # Validate filter type (basic range check)
@@ -2147,7 +2151,7 @@ class InteractionService:
                 return {
                     "success": False,
                     "message": "Invalid filter type",
-                    "error": "INVALID_FILTER_TYPE"
+                    "error": "INVALID_FILTER_TYPE",
                 }
 
             # If no channels specified, use all channels
@@ -2159,7 +2163,9 @@ class InteractionService:
 
                     if eeg_channels:
                         selected_channels = list(range(len(eeg_channels)))
-                        logging.info(f"No channels specified, using all {len(selected_channels)} EEG channels")
+                        logging.info(
+                            f"No channels specified, using all {len(selected_channels)} EEG channels"
+                        )
                     else:
                         selected_channels = []
                         logging.warning("No EEG channels available")
@@ -2176,7 +2182,7 @@ class InteractionService:
                     "window_function": window_function,
                     "selected_channels": selected_channels,
                     "apply": apply,
-                    "source": "api"
+                    "source": "api",
                 },
                 source="interaction_service",
             )
@@ -2188,7 +2194,7 @@ class InteractionService:
                 "window_function": window_function,
                 "selected_channels": selected_channels,
                 "apply": apply,
-                "message": f"Advanced filters {'applied' if apply else 'removed'} on {len(selected_channels)} channels"
+                "message": f"Advanced filters {'applied' if apply else 'removed'} on {len(selected_channels)} channels",
             }
 
             return result
@@ -2200,40 +2206,41 @@ class InteractionService:
                 "error": str(e),
                 "message": f"Advanced filters request failed: {str(e)}",
             }
-        
+
     def get_recording_status(self) -> Dict[str, Any]:
         """
         Get current recording status.
-        
+
         Returns:
             Dictionary with recording status information
         """
         try:
             # Get recording service instance
             from .recording_service import RecordingService
+
             recording_service = RecordingService.get_instance()
-            
+
             is_recording = recording_service.is_recording()
-            
+
             if is_recording:
                 duration = recording_service.get_recording_duration()
-                filename = getattr(recording_service, '_current_filename', 'unknown')
-                data_type = getattr(recording_service, '_current_data_type', 'raw')
-                
+                filename = getattr(recording_service, "_current_filename", "unknown")
+                data_type = getattr(recording_service, "_current_data_type", "raw")
+
                 return {
                     "recording": True,
                     "duration": duration,
                     "filename": filename,
-                    "data_type": data_type
+                    "data_type": data_type,
                 }
             else:
                 return {
                     "recording": False,
                     "duration": 0,
                     "filename": None,
-                    "data_type": None
+                    "data_type": None,
                 }
-                
+
         except Exception as e:
             logging.error(f"Error getting recording status: {e}")
             return {
@@ -2241,7 +2248,7 @@ class InteractionService:
                 "duration": 0,
                 "filename": None,
                 "data_type": None,
-                "error": str(e)
+                "error": str(e),
             }
 
     def cleanup(self) -> None:

@@ -378,85 +378,6 @@ class EEGProcessorInteractionApiIntegration:
             self._handle_get_streamer_template,
         )
 
-    async def _handle_add_streamer(
-        self, streamer_type: str, streamer_params: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Handle add_streamer."""
-        try:
-            logging.info(
-                f"Adding streamer: type={streamer_type}, params={streamer_params}"
-            )
-
-            # Convert template params to streamer_params string
-            streamer_params_str = self._convert_streamer_template_to_params(
-                streamer_type, streamer_params
-            )
-
-            logging.info(f"Converted to streamer string: {streamer_params_str}")
-
-            result = EEGProcessorInteractionAPI.add_streamer(streamer_params_str)
-
-            # Enhance the result with the original parameters for reference
-            if "success" in result:
-                result["original_params"] = {
-                    "streamer_type": streamer_type,
-                    "template_params": streamer_params,
-                    "converted_params": streamer_params_str,
-                }
-
-            return result
-        except Exception as e:
-            logging.error(f"Error in add_streamer handler: {e}")
-            import traceback
-
-            logging.error(f"Traceback: {traceback.format_exc()}")
-            return {
-                "success": False,
-                "message": f"Add streamer failed: {e}",
-                "error": str(e),
-            }
-
-    async def _handle_remove_streamer(
-        self, streamer_type: str, streamer_params: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Handle remove_streamer."""
-        try:
-            logging.info(
-                f"Removing streamer: type={streamer_type}, params={streamer_params}"
-            )
-
-            # Convert template params to streamer_params string if it's a dict
-            if isinstance(streamer_params, dict):
-                streamer_params_str = self._convert_streamer_template_to_params(
-                    streamer_type, streamer_params
-                )
-            else:
-                streamer_params_str = streamer_params
-
-            logging.info(f"Converted streamer params to string: {streamer_params_str}")
-
-            result = EEGProcessorInteractionAPI.remove_streamer(streamer_params_str)
-
-            # Enhance the result with the original parameters for reference
-            if "success" in result:
-                result["original_params"] = {
-                    "streamer_type": streamer_type,
-                    "streamer_params": streamer_params_str,
-                }
-
-            return result
-        except Exception as e:
-            logging.error(f"Error in remove_streamer handler: {e}")
-            return {
-                "success": False,
-                "message": f"Remove streamer failed: {e}",
-                "error": str(e),
-            }
-
-    async def _handle_send_board_config(self, config_cmd: str) -> Dict[str, Any]:
-        """Handle send_board_config."""
-        return EEGProcessorInteractionAPI.send_board_config(config_cmd)
-
     async def _handle_get_streamer_template(self, streamer_type: str) -> Dict[str, Any]:
         """Handle get_streamer_template."""
         try:
@@ -1016,8 +937,8 @@ class EEGProcessorInteractionApiIntegration:
                         "default": "",
                         "placeholder": "0,1,2,3 or [0,1,2,3] or leave empty",
                         "data-type": "array",  # Add data attribute for JS processing
-                        "help_text": "Enter channel indices as comma-separated values (0,1,2) or JSON array ([0,1,2]). Leave empty to use all channels."
-                    }
+                        "help_text": "Enter channel indices as comma-separated values (0,1,2) or JSON array ([0,1,2]). Leave empty to use all channels.",
+                    },
                 },
             },
             self._handle_perform_ica,
@@ -1071,7 +992,7 @@ class EEGProcessorInteractionApiIntegration:
                         "default": "",
                         "placeholder": "0,1,2,3 or [0,1,2,3] or leave empty for all",
                         "data-type": "array",
-                        "help_text": "Enter channel indices as comma-separated values (0,1,2) or JSON array ([0,1,2]). Leave empty to select all channels."
+                        "help_text": "Enter channel indices as comma-separated values (0,1,2) or JSON array ([0,1,2]). Leave empty to select all channels.",
                     }
                 },
             },
@@ -1105,7 +1026,7 @@ class EEGProcessorInteractionApiIntegration:
                             {"value": "false", "label": "False"},
                         ],
                         "default": "true",
-                    }
+                    },
                 },
             },
             self._handle_convert_to_mne,
@@ -1208,8 +1129,8 @@ class EEGProcessorInteractionApiIntegration:
                         "default": "",
                         "placeholder": "0,1,2,3 or [0,1,2,3] or leave empty",
                         "data-type": "array",
-                        "help_text": "Enter channel indices as comma-separated values (0,1,2) or JSON array ([0,1,2]). Leave empty to use all channels."
-                    }
+                        "help_text": "Enter channel indices as comma-separated values (0,1,2) or JSON array ([0,1,2]). Leave empty to use all channels.",
+                    },
                 },
             },
             self._handle_plot_mne_visualization,
@@ -1232,7 +1153,7 @@ class EEGProcessorInteractionApiIntegration:
                         "default": "",
                         "placeholder": "0,1,2,3 or [0,1,2,3] or leave empty for all",
                         "data-type": "array",
-                        "help_text": "Enter channel indices as comma-separated values (0,1,2) or JSON array ([0,1,2]). Leave empty to select all channels."
+                        "help_text": "Enter channel indices as comma-separated values (0,1,2) or JSON array ([0,1,2]). Leave empty to select all channels.",
                     }
                 },
             },
@@ -1323,7 +1244,7 @@ class EEGProcessorInteractionApiIntegration:
                         "required": True,
                         "min": 0,
                         "default": 0,
-                        "help_text": "Index of the EEG channel to apply wavelet transform (starts from 0)"
+                        "help_text": "Index of the EEG channel to apply wavelet transform (starts from 0)",
                     },
                     "extension_type": {
                         "type": "select",
@@ -1344,7 +1265,7 @@ class EEGProcessorInteractionApiIntegration:
                             {"value": "false", "label": "False - No denoising"},
                         ],
                         "default": "false",
-                    }
+                    },
                 },
             },
             self._handle_compute_wavelet,
@@ -1366,18 +1287,24 @@ class EEGProcessorInteractionApiIntegration:
                         "required": True,
                         "min": 0,
                         "default": 0,
-                        "help_text": "Index of the EEG channel to apply inverse transform (must match the channel used in compute_wavelet)"
+                        "help_text": "Index of the EEG channel to apply inverse transform (must match the channel used in compute_wavelet)",
                     },
                     "apply": {
                         "type": "select",
                         "description": "Apply or remove inverse transform",
                         "required": False,
                         "options": [
-                            {"value": "true", "label": "True - Apply inverse transform"},
-                            {"value": "false", "label": "False - Remove inverse transform"},
+                            {
+                                "value": "true",
+                                "label": "True - Apply inverse transform",
+                            },
+                            {
+                                "value": "false",
+                                "label": "False - Remove inverse transform",
+                            },
                         ],
                         "default": "true",
-                    }
+                    },
                 },
             },
             self._handle_apply_wavelet_inverse,
@@ -1424,7 +1351,7 @@ class EEGProcessorInteractionApiIntegration:
                             {"value": "false", "label": "False - Remove downsampling"},
                         ],
                         "default": "true",
-                    }
+                    },
                 },
             },
             self._handle_apply_downsampling,
@@ -1484,7 +1411,7 @@ class EEGProcessorInteractionApiIntegration:
                         "default": "",
                         "placeholder": "0,1,2,3 or [0,1,2,3] or leave empty",
                         "data-type": "array",
-                        "help_text": "Enter channel indices as comma-separated values (0,1,2) or JSON array ([0,1,2]). Leave empty to filter all channels."
+                        "help_text": "Enter channel indices as comma-separated values (0,1,2) or JSON array ([0,1,2]). Leave empty to filter all channels.",
                     },
                     "apply": {
                         "type": "select",
@@ -1492,22 +1419,25 @@ class EEGProcessorInteractionApiIntegration:
                         "required": False,
                         "options": [
                             {"value": "true", "label": "True - Apply advanced filters"},
-                            {"value": "false", "label": "False - Remove advanced filters"},
+                            {
+                                "value": "false",
+                                "label": "False - Remove advanced filters",
+                            },
                         ],
                         "default": "true",
-                    }
+                    },
                 },
             },
             self._handle_apply_advanced_filters,
         )
 
     async def _handle_apply_advanced_filters(
-            self,
-            filter_type: str = "0",
-            order: float = 4,
-            window_function: str = "0",
-            selected_channels: str = "",
-            apply: str = "true"
+        self,
+        filter_type: str = "0",
+        order: float = 4,
+        window_function: str = "0",
+        selected_channels: str = "",
+        apply: str = "true",
     ) -> Dict[str, Any]:
         """Handle apply_advanced_filters with proper type conversion."""
         try:
@@ -1525,28 +1455,33 @@ class EEGProcessorInteractionApiIntegration:
                 return {
                     "success": False,
                     "message": f"Filter order must be between 1 and 10, got {order_int}",
-                    "error": "INVALID_ORDER"
+                    "error": "INVALID_ORDER",
                 }
 
             if filter_type_int < 0 or filter_type_int > 5:
                 return {
                     "success": False,
                     "message": f"Invalid filter type. Must be 0-5, got {filter_type_int}",
-                    "error": "INVALID_FILTER_TYPE"
+                    "error": "INVALID_FILTER_TYPE",
                 }
 
             if window_function_int < 0 or window_function_int > 3:
                 return {
                     "success": False,
                     "message": f"Invalid window function. Must be 0-3, got {window_function_int}",
-                    "error": "INVALID_WINDOW_FUNCTION"
+                    "error": "INVALID_WINDOW_FUNCTION",
                 }
 
             logging.info(
-                f"Advanced filters handler: type={filter_type_int}, order={order_int}, window={window_function_int}, channels={len(channel_list)}, apply={apply_bool}")
+                f"Advanced filters handler: type={filter_type_int}, order={order_int}, window={window_function_int}, channels={len(channel_list)}, apply={apply_bool}"
+            )
 
             return EEGProcessorInteractionAPI.apply_advanced_filters(
-                filter_type_int, order_int, window_function_int, channel_list, apply_bool
+                filter_type_int,
+                order_int,
+                window_function_int,
+                channel_list,
+                apply_bool,
             )
         except Exception as e:
             logging.error(f"Error in apply_advanced_filters handler: {e}")
@@ -1557,10 +1492,7 @@ class EEGProcessorInteractionApiIntegration:
             }
 
     async def _handle_apply_downsampling(
-            self,
-            factor: float,
-            aggregation_method: str = "0",
-            apply: str = "true"
+        self, factor: float, aggregation_method: str = "0", apply: str = "true"
     ) -> Dict[str, Any]:
         """Handle apply_downsampling with proper type conversion."""
         try:
@@ -1574,20 +1506,23 @@ class EEGProcessorInteractionApiIntegration:
                 return {
                     "success": False,
                     "message": f"Downsampling factor must be between 2 and 10, got {factor_int}",
-                    "error": "INVALID_FACTOR"
+                    "error": "INVALID_FACTOR",
                 }
 
             if aggregation_method_int < 0 or aggregation_method_int > 2:
                 return {
                     "success": False,
                     "message": f"Invalid aggregation method. Must be 0-2, got {aggregation_method_int}",
-                    "error": "INVALID_AGGREGATION_METHOD"
+                    "error": "INVALID_AGGREGATION_METHOD",
                 }
 
             logging.info(
-                f"Downsampling handler: factor={factor_int}, method={aggregation_method_int}, apply={apply_bool}")
+                f"Downsampling handler: factor={factor_int}, method={aggregation_method_int}, apply={apply_bool}"
+            )
 
-            return EEGProcessorInteractionAPI.apply_downsampling(factor_int, aggregation_method_int, apply_bool)
+            return EEGProcessorInteractionAPI.apply_downsampling(
+                factor_int, aggregation_method_int, apply_bool
+            )
         except Exception as e:
             logging.error(f"Error in apply_downsampling handler: {e}")
             return {
@@ -1596,7 +1531,9 @@ class EEGProcessorInteractionApiIntegration:
                 "error": str(e),
             }
 
-    async def _handle_perform_ica(self, num_components: float, selected_channels: str = "") -> Dict[str, Any]:
+    async def _handle_perform_ica(
+        self, num_components: float, selected_channels: str = ""
+    ) -> Dict[str, Any]:
         """Handle perform_ica with proper numeric conversion."""
         try:
             num_components_int = int(round(num_components))
@@ -1606,16 +1543,19 @@ class EEGProcessorInteractionApiIntegration:
                 return {
                     "success": False,
                     "message": f"Number of components must be between 2 and 16, got {num_components_int}",
-                    "error": "INVALID_COMPONENTS"
+                    "error": "INVALID_COMPONENTS",
                 }
 
             # Convert string to array
             channel_list = self._parse_channel_string(selected_channels)
 
             logging.info(
-                f"ICA handler: num_components={num_components} -> {num_components_int}, channels={len(channel_list)}")
+                f"ICA handler: num_components={num_components} -> {num_components_int}, channels={len(channel_list)}"
+            )
 
-            return EEGProcessorInteractionAPI.perform_ica(num_components_int, channel_list)
+            return EEGProcessorInteractionAPI.perform_ica(
+                num_components_int, channel_list
+            )
         except Exception as e:
             logging.error(f"Error in perform_ica handler: {e}")
             return {
@@ -1624,11 +1564,15 @@ class EEGProcessorInteractionApiIntegration:
                 "error": str(e),
             }
 
-    async def _handle_view_ica_components(self, colormap: str = "viridis") -> Dict[str, Any]:
+    async def _handle_view_ica_components(
+        self, colormap: str = "viridis"
+    ) -> Dict[str, Any]:
         """Handle view_ica_components."""
         return EEGProcessorInteractionAPI.view_ica_components(colormap)
 
-    async def _handle_select_ica_channels(self, channel_indices: str = "") -> Dict[str, Any]:
+    async def _handle_select_ica_channels(
+        self, channel_indices: str = ""
+    ) -> Dict[str, Any]:
         """Handle select_ica_channels with string-to-array conversion."""
         try:
             # Convert string to array
@@ -1651,19 +1595,21 @@ class EEGProcessorInteractionApiIntegration:
 
         try:
             # Try to parse as JSON array first
-            if channel_str.startswith('[') and channel_str.endswith(']'):
+            if channel_str.startswith("[") and channel_str.endswith("]"):
                 import json
+
                 parsed = json.loads(channel_str)
                 if isinstance(parsed, list):
                     return [int(x) for x in parsed]
 
             # If not JSON, try comma-separated values
-            return [int(x.strip()) for x in channel_str.split(',') if x.strip()]
+            return [int(x.strip()) for x in channel_str.split(",") if x.strip()]
 
         except (ValueError, json.JSONDecodeError) as e:
             logging.error(f"Error parsing channel string '{channel_str}': {e}")
             raise ValueError(
-                f"Invalid channel format: {channel_str}. Use comma-separated values (0,1,2) or JSON array ([0,1,2])")
+                f"Invalid channel format: {channel_str}. Use comma-separated values (0,1,2) or JSON array ([0,1,2])"
+            )
 
     def _register_status_methods(self, api_explorer: Any) -> None:
         """Register status-related methods."""
@@ -1972,9 +1918,16 @@ class EEGProcessorInteractionApiIntegration:
                 result["formatted_metrics"] = formatted_metrics
 
                 # Add summary statistics
-                all_values = [
-                    m["value"] for m in formatted_metrics.values() if m["value"] != 0
-                ]
+                all_values = []
+                for m in formatted_metrics.values():
+                    value = m["value"]
+                    if isinstance(value, (int, float, str)):
+                        try:
+                            fval = float(value)
+                            if fval != 0:
+                                all_values.append(fval)
+                        except ValueError:
+                            continue  # ignora valores no convertibles
                 if all_values:
                     result["summary"] = {
                         "total_metrics": len(formatted_metrics),
@@ -2041,7 +1994,7 @@ class EEGProcessorInteractionApiIntegration:
 
             # Check system state before starting visualization
             connection_status = EEGProcessorInteractionAPI.get_connection_status()
-            
+
             if not connection_status.get("connected", False):
                 return {
                     "success": False,
@@ -2104,7 +2057,9 @@ class EEGProcessorInteractionApiIntegration:
                 "error": str(e),
             }
 
-    async def _handle_convert_to_mne(self, duration: float, use_filters: str = "true") -> Dict[str, Any]:
+    async def _handle_convert_to_mne(
+        self, duration: float, use_filters: str = "true"
+    ) -> Dict[str, Any]:
         """Handle convert_to_mne with proper numeric conversion."""
         try:
             # Convert float to int safely
@@ -2115,16 +2070,19 @@ class EEGProcessorInteractionApiIntegration:
                 return {
                     "success": False,
                     "message": f"Duration must be between 1 and 60 seconds, got {duration_int}",
-                    "error": "INVALID_DURATION"
+                    "error": "INVALID_DURATION",
                 }
 
             # Convert string to boolean
             use_filters_bool = use_filters.lower() == "true"
 
             logging.info(
-                f"MNE convert handler: duration={duration} -> {duration_int}, use_filters={use_filters} -> {use_filters_bool}")
+                f"MNE convert handler: duration={duration} -> {duration_int}, use_filters={use_filters} -> {use_filters_bool}"
+            )
 
-            return EEGProcessorInteractionAPI.convert_to_mne(duration_int, use_filters_bool)
+            return EEGProcessorInteractionAPI.convert_to_mne(
+                duration_int, use_filters_bool
+            )
         except Exception as e:
             logging.error(f"Error in convert_to_mne handler: {e}")
             return {
@@ -2134,15 +2092,15 @@ class EEGProcessorInteractionApiIntegration:
             }
 
     async def _handle_plot_mne_visualization(
-            self,
-            plot_type: str = "PSD",
-            freq_min: float = 1,
-            freq_max: float = 50,
-            topomap_band: str = "Alpha (8-13 Hz)",
-            topomap_freq_min: float = 8,
-            topomap_freq_max: float = 13,
-            psd_individual_mode: str = "true",
-            selected_channels: str = ""
+        self,
+        plot_type: str = "PSD",
+        freq_min: float = 1,
+        freq_max: float = 50,
+        topomap_band: str = "Alpha (8-13 Hz)",
+        topomap_freq_min: float = 8,
+        topomap_freq_max: float = 13,
+        psd_individual_mode: str = "true",
+        selected_channels: str = "",
     ) -> Dict[str, Any]:
         """Handle plot_mne_visualization with proper type conversion."""
         try:
@@ -2159,12 +2117,18 @@ class EEGProcessorInteractionApiIntegration:
             channel_list = self._parse_channel_string(selected_channels)
 
             logging.info(
-                f"MNE plot handler: type={plot_type}, freq={freq_min_int}-{freq_max_int}, channels={len(channel_list)}")
+                f"MNE plot handler: type={plot_type}, freq={freq_min_int}-{freq_max_int}, channels={len(channel_list)}"
+            )
 
             return EEGProcessorInteractionAPI.plot_mne_visualization(
-                plot_type, freq_min_int, freq_max_int, topomap_band,
-                topomap_freq_min_int, topomap_freq_max_int, psd_individual_bool,
-                channel_list
+                plot_type,
+                freq_min_int,
+                freq_max_int,
+                topomap_band,
+                topomap_freq_min_int,
+                topomap_freq_max_int,
+                psd_individual_bool,
+                channel_list,
             )
         except Exception as e:
             logging.error(f"Error in plot_mne_visualization handler: {e}")
@@ -2174,7 +2138,9 @@ class EEGProcessorInteractionApiIntegration:
                 "error": str(e),
             }
 
-    async def _handle_select_mne_channels(self, channel_indices: str = "") -> Dict[str, Any]:
+    async def _handle_select_mne_channels(
+        self, channel_indices: str = ""
+    ) -> Dict[str, Any]:
         """Handle select_mne_channels with string-to-array conversion."""
         try:
             # Convert string to array
@@ -2189,12 +2155,12 @@ class EEGProcessorInteractionApiIntegration:
             }
 
     async def _handle_compute_wavelet(
-            self,
-            wavelet_type: str,
-            decomposition_level: float,
-            channel: float,
-            extension_type: str = "0",
-            apply_denoising: str = "false"
+        self,
+        wavelet_type: str,
+        decomposition_level: float,
+        channel: float,
+        extension_type: str = "0",
+        apply_denoising: str = "false",
     ) -> Dict[str, Any]:
         """Handle compute_wavelet with proper type conversion."""
         try:
@@ -2210,21 +2176,26 @@ class EEGProcessorInteractionApiIntegration:
                 return {
                     "success": False,
                     "message": f"Decomposition level must be between 1 and 8, got {decomposition_level_int}",
-                    "error": "INVALID_DECOMPOSITION_LEVEL"
+                    "error": "INVALID_DECOMPOSITION_LEVEL",
                 }
 
             if channel_int < 0:
                 return {
                     "success": False,
                     "message": f"Channel index must be >= 0, got {channel_int}",
-                    "error": "INVALID_CHANNEL"
+                    "error": "INVALID_CHANNEL",
                 }
 
             logging.info(
-                f"Wavelet handler: type={wavelet_type_int}, level={decomposition_level_int}, channel={channel_int}, extension={extension_type_int}, denoising={apply_denoising_bool}")
+                f"Wavelet handler: type={wavelet_type_int}, level={decomposition_level_int}, channel={channel_int}, extension={extension_type_int}, denoising={apply_denoising_bool}"
+            )
 
             return EEGProcessorInteractionAPI.compute_wavelet(
-                wavelet_type_int, decomposition_level_int, channel_int, extension_type_int, apply_denoising_bool
+                wavelet_type_int,
+                decomposition_level_int,
+                channel_int,
+                extension_type_int,
+                apply_denoising_bool,
             )
         except Exception as e:
             logging.error(f"Error in compute_wavelet handler: {e}")
@@ -2235,9 +2206,7 @@ class EEGProcessorInteractionApiIntegration:
             }
 
     async def _handle_apply_wavelet_inverse(
-            self,
-            channel: float,
-            apply: str = "true"
+        self, channel: float, apply: str = "true"
     ) -> Dict[str, Any]:
         """Handle apply_wavelet_inverse with proper type conversion."""
         try:
@@ -2250,12 +2219,16 @@ class EEGProcessorInteractionApiIntegration:
                 return {
                     "success": False,
                     "message": f"Channel index must be >= 0, got {channel_int}",
-                    "error": "INVALID_CHANNEL"
+                    "error": "INVALID_CHANNEL",
                 }
 
-            logging.info(f"Wavelet inverse handler: channel={channel_int}, apply={apply_bool}")
+            logging.info(
+                f"Wavelet inverse handler: channel={channel_int}, apply={apply_bool}"
+            )
 
-            return EEGProcessorInteractionAPI.apply_wavelet_inverse(channel_int, apply_bool)
+            return EEGProcessorInteractionAPI.apply_wavelet_inverse(
+                channel_int, apply_bool
+            )
         except Exception as e:
             logging.error(f"Error in apply_wavelet_inverse handler: {e}")
             return {

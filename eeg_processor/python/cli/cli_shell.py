@@ -3,6 +3,7 @@ Interactive CLI shell for EEG Processor.
 
 This module provides an interactive shell for the EEG Processor CLI.
 """
+
 import shlex
 import sys
 from typing import List
@@ -231,18 +232,24 @@ def show_status() -> None:
 
         if system_status.get("success"):
             status = system_status.get("status", {})
-            
+
             # Format connection status
             connected = status.get("connected", False)
-            connection_status = "[green]CONNECTED[/green]" if connected else "[red]DISCONNECTED[/red]"
-            
+            connection_status = (
+                "[green]CONNECTED[/green]" if connected else "[red]DISCONNECTED[/red]"
+            )
+
             # Format streaming status
             streaming = status.get("streaming", False)
-            streaming_status = "[green]ACTIVE[/green]" if streaming else "[red]INACTIVE[/red]"
-            
+            streaming_status = (
+                "[green]ACTIVE[/green]" if streaming else "[red]INACTIVE[/red]"
+            )
+
             # Format recording status
             recording = status.get("recording", False)
-            recording_status = "[green]ACTIVE[/green]" if recording else "[red]INACTIVE[/red]"
+            recording_status = (
+                "[green]ACTIVE[/green]" if recording else "[red]INACTIVE[/red]"
+            )
 
             # Build status message
             status_message = (
@@ -260,7 +267,9 @@ def show_status() -> None:
                 recording_filename = status.get("recording_filename", "unknown")
                 recording_duration = status.get("recording_duration", 0)
                 status_message += f"\n[bold]Recording File:[/bold] {recording_filename}"
-                status_message += f"\n[bold]Recording Duration:[/bold] {recording_duration:.1f}s"
+                status_message += (
+                    f"\n[bold]Recording Duration:[/bold] {recording_duration:.1f}s"
+                )
 
         else:
             status_message = f"[red]Error getting status: {system_status.get('error', 'Unknown error')}[/red]"

@@ -25,7 +25,7 @@ class ApiEventHandler(QObject):
     recording_stop_signal = pyqtSignal()
     recording_status_changed_signal = pyqtSignal(dict)
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 
@@ -95,13 +95,17 @@ class RecordingPanel(BasePanel):
             )
 
         except Exception as e:
-            logging.error(f"Error setting up event subscriptions in recording panel: {e}")
+            logging.error(
+                f"Error setting up event subscriptions in recording panel: {e}"
+            )
 
     def _handle_api_recording_start_thread_safe(self, event: Any) -> None:
         """Handle recording start events from API in a thread-safe way."""
         try:
             event_data = event.data
-            logging.info(f"Recording panel received API recording start event: {event_data}")
+            logging.info(
+                f"Recording panel received API recording start event: {event_data}"
+            )
 
             # Emit signal to handle in main thread
             self.api_event_handler.recording_start_signal.emit(event_data)
@@ -124,18 +128,24 @@ class RecordingPanel(BasePanel):
         """Handle recording status changed events from API in a thread-safe way."""
         try:
             event_data = event.data
-            logging.info(f"Recording panel received API recording status changed event: {event_data}")
+            logging.info(
+                f"Recording panel received API recording status changed event: {event_data}"
+            )
 
             # Emit signal to handle in main thread
             self.api_event_handler.recording_status_changed_signal.emit(event_data)
 
         except Exception as e:
-            logging.error(f"Error handling API recording status changed event thread-safe: {e}")
+            logging.error(
+                f"Error handling API recording status changed event thread-safe: {e}"
+            )
 
     def _handle_api_recording_start_safe(self, event_data: Dict[str, Any]) -> None:
         """Handle recording start events from API safely in main thread."""
         try:
-            logging.info(f"Recording panel updating controls for recording start: {event_data}")
+            logging.info(
+                f"Recording panel updating controls for recording start: {event_data}"
+            )
 
             # Update the UI controls to reflect the API recording start
             filename = event_data.get("filename", "")
@@ -185,13 +195,17 @@ class RecordingPanel(BasePanel):
         except Exception as e:
             logging.error(f"Error handling API recording stop event safely: {e}")
 
-    def _handle_api_recording_status_changed_safe(self, event_data: Dict[str, Any]) -> None:
+    def _handle_api_recording_status_changed_safe(
+        self, event_data: Dict[str, Any]
+    ) -> None:
         """Handle recording status changed events from API safely in main thread."""
         try:
             recording = event_data.get("recording", False)
             filename = event_data.get("filename", "")
 
-            logging.info(f"Recording panel updating status: recording={recording}, filename={filename}")
+            logging.info(
+                f"Recording panel updating status: recording={recording}, filename={filename}"
+            )
 
             # Update recording state
             self._update_recording_state(recording)
@@ -207,7 +221,9 @@ class RecordingPanel(BasePanel):
                 self.show_status("Recording status updated: Not recording")
 
         except Exception as e:
-            logging.error(f"Error handling API recording status changed event safely: {e}")
+            logging.error(
+                f"Error handling API recording status changed event safely: {e}"
+            )
 
     def _update_recording_state(self, recording: bool) -> None:
         """Update UI controls based on recording state."""
@@ -227,7 +243,9 @@ class RecordingPanel(BasePanel):
                     data_type = self.recording_service.get_recording_data_type()
                     duration = self.recording_service.get_recording_duration()
 
-                    status_text = f"Recording: {filename} ({data_type}) - {duration:.1f}s"
+                    status_text = (
+                        f"Recording: {filename} ({data_type}) - {duration:.1f}s"
+                    )
                     if hasattr(self, "recording_status_label"):
                         self.recording_status_label.setText(status_text)
             else:
@@ -420,7 +438,11 @@ class RecordingPanel(BasePanel):
     def enable_recording(self, enabled: bool) -> None:
         """Enable or disable recording controls."""
         # Only enable start button if not currently recording
-        recording = self.recording_service.is_recording() if hasattr(self, "recording_service") else False
+        recording = (
+            self.recording_service.is_recording()
+            if hasattr(self, "recording_service")
+            else False
+        )
 
         self.start_record_btn.setEnabled(enabled and not recording)
         self.stop_record_btn.setEnabled(enabled and recording)

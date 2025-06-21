@@ -34,7 +34,7 @@ class ApiEventHandler(QObject):
     visualization_start_signal = pyqtSignal(str)
     visualization_stop_signal = pyqtSignal(str)
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 
@@ -60,13 +60,27 @@ class ConnectionPanel(BasePanel):
 
         # Setup thread-safe event handler
         self.api_event_handler = ApiEventHandler()
-        self.api_event_handler.ui_update_signal.connect(self._handle_ui_update_event_safe)
-        self.api_event_handler.stream_start_signal.connect(self._handle_stream_start_event_safe)
-        self.api_event_handler.stream_stop_signal.connect(self._handle_stream_stop_event_safe)
-        self.api_event_handler.board_connect_signal.connect(self._handle_board_connect_event_safe)
-        self.api_event_handler.board_disconnect_signal.connect(self._handle_board_disconnect_event_safe)
-        self.api_event_handler.visualization_start_signal.connect(self._handle_visualization_start_event_safe)
-        self.api_event_handler.visualization_stop_signal.connect(self._handle_visualization_stop_event_safe)
+        self.api_event_handler.ui_update_signal.connect(
+            self._handle_ui_update_event_safe
+        )
+        self.api_event_handler.stream_start_signal.connect(
+            self._handle_stream_start_event_safe
+        )
+        self.api_event_handler.stream_stop_signal.connect(
+            self._handle_stream_stop_event_safe
+        )
+        self.api_event_handler.board_connect_signal.connect(
+            self._handle_board_connect_event_safe
+        )
+        self.api_event_handler.board_disconnect_signal.connect(
+            self._handle_board_disconnect_event_safe
+        )
+        self.api_event_handler.visualization_start_signal.connect(
+            self._handle_visualization_start_event_safe
+        )
+        self.api_event_handler.visualization_stop_signal.connect(
+            self._handle_visualization_stop_event_safe
+        )
 
         # Subscribe to events for API synchronization
         self._setup_event_subscriptions()
@@ -98,15 +112,18 @@ class ConnectionPanel(BasePanel):
                 EventType.BOARD_CONNECT, self._handle_board_connect_event_thread_safe
             )
             event_dispatcher.subscribe(
-                EventType.BOARD_DISCONNECT, self._handle_board_disconnect_event_thread_safe
+                EventType.BOARD_DISCONNECT,
+                self._handle_board_disconnect_event_thread_safe,
             )
-            
+
             # Subscribe to visualization events from API
             event_dispatcher.subscribe(
-                EventType.VISUALIZATION_START, self._handle_visualization_start_event_thread_safe
+                EventType.VISUALIZATION_START,
+                self._handle_visualization_start_event_thread_safe,
             )
             event_dispatcher.subscribe(
-                EventType.VISUALIZATION_STOP, self._handle_visualization_stop_event_thread_safe
+                EventType.VISUALIZATION_STOP,
+                self._handle_visualization_stop_event_thread_safe,
             )
 
         except Exception as e:
@@ -117,7 +134,7 @@ class ConnectionPanel(BasePanel):
         try:
             data = event.data
             logging.info(f"Connection panel received UI update event: {data}")
-            
+
             # Emit signal to handle in main thread
             self.api_event_handler.ui_update_signal.emit(data)
         except Exception as e:
@@ -127,7 +144,7 @@ class ConnectionPanel(BasePanel):
         """Handle stream start events from API in a thread-safe way."""
         try:
             logging.info("Connection panel received stream start event")
-            
+
             # Emit signal to handle in main thread
             self.api_event_handler.stream_start_signal.emit()
         except Exception as e:
@@ -137,7 +154,7 @@ class ConnectionPanel(BasePanel):
         """Handle stream stop events from API in a thread-safe way."""
         try:
             logging.info("Connection panel received stream stop event")
-            
+
             # Emit signal to handle in main thread
             self.api_event_handler.stream_stop_signal.emit()
         except Exception as e:
@@ -147,7 +164,7 @@ class ConnectionPanel(BasePanel):
         """Handle board connect events from API in a thread-safe way."""
         try:
             logging.info("Connection panel received board connect event")
-            
+
             # Emit signal to handle in main thread
             self.api_event_handler.board_connect_signal.emit()
         except Exception as e:
@@ -157,7 +174,7 @@ class ConnectionPanel(BasePanel):
         """Handle board disconnect events from API in a thread-safe way."""
         try:
             logging.info("Connection panel received board disconnect event")
-            
+
             # Emit signal to handle in main thread
             self.api_event_handler.board_disconnect_signal.emit()
         except Exception as e:
@@ -169,8 +186,10 @@ class ConnectionPanel(BasePanel):
             data = event.data
             viz_type = data.get("visualization_type", "eeg")
             source = data.get("source", "unknown")
-            
-            logging.info(f"Connection panel received visualization start event: type={viz_type}, source={source}")
+
+            logging.info(
+                f"Connection panel received visualization start event: type={viz_type}, source={source}"
+            )
 
             # Only handle EEG visualization requests in connection panel
             if viz_type == "eeg" and source == "api":
@@ -186,8 +205,10 @@ class ConnectionPanel(BasePanel):
             data = event.data
             viz_type = data.get("visualization_type", "eeg")
             source = data.get("source", "unknown")
-            
-            logging.info(f"Connection panel received visualization stop event: type={viz_type}, source={source}")
+
+            logging.info(
+                f"Connection panel received visualization stop event: type={viz_type}, source={source}"
+            )
 
             # Only handle EEG visualization requests in connection panel
             if viz_type == "eeg" and source == "api":
@@ -281,7 +302,9 @@ class ConnectionPanel(BasePanel):
                     self.show_visualization()
                     logging.info("EEG visualization started via API")
                 else:
-                    logging.warning("EEG visualization button is disabled - cannot start visualization")
+                    logging.warning(
+                        "EEG visualization button is disabled - cannot start visualization"
+                    )
 
         except Exception as e:
             logging.error(f"Error handling visualization start event: {e}")
@@ -293,7 +316,10 @@ class ConnectionPanel(BasePanel):
 
             if viz_type == "eeg":
                 # Stop EEG visualization if it's running
-                if hasattr(self, "visualization_service") and self.visualization_service.visualization_visible():
+                if (
+                    hasattr(self, "visualization_service")
+                    and self.visualization_service.visualization_visible()
+                ):
                     success = self.visualization_service.stop_eeg_visualization()
                     if success:
                         self.show_viz_btn.setEnabled(True)
@@ -1021,7 +1047,9 @@ class ConnectionPanel(BasePanel):
         try:
             # Check if button is enabled (which means visualization can be shown)
             if not self.show_viz_btn.isEnabled():
-                self.show_status("Visualization window is already open or streaming is not active")
+                self.show_status(
+                    "Visualization window is already open or streaming is not active"
+                )
                 return
 
             # Create if none exists, or reopen if it was closed
@@ -1035,6 +1063,7 @@ class ConnectionPanel(BasePanel):
                 if sampling_rate > 0:
                     try:
                         from ..services.processor_service import ProcessorService
+
                         processor_service = ProcessorService()
                         processor_service.initialize_processor(sampling_rate)
                         processor = processor_service.processor
@@ -1046,7 +1075,7 @@ class ConnectionPanel(BasePanel):
                 )
                 if success:
                     success = self.visualization_service.start_eeg_visualization()
-                    
+
                 if success:
                     self.show_viz_btn.setEnabled(False)
                     self.show_status("Visualization window reopened")

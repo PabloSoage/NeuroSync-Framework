@@ -119,8 +119,8 @@ processing support, comprehensive parameter validation, performance optimization
 and professional-grade result documentation capabilities.
 """
 
-from .advanced_panel_controller import AdvancedPanelController
 from . import dialogs
 from . import widgets
+from .advanced_panel_controller import AdvancedPanelController
 
 __all__ = ["AdvancedPanelController", "dialogs", "widgets"]

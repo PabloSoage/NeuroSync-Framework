@@ -408,7 +408,9 @@ class EEGProcessorInteractionAPI:
             }
 
     @staticmethod
-    def perform_ica(num_components: int, selected_channels: Optional[List[int]] = None) -> Dict[str, Any]:
+    def perform_ica(
+        num_components: int, selected_channels: Optional[List[int]] = None
+    ) -> Dict[str, Any]:
         """
         Perform Independent Component Analysis.
 
@@ -518,14 +520,14 @@ class EEGProcessorInteractionAPI:
 
     @staticmethod
     def plot_mne_visualization(
-            plot_type: str = "PSD",
-            freq_min: int = 1,
-            freq_max: int = 50,
-            topomap_band: str = "Alpha (8-13 Hz)",
-            topomap_freq_min: int = 8,
-            topomap_freq_max: int = 13,
-            psd_individual_mode: bool = True,
-            selected_channels: Optional[List[int]] = None
+        plot_type: str = "PSD",
+        freq_min: int = 1,
+        freq_max: int = 50,
+        topomap_band: str = "Alpha (8-13 Hz)",
+        topomap_freq_min: int = 8,
+        topomap_freq_max: int = 13,
+        psd_individual_mode: bool = True,
+        selected_channels: Optional[List[int]] = None,
     ) -> Dict[str, Any]:
         """
         Plot MNE visualization.
@@ -546,9 +548,14 @@ class EEGProcessorInteractionAPI:
         try:
             service = InteractionService.get_instance()
             return service.plot_mne_visualization(
-                plot_type, freq_min, freq_max, topomap_band,
-                topomap_freq_min, topomap_freq_max, psd_individual_mode,
-                selected_channels or []
+                plot_type,
+                freq_min,
+                freq_max,
+                topomap_band,
+                topomap_freq_min,
+                topomap_freq_max,
+                psd_individual_mode,
+                selected_channels or [],
             )
         except Exception as e:
             logging.error(f"Error plotting MNE visualization: {e}")
@@ -581,39 +588,12 @@ class EEGProcessorInteractionAPI:
             }
 
     @staticmethod
-    def compute_wavelet(wavelet_type: int, level: int, channel: int) -> Dict[str, Any]:
-        """
-        Compute wavelet transform.
-
-        Args:
-            wavelet_type: Type of wavelet
-            level: Decomposition level
-            channel: Channel to process
-
-        Returns:
-            Dictionary with wavelet computation result
-        """
-        try:
-            # This would need to be implemented in the interaction service
-            # For now, return a placeholder
-            return {
-                "success": False,
-                "message": "Wavelet computation not yet implemented",
-                "error": "Feature not available",
-            }
-        except Exception as e:
-            logging.error(f"Error computing wavelet: {e}")
-            return {
-                "success": False,
-                "message": "Error computing wavelet",
-                "error": str(e),
-            }@staticmethod
     def compute_wavelet(
         wavelet_type: int,
         decomposition_level: int,
         channel: int,
         extension_type: int = 0,
-        apply_denoising: bool = False
+        apply_denoising: bool = False,
     ) -> Dict[str, Any]:
         """
         Compute wavelet transform.
@@ -631,7 +611,11 @@ class EEGProcessorInteractionAPI:
         try:
             service = InteractionService.get_instance()
             return service.compute_wavelet(
-                wavelet_type, decomposition_level, channel, extension_type, apply_denoising
+                wavelet_type,
+                decomposition_level,
+                channel,
+                extension_type,
+                apply_denoising,
             )
         except Exception as e:
             logging.error(f"Error computing wavelet: {e}")
@@ -666,9 +650,7 @@ class EEGProcessorInteractionAPI:
 
     @staticmethod
     def apply_downsampling(
-            factor: int = 2,
-            aggregation_method: int = 0,
-            apply: bool = True
+        factor: int = 2, aggregation_method: int = 0, apply: bool = True
     ) -> Dict[str, Any]:
         """
         Apply or remove downsampling to data stream.
@@ -694,11 +676,11 @@ class EEGProcessorInteractionAPI:
 
     @staticmethod
     def apply_advanced_filters(
-            filter_type: int,
-            order: int = 4,
-            window_function: int = 0,
-            selected_channels: Optional[List[int]] = None,
-            apply: bool = True
+        filter_type: int,
+        order: int = 4,
+        window_function: int = 0,
+        selected_channels: Optional[List[int]] = None,
+        apply: bool = True,
     ) -> Dict[str, Any]:
         """
         Apply or remove advanced filters to data stream.

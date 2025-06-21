@@ -19,6 +19,7 @@ try:
 except ImportError:
     MNE_AVAILABLE = False
 
+
 class MNEApiEventHandler(QObject):
     """Thread-safe handler for MNE API events."""
 
@@ -26,8 +27,9 @@ class MNEApiEventHandler(QObject):
     plot_signal = pyqtSignal(dict)  # plot parameters
     select_channels_signal = pyqtSignal(list)  # channel_indices
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
+
 
 class MNEPanel(BasePanel):
     """
@@ -73,7 +75,9 @@ class MNEPanel(BasePanel):
         self.api_event_handler = MNEApiEventHandler()
         self.api_event_handler.convert_signal.connect(self._handle_api_convert_safe)
         self.api_event_handler.plot_signal.connect(self._handle_api_plot_safe)
-        self.api_event_handler.select_channels_signal.connect(self._handle_api_select_channels_safe)
+        self.api_event_handler.select_channels_signal.connect(
+            self._handle_api_select_channels_safe
+        )
 
         # Create controller to coordinate widgets
         self.controller = MNEPanelController(
@@ -179,7 +183,8 @@ class MNEPanel(BasePanel):
                 EventType.MNE_PLOT, self._handle_api_plot_thread_safe
             )
             event_dispatcher.subscribe(
-                EventType.MNE_SELECT_CHANNELS, self._handle_api_select_channels_thread_safe
+                EventType.MNE_SELECT_CHANNELS,
+                self._handle_api_select_channels_thread_safe,
             )
 
         except Exception as e:
@@ -192,7 +197,9 @@ class MNEPanel(BasePanel):
             duration = data.get("duration", 5)
             use_filters = data.get("use_filters", True)
 
-            logging.info(f"API MNE convert event received: duration={duration}, use_filters={use_filters}")
+            logging.info(
+                f"API MNE convert event received: duration={duration}, use_filters={use_filters}"
+            )
 
             self.api_event_handler.convert_signal.emit(duration, use_filters)
         except Exception as e:
@@ -215,7 +222,9 @@ class MNEPanel(BasePanel):
             data = event.data
             channel_indices = data.get("channel_indices", [])
 
-            logging.info(f"API MNE select channels event received: {len(channel_indices)} channels")
+            logging.info(
+                f"API MNE select channels event received: {len(channel_indices)} channels"
+            )
 
             self.api_event_handler.select_channels_signal.emit(channel_indices)
         except Exception as e:
@@ -229,14 +238,16 @@ class MNEPanel(BasePanel):
                 logging.error(f"Invalid duration received: {duration}, using default 5")
                 duration = 5
 
-            logging.info(f"API MNE convert: duration={duration}, use_filters={use_filters}")
+            logging.info(
+                f"API MNE convert: duration={duration}, use_filters={use_filters}"
+            )
 
             # Update conversion widget settings
             self.conversion_widget.duration_spin.blockSignals(True)
             self.conversion_widget.duration_spin.setValue(duration)
             self.conversion_widget.duration_spin.blockSignals(False)
 
-            if hasattr(self.conversion_widget, 'use_filters_check'):
+            if hasattr(self.conversion_widget, "use_filters_check"):
                 self.conversion_widget.use_filters_check.blockSignals(True)
                 self.conversion_widget.use_filters_check.setChecked(use_filters)
                 self.conversion_widget.use_filters_check.blockSignals(False)
@@ -248,7 +259,9 @@ class MNEPanel(BasePanel):
 
         except Exception as e:
             logging.error(f"Error in API MNE convert handler: {e}")
-            self.controller._show_error("API MNE Error", f"Error processing convert request: {str(e)}")
+            self.controller._show_error(
+                "API MNE Error", f"Error processing convert request: {str(e)}"
+            )
 
     def _handle_api_plot_safe(self, plot_params: Dict[str, Any]) -> None:
         """Handle MNE plot from API safely in main thread."""
@@ -263,7 +276,8 @@ class MNEPanel(BasePanel):
             selected_channels = plot_params.get("selected_channels", [])
 
             logging.info(
-                f"API MNE plot: type={plot_type}, freq={freq_min}-{freq_max}, channels={len(selected_channels)}")
+                f"API MNE plot: type={plot_type}, freq={freq_min}-{freq_max}, channels={len(selected_channels)}"
+            )
 
             # Update visualization widget settings
             viz_widget = self.visualization_widget
@@ -290,7 +304,9 @@ class MNEPanel(BasePanel):
             topomap_combo.blockSignals(True)
 
             # Check if it's a custom range
-            if "Custom" in topomap_band or (topomap_freq_min != 8 or topomap_freq_max != 13):
+            if "Custom" in topomap_band or (
+                topomap_freq_min != 8 or topomap_freq_max != 13
+            ):
                 # Set to custom and show custom controls
                 custom_index = topomap_combo.findText("Custom Range")
                 if custom_index >= 0:
@@ -317,15 +333,21 @@ class MNEPanel(BasePanel):
                 # Validate channel indices
                 valid_channels = []
                 for ch in selected_channels:
-                    if isinstance(ch, int) and 0 <= ch < len(self.controller.channel_names):
+                    if isinstance(ch, int) and 0 <= ch < len(
+                        self.controller.channel_names
+                    ):
                         valid_channels.append(ch)
 
                 self.controller.selected_channels = valid_channels
                 self.controller._update_channel_displays()
-                logging.info(f"Updated selected channels: {len(valid_channels)} channels")
+                logging.info(
+                    f"Updated selected channels: {len(valid_channels)} channels"
+                )
             else:
                 # Use all channels
-                self.controller.selected_channels = list(range(len(self.controller.channel_names)))
+                self.controller.selected_channels = list(
+                    range(len(self.controller.channel_names))
+                )
                 self.controller._update_channel_displays()
                 logging.info("Using all channels (none specified)")
 
@@ -337,8 +359,11 @@ class MNEPanel(BasePanel):
         except Exception as e:
             logging.error(f"Error in API MNE plot handler: {e}")
             import traceback
+
             logging.error(f"Traceback: {traceback.format_exc()}")
-            self.controller._show_error("API MNE Error", f"Error processing plot request: {str(e)}")
+            self.controller._show_error(
+                "API MNE Error", f"Error processing plot request: {str(e)}"
+            )
 
     def _handle_api_select_channels_safe(self, channel_indices: List[int]) -> None:
         """Handle MNE channel selection from API safely in main thread."""
@@ -346,13 +371,17 @@ class MNEPanel(BasePanel):
             # Si channel_indices está vacío, seleccionar todos los canales
             if not channel_indices and self.controller.channel_names:
                 channel_indices = list(range(len(self.controller.channel_names)))
-                logging.info(f"Empty channel list received, selecting all {len(channel_indices)} channels")
+                logging.info(
+                    f"Empty channel list received, selecting all {len(channel_indices)} channels"
+                )
 
             # Update selected channels
             self.controller.selected_channels = channel_indices
             self.controller._update_channel_displays()
 
-            logging.info(f"MNE channels updated from API: {len(channel_indices)} channels selected")
+            logging.info(
+                f"MNE channels updated from API: {len(channel_indices)} channels selected"
+            )
 
         except Exception as e:
             logging.error(f"Error in API MNE channels handler: {e}")

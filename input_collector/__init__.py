@@ -75,11 +75,11 @@ from .python import (
     AbstractInputCollector,
 )
 
-# CLI access
-from .python.cli import run_cli, run_shell, run_interactive_shell
-
 # Web API initialization
 from .python.api_integration import initialize_api
+
+# CLI access
+from .python.cli import run_cli, run_shell, run_interactive_shell
 from .python.interaction_api_integration import initialize_interaction_api
 
 # Try to import PS4 controller with graceful fallback

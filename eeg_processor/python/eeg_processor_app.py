@@ -2,7 +2,7 @@ import logging
 from typing import Optional, Any
 
 from PyQt5 import QtWidgets
-from PyQt5.QtCore import QTimer, pyqtSlot, QObject, pyqtSignal
+from PyQt5.QtCore import QTimer, QObject, pyqtSignal
 from PyQt5.QtGui import QCloseEvent
 from PyQt5.QtWidgets import (
     QMainWindow,
@@ -260,9 +260,7 @@ class EEGProcessorApp(QMainWindow):
         # Get status from recording service
         if self.recording_service.is_recording():
             duration = self.recording_service.get_recording_duration()
-            self.recording_panel.update_recording_status(
-                f"Recording... ({duration:.1f}s)"
-            )
+            self.recording_panel.update_recording_status()
 
         # Check visualization status
         if self.visualization_service.visualization_closed() and self.is_streaming:

@@ -36,9 +36,7 @@ class AdvancedProcessingPanel(BasePanel):
         self.api_event_handler.ica_compute_signal.connect(
             self._handle_api_ica_compute_safe
         )
-        self.api_event_handler.ica_view_signal.connect(
-            self._handle_api_ica_view_safe
-        )
+        self.api_event_handler.ica_view_signal.connect(self._handle_api_ica_view_safe)
         self.api_event_handler.ica_channels_signal.connect(
             self._handle_api_ica_channels_safe
         )
@@ -181,17 +179,20 @@ class AdvancedProcessingPanel(BasePanel):
                 EventType.WAVELET_COMPUTE, self._handle_api_wavelet_compute_thread_safe
             )
             event_dispatcher.subscribe(
-                EventType.WAVELET_APPLY_INVERSE, self._handle_api_wavelet_inverse_thread_safe
+                EventType.WAVELET_APPLY_INVERSE,
+                self._handle_api_wavelet_inverse_thread_safe,
             )
 
             # Subscribe to downsampling events
             event_dispatcher.subscribe(
-                EventType.DOWNSAMPLE_APPLY, self._handle_api_downsampling_apply_thread_safe
+                EventType.DOWNSAMPLE_APPLY,
+                self._handle_api_downsampling_apply_thread_safe,
             )
 
             # Subscribe to advanced filters events
             event_dispatcher.subscribe(
-                EventType.ADVANCED_FILTERS_APPLY, self._handle_api_advanced_filters_apply_thread_safe
+                EventType.ADVANCED_FILTERS_APPLY,
+                self._handle_api_advanced_filters_apply_thread_safe,
             )
 
         except Exception as e:
@@ -202,8 +203,7 @@ class AdvancedProcessingPanel(BasePanel):
         try:
             data = event.data
             self.api_event_handler.ica_compute_signal.emit(
-                data.get("num_components", 2),
-                data.get("selected_channels", [])
+                data.get("num_components", 2), data.get("selected_channels", [])
             )
         except Exception as e:
             logging.error(f"Error handling API ICA compute event: {e}")
@@ -212,9 +212,7 @@ class AdvancedProcessingPanel(BasePanel):
         """Handle ICA view events from API in a thread-safe way."""
         try:
             data = event.data
-            self.api_event_handler.ica_view_signal.emit(
-                data.get("colormap", "viridis")
-            )
+            self.api_event_handler.ica_view_signal.emit(data.get("colormap", "viridis"))
         except Exception as e:
             logging.error(f"Error handling API ICA view event: {e}")
 
@@ -228,12 +226,16 @@ class AdvancedProcessingPanel(BasePanel):
         except Exception as e:
             logging.error(f"Error handling API ICA channels event: {e}")
 
-    def _handle_api_ica_compute_safe(self, num_components: int, selected_channels: List[int]) -> None:
+    def _handle_api_ica_compute_safe(
+        self, num_components: int, selected_channels: List[int]
+    ) -> None:
         """Handle ICA compute from API safely in main thread."""
         try:
             # IMPORTANTE: Asegurar que num_components es válido
             if num_components <= 0 or num_components > 16:
-                logging.error(f"Invalid num_components received: {num_components}, using default 2")
+                logging.error(
+                    f"Invalid num_components received: {num_components}, using default 2"
+                )
                 num_components = 2
 
             logging.info(f"Setting ICA components to: {num_components}")
@@ -247,21 +249,27 @@ class AdvancedProcessingPanel(BasePanel):
                 # Validate channel indices
                 valid_channels = []
                 for ch in selected_channels:
-                    if isinstance(ch, int) and 0 <= ch < len(self.ica_widget.channel_names):
+                    if isinstance(ch, int) and 0 <= ch < len(
+                        self.ica_widget.channel_names
+                    ):
                         valid_channels.append(ch)
 
                 self.ica_widget.selected_channels = valid_channels
                 self.ica_widget._update_channel_display()
-                logging.info(f"Updated selected channels: {len(valid_channels)} channels")
+                logging.info(
+                    f"Updated selected channels: {len(valid_channels)} channels"
+                )
             else:
-                self.ica_widget.selected_channels = list(range(len(self.ica_widget.channel_names)))
+                self.ica_widget.selected_channels = list(
+                    range(len(self.ica_widget.channel_names))
+                )
                 self.ica_widget._update_channel_display()
                 logging.info("Using all channels (none specified)")
 
             # Trigger ICA computation through controller
             params = {
                 "num_components": int(num_components),
-                "selected_channels": self.ica_widget.selected_channels.copy()
+                "selected_channels": self.ica_widget.selected_channels.copy(),
             }
 
             logging.info(f"Triggering ICA computation with: {params}")
@@ -270,7 +278,9 @@ class AdvancedProcessingPanel(BasePanel):
         except Exception as e:
             logging.error(f"Error in API ICA compute handler: {e}")
             # Emit error to user
-            self.controller.error_message.emit("API ICA Error", f"Error processing ICA request: {str(e)}")
+            self.controller.error_message.emit(
+                "API ICA Error", f"Error processing ICA request: {str(e)}"
+            )
 
     def _handle_api_ica_view_safe(self, colormap: str) -> None:
         """Handle ICA view from API safely in main thread."""
@@ -294,7 +304,9 @@ class AdvancedProcessingPanel(BasePanel):
             self.ica_widget.selected_channels = channel_indices
             self.ica_widget._update_channel_display()
 
-            logging.info(f"ICA channels updated from API: {len(channel_indices)} channels selected")
+            logging.info(
+                f"ICA channels updated from API: {len(channel_indices)} channels selected"
+            )
 
         except Exception as e:
             logging.error(f"Error in API ICA channels handler: {e}")
@@ -316,7 +328,9 @@ class AdvancedProcessingPanel(BasePanel):
             channel = data.get("channel", 0)
             apply = data.get("apply", True)
 
-            logging.info(f"API Wavelet inverse event received: channel={channel}, apply={apply}")
+            logging.info(
+                f"API Wavelet inverse event received: channel={channel}, apply={apply}"
+            )
 
             self.api_event_handler.wavelet_inverse_signal.emit(channel, apply)
         except Exception as e:
@@ -331,7 +345,9 @@ class AdvancedProcessingPanel(BasePanel):
             extension_type = wavelet_params.get("extension_type", 0)
             apply_denoising = wavelet_params.get("apply_denoising", False)
 
-            logging.info(f"API Wavelet compute: type={wavelet_type}, level={decomposition_level}, channel={channel}")
+            logging.info(
+                f"API Wavelet compute: type={wavelet_type}, level={decomposition_level}, channel={channel}"
+            )
 
             # Update wavelet widget settings
             wavelet_widget = self.wavelet_widget
@@ -386,8 +402,11 @@ class AdvancedProcessingPanel(BasePanel):
         except Exception as e:
             logging.error(f"Error in API wavelet compute handler: {e}")
             import traceback
+
             logging.error(f"Traceback: {traceback.format_exc()}")
-            self.controller.error_message.emit("API Wavelet Error", f"Error processing wavelet request: {str(e)}")
+            self.controller.error_message.emit(
+                "API Wavelet Error", f"Error processing wavelet request: {str(e)}"
+            )
 
     def _handle_api_wavelet_inverse_safe(self, channel: int, apply: bool) -> None:
         """Handle wavelet inverse from API safely in main thread."""
@@ -406,22 +425,30 @@ class AdvancedProcessingPanel(BasePanel):
 
             # Update button appearance
             if apply:
-                self.wavelet_widget.inverse_wavelet_btn.setText("Remove Inverse Transform")
+                self.wavelet_widget.inverse_wavelet_btn.setText(
+                    "Remove Inverse Transform"
+                )
                 self.wavelet_widget.inverse_wavelet_btn.setStyleSheet(
                     "background-color: #AA3333; color: white;"
                 )
             else:
-                self.wavelet_widget.inverse_wavelet_btn.setText("Apply Inverse Transform")
+                self.wavelet_widget.inverse_wavelet_btn.setText(
+                    "Apply Inverse Transform"
+                )
                 self.wavelet_widget.inverse_wavelet_btn.setStyleSheet("")
 
             # Trigger inverse transform through controller
             self.controller._handle_wavelet_inverse(apply)
 
-            logging.info(f"Wavelet inverse {'applied' if apply else 'removed'} for channel {channel}")
+            logging.info(
+                f"Wavelet inverse {'applied' if apply else 'removed'} for channel {channel}"
+            )
 
         except Exception as e:
             logging.error(f"Error in API wavelet inverse handler: {e}")
-            self.controller.error_message.emit("API Wavelet Error", f"Error processing inverse request: {str(e)}")
+            self.controller.error_message.emit(
+                "API Wavelet Error", f"Error processing inverse request: {str(e)}"
+            )
 
     def _handle_api_downsampling_apply_thread_safe(self, event: Any) -> None:
         """Handle downsampling apply events from API in a thread-safe way."""
@@ -432,13 +459,18 @@ class AdvancedProcessingPanel(BasePanel):
             apply = data.get("apply", True)
 
             logging.info(
-                f"API Downsampling apply event received: factor={factor}, method={aggregation_method}, apply={apply}")
+                f"API Downsampling apply event received: factor={factor}, method={aggregation_method}, apply={apply}"
+            )
 
-            self.api_event_handler.downsampling_apply_signal.emit(factor, aggregation_method, apply)
+            self.api_event_handler.downsampling_apply_signal.emit(
+                factor, aggregation_method, apply
+            )
         except Exception as e:
             logging.error(f"Error handling API downsampling apply event: {e}")
 
-    def _handle_api_downsampling_apply_safe(self, factor: int, aggregation_method: int, apply: bool) -> None:
+    def _handle_api_downsampling_apply_safe(
+        self, factor: int, aggregation_method: int, apply: bool
+    ) -> None:
         """Handle downsampling apply from API safely in main thread."""
         try:
             # Validate factor
@@ -448,10 +480,14 @@ class AdvancedProcessingPanel(BasePanel):
 
             # Validate aggregation method
             if aggregation_method < 0 or aggregation_method > 2:
-                logging.error(f"Invalid aggregation method received: {aggregation_method}, using default 0")
+                logging.error(
+                    f"Invalid aggregation method received: {aggregation_method}, using default 0"
+                )
                 aggregation_method = 0
 
-            logging.info(f"API Downsampling apply: factor={factor}, method={aggregation_method}, apply={apply}")
+            logging.info(
+                f"API Downsampling apply: factor={factor}, method={aggregation_method}, apply={apply}"
+            )
 
             # Update downsampling widget settings
             downsampling_widget = self.downsampling_widget
@@ -496,9 +532,12 @@ class AdvancedProcessingPanel(BasePanel):
         except Exception as e:
             logging.error(f"Error in API downsampling apply handler: {e}")
             import traceback
+
             logging.error(f"Traceback: {traceback.format_exc()}")
-            self.controller.error_message.emit("API Downsampling Error",
-                                               f"Error processing downsampling request: {str(e)}")
+            self.controller.error_message.emit(
+                "API Downsampling Error",
+                f"Error processing downsampling request: {str(e)}",
+            )
 
     def _handle_api_advanced_filters_apply_thread_safe(self, event: Any) -> None:
         """Handle advanced filters apply events from API in a thread-safe way."""
@@ -510,7 +549,9 @@ class AdvancedProcessingPanel(BasePanel):
         except Exception as e:
             logging.error(f"Error handling API advanced filters apply event: {e}")
 
-    def _handle_api_advanced_filters_apply_safe(self, filters_params: Dict[str, Any]) -> None:
+    def _handle_api_advanced_filters_apply_safe(
+        self, filters_params: Dict[str, Any]
+    ) -> None:
         """Handle advanced filters apply from API safely in main thread."""
         try:
             filter_type = filters_params.get("filter_type", 0)  # Default to Butterworth
@@ -525,7 +566,8 @@ class AdvancedProcessingPanel(BasePanel):
                 order = 4
 
             logging.info(
-                f"API Advanced filters apply: type={filter_type}, order={order}, window={window_function}, channels={len(selected_channels)}, apply={apply}")
+                f"API Advanced filters apply: type={filter_type}, order={order}, window={window_function}, channels={len(selected_channels)}, apply={apply}"
+            )
 
             # Update advanced filter widget settings
             filter_widget = self.advanced_filter_widget
@@ -558,15 +600,21 @@ class AdvancedProcessingPanel(BasePanel):
                 # Validate channel indices
                 valid_channels = []
                 for ch in selected_channels:
-                    if isinstance(ch, int) and 0 <= ch < len(filter_widget.channel_names):
+                    if isinstance(ch, int) and 0 <= ch < len(
+                        filter_widget.channel_names
+                    ):
                         valid_channels.append(ch)
 
                 filter_widget.selected_channels = valid_channels
                 filter_widget._update_channel_display()
-                logging.info(f"Updated selected channels: {len(valid_channels)} channels")
+                logging.info(
+                    f"Updated selected channels: {len(valid_channels)} channels"
+                )
             else:
                 # Use all channels
-                filter_widget.selected_channels = list(range(len(filter_widget.channel_names)))
+                filter_widget.selected_channels = list(
+                    range(len(filter_widget.channel_names))
+                )
                 filter_widget._update_channel_display()
                 logging.info("Using all channels (none specified)")
 
@@ -578,7 +626,11 @@ class AdvancedProcessingPanel(BasePanel):
                 filter_widget.apply_adv_filter_btn.setText("Remove Advanced Filters")
                 # Check if it's Chebyshev for special styling
                 from brainflow.data_filter import FilterTypes
-                if filter_type in [FilterTypes.CHEBYSHEV_TYPE_1, FilterTypes.CHEBYSHEV_TYPE_1_ZERO_PHASE]:
+
+                if filter_type in [
+                    FilterTypes.CHEBYSHEV_TYPE_1,
+                    FilterTypes.CHEBYSHEV_TYPE_1_ZERO_PHASE,
+                ]:
                     filter_widget.apply_adv_filter_btn.setStyleSheet(
                         "background-color: #DD4444; color: white;"
                     )
@@ -590,7 +642,11 @@ class AdvancedProcessingPanel(BasePanel):
                 filter_widget.apply_adv_filter_btn.setText("Apply Advanced Filters")
                 # Check if it's Chebyshev for warning styling
                 from brainflow.data_filter import FilterTypes
-                if filter_type in [FilterTypes.CHEBYSHEV_TYPE_1, FilterTypes.CHEBYSHEV_TYPE_1_ZERO_PHASE]:
+
+                if filter_type in [
+                    FilterTypes.CHEBYSHEV_TYPE_1,
+                    FilterTypes.CHEBYSHEV_TYPE_1_ZERO_PHASE,
+                ]:
                     filter_widget.apply_adv_filter_btn.setStyleSheet(
                         "background-color: #CC6600; color: white;"
                     )
@@ -612,7 +668,7 @@ class AdvancedProcessingPanel(BasePanel):
                 "high_cut": basic_params["high_cut"],
                 "order": order,
                 "ripple": filter_widget.ripple_spin.value(),  # Get current ripple value
-                "selected_channels": filter_widget.selected_channels.copy()
+                "selected_channels": filter_widget.selected_channels.copy(),
             }
 
             logging.info(f"Triggering advanced filters with params: {params}")
@@ -621,9 +677,12 @@ class AdvancedProcessingPanel(BasePanel):
         except Exception as e:
             logging.error(f"Error in API advanced filters apply handler: {e}")
             import traceback
+
             logging.error(f"Traceback: {traceback.format_exc()}")
-            self.controller.error_message.emit("API Advanced Filters Error",
-                                               f"Error processing advanced filters request: {str(e)}")
+            self.controller.error_message.emit(
+                "API Advanced Filters Error",
+                f"Error processing advanced filters request: {str(e)}",
+            )
 
 
 class ApiEventHandler(QObject):
@@ -636,9 +695,11 @@ class ApiEventHandler(QObject):
     wavelet_compute_signal = pyqtSignal(dict)  # wavelet parameters
     wavelet_inverse_signal = pyqtSignal(int, bool)  # channel, apply
 
-    downsampling_apply_signal = pyqtSignal(int, int, bool)  # factor, aggregation_method, apply
+    downsampling_apply_signal = pyqtSignal(
+        int, int, bool
+    )  # factor, aggregation_method, apply
 
     advanced_filters_apply_signal = pyqtSignal(dict)  # advanced filters parameters
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()

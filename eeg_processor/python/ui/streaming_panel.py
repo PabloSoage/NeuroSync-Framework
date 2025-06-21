@@ -15,9 +15,9 @@ from PyQt5.QtWidgets import (
 )
 
 from .base_panel import BasePanel
+from ..core.event_system import EventType, subscribe
 from ..services.collector_service import CollectorService
 from ..utils.help_system import HelpButton
-from ..core.event_system import EventDispatcher, EventType, subscribe
 
 
 class StreamingPanel(BasePanel):
@@ -70,7 +70,7 @@ class StreamingPanel(BasePanel):
         except Exception as e:
             logging.error(f"Error setting up event listeners: {e}")
 
-    def _on_streamer_added_via_api(self, event) -> None:
+    def _on_streamer_added_via_api(self, event: Any) -> None:
         """Handle streamer added via API."""
         try:
             logging.info(f"=== STREAMER ADD EVENT RECEIVED ===")
@@ -147,7 +147,7 @@ class StreamingPanel(BasePanel):
 
             logging.error(f"Traceback: {traceback.format_exc()}")
 
-    def _on_streamer_removed_via_api(self, event) -> None:
+    def _on_streamer_removed_via_api(self, event: Any) -> None:
         """Handle streamer removed via API."""
         try:
             data = event.data
@@ -183,7 +183,7 @@ class StreamingPanel(BasePanel):
         except Exception as e:
             logging.error(f"Error handling API streamer remove event: {e}")
 
-    def _on_config_response_via_api(self, event) -> None:
+    def _on_config_response_via_api(self, event: Any) -> None:
         """Handle config response via API."""
         try:
             data = event.data

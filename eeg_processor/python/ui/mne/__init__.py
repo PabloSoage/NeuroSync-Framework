@@ -99,7 +99,7 @@ MNE-Python through an intuitive Qt-based interface with comprehensive
 real-time processing support and performance optimization features.
 """
 
-from .mne_panel_controller import MNEPanelController
 from . import widgets
+from .mne_panel_controller import MNEPanelController
 
 __all__ = ["MNEPanelController", "widgets"]

@@ -1,7 +1,7 @@
 import logging
 import os
-import time
 import threading
+import time
 from typing import Any, Optional, List
 
 import numpy as np
@@ -35,7 +35,7 @@ class RecordingService(DataStorageInterface, ContinuousRecordingInterface):
         """Initialize the recording service."""
         if RecordingService._instance is not None:
             raise RuntimeError("RecordingService is a singleton. Use get_instance()")
-        
+
         self.recording = False
         self.start_time: float = 0
         self.filename = ""
@@ -43,7 +43,7 @@ class RecordingService(DataStorageInterface, ContinuousRecordingInterface):
 
         # Initialize the data manager for recording operations
         self.data_manager = RecordingDataManager(self)
-        
+
         logging.info("RecordingService singleton initialized")
 
     def start_recording(self, filename: str, data_type: str = "raw") -> bool:

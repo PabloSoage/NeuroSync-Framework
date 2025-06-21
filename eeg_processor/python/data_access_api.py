@@ -274,12 +274,17 @@ class EEGDataAPI:
                 eeg_channels = list(range(1, min(8, data.shape[0]) + 1))  # 1-based
 
             # Reuse signal processor if sampling rate hasn't changed
-            if (EEGDataAPI._signal_processor_cache is None or 
-                EEGDataAPI._signal_processor_sampling_rate != sampling_rate):
+            if (
+                EEGDataAPI._signal_processor_cache is None
+                or EEGDataAPI._signal_processor_sampling_rate != sampling_rate
+            ):
                 from .processors.signal_processor import SignalProcessor
+
                 EEGDataAPI._signal_processor_cache = SignalProcessor(sampling_rate)
                 EEGDataAPI._signal_processor_sampling_rate = sampling_rate
-                logging.debug(f"Created new SignalProcessor for sampling rate {sampling_rate}Hz")
+                logging.debug(
+                    f"Created new SignalProcessor for sampling rate {sampling_rate}Hz"
+                )
 
             processor = EEGDataAPI._signal_processor_cache
             quality_values = {}

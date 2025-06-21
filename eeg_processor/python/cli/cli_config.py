@@ -5,12 +5,12 @@ This module contains shared configuration and state used across CLI components.
 """
 
 from __future__ import annotations
+
 import threading
 from typing import TYPE_CHECKING, Optional, Any
 
 if TYPE_CHECKING:
-    from ..data_access_api import EEGDataAPI
-    from ..interaction_api import EEGProcessorInteractionAPI
+    pass
 
 # Global state for CLI operation
 headless_mode = False
@@ -67,31 +67,36 @@ class HeadlessEEGProcessor:
     without a GUI, making it usable via CLI.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize headless EEG processor."""
         from rich.console import Console
-        
+
         self.console = Console()
         self.console.print("[yellow]Initializing headless EEG processor...[/yellow]")
-        
+
         # Initialize components in the right order
         self._setup_services()
         self._initialize_apis()
-        
-        self.console.print("[green]Headless EEG processor initialized successfully[/green]")
+
+        self.console.print(
+            "[green]Headless EEG processor initialized successfully[/green]"
+        )
 
     def _setup_services(self) -> None:
         """Set up the core services needed for the EEG processor."""
         # Import and initialize data access service
         from ..services.data_access_service import DataAccessService
+
         self.data_service = DataAccessService.get_instance()
-        
+
         # Import and initialize interaction service
         from ..services.interaction_service import InteractionService
+
         self.interaction_service = InteractionService.get_instance()
-        
+
         # Import and initialize collector service
         from ..services.collector_service import CollectorService
+
         self.collector_service = CollectorService.get_instance()
 
     def _initialize_apis(self) -> None:
@@ -105,7 +110,7 @@ class HeadlessEEGProcessor:
             # Stop any active collectors
             if hasattr(self, "collector_service"):
                 self.collector_service.cleanup()
-                
+
             # Clean up other services if needed
             if hasattr(self, "data_service"):
                 # Data service cleanup
@@ -125,37 +130,40 @@ def init_headless_mode() -> HeadlessEEGProcessor:
     return headless_app
 
 
-def get_data_service():
+def get_data_service() -> Any:
     """Get data access service instance."""
     if headless_mode and headless_app:
         return headless_app.data_service
     else:
         try:
             from ..services.data_access_service import DataAccessService
+
             return DataAccessService.get_instance()
         except Exception:
             return None
 
 
-def get_interaction_service():
+def get_interaction_service() -> Any:
     """Get interaction service instance."""
     if headless_mode and headless_app:
         return headless_app.interaction_service
     else:
         try:
             from ..services.interaction_service import InteractionService
+
             return InteractionService.get_instance()
         except Exception:
             return None
 
 
-def get_collector_service():
+def get_collector_service() -> Any:
     """Get collector service instance."""
     if headless_mode and headless_app:
         return headless_app.collector_service
     else:
         try:
             from ..services.collector_service import CollectorService
+
             return CollectorService.get_instance()
         except Exception:
             return None
@@ -164,10 +172,10 @@ def get_collector_service():
 def initialize_headless_mode() -> bool:
     """Initialize EEG processor in headless mode for CLI."""
     global headless_mode
-    
+
     if headless_mode:
         return True
-        
+
     try:
         init_headless_mode()
         print("EEG Processor initialized in headless mode")
@@ -180,13 +188,13 @@ def initialize_headless_mode() -> bool:
 def cleanup_headless_mode() -> None:
     """Clean up headless mode resources."""
     global headless_mode, headless_app
-    
+
     try:
         if headless_app:
             headless_app.shutdown()
-            
+
         headless_app = None
         headless_mode = False
-        
+
     except Exception as e:
         print(f"Error cleaning up headless mode: {e}")
