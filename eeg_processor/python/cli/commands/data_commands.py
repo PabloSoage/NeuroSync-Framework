@@ -22,12 +22,18 @@ console = Console()
 def get_current_data(
     max_samples: Optional[int] = typer.Option(None, "--max-samples", help="Maximum samples to return"),
     format: str = typer.Option("table", "--format", help="Output format: table, json"),
+    all_data: bool = typer.Option(False, "--all", help="Show all data samples, not just summary"),
+    vertical: bool = typer.Option(False, "--vertical", help="Display data vertically (one sample per row)"),
 ) -> None:
     """Get current EEG data from all channels."""
     try:
-        from ...data_access_api import EEGDataAPI
-        
-        data, timestamps = EEGDataAPI.get_current_data()
+        # Get data service from CLI config to avoid reinitializing
+        data_service = cli_config.get_data_service()
+        if not data_service:
+            console.print("[red]Data service not available[/red]")
+            return
+            
+        data, timestamps = data_service.get_current_data()
         
         if data.size == 0:
             console.print("[yellow]No data available[/yellow]")
@@ -48,28 +54,91 @@ def get_current_data(
             }
             console.print(json.dumps(result, indent=2))
         else:
-            # Table format
-            table = Table(title=f"Current EEG Data ({data.shape[0]} channels, {data.shape[1]} samples)")
-            table.add_column("Channel", style="cyan")
-            table.add_column("Latest Value", style="green")
-            table.add_column("Min", style="blue")
-            table.add_column("Max", style="red")
-            table.add_column("Mean", style="yellow")
-            
-            channel_names = EEGDataAPI.get_channel_names()
-            
-            for i in range(data.shape[0]):
-                channel_name = channel_names[i] if i < len(channel_names) else f"CH{i+1}"
-                channel_data = data[i]
+            if all_data:
+                channel_names = data_service.get_channel_names()
                 
-                table.add_row(
-                    channel_name,
-                    f"{channel_data[-1]:.4f}",
-                    f"{channel_data.min():.4f}",
-                    f"{channel_data.max():.4f}",
-                    f"{channel_data.mean():.4f}"
-                )
+                if vertical:
+                    # Vertical display: one sample per row, all channels as columns
+                    table = Table(title=f"All EEG Data - Vertical View ({data.shape[0]} channels, {data.shape[1]} samples)")
+                    table.add_column("Sample #", style="cyan")
+                    table.add_column("Timestamp", style="magenta")
+                    
+                    # Add column for each channel
+                    for i in range(data.shape[0]):
+                        channel_name = channel_names[i] if i < len(channel_names) else f"CH{i+1}"
+                        table.add_column(channel_name, style="green", justify="right")
+                    
+                    # Add rows for each sample
+                    max_samples_display = min(data.shape[1], 50)  # Limit to 50 samples in vertical view
+                    for j in range(-max_samples_display, 0):
+                        sample_idx = data.shape[1] + j
+                        ts = timestamps[sample_idx] if sample_idx < len(timestamps) else "--"
+                        
+                        row = [str(sample_idx + 1), str(ts)]
+                        
+                        # Add value for each channel
+                        for i in range(data.shape[0]):
+                            row.append(f"{data[i][sample_idx]:.4f}")
+                        
+                        table.add_row(*row)
+                    
+                    if data.shape[1] > max_samples_display:
+                        console.print(f"\n[dim]Showing last {max_samples_display} samples of {data.shape[1]} total samples[/dim]")
+                else:
+                    # Horizontal display: one channel per row, samples as columns (existing implementation)
+                    table = Table(title=f"All EEG Data ({data.shape[0]} channels, {data.shape[1]} samples)")
+                    table.add_column("Channel", style="cyan")
+                    
+                    # Add columns for each sample (limit to reasonable number)
+                    max_samples_display = min(data.shape[1], 20)
+                    for i in range(max_samples_display):
+                        table.add_column(f"S{i+1}", style="green", justify="right")
+                    
+                    if data.shape[1] > max_samples_display:
+                        table.add_column("...", style="dim")
+                    
+                    for i in range(data.shape[0]):
+                        channel_name = channel_names[i] if i < len(channel_names) else f"CH{i+1}"
+                        channel_data = data[i]
+                        
+                        row = [channel_name]
+                        
+                        # Add sample values
+                        for j in range(max_samples_display):
+                            if j < channel_data.size:
+                                row.append(f"{channel_data[j]:.4f}")
+                            else:
+                                row.append("--")
+                        
+                        if data.shape[1] > max_samples_display:
+                            row.append("...")
+                        
+                        table.add_row(*row)
+            else:
+                # Summary statistics table (existing implementation)
+                table = Table(title=f"Current EEG Data ({data.shape[0]} channels, {data.shape[1]} samples)")
+                table.add_column("Channel", style="cyan")
+                table.add_column("Latest Value", style="green")
+                table.add_column("Min", style="blue")
+                table.add_column("Max", style="red")
+                table.add_column("Mean", style="yellow")
+                table.add_column("Std", style="magenta")
                 
+                channel_names = data_service.get_channel_names()
+                
+                for i in range(data.shape[0]):
+                    channel_name = channel_names[i] if i < len(channel_names) else f"CH{i+1}"
+                    channel_data = data[i]
+                    
+                    table.add_row(
+                        channel_name,
+                        f"{channel_data[-1]:.4f}",
+                        f"{channel_data.min():.4f}",
+                        f"{channel_data.max():.4f}",
+                        f"{channel_data.mean():.4f}",
+                        f"{channel_data.std():.4f}"
+                    )
+                    
             console.print(table)
             
     except Exception as e:
@@ -80,12 +149,19 @@ def get_current_data(
 def get_eeg_data(
     max_samples: Optional[int] = typer.Option(None, "--max-samples", help="Maximum samples to return"),
     format: str = typer.Option("table", "--format", help="Output format: table, json"),
+    all_data: bool = typer.Option(False, "--all", help="Show all data samples, not just summary"),
+    vertical: bool = typer.Option(False, "--vertical", help="Display data vertically (one sample per row)"),
 ) -> None:
     """Get current data for EEG channels only."""
     try:
-        from ...data_access_api import EEGDataAPI
-        
-        data, timestamps = EEGDataAPI.get_eeg_data(max_samples)
+        # Similar implementation as current-data but for EEG channels only
+        # Get data service from CLI config to avoid reinitializing
+        data_service = cli_config.get_data_service()
+        if not data_service:
+            console.print("[red]Data service not available[/red]")
+            return
+            
+        data, timestamps = data_service.get_eeg_data(max_samples)
         
         if data.size == 0:
             console.print("[yellow]No EEG data available[/yellow]")
@@ -101,33 +177,106 @@ def get_eeg_data(
             }
             console.print(json.dumps(result, indent=2))
         else:
-            # Table format
-            table = Table(title=f"EEG Data ({data.shape[0]} EEG channels, {data.shape[1]} samples)")
-            table.add_column("EEG Channel", style="cyan")
-            table.add_column("Latest Value", style="green")
-            table.add_column("RMS", style="blue")
-            table.add_column("Range", style="red")
-            
-            eeg_channels = EEGDataAPI.get_eeg_channels()
-            channel_names = EEGDataAPI.get_channel_names()
-            
-            for i, ch_idx in enumerate(eeg_channels):
-                if i >= data.shape[0]:
-                    break
+            if all_data:
+                metadata = data_service.get_metadata()
+                eeg_channels = metadata.get("eeg_channels", [])
+                channel_names = data_service.get_channel_names()
+                
+                if vertical:
+                    # Vertical display: one sample per row, all EEG channels as columns
+                    table = Table(title=f"All EEG Data - Vertical View ({data.shape[0]} EEG channels, {data.shape[1]} samples)")
+                    table.add_column("Sample #", style="cyan")
+                    table.add_column("Timestamp", style="magenta")
                     
-                channel_name = channel_names[ch_idx] if ch_idx < len(channel_names) else f"EEG{i+1}"
-                channel_data = data[i]
+                    # Add column for each EEG channel
+                    for i, ch_idx in enumerate(eeg_channels):
+                        if i >= data.shape[0]:
+                            break
+                        channel_name = channel_names[ch_idx] if ch_idx < len(channel_names) else f"EEG{i+1}"
+                        table.add_column(channel_name, style="green", justify="right")
+                    
+                    # Add rows for each sample
+                    max_samples_display = min(data.shape[1], 50)  # Limit to 50 samples in vertical view
+                    for j in range(-max_samples_display, 0):
+                        sample_idx = data.shape[1] + j
+                        ts = timestamps[sample_idx] if sample_idx < len(timestamps) else "--"
+                        
+                        row = [str(sample_idx + 1), str(ts)]
+                        
+                        # Add value for each EEG channel
+                        for i in range(min(data.shape[0], len(eeg_channels))):
+                            row.append(f"{data[i][sample_idx]:.4f}")
+                        
+                        table.add_row(*row)
+                    
+                    if data.shape[1] > max_samples_display:
+                        console.print(f"\n[dim]Showing last {max_samples_display} samples of {data.shape[1]} total samples[/dim]")
+                else:
+                    # Horizontal display (existing implementation)
+                    table = Table(title=f"All EEG Data ({data.shape[0]} EEG channels, {data.shape[1]} samples)")
+                    table.add_column("EEG Channel", style="cyan")
+                    
+                    # Add columns for each sample (limit to reasonable number)
+                    max_samples_display = min(data.shape[1], 20)
+                    for i in range(max_samples_display):
+                        table.add_column(f"S{i+1}", style="green", justify="right")
+                    
+                    if data.shape[1] > max_samples_display:
+                        table.add_column("...", style="dim")
+                    
+                    for i, ch_idx in enumerate(eeg_channels):
+                        if i >= data.shape[0]:
+                            break
+                            
+                        channel_name = channel_names[ch_idx] if ch_idx < len(channel_names) else f"EEG{i+1}"
+                        channel_data = data[i]
+                        
+                        row = [channel_name]
+                        
+                        # Add sample values
+                        for j in range(max_samples_display):
+                            if j < channel_data.size:
+                                row.append(f"{channel_data[j]:.4f}")
+                            else:
+                                row.append("--")
+                        
+                        if data.shape[1] > max_samples_display:
+                            row.append("...")
+                        
+                        table.add_row(*row)
+            else:
+                # Summary statistics (existing implementation)
+                table = Table(title=f"EEG Data ({data.shape[0]} EEG channels, {data.shape[1]} samples)")
+                table.add_column("EEG Channel", style="cyan")
+                table.add_column("Latest Value", style="green")
+                table.add_column("RMS", style="blue")
+                table.add_column("Range", style="red")
+                table.add_column("Mean", style="yellow")
+                table.add_column("Std", style="magenta")
                 
-                rms = (channel_data ** 2).mean() ** 0.5
-                data_range = channel_data.max() - channel_data.min()
+                metadata = data_service.get_metadata()
+                eeg_channels = metadata.get("eeg_channels", [])
+                channel_names = data_service.get_channel_names()
                 
-                table.add_row(
-                    channel_name,
-                    f"{channel_data[-1]:.4f}",
-                    f"{rms:.4f}",
-                    f"{data_range:.4f}"
-                )
-                
+                for i, ch_idx in enumerate(eeg_channels):
+                    if i >= data.shape[0]:
+                        break
+                        
+                    channel_name = channel_names[ch_idx] if ch_idx < len(channel_names) else f"EEG{i+1}"
+                    channel_data = data[i]
+                    
+                    rms = (channel_data ** 2).mean() ** 0.5
+                    data_range = channel_data.max() - channel_data.min()
+                    
+                    table.add_row(
+                        channel_name,
+                        f"{channel_data[-1]:.4f}",
+                        f"{rms:.4f}",
+                        f"{data_range:.4f}",
+                        f"{channel_data.mean():.4f}",
+                        f"{channel_data.std():.4f}"
+                    )
+                    
             console.print(table)
             
     except Exception as e:
@@ -139,25 +288,26 @@ def get_channel_data(
     channel_index: int = typer.Argument(..., help="Channel index (1-based)"),
     max_samples: Optional[int] = typer.Option(None, "--max-samples", help="Maximum samples to return"),
     format: str = typer.Option("table", "--format", help="Output format: table, json"),
+    all_data: bool = typer.Option(False, "--all", help="Show all data samples, not just summary statistics"),
 ) -> None:
     """Get data for a specific channel."""
     try:
         from ...data_access_api import EEGDataAPI
-        
+
         data, timestamps = EEGDataAPI.get_channel_data(channel_index)
-        
+
         if data.size == 0:
             console.print(f"[yellow]No data available for channel {channel_index}[/yellow]")
             return
-            
+
         # Apply max samples limit
         if max_samples and data.size > max_samples:
             data = data[-max_samples:]
             timestamps = timestamps[-max_samples:]
-            
+
         channel_names = EEGDataAPI.get_channel_names()
         channel_name = channel_names[channel_index-1] if channel_index-1 < len(channel_names) else f"CH{channel_index}"
-        
+
         if format == "json":
             result = {
                 "channel_index": channel_index,
@@ -168,8 +318,25 @@ def get_channel_data(
             }
             console.print(json.dumps(result, indent=2))
         else:
-            # Show statistics
-            stats_text = f"""
+            if all_data:
+                max_samples_display = len(data)  # Por defecto muestra todas las que hay (ya recortadas por --max-samples)
+                if not max_samples:
+                    # Si no hay --max-samples, limita visualmente (por ejemplo a 100)
+                    max_samples_display = min(len(data), 100)
+                table = Table(title=f"Data for {channel_name} (Channel {channel_index}, {len(data)} samples)")
+                table.add_column("Sample Index", style="cyan")
+                table.add_column("Timestamp", style="magenta")
+                table.add_column("Value", style="green")
+                for i in range(-max_samples_display, 0):
+                    idx = len(data) + i
+                    ts = timestamps[idx] if idx < len(timestamps) else "--"
+                    table.add_row(str(idx+1), str(ts), f"{data[idx]:.6f}")
+                if len(data) > max_samples_display:
+                    table.add_row("...", "...", "...")
+                console.print(table)
+            else:
+                # Show statistics
+                stats_text = f"""
 Channel: {channel_name} (Index: {channel_index})
 Samples: {len(data)}
 Latest Value: {data[-1]:.6f}
@@ -178,10 +345,10 @@ Max: {data.max():.6f}
 Mean: {data.mean():.6f}
 Std: {data.std():.6f}
 RMS: {((data ** 2).mean() ** 0.5):.6f}
-            """.strip()
-            
-            console.print(Panel(stats_text, title=f"Channel {channel_index} Statistics"))
-            
+                """.strip()
+
+                console.print(Panel(stats_text, title=f"Channel {channel_index} Statistics"))
+
     except Exception as e:
         console.print(f"[red]Error getting channel data: {e}[/red]")
 
@@ -312,68 +479,72 @@ def get_board_info() -> None:
 @data_app.command("signal-quality")
 def get_signal_quality(
     channel_index: Optional[int] = typer.Option(None, "--channel-index", help="Specific channel index (1-based)"),
+    all_channels: bool = typer.Option(False, "--all", help="Show quality for all channels"),
 ) -> None:
     """Get signal quality for channels."""
     try:
         from ...data_access_api import EEGDataAPI
         
         if channel_index is not None:
-            # Get quality for specific channel
-            from ...processors.signal_processor import SignalProcessor
-            
-            data, _ = EEGDataAPI.get_current_data()
-            if data.size == 0:
-                console.print("[yellow]No data available for quality assessment[/yellow]")
-                return
-                
-            sampling_rate = EEGDataAPI.get_sampling_rate()
-            processor = SignalProcessor(sampling_rate)
-            
-            # Convert from 1-based to 0-based index
-            quality = processor.get_signal_quality(data, channel_index - 1)
-            
+            quality_values = EEGDataAPI.get_all_channels_quality()
+            quality = quality_values.get(channel_index, 0.0)  # channel_index is 1-based
             channel_names = EEGDataAPI.get_channel_names()
             channel_name = channel_names[channel_index-1] if channel_index-1 < len(channel_names) else f"CH{channel_index}"
-            
             quality_text = f"""
 Channel: {channel_name} (Index: {channel_index})
 Quality Score: {quality:.3f}
 Quality Level: {'Excellent' if quality > 0.8 else 'Good' if quality > 0.6 else 'Fair' if quality > 0.4 else 'Poor'}
             """.strip()
-            
             color = "green" if quality > 0.6 else "yellow" if quality > 0.4 else "red"
             console.print(Panel(quality_text, title="Signal Quality", border_style=color))
-            
         else:
-            # Get quality for all channels
             quality_values = EEGDataAPI.get_all_channels_quality()
-            
             if not quality_values:
                 console.print("[yellow]No quality data available[/yellow]")
                 return
-                
-            table = Table(title="Signal Quality (All Channels)")
-            table.add_column("Channel", style="cyan")
-            table.add_column("Quality Score", style="green")
-            table.add_column("Level", style="yellow")
-            
             channel_names = EEGDataAPI.get_channel_names()
-            
-            for ch_idx, quality in quality_values.items():
-                channel_name = channel_names[ch_idx] if ch_idx < len(channel_names) else f"CH{ch_idx+1}"
-                
+            table = Table(title="Signal Quality (All Channels)")
+            table.add_column("Channel Index", style="cyan")
+            table.add_column("Channel Name", style="white")
+            table.add_column("Quality Score", style="green", justify="right")
+            table.add_column("Level", style="yellow")
+            table.add_column("Visual Bar", style="white")
+            for ch_idx in sorted(quality_values.keys()):
+                quality = quality_values[ch_idx]
+                channel_name = channel_names[ch_idx-1] if (ch_idx-1) < len(channel_names) else f"CH{ch_idx}"
                 if quality > 0.8:
-                    level = "[green]Excellent[/green]"
+                    level = "[bright_green]Excellent[/bright_green]"
+                    visual = "[bright_green]" + "█" * 10 + "[/bright_green]"
                 elif quality > 0.6:
-                    level = "[yellow]Good[/yellow]"
+                    level = "[green]Good[/green]"
+                    visual = "[green]" + "█" * 8 + "░░" + "[/green]"
                 elif quality > 0.4:
-                    level = "[orange1]Fair[/orange1]"
+                    level = "[yellow]Fair[/yellow]"
+                    visual = "[yellow]" + "█" * 6 + "░░░░" + "[/yellow]"
                 else:
                     level = "[red]Poor[/red]"
-                    
-                table.add_row(channel_name, f"{quality:.3f}", level)
-                
+                    visual = "[red]" + "█" * 4 + "░░░░░░" + "[/red]"
+                table.add_row(
+                    str(ch_idx),  # 1-based
+                    channel_name, 
+                    f"{quality:.3f}", 
+                    level,
+                    visual
+                )                
             console.print(table)
+            
+            # Add summary statistics
+            qualities = list(quality_values.values())
+            excellent = sum(1 for q in qualities if q > 0.8)
+            good = sum(1 for q in qualities if 0.6 < q <= 0.8)
+            fair = sum(1 for q in qualities if 0.4 < q <= 0.6)
+            poor = sum(1 for q in qualities if q <= 0.4)
+            
+            summary = f"""
+[bright_green]Excellent: {excellent}[/bright_green] | [green]Good: {good}[/green] | [yellow]Fair: {fair}[/yellow] | [red]Poor: {poor}[/red]
+Average Quality: {sum(qualities)/len(qualities):.3f}
+            """.strip()
+            console.print(Panel(summary, title="Quality Summary"))
             
     except Exception as e:
         console.print(f"[red]Error getting signal quality: {e}[/red]")

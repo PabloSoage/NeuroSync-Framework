@@ -1161,6 +1161,48 @@ class DataAccessService:
 
             return streaming
 
+    def get_all_channels_quality(self) -> Dict[int, float]:
+        """
+        Get signal quality for all EEG channels (using filtered data if enabled).
+
+        Returns:
+            Dictionary mapping channel indices to quality scores (0-1)
+        """
+        try:
+            from ..processors.signal_processor import SignalProcessor
+
+            # Use get_current_data() which applies filters if enabled
+            data, _ = self.get_current_data()
+            metadata = self.get_metadata()
+
+            if data.size == 0:
+                return {}
+
+            sampling_rate = metadata.get("sampling_rate", 250)
+            eeg_channels = metadata.get("eeg_channels", [])
+
+            # Fallback if no EEG channels defined
+            if not eeg_channels and data.size > 0:
+                eeg_channels = list(range(min(8, data.shape[0])))
+
+            # Create processor and calculate quality
+            processor = SignalProcessor(sampling_rate)
+            quality_values = {}
+
+            for ch in eeg_channels:
+                # Make sure channel index is valid
+                if ch < data.shape[0]:
+                    try:
+                        quality = processor.get_signal_quality(data, ch)
+                        quality_values[ch] = quality
+                    except:
+                        quality_values[ch] = 0.0
+
+            return quality_values
+        except Exception as e:
+            logging.error(f"Error calculating channel quality: {e}")
+            return {}
+
     def register_callback(
         self, callback: Callable[[np.ndarray, List[int]], None]
     ) -> int:

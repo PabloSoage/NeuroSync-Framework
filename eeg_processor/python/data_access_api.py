@@ -20,6 +20,9 @@ class EEGDataAPI:
     This class provides methods to access real-time EEG data and metadata.
     """
 
+    _signal_processor_cache = None
+    _signal_processor_sampling_rate = None
+
     @staticmethod
     def get_current_data() -> Tuple[np.ndarray, List[int]]:
         """
@@ -253,13 +256,10 @@ class EEGDataAPI:
         Get signal quality for all EEG channels (using filtered data if enabled).
 
         Returns:
-            Dictionary mapping channel indices to quality scores (0-1)
+            Dictionary mapping 1-based channel indices to quality scores (0-1)
         """
         try:
-            from .processors.signal_processor import SignalProcessor
-
             data_access = DataAccessService.get_instance()
-            # Use get_current_data() which applies filters if enabled
             data, _ = data_access.get_current_data()
             metadata = data_access.get_metadata()
 
@@ -271,19 +271,26 @@ class EEGDataAPI:
 
             # Fallback if no EEG channels defined
             if not eeg_channels and data.size > 0:
-                eeg_channels = list(range(min(8, data.shape[0])))
+                eeg_channels = list(range(1, min(8, data.shape[0]) + 1))  # 1-based
 
-            # Create processor and calculate quality
-            processor = SignalProcessor(sampling_rate)
+            # Reuse signal processor if sampling rate hasn't changed
+            if (EEGDataAPI._signal_processor_cache is None or 
+                EEGDataAPI._signal_processor_sampling_rate != sampling_rate):
+                from .processors.signal_processor import SignalProcessor
+                EEGDataAPI._signal_processor_cache = SignalProcessor(sampling_rate)
+                EEGDataAPI._signal_processor_sampling_rate = sampling_rate
+                logging.debug(f"Created new SignalProcessor for sampling rate {sampling_rate}Hz")
+
+            processor = EEGDataAPI._signal_processor_cache
             quality_values = {}
 
             for ch in eeg_channels:
-                # Make sure channel index is valid
-                if ch < data.shape[0]:
+                # ch is 1-based, so for numpy arrays use ch-1
+                if 0 <= (ch - 1) < data.shape[0]:
                     try:
-                        quality = processor.get_signal_quality(data, ch)
-                        quality_values[ch] = quality
-                    except:
+                        quality = processor.get_signal_quality(data, ch - 1)
+                        quality_values[ch] = quality  # Key is 1-based
+                    except Exception:
                         quality_values[ch] = 0.0
 
             return quality_values

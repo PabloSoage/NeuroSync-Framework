@@ -2200,6 +2200,49 @@ class InteractionService:
                 "error": str(e),
                 "message": f"Advanced filters request failed: {str(e)}",
             }
+        
+    def get_recording_status(self) -> Dict[str, Any]:
+        """
+        Get current recording status.
+        
+        Returns:
+            Dictionary with recording status information
+        """
+        try:
+            # Get recording service instance
+            from .recording_service import RecordingService
+            recording_service = RecordingService.get_instance()
+            
+            is_recording = recording_service.is_recording()
+            
+            if is_recording:
+                duration = recording_service.get_recording_duration()
+                filename = getattr(recording_service, '_current_filename', 'unknown')
+                data_type = getattr(recording_service, '_current_data_type', 'raw')
+                
+                return {
+                    "recording": True,
+                    "duration": duration,
+                    "filename": filename,
+                    "data_type": data_type
+                }
+            else:
+                return {
+                    "recording": False,
+                    "duration": 0,
+                    "filename": None,
+                    "data_type": None
+                }
+                
+        except Exception as e:
+            logging.error(f"Error getting recording status: {e}")
+            return {
+                "recording": False,
+                "duration": 0,
+                "filename": None,
+                "data_type": None,
+                "error": str(e)
+            }
 
     def cleanup(self) -> None:
         """Clean up the interaction service."""

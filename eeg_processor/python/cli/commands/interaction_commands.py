@@ -19,11 +19,11 @@ console = Console()
 
 @control_app.command("connect")
 def connect_to_board(
-    board_id: int = typer.Argument(..., help="Board ID to connect to"),
+    board_id: int = typer.Argument(..., help="Board ID to connect to (use negative IDs for synthetic boards: -1, -2, -3)"),
     preset: int = typer.Option(0, "--preset", help="Data preset to use"),
     params: Optional[str] = typer.Option(None, "--params", help="Connection parameters as JSON"),
 ) -> None:
-    """Connect to an EEG board."""
+    """Connect to an EEG board. For negative IDs use: control connect --preset 0 -- -1"""
     try:
         from ...interaction_api import EEGProcessorInteractionAPI
         
@@ -35,9 +35,18 @@ def connect_to_board(
             except json.JSONDecodeError:
                 console.print(f"[red]Invalid JSON parameters: {params}[/red]")
                 return
-                
-        console.print(f"[blue]Connecting to board {board_id} with preset {preset}...[/blue]")
         
+        # Show helpful info for special boards
+        if board_id == -1:
+            console.print(f"[blue]Connecting to Synthetic Board (ID: {board_id}) with preset {preset}...[/blue]")
+            console.print("[dim]Synthetic board generates random EEG-like data for testing[/dim]")
+        elif board_id == -2:
+            console.print(f"[blue]Connecting to Streaming Board (ID: {board_id}) with preset {preset}...[/blue]")
+        elif board_id == -3:
+            console.print(f"[blue]Connecting to Playback File Board (ID: {board_id}) with preset {preset}...[/blue]")
+        else:
+            console.print(f"[blue]Connecting to board {board_id} with preset {preset}...[/blue]")
+                
         result = EEGProcessorInteractionAPI.connect_to_board(board_id, board_params, preset)
         
         if result.get("success"):
@@ -397,29 +406,177 @@ def get_system_status() -> None:
 
 @control_app.command("boards")
 def list_available_boards() -> None:
-    """List available EEG boards."""
+    """List all supported EEG boards from BrainFlow."""
     try:
-        from ...interaction_api import EEGProcessorInteractionAPI
-        
-        boards = EEGProcessorInteractionAPI.get_available_boards()
-        
+        from brainflow.board_shim import BoardIds, BoardShim
+
+        # Mapping: nombre amigable a board_id (completado según el enum)
+        board_mapping = {
+            # Negative IDs for special boards
+            "Synthetic Board": BoardIds.SYNTHETIC_BOARD.value,
+            "Playback File Board": BoardIds.PLAYBACK_FILE_BOARD.value,
+            "Streaming Board": BoardIds.STREAMING_BOARD.value,
+            # Positive IDs for real boards
+            "Cyton": BoardIds.CYTON_BOARD.value,
+            "Ganglion": BoardIds.GANGLION_BOARD.value,
+            "Cyton Daisy": BoardIds.CYTON_DAISY_BOARD.value,
+            "Galea": BoardIds.GALEA_BOARD.value,
+            "Ganglion WiFi": BoardIds.GANGLION_WIFI_BOARD.value,
+            "Cyton WiFi": BoardIds.CYTON_WIFI_BOARD.value,
+            "Cyton Daisy WiFi": BoardIds.CYTON_DAISY_WIFI_BOARD.value,
+            "BrainBit": BoardIds.BRAINBIT_BOARD.value,
+            "Unicorn": BoardIds.UNICORN_BOARD.value,
+            "Callibri EEG": BoardIds.CALLIBRI_EEG_BOARD.value,
+            "Callibri EMG": BoardIds.CALLIBRI_EMG_BOARD.value,
+            "Callibri ECG": BoardIds.CALLIBRI_ECG_BOARD.value,
+            "Notion OSC 1": BoardIds.NOTION_1_BOARD.value,
+            "Notion OSC 2": BoardIds.NOTION_2_BOARD.value,
+            "Gforce Pro": BoardIds.GFORCE_PRO_BOARD.value,
+            "FreeEEG32": BoardIds.FREEEEG32_BOARD.value,
+            "BrainBit BLED": BoardIds.BRAINBIT_BLED_BOARD.value,
+            "Gforce Dual": BoardIds.GFORCE_DUAL_BOARD.value,
+            "Galea Serial": BoardIds.GALEA_SERIAL_BOARD.value,
+            "Muse S BLED": BoardIds.MUSE_S_BLED_BOARD.value,
+            "Muse 2 BLED": BoardIds.MUSE_2_BLED_BOARD.value,
+            "Crown OSC": BoardIds.CROWN_BOARD.value,
+            "AntNeuroEE410": BoardIds.ANT_NEURO_EE_410_BOARD.value,
+            "AntNeuroEE411": BoardIds.ANT_NEURO_EE_411_BOARD.value,
+            "AntNeuroEE430": BoardIds.ANT_NEURO_EE_430_BOARD.value,
+            "AntNeuroEE211": BoardIds.ANT_NEURO_EE_211_BOARD.value,
+            "AntNeuroEE212": BoardIds.ANT_NEURO_EE_212_BOARD.value,
+            "AntNeuroEE213": BoardIds.ANT_NEURO_EE_213_BOARD.value,
+            "AntNeuroEE214": BoardIds.ANT_NEURO_EE_214_BOARD.value,
+            "AntNeuroEE215": BoardIds.ANT_NEURO_EE_215_BOARD.value,
+            "AntNeuroEE221": BoardIds.ANT_NEURO_EE_221_BOARD.value,
+            "AntNeuroEE222": BoardIds.ANT_NEURO_EE_222_BOARD.value,
+            "AntNeuroEE223": BoardIds.ANT_NEURO_EE_223_BOARD.value,
+            "AntNeuroEE224": BoardIds.ANT_NEURO_EE_224_BOARD.value,
+            "AntNeuroEE225": BoardIds.ANT_NEURO_EE_225_BOARD.value,
+            "Enophone": BoardIds.ENOPHONE_BOARD.value,
+            "Muse 2": BoardIds.MUSE_2_BOARD.value,
+            "Muse S": BoardIds.MUSE_S_BOARD.value,
+            "BrainAlive": BoardIds.BRAINALIVE_BOARD.value,
+            "Muse 2016": BoardIds.MUSE_2016_BOARD.value,
+            "Muse 2016 BLED": BoardIds.MUSE_2016_BLED_BOARD.value,
+            "Explore 4 Channels": BoardIds.EXPLORE_4_CHAN_BOARD.value,
+            "Explore 8 Channels": BoardIds.EXPLORE_8_CHAN_BOARD.value,
+            "Ganglion Native": BoardIds.GANGLION_NATIVE_BOARD.value,
+            "Emotibit": BoardIds.EMOTIBIT_BOARD.value,
+            "Galea V4": BoardIds.GALEA_BOARD_V4.value,
+            "Galea Serial V4": BoardIds.GALEA_SERIAL_BOARD_V4.value,
+            "NTL WiFi": BoardIds.NTL_WIFI_BOARD.value,
+            "AntNeuroEE511": BoardIds.ANT_NEURO_EE_511_BOARD.value,
+            "FreeEEG128": BoardIds.FREEEEG128_BOARD.value,
+            "AAVAA V3": BoardIds.AAVAA_V3_BOARD.value,
+            "Explore Plus 8 Channels": BoardIds.EXPLORE_PLUS_8_CHAN_BOARD.value,
+            "Explore Plus 32 Channels": BoardIds.EXPLORE_PLUS_32_CHAN_BOARD.value,
+            "PIEEG": BoardIds.PIEEG_BOARD.value,
+            "Knight": BoardIds.NEUROPAWN_KNIGHT_BOARD.value,
+        }
+
+        # Invertimos el mapping para obtener nombre a partir de ID rápido
+        id_to_name = {v: k for k, v in board_mapping.items()}
+
+        # Lista de todos los IDs del enum excepto NO_BOARD
+        all_ids = [
+            BoardIds.PLAYBACK_FILE_BOARD.value,
+            BoardIds.STREAMING_BOARD.value,
+            BoardIds.SYNTHETIC_BOARD.value,
+            BoardIds.CYTON_BOARD.value,
+            BoardIds.GANGLION_BOARD.value,
+            BoardIds.CYTON_DAISY_BOARD.value,
+            BoardIds.GALEA_BOARD.value,
+            BoardIds.GANGLION_WIFI_BOARD.value,
+            BoardIds.CYTON_WIFI_BOARD.value,
+            BoardIds.CYTON_DAISY_WIFI_BOARD.value,
+            BoardIds.BRAINBIT_BOARD.value,
+            BoardIds.UNICORN_BOARD.value,
+            BoardIds.CALLIBRI_EEG_BOARD.value,
+            BoardIds.CALLIBRI_EMG_BOARD.value,
+            BoardIds.CALLIBRI_ECG_BOARD.value,
+            BoardIds.NOTION_1_BOARD.value,
+            BoardIds.NOTION_2_BOARD.value,
+            BoardIds.GFORCE_PRO_BOARD.value,
+            BoardIds.FREEEEG32_BOARD.value,
+            BoardIds.BRAINBIT_BLED_BOARD.value,
+            BoardIds.GFORCE_DUAL_BOARD.value,
+            BoardIds.GALEA_SERIAL_BOARD.value,
+            BoardIds.MUSE_S_BLED_BOARD.value,
+            BoardIds.MUSE_2_BLED_BOARD.value,
+            BoardIds.CROWN_BOARD.value,
+            BoardIds.ANT_NEURO_EE_410_BOARD.value,
+            BoardIds.ANT_NEURO_EE_411_BOARD.value,
+            BoardIds.ANT_NEURO_EE_430_BOARD.value,
+            BoardIds.ANT_NEURO_EE_211_BOARD.value,
+            BoardIds.ANT_NEURO_EE_212_BOARD.value,
+            BoardIds.ANT_NEURO_EE_213_BOARD.value,
+            BoardIds.ANT_NEURO_EE_214_BOARD.value,
+            BoardIds.ANT_NEURO_EE_215_BOARD.value,
+            BoardIds.ANT_NEURO_EE_221_BOARD.value,
+            BoardIds.ANT_NEURO_EE_222_BOARD.value,
+            BoardIds.ANT_NEURO_EE_223_BOARD.value,
+            BoardIds.ANT_NEURO_EE_224_BOARD.value,
+            BoardIds.ANT_NEURO_EE_225_BOARD.value,
+            BoardIds.ENOPHONE_BOARD.value,
+            BoardIds.MUSE_2_BOARD.value,
+            BoardIds.MUSE_S_BOARD.value,
+            BoardIds.BRAINALIVE_BOARD.value,
+            BoardIds.MUSE_2016_BOARD.value,
+            BoardIds.MUSE_2016_BLED_BOARD.value,
+            BoardIds.EXPLORE_4_CHAN_BOARD.value,
+            BoardIds.EXPLORE_8_CHAN_BOARD.value,
+            BoardIds.GANGLION_NATIVE_BOARD.value,
+            BoardIds.EMOTIBIT_BOARD.value,
+            BoardIds.GALEA_BOARD_V4.value,
+            BoardIds.GALEA_SERIAL_BOARD_V4.value,
+            BoardIds.NTL_WIFI_BOARD.value,
+            BoardIds.ANT_NEURO_EE_511_BOARD.value,
+            BoardIds.FREEEEG128_BOARD.value,
+            BoardIds.AAVAA_V3_BOARD.value,
+            BoardIds.EXPLORE_PLUS_8_CHAN_BOARD.value,
+            BoardIds.EXPLORE_PLUS_32_CHAN_BOARD.value,
+            BoardIds.PIEEG_BOARD.value,
+            BoardIds.NEUROPAWN_KNIGHT_BOARD.value,
+        ]
+
+        boards = []
+        for board_id in sorted(all_ids):
+            name = id_to_name.get(board_id, f"Board {board_id}")
+            # Intenta obtener la descripción del BoardShim
+            try:
+                board_desc = BoardShim.get_board_descr(board_id)
+                description = board_desc.get("name", name)
+            except Exception:
+                description = name
+            boards.append({
+                "board_id": board_id,
+                "name": name,
+                "description": description
+            })
+
         if not boards:
             console.print("[yellow]No boards available[/yellow]")
             return
-            
+
         table = Table(title="Available EEG Boards")
         table.add_column("Board ID", style="cyan")
         table.add_column("Name", style="green")
         table.add_column("Description", style="yellow")
-        
+
         for board in boards:
             table.add_row(
-                str(board.get("board_id", "N/A")),
-                board.get("name", "Unknown"),
-                board.get("description", "No description")
+                str(board["board_id"]),
+                board["name"],
+                board["description"]
             )
-            
+
         console.print(table)
-        
+
+        # Add helpful note about special boards
+        console.print("\n[dim]Note: Use negative IDs for special boards:[/dim]")
+        console.print("[dim]  -1: Synthetic Board (for testing)[/dim]")
+        console.print("[dim]  -2: Streaming Board[/dim]")
+        console.print("[dim]  -3: Playback File Board[/dim]")
+
     except Exception as e:
         console.print(f"[red]Error listing boards: {e}[/red]")

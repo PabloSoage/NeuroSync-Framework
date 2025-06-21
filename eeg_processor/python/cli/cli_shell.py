@@ -128,7 +128,8 @@ exit                         # Exit the CLI shell
     # Control commands for EEG processing
     control_commands = """
 # Board connection
-control connect <board_id> --preset 0                    # Connect to board
+control connect --preset 0 -- -1                         # Connect to synthetic board (note: use -- before negative IDs)
+control connect --preset 0 8                             # Connect to unicorn board
 control disconnect                                        # Disconnect
 control boards                                            # List available boards
 control status                                            # Get system status
@@ -169,11 +170,13 @@ monitor recording --refresh-rate 1.0                    # Monitor recording
     data_commands = """
 # Data access
 data current-data --max-samples 100                     # Get current data
+data current-data --all --vertical                      # Show all data vertically
 data eeg-data --max-samples 50                          # Get EEG channels only
 data channel-data 1 --max-samples 100                   # Get specific channel
 data metadata                                            # Get stream metadata
 data sampling-rate                                       # Get sampling rate
-data signal-quality --channel-index 1                   # Get signal quality
+data signal-quality --channel-index 1                   # Get signal quality for channel
+data signal-quality --all                               # Get signal quality for all channels
     """
 
     console.print(

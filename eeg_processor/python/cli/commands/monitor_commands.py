@@ -3,7 +3,8 @@ Monitoring commands for the CLI application.
 
 These commands allow monitoring EEG data streams and system status in real-time.
 """
-import asyncio
+import sys
+import threading
 import time
 from typing import Dict, Any, Optional
 
@@ -23,6 +24,37 @@ monitor_app = typer.Typer(name="monitor", help="EEG data monitoring commands")
 console = Console()
 
 
+def _setup_key_listener(stop_event: threading.Event) -> None:
+    """Setup key listener for ESC and Q to stop monitoring."""
+    def key_listener() -> None:
+        if sys.platform == "win32":
+            import msvcrt
+            while not stop_event.is_set():
+                if msvcrt.kbhit():
+                    key = msvcrt.getch()
+                    if key in (b"\x1b", b"q", b"Q"):  # ESC, q, Q
+                        stop_event.set()
+                        break
+                time.sleep(0.01)
+        else:
+            import tty, termios, select
+            fd = sys.stdin.fileno()
+            old = termios.tcgetattr(fd)
+            try:
+                tty.setcbreak(fd)
+                while not stop_event.is_set():
+                    dr, _, _ = select.select([sys.stdin], [], [], 0.1)
+                    if dr:
+                        key = sys.stdin.read(1)
+                        if key in ("\x1b", "q", "Q"):  # ESC, q, Q
+                            stop_event.set()
+                            break
+            finally:
+                termios.tcsetattr(fd, termios.TCSADRAIN, old)
+
+    threading.Thread(target=key_listener, daemon=True).start()
+
+
 @monitor_app.command("stream")
 def monitor_stream(
     duration: Optional[int] = typer.Option(None, "--duration", help="Monitor duration in seconds (0 = infinite)"),
@@ -30,23 +62,25 @@ def monitor_stream(
 ) -> None:
     """Monitor EEG data stream in real-time."""
     try:
-        from ...data_access_api import EEGDataAPI
-        
-        if not EEGDataAPI.is_streaming():
+        # Get services from CLI config to avoid reinitializing
+        data_service = cli_config.get_data_service()
+        if not data_service or not data_service.is_streaming():
             console.print("[red]No active data stream. Start streaming first.[/red]")
             return
             
         console.print(f"[blue]Monitoring EEG stream (refresh every {refresh_rate}s)...[/blue]")
-        console.print("[yellow]Press Ctrl+C to stop monitoring[/yellow]")
+        console.print("[yellow]Press ESC or Q to stop monitoring[/yellow]")
         
         start_time = time.time()
+        stop_event = threading.Event()
+        _setup_key_listener(stop_event)
         
         def create_stream_display():
             """Create the real-time stream display."""
             try:
-                # Get current data
-                data, timestamps = EEGDataAPI.get_current_data()
-                metadata = EEGDataAPI.get_metadata()
+                # Get current data from service directly
+                data, timestamps = data_service.get_current_data()
+                metadata = data_service.get_metadata()
                 
                 if data.size == 0:
                     return Panel(
@@ -55,6 +89,16 @@ def monitor_stream(
                         border_style="red"
                     )
                 
+                # Get EEG channel indices (1-based) and names
+                eeg_channels = metadata.get("eeg_channels", [])
+                channel_names = metadata.get("channel_names", [])
+                # Get signal quality (1-based dict)
+                try:
+                    from ...data_access_api import EEGDataAPI
+                    quality_values = EEGDataAPI.get_all_channels_quality()
+                except:
+                    quality_values = {}
+
                 # Create main layout
                 layout = Layout()
                 layout.split_column(
@@ -72,7 +116,7 @@ def monitor_stream(
                 layout["header"].update(Panel(header_text, style="bold blue"))
                 
                 # Main data table
-                table = Table(title=f"Live EEG Data ({data.shape[0]} channels, {data.shape[1]} samples)")
+                table = Table(title=f"Live EEG Data ({len(eeg_channels)} EEG channels, {data.shape[1]} samples)")
                 table.add_column("Channel", style="cyan")
                 table.add_column("Latest (µV)", style="green")
                 table.add_column("Min (µV)", style="blue")
@@ -80,50 +124,39 @@ def monitor_stream(
                 table.add_column("RMS (µV)", style="yellow")
                 table.add_column("Quality", style="magenta")
                 
-                channel_names = metadata.get("channel_names", [])
-                
-                # Get signal quality if available
-                try:
-                    quality_values = EEGDataAPI.get_all_channels_quality()
-                except:
-                    quality_values = {}
-                
-                for i in range(min(data.shape[0], 16)):  # Limit to 16 channels for display
-                    if i < len(channel_names):
-                        ch_name = channel_names[i]
-                    else:
-                        ch_name = f"CH{i+1}"
-                    
-                    ch_data = data[i]
-                    latest = ch_data[-1] if ch_data.size > 0 else 0
-                    min_val = ch_data.min() if ch_data.size > 0 else 0
-                    max_val = ch_data.max() if ch_data.size > 0 else 0
-                    rms = ((ch_data ** 2).mean() ** 0.5) if ch_data.size > 0 else 0
-                    
-                    # Quality indicator
-                    quality = quality_values.get(i, 0)
-                    if quality > 0.8:
-                        quality_str = "[green]●[/green] Excellent"
-                    elif quality > 0.6:
-                        quality_str = "[yellow]●[/yellow] Good"
-                    elif quality > 0.4:
-                        quality_str = "[orange1]●[/orange1] Fair"
-                    else:
-                        quality_str = "[red]●[/red] Poor"
-                    
-                    table.add_row(
-                        ch_name,
-                        f"{latest:.2f}",
-                        f"{min_val:.2f}",
-                        f"{max_val:.2f}",
-                        f"{rms:.2f}",
-                        quality_str
-                    )
+                # Show only EEG channels, in 1-based order
+                for ch_idx in eeg_channels:
+                    # ch_idx is 1-based, so for numpy arrays use ch_idx-1
+                    if 0 <= (ch_idx - 1) < data.shape[0]:
+                        ch_name = channel_names[ch_idx - 1] if (ch_idx - 1) < len(channel_names) else f"CH{ch_idx}"
+                        ch_data = data[ch_idx - 1]
+                        latest = ch_data[-1] if ch_data.size > 0 else 0
+                        min_val = ch_data.min() if ch_data.size > 0 else 0
+                        max_val = ch_data.max() if ch_data.size > 0 else 0
+                        rms = ((ch_data ** 2).mean() ** 0.5) if ch_data.size > 0 else 0
+                        # Quality indicator (1-based)
+                        quality = quality_values.get(ch_idx, 0)
+                        if quality > 0.8:
+                            quality_str = "[green]●[/green] Excellent"
+                        elif quality > 0.6:
+                            quality_str = "[yellow]●[/yellow] Good"
+                        elif quality > 0.4:
+                            quality_str = "[orange1]●[/orange1] Fair"
+                        else:
+                            quality_str = "[red]●[/red] Poor"
+                        table.add_row(
+                            ch_name,
+                            f"{latest:.2f}",
+                            f"{min_val:.2f}",
+                            f"{max_val:.2f}",
+                            f"{rms:.2f}",
+                            quality_str
+                        )
                 
                 layout["main"].update(table)
                 
                 # Footer with controls
-                footer_text = "Press Ctrl+C to stop monitoring | Use 'data current-data --max-samples 100' for detailed data"
+                footer_text = "Press ESC or Q to stop monitoring | Use 'data current-data --max-samples 100' for detailed data"
                 layout["footer"].update(Panel(footer_text, style="dim"))
                 
                 return layout
@@ -138,13 +171,15 @@ def monitor_stream(
         # Run live display
         with Live(create_stream_display(), refresh_per_second=1/refresh_rate) as live:
             try:
-                while True:
+                while not stop_event.is_set():
                     if duration and (time.time() - start_time) >= duration:
                         break
                     live.update(create_stream_display())
                     time.sleep(refresh_rate)
             except KeyboardInterrupt:
-                console.print("\n[yellow]Monitoring stopped by user[/yellow]")
+                console.print("\n[yellow]Monitoring stopped by Ctrl+C[/yellow]")
+                
+        console.print("\n[yellow]Monitoring stopped[/yellow]")
                 
     except Exception as e:
         console.print(f"[red]Error monitoring stream: {e}[/red]")
@@ -158,17 +193,26 @@ def monitor_status(
     """Monitor system status in real-time."""
     try:
         console.print(f"[blue]Monitoring system status (refresh every {refresh_rate}s)...[/blue]")
-        console.print("[yellow]Press Ctrl+C to stop monitoring[/yellow]")
+        console.print("[yellow]Press ESC or Q to stop monitoring[/yellow]")
         
         start_time = time.time()
+        stop_event = threading.Event()
+        _setup_key_listener(stop_event)
         
         def create_status_display():
             """Create the real-time status display."""
             try:
-                from ...interaction_api import EEGProcessorInteractionAPI
+                # Get services from CLI config to avoid reinitializing
+                interaction_service = cli_config.get_interaction_service()
+                if not interaction_service:
+                    return Panel(
+                        "[red]Interaction service not available[/red]",
+                        title="System Status Monitor",
+                        border_style="red"
+                    )
                 
                 # Get system status
-                system_status = EEGProcessorInteractionAPI.get_system_status()
+                system_status = interaction_service.get_system_status()
                 
                 if not system_status.get("success"):
                     return Panel(
@@ -256,13 +300,15 @@ def monitor_status(
         # Run live display
         with Live(create_status_display(), refresh_per_second=1/refresh_rate) as live:
             try:
-                while True:
+                while not stop_event.is_set():
                     if duration and (time.time() - start_time) >= duration:
                         break
                     live.update(create_status_display())
                     time.sleep(refresh_rate)
             except KeyboardInterrupt:
-                console.print("\n[yellow]Status monitoring stopped by user[/yellow]")
+                console.print("\n[yellow]Status monitoring stopped by Ctrl+C[/yellow]")
+                
+        console.print("\n[yellow]Status monitoring stopped[/yellow]")
                 
     except Exception as e:
         console.print(f"[red]Error monitoring status: {e}[/red]")
@@ -270,40 +316,43 @@ def monitor_status(
 
 @monitor_app.command("channels")
 def monitor_channels(
-    channel_indices: Optional[str] = typer.Option(None, "--channels", help="Comma-separated channel indices to monitor"),
+    channels: Optional[str] = typer.Option(None, "--channels", help="Comma-separated channel indices to monitor (e.g., \"0,1,2,3\")"),
     duration: Optional[int] = typer.Option(None, "--duration", help="Monitor duration in seconds (0 = infinite)"),
     refresh_rate: float = typer.Option(1.0, "--refresh-rate", help="Update frequency in seconds"),
 ) -> None:
     """Monitor specific EEG channels in real-time."""
     try:
-        from ...data_access_api import EEGDataAPI
-        
-        if not EEGDataAPI.is_streaming():
+        # Get services from CLI config to avoid reinitializing
+        data_service = cli_config.get_data_service()
+        if not data_service or not data_service.is_streaming():
             console.print("[red]No active data stream. Start streaming first.[/red]")
             return
         
         # Parse channel indices
-        if channel_indices:
+        if channels:
             try:
-                channels_to_monitor = [int(x.strip()) for x in channel_indices.split(",")]
+                channels_to_monitor = [int(x.strip()) for x in channels.split(",")]
             except ValueError:
-                console.print("[red]Invalid channel indices format. Use comma-separated integers.[/red]")
+                console.print("[red]Invalid channel indices format. Use comma-separated integers like: --channels \"0,1,2,3\"[/red]")
                 return
         else:
             # Monitor first 8 EEG channels by default
-            eeg_channels = EEGDataAPI.get_metadata().get("eeg_channels", [])
+            metadata = data_service.get_metadata()
+            eeg_channels = metadata.get("eeg_channels", [])
             channels_to_monitor = eeg_channels[:8] if eeg_channels else list(range(8))
         
         console.print(f"[blue]Monitoring channels {channels_to_monitor} (refresh every {refresh_rate}s)...[/blue]")
-        console.print("[yellow]Press Ctrl+C to stop monitoring[/yellow]")
+        console.print("[yellow]Press ESC or Q to stop monitoring[/yellow]")
         
         start_time = time.time()
+        stop_event = threading.Event()
+        _setup_key_listener(stop_event)
         
         def create_channels_display():
             """Create the real-time channels display."""
             try:
-                data, timestamps = EEGDataAPI.get_current_data()
-                metadata = EEGDataAPI.get_metadata()
+                data, timestamps = data_service.get_current_data()
+                metadata = data_service.get_metadata()
                 channel_names = metadata.get("channel_names", [])
                 
                 if data.size == 0:
@@ -366,13 +415,15 @@ def monitor_channels(
         # Run live display
         with Live(create_channels_display(), refresh_per_second=1/refresh_rate) as live:
             try:
-                while True:
+                while not stop_event.is_set():
                     if duration and (time.time() - start_time) >= duration:
                         break
                     live.update(create_channels_display())
                     time.sleep(refresh_rate)
             except KeyboardInterrupt:
-                console.print("\n[yellow]Channel monitoring stopped by user[/yellow]")
+                console.print("\n[yellow]Channel monitoring stopped by Ctrl+C[/yellow]")
+                
+        console.print("\n[yellow]Channel monitoring stopped[/yellow]")
                 
     except Exception as e:
         console.print(f"[red]Error monitoring channels: {e}[/red]")
@@ -385,25 +436,30 @@ def monitor_signal_quality(
 ) -> None:
     """Monitor signal quality for all channels in real-time."""
     try:
-        from ...data_access_api import EEGDataAPI
-        
-        if not EEGDataAPI.is_streaming():
+        # Get services from CLI config to avoid reinitializing
+        data_service = cli_config.get_data_service()
+        if not data_service or not data_service.is_streaming():
             console.print("[red]No active data stream. Start streaming first.[/red]")
             return
             
         console.print(f"[blue]Monitoring signal quality (refresh every {refresh_rate}s)...[/blue]")
-        console.print("[yellow]Press Ctrl+C to stop monitoring[/yellow]")
+        console.print("[yellow]Press ESC or Q to stop monitoring[/yellow]")
         
         start_time = time.time()
+        stop_event = threading.Event()
+        _setup_key_listener(stop_event)
         
         def create_quality_display():
             """Create the real-time quality display."""
             try:
+                # Use EEGDataAPI to get 1-based quality and channel info
+                from ...data_access_api import EEGDataAPI
                 quality_values = EEGDataAPI.get_all_channels_quality()
-                metadata = EEGDataAPI.get_metadata()
+                metadata = data_service.get_metadata()
                 channel_names = metadata.get("channel_names", [])
-                
-                if not quality_values:
+                eeg_channels = metadata.get("eeg_channels", [])
+
+                if not quality_values or not eeg_channels:
                     return Panel(
                         "[yellow]No quality data available[/yellow]",
                         title="Signal Quality Monitor",
@@ -421,7 +477,7 @@ def monitor_signal_quality(
                 )
                 
                 # Header
-                header_text = f"Signal Quality Monitor | Elapsed: {elapsed:.1f}s | Channels: {len(quality_values)}"
+                header_text = f"Signal Quality Monitor | Elapsed: {elapsed:.1f}s | Channels: {len(eeg_channels)}"
                 layout["header"].update(Panel(header_text, style="bold blue"))
                 
                 # Quality table
@@ -434,8 +490,10 @@ def monitor_signal_quality(
                 
                 excellent_count = good_count = fair_count = poor_count = 0
                 
-                for ch_idx, quality in sorted(quality_values.items()):
-                    ch_name = channel_names[ch_idx] if ch_idx < len(channel_names) else f"CH{ch_idx+1}"
+                # Only show EEG channels, in 1-based order
+                for ch_idx in eeg_channels:
+                    quality = quality_values.get(ch_idx, 0.0)
+                    ch_name = channel_names[ch_idx-1] if (ch_idx-1) < len(channel_names) else f"CH{ch_idx}"
                     
                     # Determine quality level and color
                     if quality > 0.8:
@@ -460,7 +518,7 @@ def monitor_signal_quality(
                         poor_count += 1
                     
                     table.add_row(
-                        str(ch_idx),
+                        str(ch_idx),  # 1-based
                         ch_name,
                         f"{quality:.3f}",
                         level_color,
@@ -489,13 +547,15 @@ Quality Score: 0.8+ = Excellent, 0.6+ = Good, 0.4+ = Fair, <0.4 = Poor
         # Run live display
         with Live(create_quality_display(), refresh_per_second=1/refresh_rate) as live:
             try:
-                while True:
+                while not stop_event.is_set():
                     if duration and (time.time() - start_time) >= duration:
                         break
                     live.update(create_quality_display())
                     time.sleep(refresh_rate)
             except KeyboardInterrupt:
-                console.print("\n[yellow]Quality monitoring stopped by user[/yellow]")
+                console.print("\n[yellow]Quality monitoring stopped by Ctrl+C[/yellow]")
+                
+        console.print("\n[yellow]Quality monitoring stopped[/yellow]")
                 
     except Exception as e:
         console.print(f"[red]Error monitoring signal quality: {e}[/red]")
@@ -508,16 +568,25 @@ def monitor_recording(
     """Monitor recording status and progress."""
     try:
         console.print(f"[blue]Monitoring recording status (refresh every {refresh_rate}s)...[/blue]")
-        console.print("[yellow]Press Ctrl+C to stop monitoring[/yellow]")
+        console.print("[yellow]Press ESC or Q to stop monitoring[/yellow]")
         
         start_time = time.time()
+        stop_event = threading.Event()
+        _setup_key_listener(stop_event)
         
         def create_recording_display():
             """Create the real-time recording display."""
             try:
-                from ...interaction_api import EEGProcessorInteractionAPI
+                # Get services from CLI config to avoid reinitializing
+                interaction_service = cli_config.get_interaction_service()
+                if not interaction_service:
+                    return Panel(
+                        "[red]Interaction service not available[/red]",
+                        title="Recording Monitor",
+                        border_style="red"
+                    )
                 
-                recording_status = EEGProcessorInteractionAPI.get_recording_status()
+                recording_status = interaction_service.get_recording_status()
                 elapsed = time.time() - start_time
                 
                 # Create display
@@ -560,11 +629,13 @@ Use 'control start-recording <filename>' to start recording.
         # Run live display
         with Live(create_recording_display(), refresh_per_second=1/refresh_rate) as live:
             try:
-                while True:
+                while not stop_event.is_set():
                     live.update(create_recording_display())
                     time.sleep(refresh_rate)
             except KeyboardInterrupt:
-                console.print("\n[yellow]Recording monitoring stopped by user[/yellow]")
+                console.print("\n[yellow]Recording monitoring stopped by Ctrl+C[/yellow]")
+                
+        console.print("\n[yellow]Recording monitoring stopped[/yellow]")
                 
     except Exception as e:
         console.print(f"[red]Error monitoring recording: {e}[/red]")
