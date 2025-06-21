@@ -1922,6 +1922,134 @@ class InteractionService:
                 "message": f"MNE channel selection failed: {str(e)}",
             }
 
+    def compute_wavelet(
+            self,
+            wavelet_type: int,
+            decomposition_level: int,
+            channel: int,
+            extension_type: int = 0,
+            apply_denoising: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Compute wavelet transform.
+
+        Args:
+            wavelet_type: Type of wavelet (from WaveletTypes enum)
+            decomposition_level: Number of decomposition levels (1-8)
+            channel: Channel index to process
+            extension_type: Extension method (from WaveletExtensionTypes enum)
+            apply_denoising: Whether to apply wavelet denoising
+
+        Returns:
+            Dictionary with wavelet computation result information
+        """
+        try:
+            # Validate parameters
+            if decomposition_level < 1 or decomposition_level > 8:
+                return {
+                    "success": False,
+                    "message": "Decomposition level must be between 1 and 8",
+                    "error": "INVALID_DECOMPOSITION_LEVEL"
+                }
+
+            # Validate channel index
+            data_service = self._get_data_access_service()
+            metadata = data_service.get_metadata()
+            eeg_channels = metadata.get("eeg_channels", [])
+
+            if channel < 0 or channel >= len(eeg_channels):
+                return {
+                    "success": False,
+                    "message": f"Invalid channel index: {channel}. Available channels: 0-{len(eeg_channels) - 1}",
+                    "error": "INVALID_CHANNEL"
+                }
+
+            # Dispatch event for GUI to handle wavelet computation
+            dispatch(
+                EventType.WAVELET_COMPUTE,
+                {
+                    "wavelet_type": wavelet_type,
+                    "decomposition_level": decomposition_level,
+                    "channel": channel,
+                    "extension_type": extension_type,
+                    "apply_denoising": apply_denoising,
+                    "source": "api"
+                },
+                source="interaction_service",
+            )
+
+            result = {
+                "success": True,
+                "wavelet_type": wavelet_type,
+                "decomposition_level": decomposition_level,
+                "channel": channel,
+                "extension_type": extension_type,
+                "apply_denoising": apply_denoising,
+                "message": f"Wavelet computation requested for channel {channel}"
+            }
+
+            return result
+
+        except Exception as e:
+            logging.error(f"Error requesting wavelet computation: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Wavelet computation request failed: {str(e)}",
+            }
+
+    def apply_wavelet_inverse(self, channel: int, apply: bool = True) -> Dict[str, Any]:
+        """
+        Apply or remove wavelet inverse transform.
+
+        Args:
+            channel: Channel index to apply inverse transform
+            apply: Whether to apply (True) or remove (False) the inverse transform
+
+        Returns:
+            Dictionary with inverse transform result information
+        """
+        try:
+            # Validate channel index
+            data_service = self._get_data_access_service()
+            metadata = data_service.get_metadata()
+            eeg_channels = metadata.get("eeg_channels", [])
+
+            if channel < 0 or channel >= len(eeg_channels):
+                return {
+                    "success": False,
+                    "message": f"Invalid channel index: {channel}. Available channels: 0-{len(eeg_channels) - 1}",
+                    "error": "INVALID_CHANNEL"
+                }
+
+            # Dispatch event for GUI to handle inverse transform
+            dispatch(
+                EventType.WAVELET_APPLY_INVERSE,
+                {
+                    "channel": channel,
+                    "apply": apply,
+                    "source": "api"
+                },
+                source="interaction_service",
+            )
+
+            result = {
+                "success": True,
+                "channel": channel,
+                "apply": apply,
+                "message": f"Wavelet inverse transform {'applied to' if apply else 'removed from'} channel {channel}"
+            }
+
+            return result
+
+        except Exception as e:
+            logging.error(f"Error applying wavelet inverse: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Wavelet inverse transform failed: {str(e)}",
+            }
+
     def cleanup(self) -> None:
         """Clean up the interaction service."""
         try:

@@ -43,6 +43,14 @@ class AdvancedProcessingPanel(BasePanel):
             self._handle_api_ica_channels_safe
         )
 
+        # Connect wavelet signals
+        self.api_event_handler.wavelet_compute_signal.connect(
+            self._handle_api_wavelet_compute_safe
+        )
+        self.api_event_handler.wavelet_inverse_signal.connect(
+            self._handle_api_wavelet_inverse_safe
+        )
+
         self._setup_advanced_panel()
 
         # Setup event subscriptions for API synchronization
@@ -158,6 +166,14 @@ class AdvancedProcessingPanel(BasePanel):
                 EventType.ICA_SELECT_CHANNELS, self._handle_api_ica_channels_thread_safe
             )
 
+            # Subscribe to wavelet events
+            event_dispatcher.subscribe(
+                EventType.WAVELET_COMPUTE, self._handle_api_wavelet_compute_thread_safe
+            )
+            event_dispatcher.subscribe(
+                EventType.WAVELET_APPLY_INVERSE, self._handle_api_wavelet_inverse_thread_safe
+            )
+
         except Exception as e:
             logging.error(f"Error setting up API event subscriptions: {e}")
 
@@ -263,6 +279,130 @@ class AdvancedProcessingPanel(BasePanel):
         except Exception as e:
             logging.error(f"Error in API ICA channels handler: {e}")
 
+    def _handle_api_wavelet_compute_thread_safe(self, event: Any) -> None:
+        """Handle wavelet compute events from API in a thread-safe way."""
+        try:
+            data = event.data
+            logging.info(f"API Wavelet compute event received: {data}")
+
+            self.api_event_handler.wavelet_compute_signal.emit(data)
+        except Exception as e:
+            logging.error(f"Error handling API wavelet compute event: {e}")
+
+    def _handle_api_wavelet_inverse_thread_safe(self, event: Any) -> None:
+        """Handle wavelet inverse events from API in a thread-safe way."""
+        try:
+            data = event.data
+            channel = data.get("channel", 0)
+            apply = data.get("apply", True)
+
+            logging.info(f"API Wavelet inverse event received: channel={channel}, apply={apply}")
+
+            self.api_event_handler.wavelet_inverse_signal.emit(channel, apply)
+        except Exception as e:
+            logging.error(f"Error handling API wavelet inverse event: {e}")
+
+    def _handle_api_wavelet_compute_safe(self, wavelet_params: Dict[str, Any]) -> None:
+        """Handle wavelet compute from API safely in main thread."""
+        try:
+            wavelet_type = wavelet_params.get("wavelet_type", 4)  # Default to DB4
+            decomposition_level = wavelet_params.get("decomposition_level", 3)
+            channel = wavelet_params.get("channel", 0)
+            extension_type = wavelet_params.get("extension_type", 0)
+            apply_denoising = wavelet_params.get("apply_denoising", False)
+
+            logging.info(f"API Wavelet compute: type={wavelet_type}, level={decomposition_level}, channel={channel}")
+
+            # Update wavelet widget settings
+            wavelet_widget = self.wavelet_widget
+
+            # Update wavelet type
+            wavelet_combo = wavelet_widget.wavelet_type_combo
+            wavelet_combo.blockSignals(True)
+            for i in range(wavelet_combo.count()):
+                if wavelet_combo.itemData(i) == wavelet_type:
+                    wavelet_combo.setCurrentIndex(i)
+                    break
+            wavelet_combo.blockSignals(False)
+
+            # Update decomposition level
+            wavelet_widget.wavelet_level_spin.blockSignals(True)
+            wavelet_widget.wavelet_level_spin.setValue(decomposition_level)
+            wavelet_widget.wavelet_level_spin.blockSignals(False)
+
+            # Update channel selection
+            channel_combo = wavelet_widget.wavelet_channel_combo
+            channel_combo.blockSignals(True)
+            if channel < channel_combo.count():
+                channel_combo.setCurrentIndex(channel)
+            channel_combo.blockSignals(False)
+
+            # Update extension type
+            extension_combo = wavelet_widget.extension_combo
+            extension_combo.blockSignals(True)
+            for i in range(extension_combo.count()):
+                if extension_combo.itemData(i) == extension_type:
+                    extension_combo.setCurrentIndex(i)
+                    break
+            extension_combo.blockSignals(False)
+
+            # Update denoising checkbox
+            wavelet_widget.apply_denoising_check.blockSignals(True)
+            wavelet_widget.apply_denoising_check.setChecked(apply_denoising)
+            wavelet_widget.apply_denoising_check.blockSignals(False)
+
+            # Trigger wavelet computation through controller
+            params = {
+                "wavelet_type": wavelet_type,
+                "decomp_level": decomposition_level,
+                "channel_selection": channel,
+                "extension_type": extension_type,
+                "apply_denoising": apply_denoising,
+            }
+
+            logging.info(f"Triggering wavelet computation with params: {params}")
+            self.controller._handle_wavelet_computation(params)
+
+        except Exception as e:
+            logging.error(f"Error in API wavelet compute handler: {e}")
+            import traceback
+            logging.error(f"Traceback: {traceback.format_exc()}")
+            self.controller.error_message.emit("API Wavelet Error", f"Error processing wavelet request: {str(e)}")
+
+    def _handle_api_wavelet_inverse_safe(self, channel: int, apply: bool) -> None:
+        """Handle wavelet inverse from API safely in main thread."""
+        try:
+            logging.info(f"API Wavelet inverse: channel={channel}, apply={apply}")
+
+            # Update channel selection to match the inverse transform request
+            channel_combo = self.wavelet_widget.wavelet_channel_combo
+            channel_combo.blockSignals(True)
+            if channel < channel_combo.count():
+                channel_combo.setCurrentIndex(channel)
+            channel_combo.blockSignals(False)
+
+            # Update the inverse applied state
+            self.wavelet_widget.inverse_applied = apply
+
+            # Update button appearance
+            if apply:
+                self.wavelet_widget.inverse_wavelet_btn.setText("Remove Inverse Transform")
+                self.wavelet_widget.inverse_wavelet_btn.setStyleSheet(
+                    "background-color: #AA3333; color: white;"
+                )
+            else:
+                self.wavelet_widget.inverse_wavelet_btn.setText("Apply Inverse Transform")
+                self.wavelet_widget.inverse_wavelet_btn.setStyleSheet("")
+
+            # Trigger inverse transform through controller
+            self.controller._handle_wavelet_inverse(apply)
+
+            logging.info(f"Wavelet inverse {'applied' if apply else 'removed'} for channel {channel}")
+
+        except Exception as e:
+            logging.error(f"Error in API wavelet inverse handler: {e}")
+            self.controller.error_message.emit("API Wavelet Error", f"Error processing inverse request: {str(e)}")
+
 
 class ApiEventHandler(QObject):
     """Thread-safe handler for API events."""
@@ -270,6 +410,9 @@ class ApiEventHandler(QObject):
     ica_compute_signal = pyqtSignal(int, list)  # num_components, selected_channels
     ica_view_signal = pyqtSignal(str)  # colormap
     ica_channels_signal = pyqtSignal(list)  # channel_indices
+
+    wavelet_compute_signal = pyqtSignal(dict)  # wavelet parameters
+    wavelet_inverse_signal = pyqtSignal(int, bool)  # channel, apply
 
     def __init__(self):
         super().__init__()

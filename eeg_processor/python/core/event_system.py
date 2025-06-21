@@ -55,6 +55,7 @@ class EventType(Enum):
     ICA_SELECT_CHANNELS = auto()
     WAVELET_COMPUTE = auto()
     WAVELET_COMPLETED = auto()
+    WAVELET_APPLY_INVERSE = auto()
     DOWNSAMPLE_APPLY = auto()
     DOWNSAMPLE_COMPLETED = auto()
 

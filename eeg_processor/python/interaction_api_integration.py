@@ -1240,33 +1240,148 @@ class EEGProcessorInteractionApiIntegration:
         )
 
         # Compute wavelet
+        # Compute wavelet transform
         api_explorer.register_method(
             self._target_module_id,
             "advanced",
             "compute_wavelet",
             {
-                "name": "compute_wavelet(wavelet_type, level, channel)",
-                "description": "Compute wavelet transform",
+                "name": "compute_wavelet(wavelet_type, decomposition_level, channel, extension_type, apply_denoising)",
+                "description": "Compute wavelet transform on specified channel",
                 "type": "POST",
                 "params": {
                     "wavelet_type": {
-                        "type": "number",
-                        "description": "Type of wavelet",
+                        "type": "select",
+                        "description": "Type of wavelet to use",
                         "required": True,
+                        "options": [
+                            # Daubechies wavelets
+                            {"value": "0", "label": "Haar"},
+                            {"value": "1", "label": "DB1"},
+                            {"value": "2", "label": "DB2"},
+                            {"value": "3", "label": "DB3"},
+                            {"value": "4", "label": "DB4 (Default)"},
+                            {"value": "5", "label": "DB5"},
+                            {"value": "6", "label": "DB6"},
+                            {"value": "7", "label": "DB7"},
+                            {"value": "8", "label": "DB8"},
+                            {"value": "9", "label": "DB9"},
+                            {"value": "10", "label": "DB10"},
+                            {"value": "11", "label": "DB11"},
+                            {"value": "12", "label": "DB12"},
+                            {"value": "13", "label": "DB13"},
+                            {"value": "14", "label": "DB14"},
+                            {"value": "15", "label": "DB15"},
+                            # Biorthogonal wavelets
+                            {"value": "16", "label": "BIOR1_1"},
+                            {"value": "17", "label": "BIOR1_3"},
+                            {"value": "18", "label": "BIOR1_5"},
+                            {"value": "19", "label": "BIOR2_2"},
+                            {"value": "20", "label": "BIOR2_4"},
+                            {"value": "21", "label": "BIOR2_6"},
+                            {"value": "22", "label": "BIOR2_8"},
+                            {"value": "23", "label": "BIOR3_1"},
+                            {"value": "24", "label": "BIOR3_3"},
+                            {"value": "25", "label": "BIOR3_5"},
+                            {"value": "26", "label": "BIOR3_7"},
+                            {"value": "27", "label": "BIOR3_9"},
+                            {"value": "28", "label": "BIOR4_4"},
+                            {"value": "29", "label": "BIOR5_5"},
+                            {"value": "30", "label": "BIOR6_8"},
+                            # Coiflets wavelets
+                            {"value": "31", "label": "COIF1"},
+                            {"value": "32", "label": "COIF2"},
+                            {"value": "33", "label": "COIF3"},
+                            {"value": "34", "label": "COIF4"},
+                            {"value": "35", "label": "COIF5"},
+                            # Symlets wavelets
+                            {"value": "36", "label": "SYM2"},
+                            {"value": "37", "label": "SYM3"},
+                            {"value": "38", "label": "SYM4"},
+                            {"value": "39", "label": "SYM5"},
+                            {"value": "40", "label": "SYM6"},
+                            {"value": "41", "label": "SYM7"},
+                            {"value": "42", "label": "SYM8"},
+                            {"value": "43", "label": "SYM9"},
+                            {"value": "44", "label": "SYM10"},
+                        ],
+                        "default": "4",  # DB4
                     },
-                    "level": {
-                        "type": "number",
-                        "description": "Decomposition level",
+                    "decomposition_level": {
+                        "type": "range",
+                        "description": "<span style='color:#f0f0f0;'>Decomposition level (1-8)</span>",
+                        "min": 1,
+                        "max": 8,
+                        "step": 1,
+                        "display_value": True,
+                        "display_format": "Level {value}",
                         "required": True,
+                        "default": 3,
                     },
                     "channel": {
                         "type": "number",
-                        "description": "Channel to process",
+                        "description": "Channel index to process (0-based)",
                         "required": True,
+                        "min": 0,
+                        "default": 0,
+                        "help_text": "Index of the EEG channel to apply wavelet transform (starts from 0)"
                     },
+                    "extension_type": {
+                        "type": "select",
+                        "description": "Boundary extension method",
+                        "required": False,
+                        "options": [
+                            {"value": "0", "label": "Symmetric (Default)"},
+                            {"value": "1", "label": "Periodic"},
+                        ],
+                        "default": "0",
+                    },
+                    "apply_denoising": {
+                        "type": "select",
+                        "description": "Apply wavelet denoising",
+                        "required": False,
+                        "options": [
+                            {"value": "true", "label": "True - Apply denoising"},
+                            {"value": "false", "label": "False - No denoising"},
+                        ],
+                        "default": "false",
+                    }
                 },
             },
             self._handle_compute_wavelet,
+        )
+
+        # Apply wavelet inverse transform
+        api_explorer.register_method(
+            self._target_module_id,
+            "advanced",
+            "apply_wavelet_inverse",
+            {
+                "name": "apply_wavelet_inverse(channel, apply)",
+                "description": "Apply or remove wavelet inverse transform",
+                "type": "POST",
+                "params": {
+                    "channel": {
+                        "type": "number",
+                        "description": "Channel index for inverse transform (0-based)",
+                        "required": True,
+                        "min": 0,
+                        "default": 0,
+                        "help_text": "Index of the EEG channel to apply inverse transform (must match the channel used in compute_wavelet)"
+                    },
+                    "apply": {
+                        "type": "select",
+                        "description": "Apply or remove inverse transform",
+                        "required": False,
+                        "options": [
+                            {"value": "true", "label": "True - Apply inverse transform"},
+                            {"value": "false", "label": "False - Remove inverse transform"},
+                        ],
+                        "default": "true",
+                    }
+                },
+            },
+            self._handle_apply_wavelet_inverse,
         )
 
     async def _handle_perform_ica(self, num_components: float, selected_channels: str = "") -> Dict[str, Any]:
@@ -1862,10 +1977,80 @@ class EEGProcessorInteractionApiIntegration:
             }
 
     async def _handle_compute_wavelet(
-        self, wavelet_type: int, level: int, channel: int
+            self,
+            wavelet_type: str,
+            decomposition_level: float,
+            channel: float,
+            extension_type: str = "0",
+            apply_denoising: str = "false"
     ) -> Dict[str, Any]:
-        """Handle compute_wavelet."""
-        return EEGProcessorInteractionAPI.compute_wavelet(wavelet_type, level, channel)
+        """Handle compute_wavelet with proper type conversion."""
+        try:
+            # Convert parameters
+            wavelet_type_int = int(wavelet_type)
+            decomposition_level_int = int(round(decomposition_level))
+            channel_int = int(round(channel))
+            extension_type_int = int(extension_type)
+            apply_denoising_bool = apply_denoising.lower() == "true"
+
+            # Validate parameters
+            if decomposition_level_int < 1 or decomposition_level_int > 8:
+                return {
+                    "success": False,
+                    "message": f"Decomposition level must be between 1 and 8, got {decomposition_level_int}",
+                    "error": "INVALID_DECOMPOSITION_LEVEL"
+                }
+
+            if channel_int < 0:
+                return {
+                    "success": False,
+                    "message": f"Channel index must be >= 0, got {channel_int}",
+                    "error": "INVALID_CHANNEL"
+                }
+
+            logging.info(
+                f"Wavelet handler: type={wavelet_type_int}, level={decomposition_level_int}, channel={channel_int}, extension={extension_type_int}, denoising={apply_denoising_bool}")
+
+            return EEGProcessorInteractionAPI.compute_wavelet(
+                wavelet_type_int, decomposition_level_int, channel_int, extension_type_int, apply_denoising_bool
+            )
+        except Exception as e:
+            logging.error(f"Error in compute_wavelet handler: {e}")
+            return {
+                "success": False,
+                "message": f"Wavelet computation failed: {e}",
+                "error": str(e),
+            }
+
+    async def _handle_apply_wavelet_inverse(
+            self,
+            channel: float,
+            apply: str = "true"
+    ) -> Dict[str, Any]:
+        """Handle apply_wavelet_inverse with proper type conversion."""
+        try:
+            # Convert parameters
+            channel_int = int(round(channel))
+            apply_bool = apply.lower() == "true"
+
+            # Validate parameters
+            if channel_int < 0:
+                return {
+                    "success": False,
+                    "message": f"Channel index must be >= 0, got {channel_int}",
+                    "error": "INVALID_CHANNEL"
+                }
+
+            logging.info(f"Wavelet inverse handler: channel={channel_int}, apply={apply_bool}")
+
+            return EEGProcessorInteractionAPI.apply_wavelet_inverse(channel_int, apply_bool)
+        except Exception as e:
+            logging.error(f"Error in apply_wavelet_inverse handler: {e}")
+            return {
+                "success": False,
+                "message": f"Wavelet inverse failed: {e}",
+                "error": str(e),
+            }
 
     async def _handle_get_connection_status(self) -> Dict[str, Any]:
         """Handle get_connection_status."""

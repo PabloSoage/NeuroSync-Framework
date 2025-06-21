@@ -607,6 +607,61 @@ class EEGProcessorInteractionAPI:
                 "success": False,
                 "message": "Error computing wavelet",
                 "error": str(e),
+            }@staticmethod
+    def compute_wavelet(
+        wavelet_type: int,
+        decomposition_level: int,
+        channel: int,
+        extension_type: int = 0,
+        apply_denoising: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Compute wavelet transform.
+
+        Args:
+            wavelet_type: Type of wavelet (from WaveletTypes enum)
+            decomposition_level: Number of decomposition levels (1-8)
+            channel: Channel index to process
+            extension_type: Extension method (from WaveletExtensionTypes enum)
+            apply_denoising: Whether to apply wavelet denoising
+
+        Returns:
+            Dictionary with wavelet computation result
+        """
+        try:
+            service = InteractionService.get_instance()
+            return service.compute_wavelet(
+                wavelet_type, decomposition_level, channel, extension_type, apply_denoising
+            )
+        except Exception as e:
+            logging.error(f"Error computing wavelet: {e}")
+            return {
+                "success": False,
+                "message": "Error computing wavelet",
+                "error": str(e),
+            }
+
+    @staticmethod
+    def apply_wavelet_inverse(channel: int, apply: bool = True) -> Dict[str, Any]:
+        """
+        Apply or remove wavelet inverse transform.
+
+        Args:
+            channel: Channel index to apply inverse transform
+            apply: Whether to apply (True) or remove (False) the inverse transform
+
+        Returns:
+            Dictionary with inverse transform result
+        """
+        try:
+            service = InteractionService.get_instance()
+            return service.apply_wavelet_inverse(channel, apply)
+        except Exception as e:
+            logging.error(f"Error applying wavelet inverse: {e}")
+            return {
+                "success": False,
+                "message": "Error applying wavelet inverse",
+                "error": str(e),
             }
 
     @staticmethod
