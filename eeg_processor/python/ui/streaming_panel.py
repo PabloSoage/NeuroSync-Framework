@@ -35,7 +35,7 @@ class StreamingPanel(BasePanel):
         try:
             from ..services.recording_service import RecordingService
 
-            self.recording_service = RecordingService().get_instance()
+            self.recording_service = RecordingService.get_instance()
         except Exception as e:
             self.recording_service = None
             logging.error(f"Could not load recording service: {e}")
