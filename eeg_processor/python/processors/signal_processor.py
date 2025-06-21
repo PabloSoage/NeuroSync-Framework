@@ -99,7 +99,7 @@ class SignalProcessor:
             order = max(2, min(order, 3))  # Limit order to 2-3 for maximum stability
 
             if original_ripple != ripple:
-                logging.info(
+                logging.debug(
                     f"Adjusted Chebyshev ripple from {original_ripple:.1f} to {ripple:.1f} dB for stability"
                 )
 
@@ -462,7 +462,7 @@ class SignalProcessor:
 
         self.processed_data = filtered_data
         noise_freq = "50Hz" if noise_type == NoiseTypes.FIFTY else "60Hz"
-        logging.info(f"Removed {noise_freq} environmental noise")
+        logging.debug(f"Removed {noise_freq} environmental noise")
         return filtered_data
 
     def perform_downsampling(
@@ -489,7 +489,7 @@ class SignalProcessor:
             )
 
         self.processed_data = downsampled_data
-        logging.info(f"Downsampled data by factor {factor}")
+        logging.debug(f"Downsampled data by factor {factor}")
         return downsampled_data
 
     def detrend(
@@ -510,7 +510,7 @@ class SignalProcessor:
             DataFilter.detrend(detrended_data[channel_idx], operation)
 
         self.processed_data = detrended_data
-        logging.info(f"Detrended data with {operation}")
+        logging.debug(f"Detrended data with {operation}")
         return detrended_data
 
     def get_psd(
@@ -536,7 +536,7 @@ class SignalProcessor:
             )
             psd_result.append(psd)
 
-        logging.info(f"Calculated PSD with {window} window")
+        logging.debug(f"Calculated PSD with {window} window")
         return freqs, np.array(psd_result)
 
     def get_band_power(
@@ -617,7 +617,7 @@ class SignalProcessor:
             metrics["relaxation"] = metrics["restfulness"]
             restfulness_model.release()
 
-            logging.info(f"EEG metrics calculated: {metrics}")
+            logging.debug(f"EEG metrics calculated: {metrics}")
             return metrics
 
         except Exception as e:
@@ -687,7 +687,7 @@ class SignalProcessor:
                 data[channel_idx], lag, threshold, influence
             )
 
-        logging.info(f"Detected peaks with threshold {threshold}")
+        logging.debug(f"Detected peaks with threshold {threshold}")
         return peaks
 
     def restore_wavelet_coeffs(
