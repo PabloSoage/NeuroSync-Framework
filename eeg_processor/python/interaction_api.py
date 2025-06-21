@@ -693,6 +693,40 @@ class EEGProcessorInteractionAPI:
             }
 
     @staticmethod
+    def apply_advanced_filters(
+            filter_type: int,
+            order: int = 4,
+            window_function: int = 0,
+            selected_channels: Optional[List[int]] = None,
+            apply: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Apply or remove advanced filters to data stream.
+
+        Args:
+            filter_type: Filter type (from FilterTypes enum)
+            order: Filter order (1-10)
+            window_function: Window function (from WindowOperations enum)
+            selected_channels: List of channel indices to filter (empty = all channels)
+            apply: Whether to apply (True) or remove (False) advanced filters
+
+        Returns:
+            Dictionary with advanced filters result
+        """
+        try:
+            service = InteractionService.get_instance()
+            return service.apply_advanced_filters(
+                filter_type, order, window_function, selected_channels or [], apply
+            )
+        except Exception as e:
+            logging.error(f"Error applying advanced filters: {e}")
+            return {
+                "success": False,
+                "message": "Error applying advanced filters",
+                "error": str(e),
+            }
+
+    @staticmethod
     def save_current_data(filename: str, data_type: str = "raw") -> Dict[str, Any]:
         """
         Save current data to file.

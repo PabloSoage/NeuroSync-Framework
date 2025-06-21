@@ -58,6 +58,8 @@ class EventType(Enum):
     WAVELET_APPLY_INVERSE = auto()
     DOWNSAMPLE_APPLY = auto()
     DOWNSAMPLE_COMPLETED = auto()
+    ADVANCED_FILTERS_APPLY = auto()
+    ADVANCED_FILTERS_COMPLETED = auto()
 
     # MNE events
     MNE_CONVERT = auto()

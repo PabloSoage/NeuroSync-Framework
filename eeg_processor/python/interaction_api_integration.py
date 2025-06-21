@@ -1430,6 +1430,132 @@ class EEGProcessorInteractionApiIntegration:
             self._handle_apply_downsampling,
         )
 
+        # Apply advanced filters
+        api_explorer.register_method(
+            self._target_module_id,
+            "advanced",
+            "apply_advanced_filters",
+            {
+                "name": "apply_advanced_filters(filter_type, order, window_function, selected_channels, apply)",
+                "description": "Apply or remove advanced filters to data stream",
+                "type": "POST",
+                "params": {
+                    "filter_type": {
+                        "type": "select",
+                        "description": "Type of filter to apply",
+                        "required": False,
+                        "options": [
+                            {"value": "0", "label": "Butterworth (Default)"},
+                            {"value": "1", "label": "Chebyshev Type 1"},
+                            {"value": "2", "label": "Bessel"},
+                            {"value": "3", "label": "Butterworth Zero Phase"},
+                            {"value": "4", "label": "Chebyshev Type 1 Zero Phase"},
+                            {"value": "5", "label": "Bessel Zero Phase"},
+                        ],
+                        "default": "0",
+                    },
+                    "order": {
+                        "type": "range",
+                        "description": "<span style='color:#f0f0f0;'>Filter order (1-10)</span>",
+                        "min": 1,
+                        "max": 10,
+                        "step": 1,
+                        "display_value": True,
+                        "display_format": "Order {value}",
+                        "required": False,
+                        "default": 4,
+                    },
+                    "window_function": {
+                        "type": "select",
+                        "description": "Window function for filtering",
+                        "required": False,
+                        "options": [
+                            {"value": "0", "label": "No Window (Default)"},
+                            {"value": "1", "label": "Hanning"},
+                            {"value": "2", "label": "Hamming"},
+                            {"value": "3", "label": "Blackman Harris"},
+                        ],
+                        "default": "0",
+                    },
+                    "selected_channels": {
+                        "type": "text",
+                        "description": "List of channel indices (comma-separated: 0,1,2 or JSON: [0,1,2]) - leave empty for all channels",
+                        "required": False,
+                        "default": "",
+                        "placeholder": "0,1,2,3 or [0,1,2,3] or leave empty",
+                        "data-type": "array",
+                        "help_text": "Enter channel indices as comma-separated values (0,1,2) or JSON array ([0,1,2]). Leave empty to filter all channels."
+                    },
+                    "apply": {
+                        "type": "select",
+                        "description": "Apply or remove advanced filters",
+                        "required": False,
+                        "options": [
+                            {"value": "true", "label": "True - Apply advanced filters"},
+                            {"value": "false", "label": "False - Remove advanced filters"},
+                        ],
+                        "default": "true",
+                    }
+                },
+            },
+            self._handle_apply_advanced_filters,
+        )
+
+    async def _handle_apply_advanced_filters(
+            self,
+            filter_type: str = "0",
+            order: float = 4,
+            window_function: str = "0",
+            selected_channels: str = "",
+            apply: str = "true"
+    ) -> Dict[str, Any]:
+        """Handle apply_advanced_filters with proper type conversion."""
+        try:
+            # Convert parameters
+            filter_type_int = int(filter_type)
+            order_int = int(round(order))
+            window_function_int = int(window_function)
+            apply_bool = apply.lower() == "true"
+
+            # Convert channel string to array
+            channel_list = self._parse_channel_string(selected_channels)
+
+            # Validate parameters
+            if order_int < 1 or order_int > 10:
+                return {
+                    "success": False,
+                    "message": f"Filter order must be between 1 and 10, got {order_int}",
+                    "error": "INVALID_ORDER"
+                }
+
+            if filter_type_int < 0 or filter_type_int > 5:
+                return {
+                    "success": False,
+                    "message": f"Invalid filter type. Must be 0-5, got {filter_type_int}",
+                    "error": "INVALID_FILTER_TYPE"
+                }
+
+            if window_function_int < 0 or window_function_int > 3:
+                return {
+                    "success": False,
+                    "message": f"Invalid window function. Must be 0-3, got {window_function_int}",
+                    "error": "INVALID_WINDOW_FUNCTION"
+                }
+
+            logging.info(
+                f"Advanced filters handler: type={filter_type_int}, order={order_int}, window={window_function_int}, channels={len(channel_list)}, apply={apply_bool}")
+
+            return EEGProcessorInteractionAPI.apply_advanced_filters(
+                filter_type_int, order_int, window_function_int, channel_list, apply_bool
+            )
+        except Exception as e:
+            logging.error(f"Error in apply_advanced_filters handler: {e}")
+            return {
+                "success": False,
+                "message": f"Advanced filters failed: {e}",
+                "error": str(e),
+            }
+
     async def _handle_apply_downsampling(
             self,
             factor: float,

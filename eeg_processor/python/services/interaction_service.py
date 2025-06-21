@@ -2114,6 +2114,95 @@ class InteractionService:
                 "message": f"Downsampling request failed: {str(e)}",
             }
 
+    def apply_advanced_filters(
+            self,
+            filter_type: int,
+            order: int = 4,
+            window_function: int = 0,
+            selected_channels: Optional[List[int]] = None,
+            apply: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Apply or remove advanced filters to data stream.
+
+        Args:
+            filter_type: Filter type (from FilterTypes enum)
+            order: Filter order (1-10)
+            window_function: Window function (from WindowOperations enum)
+            selected_channels: List of channel indices to filter (empty = all channels)
+            apply: Whether to apply (True) or remove (False) advanced filters
+
+        Returns:
+            Dictionary with advanced filters result information
+        """
+        try:
+            # Validate parameters
+            if order < 1 or order > 10:
+                return {
+                    "success": False,
+                    "message": "Filter order must be between 1 and 10",
+                    "error": "INVALID_ORDER"
+                }
+
+            # Validate filter type (basic range check)
+            if filter_type < 0 or filter_type > 10:
+                return {
+                    "success": False,
+                    "message": "Invalid filter type",
+                    "error": "INVALID_FILTER_TYPE"
+                }
+
+            # If no channels specified, use all channels
+            if not selected_channels:
+                try:
+                    data_service = self._get_data_access_service()
+                    metadata = data_service.get_metadata()
+                    eeg_channels = metadata.get("eeg_channels", [])
+
+                    if eeg_channels:
+                        selected_channels = list(range(len(eeg_channels)))
+                        logging.info(f"No channels specified, using all {len(selected_channels)} EEG channels")
+                    else:
+                        selected_channels = []
+                        logging.warning("No EEG channels available")
+                except Exception as e:
+                    logging.warning(f"Could not get channel info: {e}")
+                    selected_channels = []
+
+            # Dispatch event for GUI to handle advanced filters
+            dispatch(
+                EventType.ADVANCED_FILTERS_APPLY,
+                {
+                    "filter_type": filter_type,
+                    "order": order,
+                    "window_function": window_function,
+                    "selected_channels": selected_channels,
+                    "apply": apply,
+                    "source": "api"
+                },
+                source="interaction_service",
+            )
+
+            result = {
+                "success": True,
+                "filter_type": filter_type,
+                "order": order,
+                "window_function": window_function,
+                "selected_channels": selected_channels,
+                "apply": apply,
+                "message": f"Advanced filters {'applied' if apply else 'removed'} on {len(selected_channels)} channels"
+            }
+
+            return result
+
+        except Exception as e:
+            logging.error(f"Error requesting advanced filters: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Advanced filters request failed: {str(e)}",
+            }
+
     def cleanup(self) -> None:
         """Clean up the interaction service."""
         try:

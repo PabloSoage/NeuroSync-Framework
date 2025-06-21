@@ -56,6 +56,11 @@ class AdvancedProcessingPanel(BasePanel):
             self._handle_api_downsampling_apply_safe
         )
 
+        # Connect advanced filters signal
+        self.api_event_handler.advanced_filters_apply_signal.connect(
+            self._handle_api_advanced_filters_apply_safe
+        )
+
         self._setup_advanced_panel()
 
         # Setup event subscriptions for API synchronization
@@ -182,6 +187,11 @@ class AdvancedProcessingPanel(BasePanel):
             # Subscribe to downsampling events
             event_dispatcher.subscribe(
                 EventType.DOWNSAMPLE_APPLY, self._handle_api_downsampling_apply_thread_safe
+            )
+
+            # Subscribe to advanced filters events
+            event_dispatcher.subscribe(
+                EventType.ADVANCED_FILTERS_APPLY, self._handle_api_advanced_filters_apply_thread_safe
             )
 
         except Exception as e:
@@ -490,6 +500,131 @@ class AdvancedProcessingPanel(BasePanel):
             self.controller.error_message.emit("API Downsampling Error",
                                                f"Error processing downsampling request: {str(e)}")
 
+    def _handle_api_advanced_filters_apply_thread_safe(self, event: Any) -> None:
+        """Handle advanced filters apply events from API in a thread-safe way."""
+        try:
+            data = event.data
+            logging.info(f"API Advanced filters apply event received: {data}")
+
+            self.api_event_handler.advanced_filters_apply_signal.emit(data)
+        except Exception as e:
+            logging.error(f"Error handling API advanced filters apply event: {e}")
+
+    def _handle_api_advanced_filters_apply_safe(self, filters_params: Dict[str, Any]) -> None:
+        """Handle advanced filters apply from API safely in main thread."""
+        try:
+            filter_type = filters_params.get("filter_type", 0)  # Default to Butterworth
+            order = filters_params.get("order", 4)
+            window_function = filters_params.get("window_function", 0)
+            selected_channels = filters_params.get("selected_channels", [])
+            apply = filters_params.get("apply", True)
+
+            # Validate parameters
+            if order < 1 or order > 10:
+                logging.error(f"Invalid order received: {order}, using default 4")
+                order = 4
+
+            logging.info(
+                f"API Advanced filters apply: type={filter_type}, order={order}, window={window_function}, channels={len(selected_channels)}, apply={apply}")
+
+            # Update advanced filter widget settings
+            filter_widget = self.advanced_filter_widget
+
+            # Update filter type
+            filter_type_combo = filter_widget.filter_type_combo
+            filter_type_combo.blockSignals(True)
+            for i in range(filter_type_combo.count()):
+                if filter_type_combo.itemData(i) == filter_type:
+                    filter_type_combo.setCurrentIndex(i)
+                    break
+            filter_type_combo.blockSignals(False)
+
+            # Update order
+            filter_widget.filter_order_spin.blockSignals(True)
+            filter_widget.filter_order_spin.setValue(order)
+            filter_widget.filter_order_spin.blockSignals(False)
+
+            # Update window function
+            window_combo = filter_widget.window_function_combo
+            window_combo.blockSignals(True)
+            for i in range(window_combo.count()):
+                if window_combo.itemData(i) == window_function:
+                    window_combo.setCurrentIndex(i)
+                    break
+            window_combo.blockSignals(False)
+
+            # Update channel selection
+            if selected_channels:
+                # Validate channel indices
+                valid_channels = []
+                for ch in selected_channels:
+                    if isinstance(ch, int) and 0 <= ch < len(filter_widget.channel_names):
+                        valid_channels.append(ch)
+
+                filter_widget.selected_channels = valid_channels
+                filter_widget._update_channel_display()
+                logging.info(f"Updated selected channels: {len(valid_channels)} channels")
+            else:
+                # Use all channels
+                filter_widget.selected_channels = list(range(len(filter_widget.channel_names)))
+                filter_widget._update_channel_display()
+                logging.info("Using all channels (none specified)")
+
+            # Update applied state
+            filter_widget.applied = apply
+
+            # Update button appearance
+            if apply:
+                filter_widget.apply_adv_filter_btn.setText("Remove Advanced Filters")
+                # Check if it's Chebyshev for special styling
+                from brainflow.data_filter import FilterTypes
+                if filter_type in [FilterTypes.CHEBYSHEV_TYPE_1, FilterTypes.CHEBYSHEV_TYPE_1_ZERO_PHASE]:
+                    filter_widget.apply_adv_filter_btn.setStyleSheet(
+                        "background-color: #DD4444; color: white;"
+                    )
+                else:
+                    filter_widget.apply_adv_filter_btn.setStyleSheet(
+                        "background-color: #AA3333; color: white;"
+                    )
+            else:
+                filter_widget.apply_adv_filter_btn.setText("Apply Advanced Filters")
+                # Check if it's Chebyshev for warning styling
+                from brainflow.data_filter import FilterTypes
+                if filter_type in [FilterTypes.CHEBYSHEV_TYPE_1, FilterTypes.CHEBYSHEV_TYPE_1_ZERO_PHASE]:
+                    filter_widget.apply_adv_filter_btn.setStyleSheet(
+                        "background-color: #CC6600; color: white;"
+                    )
+                else:
+                    filter_widget.apply_adv_filter_btn.setStyleSheet("")
+
+            # Trigger the filter type change handler to show/hide ripple controls
+            filter_widget._on_filter_type_changed()
+
+            # Get dynamic basic bandpass parameters from processing panel
+            basic_params = filter_widget._get_basic_bandpass_params()
+
+            # Trigger advanced filters through controller
+            params = {
+                "apply": apply,
+                "filter_type": filter_type,
+                "window_function": window_function,
+                "low_cut": basic_params["low_cut"],
+                "high_cut": basic_params["high_cut"],
+                "order": order,
+                "ripple": filter_widget.ripple_spin.value(),  # Get current ripple value
+                "selected_channels": filter_widget.selected_channels.copy()
+            }
+
+            logging.info(f"Triggering advanced filters with params: {params}")
+            self.controller._handle_advanced_filters(params)
+
+        except Exception as e:
+            logging.error(f"Error in API advanced filters apply handler: {e}")
+            import traceback
+            logging.error(f"Traceback: {traceback.format_exc()}")
+            self.controller.error_message.emit("API Advanced Filters Error",
+                                               f"Error processing advanced filters request: {str(e)}")
+
 
 class ApiEventHandler(QObject):
     """Thread-safe handler for API events."""
@@ -502,6 +637,8 @@ class ApiEventHandler(QObject):
     wavelet_inverse_signal = pyqtSignal(int, bool)  # channel, apply
 
     downsampling_apply_signal = pyqtSignal(int, int, bool)  # factor, aggregation_method, apply
+
+    advanced_filters_apply_signal = pyqtSignal(dict)  # advanced filters parameters
 
     def __init__(self):
         super().__init__()
