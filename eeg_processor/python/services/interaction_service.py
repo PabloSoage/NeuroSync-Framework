@@ -2050,6 +2050,70 @@ class InteractionService:
                 "message": f"Wavelet inverse transform failed: {str(e)}",
             }
 
+    def apply_downsampling(
+            self,
+            factor: int = 2,
+            aggregation_method: int = 0,
+            apply: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Apply or remove downsampling to data stream.
+
+        Args:
+            factor: Downsampling factor (2-10)
+            aggregation_method: Aggregation method (from AggOperations enum)
+            apply: Whether to apply (True) or remove (False) downsampling
+
+        Returns:
+            Dictionary with downsampling result information
+        """
+        try:
+            # Validate parameters
+            if factor < 2 or factor > 10:
+                return {
+                    "success": False,
+                    "message": "Downsampling factor must be between 2 and 10",
+                    "error": "INVALID_FACTOR"
+                }
+
+            # Validate aggregation method (0=Mean, 1=Median, 2=Each)
+            if aggregation_method < 0 or aggregation_method > 2:
+                return {
+                    "success": False,
+                    "message": "Invalid aggregation method. Must be 0 (Mean), 1 (Median), or 2 (Each)",
+                    "error": "INVALID_AGGREGATION_METHOD"
+                }
+
+            # Dispatch event for GUI to handle downsampling
+            dispatch(
+                EventType.DOWNSAMPLE_APPLY,
+                {
+                    "factor": factor,
+                    "aggregation_method": aggregation_method,
+                    "apply": apply,
+                    "source": "api"
+                },
+                source="interaction_service",
+            )
+
+            result = {
+                "success": True,
+                "factor": factor,
+                "aggregation_method": aggregation_method,
+                "apply": apply,
+                "message": f"Downsampling {'applied' if apply else 'removed'} with factor {factor}"
+            }
+
+            return result
+
+        except Exception as e:
+            logging.error(f"Error requesting downsampling: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Downsampling request failed: {str(e)}",
+            }
+
     def cleanup(self) -> None:
         """Clean up the interaction service."""
         try:

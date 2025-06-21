@@ -1239,7 +1239,6 @@ class EEGProcessorInteractionApiIntegration:
             self._handle_select_mne_channels,
         )
 
-        # Compute wavelet
         # Compute wavelet transform
         api_explorer.register_method(
             self._target_module_id,
@@ -1383,6 +1382,93 @@ class EEGProcessorInteractionApiIntegration:
             },
             self._handle_apply_wavelet_inverse,
         )
+
+        # Apply downsampling
+        api_explorer.register_method(
+            self._target_module_id,
+            "advanced",
+            "apply_downsampling",
+            {
+                "name": "apply_downsampling(factor, aggregation_method, apply)",
+                "description": "Apply or remove downsampling to data stream",
+                "type": "POST",
+                "params": {
+                    "factor": {
+                        "type": "range",
+                        "description": "<span style='color:#f0f0f0;'>Downsampling factor (2-10)</span>",
+                        "min": 2,
+                        "max": 10,
+                        "step": 1,
+                        "display_value": True,
+                        "display_format": "Factor {value}",
+                        "required": False,
+                        "default": 2,
+                    },
+                    "aggregation_method": {
+                        "type": "select",
+                        "description": "Aggregation method for downsampling",
+                        "required": False,
+                        "options": [
+                            {"value": "0", "label": "Mean (Default)"},
+                            {"value": "1", "label": "Median"},
+                            {"value": "2", "label": "Each"},
+                        ],
+                        "default": "0",
+                    },
+                    "apply": {
+                        "type": "select",
+                        "description": "Apply or remove downsampling",
+                        "required": False,
+                        "options": [
+                            {"value": "true", "label": "True - Apply downsampling"},
+                            {"value": "false", "label": "False - Remove downsampling"},
+                        ],
+                        "default": "true",
+                    }
+                },
+            },
+            self._handle_apply_downsampling,
+        )
+
+    async def _handle_apply_downsampling(
+            self,
+            factor: float,
+            aggregation_method: str = "0",
+            apply: str = "true"
+    ) -> Dict[str, Any]:
+        """Handle apply_downsampling with proper type conversion."""
+        try:
+            # Convert parameters
+            factor_int = int(round(factor))
+            aggregation_method_int = int(aggregation_method)
+            apply_bool = apply.lower() == "true"
+
+            # Validate parameters
+            if factor_int < 2 or factor_int > 10:
+                return {
+                    "success": False,
+                    "message": f"Downsampling factor must be between 2 and 10, got {factor_int}",
+                    "error": "INVALID_FACTOR"
+                }
+
+            if aggregation_method_int < 0 or aggregation_method_int > 2:
+                return {
+                    "success": False,
+                    "message": f"Invalid aggregation method. Must be 0-2, got {aggregation_method_int}",
+                    "error": "INVALID_AGGREGATION_METHOD"
+                }
+
+            logging.info(
+                f"Downsampling handler: factor={factor_int}, method={aggregation_method_int}, apply={apply_bool}")
+
+            return EEGProcessorInteractionAPI.apply_downsampling(factor_int, aggregation_method_int, apply_bool)
+        except Exception as e:
+            logging.error(f"Error in apply_downsampling handler: {e}")
+            return {
+                "success": False,
+                "message": f"Downsampling failed: {e}",
+                "error": str(e),
+            }
 
     async def _handle_perform_ica(self, num_components: float, selected_channels: str = "") -> Dict[str, Any]:
         """Handle perform_ica with proper numeric conversion."""

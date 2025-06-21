@@ -51,6 +51,11 @@ class AdvancedProcessingPanel(BasePanel):
             self._handle_api_wavelet_inverse_safe
         )
 
+        # Connect downsampling signal
+        self.api_event_handler.downsampling_apply_signal.connect(
+            self._handle_api_downsampling_apply_safe
+        )
+
         self._setup_advanced_panel()
 
         # Setup event subscriptions for API synchronization
@@ -172,6 +177,11 @@ class AdvancedProcessingPanel(BasePanel):
             )
             event_dispatcher.subscribe(
                 EventType.WAVELET_APPLY_INVERSE, self._handle_api_wavelet_inverse_thread_safe
+            )
+
+            # Subscribe to downsampling events
+            event_dispatcher.subscribe(
+                EventType.DOWNSAMPLE_APPLY, self._handle_api_downsampling_apply_thread_safe
             )
 
         except Exception as e:
@@ -403,6 +413,83 @@ class AdvancedProcessingPanel(BasePanel):
             logging.error(f"Error in API wavelet inverse handler: {e}")
             self.controller.error_message.emit("API Wavelet Error", f"Error processing inverse request: {str(e)}")
 
+    def _handle_api_downsampling_apply_thread_safe(self, event: Any) -> None:
+        """Handle downsampling apply events from API in a thread-safe way."""
+        try:
+            data = event.data
+            factor = data.get("factor", 2)
+            aggregation_method = data.get("aggregation_method", 0)
+            apply = data.get("apply", True)
+
+            logging.info(
+                f"API Downsampling apply event received: factor={factor}, method={aggregation_method}, apply={apply}")
+
+            self.api_event_handler.downsampling_apply_signal.emit(factor, aggregation_method, apply)
+        except Exception as e:
+            logging.error(f"Error handling API downsampling apply event: {e}")
+
+    def _handle_api_downsampling_apply_safe(self, factor: int, aggregation_method: int, apply: bool) -> None:
+        """Handle downsampling apply from API safely in main thread."""
+        try:
+            # Validate factor
+            if factor < 2 or factor > 10:
+                logging.error(f"Invalid factor received: {factor}, using default 2")
+                factor = 2
+
+            # Validate aggregation method
+            if aggregation_method < 0 or aggregation_method > 2:
+                logging.error(f"Invalid aggregation method received: {aggregation_method}, using default 0")
+                aggregation_method = 0
+
+            logging.info(f"API Downsampling apply: factor={factor}, method={aggregation_method}, apply={apply}")
+
+            # Update downsampling widget settings
+            downsampling_widget = self.downsampling_widget
+
+            # Update factor
+            downsampling_widget.downsample_factor_spin.blockSignals(True)
+            downsampling_widget.downsample_factor_spin.setValue(factor)
+            downsampling_widget.downsample_factor_spin.blockSignals(False)
+
+            # Update aggregation method
+            agg_combo = downsampling_widget.downsample_agg_combo
+            agg_combo.blockSignals(True)
+            for i in range(agg_combo.count()):
+                if agg_combo.itemData(i) == aggregation_method:
+                    agg_combo.setCurrentIndex(i)
+                    break
+            agg_combo.blockSignals(False)
+
+            # Update applied state
+            downsampling_widget.applied = apply
+
+            # Update button appearance
+            if apply:
+                downsampling_widget.apply_downsample_btn.setText("Remove Downsampling")
+                downsampling_widget.apply_downsample_btn.setStyleSheet(
+                    "background-color: #AA3333; color: white;"
+                )
+            else:
+                downsampling_widget.apply_downsample_btn.setText("Apply Downsampling")
+                downsampling_widget.apply_downsample_btn.setStyleSheet("")
+
+            # Trigger downsampling through controller
+            params = {
+                "apply": apply,
+                "factor": factor,
+                "operation": aggregation_method,
+            }
+
+            logging.info(f"Triggering downsampling with params: {params}")
+            self.controller._handle_downsampling(params)
+
+        except Exception as e:
+            logging.error(f"Error in API downsampling apply handler: {e}")
+            import traceback
+            logging.error(f"Traceback: {traceback.format_exc()}")
+            self.controller.error_message.emit("API Downsampling Error",
+                                               f"Error processing downsampling request: {str(e)}")
+
 
 class ApiEventHandler(QObject):
     """Thread-safe handler for API events."""
@@ -413,6 +500,8 @@ class ApiEventHandler(QObject):
 
     wavelet_compute_signal = pyqtSignal(dict)  # wavelet parameters
     wavelet_inverse_signal = pyqtSignal(int, bool)  # channel, apply
+
+    downsampling_apply_signal = pyqtSignal(int, int, bool)  # factor, aggregation_method, apply
 
     def __init__(self):
         super().__init__()

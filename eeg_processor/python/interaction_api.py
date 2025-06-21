@@ -665,6 +665,34 @@ class EEGProcessorInteractionAPI:
             }
 
     @staticmethod
+    def apply_downsampling(
+            factor: int = 2,
+            aggregation_method: int = 0,
+            apply: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Apply or remove downsampling to data stream.
+
+        Args:
+            factor: Downsampling factor (2-10)
+            aggregation_method: Aggregation method (0=Mean, 1=Median, 2=Each)
+            apply: Whether to apply (True) or remove (False) downsampling
+
+        Returns:
+            Dictionary with downsampling result
+        """
+        try:
+            service = InteractionService.get_instance()
+            return service.apply_downsampling(factor, aggregation_method, apply)
+        except Exception as e:
+            logging.error(f"Error applying downsampling: {e}")
+            return {
+                "success": False,
+                "message": "Error applying downsampling",
+                "error": str(e),
+            }
+
+    @staticmethod
     def save_current_data(filename: str, data_type: str = "raw") -> Dict[str, Any]:
         """
         Save current data to file.
