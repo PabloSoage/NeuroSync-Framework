@@ -494,24 +494,20 @@ class EEGProcessorInteractionAPI:
             }
 
     @staticmethod
-    def convert_to_mne(duration: int = 5) -> Dict[str, Any]:
+    def convert_to_mne(duration: int = 5, use_filters: bool = True) -> Dict[str, Any]:
         """
         Convert data to MNE format.
 
         Args:
             duration: Duration in seconds for conversion
+            use_filters: Whether to use processing panel filters
 
         Returns:
             Dictionary with MNE conversion result
         """
         try:
-            # This would need to be implemented in the interaction service
-            # For now, return a placeholder
-            return {
-                "success": False,
-                "message": "MNE conversion not yet implemented",
-                "error": "Feature not available",
-            }
+            service = InteractionService.get_instance()
+            return service.convert_to_mne(duration, use_filters)
         except Exception as e:
             logging.error(f"Error converting to MNE: {e}")
             return {
@@ -521,29 +517,66 @@ class EEGProcessorInteractionAPI:
             }
 
     @staticmethod
-    def plot_mne_visualization(plot_type: str) -> Dict[str, Any]:
+    def plot_mne_visualization(
+            plot_type: str = "PSD",
+            freq_min: int = 1,
+            freq_max: int = 50,
+            topomap_band: str = "Alpha (8-13 Hz)",
+            topomap_freq_min: int = 8,
+            topomap_freq_max: int = 13,
+            psd_individual_mode: bool = True,
+            selected_channels: Optional[List[int]] = None
+    ) -> Dict[str, Any]:
         """
         Plot MNE visualization.
 
         Args:
             plot_type: Type of MNE plot
+            freq_min: Minimum frequency for analysis
+            freq_max: Maximum frequency for analysis
+            topomap_band: Topomap frequency band
+            topomap_freq_min: Minimum frequency for topomap (if custom)
+            topomap_freq_max: Maximum frequency for topomap (if custom)
+            psd_individual_mode: Whether to show individual channels in PSD
+            selected_channels: List of channel indices to display
 
         Returns:
             Dictionary with MNE plot result
         """
         try:
-            # This would need to be implemented in the interaction service
-            # For now, return a placeholder
-            return {
-                "success": False,
-                "message": "MNE plotting not yet implemented",
-                "error": "Feature not available",
-            }
+            service = InteractionService.get_instance()
+            return service.plot_mne_visualization(
+                plot_type, freq_min, freq_max, topomap_band,
+                topomap_freq_min, topomap_freq_max, psd_individual_mode,
+                selected_channels or []
+            )
         except Exception as e:
             logging.error(f"Error plotting MNE visualization: {e}")
             return {
                 "success": False,
                 "message": "Error plotting MNE visualization",
+                "error": str(e),
+            }
+
+    @staticmethod
+    def select_mne_channels(channel_indices: List[int]) -> Dict[str, Any]:
+        """
+        Select channels for MNE analysis.
+
+        Args:
+            channel_indices: List of channel indices to select
+
+        Returns:
+            Dictionary with selection result
+        """
+        try:
+            service = InteractionService.get_instance()
+            return service.select_mne_channels(channel_indices)
+        except Exception as e:
+            logging.error(f"Error selecting MNE channels: {e}")
+            return {
+                "success": False,
+                "message": "Error selecting MNE channels",
                 "error": str(e),
             }
 

@@ -1723,6 +1723,205 @@ class InteractionService:
                 "message": f"Data save failed: {str(e)}",
             }
 
+    def convert_to_mne(self, duration: int, use_filters: bool = True) -> Dict[str, Any]:
+        """
+        Convert current EEG data to MNE format.
+
+        Args:
+            duration: Duration in seconds for conversion
+            use_filters: Whether to use processing panel filters
+
+        Returns:
+            Dictionary with conversion result information
+        """
+        try:
+            # Validate parameters
+            if duration < 1 or duration > 60:
+                return {
+                    "success": False,
+                    "message": "Duration must be between 1 and 60 seconds",
+                    "error": "INVALID_DURATION"
+                }
+
+            # Dispatch event for GUI to handle MNE conversion
+            dispatch(
+                EventType.MNE_CONVERT,
+                {
+                    "duration": duration,
+                    "use_filters": use_filters,
+                    "source": "api"
+                },
+                source="interaction_service",
+            )
+
+            result = {
+                "success": True,
+                "duration": duration,
+                "use_filters": use_filters,
+                "message": f"MNE conversion requested for {duration} seconds"
+            }
+
+            return result
+
+        except Exception as e:
+            logging.error(f"Error requesting MNE conversion: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"MNE conversion request failed: {str(e)}",
+            }
+
+    def plot_mne_visualization(
+            self,
+            plot_type: str = "PSD",
+            freq_min: int = 1,
+            freq_max: int = 50,
+            topomap_band: str = "Alpha (8-13 Hz)",
+            topomap_freq_min: int = 8,
+            topomap_freq_max: int = 13,
+            psd_individual_mode: bool = True,
+            selected_channels: Optional[List[int]] = None
+    ) -> Dict[str, Any]:
+        """
+        Generate MNE visualization plot.
+
+        Args:
+            plot_type: Type of plot ("PSD", "Topomap", "Raw Data", "Spectrogram")
+            freq_min: Minimum frequency for analysis
+            freq_max: Maximum frequency for analysis
+            topomap_band: Topomap frequency band
+            topomap_freq_min: Minimum frequency for topomap (if custom)
+            topomap_freq_max: Maximum frequency for topomap (if custom)
+            psd_individual_mode: Whether to show individual channels in PSD
+            selected_channels: List of channel indices to display
+
+        Returns:
+            Dictionary with plot result information
+        """
+        try:
+            # Validate plot type
+            valid_plot_types = ["PSD", "Topomap", "Raw Data", "Spectrogram"]
+            if plot_type not in valid_plot_types:
+                return {
+                    "success": False,
+                    "message": f"Invalid plot type. Must be one of: {valid_plot_types}",
+                    "error": "INVALID_PLOT_TYPE"
+                }
+
+            # Validate frequency range
+            if freq_min >= freq_max or freq_min < 1 or freq_max > 200:
+                return {
+                    "success": False,
+                    "message": "Invalid frequency range",
+                    "error": "INVALID_FREQUENCY_RANGE"
+                }
+
+            # If no channels specified, use all channels
+            if not selected_channels:
+                try:
+                    data_service = self._get_data_access_service()
+                    metadata = data_service.get_metadata()
+                    eeg_channels = metadata.get("eeg_channels", [])
+
+                    if eeg_channels:
+                        selected_channels = list(range(len(eeg_channels)))
+                        logging.info(f"No channels specified, using all {len(selected_channels)} EEG channels")
+                    else:
+                        selected_channels = []
+                        logging.warning("No EEG channels available")
+                except Exception as e:
+                    logging.warning(f"Could not get channel info: {e}")
+                    selected_channels = []
+
+            # Dispatch event for GUI to handle MNE visualization
+            dispatch(
+                EventType.MNE_PLOT,
+                {
+                    "plot_type": plot_type,
+                    "freq_min": freq_min,
+                    "freq_max": freq_max,
+                    "topomap_band": topomap_band,
+                    "topomap_freq_min": topomap_freq_min,
+                    "topomap_freq_max": topomap_freq_max,
+                    "psd_individual_mode": psd_individual_mode,
+                    "selected_channels": selected_channels,
+                    "source": "api"
+                },
+                source="interaction_service",
+            )
+
+            result = {
+                "success": True,
+                "plot_type": plot_type,
+                "freq_range": [freq_min, freq_max],
+                "selected_channels": selected_channels,
+                "message": f"MNE {plot_type} visualization requested"
+            }
+
+            return result
+
+        except Exception as e:
+            logging.error(f"Error requesting MNE visualization: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"MNE visualization request failed: {str(e)}",
+            }
+
+    def select_mne_channels(self, channel_indices: List[int]) -> Dict[str, Any]:
+        """
+        Select channels for MNE visualization.
+
+        Args:
+            channel_indices: List of channel indices to select
+
+        Returns:
+            Dictionary with selection result
+        """
+        try:
+            # Si la lista está vacía, usar todos los canales
+            if not channel_indices:
+                try:
+                    data_service = self._get_data_access_service()
+                    metadata = data_service.get_metadata()
+                    eeg_channels = metadata.get("eeg_channels", [])
+
+                    if eeg_channels:
+                        channel_indices = list(range(len(eeg_channels)))
+                        logging.info(f"No channels specified, selecting all {len(channel_indices)} EEG channels")
+                    else:
+                        channel_indices = []
+                        logging.warning("No EEG channels available")
+                except Exception as e:
+                    logging.warning(f"Could not get channel info: {e}")
+                    channel_indices = []
+
+            # Dispatch event for GUI to update channel selection
+            dispatch(
+                EventType.MNE_SELECT_CHANNELS,
+                {
+                    "channel_indices": channel_indices,
+                    "source": "api"
+                },
+                source="interaction_service",
+            )
+
+            result = {
+                "success": True,
+                "channel_indices": channel_indices,
+                "message": f"Selected {len(channel_indices)} channels for MNE"
+            }
+
+            return result
+
+        except Exception as e:
+            logging.error(f"Error selecting MNE channels: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"MNE channel selection failed: {str(e)}",
+            }
+
     def cleanup(self) -> None:
         """Clean up the interaction service."""
         try:

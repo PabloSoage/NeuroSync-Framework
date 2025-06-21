@@ -1084,14 +1084,27 @@ class EEGProcessorInteractionApiIntegration:
             "advanced",
             "convert_to_mne",
             {
-                "name": "convert_to_mne(duration)",
-                "description": "Convert data to MNE format",
+                "name": "convert_to_mne(duration, use_filters)",
+                "description": "Convert EEG data to MNE format",
                 "type": "POST",
                 "params": {
                     "duration": {
                         "type": "number",
-                        "description": "Duration in seconds for conversion",
+                        "description": "Duration in seconds for conversion (1-60)",
                         "required": False,
+                        "min": 1,
+                        "max": 60,
+                        "default": 5,
+                    },
+                    "use_filters": {
+                        "type": "select",
+                        "description": "Use processing panel filters",
+                        "required": False,
+                        "options": [
+                            {"value": "true", "label": "True"},
+                            {"value": "false", "label": "False"},
+                        ],
+                        "default": "true",
                     }
                 },
             },
@@ -1104,18 +1117,126 @@ class EEGProcessorInteractionApiIntegration:
             "advanced",
             "plot_mne_visualization",
             {
-                "name": "plot_mne_visualization(plot_type)",
-                "description": "Plot MNE visualization",
+                "name": "plot_mne_visualization(plot_type, freq_min, freq_max, topomap_band, topomap_freq_min, topomap_freq_max, psd_individual_mode, selected_channels)",
+                "description": "Generate MNE visualization plot",
                 "type": "POST",
                 "params": {
                     "plot_type": {
+                        "type": "select",
+                        "description": "Type of plot to generate",
+                        "required": False,
+                        "options": [
+                            {"value": "PSD", "label": "Power Spectral Density"},
+                            {"value": "Topomap", "label": "Topographic Map"},
+                            {"value": "Raw Data", "label": "Raw Data Plot"},
+                            {"value": "Spectrogram", "label": "Spectrogram"},
+                        ],
+                        "default": "PSD",
+                    },
+                    "freq_min": {
+                        "type": "range",
+                        "description": "<span style='color:#f0f0f0;'>Minimum frequency for analysis (1-100 Hz)</span>",
+                        "min": 1,
+                        "max": 100,
+                        "step": 1,
+                        "display_value": True,
+                        "display_format": "{value} Hz",
+                        "required": False,
+                        "default": 1,
+                    },
+                    "freq_max": {
+                        "type": "range",
+                        "description": "<span style='color:#f0f0f0;'>Maximum frequency for analysis (1-100 Hz)</span>",
+                        "min": 1,
+                        "max": 100,
+                        "step": 1,
+                        "display_value": True,
+                        "display_format": "{value} Hz",
+                        "required": False,
+                        "default": 50,
+                    },
+                    "topomap_band": {
+                        "type": "select",
+                        "description": "Topomap frequency band",
+                        "required": False,
+                        "options": [
+                            {"value": "Alpha (8-13 Hz)", "label": "Alpha (8-13 Hz)"},
+                            {"value": "Delta (1-4 Hz)", "label": "Delta (1-4 Hz)"},
+                            {"value": "Theta (4-8 Hz)", "label": "Theta (4-8 Hz)"},
+                            {"value": "Beta (13-30 Hz)", "label": "Beta (13-30 Hz)"},
+                            {"value": "Gamma (30-50 Hz)", "label": "Gamma (30-50 Hz)"},
+                            {"value": "Custom Range", "label": "Custom Range"},
+                        ],
+                        "default": "Alpha (8-13 Hz)",
+                    },
+                    "topomap_freq_min": {
+                        "type": "range",
+                        "description": "<span style='color:#f0f0f0;'>Topomap min freq (only for Custom Range) (1-100 Hz)</span>",
+                        "min": 1,
+                        "max": 100,
+                        "step": 1,
+                        "display_value": True,
+                        "display_format": "{value} Hz",
+                        "required": False,
+                        "default": 8,
+                    },
+                    "topomap_freq_max": {
+                        "type": "range",
+                        "description": "<span style='color:#f0f0f0;'>Topomap max freq (only for Custom Range) (1-100 Hz)</span>",
+                        "min": 1,
+                        "max": 100,
+                        "step": 1,
+                        "display_value": True,
+                        "display_format": "{value} Hz",
+                        "required": False,
+                        "default": 13,
+                    },
+                    "psd_individual_mode": {
+                        "type": "select",
+                        "description": "PSD Mode - Show individual channels",
+                        "required": False,
+                        "options": [
+                            {"value": "true", "label": "Show Individual Channels"},
+                            {"value": "false", "label": "Show Average with Band"},
+                        ],
+                        "default": "true",
+                    },
+                    "selected_channels": {
                         "type": "text",
-                        "description": "Type of MNE plot",
-                        "required": True,
+                        "description": "List of channel indices (comma-separated: 0,1,2 or JSON: [0,1,2]) - leave empty for all channels",
+                        "required": False,
+                        "default": "",
+                        "placeholder": "0,1,2,3 or [0,1,2,3] or leave empty",
+                        "data-type": "array",
+                        "help_text": "Enter channel indices as comma-separated values (0,1,2) or JSON array ([0,1,2]). Leave empty to use all channels."
                     }
                 },
             },
             self._handle_plot_mne_visualization,
+        )
+
+        # Select MNE channels
+        api_explorer.register_method(
+            self._target_module_id,
+            "advanced",
+            "select_mne_channels",
+            {
+                "name": "select_mne_channels(channel_indices)",
+                "description": "Select channels for MNE visualization",
+                "type": "POST",
+                "params": {
+                    "channel_indices": {
+                        "type": "text",
+                        "description": "List of channel indices (comma-separated: 0,1,2 or JSON: [0,1,2]) - leave empty for all channels",
+                        "required": False,
+                        "default": "",
+                        "placeholder": "0,1,2,3 or [0,1,2,3] or leave empty for all",
+                        "data-type": "array",
+                        "help_text": "Enter channel indices as comma-separated values (0,1,2) or JSON array ([0,1,2]). Leave empty to select all channels."
+                    }
+                },
+            },
+            self._handle_select_mne_channels,
         )
 
         # Compute wavelet
@@ -1656,13 +1777,89 @@ class EEGProcessorInteractionApiIntegration:
                 "error": str(e),
             }
 
-    async def _handle_convert_to_mne(self, duration: int = 5) -> Dict[str, Any]:
-        """Handle convert_to_mne."""
-        return EEGProcessorInteractionAPI.convert_to_mne(duration)
+    async def _handle_convert_to_mne(self, duration: float, use_filters: str = "true") -> Dict[str, Any]:
+        """Handle convert_to_mne with proper numeric conversion."""
+        try:
+            # Convert float to int safely
+            duration_int = int(round(duration))
 
-    async def _handle_plot_mne_visualization(self, plot_type: str) -> Dict[str, Any]:
-        """Handle plot_mne_visualization."""
-        return EEGProcessorInteractionAPI.plot_mne_visualization(plot_type)
+            # Validate the converted value
+            if duration_int < 1 or duration_int > 60:
+                return {
+                    "success": False,
+                    "message": f"Duration must be between 1 and 60 seconds, got {duration_int}",
+                    "error": "INVALID_DURATION"
+                }
+
+            # Convert string to boolean
+            use_filters_bool = use_filters.lower() == "true"
+
+            logging.info(
+                f"MNE convert handler: duration={duration} -> {duration_int}, use_filters={use_filters} -> {use_filters_bool}")
+
+            return EEGProcessorInteractionAPI.convert_to_mne(duration_int, use_filters_bool)
+        except Exception as e:
+            logging.error(f"Error in convert_to_mne handler: {e}")
+            return {
+                "success": False,
+                "message": f"MNE conversion failed: {e}",
+                "error": str(e),
+            }
+
+    async def _handle_plot_mne_visualization(
+            self,
+            plot_type: str = "PSD",
+            freq_min: float = 1,
+            freq_max: float = 50,
+            topomap_band: str = "Alpha (8-13 Hz)",
+            topomap_freq_min: float = 8,
+            topomap_freq_max: float = 13,
+            psd_individual_mode: str = "true",
+            selected_channels: str = ""
+    ) -> Dict[str, Any]:
+        """Handle plot_mne_visualization with proper type conversion."""
+        try:
+            # Convert numeric values
+            freq_min_int = int(round(freq_min))
+            freq_max_int = int(round(freq_max))
+            topomap_freq_min_int = int(round(topomap_freq_min))
+            topomap_freq_max_int = int(round(topomap_freq_max))
+
+            # Convert boolean
+            psd_individual_bool = psd_individual_mode.lower() == "true"
+
+            # Convert channel string to array
+            channel_list = self._parse_channel_string(selected_channels)
+
+            logging.info(
+                f"MNE plot handler: type={plot_type}, freq={freq_min_int}-{freq_max_int}, channels={len(channel_list)}")
+
+            return EEGProcessorInteractionAPI.plot_mne_visualization(
+                plot_type, freq_min_int, freq_max_int, topomap_band,
+                topomap_freq_min_int, topomap_freq_max_int, psd_individual_bool,
+                channel_list
+            )
+        except Exception as e:
+            logging.error(f"Error in plot_mne_visualization handler: {e}")
+            return {
+                "success": False,
+                "message": f"MNE visualization failed: {e}",
+                "error": str(e),
+            }
+
+    async def _handle_select_mne_channels(self, channel_indices: str = "") -> Dict[str, Any]:
+        """Handle select_mne_channels with string-to-array conversion."""
+        try:
+            # Convert string to array
+            channel_list = self._parse_channel_string(channel_indices)
+            return EEGProcessorInteractionAPI.select_mne_channels(channel_list)
+        except Exception as e:
+            logging.error(f"Error in select_mne_channels handler: {e}")
+            return {
+                "success": False,
+                "message": f"MNE channel selection failed: {e}",
+                "error": str(e),
+            }
 
     async def _handle_compute_wavelet(
         self, wavelet_type: int, level: int, channel: int

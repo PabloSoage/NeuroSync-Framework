@@ -63,6 +63,7 @@ class EventType(Enum):
     MNE_CONVERSION_COMPLETED = auto()
     MNE_PLOT = auto()
     MNE_PLOT_COMPLETED = auto()
+    MNE_SELECT_CHANNELS = auto()
 
     # Data events
     DATA_UPDATED = auto()

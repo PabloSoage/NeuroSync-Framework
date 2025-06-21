@@ -16,13 +16,6 @@ from ...services.mne_service import MNEService
 class MNEPanelController(QObject):
     """
     Controller that coordinates MNE panel operations.
-
-    This class applies the SOLID principles by:
-    - Single Responsibility: Only coordinates MNE panel logic
-    - Open/Closed: Extensible through signals and interfaces
-    - Liskov Substitution: Can be replaced by any compatible controller
-    - Interface Segregation: Uses specific widget interfaces
-    - Dependency Inversion: Depends on service abstractions
     """
 
     # Signals for communication with parent components
@@ -191,36 +184,6 @@ class MNEPanelController(QObject):
                 "(Error checking filter status)", False
             )
 
-    def _apply_filters_to_data(self, data: np.ndarray) -> np.ndarray:
-        """Apply processing panel filters to data if enabled."""
-        if not (self.filters_applied and self.processor_service):
-            return data
-
-        try:
-            filtered_data = data.copy()
-
-            # Apply filters in same order as visualization
-            if self.filter_settings.get("bandpass", {}).get("enabled", False):
-                bp = self.filter_settings["bandpass"]
-                filtered_data = self.processor_service.apply_bandpass_filter(
-                    filtered_data, bp.get("low", 1.0), bp.get("high", 50.0)
-                )
-
-            if self.filter_settings.get("notch", {}).get("enabled", False):
-                notch = self.filter_settings["notch"]
-                filtered_data = self.processor_service.apply_notch_filter(
-                    filtered_data, notch.get("frequency", 50)
-                )
-
-            if self.filter_settings.get("detrend", False):
-                filtered_data = self.processor_service.apply_detrend(filtered_data)
-
-            return filtered_data
-
-        except Exception as e:
-            logging.error(f"Error applying filters to data: {e}")
-            return data  # Return original data on error
-
     def _handle_conversion_request(self, params: Dict[str, Any]) -> None:
         """Handle conversion request from widget."""
         if not self.mne_service.is_available():
@@ -236,14 +199,13 @@ class MNEPanelController(QObject):
                     return
                 channels_for_conversion = self.conversion_selected_channels
 
-            # Get data and apply filters if requested
-            data, timestamps = self.data_service.get_current_data()
-
-            # Apply filters if enabled and available
             use_filters = params.get("use_filters", False)
             if use_filters and self.filters_applied:
-                data = self._apply_filters_to_data(data)
-                self._add_status_message("Applied processing panel filters to MNE data")
+                data, timestamps = self.data_service.get_current_data()
+                self._add_status_message("Using filtered data for conversion")
+            else:
+                data, timestamps = self.data_service.get_raw_data()
+                self._add_status_message("Using raw data")
 
             # Start conversion with potentially filtered data
             self.current_conversion_task = self.mne_service.convert_to_mne_async(
