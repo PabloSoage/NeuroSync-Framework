@@ -13,6 +13,7 @@ class TimingManager:
     def __init__(self):
         """Initialize timing manager."""
         self.precision_ms = 1.0  # Default 1ms precision
+        self.actual_precision_ms = 10.0  # Actual precision used (minimum 10ms for UI)
         self.sync_callbacks: Dict[str, Callable] = {}
         self.is_active = False
         self._timer_thread: Optional[threading.Thread] = None
@@ -28,7 +29,9 @@ class TimingManager:
             
         with self._lock:
             self.precision_ms = precision_ms
-            logging.info(f"Synchronization precision set to {precision_ms}ms")
+            # Use actual precision that's at least 10ms for UI responsiveness
+            self.actual_precision_ms = max(precision_ms, 10.0)
+            logging.info(f"Synchronization precision set to {precision_ms}ms (actual: {self.actual_precision_ms}ms)")
     
     def register_sync_callback(self, name: str, callback: Callable) -> None:
         """Register a synchronization callback."""
@@ -57,7 +60,7 @@ class TimingManager:
             )
             self._timer_thread.start()
             
-            logging.info("Synchronization timer started")
+            logging.info(f"Synchronization timer started (interval: {self.actual_precision_ms}ms)")
             return True
             
         except Exception as e:
@@ -86,18 +89,21 @@ class TimingManager:
     
     def _sync_loop(self) -> None:
         """Main synchronization loop."""
-        interval = self.precision_ms / 1000.0  # Convert to seconds
+        # Use actual precision for timing
+        interval = self.actual_precision_ms / 1000.0  # Convert to seconds
         
         while not self._stop_event.is_set():
             start_time = time.time()
             
             # Call all registered callbacks
             with self._lock:
-                for name, callback in list(self.sync_callbacks.items()):
-                    try:
-                        callback(start_time)
-                    except Exception as e:
-                        logging.error(f"Error in sync callback {name}: {e}")
+                callbacks_copy = list(self.sync_callbacks.items())
+            
+            for name, callback in callbacks_copy:
+                try:
+                    callback(start_time)
+                except Exception as e:
+                    logging.error(f"Error in sync callback {name}: {e}")
             
             # Calculate sleep time to maintain precision
             elapsed = time.time() - start_time
@@ -115,6 +121,7 @@ class TimingManager:
         return {
             "active": self.is_active,
             "precision_ms": self.precision_ms,
+            "actual_precision_ms": self.actual_precision_ms,
             "callback_count": len(self.sync_callbacks),
             "thread_alive": self._timer_thread.is_alive() if self._timer_thread else False
         }

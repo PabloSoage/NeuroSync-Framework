@@ -82,10 +82,26 @@ class QtIntegrationAdapter(QObject):
             eeg_service = self.get_eeg_service()
             if eeg_service:
                 metadata = eeg_service.get_metadata()
-                status['connected'] = metadata.get('board_id', -1) != -1
-                status['streaming'] = eeg_service.is_streaming()
+                
+                # Check if connected based on board_id and streaming status
+                board_id = metadata.get('board_id', -1)
+                is_streaming = eeg_service.is_streaming()
+                
+                status['connected'] = board_id != -1
+                status['streaming'] = is_streaming
                 status['board_name'] = metadata.get('board_name', '')
                 status['sampling_rate'] = eeg_service.get_sampling_rate()
+                
+                # Additional check: if we're getting data, we're definitely connected
+                try:
+                    current_data, _ = eeg_service.get_current_data()
+                    if current_data.size > 0:
+                        status['connected'] = True
+                        # If we have data and streaming is True, we're actively streaming
+                        if is_streaming:
+                            status['streaming'] = True
+                except:
+                    pass
                     
         except Exception as e:
             self.logger.error(f"Error getting EEG status: {e}")
@@ -105,8 +121,13 @@ class QtIntegrationAdapter(QObject):
             input_service = self.get_input_service()
             if input_service:
                 metadata = input_service.get_metadata()
-                status['active'] = True
-                status['recording'] = metadata.get('last_update', 0) > 0
+                last_update = metadata.get('last_update', 0)
+                
+                # Consider active if we've received events recently (within last 30 seconds)
+                import time
+                current_time = time.time()
+                status['active'] = (current_time - last_update) < 30.0
+                status['recording'] = last_update > 0
                 status['collector_type'] = metadata.get('collector_type', '')
                 status['active_keys'] = input_service.get_active_keys()
                 

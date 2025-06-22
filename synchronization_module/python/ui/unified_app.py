@@ -9,7 +9,7 @@ import sys
 import logging
 from typing import Optional, Any
 
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QThread
 from PyQt5.QtGui import QCloseEvent
 from PyQt5.QtWidgets import (
     QMainWindow, QTabWidget, QVBoxLayout, QWidget, QApplication,
@@ -24,6 +24,38 @@ from .synchronization_panel import SynchronizationPanel
 from ..services.synchronization_service import SynchronizationService
 from ..services.dataset_service import DatasetService
 from ..adapters.qt_integration_adapter import QtIntegrationAdapter
+
+
+class ExportWorker(QThread):
+    """Worker thread for dataset export to avoid UI blocking."""
+    
+    export_finished = pyqtSignal(bool, str)  # success, message
+    
+    def __init__(self, dataset_service, sync_data, filepath, format_name, metadata):
+        super().__init__()
+        self.dataset_service = dataset_service
+        self.sync_data = sync_data
+        self.filepath = filepath
+        self.format_name = format_name
+        self.metadata = metadata
+    
+    def run(self):
+        """Run export in background thread."""
+        try:
+            success = self.dataset_service.export_dataset(
+                self.sync_data,
+                self.filepath,
+                self.format_name,
+                self.metadata
+            )
+            
+            if success:
+                self.export_finished.emit(True, "Export completed successfully")
+            else:
+                self.export_finished.emit(False, "Export failed")
+                
+        except Exception as e:
+            self.export_finished.emit(False, f"Export error: {e}")
 
 
 class UnifiedApp(QMainWindow):
@@ -53,6 +85,7 @@ class UnifiedApp(QMainWindow):
         # Application state
         self.is_synchronizing = False
         self.synchronization_precision = 1.0
+        self.export_worker = None
         
         # Initialize services
         self._init_services()
@@ -399,46 +432,77 @@ class UnifiedApp(QMainWindow):
             self._start_synchronization(1.0)  # Default 1ms precision
     
     def _export_dataset(self, params: dict) -> None:
-        """Export synchronized dataset."""
+        """Export synchronized dataset in background thread."""
         try:
+            # Show that export is starting
+            if hasattr(self, 'sync_panel'):
+                self.sync_panel.on_export_started()
+            
             # Get synchronized data
             duration = params.get('duration_seconds', 30)
             sync_data = self.sync_service.get_synchronized_data(duration)
             
-            if not sync_data:
-                self._show_error("Export Error", "No synchronized data available")
+            if not sync_data or sync_data.get('metadata', {}).get('sample_count', 0) == 0:
+                self._show_error("Export Error", "No synchronized data available. Make sure synchronization is active and data is being collected.")
+                if hasattr(self, 'sync_panel'):
+                    self.sync_panel.on_export_finished(False, "No data available")
                 return
             
-            # Export dataset
-            success = self.dataset_service.export_dataset(
+            # Prepare export metadata
+            export_metadata = params.get('metadata', {})
+            export_metadata.update({
+                'export_params': params,
+                'include_metadata': params.get('include_metadata', True),
+                'compress_data': params.get('compress_data', True)
+            })
+            
+            # Start export in background thread
+            self.export_worker = ExportWorker(
+                self.dataset_service,
                 sync_data,
                 params.get('filepath', 'dataset.h5'),
                 params.get('format', 'hdf5'),
-                params.get('metadata', {})
+                export_metadata
             )
             
-            if success:
-                self.dataset_exported.emit(params.get('filepath', 'dataset.h5'), True)
-                self.status_bar.showMessage(f"Dataset exported successfully to {params.get('filepath')}")
-                
-                # Update sync panel
-                if hasattr(self, 'sync_panel'):
-                    self.sync_panel.on_export_finished(True, "Export completed successfully")
-            else:
-                self.dataset_exported.emit(params.get('filepath', 'dataset.h5'), False)
-                self._show_error("Export Error", "Failed to export dataset")
-                
-                # Update sync panel
-                if hasattr(self, 'sync_panel'):
-                    self.sync_panel.on_export_finished(False, "Export failed")
+            self.export_worker.export_finished.connect(self._on_export_finished)
+            self.export_worker.start()
+            
+            self.status_bar.showMessage("Exporting dataset...")
+            self.logger.info(f"Started dataset export to {params.get('filepath')}")
             
         except Exception as e:
-            self.logger.error(f"Error exporting dataset: {e}")
-            self._show_error("Export Error", f"Error exporting dataset: {e}")
+            self.logger.error(f"Error starting dataset export: {e}")
+            self._show_error("Export Error", f"Error starting dataset export: {e}")
             
             # Update sync panel
             if hasattr(self, 'sync_panel'):
                 self.sync_panel.on_export_finished(False, f"Export error: {e}")
+    
+    def _on_export_finished(self, success: bool, message: str) -> None:
+        """Handle export finished signal."""
+        try:
+            if success:
+                self.status_bar.showMessage(f"Dataset exported successfully")
+                self.logger.info(f"Dataset export completed: {message}")
+            else:
+                self.status_bar.showMessage(f"Dataset export failed")
+                self.logger.error(f"Dataset export failed: {message}")
+            
+            # Update sync panel
+            if hasattr(self, 'sync_panel'):
+                self.sync_panel.on_export_finished(success, message)
+            
+            # Emit signal
+            self.dataset_exported.emit("", success)
+            
+            # Clean up worker
+            if self.export_worker:
+                self.export_worker.deleteLater()
+                self.export_worker = None
+                
+        except Exception as e:
+            self.logger.error(f"Error handling export finished signal: {e}")
     
     def _show_export_dialog(self) -> None:
         """Show export dialog."""
