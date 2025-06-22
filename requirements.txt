@@ -1,12 +1,28 @@
+#Core
 pynput
 brainflow
 numpy
 pyqt5
 pyqtgraph
 matplotlib
-pandas
+pandas # cambiar por polars
+
+#Sync Core
+scipy
+
+# LSL for synchronization
 pylsl
+
+# Dataset export formats
 h5py
+tables
+
+# Optional EDF+ support
+pyedflib
+
+# Optional BIDS support and MNE visualization
+mne
+mne-bids
 
 # Optional dependencies for Peripherals like PS4 controllers
 pysdl2
@@ -16,9 +32,16 @@ pysdl2-dll
 fastapi
 uvicorn[standard]
 
-# Optional dependencies for advanced features
-mne
-scipy
-
 #Optional dependencies for performance improvements
 orjson>=3.9.0  # Much faster JSON serialization (2-5x speedup)
+
+# Optional CLI dependencies
+typer>=0.9.0
+rich>=13.3.0
+keyboard>=0.13.5
+
+# Optional development dependencies
+# pytest>=6.0.0
+# pytest-qt>=4.0.0
+# black>=21.0.0
+# flake8>=3.9.0
