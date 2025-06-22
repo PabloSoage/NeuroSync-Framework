@@ -1,0 +1,706 @@
+\chapter{Estado del arte y tecnologías}
+\label{chap:estado_arte}
+
+\lettrine{E}{n} este capítulo se presenta una revisión exhaustiva del estado actual de las tecnologías en el campo de las interfaces cerebro-computadora (BCI), analizando las herramientas existentes para captura y procesamiento de datos EEG, así como las tecnologías empleadas en el desarrollo del framework propuesto.
+
+\section{Interfaces cerebro-computadora: panorama actual}
+\label{sec:bci_panorama}
+
+Las interfaces cerebro-computadora han experimentado un crecimiento exponencial en las últimas dos décadas, impulsadas por avances en neurociencia, procesamiento de señales y aprendizaje automático. Los sistemas BCI modernos se clasifican principalmente según el método de adquisición de señales neurológicas:
+
+\subsection{Técnicas de adquisición de señales cerebrales}
+\label{subsec:tecnicas_adquisicion}
+
+\begin{itemize}
+    \item \textbf{Electroencefalografía (EEG)}: Método no invasivo que registra la actividad eléctrica del cerebro mediante electrodos colocados en el cuero cabelludo. Ofrece excelente resolución temporal (milisegundos) pero limitada resolución espacial~\cite{eeg_bci_review}.
+    
+    \item \textbf{Magnetoencefalografía (MEG)}: Detecta campos magnéticos producidos por la actividad neuronal. Proporciona mejor resolución espacial que EEG pero requiere equipamiento extremadamente costoso.
+    
+    \item \textbf{Espectroscopía funcional de infrarrojo cercano (fNIRS)}: Mide cambios en la oxigenación sanguínea cerebral. Más robusto ante artefactos de movimiento pero con menor resolución temporal.
+    
+    \item \textbf{Técnicas invasivas}: Incluyen electrocorticografía (ECoG) y registros intracraneales, que ofrecen la mejor resolución espacio-temporal pero conllevan riesgos quirúrgicos.
+\end{itemize}
+
+Para el desarrollo de aplicaciones BCI no médicas, EEG se ha establecido como la técnica predominante debido a su naturaleza no invasiva, coste relativamente bajo y disponibilidad de dispositivos comerciales accesibles~\cite{eeg_bci_review}.
+
+\section{Sistemas de adquisición EEG existentes}
+\label{sec:sistemas_eeg}
+
+\subsection{Hardware de adquisición EEG}
+\label{subsec:hardware_eeg}
+
+El mercado de dispositivos EEG se segmenta en tres categorías principales:
+
+\subsubsection{Sistemas clínicos de alta gama}
+Dispositivos como los sistemas de Neuroscan, Brain Products o ANT Neuro están diseñados para uso hospitalario y de investigación avanzada. Características:
+\begin{itemize}
+    \item 64-256 canales con resolución de 24 bits
+    \item Frecuencias de muestreo de hasta 20 kHz
+    \item Impedancia de entrada > 100 MΩ
+    \item Coste: €50,000-€200,000
+\end{itemize}
+
+Ejemplos representativos incluyen Brain Products actiCAP (hasta 160 canales) y g.tec g.SCARABEO (hasta 256 canales), utilizados principalmente en investigación médica avanzada.
+
+\subsubsection{Sistemas de investigación de gama media}
+Incluyen dispositivos como g.tec Unicorn, OpenBCI Cyton, y Emotiv EPOC X:
+\begin{itemize}
+    \item 8-32 canales con resolución de 16-24 bits
+    \item Frecuencias de muestreo de 250-1000 Hz
+    \item Conectividad inalámbrica (Bluetooth/WiFi)
+    \item Coste: €1,000-€10,000
+\end{itemize}
+
+La tabla~\ref{tab:dispositivos_gama_media} presenta una comparativa básica de los principales dispositivos en esta categoría.
+
+\begin{table}[hp!]
+\centering
+\small
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{l|c|c|c|c|c}
+\rowcolor{udcpink!25}
+\textbf{Dispositivo} & \textbf{Canales} & \textbf{Frecuencia} & \textbf{Resolución} & \textbf{Precio} & \textbf{Conectividad} \\
+\hline
+\textbf{g.tec Unicorn} & 8 & 250 Hz & 24 bits & €1,200 & Bluetooth \\
+\textbf{Emotiv EPOC X} & 14 & 128/256 Hz & 14/16 bits & €999 & Bluetooth 5.0 \\
+\textbf{OpenBCI Cyton} & 8 & 250 Hz & 24 bits & €947 & WiFi/Bluetooth \\
+\textbf{Neurosity Crown} & 8 & 256 Hz & 16 bits & €899 & WiFi/Bluetooth \\
+\textbf{Neuroelectrics Enobio} & 32 & 500 Hz & 24 bits & €5,000 & Bluetooth \\
+\end{tabular}
+\caption{Comparativa de dispositivos EEG de investigación de gama media}
+\label{tab:dispositivos_gama_media}
+\end{table}
+
+\subsubsection{Dispositivos de consumo}
+Dispositivos como Muse, NeuroSky, y Emotiv Insight dirigidos a aplicaciones de biofeedback y meditación:
+\begin{itemize}
+    \item 4-14 canales con resolución de 12-16 bits
+    \item Frecuencias de muestreo de 128-512 Hz
+    \item Enfoque en facilidad de uso
+    \item Coste: €200-€1,500
+\end{itemize}
+
+Dispositivos representativos incluyen:
+\begin{itemize}
+    \item \textbf{InteraXon Muse 2}: 4 canales (TP9, AF7, AF8, TP10), 256 Hz, orientado a meditación
+    \item \textbf{Emotiv Insight}: 5 canales (AF3, AF4, T7, T8, Pz), 128 Hz, €499
+    \item \textbf{NeuroSky MindWave}: 1 canal, básico para aplicaciones educativas, €99
+\end{itemize}
+
+\subsection{Librerías de abstracción de hardware}
+\label{subsec:librerias_hardware}
+
+\subsubsection{BrainFlow}
+BrainFlow~\cite{brainflow} es una librería multiplataforma que proporciona una API unificada para más de 20 fabricantes de dispositivos EEG. Características principales:
+
+\begin{itemize}
+    \item \textbf{Abstracción de hardware}: API consistente independiente del fabricante
+    \item \textbf{Soporte multiplataforma}: Windows, macOS, Linux, Android
+    \item \textbf{Múltiples lenguajes}: Python, C++, C\#, Java, R, MATLAB
+    \item \textbf{Streaming en tiempo real}: Acceso a datos con latencia < 50ms
+    \item \textbf{Filtrado básico}: Implementaciones optimizadas de filtros digitales
+\end{itemize}
+
+Sin embargo, BrainFlow presenta limitaciones significativas:
+\begin{itemize}
+    \item Ausencia de interfaces gráficas de usuario
+    \item Funcionalidades de procesamiento limitadas
+    \item Falta de herramientas de sincronización con eventos externos
+    \item Documentación limitada para casos de uso avanzados
+\end{itemize}
+
+\subsubsection{Lab Streaming Layer (LSL)}
+LSL~\cite{lsl} es un protocolo y conjunto de librerías para streaming de datos de medidas temporales en experimentos de investigación:
+
+\begin{itemize}
+    \item \textbf{Protocolo de red}: Descubrimiento automático de streams en red local
+    \item \textbf{Sincronización temporal}: Corrección automática de deriva de reloj
+    \item \textbf{Múltiples tipos de datos}: Señales EEG, marcadores, audio, video
+    \item \textbf{Robustez}: Tolerancia a interrupciones de red y reconexión automática
+\end{itemize}
+
+Limitaciones de LSL:
+\begin{itemize}
+    \item Requiere programación personalizada sustancial
+    \item Dependencia de software propietario para muchos dispositivos
+    \item Ausencia de herramientas de visualización integradas
+    \item Curva de aprendizaje pronunciada para usuarios no técnicos
+\end{itemize}
+
+\section{Software de procesamiento de señales EEG}
+\label{sec:software_procesamiento}
+
+\subsection{Entornos de análisis científico}
+\label{subsec:entornos_analisis}
+
+\subsubsection{EEGLAB}
+EEGLAB~\cite{eeglab} es un toolbox de MATLAB ampliamente utilizado en neurociencia:
+
+\begin{itemize}
+    \item \textbf{Procesamiento completo}: Desde preprocesamiento hasta análisis estadístico
+    \item \textbf{Análisis de componentes independientes}: Implementación robusta de ICA
+    \item \textbf{Visualización avanzada}: Topografías, espectrogramas, mapas 3D
+    \item \textbf{Extensibilidad}: Amplio ecosistema de plugins
+\end{itemize}
+
+Limitaciones:
+\begin{itemize}
+    \item Dependencia de MATLAB (licencia comercial costosa)
+    \item Orientado a análisis offline, no tiempo real
+    \item Interfaz de usuario no intuitiva para principiantes
+    \item Limitaciones en el manejo de datasets grandes
+\end{itemize}
+
+\subsubsection{MNE-Python}
+MNE-Python~\cite{mne_python} es una librería de Python para análisis de señales MEG y EEG:
+
+\begin{itemize}
+    \item \textbf{Open source}: Completamente gratuito y de código abierto
+    \item \textbf{API moderna}: Diseño orientado a objetos con documentación exhaustiva
+    \item \textbf{Formatos estándar}: Soporte nativo para BIDS, EDF+, FIF
+    \item \textbf{Análisis estadístico}: Integración con scikit-learn y scipy
+    \item \textbf{Visualización}: Gráficos interactivos con matplotlib
+\end{itemize}
+
+Fortalezas de MNE-Python que lo convierten en una elección popular:
+\begin{itemize}
+    \item Ecosistema Python: Integración natural con NumPy, SciPy, matplotlib
+    \item Comunidad activa: Desarrollo continuo y soporte comunitario
+    \item Flexibilidad: Desde análisis básico hasta investigación avanzada
+    \item Rendimiento: Operaciones vectorizadas optimizadas
+\end{itemize}
+
+\subsection{Herramientas de desarrollo específicas}
+\label{subsec:herramientas_desarrollo}
+
+\subsubsection{OpenViBE}
+Plataforma para diseño, prueba e implementación de aplicaciones BCI:
+\begin{itemize}
+    \item Entorno de desarrollo visual (drag-and-drop)
+    \item Soporte para tiempo real y análisis offline
+    \item Interfaz modular basada en cajas de procesamiento
+    \item Limitado a investigación, no desarrollo de productos
+\end{itemize}
+
+\subsubsection{BCI2000}
+Framework para investigación BCI desarrollado en C++:
+\begin{itemize}
+    \item Arquitectura modular para adquisición, procesamiento y aplicación
+    \item Soporte para múltiples paradigmas BCI
+    \item Interfaz de configuración compleja
+    \item Curva de aprendizaje pronunciada
+\end{itemize}
+
+\subsection{Otras librerías especializadas}
+\label{subsec:analisis_librerias}
+
+Además de las herramientas principales mencionadas anteriormente, existen diversas librerías especializadas que abordan aspectos específicos del procesamiento EEG:
+
+\subsubsection{Librerías de análisis complementarias}
+
+\begin{itemize}
+    \item \textbf{pyEEG}: Librería Python especializada en procesamiento continuo de datos EEG basada en MNE-Python y scikit-learn. Permite generación de funciones de respuesta temporal con señales continuas.
+    
+    \item \textbf{NeuroKit2}: Framework Python para análisis de señales, extracción de características y visualización de datos neurofisiológicos.
+    
+    \item \textbf{BCILAB}: Plataforma MATLAB para procesamiento de señales, extracción de características y aprendizaje automático orientado a BCI (descontinuada desde 2014).
+    
+    \item \textbf{EEG-ExPy}: Colección de experimentos en Python más que una librería per se, compatible con múltiples dispositivos (Muse, OpenBCI, Neurosity, BrainBit, g.tec).
+\end{itemize}
+
+\subsubsection{Herramientas de desarrollo específicas adicionales}
+
+\begin{itemize}
+    \item \textbf{FieldTrip}: Toolbox MATLAB para análisis y preprocesamiento de datos MEG y EEG, ampliamente utilizado en investigación neurocientífica.
+    
+    \item \textbf{BrainStorm}: Plataforma MATLAB especializada en visualización 3D, análisis de conectividad y preprocesamiento de señales MEG, EEG y fNIRS.
+    
+    \item \textbf{MoBILAB}: Herramienta MATLAB para preprocesamiento, análisis y visualización de datos EEG móviles (desarrollo discontinuado).
+    
+    \item \textbf{NeuroPype}: Plataforma comercial Python para procesamiento de señales, visualización y análisis en tiempo real con soporte extensivo para hardware comercial.
+\end{itemize}
+
+\section{Análisis de soluciones existentes}
+\label{sec:analisis_soluciones}
+
+\subsection{Limitaciones identificadas}
+\label{subsec:limitaciones}
+
+El análisis de las herramientas existentes revela varias limitaciones críticas:
+
+\begin{enumerate}
+    \item \textbf{Fragmentación del ecosistema}: Las herramientas abordan aspectos específicos pero carecen de integración:
+    \begin{itemize}
+        \item BrainFlow: Excelente para adquisición, limitado para procesamiento
+        \item MNE-Python: Potente para análisis, no diseñado para tiempo real
+        \item LSL: Bueno para sincronización, requiere programación extensiva
+    \end{itemize}
+
+    \item \textbf{Ausencia de herramientas de captura sincronizada}: Ninguna solución proporciona captura integrada de señales EEG y eventos de entrada de usuario con sincronización temporal precisa.
+
+    \item \textbf{Barreras de entrada técnicas}: Las herramientas existentes requieren conocimientos avanzados de programación y procesamiento de señales.
+
+    \item \textbf{Limitaciones de interfaz de usuario}: La mayoría de herramientas carecen de interfaces gráficas intuitivas para usuarios no técnicos.
+
+    \item \textbf{Falta de estandarización}: Formatos de datos inconsistentes entre herramientas dificultan la interoperabilidad.
+\end{enumerate}
+
+\subsection{Oportunidades identificadas}
+\label{subsec:oportunidades}
+
+Las limitaciones identificadas revelan oportunidades significativas:
+
+\begin{itemize}
+    \item \textbf{Plataforma integrada}: Necesidad de una solución que combine adquisición, procesamiento y sincronización
+    \item \textbf{Interfaces múltiples}: Demanda de herramientas que soporten tanto usuarios técnicos como no técnicos
+    \item \textbf{Tiempo real}: Carencia de soluciones que combinen análisis avanzado con capacidades de tiempo real
+    \item \textbf{Datasets de calidad}: Necesidad de herramientas que faciliten la generación de datasets bien estructurados para BCI
+\end{itemize}
+
+\section{Tecnologías empleadas en el desarrollo}
+\label{sec:tecnologias_empleadas}
+
+\subsection{Lenguajes de programación}
+\label{subsec:lenguajes}
+
+\subsubsection{Python como lenguaje principal}
+Python se seleccionó como lenguaje principal por múltiples factores:
+
+\begin{itemize}
+    \item \textbf{Ecosistema científico maduro}: NumPy, SciPy, matplotlib, scikit-learn
+    \item \textbf{Librerías especializadas EEG}: MNE-Python, BrainFlow con bindings nativos
+    \item \textbf{Tipado estático moderno}: Soporte para type hints desde Python 3.5+
+    \item \textbf{Rendimiento adecuado}: Operaciones vectorizadas con NumPy proporcionan rendimiento suficiente para tiempo real
+    \item \textbf{Comunidad activa}: Amplio soporte comunitario y documentación
+\end{itemize}
+
+\subsubsection{JavaScript para frontend web}
+JavaScript ES6+ se utiliza en el módulo api\_explorer:
+
+\begin{itemize}
+    \item \textbf{Arquitectura modular}: Sistema de managers para organización del código
+    \item \textbf{WebSocket nativo}: Comunicación bidireccional en tiempo real
+    \item \textbf{Chart.js}: Visualización de datos científicos
+    \item \textbf{Bootstrap 5}: Framework CSS responsivo
+\end{itemize}
+
+\subsection{Frameworks y librerías principales}
+\label{subsec:frameworks_principales}
+
+\subsubsection{Interfaz gráfica: PyQt5}
+PyQt5 se eligió para las interfaces gráficas por:
+
+\begin{itemize}
+    \item \textbf{Rendimiento superior}: Widgets nativos del sistema operativo
+    \item \textbf{Arquitectura orientada a eventos}: Señales y slots para comunicación desacoplada
+    \item \textbf{Capacidades avanzadas}: Gráficos 2D/3D, threading, recursos embebidos
+    \item \textbf{Multiplataforma}: Soporte nativo para Windows, macOS, Linux
+    \item \textbf{Estabilidad}: Framework maduro con amplia adopción en aplicaciones científicas
+\end{itemize}
+
+Comparativa con alternativas:
+\begin{itemize}
+    \item \textbf{Tkinter}: Más simple pero limitado en capacidades visuales
+    \item \textbf{wxPython}: Menos mantenido, documentación limitada
+    \item \textbf{Kivy}: Orientado a móviles, no óptimo para aplicaciones desktop
+\end{itemize}
+
+\subsubsection{Línea de comandos: Typer + Rich}
+Para las interfaces CLI se utiliza la combinación Typer + Rich:
+
+\begin{itemize}
+    \item \textbf{Typer}: Framework CLI moderno basado en type hints
+    \item \textbf{Rich}: Salida de consola avanzada con tablas, colores, progreso
+    \item \textbf{Autocompletado}: Generación automática de completado de comandos
+    \item \textbf{Validación automática}: Basada en anotaciones de tipo Python
+\end{itemize}
+
+\subsubsection{API web: FastAPI}
+FastAPI se seleccionó para el módulo api\_explorer:
+
+\begin{itemize}
+    \item \textbf{Rendimiento}: Uno de los frameworks Python más rápidos
+    \item \textbf{Documentación automática}: Generación automática de OpenAPI/Swagger
+    \item \textbf{Validación de datos}: Integración nativa con Pydantic
+    \item \textbf{WebSocket}: Soporte nativo para comunicación bidireccional
+    \item \textbf{Asíncrono}: Soporte completo para asyncio
+\end{itemize}
+
+\subsection{Librerías de procesamiento científico}
+\label{subsec:librerias_cientifico}
+
+\subsubsection{NumPy y SciPy}
+Base del procesamiento numérico:
+
+\begin{itemize}
+    \item \textbf{NumPy}: Arrays multidimensionales eficientes, operaciones vectorizadas
+    \item \textbf{SciPy}: Algoritmos científicos optimizados (filtros, transformadas, estadística)
+    \item \textbf{Rendimiento}: Implementaciones en C/Fortran con bindings Python
+    \item \textbf{Interoperabilidad}: Estándar de facto para datos científicos en Python
+\end{itemize}
+
+\subsubsection{MNE-Python para análisis avanzado}
+Integración opcional pero potente:
+
+\begin{itemize}
+    \item \textbf{Conversión de datos}: Transformación BrainFlow → MNE para análisis avanzado
+    \item \textbf{Visualización científica}: Topografías, PSD, espectrogramas
+    \item \textbf{Análisis estadístico}: Herramientas para análisis de grupos y condiciones
+    \item \textbf{Formatos estándar}: Soporte nativo para BIDS, EDF+, FIF
+\end{itemize}
+
+\subsection{Tecnologías de captura de entrada}
+\label{subsec:tecnologias_captura}
+
+\subsubsection{Captura de teclado y ratón: pynput}
+\begin{itemize}
+    \item \textbf{Multiplataforma}: Windows, macOS, Linux
+    \item \textbf{Eventos de bajo nivel}: Acceso a eventos del sistema operativo
+    \item \textbf{Precisión temporal}: Timestamps de sistema con precisión de milisegundos
+    \item \textbf{Flexibilidad}: Tanto captura como simulación de eventos
+\end{itemize}
+
+\subsubsection{Controladores de juego: PySDL2}
+Para soporte de controladores PS4:
+
+\begin{itemize}
+    \item \textbf{SDL2 bindings}: Acceso completo a capacidades SDL2
+    \item \textbf{Soporte de controladores}: Reconocimiento automático de dispositivos
+    \item \textbf{Eventos thread-safe}: Procesamiento de eventos en hilos separados
+    \item \textbf{Retroalimentación háptica}: Soporte para vibración (futuras extensiones)
+\end{itemize}
+
+\subsection{Tecnologías de serialización y comunicación}
+\label{subsec:serializacion}
+
+\subsubsection{Optimización JSON: orjson}
+Para comunicación web de alto rendimiento:
+
+\begin{itemize}
+    \item \textbf{Rendimiento}: 2-5x más rápido que json estándar
+    \item \textbf{Compatibilidad}: Drop-in replacement para json
+    \item \textbf{Tipos adicionales}: Soporte nativo para datetime, UUID, dataclasses
+    \item \textbf{Validación}: Manejo robusto de datos no serializables
+\end{itemize}
+
+\subsubsection{WebSocket para tiempo real}
+Comunicación bidireccional de baja latencia:
+
+\begin{itemize}
+    \item \textbf{Latencia mínima}: < 15ms para eventos de datos
+    \item \textbf{Worker pools}: Distribución de carga para múltiples clientes
+    \item \textbf{Throttling adaptativo}: Limitación inteligente basada en frecuencia
+    \item \textbf{Fallback}: Degradación grácil en caso de sobrecarga
+\end{itemize}
+
+\subsection{Formatos de exportación de datos}
+\label{subsec:formatos_exportacion}
+
+\subsubsection{BIDS (Brain Imaging Data Structure)}
+Estándar para organización de datos neurocientíficos~\cite{bids}:
+
+\begin{itemize}
+    \item \textbf{Estructura jerárquica}: Organización por sujeto/sesión/tarea
+    \item \textbf{Metadatos JSON}: Descripción detallada de parámetros de adquisición
+    \item \textbf{Interoperabilidad}: Compatible con herramientas de análisis principales
+    \item \textbf{Comunidad}: Estándar adoptado por la comunidad neurocientífica internacional
+\end{itemize}
+
+\subsubsection{EDF/EDF+ (European Data Format)}
+Formato estándar para datos médicos:
+
+\begin{itemize}
+    \item \textbf{Compatibilidad clínica}: Ampliamente usado en entornos médicos
+    \item \textbf{Metadatos integrados}: Información del paciente y configuración
+    \item \textbf{Soporte de anotaciones}: Marcadores temporales con EDF+
+    \item \textbf{Librerías maduras}: pyedflib para lectura/escritura eficiente
+\end{itemize}
+
+\subsubsection{HDF5 (Hierarchical Data Format)}
+Formato de alto rendimiento para datos científicos:
+
+\begin{itemize}
+    \item \textbf{Estructura jerárquica}: Organización flexible de datasets
+    \item \textbf{Compresión}: Algoritmos de compresión integrados
+    \item \textbf{Acceso parcial}: Lectura de subconjuntos sin cargar todo el archivo
+    \item \textbf{Metadatos extensibles}: Atributos personalizables por dataset
+\end{itemize}
+
+\subsubsection{CSV (Comma-Separated Values)}
+Formato universal para máxima compatibilidad:
+
+\begin{itemize}
+    \item \textbf{Simplicidad}: Legible por humanos y máquinas
+    \item \textbf{Compatibilidad universal}: Soportado por todas las herramientas
+    \item \textbf{Headers dinámicos}: Adaptación automática a tipos de datos capturados
+    \item \textbf{Procesamiento eficiente}: Óptimo para análisis con pandas/R
+\end{itemize}
+
+\section{Sistema de electrodos estándar 10-20}
+\label{sec:sistema_electrodos}
+
+Para comprender adecuadamente los dispositivos EEG y su aplicación en BCI, es fundamental entender el sistema internacional de colocación de electrodos 10-20 y sus extensiones modernas.
+
+\subsection{Sistema 10-20 clásico}
+\label{subsec:sistema_10_20}
+
+El sistema 10-20 establece la colocación estándar de electrodos EEG basada en referencias anatómicas:
+
+\begin{itemize}
+    \item \textbf{Referencias anatómicas}:
+    \begin{itemize}
+        \item Nz (Nasion): Punto en la base del hueso frontal entre los ojos
+        \item Iz (Inion): Punto en la protuberancia occipital externa
+        \item LPA/RPA: Puntos preauriculares izquierdo y derecho
+    \end{itemize}
+    
+    \item \textbf{Nomenclatura de electrodos}:
+    \begin{itemize}
+        \item Fp: Pre-frontal (toma de decisiones, control de impulsos)
+        \item F: Frontal (planificación, memoria de trabajo)
+        \item C: Central (control motor, procesamiento sensorial)
+        \item P: Parietal (integración sensorial, percepción espacial)
+        \item T: Temporal (procesamiento auditivo, reconocimiento de patrones)
+        \item O: Occipital (procesamiento visual)
+    \end{itemize}
+    
+    \item \textbf{Numeración}: Números impares (hemisferio izquierdo), pares (derecho), 'z' (línea media)
+\end{itemize}
+
+\subsection{Sistema MCN extendido}
+\label{subsec:sistema_mcn}
+
+Para sistemas de mayor resolución, el sistema MCN (Modified Combinatorial Nomenclature) introduce posiciones intermedias:
+
+\begin{itemize}
+    \item \textbf{AF}: Entre Fp y F (actividades cognitivas superiores)
+    \item \textbf{FC}: Entre F y C (integración fronto-central)
+    \item \textbf{FT}: Entre F y T (percepción emocional y sensorial)
+    \item \textbf{CP}: Entre C y P (integración sensorial)
+    \item \textbf{TP}: Entre T y P (memoria, integración multisensorial)
+    \item \textbf{PO}: Entre P y O (integración visual y sensorial)
+\end{itemize}
+
+El sistema MCN también renombra electrodos del sistema 10-20:
+\begin{itemize}
+    \item T3 → T7, T4 → T8
+    \item T5 → P7, T6 → P8
+\end{itemize}
+
+\subsection{Relevancia para aplicaciones BCI}
+\label{subsec:relevancia_bci}
+
+La comprensión del sistema de electrodos es crucial para el desarrollo de aplicaciones BCI efectivas:
+
+\begin{itemize}
+    \item \textbf{Selección de canales}: Diferentes regiones cerebrales están asociadas con distintos tipos de actividad mental
+    \item \textbf{Artefactos}: Conocer la localización ayuda a identificar y filtrar artefactos (parpadeos en Fp1/Fp2, movimientos musculares en electrodos temporales)
+    \item \textbf{Paradigmas BCI}: 
+    \begin{itemize}
+        \item Imaginación motora: Enfoque en C3, C4, Cz
+        \item P300: Electrodos parietales (Pz, P3, P4)
+        \item SSVEP: Electrodos occipitales (O1, O2, Oz)
+    \end{itemize}
+\end{itemize}
+
+\section{Arquitecturas de software adoptadas}
+\label{sec:arquitecturas_software}
+
+\subsection{Patrones arquitectónicos principales}
+\label{subsec:patrones_arquitectonicos}
+
+\subsubsection{Arquitectura dirigida por eventos}
+Patrón fundamental en todos los módulos:
+
+\begin{itemize}
+    \item \textbf{Desacoplamiento}: Componentes independientes comunicados via eventos
+    \item \textbf{Extensibilidad}: Fácil adición de nuevos suscriptores
+    \item \textbf{Thread-safety}: Comunicación segura entre hilos
+    \item \textbf{Framework-agnostic}: Sistema de eventos independiente de Qt
+\end{itemize}
+
+\subsubsection{Principios SOLID}
+Aplicación sistemática de principios de diseño orientado a objetos:
+
+\begin{itemize}
+    \item \textbf{Single Responsibility}: Cada clase tiene una responsabilidad específica
+    \item \textbf{Open/Closed}: Extensible sin modificar código existente
+    \item \textbf{Liskov Substitution}: Interfaces intercambiables
+    \item \textbf{Interface Segregation}: Interfaces específicas en lugar de monolíticas
+    \item \textbf{Dependency Inversion}: Dependencias hacia abstracciones
+\end{itemize}
+
+\subsubsection{Patrón Singleton}
+Para servicios centralizados:
+
+\begin{itemize}
+    \item \textbf{Thread-safe implementation}: Double-checked locking
+    \item \textbf{Lazy initialization}: Inicialización bajo demanda
+    \item \textbf{Global access}: Acceso consistente desde cualquier componente
+    \item \textbf{Resource management}: Gestión centralizada de recursos compartidos
+\end{itemize}
+
+\subsection{Arquitectura multi-interfaz}
+\label{subsec:arquitectura_multi_interfaz}
+
+El framework implementa una arquitectura que soporta múltiples interfaces simultáneamente:
+
+\subsubsection{Capa de servicios compartida}
+\begin{itemize}
+    \item \textbf{DataAccessService}: Acceso unificado a datos en tiempo real
+    \item \textbf{InteractionService}: Control centralizado de funcionalidades
+    \item \textbf{Estado sincronizado}: Consistency entre interfaces
+\end{itemize}
+
+\subsubsection{Adaptadores de interfaz}
+\begin{itemize}
+    \item \textbf{Qt Adapter}: Thread-safe bridge para operaciones GUI
+    \item \textbf{API Adapter}: Exposición de servicios via REST/WebSocket
+    \item \textbf{CLI Adapter}: Acceso programático para scripting
+\end{itemize}
+
+\section{Herramientas de desarrollo y calidad}
+\label{sec:herramientas_desarrollo}
+
+\subsection{Control de calidad de código}
+\label{subsec:control_calidad}
+
+\subsubsection{Pre-commit hooks}
+Automatización de verificaciones de calidad:
+
+\begin{itemize}
+    \item \textbf{black}: Formateo automático de código Python
+    \item \textbf{mypy}: Verificación de tipos estáticos
+    \item \textbf{pydocstyle}: Verificación de docstrings
+    \item \textbf{pre-commit-hooks}: Verificaciones básicas (YAML, EOF, whitespace)
+\end{itemize}
+
+\subsubsection{Tipado estático}
+Uso extensivo de type hints:
+
+\begin{itemize}
+    \item \textbf{Documentación automática}: Tipos como documentación
+    \item \textbf{Detección temprana de errores}: mypy catch errors en desarrollo
+    \item \textbf{IDE support}: Autocompletado y navegación mejorados
+    \item \textbf{Refactoring safety}: Cambios seguros con verificación de tipos
+\end{itemize}
+
+\subsection{Gestión de dependencias}
+\label{subsec:gestion_dependencias}
+
+\subsubsection{Estrategia de dependencias}
+El framework adopta una estrategia de dependencias escalable:
+
+\begin{itemize}
+    \item \textbf{Core mínimo}: Funcionalidades básicas con dependencias mínimas
+    \item \textbf{Dependencias opcionales}: Funcionalidades avanzadas como add-ons
+    \item \textbf{Fallback graceful}: Degradación elegante si dependencias opcionales no están disponibles
+    \item \textbf{Version pinning}: Versiones específicas para reproducibilidad
+\end{itemize}
+
+\section{Comparativa con soluciones existentes}
+\label{sec:comparativa}
+
+La tabla~\ref{tab:comparativa_herramientas} presenta una comparativa detallada del framework desarrollado con las principales alternativas existentes.
+
+\begin{table}[hp!]
+\centering
+\small
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{l|c|c|c|c|c}
+\rowcolor{udcpink!25}
+\textbf{Característica} & \textbf{Framework} & \textbf{BrainFlow} & \textbf{LSL} & \textbf{MNE-Python} & \textbf{OpenViBE} \\
+\hline
+\textbf{Captura EEG} & ✓ & ✓ & ✓ & ✗ & ✓ \\
+\textbf{Captura inputs usuario} & ✓ & ✗ & ✗ & ✗ & ✗ \\
+\textbf{Sincronización temporal} & ✓ & ✗ & ✓ & ✗ & Limited \\
+\textbf{GUI integrada} & ✓ & ✗ & ✗ & Limited & ✓ \\
+\textbf{CLI} & ✓ & ✗ & ✗ & ✗ & ✗ \\
+\textbf{Web API} & ✓ & ✗ & ✗ & ✗ & ✗ \\
+\textbf{Procesamiento tiempo real} & ✓ & Basic & ✗ & ✗ & ✓ \\
+\textbf{Análisis avanzado} & ✓ & ✗ & ✗ & ✓ & Limited \\
+\textbf{Formatos estándar} & ✓ & Basic & ✗ & ✓ & Limited \\
+\textbf{Multiplataforma} & ✓ & ✓ & ✓ & ✓ & ✓ \\
+\textbf{Open source} & ✓ & ✓ & ✓ & ✓ & ✓ \\
+\textbf{Facilidad de uso} & ✓ & ✗ & ✗ & ✗ & Limited \\
+\end{tabular}
+\caption{Comparativa de características entre herramientas BCI}
+\label{tab:comparativa_herramientas}
+\end{table}
+
+\subsection{Justificación específica del hardware seleccionado}
+\label{subsec:justificacion_hardware}
+
+Para este proyecto se ha utilizado el dispositivo g.tec Unicorn Hybrid Black, cuya selección se justifica por:
+
+\begin{enumerate}
+    \item \textbf{Especificaciones técnicas adecuadas}:
+    \begin{itemize}
+        \item 8 canales EEG + acelerómetro/giroscopio
+        \item Frecuencia de muestreo: 250 Hz (suficiente para BCI)
+        \item Resolución: 24 bits (alta precisión)
+        \item Conectividad Bluetooth de baja latencia
+    \end{itemize}
+
+    \item \textbf{Soporte en BrainFlow}: Integración nativa y bien documentada
+
+    \item \textbf{Facilidad de uso}: No requiere gel conductor, configuración sencilla
+
+    \item \textbf{Relación calidad-precio}: Equilibrio óptimo entre prestaciones y coste para investigación académica
+
+    \item \textbf{Disponibilidad}: Accesible a través del Centro de Investigación en TIC (CITIC) de la UDC
+\end{enumerate}
+
+\section{Justificación de elecciones tecnológicas}
+\label{sec:justificacion_tecnologias}
+
+\subsection{Decisiones de diseño principales}
+\label{subsec:decisiones_diseno}
+
+\subsubsection{Python como lenguaje principal}
+La elección de Python se justifica por:
+
+\begin{enumerate}
+    \item \textbf{Ecosistema maduro}: Librerías científicas establecidas y confiables
+    \item \textbf{Productividad}: Desarrollo rápido con sintaxis clara
+    \item \textbf{Comunidad}: Amplio soporte y documentación en neurociencia
+    \item \textbf{Rendimiento suficiente}: NumPy/SciPy proporcionan rendimiento adecuado para tiempo real
+    \item \textbf{Interoperabilidad}: Fácil integración con herramientas existentes
+\end{enumerate}
+
+\subsubsection{Arquitectura modular}
+El diseño modular permite:
+
+\begin{itemize}
+    \item \textbf{Desarrollo independiente}: Cada módulo evoluciona separadamente
+    \item \textbf{Reutilización}: Módulos utilizables en otros proyectos
+    \item \textbf{Mantenimiento}: Isolación de cambios y correcciones
+    \item \textbf{Testing}: Pruebas unitarias independientes por módulo
+\end{itemize}
+
+\subsubsection{Múltiples interfaces de usuario}
+La estrategia multi-interfaz responde a:
+
+\begin{itemize}
+    \item \textbf{Diferentes usuarios}: Investigadores, desarrolladores, técnicos
+    \item \textbf{Diferentes contextos}: Interactivo, automatizado, remoto
+    \item \textbf{Integración}: Facilita adopción en workflows existentes
+    \item \textbf{Accesibilidad}: Interfaces apropiadas para diferentes niveles técnicos
+\end{itemize}
+
+\section{Resumen del capítulo}
+\label{sec:resumen_estado_arte}
+
+El análisis del estado del arte revela una fragmentación significativa en el ecosistema de herramientas BCI. Mientras que existen soluciones potentes para aspectos específicos (BrainFlow para adquisición, MNE-Python para análisis, LSL para sincronización), ninguna proporciona una solución integrada que combine:
+
+\begin{itemize}
+    \item Captura sincronizada de EEG y eventos de usuario
+    \item Múltiples interfaces de usuario (GUI, CLI, Web API)
+    \item Procesamiento en tiempo real con análisis avanzado
+    \item Exportación a formatos estándar
+    \item Facilidad de uso para usuarios no técnicos
+\end{itemize}
+
+El framework desarrollado aborda estas limitaciones proporcionando una plataforma integrada que combina las fortalezas de las herramientas existentes mientras elimina las barreras de adopción identificadas. La elección de tecnologías modernas y patrones arquitectónicos sólidos garantiza que el sistema sea extensible, mantenible y preparado para futuras evoluciones en el campo BCI.
+
+Las tecnologías seleccionadas (Python, PyQt5, FastAPI, BrainFlow, MNE-Python) representan el estado del arte en sus respectivos dominios y proporcionan una base sólida para el desarrollo de aplicaciones BCI avanzadas. La arquitectura modular y dirigida por eventos facilita la integración con herramientas existentes mientras proporciona una experiencia de usuario coherente a través de múltiples interfaces.
