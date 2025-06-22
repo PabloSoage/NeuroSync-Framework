@@ -168,7 +168,7 @@ The monitor commands provide real-time displays with Rich formatting:
 - Live data tables with automatic updates
 - Color-coded signal quality indicators
 - Progress bars and status indicators
-- Multi-panel layouts for comprehensive monitoring
+- Multi-panel layouts for monitoring
 
 ### API Integration
 
@@ -180,7 +180,7 @@ The CLI can work alongside web APIs:
 
 ### Error Handling
 
-The CLI provides comprehensive error handling:
+The CLI provides error handling:
 
 - Connection status validation
 - Parameter validation with helpful messages

@@ -734,7 +734,7 @@ class EEGProcessorInteractionAPI:
     @staticmethod
     def get_system_status() -> Dict[str, Any]:
         """
-        Get comprehensive system status.
+        Get system status.
 
         Returns:
             Dictionary with complete system status

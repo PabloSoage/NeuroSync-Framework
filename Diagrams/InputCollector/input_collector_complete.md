@@ -1241,11 +1241,11 @@ classDiagram
 
     note for EventDispatcher "Singleton event dispatcher with simplified design\nThread-safe subscription management\nAutomatic state synchronization for late subscribers\nError isolation prevents callback failures from affecting others"
 
-    note for InteractionService "Singleton service for external control\nProvides comprehensive API for application control\nManages component registration and coordination\nThread-safe with status tracking"
+    note for InteractionService "Singleton service for external control\nProvides API for application control\nManages component registration and coordination\nThread-safe with status tracking"
 
     note for DataAccessService "Singleton service for real-time data access\nProvides low-latency access to input streams\nMaintains event history with type categorization\nSupports callback registration for reactive patterns"
 
-    note for QtInteractionAdapter "Thread-safe adapter bridging UI framework and core services\nImplements Adapter pattern for framework isolation\nProvides comprehensive API for external integration\nEnsures all UI operations execute in main thread"
+    note for QtInteractionAdapter "Thread-safe adapter bridging UI framework and core services\nImplements Adapter pattern for framework isolation\nProvides API for external integration\nEnsures all UI operations execute in main thread"
 
     note for CLIApp "Main CLI application entry point\nManages Typer app with command modules\nHandles signals and cleanup\nSupports both standalone and GUI-concurrent modes"
 

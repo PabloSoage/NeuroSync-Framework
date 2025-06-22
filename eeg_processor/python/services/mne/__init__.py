@@ -54,7 +54,7 @@ Key Features:
 - Advanced visualization capabilities with multiple plot types
 - Channel selection optimization for improved performance
 - Thread-safe and process-safe operations throughout
-- Comprehensive error handling and logging
+- Error handling and logging
 - Memory-efficient result management
 - Integration with BrainFlow data collection pipeline
 - Support for both individual and batch processing workflows

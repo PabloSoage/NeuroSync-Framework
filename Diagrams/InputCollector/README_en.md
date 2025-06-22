@@ -2,7 +2,7 @@
 
 ## Summary
 
-Input Collector is a comprehensive application designed to capture, process, visualize, and log real-time input events from multiple devices (keyboard, mouse, PS4 controllers). The application implements a **modular event-driven architecture** that supports multiple user interfaces (GUI, CLI, Web API) and provides extensible capabilities for different collector types and visualization modes.
+Input Collector is an application designed to capture, process, visualize, and log real-time input events from multiple devices (keyboard, mouse, PS4 controllers). The application implements a **modular event-driven architecture** that supports multiple user interfaces (GUI, CLI, Web API) and provides extensible capabilities for different collector types and visualization modes.
 
 ## General Architecture
 
@@ -99,7 +99,7 @@ dispatch(EventType.INPUT, {
 - **`AbstractVisualizerProvider/Controller`**: Protocols for UI management
 
 #### Features:
-- **Comprehensive dataclass**: Support for all input types and tracking modes
+- **Dataclass**: Support for all input types and tracking modes
 - **Consistent contracts**: Interfaces ensuring uniform behavior
 - **Structural typing**: Python protocols for flexibility
 - **Serialization**: Optimized `to_dict()` method for logging and APIs
@@ -272,7 +272,7 @@ TRACKING_MODES = {
 #### Features:
 - **Thread-safe execution**: Timeouts and error handling for cross-thread operations
 - **Framework isolation**: Clear separation between Qt and core services
-- **Comprehensive API**: Complete support for all application operations
+- **API**: Support for all application operations
 
 ### 11. **CLI** (`cli/`)
 
@@ -390,7 +390,7 @@ input-collector monitor controller  # Auto-detects PS4
 - **Automatic event broadcasting** for APIs and CLI
 - **Late subscriber synchronization** for stability
 
-### 2. **Comprehensive Thread Safety**
+### 2. **Thread Safety**
 - **Multiple granular locks** in services and collectors
 - **Qt signal/slot threading** for UI updates
 - **SDL2 event loop threading** for PS4 controller
@@ -429,7 +429,7 @@ input-collector monitor controller  # Auto-detects PS4
 - **Clear module boundaries** with well-defined interfaces
 - **Event-driven communication** for loose coupling
 - **Framework-independent core** for portability
-- **Comprehensive error handling** and recovery
+- **Error handling and recovery**
 
 ## Main Data Flow
 
@@ -471,7 +471,7 @@ input-collector monitor controller  # Auto-detects PS4
 ### 5. **Development and Debugging**
 - **Real-time event inspection**
 - **Input device debugging** with detailed state
-- **API integration testing** with comprehensive endpoints
+- **API integration testing** with endpoints
 - **Cross-platform compatibility verification**
 
 ## Technologies and Dependencies
@@ -485,7 +485,7 @@ input-collector monitor controller  # Auto-detects PS4
 ### Advanced CLI
 - **Typer**: Modern CLI framework with auto-completion
 - **Rich**: Advanced output with tables, panels and colors
-- **Cross-platform**: Complete Windows/Unix/macOS support
+- **Cross-platform**: Windows/Unix/macOS support
 
 ### Enhanced Input Capture
 - **pynput**: Cross-platform keyboard/mouse capture

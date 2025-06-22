@@ -272,7 +272,7 @@ TRACKING_MODES = {
 #### Características:
 - **Thread-safe execution**: Timeouts y error handling para operaciones cross-thread
 - **Framework isolation**: Separación clara entre Qt y servicios core
-- **API**: Soporte completo para todas las operaciones de aplicación
+- **API**: Support for all application operations
 
 ### 11. **CLI** (`cli/`)
 
@@ -390,7 +390,7 @@ input-collector monitor controller  # Auto-detects PS4
 - **Automatic event broadcasting** para APIs y CLI
 - **Late subscriber synchronization** para estabilidad
 
-### 2. **Thread Safety Comprehensivo**
+### 2. **Thread Safety**
 - **Multiple granular locks** en servicios y collectors
 - **Qt signal/slot threading** para UI updates
 - **SDL2 event loop threading** para PS4 controller
@@ -429,7 +429,7 @@ input-collector monitor controller  # Auto-detects PS4
 - **Clear module boundaries** con interfaces bien definidas
 - **Event-driven communication** para loose coupling
 - **Framework-independent core** para portabilidad
-- **Comprehensive error handling** y recovery
+- **Error handling y recovery
 
 ## Flujo de Datos Principal
 
@@ -471,7 +471,7 @@ input-collector monitor controller  # Auto-detects PS4
 ### 5. **Desarrollo y Debugging**
 - **Event inspection** en tiempo real
 - **Input device debugging** con estado detallado
-- **API integration testing** con endpoints comprehensivos
+- **API integration testing** with endpoints
 - **Cross-platform compatibility verification**
 
 ## Tecnologías y Dependencias
@@ -485,7 +485,7 @@ input-collector monitor controller  # Auto-detects PS4
 ### CLI Avanzado
 - **Typer**: Framework CLI moderno con auto-completion
 - **Rich**: Output avanzado con tablas, paneles y colors
-- **Cross-platform**: Soporte completo Windows/Unix/macOS
+- **Cross-platform**: Windows/Unix/macOS support
 
 ### Input Capture Mejorado
 - **pynput**: Captura keyboard/mouse cross-platform

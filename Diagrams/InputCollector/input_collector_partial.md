@@ -478,13 +478,13 @@ classDiagram
 
     note for InputCollectorApp "Main GUI application class\nIntegrates all submodules into cohesive app\nManages Qt widgets and event handling\nCoordinates between UI, collectors, and logging"
 
-    note for InputCollectorAPI "Static facade for application control\nProvides comprehensive API for external access\nDelegates to InteractionService for operations\nHandles parameter validation and UI synchronization"
+    note for InputCollectorAPI "Static facade for application control\nProvides API for external access\nDelegates to InteractionService for operations\nHandles parameter validation and UI synchronization"
 
     note for InputDataAPI "Static facade for data access\nProvides real-time access to input events\nDelegates to DataAccessService for data\nOptimized for low-latency queries"
 
     note for InputCollectorApiIntegration "Web API integration for data access\nRegisters methods with API Explorer\nProvides WebSocket real-time events\nMaintains PS4 controller state tracking"
 
-    note for InteractionApiIntegration "Web API integration for application control\nRegisters control methods with API Explorer\nProvides comprehensive remote control\nReuses utilities from data API integration"
+    note for InteractionApiIntegration "Web API integration for application control\nRegisters control methods with API Explorer\nProvides remote control\nReuses utilities from data API integration"
 
     %% Architecture Overview
     note "Enhanced Module Architecture:\n• Event-driven communication via CoreSubmodule\n• Thread-safe operations across all components\n• Enhanced PS4 controller support with real-time monitoring\n• Rich CLI interface with cross-platform compatibility\n• Split panel visualizer interfaces\n• Core event system for decoupled communication\n• Improved error handling and recovery mechanisms"

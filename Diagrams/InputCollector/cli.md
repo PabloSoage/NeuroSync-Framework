@@ -318,7 +318,7 @@ classDiagram
     note for HeadlessInputCollector "Minimal application stack for CLI-only mode\nInitializes core components without GUI\nMaintains API compatibility\nProvides clean shutdown procedures"
 
     %% Architecture Documentation
-    note "CLI Architecture:\n• Modular command organization via Typer\n• Interactive shell with built-in commands\n• Dual-mode support (standalone/GUI-concurrent)\n• Headless application stack initialization\n• Thread-safe state management\n• Comprehensive cleanup and signal handling"
+    note "CLI Architecture:\n• Modular command organization via Typer\n• Interactive shell with built-in commands\n• Dual-mode support (standalone/GUI-concurrent)\n• Headless application stack initialization\n• Thread-safe state management\n• Cleanup and signal handling"
 
     %% Mode Coordination
     note "Mode Coordination:\n• headless_mode: CLI-only operation\n• gui_mode: CLI alongside GUI\n• cli_running: Thread coordination\n• Automatic API initialization\n• Clean shutdown coordination\n• Signal handling in main thread only"

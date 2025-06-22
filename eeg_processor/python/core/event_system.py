@@ -1,7 +1,7 @@
 """
 Event system for coordinating interactions between API and GUI components.
 
-This module provides a comprehensive event system for decoupled communication
+This module provides an event system for decoupled communication
 throughout the EEG processor application, similar to the pattern used in
 input_collector module.
 """

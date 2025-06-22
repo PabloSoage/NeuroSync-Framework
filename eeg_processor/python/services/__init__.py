@@ -105,7 +105,7 @@ Data Flow Architecture:
 
 The services package provides a foundation for EEG
 signal processing applications with real-time capabilities, advanced analysis
-features, and comprehensive data management.
+features, and data management.
 """
 
 # Import specialized service packages

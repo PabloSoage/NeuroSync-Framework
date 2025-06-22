@@ -103,9 +103,9 @@ class SignalProcessor:
                     f"Adjusted Chebyshev ripple from {original_ripple:.1f} to {ripple:.1f} dB for stability"
                 )
 
-            # Very conservative frequency validation for Chebyshev
+            # Safe frequency validation for Chebyshev
             nyquist = self.sampling_rate / 2
-            max_freq_ratio = 0.4  # Even more conservative for Chebyshev
+            max_freq_ratio = 0.4  # Safe for Chebyshev
 
             if stop_freq > max_freq_ratio * nyquist:
                 new_stop = max_freq_ratio * nyquist
@@ -211,7 +211,7 @@ class SignalProcessor:
                         filtered_data[channel_idx] = channel_data
 
                 # Check if we have enough data for the filter
-                min_samples_needed = max(order * 10, 50)  # Even more conservative
+                min_samples_needed = max(order * 10, 50)  # Safe
                 if len(channel_data) < min_samples_needed:
                     logging.warning(
                         f"Not enough samples for filter on channel {channel_idx}: {len(channel_data)} < {min_samples_needed}"

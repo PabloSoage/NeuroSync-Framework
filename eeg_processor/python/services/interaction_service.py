@@ -1578,7 +1578,7 @@ class InteractionService:
 
     def get_system_status(self) -> Dict[str, Any]:
         """
-        Get comprehensive system status.
+        Get system status.
 
         Returns:
             Dictionary with system status

@@ -258,7 +258,7 @@ classDiagram
     DataAccessService --|> DataAccessService : singleton instance
 
     %% Notes
-    note for InteractionService "Singleton service for external control\nProvides comprehensive API for application control\nManages component registration and coordination\nThread-safe with status tracking"
+    note for InteractionService "Singleton service for external control\nProvides API for application control\nManages component registration and coordination\nThread-safe with status tracking"
 
     note for DataAccessService "Singleton service for real-time data access\nProvides low-latency access to input streams\nMaintains event history with type categorization\nSupports callback registration for reactive patterns"
 

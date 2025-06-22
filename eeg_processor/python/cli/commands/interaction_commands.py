@@ -454,7 +454,7 @@ def apply_downsampling(
 
 @control_app.command("status")
 def get_system_status() -> None:
-    """Get comprehensive system status."""
+    """Get system status."""
     try:
         from ...interaction_api import EEGProcessorInteractionAPI
 

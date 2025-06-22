@@ -1634,7 +1634,7 @@ class EEGProcessorInteractionApiIntegration:
             "get_system_status",
             {
                 "name": "get_system_status()",
-                "description": "Get comprehensive system status",
+                "description": "Get system status",
                 "type": "GET",
                 "params": {},
             },
@@ -2072,6 +2072,8 @@ class EEGProcessorInteractionApiIntegration:
                     "message": f"Duration must be between 1 and 60 seconds, got {duration_int}",
                     "error": "INVALID_DURATION",
                 }
+
+
 
             # Convert string to boolean
             use_filters_bool = use_filters.lower() == "true"
