@@ -26,38 +26,6 @@ from ..services.dataset_service import DatasetService
 from ..adapters.qt_integration_adapter import QtIntegrationAdapter
 
 
-class ExportWorker(QThread):
-    """Worker thread for dataset export to avoid UI blocking."""
-    
-    export_finished = pyqtSignal(bool, str)  # success, message
-    
-    def __init__(self, dataset_service, sync_data, filepath, format_name, metadata):
-        super().__init__()
-        self.dataset_service = dataset_service
-        self.sync_data = sync_data
-        self.filepath = filepath
-        self.format_name = format_name
-        self.metadata = metadata
-    
-    def run(self):
-        """Run export in background thread."""
-        try:
-            success = self.dataset_service.export_dataset(
-                self.sync_data,
-                self.filepath,
-                self.format_name,
-                self.metadata
-            )
-            
-            if success:
-                self.export_finished.emit(True, "Export completed successfully")
-            else:
-                self.export_finished.emit(False, "Export failed")
-                
-        except Exception as e:
-            self.export_finished.emit(False, f"Export error: {e}")
-
-
 class UnifiedApp(QMainWindow):
     """
     Main unified application combining EEG Processor and Input Collector.
@@ -85,7 +53,6 @@ class UnifiedApp(QMainWindow):
         # Application state
         self.is_synchronizing = False
         self.synchronization_precision = 1.0
-        self.export_worker = None
         
         # Initialize services
         self._init_services()
@@ -259,7 +226,7 @@ class UnifiedApp(QMainWindow):
             if hasattr(self, 'sync_panel'):
                 self.sync_panel.start_sync_requested.connect(self._start_synchronization)
                 self.sync_panel.stop_sync_requested.connect(self._stop_synchronization)
-                self.sync_panel.export_dataset_requested.connect(self._export_dataset)
+                self.sync_panel.setup_recording_requested.connect(self._setup_recording)
             
             # Connect adapter signals
             if hasattr(self, 'qt_adapter'):
@@ -275,6 +242,18 @@ class UnifiedApp(QMainWindow):
         except Exception as e:
             self.logger.error(f"Failed to setup connections: {e}")
     
+    def _setup_recording(self, recording_params: dict) -> None:
+        """Setup continuous recording."""
+        try:
+            # Configure the synchronization service for continuous recording
+            if hasattr(self, 'sync_service'):
+                self.sync_service.setup_continuous_recording(recording_params)
+                self.logger.info(f"Recording setup: {recording_params}")
+            
+        except Exception as e:
+            self.logger.error(f"Error setting up recording: {e}")
+            self._show_error("Recording Error", f"Failed to setup recording: {e}")
+
     def _create_menu_bar(self) -> None:
         """Create application menu bar."""
         menubar = self.menuBar()
@@ -377,22 +356,38 @@ class UnifiedApp(QMainWindow):
                 self.synchronization_started.emit(precision_ms)
                 
                 # Update UI
-                self.sync_status_label.setText(f"Sync: Active ({precision_ms}ms)")
+                self.sync_status_label.setText(f"Sync: Recording ({precision_ms}ms)")
                 self.sync_status_label.setStyleSheet("color: #5FB878; font-weight: bold;")
-                self.quick_sync_btn.setText("Stop Sync")
+                self.quick_sync_btn.setText("Stop Recording")
+                self.quick_sync_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #dc3545;  /* Red for stop */
+                        color: white;
+                        border: none;
+                        padding: 5px 15px;
+                        border-radius: 3px;
+                        font-weight: bold;
+                    }
+                    QPushButton:hover {
+                        background-color: #c82333;
+                    }
+                    QPushButton:pressed {
+                        background-color: #bd2130;
+                    }
+                """)
                 
                 # Update sync panel if it exists
                 if hasattr(self, 'sync_panel'):
                     self.sync_panel.on_sync_started()
                 
-                self.status_bar.showMessage(f"Synchronization started with {precision_ms}ms precision")
-                self.logger.info(f"Synchronization started with {precision_ms}ms precision")
+                self.status_bar.showMessage(f"Recording started with {precision_ms}ms precision")
+                self.logger.info(f"Recording started with {precision_ms}ms precision")
             else:
-                self._show_error("Synchronization Error", "Failed to start synchronization")
+                self._show_error("Synchronization Error", "Failed to start recording")
                 
         except Exception as e:
             self.logger.error(f"Error starting synchronization: {e}")
-            self._show_error("Synchronization Error", f"Error starting synchronization: {e}")
+            self._show_error("Synchronization Error", f"Error starting recording: {e}")
     
     def _stop_synchronization(self) -> None:
         """Stop synchronization."""
@@ -410,19 +405,36 @@ class UnifiedApp(QMainWindow):
                 self.sync_status_label.setText("Sync: Inactive")
                 self.sync_status_label.setStyleSheet("color: #888888; font-weight: bold;")
                 self.quick_sync_btn.setText("Quick Sync")
+                # Reset button style to original
+                self.quick_sync_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #007ACC;
+                        color: white;
+                        border: none;
+                        padding: 5px 15px;
+                        border-radius: 3px;
+                        font-weight: bold;
+                    }
+                    QPushButton:hover {
+                        background-color: #005a9e;
+                    }
+                    QPushButton:pressed {
+                        background-color: #004578;
+                    }
+                """)
                 
                 # Update sync panel if it exists
                 if hasattr(self, 'sync_panel'):
                     self.sync_panel.on_sync_stopped()
                 
-                self.status_bar.showMessage("Synchronization stopped")
-                self.logger.info("Synchronization stopped")
+                self.status_bar.showMessage("Recording stopped")
+                self.logger.info("Recording stopped")
             else:
-                self._show_error("Synchronization Error", "Failed to stop synchronization")
+                self._show_error("Synchronization Error", "Failed to stop recording")
                 
         except Exception as e:
             self.logger.error(f"Error stopping synchronization: {e}")
-            self._show_error("Synchronization Error", f"Error stopping synchronization: {e}")
+            self._show_error("Synchronization Error", f"Error stopping recording: {e}")
     
     def _toggle_quick_sync(self) -> None:
         """Toggle quick synchronization."""
@@ -430,79 +442,6 @@ class UnifiedApp(QMainWindow):
             self._stop_synchronization()
         else:
             self._start_synchronization(1.0)  # Default 1ms precision
-    
-    def _export_dataset(self, params: dict) -> None:
-        """Export synchronized dataset in background thread."""
-        try:
-            # Show that export is starting
-            if hasattr(self, 'sync_panel'):
-                self.sync_panel.on_export_started()
-            
-            # Get synchronized data
-            duration = params.get('duration_seconds', 30)
-            sync_data = self.sync_service.get_synchronized_data(duration)
-            
-            if not sync_data or sync_data.get('metadata', {}).get('sample_count', 0) == 0:
-                self._show_error("Export Error", "No synchronized data available. Make sure synchronization is active and data is being collected.")
-                if hasattr(self, 'sync_panel'):
-                    self.sync_panel.on_export_finished(False, "No data available")
-                return
-            
-            # Prepare export metadata
-            export_metadata = params.get('metadata', {})
-            export_metadata.update({
-                'export_params': params,
-                'include_metadata': params.get('include_metadata', True),
-                'compress_data': params.get('compress_data', True)
-            })
-            
-            # Start export in background thread
-            self.export_worker = ExportWorker(
-                self.dataset_service,
-                sync_data,
-                params.get('filepath', 'dataset.h5'),
-                params.get('format', 'hdf5'),
-                export_metadata
-            )
-            
-            self.export_worker.export_finished.connect(self._on_export_finished)
-            self.export_worker.start()
-            
-            self.status_bar.showMessage("Exporting dataset...")
-            self.logger.info(f"Started dataset export to {params.get('filepath')}")
-            
-        except Exception as e:
-            self.logger.error(f"Error starting dataset export: {e}")
-            self._show_error("Export Error", f"Error starting dataset export: {e}")
-            
-            # Update sync panel
-            if hasattr(self, 'sync_panel'):
-                self.sync_panel.on_export_finished(False, f"Export error: {e}")
-    
-    def _on_export_finished(self, success: bool, message: str) -> None:
-        """Handle export finished signal."""
-        try:
-            if success:
-                self.status_bar.showMessage(f"Dataset exported successfully")
-                self.logger.info(f"Dataset export completed: {message}")
-            else:
-                self.status_bar.showMessage(f"Dataset export failed")
-                self.logger.error(f"Dataset export failed: {message}")
-            
-            # Update sync panel
-            if hasattr(self, 'sync_panel'):
-                self.sync_panel.on_export_finished(success, message)
-            
-            # Emit signal
-            self.dataset_exported.emit("", success)
-            
-            # Clean up worker
-            if self.export_worker:
-                self.export_worker.deleteLater()
-                self.export_worker = None
-                
-        except Exception as e:
-            self.logger.error(f"Error handling export finished signal: {e}")
     
     def _show_export_dialog(self) -> None:
         """Show export dialog."""
@@ -545,6 +484,11 @@ class UnifiedApp(QMainWindow):
             if hasattr(self, 'sync_panel') and self.is_synchronizing:
                 sync_status = self.sync_service.get_status()
                 self.sync_panel.update_sync_status(sync_status)
+                
+                # Update file size
+                file_size = self.sync_service.get_current_file_size()
+                if file_size > 0:
+                    self.sync_panel.update_file_size(file_size)
                 
         except Exception as e:
             self.logger.error(f"Error updating status: {e}")

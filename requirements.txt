@@ -23,6 +23,7 @@ pyedflib
 # Optional BIDS support and MNE visualization
 mne
 mne-bids
+pybv >= 0.7.3
 
 # Optional dependencies for Peripherals like PS4 controllers
 pysdl2

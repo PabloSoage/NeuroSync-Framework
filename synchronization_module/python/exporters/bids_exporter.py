@@ -21,7 +21,7 @@ class BIDSExporter(DatasetExporterInterface):
     """Exports synchronized datasets to BIDS format."""
     
     description = "BIDS format for neuroimaging data"
-    file_extension = "_eeg.fif"
+    file_extension = ""  # Directory-based format
     supports_events = True
     supports_metadata = True
     
@@ -47,8 +47,18 @@ class BIDSExporter(DatasetExporterInterface):
             sampling_rate = metadata.get('sampling_rate', 250)
             channel_names = metadata.get('channel_names', [])
             
-            if not channel_names:
-                channel_names = [f'EEG{i+1:03d}' for i in range(eeg_data.shape[0])]
+            # Ensure channel names match data dimensions
+            actual_channels = eeg_data.shape[0]
+            if not channel_names or len(channel_names) != actual_channels:
+                channel_names = [f'EEG{i+1:03d}' for i in range(actual_channels)]
+                logging.warning(f"Channel names mismatch. Using generated names for {actual_channels} channels")
+            
+            # Truncate or pad channel names to match data
+            if len(channel_names) > actual_channels:
+                channel_names = channel_names[:actual_channels]
+            elif len(channel_names) < actual_channels:
+                for i in range(len(channel_names), actual_channels):
+                    channel_names.append(f'EEG{i+1:03d}')
             
             # Create MNE info structure
             info = mne.create_info(
@@ -63,38 +73,64 @@ class BIDSExporter(DatasetExporterInterface):
             else:
                 eeg_data_v = eeg_data
             
+            # Ensure data is the right shape and type
+            eeg_data_v = eeg_data_v.astype(np.float64)
+            
             # Create MNE Raw object
             raw = mne.io.RawArray(eeg_data_v, info)
             
             # Add input events as annotations
-            if 'events' in input_events:
+            events_for_mne = []
+            event_ids = {}
+            
+            if 'events' in input_events and input_events['events']:
                 events_data = input_events['events']
                 onsets = []
                 durations = []
                 descriptions = []
                 
                 for event in events_data:
-                    timestamp = event.get('timestamp', 0)
-                    event_type = event.get('type', 'input')
-                    event_data = str(event.get('data', ''))
-                    
-                    # Convert timestamp to seconds
-                    onset_time = timestamp / 1000.0 if timestamp > 1e9 else timestamp
-                    
-                    onsets.append(onset_time)
-                    durations.append(0)  # Point events
-                    descriptions.append(f"{event_type}_{event_data}")
+                    try:
+                        timestamp = event.get('timestamp', 0)
+                        event_type = str(event.get('type', 'input'))
+                        event_data = str(event.get('data', ''))
+                        
+                        # Convert timestamp to seconds relative to recording start
+                        if timestamp > 1e9:  # Unix timestamp
+                            start_timestamp = metadata.get('start_timestamp', timestamp)
+                            onset_time = (timestamp - start_timestamp) / 1000.0  # ms to seconds
+                        else:
+                            onset_time = float(timestamp)
+                        
+                        # Ensure onset time is within data range and non-negative
+                        max_time = eeg_data.shape[1] / sampling_rate
+                        if 0 <= onset_time <= max_time:
+                            onsets.append(onset_time)
+                            durations.append(0)  # Point events
+                            event_name = f"{event_type}_{event_data}"
+                            descriptions.append(event_name)
+                            
+                            # Add to event_ids dictionary
+                            if event_name not in event_ids:
+                                event_ids[event_name] = len(event_ids) + 1
+                            
+                    except Exception as e:
+                        logging.warning(f"Could not process event for BIDS: {e}")
                 
                 if onsets:
+                    # Create annotations object
                     annotations = mne.Annotations(
                         onset=onsets,
                         duration=durations,
                         description=descriptions
                     )
                     raw.set_annotations(annotations)
+                    
+                    # Convert annotations to events array
+                    events_for_mne, _ = mne.events_from_annotations(raw, event_id=event_ids)
             
             # Setup BIDS path
-            bids_root = os.path.dirname(filepath)
+            bids_root = filepath
             subject_id = metadata.get('subject_id', '001')
             session_id = metadata.get('session_id', '001')
             task_name = metadata.get('task', 'bci')
@@ -111,7 +147,9 @@ class BIDSExporter(DatasetExporterInterface):
             write_raw_bids(
                 raw,
                 bids_path,
-                format='FIF',
+                event_id=event_ids if event_ids else None,
+                events=events_for_mne if len(events_for_mne) > 0 else None,
+                format='BrainVision',  # BrainVision format for EEG data
                 overwrite=True,
                 allow_preload=True
             )

@@ -1,525 +1,453 @@
-# Input Collector - Architecture and Technical Documentation
+# API Explorer - Architecture and Technical Documentation
 
 ## Summary
 
-Input Collector is an application designed to capture, process, visualize, and log real-time input events from multiple devices (keyboard, mouse, PS4 controllers). The application implements a **modular event-driven architecture** that supports multiple user interfaces (GUI, CLI, Web API) and provides extensible capabilities for different collector types and visualization modes.
+API Explorer is a web framework designed to provide dynamic API exploration and testing capabilities for Python modules. Built on FastAPI with advanced WebSocket support, it offers a modern and responsive interface that allows multiple modules to register their APIs at runtime, providing interactive parameter forms, real-time event streaming, and data visualization capabilities. The system implements a singleton pattern for global accessibility while maintaining thread-safe operations and a scalable architecture.
 
 ## General Architecture
 
 ### Main Architectural Pattern
 
-The application follows a **hexagonal architecture (Ports and Adapters)** combined with **Mediator**, **Observer** and **Event-Driven Architecture** patterns, organizing code into well-defined layers:
+The API Explorer follows a **singleton-based service architecture** combined with **observer**, **registry**, and **worker pool** patterns, organizing functionality into well-defined layers:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    EXTERNAL INTERFACES                      │
+│                    CLIENT LAYER                             │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
-│  │    GUI      │  │     CLI     │  │     Web API         │ │
-│  │  (PyQt5)    │  │   (Typer)   │  │  (API Explorer)     │ │
+│  │ Web Browser │  │ HTTP Client │  │  WebSocket Client   │ │
+│  │ (Modular)   │  │   (REST)    │  │                     │ │
+│  │ (Managers)  │  │             │  │                     │ │
 │  └─────────────┘  └─────────────┘  └─────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
 ┌─────────────────────────────────────────────────────────────┐
-│                       ADAPTERS                              │
+│                 PRESENTATION LAYER                          │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
-│  │QtInteraction│  │ CLI Commands│  │ API Integrations    │ │
-│  │   Adapter   │  │             │  │                     │ │
+│  │  HTML       │  │     CSS     │  │    JavaScript       │ │
+│  │ Templates   │  │   Styles    │  │    Modules          │ │
+│  │ (Jinja2)    │  │ (Responsive)│  │   (Chart.js)        │ │
 │  └─────────────┘  └─────────────┘  └─────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
 ┌─────────────────────────────────────────────────────────────┐
-│                    SERVICE LAYER                            │
+│                   WEB FRAMEWORK                             │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
-│  │Interaction  │  │Data Access  │  │  Core Event System  │ │
-│  │  Service    │  │  Service    │  │                     │ │
+│  │   FastAPI   │  │  WebSocket  │  │   Static Files      │ │
+│  │   Server    │  │   Manager   │  │   Service           │ │
+│  │  (uvicorn)  │  │ (Worker Pool)│  │                     │ │
 │  └─────────────┘  └─────────────┘  └─────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
 ┌─────────────────────────────────────────────────────────────┐
-│                   APPLICATION CORE                          │
+│                   CORE SERVICE                              │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
-│  │    App      │  │ Collectors  │  │    Processing       │ │
-│  │ Coordinator │  │   Manager   │  │                     │ │
+│  │ ApiExplorer │  │  Module     │  │ Event Broadcasting  │ │
+│  │ (Singleton) │  │ Registry    │  │                     │ │
 │  └─────────────┘  └─────────────┘  └─────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-┌─────────────────────────────────────────────────────────────┐
-│                        DOMAIN                               │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
-│  │ Interfaces  │  │ Visualizers │  │     Logging         │ │
+│  │    JSON     │  │ Parameter   │  │    Connection       │ │
+│  │Serialization│  │ Validation  │  │   Management        │ │
 │  │             │  │             │  │                     │ │
 │  └─────────────┘  └─────────────┘  └─────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                     DATA LAYER                              │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
+│  │   Module    │  │   Method    │  │   Parameter         │ │
+│  │ Information │  │ Information │  │  Information        │ │
+│  └─────────────┘  └─────────────┘  └─────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## Submodules and Components
+## Core Components and Architecture
 
-### 1. **Core Event System** (`core/`)
+### 1. **API Explorer Core** (api_explorer.py)
 
-**Purpose**: Centralized, framework-independent event system for decoupled communication between components.
+**Purpose**: Central singleton service that manages the entire API exploration framework.
 
 #### Components:
-- **`EventDispatcher`**: Thread-safe singleton managing subscriptions and event dispatching
-- **`EventType`**: Enumeration of system event types (INPUT, STATE_CHANGE, RECORDING_STARTED, etc.)
-- **Utility Functions**: Simplified API for common usage (`dispatch`, `subscribe`, `unsubscribe`)
+- **`ApiExplorer`**: Main singleton class coordinating all operations
+- **Module Registry**: Dynamic registration system for external modules
+- **`WebSocketManager`**: Real-time communication handler with worker pools
+- **Route Management**: Dynamic FastAPI route generation
+- **Event Broadcasting**: Multi-client event distribution system
 
-#### Features:
-- **Event-driven architecture**: Decoupled communication between modules
-- **Thread-safe**: Multiple granular locks for different operations
-- **Error isolation**: Callback failures don't affect other subscribers
-- **Late synchronization**: Last event storage for later subscribers
-- **Framework-independent**: No dependency on Qt or other frameworks
+#### Key Features:
+- **Singleton Pattern**: Thread-safe unique instance
+- **Dynamic Registration**: Runtime module and method registration
+- **Thread-Safe Operations**: Main lock for synchronization
+- **Port Management**: Automatic port detection and assignment
+- **Server Lifecycle**: Complete start/stop server management
 
 ```python
-# Enhanced usage example
-from core import dispatch, subscribe, EventType
+# Basic usage example
+from api_explorer import ApiExplorer
 
-def on_input_event(data):
-    print(f"Received input: {data}")
+explorer = ApiExplorer.get_instance()
+explorer.register_module("my_module", "My Module", "Description")
+explorer.add_method_group("my_module", "control", "Control Methods")
+explorer.register_method("my_module", "control", "start", method_info, handler)
 
-def on_recording_started(data):
-    print(f"Recording started: {data}")
-
-# Subscribe to multiple event types
-subscribe(EventType.INPUT, on_input_event)
-subscribe(EventType.RECORDING_STARTED, on_recording_started)
-
-# Dispatch with structured data
-dispatch(EventType.INPUT, {
-    "key": "A",
+# Event broadcasting
+explorer.broadcast_event("my_module", {
     "timestamp": time.time(),
-    "collector_type": "keyboard_mouse"
+    "data": data,
+    "event_type": "data_update"
 })
 ```
 
-### 2. **Interfaces** (`interfaces/`)
+#### Architecture Details:
+- **Thread Safety**: Main lock (`_lock`) for critical operations
+- **Event System**: Event broadcasting with basic throttling
+- **File System Integration**: Server-side directory navigation
+- **Error Handling**: Basic logging and exception management
 
-**Purpose**: Definition of contracts and fundamental data structures.
+### 2. **WebSocket System**
 
-#### Components:
-- **`InputData`**: Main dataclass for input events (25+ fields)
-- **`AbstractInputCollector`**: Interface for input collectors
-- **`AbstractVisualizer`**: Interface for visualizers
-- **`AbstractVisualizerProvider/Controller`**: Protocols for UI management
+#### WebSocketManager (websocket_manager.py)
 
-#### Features:
-- **Dataclass**: Support for all input types and tracking modes
-- **Consistent contracts**: Interfaces ensuring uniform behavior
-- **Structural typing**: Python protocols for flexibility
-- **Serialization**: Optimized `to_dict()` method for logging and APIs
+**Purpose**: Central WebSocket connection manager with worker pool architecture.
 
-### 3. **Collectors** (`collectors/`)
+##### Components:
+- **`WebSocketManager`**: Main connection and worker coordinator
+- **`WebSocketWorkerPool`**: Worker pool for distributed processing
+- **`WorkerStats`**: Performance metrics per worker
+- **`FastJSONSerializer`**: Optimized JSON serialization
 
-**Purpose**: Capturing input events from different devices with thread-safe architecture.
-
-#### Components:
-- **`CollectorManager`**: Central manager with dynamic capabilities
-- **`KeyboardMouseCollector`**: Collector with multiple tracking modes
-- **`PS4ControllerCollector`**: Thread-based architecture with SDL2 event loop
-
-#### PS4ControllerCollector Features:
-- **Thread-based architecture**: SDL2 event loop in dedicated thread
-- **Automatic reconnection**: Handling of disconnections
-- **Thread-safe event processing**: Granular locks and error handling
-- **Change detection**: Previous state tracking for triggers/sticks
-- **Core event integration**: Automatic dispatch to event system
+##### Features:
+- **Worker Pool Architecture**: Load distribution across multiple workers
+- **Adaptive Throttling**: Frequency-based message throttling
+- **Load Balancing**: Round-robin distribution among workers
+- **Performance Tracking**: Processing metrics tracking
 
 ```python
-# PS4 Controller capabilities
+# Automatic worker pool per module
 {
-    "supports_analog_sticks": True,
-    "supports_triggers": True,
-    "supports_haptic_feedback": False,
-    "button_count": 14,
-    "analog_stick_count": 2,
-    "trigger_count": 2,
-    "connection_type": "SDL2_GameController",
-    "auto_reconnect": True,
-    "thread_safe_events": True
+    "module_id": "data_stream",
+    "worker_count": 4,
+    "messages_per_second": estimated,
+    "avg_processing_time": measured,
+    "queue_utilization": calculated
 }
 ```
 
-#### Mouse Tracking Modes:
-```python
-TRACKING_MODES = {
-    "delta": "Raw movement deltas",
-    "angle": "Direction and angle (8-directional)",
-    "axis": "Cardinal directions (N/S/E/W)",
-    "joystick": "Direction and speed (analog-like)"
+#### JSON Serialization (serialization.py)
+
+**Purpose**: Optimized JSON serialization system for data transmission.
+
+##### Features:
+- **orjson Integration**: Use of orjson when available for maximum speed
+- **Template Caching**: Pre-compilation of frequent JSON structures
+- **Fallback Safety**: Graceful degradation to stdlib json if orjson unavailable
+- **Data Sanitization**: Automatic cleanup of non-serializable data
+
+### 3. **Main Module** (main.py)
+
+**Purpose**: Entry point and high-level server management.
+
+#### Components:
+- **`run_explorer()`**: Main function to start the API Explorer
+- **`main()`**: Command-line entry point
+- **Server Configuration**: Host and port configuration
+
+#### Features:
+- **Flexible Deployment**: Supports blocking and non-blocking server modes
+- **Configuration Management**: Host and port configuration
+- **Import Management**: Automatic path resolution for module imports
+
+### 4. **Modular Frontend Architecture**
+
+#### Modular JavaScript (`static/js/`)
+
+**Purpose**: Frontend architecture based on managers with event-driven communication.
+
+##### Main Components:
+
+###### **APIExplorer Coordinator** (script.js)
+- **Manager Coordination**: Central coordination of all managers
+- **Event-Driven Communication**: Event system between managers
+- **Module Initialization**: Sequential module initialization
+
+###### **DarkModeManager** (darkModeManager.js)
+- **Theme Management**: Centralized dark/light theme management
+- **Callback System**: Theme change notifications to other managers
+- **Chart Integration**: Automatic Chart.js theme updates
+- **Persistence**: User preference storage
+
+###### **WebSocketManager** (webSocketManager.js)
+- **Connection Management**: Multiple WebSocket connection management
+- **Event Buffering**: Smart buffering for high-frequency events
+- **Performance Optimization**: Update throttling for visual smoothness
+- **Error Handling**: Connection error handling and cleanup
+
+###### **ChartManager** (chartManager.js)
+- **Chart Coordination**: Multiple Chart.js instance management
+- **Batched Updates**: Batch updates for optimization
+- **Throttling**: Data frequency-based throttling
+- **Multi-Channel Support**: Separate or combined channel visualization
+
+###### **EventDisplayManager** (eventDisplayManager.js)
+- **Event Display**: Real-time event display coordination
+- **Auto-Scrolling**: Smart automatic scrolling
+- **Data Table Updates**: Incremental table updates
+
+###### **FileBrowserManager** (fileBrowserManager.js)
+- **Server Integration**: Server-side file navigation integration
+- **Modal Management**: File browser modal management
+- **Path Resolution**: Cross-platform path resolution
+
+###### **APIMethodsManager** (apiMethodsManager.js)
+- **Method Execution**: API method execution
+- **Parameter Handling**: Dynamic parameter management
+- **Template Loading**: Automatic JSON template loading
+
+```javascript
+// Manager architecture example
+class APIExplorer {
+    constructor() {
+        this.darkModeManager = new DarkModeManager();
+        this.webSocketManager = new WebSocketManager();
+        this.chartManager = new ChartManager();
+        this.eventDisplayManager = new EventDisplayManager();
+    }
+
+    setupManagerCommunication() {
+        // Event-driven communication between managers
+        this.darkModeManager.onModeChange((isDark) => {
+            this.chartManager.updateTheme(isDark);
+        });
+
+        this.webSocketManager.onDataReceived((moduleId, data) => {
+            this.chartManager.updateData(moduleId, data);
+            this.eventDisplayManager.addDataEvent(moduleId, data);
+        });
+    }
 }
 ```
 
-### 4. **Processing** (`processing/`)
+#### Responsive HTML Template (index.html)
 
-**Purpose**: Event processing, formatting, and transformation with extended support.
+**Purpose**: Dynamic and responsive web interface with Bootstrap framework.
 
-#### Components:
-- **`EventProcessor`**: Processor with extended PS4 support
+##### Key Components:
+- **Module Registration Interface**: Dynamic module list generation
+- **API Explorer Tabs**: Module-based API exploration interface
+- **Real-time Event Panels**: Optimized WebSocket event visualization
+- **Parameter Forms**: Dynamic form generation
+- **File Browser Modal**: Server-side file system navigation
+- **Data Visualization**: Chart.js integration
 
-#### Features:
-- **Collector-specific formatting**: Different handling for keyboard/mouse vs PS4
-- **Special event detection**: F9 for toggle recording, system events
-- **Multi-mode formatting**: Support for all mouse tracking modes
-- **Axis processing**: Specialized handling for PS4 joysticks and triggers
-- **Thread-safe**: Safe processing with Qt signals
+##### Features:
+- **Responsive Design**: Bootstrap-based responsive layout
+- **Dark/Light Mode**: Complete theme system with persistence
+- **Dynamic Content**: Jinja2 templates
+- **Real-time Updates**: Live updates via WebSocket
+- **Interactive Forms**: Parameter type-specific controls
 
-### 5. **Services** (`services/`)
+#### Advanced CSS Styles (styles.css)
 
-**Purpose**: Enhanced singleton service layer for business logic.
+**Purpose**: Styling system with dual theme support.
 
-#### Components:
-- **`InteractionService`**: Service for expanded application control
-- **`DataAccessService`**: Service for real-time data access with categorization
+##### Components:
+- **Dark Mode Styles**: Complete professional dark theme implementation
+- **Light Mode Styles**: Default light theme with modern appearance
+- **Component Styles**: Consistent styles for all UI components
+- **Responsive Layout**: Mobile-first responsive design principles
+- **Chart Integration**: Integrated Chart.js themes
 
-#### Features:
-- **Enhanced thread-safety**: Granular locks for different operations
-- **Event categorization**: Separation by type (key, mouse_movement, mouse_button, controller)
-- **Callback system**: Reactive patterns for external consumers
-- **Memory management**: Configurable history limits
-- **Metadata state**: Tracking of active collector information
+## Data Structures and Models
 
-### 6. **Visualizers** (`visualizers/`)
+### 1. **Module Information**
+**Purpose**: Module metadata storage as nested dictionaries.
 
-**Purpose**: Real-time visualization components with advanced interfaces.
+#### Structure:
+```python
+{
+    "module_id": {
+        "name": str,
+        "description": str,
+        "show_data_table": bool,
+        "method_groups": {
+            "group_id": {
+                "name": str,
+                "methods": {
+                    "method_id": {
+                        "name": str,
+                        "description": str,
+                        "type": str,  # "GET" or "POST"
+                        "params": {...}
+                    }
+                }
+            }
+        },
+        "router": APIRouter
+    }
+}
+```
 
-#### Components:
-- **`BaseVisualizer`**: Base class with capabilities support
-- **`KeyboardVisualizer`**: Enhanced virtual keyboard
-- **`MouseVisualizer`**: Enhanced joystick visualization
-- **`MouseButtonsSelector`**: Selector with edit mode
-- **`PS4ControllerVisualizer`**: Split panel interface with real-time logging
+### 2. **WorkerStats**
+**Purpose**: Performance metrics for worker pools.
 
-#### PS4ControllerVisualizer Features:
-- **Split panel interface**: Controller visual + real-time state panel
-- **Thread-safe updates**: Qt signals for thread-based updates
-- **Real-time logging**: Log panel with colors and timestamps
-- **Advanced edit mode**: Snapshot/commit system for positions
-- **Multiple modes**: Image overlay + direct drawing
-- **Live state**: Display of trigger, stick and button values
+#### Attributes:
+- **Message Processing**: Message count processed per worker
+- **Timing Metrics**: Average processing time
+- **Queue Utilization**: Message queue utilization
+- **Activity Tracking**: Last activity timestamp
+
+### 3. **Event Data**
+**Purpose**: Basic structure for WebSocket events.
+
+#### Typical structure:
+```python
+{
+    "timestamp": float,
+    "event_type": str,
+    "module_id": str,
+    "data": dict,
+    "visualization_data": dict  # optional
+}
+```
+
+## Features and Capabilities
+
+### 1. **Data Visualization**
+
+#### Chart Integration:
+- **Chart.js Framework**: Professional charts
+- **Real-time Streaming**: Live data updates
+- **Multi-channel Support**: Separate visualization for different data channels
+- **Batched Updates**: Batch updates for visual smoothness
+
+#### Visualization Modes:
+- **Combined Charts**: All channels in a single chart
+- **Separate Charts**: Individual charts per channel
+- **Type Filtering**: Display filtering by data type (EEG, EMG, etc.)
+- **Auto-scaling**: Dynamic scaling based on data
+
+### 2. **WebSocket Event System**
+
+#### Real-time Communication:
+- **Worker Pool Architecture**: Distributed processing
+- **Message Throttling**: Frequency-based throttling
+- **Load Balancing**: Distribution among workers
+- **Performance Monitoring**: Performance metrics
+
+#### Event Types:
+- **Data Events**: Data events with visualization
+- **System Events**: System events
+- **Important Events**: Priority events that are not discarded
+
+### 3. **JSON Serialization**
+
+#### Optimizations:
+- **orjson Integration**: Use of orjson when available
+- **Template Pre-compilation**: Pre-compiled templates
+- **Fallback Safety**: Graceful degradation to stdlib json
+- **Data Sanitization**: Automatic data cleanup
+
+### 4. **Dynamic Parameter Forms**
+
+#### Supported Parameter Types:
+- **Text**: Basic text inputs
+- **Numbers**: Numeric inputs with validation
+- **Ranges**: Sliders with custom formatting
+- **Selection**: Dropdowns with predefined options
+- **Files**: Integrated file browser
+- **JSON Templates**: Text areas with automatic template loading
+
+## Integration and Usage Patterns
+
+### 1. **Module Registration Pattern**
 
 ```python
-# Split panel architecture
-┌─────────────────────────────────────────────────┐
-│                                                 │
-│  Controller Visualization                       │
-│  (Image overlay + interactive elements)         │
-│                                                 │
-└─────────────────────────────────────────────────┘
-┌─────────────────────────────────────────────────┐
-│ State Panel                                     │
-│ ┌─────────────────┐ ┌─────────────────────────┐ │
-│ │ Active Buttons  │ │ Analog Values           │ │
-│ │                 │ │ Left Stick: (0.2, -0.8)│ │
-│ └─────────────────┘ │ Right Stick: (0.0, 0.0)│ │
-│                     │ L2 Trigger: 0.0         │ │
-│                     │ R2 Trigger: 0.0         │ │
-│                     └─────────────────────────┘ │
-└─────────────────────────────────────────────────┘
-┌─────────────────────────────────────────────────┐
-│ Real-time Event Log                             │
-│ [14:23:45] Button X pressed                     │
-│ [14:23:45] Left stick moved to (0.2, -0.8)     │
-│ [14:23:46] Button X released                    │
-└─────────────────────────────────────────────────┘
+# Basic module registration
+explorer = ApiExplorer.get_instance()
+explorer.register_module("my_module", "My Module", "Description")
+explorer.add_method_group("my_module", "control", "Control")
+explorer.register_method("my_module", "control", "start", method_info, handler)
 ```
 
-### 7. **Logging** (`logging/`)
+### 2. **Event Broadcasting Pattern**
 
-**Purpose**: Multi-format logging system.
+```python
+# Event broadcasting
+event_data = {
+    "timestamp": time.time(),
+    "event_type": "data_update",
+    "data": data,
+    "visualization_data": {
+        "list_view": formatted_data
+    }
+}
 
-#### Components:
-- **`LoggingManager`**: Central logging coordinator
-- **`JSONLogger`**: Logger for structured JSON format
-- **`CSVLogger`**: Logger for tabular CSV format
-
-#### Features:
-- **Dynamic CSV headers**: Automatic generation based on tracked keys
-- **Collector-specific formatting**: Different fields for keyboard/mouse vs PS4
-- **Thread-safe signals**: Communication via Qt signals
-- **Automatic management**: Auto file opening/closing
-
-### 8. **UI** (`ui/`)
-
-**Purpose**: User interface management and visualizer coordination.
-
-#### Components:
-- **`UIManager`**: Main manager with dark theme
-- **`VisualizerManager`**: Coordinator with capabilities awareness
-- **`KeyboardEventFilter`**: Filter for edit mode
-
-#### Features:
-- **Dark theme**: Consistent colors and styles
-- **Capabilities-aware**: Adaptive UI based on active collector
-- **PS4 integration**: Specific controls for PS4 visualizer
-- **Edit mode coordination**: Centralized edit mode management
-
-### 9. **App Coordinator** (`app/`)
-
-**Purpose**: Central mediator with core event system integration.
-
-#### Components:
-- **`AppCoordinator`**: Main coordinator with core events
-
-#### Features:
-- **Core event integration**: Automatic dispatch to event system
-- **Thread-safe coordination**: Qt signals for UI operations
-- **Centralized state**: Consistent management of recording, edit mode, tracked keys
-- **Error handling**: Error handling in coordination
-
-### 10. **Adapters** (`adapters/`)
-
-**Purpose**: Thread-safe adapters between frameworks and core services.
-
-#### Components:
-- **`QtInteractionAdapter`**: Adapter for thread-safe UI operations
-
-#### Features:
-- **Thread-safe execution**: Timeouts and error handling for cross-thread operations
-- **Framework isolation**: Clear separation between Qt and core services
-- **API**: Complete support for all application operations
-
-### 11. **CLI** (`cli/`)
-
-**Purpose**: Command-line interface with advanced monitoring capabilities.
-
-#### Components:
-- **`CLIApp`**: Main CLI application with Typer
-- **`CLIShell`**: Interactive REPL-style shell
-- **`CLIConfig`**: Configuration and shared state management
-- **`HeadlessInputCollector`**: Application stack for headless mode
-- **Commands**: Specialized command modules
-- **`PS4ControllerMonitor`**: Dedicated monitor for PS4 controllers
-
-#### CLI Features:
-
-##### **Monitor Commands**:
-- **PS4ControllerMonitor**: Dedicated monitor for PS4 controllers
-- **Event-driven architecture**: Use of core event system
-- **Rich console interface**: Real-time tables and panels
-- **Cross-platform key detection**: ESC/Q to exit on Windows/Unix
-- **Smart collector detection**: Specific monitoring based on active collector
-
-```bash
-# PS4 monitoring with real-time display
-$ input-collector monitor controller
-┌─────────────────────────────────────────────────┐
-│                PS4 Controller                   │
-├─────────────────────────────────────────────────┤
-│ Buttons: X, Circle                              │
-│ Left Stick: (0.2, -0.8) → SE                   │
-│ Right Stick: (0.0, 0.0) → Center               │
-│ L2 Trigger: 128/255 (50%)                      │
-│ R2 Trigger: 0/255 (0%)                         │
-└─────────────────────────────────────────────────┘
-
-Recent Events:
-[14:23:45] Button X pressed
-[14:23:45] Left stick moved SE
-[14:23:46] L2 trigger: 50%
-[14:23:46] Button X released
-
-Press ESC or Q to exit...
+explorer.broadcast_event("my_module", event_data)
 ```
 
-##### **Command Structure**:
-```bash
-# Data access commands
-input-collector data active-keys
-input-collector data mouse-position
-input-collector data controller-connected
+### 3. **Server Integration Pattern**
 
-# Interaction commands
-input-collector interaction recording start
-input-collector interaction collectors switch ps4_controller
-input-collector interaction mouse set-mode joystick
-
-# Advanced monitoring
-input-collector monitor events --collector ps4_controller
-input-collector monitor controller  # Auto-detects PS4
+```python
+# Server initialization
+def setup_api():
+    explorer = ApiExplorer.get_instance()
+    
+    # Register modules
+    register_modules(explorer)
+    
+    # Start server
+    explorer.start_server(host="localhost", port=8000, block=False)
+    return explorer
 ```
-
-### 12. **API Integration** (root files)
-
-**Purpose**: Web API exposure for remote access with core event integration.
-
-#### Components:
-- **`InputCollectorAPI`**: Static API for application control
-- **`InputDataAPI`**: Static API for data access
-- **`InputCollectorApiIntegration`**: Web integration for data with core events
-- **`InteractionApiIntegration`**: Web integration for control with core events
-
-#### Features:
-- **Core event integration**: Automatic WebSocket broadcasts via event system
-- **PS4 state tracking**: Specialized state for PS4 controllers
-- **Enhanced fallbacks**: Improved operation without web server
-- **Thread-safe operations**: All API operations are thread-safe
 
 ## Implemented Architectural Patterns
 
-### 1. **Event-Driven Architecture**
-- **Core Event System** as communication backbone
-- **Pub/Sub pattern** for decoupling
-- **Framework-independent** for flexibility
+### 1. **Singleton Pattern**
+- **`ApiExplorer`**: Thread-safe singleton
+- **Global State Management**: Consistent state
+- **Resource Sharing**: Efficient resource sharing
 
-### 2. **Mediator Pattern**
-- **`AppCoordinator`** acts as central mediator
-- **Core event integration** for external communication
-- **Thread-safe coordination** via Qt signals
+### 2. **Worker Pool Pattern**
+- **Distributed Processing**: Distributed processing for WebSockets
+- **Load Balancing**: Automatic load balancing
+- **Adaptive Scaling**: Module type-based scaling
 
-### 3. **Singleton Pattern**
-- **Thread-safe implementation** with double-checked locking
-- **Granular locking** for different operations
-- **Error isolation** for stability
+### 3. **Observer Pattern**
+- **Event Broadcasting**: Event broadcasting to multiple clients
+- **Callback System**: Callback system for notifications
 
-### 4. **Observer Pattern**
-- **Core event system** as main implementation
-- **Qt signals/slots** for UI thread-safety
-- **Callback systems** in services
+### 4. **Registry Pattern**
+- **Dynamic Registration**: Dynamic module and method registration
+- **Runtime Configuration**: Runtime configuration
 
-### 5. **Strategy Pattern**
-- **Dynamic collector capabilities**
-- **Adaptive UI** based on active collector
-- **Interchangeable multiple tracking modes**
+## Performance Features
 
-### 6. **Adapter Pattern**
-- **Enhanced framework isolation**
-- **Thread-safe adaptations** with timeouts
-- **Cross-platform compatibility**
+### 1. **High-Frequency Data Handling**
+- **Worker Pool Processing**: Distributed processing
+- **Adaptive Throttling**: Smart throttling
+- **Batch Processing**: Batch processing
 
-## Key System Features
+### 2. **Connection Management**
+- **Worker Pool Architecture**: Scalable architecture
+- **Performance Monitoring**: Performance monitoring
+- **Automatic Cleanup**: Automatic resource cleanup
 
-### 1. **Complete Event-Driven Architecture**
-- **Framework-independent core event system**
-- **Thread-safe communication** between all components
-- **Automatic event broadcasting** for APIs and CLI
-- **Late subscriber synchronization** for stability
+### 3. **UI Performance**
+- **Batched DOM Updates**: Batch DOM updates
+- **Throttled Chart Updates**: Chart updates with throttling
+- **Incremental Table Updates**: Incremental table updates
 
-### 2. **Thread Safety**
-- **Multiple granular locks** in services and collectors
-- **Qt signal/slot threading** for UI updates
-- **SDL2 event loop threading** for PS4 controller
-- **Error isolation** in callbacks and event handlers
+## Technology Stack
 
-### 3. **Advanced Multi-Interface**
-- **GUI**: PyQt5 application with split panels and real-time updates
-- **CLI**: Interactive shell with collector-specific monitoring
-- **Web API**: Remote control with WebSocket real-time events
+### Backend:
+- **FastAPI**: Asynchronous web framework
+- **Uvicorn**: ASGI server
+- **orjson** (optional): Fast JSON serialization
+- **asyncio**: Asynchronous programming
+- **WebSockets**: Bidirectional communication
 
-### 4. **PS4 Controller Support**
-- **SDL2 integration** with thread-safe event processing
-- **Automatic reconnection** for wireless devices
-- **Advanced visualization** with image overlays
-- **Real-time monitoring** in CLI with Rich console
+### Frontend:
+- **Modular JavaScript**: Manager architecture
+- **Chart.js**: Data visualization
+- **Bootstrap 5**: Responsive CSS framework
+- **WebSocket APIs**: Native WebSocket APIs
 
-### 5. **Enhanced User Experience**
-- **Dark theme** consistent
-- **Split panel interfaces** for detailed information
-- **Real-time state displays** with live value updates
-- **Cross-platform CLI** with intelligent key detection
-
-### 6. **Advanced Configurability**
-- **Dynamic capabilities** adaptation based on device
-- **Multiple mouse tracking modes** with adjustable parameters
-- **Edit mode** for visual customization
-- **Flexible key/button tracking** configuration
-
-### 7. **Logging and Monitoring**
-- **Multi-format simultaneous logging** (CSV + JSON)
-- **Dynamic CSV headers** based on configuration
-- **Real-time event monitoring** in CLI and GUI
-- **WebSocket event streaming** for external integration
-
-### 8. **Extensibility and Maintainability**
-- **Clear module boundaries** with well-defined interfaces
-- **Event-driven communication** for loose coupling
-- **Framework-independent core** for portability
-- **Error handling** and recovery
-
-## Main Data Flow
-
-```
-1. Input Device → Collector (thread-safe) → InputData
-2. InputData → Core Event System → Multiple Subscribers
-3. InputData → EventProcessor → ProcessingResult
-4. ProcessingResult → AppCoordinator → UI + Logging
-5. Core Events → {API WebSocket, CLI Monitor, External Systems}
-6. Thread-safe Updates → {GUI Panels, CLI Display, Web Clients}
-```
-
-## Main Use Cases
-
-### 1. **Game Development**
-- **PS4 controller testing** with real-time visualization
-- **Input lag analysis** with precise timestamps
-- **Analog input mapping** for stick and trigger calibration
-- **Multi-input coordination** testing
-
-### 2. **UX/UI Research**
-- **Mouse movement pattern analysis** with multiple tracking modes
-- **Keyboard usage heatmaps** with real-time visualization
-- **Accessibility testing** with usage pattern monitoring
-- **Cross-device interaction studies**
-
-### 3. **Automation and Testing**
-- **Macro recording** with multi-device support
-- **Automated UI testing** with event playback
-- **Input validation** for applications
-- **Performance benchmarking** of input handling
-
-### 4. **Real-Time System Monitoring**
-- **Live input monitoring** via CLI or Web API
-- **Device connectivity tracking** with automatic reconnection
-- **Usage analytics** with structured logging
-- **Remote monitoring** via WebSocket APIs
-
-### 5. **Development and Debugging**
-- **Real-time event inspection**
-- **Input device debugging** with detailed state
-- **API integration testing** with endpoints
-- **Cross-platform compatibility verification**
-
-## Technologies and Dependencies
-
-### Core
-- **Python 3.8+**: Main language with modern typing
-- **PyQt5**: GUI framework with thread-safe signals
-- **dataclasses**: Optimized data structures
-- **threading**: Concurrency and synchronization
-
-### Advanced CLI
-- **Typer**: Modern CLI framework with auto-completion
-- **Rich**: Advanced output with tables, panels and colors
-- **Cross-platform**: Windows/Unix/macOS support
-
-### Enhanced Input Capture
-- **pynput**: Cross-platform keyboard/mouse capture
-- **pysdl2** (optional): SDL2 binding for PS4 controller
-- **Platform-specific APIs**: Integration with native OS APIs
-
-### Web API and Communication
-- **API Explorer**: Web framework for documented APIs
-- **WebSocket**: Bidirectional real-time communication
-- **HTTP REST**: Stateless APIs for operations
-
-### Advanced Visualization
-- **Qt Graphics**: Optimized rendering for visualizers
-- **Image processing**: Overlay support for controller visualization
-- **Real-time updates**: 60 FPS capable rendering
-
-## Deployment Architecture
-
-```
-Input Collector Application
-├── Standalone GUI Mode
-│   ├── Full feature set
-│   ├── Real-time visualization
-│   └── Local file logging
-├── CLI Headless Mode
-│   ├── Minimal resource usage
-│   ├── Scriptable operations
-│   └── Remote monitoring
-├── Hybrid GUI + CLI Mode
-│   ├── Concurrent operation
-│   ├── Shared state management
-│   └── Coordinated cleanup
-└── Web API Integration
-    ├── Remote control capability
-    ├── Real-time event streaming
-    └── Cross-platform accessibility
-```
+### Tools:
+- **Worker Pools**: Distributed processing
+- **Throttling**: Resource throttling
+- **Performance Monitoring**: Metrics monitoring
