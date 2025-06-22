@@ -136,22 +136,4 @@ classDiagram
     }
 
     EventDispatcher ..> ThreadSafetyMechanisms : implements
-
-    %% Notes
-    note for EventDispatcher "Singleton event dispatcher with simplified design\nThread-safe subscription management\nAutomatic state synchronization for late subscribers\nError isolation prevents callback failures from affecting others"
-
-    note for EventType "Simplified event type enumeration\nCovers core application events\nUses auto() for automatic value assignment\nExtensible for future event types"
-
-    note for EventSystemUtilities "Simple facade functions\nHides singleton complexity\nProvides convenient API\nMaintains backward compatibility"
-
-    note for ThreadSafetyMechanisms "Multi-level thread safety:\n• Class lock for singleton creation\n• Subscribers lock for subscription changes\n• Exception handling isolates failing callbacks\n• Last event storage enables state sync"
-
-    %% Architecture Documentation
-    note "Simplified Event System Architecture:\n• Singleton dispatcher for global access\n• Set-based subscriber management\n• Last event storage for state synchronization\n• Exception isolation for stable operation\n• Framework-independent design\n• Thread-safe operations throughout"
-
-    %% Usage Patterns Documentation
-    note "Usage Patterns:\n• subscribe() for event registration\n• unsubscribe() for cleanup\n• dispatch() for event emission\n• Last event replay for late subscribers\n• Exception isolation for reliability\n• Framework-agnostic design"
-
-    %% Event Flow
-    note "Event Flow:\n1. Components subscribe to event types\n2. Events dispatched with data payload\n3. All subscribers notified synchronously\n4. Last event stored for late subscribers\n5. Exceptions isolated per subscriber\n6. State synchronization automatic"
 ```

@@ -173,22 +173,4 @@ classDiagram
     MNEVisualizerInterface -.- MNEResultStorageInterface : "mne processing pipeline"
     MNEResultStorageInterface -.- MNEProcessManagerInterface : "mne processing pipeline"
     MNEProcessManagerInterface -.- MNERealtimeInterface : "mne processing pipeline"
-    
-    %% ================================================================================
-    %% NOTES
-    %% ================================================================================
-    
-    note for CollectorInterface "Core Collector Interface:\n• Base interface for all data collectors\n• Defines session lifecycle (prepare, start, stop, release)\n• Standardizes data retrieval and device information access\n• Foundation for EEG data collection operations"
-    
-    note for MarkerInterface "Event Marker Interface:\n• Enables event marker insertion during data collection\n• Essential for event-related potential (ERP) experiments\n• Synchronizes external events with EEG data stream\n• Supports any marker value type for flexibility"
-    
-    note for ConfigurableCollectorInterface "Device Configuration Interface:\n• Enables runtime device configuration\n• Supports preset switching for different acquisition modes\n• Allows device-specific configuration commands\n• Provides configuration response feedback"
-    
-    note for BoardInterface "Board Management Interface:\n• Abstracts board discovery and configuration\n• Provides board grouping and categorization\n• Handles parameter validation and requirement checking\n• Supports multiple board types and manufacturers"
-    
-    note "Recording Interfaces:\n• DataStorageInterface: Single-shot data saving\n• ContinuousRecordingInterface: Continuous file recording\n• Support both raw and processed data types\n• Enable flexible data persistence strategies"
-    
-    note "MNE Processing Interfaces:\n• Async processing pipeline\n• Task-based operations with status monitoring\n• Converter: BrainFlow to MNE format conversion\n• Visualizer: Plot generation with various types\n• Storage: Result persistence and retrieval\n• ProcessManager: Multiprocessing coordination\n• Realtime: Live processing with parameter updates"
-    
-    note "Interface Design Principles:\n• Abstract Base Classes ensure contract compliance\n• Async operations support non-blocking processing\n• Task-based architecture enables cancellation and monitoring\n• Modular design allows independent implementation\n• Type hints provide clear API contracts\n• Extensible for future processing requirements"
 ```

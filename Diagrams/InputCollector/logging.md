@@ -116,10 +116,4 @@ classDiagram
     %% Signal Connections
     JSONLogger --> LoggingManager : status_message
     CSVLogger --> LoggingManager : status_message
-
-    %% Notes
-    note for LoggingManager "Central coordinator for all logging operations\nManages JSON and CSV loggers\nRelays status messages to application"
-    note for JSONLogger "Handles JSON format logging\nSupports structured event logging\nDifferent formats for keyboard/mouse vs PS4"
-    note for CSVLogger "Handles CSV format logging\nDynamic header generation\nSupports multiple tracking modes"
-    note for InputData "Event data structure\nSupports multiple input types\nExtensible for different collectors"
 ```

@@ -404,18 +404,4 @@ classDiagram
     
     %% Static Relationships
     MultiSignalVisualizer ..> MultiSignalVisualizer : "_cached_visualizers (class-level cache)"
-    
-    %% ================================================================================
-    %% NOTES
-    %% ================================================================================
-    
-    note for MultiSignalVisualizer "Multi-Page Signal Visualizer:\n• Intelligent channel type detection from connected boards\n• Lazy loading with performance caching across reconnections\n• Multi-tab interface (EEG, EMG, ECG, EOG, EDA, PPG, Accel, Gyro)\n• Real-time data integration with DataAccessService\n• Advanced processing status monitoring (filters, wavelets, downsampling)\n• Performance-optimized rendering with selective tab updates\n• Dark theme with scientific visualization standards\n• Thread-safe operations with UI marshalling\n• Memory-efficient buffer management with automatic cleanup"
-    
-    note for BrainMapVisualizer "Topographic Brain Mapping:\n• International 10-20/10-10 electrode positioning system\n• Real-time signal quality visualization (5-level color coding)\n• Anatomical brain region overlays (frontal, central, parietal, occipital)\n• Intelligent electrode name matching with manufacturer compatibility\n• G.tec Unicorn support with automatic channel mapping\n• Performance monitoring with adaptive update rates\n• Interactive electrode labels with quality legend\n• Scientific-grade visualization with proper scaling"
-    
-    note "Visualizers Architecture Features:\n• High-frequency updates (50-100ms) with optimized pipelines\n• Class-level caching preserving visualizers across reconnections\n• Selective rendering preventing UI blocking during intensive operations\n• Scientific visualization standards with proper color schemes\n• Multiple plot types: time series, PSD, topographic, band powers\n• Quality indicators with research-grade accuracy\n• Memory optimization with lazy loading and resource cleanup\n• Cross-platform compatibility with responsive layouts"
-    
-    note "Performance Optimizations:\n• Lazy tab creation reducing startup time and memory usage\n• Intelligent cache invalidation based on board/preset changes\n• Selective updates for visible components only\n• Thread-safe data access with proper UI thread marshalling\n• Resource lifecycle management with cleanup procedures\n• Adaptive timeout management and CPU usage optimization\n• High-resolution rendering suitable for publication"
-    
-    note "Integration Capabilities:\n• Seamless DataAccessService coordination for centralized data\n• Real-time filter status monitoring with visual indicators\n• Event system integration for application-wide updates\n• Service dependency injection for modularity and testing\n• Backward compatibility with existing workflows\n• Cross-component communication via signal/slot architecture"
 ```

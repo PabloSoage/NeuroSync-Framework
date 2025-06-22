@@ -412,24 +412,4 @@ classDiagram
     atexit -.- signal : "system components"
     signal -.- sys : "system components"
     sys -.- threading : "system components"
-    
-    %% ================================================================================
-    %% NOTES
-    %% ================================================================================
-    
-    note for CLIApp "Main CLI Application:\n• Typer-based CLI application with command structure\n• Signal handler registration for graceful shutdown (SIGINT, SIGTERM)\n• Atexit handler for cleanup operations\n• Thread-safe operation with main thread detection\n• Version and info commands with rich table output\n• Integration with CLI shell for interactive operation\n• Proper resource cleanup and API shutdown coordination\n• Support for both standalone and GUI-integrated operation modes"
-    
-    note for CLIShell "Interactive CLI Shell:\n• Rich-powered interactive shell with professional appearance\n• Command parsing using shlex for proper argument handling\n• Built-in commands (exit, quit, help, status, clear)\n• Welcome message with mode-specific information (GUI/headless)\n• Help system with syntax highlighting\n• Real-time status display with connection, streaming, and recording info\n• Exception handling preventing shell crashes\n• SystemExit catching to maintain shell operation\n• Keyboard interrupt handling with user guidance"
-    
-    note for CLIConfig "Configuration and State Management:\n• Global state management for headless and GUI modes\n• Thread-safe configuration with Event-based synchronization\n• Main thread detection for signal handler registration\n• Service factory functions with error handling\n• CLI lifecycle management (running/stopped states)\n• Timeout-based waiting for CLI exit\n• Resource cleanup coordination\n• Backward compatibility support"
-    
-    note for HeadlessEEGProcessor "Headless Application Mode:\n• Complete EEG processor initialization without GUI\n• Service lifecycle management (DataAccess, Interaction, Collector)\n• Proper initialization order ensuring dependency satisfaction\n• Rich console integration for status reporting\n• Resource cleanup with exception handling\n• API initialization coordination\n• Memory management and service cleanup"
-    
-    note "CLI Architecture Features:\n• Dual operation modes: standalone headless and GUI-integrated\n• Modular command structure with clear separation (data, control, monitor)\n• Professional terminal interface with Rich framework integration\n• Thread-safe operation with proper signal handling\n• Service dependency injection with factory pattern\n• Resource lifecycle management with cleanup coordination\n• Interactive shell with built-in help and status commands\n• Cross-platform compatibility with proper error handling"
-    
-    note "Integration Capabilities:\n• Seamless GUI integration preserving both CLI and GUI functionality\n• Service sharing between CLI and GUI components\n• Real-time status synchronization across interfaces\n• API integration enabling external control and automation\n• Command-line argument processing for scriptable operation\n• Interactive shell for exploratory and development use\n• Resource sharing optimization reducing memory footprint"
-    
-    note "User Experience Design:\n• Professional terminal appearance with Rich framework styling\n• Intuitive command structure following standard CLI conventions\n• Help system with syntax highlighting\n• Real-time feedback with color-coded status indicators\n• Graceful error handling with user-friendly messages\n• Interactive prompts with command history and completion\n• Clear separation between interactive and batch operation modes\n• Consistent behavior across Windows and Unix platforms"
-    
-    note "Command Integration:\n• 25+ commands organized into logical groups (data, control, monitor)\n• Typer framework providing modern CLI with auto-completion\n• Rich formatting for professional terminal output\n• Multi-format support (JSON, tables, interactive displays)\n• Real-time monitoring with configurable refresh rates\n• Cross-platform keyboard input handling\n• Parameter validation with user-friendly error messages\n• Coverage of all EEG processor functionality"
 ```

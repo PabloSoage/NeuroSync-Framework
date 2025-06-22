@@ -138,14 +138,4 @@ classDiagram
     CollectorManager --> AppCoordinator : on_collector_event
     EventProcessor --> AppCoordinator : toggle_recording_requested
     AppCoordinator --> AppCoordinator : event_received (internal)
-
-    %% Notes
-    note for AppCoordinator "Central mediator implementing the Mediator pattern\nCoordinates all major application components\nHandles high-level business logic and state management\nEnsures thread-safe event processing via Qt signals"
-
-    note for EventSystem "Core event system for decoupled communication\nUsed for API/WebSocket integration\nDispatches events to external consumers"
-
-    note for EventType "Enumeration of all event types\nUsed by core event system\nDefines standard event categories"
-
-    %% Event Flow Documentation
-    note "Event Flow:\n1. CollectorManager captures input\n2. AppCoordinator receives via on_collector_event\n3. Thread-safe processing via event_received signal\n4. UI updates and logging coordination\n5. Core event system dispatch for external consumers"
 ```

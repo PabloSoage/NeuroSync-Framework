@@ -307,19 +307,4 @@ classDiagram
     %% Shutdown Coordination
     CLIApp --> HeadlessInputCollector : coordinates shutdown
     CLIShell --> CLIConfig : coordinates exit
-
-    %% Notes
-    note for CLIApp "Main CLI application entry point\nManages Typer app with command modules\nHandles signals and cleanup\nSupports both standalone and GUI-concurrent modes"
-
-    note for CLIShell "Interactive shell implementation\nProvides REPL-like experience\nSupports built-in commands and help\nIntegrates with Typer command execution"
-
-    note for CLIConfig "Shared configuration and state management\nCoordinates headless and GUI modes\nManages CLI lifecycle\nProvides initialization utilities"
-
-    note for HeadlessInputCollector "Minimal application stack for CLI-only mode\nInitializes core components without GUI\nMaintains API compatibility\nProvides clean shutdown procedures"
-
-    %% Architecture Documentation
-    note "CLI Architecture:\n• Modular command organization via Typer\n• Interactive shell with built-in commands\n• Dual-mode support (standalone/GUI-concurrent)\n• Headless application stack initialization\n• Thread-safe state management\n• Cleanup and signal handling"
-
-    %% Mode Coordination
-    note "Mode Coordination:\n• headless_mode: CLI-only operation\n• gui_mode: CLI alongside GUI\n• cli_running: Thread coordination\n• Automatic API initialization\n• Clean shutdown coordination\n• Signal handling in main thread only"
 ```

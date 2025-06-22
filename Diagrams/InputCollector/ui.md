@@ -228,11 +228,4 @@ classDiagram
     UIManager --> QGroupBox : contains multiple
     UIManager --> QVBoxLayout : uses
     UIManager --> QHBoxLayout : uses
-
-    %% Notes
-    note for UIManager "Main UI controller managing all interface elements\nHandles dark theme, layout, and component coordination\nEmits signals for application actions"
-    note for VisualizerManager "Coordinates all visualizer components\nImplements provider and controller interfaces\nManages edit mode and collector-specific visibility"
-    note for KeyboardEventFilter "Event filter for keyboard click handling\nEnables key selection in edit mode\nRelay clicks to VisualizerManager"
-    note for AbstractVisualizerProvider "Protocol interface for providing visualizers\nImplemented implicitly to avoid metaclass conflicts"
-    note for AbstractVisualizerController "Protocol interface for controlling visualizers\nImplemented implicitly to avoid metaclass conflicts"
 ```

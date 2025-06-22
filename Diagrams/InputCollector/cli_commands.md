@@ -272,13 +272,4 @@ classDiagram
     CoreEventSystem --> PS4ControllerMonitor : delivers events
     PS4ControllerMonitor --> RichComponents : updates display
     InteractionApiIntegration --> CoreEventSystem : bridges events
-
-    %% Notes
-    note for PS4ControllerMonitor "Enhanced PS4 controller monitoring:\n• Event-driven architecture using core event system\n• Thread-safe display updates with dirty flag\n• Rich console interface with live updates\n• Real-time state tracking (buttons, sticks, triggers)\n• Enhanced logging with 'return to zero' detection\n• Mimics visualizer display format\n• Cross-platform key listener for exit"
-
-    note for MonitorCommands "Monitor command improvements:\n• Smart collector detection for appropriate monitoring\n• Enhanced PS4 controller display\n• Event-driven monitoring using core events\n• Cross-platform key detection (ESC/Q to exit)\n• Integration with InteractionApiIntegration\n• Fallback to general monitoring for other collectors"
-
-    note for CoreEventSystem "Core event system integration:\n• Subscribe/unsubscribe pattern\n• Event type enumeration\n• Centralized event dispatch\n• Decoupled communication\n• Thread-safe event delivery"
-
-    note "CLI Commands Architecture:\n• Three specialized command modules\n• Event-driven monitoring with real-time display\n• Rich console interface with tables and panels\n• Cross-platform compatibility\n• Integration with core event system\n• Smart collector-specific monitoring\n• Thread-safe operations with proper cleanup"
 ```

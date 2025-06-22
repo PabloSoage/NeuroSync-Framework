@@ -158,7 +158,4 @@ classDiagram
     KeyboardMouseCollector --> InputData : creates
     PS4ControllerCollector --> InputData : creates
     CollectorManager --> InputData : handles
-
-    %% Utility Functions
-    note for PS4ControllerCollector "Includes utility function:\nis_sdl2_available() -> bool"
 ```

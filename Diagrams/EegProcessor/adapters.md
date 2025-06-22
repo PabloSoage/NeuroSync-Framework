@@ -339,22 +339,4 @@ classDiagram
     %% Threading Group
     ThreadPoolExecutor -.- threading : "concurrency support"
     threading -.- Event : "concurrency support"
-    
-    %% ================================================================================
-    %% NOTES
-    %% ================================================================================
-    
-    note for QtInteractionAdapter "Thread-Safe Qt API Adapter:\n• Bridge between external APIs and PyQt5 GUI components\n• Thread-safe execution with QThread detection and main thread marshalling\n• ThreadPoolExecutor integration for non-blocking operations (5-second timeout)\n• Panel operation support covering all application functionality\n• Exception isolation ensuring single operation failures don't affect overall stability\n• QTimer-based asynchronous execution preventing GUI blocking during API calls\n• Cross-panel state synchronization maintaining consistent application behavior\n• Settings retrieval with error handling and default value management"
-    
-    note for EEGProcessorApp "Main Application Integration:\n• Central application instance containing all GUI panels\n• Panel lifecycle management with proper initialization and cleanup\n• Cross-panel communication coordination via adapter pattern\n• Status message propagation with proper thread marshalling\n• Application state management ensuring consistent behavior across operations"
-    
-    note "Panel Operation Categories:\n• Connection: Board connection/disconnection, streaming control, parameter management\n• Processing: Filter application, metrics calculation, brain map visualization\n• Recording: Start/stop recording, marker insertion, file management, data type selection\n• Streaming: Streamer management, board configuration, real-time control\n• MNE: Data conversion, advanced visualization, neurophysiological analysis\n• Advanced: ICA computation, wavelet transforms, advanced signal processing"
-    
-    note "Thread Safety Architecture:\n• QApplication thread detection ensuring proper main thread execution\n• ThreadPoolExecutor for API operations with configurable timeout management\n• Event-based synchronization between worker threads and main GUI thread\n• Exception handling with detailed logging and user-friendly error messages\n• Resource cleanup coordination ensuring proper system shutdown\n• Timeout detection and recovery preventing system freezing during operations"
-    
-    note "API Integration Features:\n• Dynamic parameter validation with real-time UI synchronization\n• Intelligent combo box selection with data-value matching and fallback\n• Cross-panel state synchronization ensuring consistent application behavior\n• Multi-format recording support with automatic file validation\n• Real-time processing coordination with progress tracking and error recovery\n• Advanced analysis operations including ICA, wavelets, and MNE integration"
-    
-    note "Error Handling and Recovery:\n• Exception isolation preventing cascade failures across operations\n• Graceful degradation when GUI components are unavailable\n• Detailed logging with context preservation for troubleshooting\n• User-friendly error messages with actionable recovery suggestions\n• Automatic cleanup and resource management preventing memory leaks\n• Timeout management with configurable limits and recovery procedures"
-    
-    note "Adapter Pattern Benefits:\n• Clean separation between API operations and GUI implementation\n• Standardized method signatures enabling consistent external integration\n• Modular design supporting easy extension and customization\n• Backward compatibility ensuring existing API consumers continue functioning\n• Future-proof architecture supporting additional frameworks and patterns\n• Maintainable codebase with clear responsibilities and interfaces"
 ```

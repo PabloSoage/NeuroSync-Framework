@@ -77,11 +77,4 @@ classDiagram
     %% Relationships
     AbstractInputCollector --> InputData : creates/uses
     AbstractVisualizer --> InputData : receives/processes
-
-    %% Notes
-    note for InputData "Dataclass representing input events\nwith tracking fields\nfor mouse, keyboard and controller input"
-    note for AbstractInputCollector "Base interface for all input collectors\nDefines contract for event capture and processing"
-    note for AbstractVisualizer "Base interface for all visualizers\nDefines contract for visual representation"
-    note for AbstractVisualizerProvider "Protocol for providing visualizer components\nUsed by UI system for loose coupling"
-    note for AbstractVisualizerController "Protocol for controlling visualizer behavior\nAllows UI to manage visualizers generically"
 ```

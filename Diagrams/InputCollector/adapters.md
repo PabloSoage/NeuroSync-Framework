@@ -191,16 +191,4 @@ classDiagram
     QtInteractionAdapter ..> EditingMethods : implements
     QtInteractionAdapter ..> ControllerMethods : implements
     QtInteractionAdapter ..> UIControlMethods : implements
-
-    %% Notes
-    note for QtInteractionAdapter "Thread-safe adapter bridging UI framework and core services\nImplements Adapter pattern for framework isolation\nProvides API for external integration\nEnsures all UI operations execute in main thread"
-
-    note for ThreadSafeExecution "Pattern for executing UI operations safely\nUses QTimer.singleShot for main thread execution\nIncludes timeout protection and error handling\nMaintains type safety with generics"
-
-    note for MouseSettings "Configuration structure for mouse tracking\nIncludes all tracking modes and parameters\nDynamically determines available modes\nUsed by external APIs for configuration"
-
-    note for RecordingMethods "Core recording control methods\nThread-safe state management\nPrevents recording in edit mode\nProvides status information"
-
-    %% Thread Safety Documentation
-    note "Thread Safety Strategy:\n1. Check if in main thread\n2. Execute directly if main thread\n3. Use QTimer.singleShot for cross-thread\n4. Wait with timeout for completion\n5. Handle errors and results safely"
 ```

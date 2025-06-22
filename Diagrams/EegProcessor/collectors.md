@@ -268,16 +268,4 @@ classDiagram
     BoardShim ..> BoardIds : uses
     BoardShim ..> BrainFlowPresets : uses
     BoardShim ..> BrainFlowError : throws
-    
-    %% ================================================================================
-    %% NOTES
-    %% ================================================================================
-    
-    note for EEGCollector "Multi-Interface EEG Collector:\n• Implements CollectorInterface for basic data operations\n• Implements MarkerInterface for event marker insertion\n• Implements ConfigurableCollectorInterface for device config\n• Supports multiple BrainFlow presets (DEFAULT, AUXILIARY, ANCILLARY)\n• Handles various EEG devices (OpenBCI, Muse, Neurosity, g.tec, etc.)\n• Provides automatic channel detection and board information\n• Supports streaming boards with master board configuration\n• Thread-safe data collection operations"
-    
-    note for BrainFlowBoardConfiguration "Board Configuration Management:\n• Provides board information and requirements\n• Handles parameter validation and BrainFlowInputParams creation\n• Groups boards by manufacturer for easier selection\n• Manages preset information and detailed board descriptions\n• Determines required vs optional parameters per board type\n• Supports special boards (Synthetic, Playback, Streaming)\n• Handles undocumented boards with fallback strategies"
-    
-    note for BoardConfiguration "Static Compatibility Wrapper:\n• Provides backward compatibility for existing code\n• Delegates all operations to BrainFlowBoardConfiguration\n• Maintains stable API while allowing future enhancements\n• Static methods for easy access without instantiation"
-    
-    note "Collectors Module Architecture:\n• Multi-interface design for flexible EEG data collection\n• Board support with automatic configuration\n• Error handling and logging throughout\n• Support for real-time streaming and marker insertion\n• Configurable presets for different data types\n• Extensible design for future enhancements"
 ```

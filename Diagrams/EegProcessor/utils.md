@@ -296,24 +296,4 @@ classDiagram
     HelpButton ..> typing : uses
     EEGConceptsHelpDialog ..> typing : uses
     HelpSystemFunctions ..> typing : uses
-    
-    %% ================================================================================
-    %% NOTES
-    %% ================================================================================
-    
-    note for ThemeManager "Professional Theme Management:\n• Comprehensive dark theme implementation optimized for extended use\n• Semantic color system with predefined palette (accent, success, warning, error)\n• Complete Qt widget styling covering all component types and states\n• Consistent visual hierarchy with proper contrast ratios and accessibility\n• Reduced eye strain design with scientific color temperature considerations\n• Hover and disabled state styling for interactive feedback\n• Border radius and spacing standards for unified appearance"
-    
-    note for HELP_CONTENT "Comprehensive Help Content Dictionary:\n• 25+ detailed help topics covering all application aspects\n• Structured HTML content with proper formatting and organization\n• Educational content bridging theory and practical application\n• Progressive complexity from basic concepts to advanced research\n• Scientific accuracy with established neuroscience protocol recommendations\n• Troubleshooting guides with common issues and solutions\n• Context-sensitive content designed for immediate user assistance"
-    
-    note for HelpDialog "Context-Sensitive Help Dialog:\n• HTML content rendering with external link support\n• Responsive layout with minimum size constraints\n• Professional typography with readable font selection\n• Modal dialog with proper parent-child relationship\n• Cross-referenced content with logical information architecture\n• Immediate access to relevant information during operation"
-    
-    note for HelpButton "Integrated Help Button Component:\n• Consistent 20x20 pixel size for uniform UI integration\n• Professional styling with hover states and accessibility\n• Context-sensitive help key association for relevant content\n• Tooltip support for user guidance and discoverability\n• Styled as recognizable help icon with blue accent color\n• Easy integration throughout application UI panels and dialogs"
-    
-    note for EEGConceptsHelpDialog "Comprehensive Help System Dialog:\n• Tabbed interface organizing content by functional areas\n• Scrollable content areas supporting extensive documentation\n• Multiple help topics per tab with logical grouping\n• Educational progression from basic concepts to advanced features\n• Searchable and navigable content structure\n• Professional presentation suitable for both novice and expert users"
-    
-    note "Help Content Categories:\n• Hardware: Board selection, connection parameters, configuration\n• Signal Processing: Filtering theory, denoising, advanced algorithms\n• Visualization: Plot types, brain mapping, multi-modality displays\n• Recording: Data storage, streaming, marker insertion\n• Advanced Analysis: ICA theory and practice, real-time monitoring\n• MNE Integration: Workflow guidance, conversion modes, visualization\n• EEG Basics: Fundamental concepts, brain rhythms, artifacts"
-    
-    note "Utility Architecture Features:\n• Modular design enabling easy maintenance and content updates\n• Separation of content from presentation for translation support\n• Reusable components for consistent integration across application\n• Clean separation between utility functions and application logic\n• Type hints and documentation supporting collaborative development\n• Extensible structure for future enhancement and customization"
-    
-    note "User Experience Design:\n• Context-sensitive help positioned near relevant controls\n• Progressive disclosure with immediate and comprehensive help options\n• Visual consistency with application theme and styling standards\n• Accessibility support with keyboard navigation and screen reader compatibility\n• Professional presentation building user confidence and competence\n• Educational value supporting skill development and understanding"
 ```

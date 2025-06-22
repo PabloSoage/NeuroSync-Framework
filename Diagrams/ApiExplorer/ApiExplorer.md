@@ -601,25 +601,4 @@ classDiagram
     FastJSONSerializer --> WebSocketManager : optimized serialization
     WebSocketWorkerPool --> WorkerStats : tracks performance
     WebSocketManager --> WebSocketWorkerPool : load balancing
-
-    %% Module Registration Flow
-    note for ApiExplorer "Enhanced Module Registration:\n1. register_module() creates router + WebSocket support\n2. add_method_group() organizes methods\n3. register_method() adds endpoints with validation\n4. WebSocket manager handles real-time events\n5. Worker pools process high-frequency data\n6. Optimized serialization for performance"
-
-    %% Frontend Architecture Enhancement
-    note for APIExplorer "Modular Frontend Architecture:\n• Manager-based component organization\n• Event-driven inter-manager communication\n• High-performance WebSocket handling\n• Advanced chart visualization with throttling\n• Responsive dark/light mode theming\n• File browser with server integration\n• Real-time event processing with buffers"
-
-    %% WebSocket Performance
-    note for WebSocketManager "High-Performance WebSocket System:\n• Worker pool architecture for scalability\n• Adaptive message throttling\n• Optimized JSON serialization (orjson support)\n• Load balancing across workers\n• Performance statistics tracking\n• Memory-efficient event buffering"
-
-    %% Chart Performance
-    note for ChartManager "Advanced Chart Management:\n• Batched chart updates for performance\n• Adaptive throttling based on data frequency\n• Separate/combined channel visualization\n• Type filtering (EEG, EMG, etc.)\n• Dark mode theme integration\n• Memory-efficient data handling"
-
-    %% Serialization Optimization
-    note for FastJSONSerializer "High-Performance Serialization:\n• orjson integration for speed\n• Template-based serialization\n• Compact/full mode switching\n• Error isolation and fallbacks\n• Data sanitization for JSON compatibility"
-
-    %% System Architecture Overview
-    note "Enhanced API Explorer Architecture:\n• Modular JavaScript frontend with manager pattern\n• High-performance WebSocket system with worker pools\n• Advanced chart visualization with real-time updates\n• Optimized JSON serialization with orjson support\n• Responsive design with dark/light mode\n• File system integration with server-side listing\n• Performance monitoring and adaptive throttling\n• Scalable worker pool architecture\n• Memory-efficient event processing"
-
-    %% Execution Flow
-    note "Enhanced Execution Flow:\n1. ApiExplorer singleton manages FastAPI server\n2. WebSocketManager creates worker pools per module\n3. Frontend managers coordinate via event system\n4. High-frequency data processed by worker pools\n5. Charts updated with batched, throttled updates\n6. Real-time events displayed with performance buffers\n7. Theme changes propagated across all components\n8. File operations handled server-side with caching"
 ```

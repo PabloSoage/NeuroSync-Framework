@@ -427,22 +427,4 @@ classDiagram
     
     %% API Components
     EEGDataAPI -.- EEGProcessorInteractionAPI : "api integration"
-    
-    %% ================================================================================
-    %% NOTES
-    %% ================================================================================
-    
-    note for DataCommands "Data Access Command Module:\n• 8 commands for EEG data access and analysis\n• Multi-format output support (table, JSON) with rich formatting\n• Flexible display modes (summary statistics, full data, vertical/horizontal layouts)\n• Channel-specific data retrieval with 1-based indexing\n• Signal quality assessment with visual indicators and statistics\n• Metadata exploration including board information and channel details\n• Integration with EEGDataAPI for consistent data access\n• Support for data filtering and sample limiting"
-    
-    note for InteractionCommands "System Control Command Module:\n• 15 commands for complete EEG processor control\n• Board connection management with support for 40+ BrainFlow boards\n• Advanced signal processing including filters, ICA, wavelets, downsampling\n• Recording and streaming control with multiple data formats\n• MNE integration for advanced neurophysiological analysis\n• Visualization control for real-time EEG and brain mapping\n• System status monitoring with detailed component information\n• Parameter validation and user-friendly error handling"
-    
-    note for MonitorCommands "Real-Time Monitoring Command Module:\n• 5 specialized monitoring commands for different system aspects\n• Cross-platform keyboard input handling (Windows/Unix ESC/Q detection)\n• High-performance real-time displays with configurable refresh rates\n• Rich console interface with tables, panels, and live updates\n• Stream monitoring with signal quality indicators and statistics\n• Channel-specific monitoring with customizable channel selection\n• Recording status tracking with progress indication\n• System status monitoring with component health indicators"
-    
-    note "Command Module Architecture:\n• Modular design with clear separation of concerns (data, control, monitoring)\n• Typer framework integration for modern CLI with auto-completion and help\n• Rich console framework for professional terminal UI with colors and formatting\n• Thread-safe real-time operations with proper resource management\n• Cross-platform compatibility with platform-specific optimizations\n• Error handling with user-friendly messages\n• API integration enabling headless operation and external control"
-    
-    note "Key Features:\n• 25+ total commands covering complete EEG processor functionality\n• Real-time monitoring with professional terminal interfaces\n• Multi-format output (JSON, tables, statistics) for different use cases\n• Board support for 40+ EEG devices via BrainFlow integration\n• Advanced signal processing (filters, ICA, wavelets, MNE conversion)\n• Signal quality assessment with research-grade accuracy\n• Recording and streaming with multiple data formats\n• Cross-platform keyboard input handling and terminal control"
-    
-    note "Integration Capabilities:\n• CLI configuration system for service dependency injection\n• Static API integration for headless operation\n• Rich framework for professional terminal user interfaces\n• BrainFlow integration for board support\n• Platform-specific optimizations for Windows and Unix systems\n• Thread-safe operations with proper concurrency management\n• Error isolation and recovery with detailed logging"
-    
-    note "User Experience Design:\n• Intuitive command structure with logical grouping (data, control, monitor)\n• Help system with detailed parameter descriptions\n• Visual indicators and color coding for status and quality assessment\n• Flexible output formats supporting both human and machine consumption\n• Real-time feedback with configurable refresh rates\n• Keyboard shortcuts for interactive monitoring (ESC/Q to exit)\n• Professional presentation suitable for research and clinical environments"
 ```

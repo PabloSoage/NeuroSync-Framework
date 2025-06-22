@@ -1221,36 +1221,4 @@ classDiagram
 
     %% Utility Functions
     PS4ControllerCollector --> is_sdl2_available : uses
-
-    %% ================================================================================
-    %% NOTES
-    %% ================================================================================
-    note for InputCollectorApp "Main GUI application class\nIntegrates all submodules into cohesive app\nManages Qt widgets and event handling\nCoordinates between UI, collectors, and logging"
-
-    note for AppCoordinator "Central mediator implementing the Mediator pattern\nCoordinates all major application components\nHandles high-level business logic and state management\nEnsures thread-safe event processing via Qt signals"
-
-    note for CollectorManager "Manages multiple input collectors\nHandles collector lifecycle and capabilities\nRoutes events to visualizers and data service\nProvides unified interface for input capture"
-
-    note for PS4ControllerCollector "Enhanced PS4 controller with thread-safe event processing:\n• SDL2 event loop architecture in dedicated thread\n• Automatic reconnection capabilities\n• Thread-safe event handling with locks\n• Core event system integration\n• Previous state tracking for change detection\n• Safe callback handling with error isolation"
-
-    note for PS4ControllerVisualizer "Advanced PS4 visualizer with split panel interface:\n• Thread-safe updates via signals/slots\n• Real-time state logging and display\n• Enhanced edit mode with snapshots\n• Dark theme support\n• Split interface: controller visualization + state panel\n• Live value updates with QLabel integration"
-
-    note for PS4ControllerMonitor "Dedicated PS4 controller CLI monitor:\n• Rich console interface with live updates\n• Event-driven architecture using core events\n• Thread-safe display with dirty flags\n• Mimics visualizer functionality in console\n• Cross-platform key listener for exit\n• Real-time state tracking and logging"
-
-    note for MonitorCommands "Monitor command improvements:\n• Smart collector detection for appropriate monitoring\n• Enhanced PS4 controller display via PS4ControllerMonitor\n• Event-driven monitoring using core events\n• Cross-platform key detection (ESC/Q to exit)\n• Integration with InteractionApiIntegration\n• Fallback to general monitoring for other collectors"
-
-    note for EventDispatcher "Singleton event dispatcher with simplified design\nThread-safe subscription management\nAutomatic state synchronization for late subscribers\nError isolation prevents callback failures from affecting others"
-
-    note for InteractionService "Singleton service for external control\nProvides API for application control\nManages component registration and coordination\nThread-safe with status tracking"
-
-    note for DataAccessService "Singleton service for real-time data access\nProvides low-latency access to input streams\nMaintains event history with type categorization\nSupports callback registration for reactive patterns"
-
-    note for QtInteractionAdapter "Thread-safe adapter bridging UI framework and core services\nImplements Adapter pattern for framework isolation\nProvides API for external integration\nEnsures all UI operations execute in main thread"
-
-    note for CLIApp "Main CLI application entry point\nManages Typer app with command modules\nHandles signals and cleanup\nSupports both standalone and GUI-concurrent modes"
-
-    note for HeadlessInputCollector "Minimal application stack for CLI-only mode\nInitializes core components without GUI\nMaintains API compatibility\nProvides clean shutdown procedures"
-
-    %% Enhanced Module Architecture Documentation
-    note "Enhanced Module Architecture:\n• Event-driven communication via EventDispatcher\n• Thread-safe operations across all components\n• Enhanced PS4 controller support with real-time monitoring\n• Rich CLI interface with cross-platform compatibility\n• Split panel visualizer interfaces with real-time logging\n• Core event system for decoupled communication\n• Improved error handling and recovery mechanisms\n• SDL2 event loop architecture for PS4 controller\n• Thread-safe UI updates via Qt signals/slots\n• Smart collector-specific monitoring in CLI"
 ```

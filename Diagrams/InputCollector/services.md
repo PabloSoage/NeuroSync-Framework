@@ -256,19 +256,4 @@ classDiagram
     %% Singleton Pattern
     InteractionService --|> InteractionService : singleton instance
     DataAccessService --|> DataAccessService : singleton instance
-
-    %% Notes
-    note for InteractionService "Singleton service for external control\nProvides API for application control\nManages component registration and coordination\nThread-safe with status tracking"
-
-    note for DataAccessService "Singleton service for real-time data access\nProvides low-latency access to input streams\nMaintains event history with type categorization\nSupports callback registration for reactive patterns"
-
-    note for ServiceStatus "Standard status response structure\nIncludes success flag and descriptive message\nUsed consistently across all service methods"
-
-    note for InputMetadata "Runtime metadata about input state\nIncludes collector info and movement state\nUpdated in real-time during input processing"
-
-    %% Thread Safety Documentation
-    note "Thread Safety Strategy:\n• InteractionService: Component access protection\n• DataAccessService: Multiple granular locks\n• Event filtering to reduce noise\n• Callback error isolation\n• Maximum history limits for memory management"
-
-    %% Service Architecture
-    note "Service Architecture:\n• Singleton pattern for global access\n• Component registration for loose coupling\n• Status tracking for operation results\n• Thread-safe data structures\n• Callback-based reactive patterns"
 ```

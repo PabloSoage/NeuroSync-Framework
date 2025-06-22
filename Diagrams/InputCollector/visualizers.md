@@ -234,11 +234,4 @@ classDiagram
     MouseVisualizer --> InputData : processes
     MouseButtonsSelector --> InputData : processes
     PS4ControllerVisualizer --> InputData : processes
-
-    %% Notes
-    note for BaseVisualizer "Base class implementing AbstractVisualizer\ninterface without direct inheritance\nto avoid metaclass conflicts"
-    note for KeyboardVisualizer "Virtual keyboard with key highlighting\nSupports edit mode for key selection"
-    note for MouseVisualizer "Joystick-like mouse movement visualization\nSupports multiple tracking modes"
-    note for PS4ControllerVisualizer "Controller visualization with image overlay\nSupports edit mode for position adjustment\nThread-safe updates via signals/slots\nSplit panel interface with real-time logging"
-    note for Canvas "Internal widget for mouse movement rendering\nHandles joystick-style visualization"
 ```

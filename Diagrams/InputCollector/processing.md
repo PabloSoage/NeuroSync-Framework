@@ -129,16 +129,4 @@ classDiagram
     %% PS4 Formatting Chain
     EventProcessor ..> EventProcessor : _format_axis_motion
     EventProcessor ..> EventProcessor : _format_joystick_axis
-
-    %% Notes
-    note for EventProcessor "Central event processing engine\nHandles formatting for display and logging\nSupports multiple tracking modes\nProcesses special events (F9 recording toggle)"
-
-    note for ProcessingResult "Dictionary structure returned by process_event\nContains original event, logging flag, and display text\nUsed by coordinator for decision making"
-
-    note for TrackingMode "Mouse tracking modes supported:\n• Delta: Raw movement deltas\n• Angle: Direction and angle\n• Axis: Cardinal directions (N/S/E/W)\n• Joystick: Direction and speed"
-
-    note for EventType "All supported event types\nIncludes keyboard, mouse, and controller events\nSpecial events for application control"
-
-    %% Processing Pipeline Documentation
-    note "Processing Pipeline:\n1. Check for special events (F9, toggle)\n2. Determine if event should be logged\n3. Format display text by collector type\n4. Return structured result\n5. Emit signals for special actions"
 ```
