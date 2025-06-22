@@ -2,13 +2,19 @@
 
 \pagestyle{empty}
 \begin{abstract}
-  \blindtext % substitúe este comando polo resumo do teu TFG
-             % na lingua principal do documento (tipicamente: galego)
+  Este trabajo presenta el desarrollo de un framework modular para la captura y sincronización de datos orientado a la creación de datasets para interfaces cerebro-computadora (BCI). El sistema integra cuatro módulos principales: \textbf{api\_explorer} para la exploración web de APIs, \textbf{input\_collector} para la captura de eventos de entrada del usuario, \textbf{eeg\_processor} para el procesamiento de señales electroencefalográficas, y \textbf{synchronization\_module} para la sincronización temporal y exportación de datasets.
+
+  La arquitectura del sistema se basa en principios SOLID con patrones dirigidos por eventos, implementando múltiples interfaces (GUI PyQt5, CLI con Typer y Rich, y API REST con WebSocket) que permiten tanto el uso interactivo como la integración programática. El framework soporta dispositivos comerciales de EEG mediante BrainFlow, incluyendo el g.tec Unicorn Hybrid Black, y captura eventos de teclado, ratón y controladores PS4 con precisión temporal de milisegundos.
+
+  Las características principales incluyen procesamiento de señales en tiempo real con algoritmos avanzados (ICA, transformadas wavelet, filtros digitales), visualización de datos bioseñales, monitoreo de calidad de señal, y exportación a formatos estándar como BIDS, EDF+, HDF5 y CSV. El sistema ha sido validado con datos sintéticos demostrando sincronización precisa entre señales EEG y eventos de entrada, cumpliendo los requisitos para la generación de datasets de calidad orientados al desarrollo de interfaces cerebro-computadora.
 
   \vspace*{25pt}
   \begin{segundoresumo}
-    \blindtext % substitúe este comando polo resumo do teu TFG
-               % na lingua secundaria do documento (tipicamente: inglés)
+    This work presents the development of a modular framework for data capture and synchronization oriented towards creating datasets for brain-computer interfaces (BCI). The system integrates four main modules: \textbf{api\_explorer} for web API exploration, \textbf{input\_collector} for user input event capture, \textbf{eeg\_processor} for electroencephalographic signal processing, and \textbf{synchronization\_module} for temporal synchronization and dataset export.
+
+    The system architecture is based on SOLID principles with event-driven patterns, implementing multiple interfaces (PyQt5 GUI, CLI with Typer and Rich, and REST API with WebSocket) that enable both interactive use and programmatic integration. The framework supports commercial EEG devices through BrainFlow, including the g.tec Unicorn Hybrid Black, and captures keyboard, mouse, and PS4 controller events with millisecond temporal precision.
+
+    Key features include real-time signal processing with advanced algorithms (ICA, wavelet transforms, digital filters), biosignal data visualization, signal quality monitoring, and export to standard formats such as BIDS, EDF+, HDF5, and CSV. The system has been validated with synthetic data demonstrating precise synchronization between EEG signals and input events, meeting requirements for generating quality datasets oriented towards brain-computer interface development.
   \end{segundoresumo}
 \vspace*{25pt}
 \input{portada/palabras_chave}

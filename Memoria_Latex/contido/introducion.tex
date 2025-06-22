@@ -1,18 +1,114 @@
-\chapter{Introdución}
-\label{chap:introducion}
+\chapter{Introducción}
+\label{chap:introduccion}
 
-\lettrine{P}{rimer} capítulo da memoria, onde xeralmente se exporán as
-liñas mestras do traballo, os obxectivos, etc. Incluimos un par de
-exemplos de citas~\cite{ErlangBook,ErlangWebBook} e de referencias
-internas (sección \ref{sec:mostra}, páxina \pageref{sec:mostra}).
+\lettrine{L}{as} interfaces cerebro-computadora (BCI, por sus siglas en inglés) representan uno de los paradigmas más prometedores en la evolución de la interacción humano-máquina. Estos sistemas permiten establecer comunicación directa entre el cerebro y dispositivos electrónicos sin necesidad de actividad muscular consciente, abriendo nuevas posibilidades en campos como la medicina rehabilitadora, la accesibilidad tecnológica y el desarrollo de nuevos paradigmas de interacción.
 
-\Blindtext
+El desarrollo efectivo de sistemas BCI requiere datasets de alta calidad que contengan señales electroencefalográficas (EEG) sincronizadas temporalmente con eventos de entrada del usuario. Esta sincronización es fundamental para establecer correlaciones entre la actividad cerebral y las intenciones del usuario, base para el entrenamiento de modelos predictivos que puedan interpretar señales neurológicas en tiempo real.
 
-\section{Sección de mostra}
-\label{sec:mostra}
+\section{Contexto y motivación}
+\label{sec:contexto}
 
-\Blindtext
+Actualmente existe una carencia significativa de herramientas integradas que faciliten la captura sincronizada de señales EEG junto con eventos convencionales de entrada del usuario. Aunque existen soluciones parciales como Lab Streaming Layer (LSL), OpenBCI o BrainFlow, ninguna proporciona una plataforma completa con interfaces gráficas intuitivas y soporte específico para dispositivos comerciales como el g.tec Unicorn Hybrid Black.
 
-\subsection{Subsección de mostra}
+Las herramientas existentes presentan limitaciones importantes:
 
-\Blindtext
+\begin{itemize}
+    \item \textbf{Lab Streaming Layer (LSL)}: Requiere programación personalizada sustancial y no ofrece soporte nativo para hardware específico, dependiendo en muchos casos de software propietario del fabricante.
+    \item \textbf{OpenBCI}: Centrado principalmente en la adquisición de datos EEG, carece de capacidades integradas para captura sincronizada de eventos de entrada.
+    \item \textbf{BrainFlow}: Aunque proporciona una API unificada para dispositivos EEG, no incluye herramientas para sincronización con eventos de usuario ni interfaces gráficas.
+\end{itemize}
+
+Esta fragmentación en el ecosistema de herramientas dificulta significativamente la investigación en BCI y el desarrollo de aplicaciones prácticas, creando barreras de entrada para investigadores que necesitan datasets de calidad sin invertir tiempo considerable en desarrollo de infraestructura.
+
+\section{Definición del problema}
+\label{sec:problema}
+
+El problema principal que aborda este trabajo es la ausencia de una plataforma integrada que permita:
+
+\begin{enumerate}
+    \item \textbf{Captura sincronizada}: Recoger simultáneamente señales EEG y eventos de entrada del usuario (teclado, ratón, controladores) con precisión temporal de milisegundos.
+    \item \textbf{Procesamiento en tiempo real}: Aplicar algoritmos de procesamiento de señales (filtrado, análisis ICA, transformadas wavelet) durante la adquisición de datos.
+    \item \textbf{Visualización integrada}: Monitorizar la calidad de las señales y los eventos capturados mediante interfaces gráficas en tiempo real.
+    \item \textbf{Exportación estandarizada}: Generar datasets en formatos estándar de la comunidad científica (BIDS, EDF+, HDF5) que faciliten el intercambio y reutilización de datos.
+    \item \textbf{Arquitectura extensible}: Permitir la integración con herramientas existentes de aprendizaje automático y facilitar el desarrollo de nuevas funcionalidades.
+\end{enumerate}
+
+La falta de una solución que integre estos aspectos obliga a los investigadores a desarrollar soluciones ad-hoc, frecuentemente incompatibles entre sí y con limitaciones en términos de precisión temporal y reproducibilidad.
+
+\section{Objetivos}
+\label{sec:objetivos}
+
+\subsection{Objetivo general}
+\label{subsec:objetivo_general}
+
+Desarrollar un framework modular que facilite la captura, sincronización y procesamiento de señales EEG junto con eventos de entrada de usuario, proporcionando las herramientas necesarias para la generación de datasets de calidad orientados al desarrollo de interfaces cerebro-computadora.
+
+\subsection{Objetivos específicos}
+\label{subsec:objetivos_especificos}
+
+Para alcanzar el objetivo general, se han definido los siguientes objetivos específicos:
+
+\begin{enumerate}
+    \item \textbf{Desarrollar el módulo api\_explorer}: Crear un framework web modular que proporcione capacidades dinámicas de exploración y prueba de APIs, permitiendo la integración y coordinación de múltiples módulos del sistema.
+
+    \item \textbf{Implementar el módulo input\_collector}: Desarrollar un sistema robusto de captura de eventos de entrada que registre acciones de teclado, ratón y controladores PS4 con precisión temporal de milisegundos, implementando múltiples interfaces (GUI, CLI, API REST).
+
+    \item \textbf{Crear el módulo eeg\_processor}: Implementar un sistema de adquisición y procesamiento de señales EEG con soporte para dispositivos comerciales mediante BrainFlow, incluyendo algoritmos avanzados de procesamiento (ICA, wavelet, filtros digitales) y visualización en tiempo real.
+
+    \item \textbf{Desarrollar el módulo synchronization\_module}: Diseñar e implementar un sistema de sincronización temporal que coordine los flujos de datos de los módulos anteriores y proporcione capacidades de exportación a formatos estándar (BIDS, EDF+, HDF5, CSV).
+
+    \item \textbf{Validar la integración del sistema}: Realizar pruebas exhaustivas que demuestren la capacidad del framework para capturar y sincronizar datos con precisión temporal adecuada para aplicaciones BCI.
+
+    \item \textbf{Documentar y evaluar el rendimiento}: Caracterizar el rendimiento del sistema en términos de latencia, throughput y uso de recursos, proporcionando documentación completa para facilitar su adopción y extensión.
+\end{enumerate}
+
+\section{Metodología}
+\label{sec:metodologia}
+
+Este proyecto ha seguido una metodología de desarrollo iterativo e incremental, implementando principios de desarrollo ágil adaptados al contexto académico. El enfoque se ha caracterizado por:
+
+\begin{itemize}
+    \item \textbf{Desarrollo modular}: Cada componente del sistema se ha desarrollado de forma independiente, facilitando la detección temprana de problemas y la validación incremental de funcionalidades.
+    
+    \item \textbf{Refactorización continua}: Aplicación de principios SOLID para mejorar la mantenibilidad y extensibilidad del código, especialmente tras la implementación inicial de los módulos.
+    
+    \item \textbf{Validación mediante APIs}: Desarrollo de interfaces de programación que han permitido la verificación exhaustiva de funcionalidades y la detección de errores internos.
+    
+    \item \textbf{Integración de herramientas de calidad}: Uso de pre-commit hooks, tipado estático con mypy, formateo automático con black, y documentación con pydocstyle para mantener estándares de código elevados.
+\end{itemize}
+
+\section{Contribuciones principales}
+\label{sec:contribuciones}
+
+Las principales contribuciones de este trabajo incluyen:
+
+\begin{enumerate}
+    \item \textbf{Framework integrado para BCI}: Primera plataforma que combina captura sincronizada de EEG y eventos de usuario con múltiples interfaces (GUI, CLI, Web API) en un sistema cohesivo.
+
+    \item \textbf{Arquitectura dirigida por eventos}: Implementación de un sistema de comunicación desacoplado que facilita la extensibilidad y mantenimiento del código.
+
+    \item \textbf{Soporte multidispositivo}: Integración de dispositivos EEG comerciales (g.tec Unicorn) con periféricos estándar (teclado, ratón, controladores PS4) mediante APIs unificadas.
+
+    \item \textbf{Procesamiento avanzado en tiempo real}: Implementación de algoritmos de procesamiento de señales con optimizaciones para operación en tiempo real y visualización integrada.
+
+    \item \textbf{Exportación a formatos estándar}: Soporte nativo para formatos ampliamente utilizados en neurociencia (BIDS, EDF+, HDF5), facilitando la interoperabilidad con herramientas existentes.
+\end{enumerate}
+
+\section{Estructura de la memoria}
+\label{sec:estructura}
+
+Esta memoria se organiza de la siguiente manera:
+
+\begin{itemize}
+    \item \textbf{Capítulo 2 - Estado del arte y tecnologías}: Revisión de las tecnologías existentes en el campo BCI, análisis de herramientas relacionadas y descripción de las tecnologías empleadas en el desarrollo del sistema.
+
+    \item \textbf{Capítulo 3 - Análisis y diseño}: Descripción de los requisitos del sistema, análisis de la arquitectura general y diseño detallado de cada módulo componente.
+
+    \item \textbf{Capítulo 4 - Implementación}: Detalles de implementación de los cuatro módulos del sistema, incluyendo decisiones de diseño, algoritmos empleados y aspectos técnicos relevantes.
+
+    \item \textbf{Capítulo 5 - Pruebas y validación}: Descripción de las pruebas realizadas, análisis de rendimiento y validación de la sincronización temporal del sistema.
+
+    \item \textbf{Capítulo 6 - Conclusiones}: Resumen de logros conseguidos, análisis de cumplimiento de objetivos, limitaciones identificadas y líneas de trabajo futuro.
+\end{itemize}
+
+Los anexos incluyen documentación técnica detallada, manuales de usuario y material adicional que complementa el contenido principal de la memoria.
