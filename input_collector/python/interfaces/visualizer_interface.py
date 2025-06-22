@@ -31,7 +31,7 @@ class AbstractVisualizer(ABC):
     @abstractmethod
     def force_update(self) -> None:
         """
-        Force a complete redraw of the visualization.
+        Force a redraw of the visualization.
         """
         pass
 

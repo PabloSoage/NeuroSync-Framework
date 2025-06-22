@@ -799,7 +799,7 @@ class UIManager(QObject):
         left_viz_layout = self.components.get("left_viz_layout")
         viz_layout = self.components.get("viz_layout")
 
-        # Complete layout restructure based on collector type
+        # Layout restructure based on collector type
         if is_ps4_controller and viz_layout and ps4_controller_group:
             # Clear viz_layout and add only PS4 controller for full-width display
             # First, remove all items from the viz_layout

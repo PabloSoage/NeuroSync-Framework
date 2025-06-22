@@ -114,7 +114,7 @@ class VisualizerManager(QObject):  # Only inherit from QObject
         # Check if we're using PS4 controller
         is_ps4_controller = collector_type == "ps4_controller"
 
-        # Update visualizer visibility - completely hide keyboard/mouse elements when using PS4
+        # Update visualizer visibility - hide keyboard/mouse elements when using PS4
         self.keyboard_viz.setVisible(
             self.keyboard_viz.supports_collector(collector_type)
             and not is_ps4_controller  # Hide keyboard when using PS4 controller

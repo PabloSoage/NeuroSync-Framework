@@ -7,15 +7,15 @@ for application-wide coordination, communication, and state management.
 
 Core Components:
 
-- EventDispatcher: Sophisticated singleton event management system
+- EventDispatcher: Singleton event management system
   * Thread-safe event publishing and subscription with RLock protection
-  * Comprehensive event type enumeration covering all application domains
+  * Event type enumeration covering all application domains
   * Event history tracking (1000 events) with automatic cleanup and rotation
   * Late subscriber support with automatic last event delivery
-  * Robust error handling preventing single callback failures from affecting others
+  * Error handling preventing single callback failures from affecting others
   * Performance-optimized subscription management with set-based storage
 
-- EventType: Comprehensive enumeration of application-wide events
+- EventType: Enumeration of application-wide events
   * Connection Events: Board connect/disconnect, stream start/stop, status changes
   * Processing Events: Filter application, settings changes, metrics calculation
   * Visualization Events: Display start/stop, brain map control, status updates
@@ -49,10 +49,10 @@ Thread Safety and Performance:
 - Lock minimization preventing deadlocks during callback execution
 - Memory-efficient event history with automatic rotation and cleanup procedures
 
-Robust Error Handling:
+Error Handling:
 - Individual callback error isolation preventing cascade failures
-- Comprehensive logging system for debugging and performance analysis
-- Graceful degradation when subscribers fail without affecting other components
+- Logging system for debugging and performance analysis
+- Degradation when subscribers fail without affecting other components
 - Exception containment ensuring system stability during component failures
 
 Advanced Event Management:
@@ -90,7 +90,7 @@ Real-time Processing Coordination:
 User Interface Integration:
 - Panel coordination ensuring consistent state across multiple UI components
 - Dynamic control enabling/disabling based on application state and capabilities
-- Status message propagation providing comprehensive user feedback
+- Status message propagation providing user feedback
 - Error handling coordination ensuring proper user notification and recovery
 
 Advanced Features:
@@ -113,8 +113,8 @@ Global Convenience API:
 - Direct access to dispatcher features without explicit instance management
 - Backward compatibility ensuring existing code continues to function correctly
 
-The core package provides essential infrastructure enabling sophisticated
-application coordination, robust error handling, and maintainable architecture
+The core package provides essential infrastructure enabling
+application coordination, error handling, and maintainable architecture
 throughout the EEG processing system. It serves as the foundation for all
 inter-component communication and state management across the application.
 """

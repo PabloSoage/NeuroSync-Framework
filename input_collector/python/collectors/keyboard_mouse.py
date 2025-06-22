@@ -321,7 +321,7 @@ class KeyboardMouseCollector(AbstractInputCollector):
                     active_keys = self.get_active_keys()
 
                     # Create event with precise timestamp
-                    # Include complete mouse state information
+                    # Include mouse state information
                     event = InputData(
                         timestamp=time.time(),
                         event_type="key_press",
@@ -758,7 +758,7 @@ class KeyboardMouseCollector(AbstractInputCollector):
             active_keys = self.get_active_keys()
 
             # Create a unified event that includes mouse movement information
-            # This ensures click events have complete mouse state
+            # This ensures click events have mouse state
             event = InputData(
                 timestamp=time.time(),
                 event_type="mouse_click",
@@ -801,7 +801,7 @@ class KeyboardMouseCollector(AbstractInputCollector):
                 or "Button.scroll" in self.tracked_keys_set
             )
 
-            # If scroll is not being tracked, completely ignore the event
+            # If scroll is not being tracked, ignore the event
             if not is_scroll_tracked:
                 return
 

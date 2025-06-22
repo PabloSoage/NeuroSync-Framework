@@ -1134,7 +1134,7 @@ classDiagram
     VisualizerManager "1" --> "1" MouseVisualizer : manages
     VisualizerManager "1" --> "1" MouseButtonsSelector : manages
     VisualizerManager "1" --> "1" PS4ControllerVisualizer : manages
-    VisualizerManager "1" --> "1" KeyboardEventFilter : uses
+    VisualizerManager "1" --> "1" KeyboardEventFilter : inherits
 
     %% Enhanced Visualizer Relationships
     MouseVisualizer "1" --> "1" Canvas : contains
@@ -1233,7 +1233,7 @@ classDiagram
 
     note for PS4ControllerCollector "Enhanced PS4 controller with thread-safe event processing:\n• SDL2 event loop architecture in dedicated thread\n• Automatic reconnection capabilities\n• Thread-safe event handling with locks\n• Core event system integration\n• Previous state tracking for change detection\n• Safe callback handling with error isolation"
 
-    note for PS4ControllerVisualizer "Advanced PS4 visualizer with split panel interface:\n• Thread-safe updates via signals/slots\n• Real-time state logging and display\n• Enhanced edit mode with snapshots\n• Professional dark theme support\n• Split interface: controller visualization + state panel\n• Live value updates with QLabel integration"
+    note for PS4ControllerVisualizer "Advanced PS4 visualizer with split panel interface:\n• Thread-safe updates via signals/slots\n• Real-time state logging and display\n• Enhanced edit mode with snapshots\n• Dark theme support\n• Split interface: controller visualization + state panel\n• Live value updates with QLabel integration"
 
     note for PS4ControllerMonitor "Dedicated PS4 controller CLI monitor:\n• Rich console interface with live updates\n• Event-driven architecture using core events\n• Thread-safe display with dirty flags\n• Mimics visualizer functionality in console\n• Cross-platform key listener for exit\n• Real-time state tracking and logging"
 

@@ -1,7 +1,7 @@
 """
 Python package for the Input Collector application.
 
-This package provides a comprehensive framework for collecting, processing,
+This package provides a framework for collecting, processing,
 visualizing, and logging input events from various devices including keyboards,
 mice, and game controllers. It features both a GUI application and a command-line
 interface, web API access, and extensible architecture supporting different
@@ -32,7 +32,7 @@ from .interaction_api import InputCollectorAPI
 # Core interfaces
 from .interfaces import InputData, AbstractInputCollector, AbstractVisualizer
 
-# Try to import PS4 controller with graceful fallback
+# Try to import PS4 controller with fallback
 try:
     from .collectors import PS4ControllerCollector, is_sdl2_available
 except ImportError:

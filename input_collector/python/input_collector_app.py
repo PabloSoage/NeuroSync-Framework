@@ -482,7 +482,7 @@ class InputCollectorApp(QMainWindow):
                 )
 
             print(
-                f"InputCollectorApp: Overlay edit mode complete, state: {self._ps4_overlay_edit_mode}"
+                f"InputCollectorApp: Overlay edit mode, state: {self._ps4_overlay_edit_mode}"
             )
 
         except Exception as e:

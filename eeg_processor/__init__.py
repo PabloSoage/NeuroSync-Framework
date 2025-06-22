@@ -45,7 +45,7 @@ Features:
 - Qt-based user interface with dark theme
 - REST API with WebSocket support for real-time data streaming
 - MNE-Python integration for advanced neurophysiological analysis
-- Comprehensive visualization tools and export capabilities
+- Visualization tools and export capabilities
 - Educational help system with theoretical background
 
 Supported Hardware:

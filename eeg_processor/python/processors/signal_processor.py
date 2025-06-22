@@ -938,7 +938,7 @@ class SignalProcessor:
                     channel_coeffs = coefficients[channel_idx]
 
                     if len(channel_coeffs) > 0 and len(lengths) > 0:
-                        # Handle coefficient length mismatch more gracefully
+                        # Handle coefficient length mismatch
                         if len(channel_coeffs) < expected_length:
                             logging.debug(
                                 f"Padding coefficients for channel {channel_idx}: {len(channel_coeffs)} -> {expected_length}"

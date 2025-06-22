@@ -1,7 +1,7 @@
 """
 Logging package for input collector.
 
-Provides comprehensive logging functionality for input events, supporting
+Provides logging functionality for input events, supporting
 multiple output formats including CSV and JSON. Contains specialized loggers
 for different data formats and a central LoggingManager that coordinates all
 logging operations, handles file management, and provides a unified interface

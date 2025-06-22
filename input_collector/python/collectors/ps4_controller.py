@@ -172,7 +172,7 @@ class PS4ControllerCollector(AbstractInputCollector):
         # Stop event thread
         if self.event_thread and self.event_thread.is_alive():
             self.event_stop_event.set()
-            # Give the thread a moment to stop gracefully
+            # Give the thread a moment to stop
             self.event_thread.join(timeout=1.0)
 
         # Process any remaining SDL events to clear the queue

@@ -47,15 +47,15 @@ Quick Start:
 
 Features:
 - Real-time input event collection from keyboards, mice, and PS4 controllers
-- Professional Qt-based GUI with real-time visualization and interactive controls
+- Qt-based GUI with real-time visualization and interactive controls
 - Command-line interface with interactive shell and scripting capabilities
 - Dual web API system: data access API and control API for external integration
-- Comprehensive logging system supporting CSV and JSON formats with customizable output
+- Logging system supporting CSV and JSON formats with customizable output
 - Event-driven architecture with decoupled communication between components
 - Extensible collector system supporting multiple input device types simultaneously
 
 Supported Input Devices:
-- Keyboards: All standard keyboards with comprehensive key mapping and state tracking
+- Keyboards: All standard keyboards with key mapping and state tracking
 - Mice: Position tracking, button states, scroll wheel events, and click detection
 - PS4 Controllers: Full DualShock 4 support including analog sticks, triggers, and touchpad
 - Extensible architecture for additional controller types and input devices
@@ -82,7 +82,7 @@ from .python.api_integration import initialize_api
 from .python.cli import run_cli, run_shell, run_interactive_shell
 from .python.interaction_api_integration import initialize_interaction_api
 
-# Try to import PS4 controller with graceful fallback
+# Try to import PS4 controller with fallback
 try:
     from .python.collectors import PS4ControllerCollector, is_sdl2_available
 

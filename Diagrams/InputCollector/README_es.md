@@ -115,7 +115,7 @@ dispatch(EventType.INPUT, {
 
 #### Características del PS4ControllerCollector:
 - **Arquitectura basada en hilos**: SDL2 event loop en hilo dedicado
-- **Reconexión automática**: Manejo robusto de desconexiones
+- **Reconexión automática**: Manejo de desconexiones
 - **Event processing thread-safe**: Locks granulares y manejo de errores
 - **Detección de cambios**: Tracking de estados previos para trigger/stick
 - **Core event integration**: Dispatch automático a sistema de eventos
@@ -236,15 +236,15 @@ TRACKING_MODES = {
 
 ### 8. **UI** (`ui/`)
 
-**Propósito**: Gestión de interfaz de usuario y coordinación de visualizadores con tema profesional.
+**Propósito**: Gestión de interfaz de usuario y coordinación de visualizadores con tema oscuro.
 
 #### Componentes:
-- **`UIManager`**: Gestor principal con tema oscuro profesional
+- **`UIManager`**: Gestor principal con tema oscuro
 - **`VisualizerManager`**: Coordinador con capabilities awareness
 - **`KeyboardEventFilter`**: Filtro para modo de edición
 
 #### Características:
-- **Tema oscuro profesional**: Colores y estilos consistentes
+- **Tema oscuro**: Colores y estilos consistentes
 - **Capabilities-aware**: UI adaptativa según el colector activo
 - **PS4 integration**: Controles específicos para visualizador PS4
 - **Edit mode coordination**: Gestión centralizada del modo de edición
@@ -260,7 +260,7 @@ TRACKING_MODES = {
 - **Core event integration**: Dispatch automático a sistema de eventos
 - **Thread-safe coordination**: Uso de señales Qt para operaciones UI
 - **Estado centralizado**: Gestión consistente de recording, edit mode, tracked keys
-- **Error handling**: Manejo robusto de errores en coordinación
+- **Error handling**: Manejo de errores en coordinación
 
 ### 10. **Adapters** (`adapters/`)
 
@@ -365,7 +365,7 @@ input-collector monitor controller  # Auto-detects PS4
 ### 3. **Patrón Singleton**
 - **Thread-safe implementation** con double-checked locking
 - **Granular locking** para diferentes operaciones
-- **Error isolation** para robustez
+- **Error isolation** para estabilidad
 
 ### 4. **Patrón Observer**
 - **Core event system** como implementación principal
@@ -388,7 +388,7 @@ input-collector monitor controller  # Auto-detects PS4
 - **Sistema de eventos core** framework-independiente
 - **Thread-safe communication** entre todos los componentes
 - **Automatic event broadcasting** para APIs y CLI
-- **Late subscriber synchronization** para robustez
+- **Late subscriber synchronization** para estabilidad
 
 ### 2. **Thread Safety Comprehensivo**
 - **Multiple granular locks** en servicios y collectors
@@ -401,14 +401,14 @@ input-collector monitor controller  # Auto-detects PS4
 - **CLI**: Shell interactivo con monitoreo específico por colector
 - **Web API**: Control remoto con WebSocket real-time events
 
-### 4. **PS4 Controller Support Robusto**
+### 4. **PS4 Controller Support**
 - **SDL2 integration** con thread-safe event processing
 - **Automatic reconnection** para dispositivos inalámbricos
 - **Advanced visualization** con image overlays
 - **Real-time monitoring** en CLI con Rich console
 
 ### 5. **User Experience Mejorada**
-- **Professional dark theme** consistente
+- **Dark theme** consistente
 - **Split panel interfaces** para información detallada
 - **Real-time state displays** con live value updates
 - **Cross-platform CLI** con key detection inteligente
@@ -419,7 +419,7 @@ input-collector monitor controller  # Auto-detects PS4
 - **Edit mode** para personalización visual
 - **Flexible key/button tracking** configuration
 
-### 7. **Logging y Monitoreo Robusto**
+### 7. **Logging y Monitoreo**
 - **Multi-format simultaneous logging** (CSV + JSON)
 - **Dynamic CSV headers** basados en configuración
 - **Real-time event monitoring** en CLI y GUI

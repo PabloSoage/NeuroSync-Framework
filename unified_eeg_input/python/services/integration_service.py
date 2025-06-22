@@ -157,7 +157,7 @@ class IntegrationService(QObject):
         # Set key code if relevant
         if input_event.key:
             # Simplified encoding of key values
-            # In a real implementation, you'd want a more sophisticated mapping
+            # In a real implementation, you'd want a more mapping
             try:
                 # Remove 'Key.' prefix if present and encode first character
                 key_str = input_event.key.replace("Key.", "")

@@ -9,7 +9,7 @@ different collectors and handling their lifecycle and capabilities.
 from .collector_manager import CollectorManager
 from .keyboard_mouse import KeyboardMouseCollector
 
-# Try to import PS4 controller with graceful fallback
+# Try to import PS4 controller with fallback
 try:
     from .ps4_controller import PS4ControllerCollector, is_sdl2_available
 

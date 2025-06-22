@@ -49,7 +49,7 @@ Core UI Panels:
   * Multi-mode conversion support: Flexible (all channels), Performance (selected), Real-time
   * Advanced visualization with PSD, topomaps, spectrograms, and raw data displays
   * Real-time processing sessions with dynamic parameter updates and performance monitoring
-  * Error handling with graceful degradation when MNE is unavailable
+  * Error handling with degradation when MNE is unavailable
 
 - AdvancedProcessingPanel: Advanced signal processing operations interface
   * Independent Component Analysis with real-time monitoring and export capabilities
@@ -91,7 +91,7 @@ State Management and Synchronization:
 
 Error Handling and Recovery:
 - Exception handling with detailed error reporting and user-friendly messages
-- Graceful degradation when advanced features are unavailable or system resources are limited
+- Degradation when advanced features are unavailable or system resources are limited
 - Automatic recovery from failed operations with state preservation and user notification
 - Service initialization fallbacks ensuring core functionality remains available
 
@@ -122,7 +122,7 @@ Validation and Stability:
 The UI package provides a interface for EEG analysis, enabling researchers and practitioners to leverage advanced signal
 processing techniques through an intuitive, feature-rich Qt-based interface with
 real-time processing support, result documentation,
-and robust error handling throughout all operations.
+and error handling throughout all operations.
 """
 
 # Import specialized UI packages

@@ -2498,8 +2498,8 @@ class EEGProcessorInteractionApiIntegration:
 
         except Exception as e:
             logging.warning(f"Error determining optional fields for {board_name}: {e}")
-            # Conservative fallback: consider timeout as optional for most boards
+            # Fallback: consider timeout as optional for most boards
             return param in ["timeout"]
             logging.warning(f"Error determining optional fields for {board_name}: {e}")
-            # Conservative fallback: consider timeout as optional for most boards
+            # Fallback: consider timeout as optional for most boards
             return param in ["timeout"]

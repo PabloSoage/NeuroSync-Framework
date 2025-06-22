@@ -289,7 +289,7 @@ class ICAProcessService(QObject):
                         command = {"type": "shutdown"}
                         self._command_queue.put(command)
 
-                    # Wait for graceful shutdown
+                    # Wait for shutdown
                     self._ica_process.join(timeout=5)
 
                     if self._ica_process.is_alive():

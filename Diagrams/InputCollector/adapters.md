@@ -193,7 +193,7 @@ classDiagram
     QtInteractionAdapter ..> UIControlMethods : implements
 
     %% Notes
-    note for QtInteractionAdapter "Thread-safe adapter bridging UI framework and core services\nImplements Adapter pattern for framework isolation\nProvides comprehensive API for external integration\nEnsures all UI operations execute in main thread"
+    note for QtInteractionAdapter "Thread-safe adapter bridging UI framework and core services\nImplements Adapter pattern for framework isolation\nProvides API for external integration\nEnsures all UI operations execute in main thread"
 
     note for ThreadSafeExecution "Pattern for executing UI operations safely\nUses QTimer.singleShot for main thread execution\nIncludes timeout protection and error handling\nMaintains type safety with generics"
 

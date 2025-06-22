@@ -99,7 +99,7 @@ class QtInteractionAdapter:
         # If we're not in the main thread, use Qt's event system
         result: List[Optional[T]] = [None]
         error: List[Optional[Exception]] = [None]
-        completed = threading.Event()
+        event = threading.Event()
 
         def callback() -> None:
             try:
@@ -107,13 +107,13 @@ class QtInteractionAdapter:
             except Exception as e:
                 error[0] = e
             finally:
-                completed.set()
+                event.set()
 
         # Use QTimer single shot to execute in the main thread
         QTimer.singleShot(0, callback)
 
         # Wait for completion with timeout
-        if not completed.wait(timeout=5.0):
+        if not event.wait(timeout=5.0):
             logging.error("Operation timed out when executing safely")
             raise TimeoutError("Operation timed out")
 

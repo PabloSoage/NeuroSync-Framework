@@ -120,7 +120,7 @@ class AdvancedFilterWidget(QWidget):
         ripple_layout.addWidget(self.ripple_label)
 
         self.ripple_spin = QDoubleSpinBox()
-        self.ripple_spin.setRange(0.1, 3.0)  # Conservative range for stability
+        self.ripple_spin.setRange(0.1, 3.0)  # Range for stability
         self.ripple_spin.setValue(1.0)
         self.ripple_spin.setSuffix(" dB")
         self.ripple_spin.setDecimals(1)
@@ -289,9 +289,9 @@ class AdvancedFilterWidget(QWidget):
                 "For most applications, Butterworth filters are recommended.",
             )
 
-            # For Chebyshev filters, force very conservative parameters
+            # For Chebyshev filters, force very safe parameters
             current_order = self.filter_order_spin.value()
-            if current_order > 3:  # Even more conservative
+            if current_order > 3:  # Even more safe
                 self.filter_order_spin.setValue(3)  # Set to 3 for better stability
                 logging.info("Reduced filter order to 3 for Chebyshev filter stability")
 
@@ -324,7 +324,7 @@ class AdvancedFilterWidget(QWidget):
             # Restore normal ranges for other filters
             self.filter_order_spin.setRange(1, 10)
             if hasattr(self, "ripple_spin"):  # Safety check
-                self.ripple_spin.setRange(0.1, 3.0)
+                self.ripple_spin.setRange(0.1, 3.0)  # Range for stability
 
             # Restore normal button color
             if not self.applied:

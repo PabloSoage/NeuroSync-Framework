@@ -1,7 +1,7 @@
 """
 Input event visualizers package.
 
-Provides comprehensive visualization components for different types of input events
+Provides visualization components for different types of input events
 including keyboard, mouse, and game controller inputs. Contains specialized visualizers
 for each input type with real-time state updates, interactive editing capabilities,
 and customizable display modes. All visualizers inherit from a common base class

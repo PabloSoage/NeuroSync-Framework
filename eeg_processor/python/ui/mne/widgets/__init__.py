@@ -2,7 +2,7 @@
 MNE Widgets Package.
 
 This package provides specialized Qt widgets for MNE (Modified Neurophysiological Environment)
-integration within the EEG processing application. These widgets offer comprehensive user
+integration within the EEG processing application. These widgets offer user
 interfaces for data conversion, visualization, status monitoring, and channel selection
 specific to MNE operations.
 
@@ -17,7 +17,7 @@ Core MNE Widgets:
   * Channel selection integration for performance mode operations
   * Dynamic status updates and mode-specific UI adaptations
 
-- MNEVisualizationWidget: Comprehensive visualization control interface
+- MNEVisualizationWidget: Visualization control interface
   * Multiple plot types: Power Spectral Density (PSD), Topomaps, Raw Data, Spectrograms
   * Dynamic parameter updates with real-time signal emission for live processing
   * Frequency range controls with validation and band-specific settings
@@ -58,7 +58,7 @@ User Experience Enhancements:
 - Intuitive mode switching with automatic UI reconfiguration
 - Performance warnings and optimization suggestions for efficient processing
 - Real-time feedback with emoji indicators and visual status cues
-- Comprehensive tooltips and help integration for parameter guidance
+- Tooltips and help integration for parameter guidance
 
 Technical Capabilities:
 - Qt signal/slot architecture for loose coupling with backend services
@@ -81,10 +81,10 @@ Integration Features:
 - Event system integration for application-wide state synchronization
 - Backward compatibility with existing MNE service APIs
 
-The MNE widgets provide a complete, user-friendly interface for advanced
+The MNE widgets provide a user-friendly interface for advanced
 neurophysiological analysis, enabling researchers to leverage MNE-Python
 capabilities through an intuitive Qt-based interface with real-time processing
-support and comprehensive performance monitoring.
+support and performance monitoring.
 """
 
 from .channel_selection_dialog import ChannelSelectionDialog

@@ -2,7 +2,7 @@
 ICA Services Package.
 
 This package provides specialized services for Independent Component Analysis (ICA)
-operations in the EEG processing system. It includes comprehensive functionality
+operations in the EEG processing system. It includes functionality
 for ICA computation, visualization, real-time processing, and export capabilities.
 
 Core ICA Services:
@@ -25,7 +25,7 @@ Core ICA Services:
   * Provides real-time status monitoring and error handling
   * Integrates with the main data access service for continuous data retrieval
 
-- ExportService: Comprehensive export functionality for ICA results
+- ExportService: Export functionality for ICA results
   * Exports enhanced overview images with detailed component visualization
   * Creates individual component plots with time series and power spectral density
   * Generates matrix visualizations for mixing and unmixing matrices
@@ -37,7 +37,7 @@ Core ICA Services:
 Key Features:
 - Multiprocess architecture for CPU-intensive ICA computations
 - Real-time processing with configurable sliding windows
-- Comprehensive visualization options with customizable colormaps
+- Visualization options with customizable colormaps
 - Export capabilities for analysis documentation and reporting
 - Proper resource management and cleanup procedures
 - Thread-safe communication using Qt signals and multiprocessing queues
@@ -45,7 +45,7 @@ Key Features:
 - Integration with the main EEG processing pipeline
 
 The ICA services are designed to work seamlessly with the main EEG collector
-and processor services, providing a complete solution for independent component
+and processor services, providing a solution for independent component
 analysis in real-time EEG applications.
 """
 

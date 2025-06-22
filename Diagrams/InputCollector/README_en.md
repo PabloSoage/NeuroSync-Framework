@@ -115,7 +115,7 @@ dispatch(EventType.INPUT, {
 
 #### PS4ControllerCollector Features:
 - **Thread-based architecture**: SDL2 event loop in dedicated thread
-- **Automatic reconnection**: Robust handling of disconnections
+- **Automatic reconnection**: Handling of disconnections
 - **Thread-safe event processing**: Granular locks and error handling
 - **Change detection**: Previous state tracking for triggers/sticks
 - **Core event integration**: Automatic dispatch to event system
@@ -236,15 +236,15 @@ TRACKING_MODES = {
 
 ### 8. **UI** (`ui/`)
 
-**Purpose**: User interface management and visualizer coordination with professional theme.
+**Purpose**: User interface management and visualizer coordination with theme.
 
 #### Components:
-- **`UIManager`**: Main manager with professional dark theme
+- **`UIManager`**: Main manager with dark theme
 - **`VisualizerManager`**: Coordinator with capabilities awareness
 - **`KeyboardEventFilter`**: Filter for edit mode
 
 #### Features:
-- **Professional dark theme**: Consistent colors and styles
+- **Dark theme**: Consistent colors and styles
 - **Capabilities-aware**: Adaptive UI based on active collector
 - **PS4 integration**: Specific controls for PS4 visualizer
 - **Edit mode coordination**: Centralized edit mode management
@@ -260,7 +260,7 @@ TRACKING_MODES = {
 - **Core event integration**: Automatic dispatch to event system
 - **Thread-safe coordination**: Qt signals for UI operations
 - **Centralized state**: Consistent management of recording, edit mode, tracked keys
-- **Error handling**: Robust error handling in coordination
+- **Error handling**: Error handling in coordination
 
 ### 10. **Adapters** (`adapters/`)
 
@@ -365,7 +365,7 @@ input-collector monitor controller  # Auto-detects PS4
 ### 3. **Singleton Pattern**
 - **Thread-safe implementation** with double-checked locking
 - **Granular locking** for different operations
-- **Error isolation** for robustness
+- **Error isolation** for stability
 
 ### 4. **Observer Pattern**
 - **Core event system** as main implementation
@@ -388,7 +388,7 @@ input-collector monitor controller  # Auto-detects PS4
 - **Framework-independent core event system**
 - **Thread-safe communication** between all components
 - **Automatic event broadcasting** for APIs and CLI
-- **Late subscriber synchronization** for robustness
+- **Late subscriber synchronization** for stability
 
 ### 2. **Comprehensive Thread Safety**
 - **Multiple granular locks** in services and collectors
@@ -401,14 +401,14 @@ input-collector monitor controller  # Auto-detects PS4
 - **CLI**: Interactive shell with collector-specific monitoring
 - **Web API**: Remote control with WebSocket real-time events
 
-### 4. **Robust PS4 Controller Support**
+### 4. **PS4 Controller Support**
 - **SDL2 integration** with thread-safe event processing
 - **Automatic reconnection** for wireless devices
 - **Advanced visualization** with image overlays
 - **Real-time monitoring** in CLI with Rich console
 
 ### 5. **Enhanced User Experience**
-- **Professional dark theme** consistent
+- **Dark theme** consistent
 - **Split panel interfaces** for detailed information
 - **Real-time state displays** with live value updates
 - **Cross-platform CLI** with intelligent key detection
@@ -419,7 +419,7 @@ input-collector monitor controller  # Auto-detects PS4
 - **Edit mode** for visual customization
 - **Flexible key/button tracking** configuration
 
-### 7. **Robust Logging and Monitoring**
+### 7. **Logging and Monitoring**
 - **Multi-format simultaneous logging** (CSV + JSON)
 - **Dynamic CSV headers** based on configuration
 - **Real-time event monitoring** in CLI and GUI

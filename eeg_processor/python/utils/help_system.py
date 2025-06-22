@@ -416,7 +416,7 @@ HELP_CONTENT = {
         "title": "Advanced Digital Filters",
         "content": """
         <h3>Advanced Digital Filters</h3>
-        <p>Advanced filtering provides more sophisticated signal processing options beyond basic bandpass filtering,
+        <p>Advanced filtering provides more signal processing options beyond basic bandpass filtering,
         offering different filter types with specific characteristics for various EEG analysis needs.</p>
 
         <h4>Filter Types:</h4>
@@ -528,7 +528,7 @@ HELP_CONTENT = {
                 </ul>
             </li>
             <li><b>Automatic Adjustments</b>: Application automatically adjusts unstable parameters</li>
-            <li><b>Error Handling</b>: Graceful fallback to original data if filtering fails</li>
+            <li><b>Error Handling</b>: Fallback to original data if filtering fails</li>
             <li><b>Real-time Performance</b>: All filters work in real-time streaming mode</li>
         </ul>
 
@@ -764,7 +764,7 @@ HELP_CONTENT = {
         <h3>MNE Integration</h3>
         <p>This feature allows you to convert BrainFlow data to MNE format for advanced neurophysiological analysis.</p>
 
-        <p><a href="https://mne.tools/">MNE-Python</a> is a comprehensive Python library for processing,
+        <p><a href="https://mne.tools/">MNE-Python</a> is a Python library for processing,
         analyzing, and visualizing neurophysiological data (EEG, MEG, etc.).</p>
 
         <h4>Two-Step Process:</h4>
@@ -827,7 +827,7 @@ HELP_CONTENT = {
             <li>If using Performance Mode, select specific channels</li>
             <li>Click "Convert to MNE" to start the process</li>
             <li>Monitor progress in the Operation Status section</li>
-            <li>Once complete, visualization options become available</li>
+            <li>Once done, visualization options become available</li>
         </ol>
 
         <p><b>Note:</b> Conversion runs in the background, so you can continue using other parts
@@ -922,7 +922,7 @@ HELP_CONTENT = {
             <li>Navigate to the MNE Integration tab</li>
             <li>Choose conversion mode:
                 <ul>
-                    <li><b>Flexible Mode</b>: For comprehensive analysis</li>
+                    <li><b>Flexible Mode</b>: For analysis</li>
                     <li><b>Performance Mode</b>: For targeted analysis with specific channels</li>
                 </ul>
             </li>
@@ -990,7 +990,7 @@ HELP_CONTENT = {
         "content": """
         <h3>Advanced MNE Features</h3>
         <p>Beyond basic visualization, MNE integration offers advanced capabilities
-        for sophisticated EEG analysis.</p>
+        for EEG analysis.</p>
 
         <h4>Technical Features:</h4>
 
@@ -1008,14 +1008,6 @@ HELP_CONTENT = {
             <li>Performance Mode reduces memory footprint</li>
             <li>Efficient handling of large datasets</li>
             <li>Task result caching for quick access</li>
-        </ul>
-
-        <h5>Quality Assurance</h5>
-        <ul>
-            <li>Data validation before conversion</li>
-            <li>Error handling with detailed feedback</li>
-            <li>Automatic unit conversion (μV to V)</li>
-            <li>Channel mapping and naming consistency</li>
         </ul>
 
         <h4>Integration with MNE Ecosystem:</h4>
@@ -1209,17 +1201,17 @@ class HelpButton(QPushButton):
 
 
 class EEGConceptsHelpDialog(QDialog):
-    """Dialog with comprehensive help on EEG concepts and application usage."""
+    """Dialog with help on EEG concepts and application usage."""
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
-        """Initialize the comprehensive help dialog."""
+        """Initialize the help dialog."""
         super().__init__(parent)
         self.setWindowTitle("EEG Processor Help")
         self.setMinimumSize(800, 600)
         self.setup_ui()
 
     def setup_ui(self) -> None:
-        """Set up the comprehensive help UI with tabs."""
+        """Set up the help UI with tabs."""
         layout = QVBoxLayout(self)
 
         # Create tab widget
@@ -1242,7 +1234,7 @@ class EEGConceptsHelpDialog(QDialog):
             "Advanced Analysis",
             ["ica", "ica_realtime", "advanced_filters", "wavelet", "downsampling"],
         )
-        # Add comprehensive MNE Integration tab
+        # Add MNE Integration tab
         self.add_tab(
             "MNE Integration",
             [
@@ -1319,7 +1311,7 @@ def show_help_topic(key: str, parent: Optional[QWidget] = None) -> None:
 
 def show_eeg_concepts_help(parent: Optional[QWidget] = None) -> None:
     """
-    Show comprehensive EEG concepts help dialog.
+    Show EEG concepts help dialog.
 
     Args:
         parent: Parent widget

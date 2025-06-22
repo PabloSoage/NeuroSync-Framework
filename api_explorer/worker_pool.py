@@ -56,7 +56,7 @@ class WebSocketWorkerPool:
             self.workers.append(worker_task)
 
     async def stop_workers(self) -> None:
-        """Stop all workers gracefully."""
+        """Stop all workers."""
         self.shutdown_event.set()
 
         for worker in self.workers:

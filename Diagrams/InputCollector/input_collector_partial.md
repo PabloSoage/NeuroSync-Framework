@@ -469,7 +469,7 @@ classDiagram
 
     note for CollectorsSubmodule "Thread-safe event processing:\n• SDL2 event loop architecture\n• Automatic reconnection capabilities\n• Enhanced PS4 controller support\n• Event-driven state management\n• Core event system integration"
 
-    note for VisualizersSubmodule "Thread-safe UI updates:\n• Split panel PS4 interface\n• Real-time state logging\n• Enhanced edit mode capabilities\n• Signal/slot based updates\n• Professional dark theme support"
+    note for VisualizersSubmodule "Thread-safe UI updates:\n• Split panel PS4 interface\n• Real-time state logging\n• Enhanced edit mode capabilities\n• Signal/slot based updates\n• Dark theme support"
 
     note for CoreSubmodule "Centralized event system:\n• Framework-independent communication\n• Thread-safe event delivery\n• Decoupled component interaction\n• Subscribe/unsubscribe patterns\n• Event type enumeration"
 

@@ -665,7 +665,7 @@ class PS4ControllerVisualizer(BaseVisualizer):
         self.controller_widget.update()
 
     def force_update(self) -> None:
-        """Force a complete redraw of the visualization."""
+        """Force a redraw of the visualization."""
         self.controller_widget.update()
 
     def toggle_edit_mode(self) -> bool:

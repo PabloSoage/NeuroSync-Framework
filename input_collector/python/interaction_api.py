@@ -840,7 +840,7 @@ class InputCollectorAPI:
     @classmethod
     def get_application_state(cls) -> Dict[str, Any]:
         """
-        Get comprehensive application state.
+        Get application state.
 
         Returns:
             Dict with application state

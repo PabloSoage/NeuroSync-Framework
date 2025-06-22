@@ -646,12 +646,12 @@ class InputCollectorApiIntegration:
                             ),
                         }
 
-                        # Add complete PS4 state to all PS4 events
+                        # Add PS4 state to all PS4 events
                         payload["ps4_state"] = self._get_ps4_controller_state()
 
                     # For axis motion events, add detailed stick/trigger info
                     elif data.event_type == "axis_motion":
-                        # Complete information about which control was moved
+                        # Information about which control was moved
                         self._add_ps4_control_details_to_payload(payload, data)
                 else:
                     # For non-PS4 events, handle keyboard and mouse events
@@ -839,7 +839,7 @@ class InputCollectorApiIntegration:
 
     def _get_ps4_controller_state(self) -> Dict[str, Any]:
         """
-        Get the complete current state of the PS4 controller.
+        Get the current state of the PS4 controller.
 
         Returns:
             Dict: The current state of all PS4 controls

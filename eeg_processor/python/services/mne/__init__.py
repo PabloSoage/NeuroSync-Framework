@@ -1,7 +1,7 @@
 """
 MNE Services Package.
 
-This package provides comprehensive services for MNE (Modified Neurophysiological Environment)
+This package provides services for MNE (Modified Neurophysiological Environment)
 integration in the EEG processing system. It enables advanced neurophysiological analysis,
 visualization, and real-time processing capabilities through MNE-Python.
 
@@ -37,7 +37,7 @@ Core MNE Services:
   * Stores conversion and visualization results with unique task IDs
   * Provides atomic operations for concurrent access
   * Implements memory-efficient result lifecycle management
-  * Supports bulk operations for cleaning up completed tasks
+  * Supports bulk operations for cleaning up tasks
   * Thread-safe operations using RLock for consistency
 
 - MNEProcessManager: Multiprocessing management for CPU-intensive operations
@@ -75,7 +75,7 @@ Real-time Features:
 - Optimized channel selection for reduced computational load
 - Integration with filter processing pipeline
 
-The MNE services provide a complete solution for advanced EEG analysis,
+The MNE services provide a solution for advanced EEG analysis,
 enabling researchers and practitioners to leverage the full power of MNE-Python
 within a user-friendly real-time processing environment.
 """

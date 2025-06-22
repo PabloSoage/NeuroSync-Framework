@@ -890,7 +890,7 @@ class DataAccessService:
             if sr and not self._buffer_max_samples:
                 # Calculate buffer size: sampling_rate * buffer_seconds
                 try:
-                    # More robust type checking and conversion
+                    # More type checking and conversion
                     if isinstance(sr, (int, float)):
                         sr_float = float(sr)
                         if sr_float > 0:

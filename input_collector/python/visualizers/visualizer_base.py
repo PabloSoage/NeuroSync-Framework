@@ -43,7 +43,7 @@ class BaseVisualizer(QWidget):
         super().update()
 
     def force_update(self) -> None:
-        """Force a complete redraw of the visualization."""
+        """Force a redraw of the visualization."""
         self.update()
 
     def set_collector_capabilities(self, capabilities: Dict[str, Any]) -> None:

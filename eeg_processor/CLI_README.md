@@ -184,7 +184,7 @@ The CLI provides comprehensive error handling:
 
 - Connection status validation
 - Parameter validation with helpful messages
-- Graceful handling of service failures
+- Handling of service failures
 - Detailed error reporting
 
 ## Examples

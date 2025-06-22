@@ -32,7 +32,7 @@ Topic Coverage:
 - Visualization: EEG plots, brain mapping, multi-modality displays, interaction techniques
 - Recording: Data storage, marker insertion, streaming configuration, file management
 - Advanced Analysis: ICA theory and practice, real-time monitoring, advanced filtering
-- MNE Integration: Complete workflow guidance, conversion modes, visualization options
+- MNE Integration: Workflow guidance, conversion modes, visualization options
 
 Educational Content Quality:
 - Theoretical background with practical application guidance
@@ -57,7 +57,7 @@ Visual Design System:
 - Proper contrast ratios ensuring accessibility and readability
 
 Qt Widget Styling:
-- Complete coverage: buttons, inputs, dropdowns, checkboxes, tabs, scrollbars, groups
+- Coverage: buttons, inputs, dropdowns, checkboxes, tabs, scrollbars, groups
 - State-specific styling: normal, hover, pressed, disabled, selected states
 - Consistent spacing, padding, and border radius for unified appearance
 - Color-coded status indicators and interactive feedback
@@ -75,7 +75,7 @@ Integration Capabilities:
 - Seamless integration with PyQt5 application architecture
 - Support for HTML content rendering with external links and rich formatting
 - Dynamic help content delivery based on context and user interaction
-- Professional dialog management with proper parent-child relationships
+- Dialog management with proper parent-child relationships
 
 Accessibility and Usability:
 - Keyboard navigation support for help dialogs and interactive elements

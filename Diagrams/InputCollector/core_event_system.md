@@ -147,7 +147,7 @@ classDiagram
     note for ThreadSafetyMechanisms "Multi-level thread safety:\n• Class lock for singleton creation\n• Subscribers lock for subscription changes\n• Exception handling isolates failing callbacks\n• Last event storage enables state sync"
 
     %% Architecture Documentation
-    note "Simplified Event System Architecture:\n• Singleton dispatcher for global access\n• Set-based subscriber management\n• Last event storage for state synchronization\n• Exception isolation for robust operation\n• Framework-independent design\n• Thread-safe operations throughout"
+    note "Simplified Event System Architecture:\n• Singleton dispatcher for global access\n• Set-based subscriber management\n• Last event storage for state synchronization\n• Exception isolation for stable operation\n• Framework-independent design\n• Thread-safe operations throughout"
 
     %% Usage Patterns Documentation
     note "Usage Patterns:\n• subscribe() for event registration\n• unsubscribe() for cleanup\n• dispatch() for event emission\n• Last event replay for late subscribers\n• Exception isolation for reliability\n• Framework-agnostic design"

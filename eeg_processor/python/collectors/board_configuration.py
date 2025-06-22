@@ -802,7 +802,7 @@ class BrainFlowBoardConfiguration(BoardInterface):
             ):
                 return param in ["ip_address", "ip_port", "timeout"]
 
-            # Undocumented boards - make conservative guesses
+            # Undocumented boards - make guesses
             # Galea boards
             elif board_id in [
                 getattr(BoardIds, attr, -999)
@@ -814,7 +814,7 @@ class BrainFlowBoardConfiguration(BoardInterface):
                 ]
                 if hasattr(BoardIds, attr)
             ]:
-                # Conservative: no optional parameters for undocumented boards
+                # No optional parameters for undocumented boards
                 return False
 
             # NTL WiFi board
@@ -822,7 +822,7 @@ class BrainFlowBoardConfiguration(BoardInterface):
                 hasattr(BoardIds, "NTL_WIFI_BOARD")
                 and board_id == BoardIds.NTL_WIFI_BOARD.value
             ):
-                # Conservative: no optional parameters for undocumented boards
+                # No optional parameters for undocumented boards
                 return False
 
             # AAVAA board
@@ -830,7 +830,7 @@ class BrainFlowBoardConfiguration(BoardInterface):
                 hasattr(BoardIds, "AAVAA_V3_BOARD")
                 and board_id == BoardIds.AAVAA_V3_BOARD.value
             ):
-                # Conservative: no optional parameters for undocumented boards
+                # No optional parameters for undocumented boards
                 return False
 
         except AttributeError:
@@ -906,14 +906,14 @@ class BrainFlowBoardConfiguration(BoardInterface):
                 # BrainAlive: mac_address and serial_number optional
                 return param in ["mac_address", "serial_number"]
             else:
-                # Unknown boards: conservative approach - no optional parameters
+                # Unknown boards: approach - no optional parameters
                 return False
 
         except Exception as e:
             logging.warning(
                 f"Could not determine optional fields for board ID {board_id}: {e}"
             )
-            # Conservative fallback: no optional parameters
+            # Fallback: no optional parameters
             return False
 
 
