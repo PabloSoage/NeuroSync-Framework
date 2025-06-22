@@ -1,0 +1,107 @@
+% !TeX spellcheck = gl_GL-Galician
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Preámbulo                                                                    %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%\documentclass[11pt,a4paper,titlepage,twoside, openright]{report}
+\documentclass[11pt,a4paper,titlepage,twoside, openany]{report}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%% SELECCIÓN DE IDIOMA %%
+%%%%%%%%%%%%%%%%%%%%%%%%%
+% Descomenta la línea correspondiente al idioma de la memoria
+\def\idioma{esp}  % Castellano (Español)
+%\def\idioma{gal} % Galego
+%\def\idioma{eng} % English
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% DATOS DEL PROYECTO A CONFIGURAR %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\def\titulo{Memoria de Prácticas en CINFO}        % cambiar aquí el título completo
+\def\alumno{Pablo Soage Rodas}                  % nombre del alumno     
+\def\directorA{Julián Silveira Carnota}             % nombre del director
+\def\directorB{Diego Andrade Canosa}    % descomentar aquí está línea y en la portada
+                                                % para incluir uno más.
+                                                % De haber más añadirlos cambiando la letra por C, D, ...
+\def\departamento{Enxeñaría de Computadores}                                                                                              
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% CARGA DEL FICHERO DE ESTILO %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{estilo_practicas}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% PAQUETES QUE PUEDEN SER DE UTILIDAD %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% \usepackage{alltt}       % para campos alltt, similar a verbatim pero que respecta comandos
+% \usepackage{booktabs}     % permite mejorar el aspecto de las tablas con líneas de diferente grosor para el cierre
+\usepackage{enumitem}     % permite personalizar los entornos de lista
+% \usepackage{eurofont}    % proporciona el comando \euro
+\usepackage{float}       % permite más control de objetos flotantes (tablas y figuras)
+% \usepackage{hhline}      % permite personalizar las liñas horizontales en arrays y tablas
+% \usepackage{longtable}   % permite construir tablas que ocupan más de una página
+% \usepackage{lscape}      % permite colocar partes del documento en orientación apaisada
+% \usepackage{moreverb}    % permite personalizar o entorno verbatim
+% \usepackage{multirow}    % permite crear celdas que ocupan varias filas en una tabla
+% \usepackage{pdfpages}    % permite insertar ficheros PDF
+% \usepackage{rotating}    % permite diferentes tipos de rotaciones para los flotantes
+% \usepackage{subcaption}  % permite a inclusión de varias subfiguras en una figura
+% \usepackage{tabu}        % permite tablas flexibles
+% \usepackage{tabularx}    % permite tablas con columnas de anchura determinada
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{url}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% CUERPO PRINCIPAL DEL DOCUMENTO                                               %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Preliminares do documento            %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\include{01_preambulo/contido_obligatorio/00_portada}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Preliminares do documento            %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\pagenumbering{Roman}
+\setcounter{page}{1}
+\bstctlcite{IEEEexample:BSTcontrol}
+
+\tableofcontents
+\listoffigures
+\listoftables
+\clearpage
+\paginablanca
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Capítulos da memoria                 %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Numeración arábiga
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\include{02_contido_principal/01_chap_introducion}
+\include{02_contido_principal/02_chap_tecnoloxias}
+\include{02_contido_principal/03_chap_desenvolvemento}
+\include{02_contido_principal/04_chap_conclusions}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Bibliografía                        %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ \bibliographystyle{IEEEtranN}
+ \bibliography{\bibconfig,03_bibliografia/bibliografia}
+ %\clearpage
+ 
+\end{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
