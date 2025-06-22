@@ -2,13 +2,13 @@
 
 ## Resumen
 
-EEG Processor es un framework modular para procesamiento de señales EEG en tiempo real que soporta múltiples dispositivos de hardware (OpenBCI, g.tec, Muse, ANT Neuro, Neurosity), análisis avanzado (ICA, wavelet transforms, MNE-Python), y múltiples interfaces (GUI Qt5, CLI, REST API). Implementa una **arquitectura orientada a servicios** con **patrones event-driven** para procesamiento neuroseñales.
+EEG Processor es un framework modular para procesamiento de señales EEG en tiempo real que soporta múltiples dispositivos de hardware (OpenBCI, g.tec, Muse, ANT Neuro, Neurosity), análisis avanzado (ICA, wavelet transforms, MNE-Python), y múltiples interfaces (GUI Qt5, CLI, REST API). Implementa una **arquitectura orientada a servicios** con **patrones dirigidos por eventos** para procesamiento de neuroseñales.
 
 ## Arquitectura General
 
 ### Patrón Arquitectónico Principal
 
-La aplicación sigue una **arquitectura orientada a servicios (SOA)** combinada con patrones **Event-Driven**, **Singleton** y **MVC**, organizando el código en capas especializadas:
+La aplicación sigue una **arquitectura orientada a servicios (SOA)** combinada con patrones **dirigidos por eventos**, **Singleton** y **MVC**, organizando el código en capas especializadas:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -60,18 +60,18 @@ La aplicación sigue una **arquitectura orientada a servicios (SOA)** combinada 
 - **`Event`**: Dataclass con timestamp, source y data payload
 
 #### Características:
-- **Thread-safe operations**: RLock-based synchronization
-- **Event history tracking**: 1000 eventos con rotación automática
-- **Late subscriber support**: Entrega automática del último evento
-- **Error isolation**: Fallos en callbacks no afectan otros suscriptores
-- **Performance optimization**: Set-based storage para O(1) operations
+- **Operaciones thread-safe**: Sincronización basada en RLock
+- **Seguimiento de historial de eventos**: 1000 eventos con rotación automática
+- **Soporte para suscriptores tardíos**: Entrega automática del último evento
+- **Aislamiento de errores**: Fallos en callbacks no afectan otros suscriptores
+- **Optimización de rendimiento**: Almacenamiento basado en conjuntos para operaciones O(1)
 
 ```python
-# Event system usage
+# Uso del sistema de eventos
 from core import dispatch, subscribe, EventType
 
 def on_filter_applied(event):
-    print(f"Filter applied: {event.data}")
+    print(f"Filtro aplicado: {event.data}")
 
 subscribe(EventType.FILTER_APPLY, on_filter_applied)
 dispatch(EventType.FILTER_APPLY, {
@@ -89,19 +89,19 @@ dispatch(EventType.FILTER_APPLY, {
 - **`CollectorInterface`**: Base para colectores EEG
 - **`MarkerInterface`**: Inserción de marcadores durante grabación
 - **`ConfigurableCollectorInterface`**: Configuración de dispositivos
-- **`BoardInterface`**: Gestión de configuración de boards
+- **`BoardInterface`**: Gestión de configuración de placas
 - **`MNEInterfaces`**: Contratos para procesamiento MNE-Python
 - **`RecordingInterface`**: Almacenamiento y grabación continua
 
 #### Características:
-- **Abstract Base Classes**: Contratos estrictos con `@abstractmethod`
-- **Type hints**: Tipado completo con `numpy.ndarray`, `Dict[str, Any]`
-- **Interface segregation**: Interfaces específicas para diferentes capacidades
-- **Testability**: Mocking y dependency injection facilitados
+- **Clases base abstractas**: Contratos estrictos con `@abstractmethod`
+- **Anotaciones de tipo**: Tipado completo con `numpy.ndarray`, `Dict[str, Any]`
+- **Segregación de interfaces**: Interfaces específicas para diferentes capacidades
+- **Facilidad de pruebas**: Mocking e inyección de dependencias facilitados
 
 ### 3. **Collectors** (`collectors/`)
 
-**Propósito**: Capa de abstracción hardware para dispositivos EEG con soporte BrainFlow.
+**Propósito**: Capa de abstracción de hardware para dispositivos EEG con soporte BrainFlow.
 
 #### Componentes:
 - **`EEGCollector`**: Implementación principal con múltiples interfaces
@@ -109,15 +109,15 @@ dispatch(EventType.FILTER_APPLY, {
 - **`BoardConfiguration`**: Wrapper estático para compatibilidad
 
 #### EEGCollector - Características:
-- **Multi-preset support**: DEFAULT, AUXILIARY, ANCILLARY data streams
-- **Real-time marker insertion**: Sincronización microsegundo con datos EEG
-- **Multi-board support**: OpenBCI, g.tec Unicorn, Muse, ANT Neuro, Neurosity, BrainBit, etc.
-- **Streaming board support**: Master board configuration con validación de preset
-- **Automatic channel detection**: EEG, EMG, ECG, accelerometer, gyroscope
-- **Thread-safe operations**: Buffer management y data retrieval
+- **Soporte multi-preset**: Flujos de datos DEFAULT, AUXILIARY, ANCILLARY
+- **Inserción de marcadores en tiempo real**: Sincronización de microsegundo con datos EEG
+- **Soporte multi-placa**: OpenBCI, g.tec Unicorn, Muse, ANT Neuro, Neurosity, BrainBit, etc.
+- **Soporte para placas de streaming**: Configuración de placa maestra con validación de preset
+- **Detección automática de canales**: EEG, EMG, ECG, acelerómetro, giroscopio
+- **Operaciones thread-safe**: Gestión de buffer y recuperación de datos
 
 ```python
-# Board configuration capabilities
+# Capacidades de configuración de placas
 SUPPORTED_BOARDS = {
     "OpenBCI": [BoardIds.CYTON_BOARD, BoardIds.GANGLION_BOARD],
     "g.tec": [BoardIds.UNICORN_BOARD],
@@ -133,19 +133,19 @@ SUPPORTED_BOARDS = {
 **Propósito**: Motor de procesamiento de señales con algoritmos avanzados.
 
 #### Componentes:
-- **`SignalProcessor`**: Engine principal con múltiples algoritmos
+- **`SignalProcessor`**: Motor principal con múltiples algoritmos
 
 #### Características:
-- **Multiple filter types**: Butterworth, Chebyshev Type 1, Bessel (zero-phase)
-- **Intelligent stability monitoring**: Ajuste automático para datos sintéticos
-- **Wavelet processing**: 15+ tipos (Daubechies, Biorthogonal, Coiflets, Symlets)
-- **Independent Component Analysis**: FastICA con configuración 1-16 componentes
-- **Signal quality assessment**: Sistema 5-nivel con railed percentage detection
-- **EEG metrics**: Band powers (Delta, Theta, Alpha, Beta, Gamma)
-- **ML-based cognitive metrics**: Mindfulness, restfulness, concentration scores
+- **Múltiples tipos de filtros**: Butterworth, Chebyshev Tipo 1, Bessel (fase cero)
+- **Monitoreo inteligente de estabilidad**: Ajuste automático para datos sintéticos
+- **Procesamiento wavelet**: 15+ tipos (Daubechies, Biorthogonal, Coiflets, Symlets)
+- **Análisis de componentes independientes**: FastICA con configuración de 1-16 componentes
+- **Evaluación de calidad de señal**: Sistema de 5 niveles con detección de porcentaje saturado
+- **Métricas EEG**: Potencias de banda (Delta, Theta, Alpha, Beta, Gamma)
+- **Métricas cognitivas basadas en ML**: Puntuaciones de atención plena, descanso, concentración
 
 ```python
-# Advanced filtering with stability monitoring
+# Filtrado avanzado con monitoreo de estabilidad
 processor = SignalProcessor(sampling_rate=250)
 filtered_data = processor.bandpass_filter(
     data=eeg_data,
@@ -153,7 +153,7 @@ filtered_data = processor.bandpass_filter(
     stop_freq=50.0,
     order=4,
     filter_type=FilterTypes.BUTTERWORTH,
-    ripple=0.1  # Auto-adjusted for Chebyshev stability
+    ripple=0.1  # Auto-ajustado para estabilidad Chebyshev
 )
 ```
 
@@ -163,172 +163,172 @@ filtered_data = processor.bandpass_filter(
 
 #### Componentes Principales:
 - **`CollectorService`**: Gestión singleton de colección EEG
-- **`DataAccessService`**: Acceso centralizado con buffer management
+- **`DataAccessService`**: Acceso centralizado con gestión de buffer
 - **`ProcessorService`**: Coordinación de filtros y procesamiento
 - **`RecordingService`**: Grabación continua multi-formato
 - **`VisualizationService`**: Gestión de componentes visuales
-- **`InteractionService`**: Bridge API-interno con validación
-- **`AdvancedProcessingService`**: ICA, wavelet, downsampling
-- **`MNEService`**: Facade para integración MNE-Python
+- **`InteractionService`**: Puente API-interno con validación
+- **`AdvancedProcessingService`**: ICA, wavelet, submuestreo
+- **`MNEService`**: Fachada para integración MNE-Python
 
 #### Servicios Especializados:
 
 ##### **ICA Services** (`services/ica/`):
-- **`ICAProcessService`**: Multiprocess ICA con Qt signal integration
-- **`ICARealtimeService`**: Monitoreo tiempo real con sliding window
-- **`ExportService`**: Export batch con progress tracking
+- **`ICAProcessService`**: ICA multiproceso con integración de señales Qt
+- **`ICARealtimeService`**: Monitoreo tiempo real con ventana deslizante
+- **`ExportService`**: Exportación por lotes con seguimiento de progreso
 
 ##### **MNE Services** (`services/mne/`):
 - **`MNEConverterService`**: Conversión BrainFlow→MNE asíncrona
-- **`MNEVisualizerService`**: Visualización avanzada (PSD, topomaps, spectrograms)
-- **`MNERealtimeService`**: Procesamiento tiempo real con sesiones configurable
-- **`MNEResultStorage`**: Almacenamiento thread-safe con lifecycle management
-- **`MNEProcessManager`**: Coordinación multiprocessing para operaciones CPU-intensivas
+- **`MNEVisualizerService`**: Visualización avanzada (PSD, topomaps, espectrogramas)
+- **`MNERealtimeService`**: Procesamiento tiempo real con sesiones configurables
+- **`MNEResultStorage`**: Almacenamiento thread-safe con gestión de ciclo de vida
+- **`MNEProcessManager`**: Coordinación multiproceso para operaciones CPU-intensivas
 
 #### Características:
-- **Thread-safe operations**: Granular locking strategy
-- **Singleton pattern**: Double-checked locking con lazy initialization
-- **Callback systems**: Reactive patterns para consumers externos
-- **Memory management**: Buffer limits y cleanup automático
-- **Background processing**: Thread pools para operaciones no-blocking
+- **Operaciones thread-safe**: Estrategia de bloqueo granular
+- **Patrón Singleton**: Bloqueo de verificación doble con inicialización perezosa
+- **Sistemas de callbacks**: Patrones reactivos para consumidores externos
+- **Gestión de memoria**: Límites de buffer y limpieza automática
+- **Procesamiento en segundo plano**: Pool de hilos para operaciones no bloqueantes
 
 ### 6. **UI** (`ui/`)
 
-**Propósito**: Arquitectura panel-based MVC con controladores especializados.
+**Propósito**: Arquitectura MVC basada en paneles con controladores especializados.
 
 #### Estructura Base:
-- **`BasePanel`**: Foundation class con messaging standardizado
-- **Panel Classes**: ConnectionPanel, ProcessingPanel, RecordingPanel, etc.
-- **Specialized Controllers**: MNEPanelController, AdvancedPanelController
+- **`BasePanel`**: Clase fundacional con mensajería estandarizada
+- **Clases de Panel**: ConnectionPanel, ProcessingPanel, RecordingPanel, etc.
+- **Controladores especializados**: MNEPanelController, AdvancedPanelController
 
-#### UI Panels:
+#### Paneles UI:
 
 ##### **ConnectionPanel**: 
-- **Board selection**: Filtrado inteligente y categorización
-- **Dynamic parameter validation**: Visual feedback para campos required/optional
-- **Streaming board configuration**: Validación preset con prevención socket errors
-- **Real-time board information**: Channel mapping, sampling rate, hardware details
+- **Selección de placa**: Filtrado inteligente y categorización
+- **Validación dinámica de parámetros**: Retroalimentación visual para campos requeridos/opcionales
+- **Configuración de placa de streaming**: Validación de preset con prevención de errores de socket
+- **Información de placa en tiempo real**: Mapeo de canales, frecuencia de muestreo, detalles de hardware
 
 ##### **ProcessingPanel**:
-- **Real-time filter application**: Updates dinámicos durante procesamiento activo
-- **Filtering**: Bandpass (1-200 Hz), Notch (50/60 Hz), Detrend
-- **EEG metrics calculation**: Band powers, statistical analysis
-- **Brain map visualization**: Performance optimization con streaming datos
+- **Aplicación de filtros en tiempo real**: Actualizaciones dinámicas durante procesamiento activo
+- **Filtrado integral**: Pasabanda (1-200 Hz), Notch (50/60 Hz), Detrend
+- **Cálculo de métricas EEG**: Potencias de banda, análisis estadístico
+- **Visualización de mapa cerebral**: Optimización de rendimiento con datos de streaming
 
 ##### **MNE Panel** (`ui/mne/`):
-- **SOLID principle implementation**: Controller con widget composition
-- **Multi-mode conversion**: Flexible (all channels), Performance (selected), Real-time
-- **Advanced visualization**: PSD, topomaps, spectrograms, raw data
-- **Real-time processing sessions**: Parameter updates sin restart
-- **Filter integration**: Coordinación seamless con processing panel
+- **Implementación principios SOLID**: Controlador con composición de widgets
+- **Conversión multi-modo**: Flexible (todos los canales), Rendimiento (seleccionados), Tiempo real
+- **Visualización avanzada**: PSD, topomaps, espectrogramas, datos en bruto
+- **Sesiones de procesamiento en tiempo real**: Actualizaciones de parámetros sin reinicio
+- **Integración de filtros**: Coordinación fluida con panel de procesamiento
 
 ##### **Advanced Panel** (`ui/advanced/`):
-- **ICA Widget**: Real-time monitoring con export capabilities
-- **Wavelet Widget**: Transform analysis con denoising support
-- **Advanced Filter Widget**: Multi-type filtering con stability analysis
-- **Downsampling Widget**: Performance optimization con aggregation methods
+- **ICA Widget**: Monitoreo tiempo real con capacidades de exportación
+- **Wavelet Widget**: Análisis de transformadas con soporte de eliminación de ruido
+- **Advanced Filter Widget**: Filtrado multi-tipo con análisis de estabilidad
+- **Downsampling Widget**: Optimización de rendimiento con métodos de agregación
 
-#### Specialized Widgets:
+#### Widgets Especializados:
 
 ##### **MNE Widgets** (`ui/mne/widgets/`):
-- **`MNEConversionWidget`**: Multi-mode interface con performance warnings
-- **`MNEVisualizationWidget`**: Visualization controls con real-time updates
-- **`MNEStatusWidget`**: Real-time monitoring con performance metrics
-- **`ChannelSelectionDialog`**: Grid-based selection con optimization indicators
+- **`MNEConversionWidget`**: Interfaz multi-modo con advertencias de rendimiento
+- **`MNEVisualizationWidget`**: Controles de visualización con actualizaciones en tiempo real
+- **`MNEStatusWidget`**: Monitoreo tiempo real con métricas de rendimiento
+- **`ChannelSelectionDialog`**: Selección basada en cuadrícula con indicadores de optimización
 
 ##### **Advanced Widgets** (`ui/advanced/widgets/`):
-- **`ICAWidget`**: Component count configuration (1-16) con channel selection
-- **`WaveletWidget`**: Wavelet type selection con decomposition levels
-- **`AdvancedFilterWidget`**: Filter type, order, window function selection
-- **`DownsamplingWidget`**: Factor configuration con aggregation methods
+- **`ICAWidget`**: Configuración de cantidad de componentes (1-16) con selección de canales
+- **`WaveletWidget`**: Selección de tipo de wavelet con niveles de descomposición
+- **`AdvancedFilterWidget`**: Selección de tipo de filtro, orden, función de ventana
+- **`DownsamplingWidget`**: Configuración de factor con métodos de agregación
 
 #### Características UI:
-- **Dark theme integration**: Consistent styling across components
-- **Real-time updates**: Dynamic parameter modification sin session restart
-- **Performance monitoring**: CPU usage warnings y optimization suggestions
-- **Event-driven architecture**: Qt signals para loose coupling
-- **Thread-safe operations**: Proper UI thread marshalling
+- **Integración de tema oscuro**: Estilo consistente entre componentes
+- **Actualizaciones en tiempo real**: Modificación dinámica de parámetros sin reinicio de sesión
+- **Monitoreo de rendimiento**: Advertencias de uso de CPU y sugerencias de optimización
+- **Arquitectura dirigida por eventos**: Señales Qt para bajo acoplamiento
+- **Operaciones thread-safe**: Manejo adecuado del hilo de la interfaz de usuario
 
 ### 7. **Visualizers** (`visualizers/`)
 
-**Propósito**: Componentes visualización científica tiempo real.
+**Propósito**: Componentes de visualización científica en tiempo real.
 
 #### Componentes:
-- **`MultiSignalVisualizer`**: Multi-page biosignal visualization
-- **`BrainMapVisualizer`**: Topographic brain mapping
+- **`MultiSignalVisualizer`**: Visualización biosignal multi-página
+- **`BrainMapVisualizer`**: Mapeo topográfico cerebral
 
 #### MultiSignalVisualizer - Características:
-- **Intelligent channel detection**: EEG, EMG, ECG, EOG, EDA, PPG, accelerometer, gyroscope
-- **Lazy loading architecture**: Caching para performance optimization
-- **Multi-tab interface**: Separation por modalidad signal
-- **Real-time data integration**: DataAccessService coordination
-- **Performance optimization**: Selective tab updates, memory-efficient operations
+- **Detección inteligente de canales**: EEG, EMG, ECG, EOG, EDA, PPG, acelerómetro, giroscopio
+- **Arquitectura de carga perezosa**: Caché para optimización de rendimiento
+- **Interfaz multi-pestaña**: Separación por modalidad de señal
+- **Integración de datos en tiempo real**: Coordinación con DataAccessService
+- **Optimización de rendimiento**: Actualizaciones selectivas de pestañas, operaciones eficientes en memoria
 
 #### BrainMapVisualizer - Características:
-- **International 10-20/10-10 positioning**: Standard electrode positions
-- **Real-time signal quality**: Color-coded indicators (5-level system)
-- **Anatomical brain regions**: Frontal, central, parietal, occipital overlays
-- **G.tec Unicorn compatibility**: Automatic channel mapping
-- **Interactive elements**: Electrode labels con quality legend
+- **Posicionamiento internacional 10-20/10-10**: Posiciones estándar de electrodos
+- **Calidad de señal en tiempo real**: Indicadores codificados por color (sistema de 5 niveles)
+- **Regiones anatómicas cerebrales**: Superposiciones frontal, central, parietal, occipital
+- **Compatibilidad G.tec Unicorn**: Mapeo automático de canales
+- **Elementos interactivos**: Etiquetas de electrodos con leyenda de calidad
 
 ```python
-# Channel type detection capabilities
+# Capacidades de detección de tipos de canal
 SUPPORTED_CHANNEL_TYPES = {
-    "EEG": "Electroencephalography signals",
-    "EMG": "Electromyography signals", 
-    "ECG": "Electrocardiography signals",
-    "EOG": "Electrooculography signals",
-    "EDA": "Electrodermal activity",
-    "PPG": "Photoplethysmography",
-    "Accelerometer": "3-axis acceleration",
-    "Gyroscope": "3-axis angular velocity"
+    "EEG": "Señales de electroencefalografía",
+    "EMG": "Señales de electromiografía", 
+    "ECG": "Señales de electrocardiografía",
+    "EOG": "Señales de electrooculografía",
+    "EDA": "Actividad electrodérmica",
+    "PPG": "Fotopletismografía",
+    "Accelerometer": "Aceleración de 3 ejes",
+    "Gyroscope": "Velocidad angular de 3 ejes"
 }
 ```
 
 ### 8. **Utils** (`utils/`)
 
-**Propósito**: Utilities y sistemas soporte para aplicación.
+**Propósito**: Utilidades y sistemas de soporte para la aplicación.
 
 #### Componentes:
-- **`ThemeManager`**: Advanced styling y tema oscuro
-- **`HelpSystem`**: Sistema help contextual con 25+ topics
+- **`ThemeManager`**: Estilizado avanzado y tema oscuro
+- **`HelpSystem`**: Sistema de ayuda contextual con 25+ temas
 
 #### ThemeManager - Características:
-- **Dark theme implementation**: Qt widget styling optimization
-- **Consistent color scheme**: Semantic colors (success, warning, error, accent)
-- **Widget coverage**: Buttons, inputs, tabs, scrollbars, groups
-- **Accessibility compliance**: Proper contrast ratios
+- **Implementación de tema oscuro**: Optimización de estilizado de widgets Qt
+- **Esquema de color consistente**: Colores semánticos (éxito, advertencia, error, acento)
+- **Cobertura de widgets**: Botones, entradas, pestañas, barras de desplazamiento, grupos
+- **Cumplimiento de accesibilidad**: Relaciones de contraste apropiadas
 
 #### HelpSystem - Características:
-- **25+ detailed topics**: Hardware, processing, visualization, recording, analysis
-- **Context-sensitive help**: HelpButton integration en UI
-- **Tabbed help interface**: Organization por functional areas
-- **Educational content**: EEG basics, signal processing theory, advanced analysis
+- **25+ temas detallados**: Hardware, procesamiento, visualización, grabación, análisis
+- **Ayuda sensible al contexto**: Integración HelpButton en UI
+- **Interfaz de ayuda con pestañas**: Organización por áreas funcionales
+- **Contenido educativo**: Conceptos básicos EEG, teoría de procesamiento de señales, análisis avanzado
 
 ### 9. **CLI** (`cli/`)
 
-**Propósito**: Command-line interface con capabilities avanzadas.
+**Propósito**: Interfaz de línea de comandos con capacidades avanzadas.
 
 #### Componentes:
-- **`CLIApp`**: Typer application principal con command registration
-- **`CLIShell`**: Interactive shell para user-friendly command execution
-- **`CLIConfig`**: Configuration y state management para CLI
-- **`HeadlessEEGProcessor`**: Headless stack para programmatic use
+- **`CLIApp`**: Aplicación Typer principal con registro de comandos
+- **`CLIShell`**: Shell interactivo para ejecución amigable de comandos
+- **`CLIConfig`**: Configuración y gestión de estado para CLI
+- **`HeadlessEEGProcessor`**: Stack sin cabeza para uso programático
 
-#### Command Modules:
-- **`DataCommands`**: Access y display EEG data/metadata
-- **`MonitorCommands`**: Real-time monitoring streams, channels, signal quality
-- **`InteractionCommands`**: Control processor (connect, stream, record, filters)
+#### Módulos de Comandos:
+- **`DataCommands`**: Acceso y visualización de datos/metadatos EEG
+- **`MonitorCommands`**: Monitoreo tiempo real de streams, canales, calidad de señal
+- **`InteractionCommands`**: Control del procesador (conectar, stream, grabar, filtros)
 
 #### Características:
-- **Typer framework**: Modern CLI con auto-completion
-- **Rich console output**: Tables, panels, real-time displays
-- **Cross-platform support**: Windows/Linux/macOS compatibility
-- **Headless mode**: Minimal resource usage para scripting
-- **Interactive shell**: REPL-style interface con command history
+- **Framework Typer**: CLI moderno con autocompletado
+- **Salida de consola Rich**: Tablas, paneles, visualizaciones en tiempo real
+- **Soporte multiplataforma**: Compatibilidad Windows/Linux/macOS
+- **Modo sin cabeza**: Uso mínimo de recursos para scripting
+- **Shell interactivo**: Interfaz estilo REPL con historial de comandos
 
 ```bash
-# CLI usage examples
+# Ejemplos de uso CLI
 eeg-processor data current-data --max-samples 1000
 eeg-processor control connect-board --board-id 1 --preset 0
 eeg-processor monitor realtime --channels 1,2,3,4
@@ -337,37 +337,37 @@ eeg-processor control apply-filters --bandpass-low 1 --bandpass-high 50
 
 ### 10. **Adapters** (`adapters/`)
 
-**Propósito**: Thread-safe bridges entre frameworks y core services.
+**Propósito**: Puentes thread-safe entre frameworks y servicios centrales.
 
 #### Componentes:
-- **`QtInteractionAdapter`**: Thread-safe Qt-service bridge
+- **`QtInteractionAdapter`**: Puente Qt-servicio thread-safe
 
 #### Características:
-- **Thread-safe execution**: ThreadPoolExecutor con timeout management (5s default)
-- **Framework isolation**: Separation clara entre Qt y services core
-- **API coverage**: All panel operations y settings retrieval
-- **Error handling**: Timeout detection y graceful degradation
-- **Cross-thread communication**: QTimer-based main thread execution
+- **Ejecución thread-safe**: ThreadPoolExecutor con gestión de timeout (5s por defecto)
+- **Aislamiento de framework**: Separación clara entre Qt y servicios centrales
+- **Cobertura de API**: Todas las operaciones de panel y recuperación de configuraciones
+- **Manejo de errores**: Detección de timeout y degradación elegante
+- **Comunicación entre hilos**: Ejecución basada en QTimer del hilo principal
 
 ### 11. **API Integration** (archivos raíz)
 
 **Propósito**: REST API con WebSocket para acceso remoto y control.
 
 #### Componentes:
-- **`EEGDataAPI`**: Static API para data access
-- **`EEGProcessorInteractionAPI`**: Static API para system control
-- **`EEGProcessorApiIntegration`**: WebSocket integration para data streaming
-- **`EEGProcessorInteractionApiIntegration`**: API integration para control operations
+- **`EEGDataAPI`**: API estática para acceso a datos
+- **`EEGProcessorInteractionAPI`**: API estática para control del sistema
+- **`EEGProcessorApiIntegration`**: Integración WebSocket para streaming de datos
+- **`EEGProcessorInteractionApiIntegration`**: Integración API para operaciones de control
 
 #### Características:
-- **Dual-mode data streaming**: Direct mode (low latency ~15ms), Multiprocessing mode
-- **WebSocket real-time**: Structured payload broadcasting
-- **Control API**: Board management, processing, recording, analysis
-- **Thread-safe operations**: All API calls thread-safe con timeout management
-- **External system integration**: Documentation automática via API Explorer
+- **Streaming de datos de modo dual**: Modo directo (baja latencia ~15ms), Modo multiproceso
+- **WebSocket tiempo real**: Difusión de payload estructurado
+- **API de control integral**: Gestión de placas, procesamiento, grabación, análisis
+- **Operaciones thread-safe**: Todas las llamadas API thread-safe con gestión de timeout
+- **Integración de sistemas externos**: Documentación automática vía API Explorer
 
 ```python
-# API integration capabilities
+# Capacidades de API Integration
 API_ENDPOINTS = {
     "Data Access": ["get_current_data", "get_eeg_data", "get_metadata"],
     "Board Control": ["connect_board", "start_stream", "insert_marker"],
@@ -379,181 +379,181 @@ API_ENDPOINTS = {
 
 ## Patrones Arquitectónicos Implementados
 
-### 1. **Service-Oriented Architecture (SOA)**
-- **Singleton services** con thread-safe initialization
-- **Service coordination** via InteractionService
-- **Clear service boundaries** con well-defined interfaces
-- **Dependency injection** para testing y modularity
+### 1. **Arquitectura Orientada a Servicios (SOA)**
+- **Servicios singleton** con inicialización thread-safe
+- **Coordinación de servicios** vía InteractionService
+- **Límites claros de servicio** con interfaces bien definidas
+- **Inyección de dependencias** para pruebas y modularidad
 
-### 2. **Event-Driven Architecture**
-- **Core Event System** como communication backbone
-- **Pub/Sub pattern** para loose coupling
-- **Cross-component coordination** sin direct dependencies
-- **API-GUI synchronization** via events
+### 2. **Arquitectura Dirigida por Eventos**
+- **Core Event System** como columna vertebral de comunicación
+- **Patrón Pub/Sub** para acoplamiento suelto
+- **Coordinación entre componentes** sin dependencias directas
+- **Sincronización API-GUI** vía eventos
 
-### 3. **Model-View-Controller (MVC)**
-- **Panel-based MVC**: Controllers coordinando multiple widgets
-- **Specialized controllers**: MNEPanelController, AdvancedPanelController
-- **Signal/slot communication**: Qt architecture para responsive UI
-- **State management**: Consistent across operational contexts
+### 3. **Modelo-Vista-Controlador (MVC)**
+- **MVC basado en paneles**: Controladores coordinando múltiples widgets
+- **Controladores especializados**: MNEPanelController, AdvancedPanelController
+- **Comunicación señal/slot**: Arquitectura Qt para UI responsiva
+- **Gestión de estado**: Consistente a través de contextos operacionales
 
-### 4. **Multiprocessing & Multithreading**
-- **CPU-intensive operations**: ICA, MNE processing en separate processes
-- **Background threads**: Data collection, real-time processing
-- **Thread-safe communication**: Qt signals, multiprocessing queues
-- **Resource lifecycle management**: Proper cleanup y memory optimization
+### 4. **Multiprocesamiento y Multihilo**
+- **Operaciones CPU-intensivas**: Procesamiento ICA, MNE en procesos separados
+- **Hilos en segundo plano**: Colección de datos, procesamiento tiempo real
+- **Comunicación thread-safe**: Señales Qt, colas multiproceso
+- **Gestión de ciclo de vida de recursos**: Limpieza apropiada y optimización de memoria
 
-### 5. **Factory & Strategy Patterns**
-- **Board configuration factory**: Dynamic parameter creation
-- **Processing strategy**: Multiple filter types y algorithms
-- **Visualization strategy**: Adaptive UI based on device capabilities
-- **Channel detection strategy**: Intelligent type recognition
+### 5. **Patrones Factory y Strategy**
+- **Factory de configuración de placas**: Creación dinámica de parámetros
+- **Strategy de procesamiento**: Múltiples tipos de filtros y algoritmos
+- **Strategy de visualización**: UI adaptativa basada en capacidades del dispositivo
+- **Strategy de detección de canales**: Reconocimiento inteligente de tipos
 
-### 6. **Adapter Pattern**
-- **Framework integration**: Qt-service bridges
-- **Hardware abstraction**: BrainFlow device integration
-- **API adaptation**: External system integration
-- **Cross-platform compatibility**: Unified interfaces
+### 6. **Patrón Adapter**
+- **Integración de framework**: Puentes Qt-servicio
+- **Abstracción de hardware**: Integración de dispositivos BrainFlow
+- **Adaptación de API**: Integración de sistemas externos
+- **Compatibilidad multiplataforma**: Interfaces unificadas
 
 ## Características Clave del Sistema
 
-### 1. **Hardware Support Extensivo**
+### 1. **Soporte Extensivo de Hardware**
 - **20+ fabricantes**: OpenBCI, g.tec, Muse, ANT Neuro, Neurosity, BrainBit, etc.
-- **Multi-preset data collection**: DEFAULT, AUXILIARY, ANCILLARY streams
-- **Automatic device detection**: Channel mapping y configuration
-- **Real-time marker insertion**: Microsecond timestamp synchronization
+- **Colección de datos multi-preset**: Streams DEFAULT, AUXILIARY, ANCILLARY
+- **Detección automática de dispositivos**: Mapeo de canales y configuración
+- **Inserción de marcadores en tiempo real**: Sincronización de timestamp de microsegundo
 
-### 2. **Advanced Signal Processing**
-- **Multiple filter implementations**: Butterworth, Chebyshev, Bessel
-- **Wavelet analysis**: 15+ wavelet families con denoising
-- **Independent Component Analysis**: FastICA con 1-16 components
-- **Real-time processing**: Dynamic parameter updates sin restart
-- **Signal quality assessment**: 5-level scoring con performance indicators
+### 2. **Procesamiento Avanzado de Señales**
+- **Múltiples implementaciones de filtros**: Butterworth, Chebyshev, Bessel
+- **Análisis wavelet**: 15+ familias wavelet con eliminación de ruido
+- **Análisis de Componentes Independientes**: FastICA con 1-16 componentes
+- **Procesamiento tiempo real**: Actualizaciones dinámicas de parámetros sin reinicio
+- **Evaluación de calidad de señal**: Puntuación de 5 niveles con indicadores de rendimiento
 
-### 3. **MNE-Python Integration**
-- **Asynchronous data conversion**: BrainFlow→MNE format
-- **Advanced visualization**: PSD, spectrograms, topomaps
-- **Real-time processing sessions**: Configurable update intervals
-- **Multiprocessing support**: CPU-intensive operations
-- **Output**: High-resolution plots (200 DPI)
+### 3. **Integración MNE-Python**
+- **Conversión de datos asíncrona**: Formato BrainFlow→MNE
+- **Visualización avanzada**: PSD, espectrogramas, topomaps
+- **Sesiones de procesamiento tiempo real**: Intervalos de actualización configurables
+- **Soporte multiproceso**: Operaciones CPU-intensivas
+- **Salida de calidad de publicación**: Gráficos de alta resolución (200 DPI)
 
-### 4. **Real-time Capabilities**
-- **High-frequency updates**: 50-100ms rendering pipelines
-- **Performance monitoring**: CPU usage optimization
-- **Adaptive timeout management**: Based on processing complexity
-- **Memory-efficient operations**: Automatic buffer management
-- **Thread-safe operations**: Concurrent processing support
+### 4. **Capacidades Tiempo Real**
+- **Actualizaciones de alta frecuencia**: Pipelines de renderizado de 50-100ms
+- **Monitoreo de rendimiento**: Optimización de uso de CPU
+- **Gestión adaptiva de timeout**: Basada en complejidad de procesamiento
+- **Operaciones eficientes en memoria**: Gestión automática de buffer
+- **Operaciones thread-safe**: Soporte de procesamiento concurrente
 
-### 5. **Multi-Interface Architecture**
-- **Qt5 GUI**: Panel-based interface con dark theme
-- **CLI**: Interactive shell con Rich console output
-- **REST API**: WebSocket streaming con HTTP control
-- **Cross-platform**: Windows, Linux, macOS support
+### 5. **Arquitectura Multi-Interfaz**
+- **Qt5 GUI**: Interfaz basada en paneles con tema oscuro
+- **CLI**: Shell interactivo con salida de consola Rich
+- **REST API**: Streaming WebSocket con control HTTP
+- **Multiplataforma**: Soporte Windows, Linux, macOS
 
-### 6. **Educational & Research Features**
-- **Help system**: 25+ topics con theoretical background
-- **Context-sensitive guidance**: Parameter recommendations
-- **Progressive complexity**: Basic setup → advanced research
-- **Documentation integration**: Inline help con best practices
+### 6. **Características Educativas y de Investigación**
+- **Sistema de ayuda integral**: 25+ temas con antecedentes teóricos
+- **Orientación sensible al contexto**: Recomendaciones de parámetros
+- **Complejidad progresiva**: Configuración básica → investigación avanzada
+- **Integración de documentación**: Ayuda en línea con mejores prácticas
 
 ## Flujo de Datos Principal
 
 ```
-1. Hardware Device → EEGCollector (BrainFlow) → Raw EEG Data
-2. Raw Data → SignalProcessor → Filtered/Processed Data
-3. Processed Data → DataAccessService → Centralized Buffer
-4. Buffer → {UI Panels, CLI Monitor, API Streams, Recording}
-5. Advanced Analysis → {ICA, Wavelet, MNE} → Results Storage
-6. Real-time Updates → {Qt Signals, WebSocket, CLI Display}
-7. Event System → Cross-component Coordination
+1. Dispositivo Hardware → EEGCollector (BrainFlow) → Datos EEG en Bruto
+2. Datos en Bruto → SignalProcessor → Datos Filtrados/Procesados
+3. Datos Procesados → DataAccessService → Buffer Centralizado
+4. Buffer → {Paneles UI, Monitor CLI, Streams API, Grabación}
+5. Análisis Avanzado → {ICA, Wavelet, MNE} → Almacenamiento de Resultados
+6. Actualizaciones Tiempo Real → {Señales Qt, WebSocket, Display CLI}
+7. Sistema de Eventos → Coordinación Entre Componentes
 ```
 
 ## Casos de Uso Principales
 
 ### 1. **Investigación Neurocientífica**
-- **EEG data collection** con múltiples dispositivos
-- **Advanced signal analysis** (ICA, wavelet, band powers)
-- **Real-time processing** con MNE-Python integration
-- **Publication-quality visualization** con export capabilities
+- **Colección de datos EEG** con múltiples dispositivos
+- **Análisis avanzado de señales** (ICA, wavelet, potencias de banda)
+- **Procesamiento tiempo real** con integración MNE-Python
+- **Visualización calidad publicación** con capacidades de exportación
 
-### 2. **Brain-Computer Interfaces**
-- **Real-time feature extraction** con machine learning metrics
-- **Low-latency processing** para feedback systems
-- **Multi-channel analysis** con performance optimization
-- **External system integration** via REST API
+### 2. **Interfaces Cerebro-Computadora**
+- **Extracción de características tiempo real** con métricas de machine learning
+- **Procesamiento baja latencia** para sistemas de retroalimentación
+- **Análisis multi-canal** con optimización de rendimiento
+- **Integración de sistemas externos** vía REST API
 
-### 3. **Clinical Applications**
-- **Signal quality monitoring** con real-time indicators
-- **Artifact detection** mediante ICA y wavelet analysis
-- **Multi-format recording** con marker insertion
-- **Logging** para clinical documentation
+### 3. **Aplicaciones Clínicas**
+- **Monitoreo de calidad de señal** con indicadores tiempo real
+- **Detección de artefactos** mediante análisis ICA y wavelet
+- **Grabación multi-formato** con inserción de marcadores
+- **Registro integral** para documentación clínica
 
-### 4. **Educational Purposes**
-- **Interactive EEG exploration** con help system
-- **Signal processing learning** con real-time parameter adjustment
-- **Hands-on experience** con multiple hardware devices
-- **Theoretical background** integrated con practical application
+### 4. **Propósitos Educativos**
+- **Exploración interactiva EEG** con sistema de ayuda
+- **Aprendizaje de procesamiento de señales** con ajuste de parámetros tiempo real
+- **Experiencia práctica** con múltiples dispositivos de hardware
+- **Antecedentes teóricos** integrados con aplicación práctica
 
-### 5. **Development & Testing**
-- **EEG application development** con API access
-- **Hardware compatibility testing** across manufacturers
-- **Signal processing algorithm validation** con known datasets
-- **Performance benchmarking** con multi-threading analysis
+### 5. **Desarrollo y Pruebas**
+- **Desarrollo de aplicaciones EEG** con acceso API
+- **Pruebas de compatibilidad de hardware** entre fabricantes
+- **Validación de algoritmos de procesamiento de señales** con conjuntos de datos conocidos
+- **Benchmarking de rendimiento** con análisis multi-hilo
 
 ## Tecnologías y Dependencias
 
-### Core Framework
-- **Python 3.8+**: Modern typing y asyncio support
-- **PyQt5**: Professional GUI framework con native look-and-feel
-- **BrainFlow**: Cross-platform library para EEG device integration
-- **NumPy**: Optimized array operations para signal processing
+### Framework Central
+- **Python 3.8+**: Tipado moderno y soporte asyncio
+- **PyQt5**: Framework GUI profesional con apariencia nativa
+- **BrainFlow**: Biblioteca multiplataforma para integración de dispositivos EEG
+- **NumPy**: Operaciones de array optimizadas para procesamiento de señales
 
-### Signal Processing
-- **SciPy**: Advanced mathematical functions para filtering
-- **MNE-Python** (opcional): Neurophysiological analysis capabilities
-- **Matplotlib**: Publication-quality plotting con Qt backend integration
-- **scikit-learn**: Machine learning components para cognitive metrics
+### Procesamiento de Señales
+- **SciPy**: Funciones matemáticas avanzadas para filtrado
+- **MNE-Python** (opcional): Capacidades de análisis neurofisiológico
+- **Matplotlib**: Gráficos calidad publicación con integración de backend Qt
+- **scikit-learn**: Componentes de machine learning para métricas cognitivas (usado en la librería MNE)
 
-### CLI & API
-- **Typer**: Modern CLI framework con auto-completion
-- **Rich**: Advanced console output con tables y real-time displays
-- **API Explorer**: Web framework para documented APIs
-- **WebSocket**: Real-time bidirectional communication
+### CLI y API
+- **Typer**: Framework CLI moderno con autocompletado
+- **Rich**: Salida de consola avanzada con tablas y displays tiempo real
+- **API Explorer**: Framework web para APIs documentadas
+- **WebSocket**: Comunicación bidireccional tiempo real
 
-### Concurrency & Performance
-- **Threading**: Background data collection y processing
-- **Multiprocessing**: CPU-intensive analysis operations
-- **Qt Signals/Slots**: Thread-safe UI communication
-- **Asyncio**: Asynchronous operation coordination
+### Concurrencia y Rendimiento
+- **Threading**: Colección de datos y procesamiento en segundo plano
+- **Multiprocessing**: Operaciones de análisis CPU-intensivas
+- **Qt Signals/Slots**: Comunicación UI thread-safe
+- **Asyncio**: Coordinación de operaciones asíncronas
 
-### Development & Testing
-- **Abstract Base Classes**: Interface contracts para modularity
-- **Type hints**: Complete typing para development assistance
-- **Dependency injection**: Service coordination y testing support
-- **Cross-platform compatibility**: Windows, Linux, macOS support
+### Desarrollo y Pruebas
+- **Clases Base Abstractas**: Contratos de interfaz para modularidad
+- **Anotaciones de tipo**: Tipado completo para asistencia de desarrollo
+- **Inyección de dependencias**: Coordinación de servicios y soporte de pruebas
+- **Compatibilidad multiplataforma**: Soporte Windows, Linux, macOS
 
-## Arquitectura de Deployment
+## Arquitectura de Despliegue
 
 ```
-EEG Processor Application
-├── GUI Application Mode
-│   ├── Full-featured interface
-│   ├── Real-time visualization
-│   ├── Advanced analysis panels
-│   └── Interactive help system
-├── CLI Mode
-│   ├── Interactive shell
-│   ├── Scriptable operations
-│   ├── Real-time monitoring
-│   └── Headless processing
-├── API Server Mode
-│   ├── REST endpoints
-│   ├── WebSocket streaming
-│   ├── External integration
-│   └── Documentation interface
-└── Hybrid Modes
-    ├── GUI + API concurrent
-    ├── CLI + API coordination
-    ├── Shared service layer
-    └── Coordinated cleanup
+Aplicación EEG Processor
+├── Modo Aplicación GUI
+│   ├── Interfaz completa de características
+│   ├── Visualización tiempo real
+│   ├── Paneles de análisis avanzado
+│   └── Sistema de ayuda interactivo
+├── Modo CLI
+│   ├── Shell interactivo
+│   ├── Operaciones scriptables
+│   ├── Monitoreo tiempo real
+│   └── Procesamiento sin cabeza
+├── Modo Servidor API
+│   ├── Endpoints REST
+│   ├── Streaming WebSocket
+│   ├── Integración externa
+│   └── Interfaz de documentación
+└── Modos Híbridos
+    ├── GUI + API concurrente
+    ├── Coordinación CLI + API
+    ├── Capa de servicio compartida
+    └── Limpieza coordinada
 ```
