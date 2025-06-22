@@ -4,13 +4,13 @@ Run script for the synchronization module.
 This script provides the main entry point for running the unified
 BCI dataset creator application.
 """
+import os
 import sys
 import argparse
 import logging
 from pathlib import Path
 
-# Add the synchronization module to the path
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from python.synchronization_app import run_synchronization_app
 

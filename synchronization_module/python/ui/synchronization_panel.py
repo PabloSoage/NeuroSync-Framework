@@ -10,8 +10,166 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QLabel,
     QPushButton, QSpinBox, QDoubleSpinBox, QComboBox,
     QTextEdit, QProgressBar, QCheckBox, QFileDialog,
-    QMessageBox, QFrame
+    QMessageBox, QFrame, QDialog, QTextBrowser
 )
+
+
+class HelpButton(QPushButton):
+    """Custom button for showing help tooltips."""
+
+    def __init__(self, help_topic: str, parent: Optional[QWidget] = None) -> None:
+        """
+        Initialize help button.
+
+        Args:
+            help_topic: Topic identifier or help text content
+            parent: Parent widget
+        """
+        super().__init__(parent)
+        self.help_topic = help_topic
+        self.setText("?")
+        self.setFixedSize(20, 20)
+        self.setToolTip("Click for help")
+
+        # Style the button to make it look like a help icon
+        self.setStyleSheet(
+            """
+            QPushButton {
+                border-radius: 10px;
+                background-color: #007ACC;
+                color: white;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #009AEE;
+            }
+        """
+        )
+
+        # Connect the clicked signal to show help
+        self.clicked.connect(self.show_help)
+
+    def show_help(self) -> None:
+        """Show help dialog with help text."""
+        # Create a non-modal dialog to avoid alert sound
+        dialog = QDialog(self.parent())
+        dialog.setWindowTitle("Help")
+        dialog.setMinimumSize(500, 400)
+
+        # Use a text browser for rich text support
+        text_browser = QTextBrowser(dialog)
+        text_browser.setOpenExternalLinks(True)
+
+        # Get help content based on topic
+        content = self._get_help_content(self.help_topic)
+        text_browser.setHtml(content)
+
+        # Set up layout
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(text_browser)
+
+        # Add close button
+        close_button = QPushButton("Close", dialog)
+        close_button.clicked.connect(dialog.accept)
+        close_button.setMaximumWidth(100)
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        button_layout.addWidget(close_button)
+        layout.addLayout(button_layout)
+
+        # Show as non-modal dialog to avoid alert sound
+        dialog.setModal(False)
+        dialog.show()
+
+    def _get_help_content(self, topic: str) -> str:
+        """
+        Get help content based on topic.
+
+        Args:
+            topic: Help topic identifier
+
+        Returns:
+            str: HTML content for help
+        """
+        help_contents = {
+            "sync_precision": """
+                <h3>Synchronization Precision</h3>
+                <p>Controls how precisely EEG and input data are aligned in time.</p>
+                <p><b>Recommended precision values:</b></p>
+                <ul>
+                    <li><b>0.1-1ms:</b> Ultra-precise synchronization for specialized research. 
+                    May cause data loss as time alignment becomes extremely strict.</li>
+                    <li><b>1-10ms:</b> High precision for most research applications. 
+                    Good balance between accuracy and reliability.</li>
+                    <li><b>10-50ms:</b> Standard precision for BCI applications and general research.</li>
+                    <li><b>50-100ms:</b> Minimum for reaction time studies and reliable correlation.</li>
+                </ul>
+                <p><b>Important:</b> Lower values ensure tighter synchronization but may result 
+                in data loss if streams can't maintain precise timing. Higher values are more 
+                forgiving but may include misaligned data.</p>
+            """,
+            "export_formats": """
+                <h3>Export Formats</h3>
+                <p>Select a format for exporting synchronized data:</p>
+                <ul>
+                    <li><b>HDF5:</b> Hierarchical data format. Best choice for large datasets 
+                    and preserving data structure. Supports compression and metadata. 
+                    Excellent for analysis with Python/MATLAB.</li>
+                    
+                    <li><b>EDF+:</b> European Data Format Plus. Clinical standard for EEG data. 
+                    Excellent compatibility with medical and EEG analysis software. 
+                    Supports annotations for events.</li>
+                    
+                    <li><b>BIDS:</b> Brain Imaging Data Structure. Best for sharing data and 
+                    collaborative research. Creates standardized directory structure. 
+                    Widely supported by neuroimaging tools.</li>
+                </ul>
+                <p><b>Recommended:</b> Use HDF5 for analysis, EDF+ for clinical applications, 
+                or BIDS for data sharing.</p>
+            """,
+            "export_duration": """
+                <h3>Export Duration</h3>
+                <p>Specifies how many seconds of recent synchronized data to export.</p>
+                <p>The system exports the most recent N seconds of data from when you click export.</p>
+                <p><b>Considerations:</b></p>
+                <ul>
+                    <li>Longer durations include more context but create larger files</li>
+                    <li>Shorter durations are more focused on recent events</li>
+                    <li>Minimum recommended: 30 seconds for meaningful analysis</li>
+                    <li>Maximum practical: depends on available memory and file size constraints</li>
+                </ul>
+            """,
+            "sync_status": """
+                <h3>Synchronization Status</h3>
+                <p>This display shows real-time information about the synchronization process:</p>
+                <ul>
+                    <li><b>Sync Time:</b> How long synchronization has been running</li>
+                    <li><b>Samples:</b> Number of synchronized data points collected</li>
+                    <li><b>Quality:</b> Overall synchronization quality (0-100%)</li>
+                </ul>
+                <p><b>Quality indicators:</b></p>
+                <ul>
+                    <li>90-100%: Excellent synchronization</li>
+                    <li>70-89%: Good synchronization</li>
+                    <li>50-69%: Fair synchronization (check timing)</li>
+                    <li>Below 50%: Poor synchronization (check connections)</li>
+                </ul>
+            """,
+            "export_options": """
+                <h3>Export Options</h3>
+                <p><b>Include metadata:</b> Adds detailed information about the recording session, 
+                device settings, and synchronization parameters to the export file. Recommended 
+                for research and documentation purposes.</p>
+                
+                <p><b>Compress data:</b> Reduces file size by compressing the data. 
+                Recommended for large datasets. Note that compression may slightly increase 
+                export time but significantly reduces storage requirements.</p>
+            """
+        }
+
+        return help_contents.get(
+            topic, "<h3>Help</h3><p>No specific help available for this topic.</p>"
+        )
 
 
 class SynchronizationPanel(QWidget):
@@ -68,6 +226,10 @@ class SynchronizationPanel(QWidget):
         self.precision_spin.setDecimals(1)
         precision_layout.addWidget(self.precision_spin)
         
+        # Add help button for precision
+        help_btn = HelpButton("sync_precision")
+        precision_layout.addWidget(help_btn)
+        
         precision_layout.addWidget(QLabel("(0.1-1000ms)"))
         precision_layout.addStretch()
         layout.addLayout(precision_layout)
@@ -109,6 +271,10 @@ class SynchronizationPanel(QWidget):
         self.format_combo.addItems(["HDF5", "EDF+", "BIDS"])
         format_layout.addWidget(self.format_combo)
         
+        # Add help button for formats
+        help_btn = HelpButton("export_formats")
+        format_layout.addWidget(help_btn)
+        
         format_layout.addStretch()
         layout.addLayout(format_layout)
         
@@ -121,6 +287,10 @@ class SynchronizationPanel(QWidget):
         self.duration_spin.setValue(60)
         self.duration_spin.setSuffix(" seconds")
         duration_layout.addWidget(self.duration_spin)
+        
+        # Add help button for duration
+        help_btn = HelpButton("export_duration")
+        duration_layout.addWidget(help_btn)
         
         duration_layout.addWidget(QLabel("(last N seconds)"))
         duration_layout.addStretch()
@@ -141,7 +311,7 @@ class SynchronizationPanel(QWidget):
         layout.addLayout(path_layout)
         
         # Export options
-        options_layout = QVBoxLayout()
+        options_layout = QHBoxLayout()
         
         self.include_metadata_cb = QCheckBox("Include metadata")
         self.include_metadata_cb.setChecked(True)
@@ -151,6 +321,11 @@ class SynchronizationPanel(QWidget):
         self.compress_data_cb.setChecked(True)
         options_layout.addWidget(self.compress_data_cb)
         
+        # Add help button for options
+        help_btn = HelpButton("export_options")
+        options_layout.addWidget(help_btn)
+        
+        options_layout.addStretch()
         layout.addLayout(options_layout)
         
         # Export button
@@ -185,7 +360,7 @@ class SynchronizationPanel(QWidget):
         """)
         layout.addWidget(self.status_text)
         
-        # Statistics
+        # Statistics with help
         stats_layout = QHBoxLayout()
         
         self.sync_time_label = QLabel("Sync Time: 00:00:00")
@@ -196,6 +371,10 @@ class SynchronizationPanel(QWidget):
         
         self.sync_quality_label = QLabel("Quality: N/A")
         stats_layout.addWidget(self.sync_quality_label)
+        
+        # Add help button for status
+        help_btn = HelpButton("sync_status")
+        stats_layout.addWidget(help_btn)
         
         stats_layout.addStretch()
         layout.addLayout(stats_layout)
@@ -252,7 +431,7 @@ class SynchronizationPanel(QWidget):
         export_params = {
             'format': self.format_combo.currentText().lower(),
             'filepath': self.last_export_path,
-            'duration': self.duration_spin.value(),
+            'duration_seconds': self.duration_spin.value(),
             'include_metadata': self.include_metadata_cb.isChecked(),
             'compress_data': self.compress_data_cb.isChecked()
         }

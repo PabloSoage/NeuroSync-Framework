@@ -200,6 +200,21 @@ class LSLManager(LSLStreamInterface):
     
     def cleanup(self) -> None:
         """Clean up resources."""
-        self.stop_recording()
-        self.outlets.clear()
-        self.streams.clear()
+        try:
+            self.stop_recording()
+            
+            # Close all outlets
+            for name, outlet in self.outlets.items():
+                try:
+                    if hasattr(outlet, 'close'):
+                        outlet.close()
+                except Exception as e:
+                    logging.error(f"Error closing outlet {name}: {e}")
+            
+            self.outlets.clear()
+            self.streams.clear()
+            
+            logging.info("LSL Manager cleaned up")
+            
+        except Exception as e:
+            logging.error(f"Error during LSL cleanup: {e}")

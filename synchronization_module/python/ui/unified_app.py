@@ -16,10 +16,6 @@ from PyQt5.QtWidgets import (
     QMenuBar, QStatusBar, QMessageBox, QHBoxLayout, QPushButton, QLabel
 )
 
-# Import existing applications
-sys.path.append('../../../input_collector')
-sys.path.append('../../../eeg_processor')
-
 from input_collector.python.input_collector_app import InputCollectorApp
 from eeg_processor.python.eeg_processor_app import EEGProcessorApp
 

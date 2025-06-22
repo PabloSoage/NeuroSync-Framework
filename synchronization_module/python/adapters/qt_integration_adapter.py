@@ -51,15 +51,23 @@ class QtIntegrationAdapter(QObject):
     
     def get_eeg_service(self) -> Optional[Any]:
         """Get EEG data access service."""
-        if self.eeg_app and hasattr(self.eeg_app, 'collector_service'):
-            return self.eeg_app.collector_service
-        return None
+        try:
+            # Try to get DataAccessService directly
+            from eeg_processor.python.services.data_access_service import DataAccessService
+            return DataAccessService.get_instance()
+        except Exception as e:
+            self.logger.error(f"Failed to get EEG data service: {e}")
+            return None
     
     def get_input_service(self) -> Optional[Any]:
         """Get input data access service."""
-        if self.input_app and hasattr(self.input_app, 'collector_manager'):
-            return self.input_app.collector_manager
-        return None
+        try:
+            # Try to get DataAccessService directly
+            from input_collector.python.services.data_access_service import DataAccessService
+            return DataAccessService.get_instance()
+        except Exception as e:
+            self.logger.error(f"Failed to get input data service: {e}")
+            return None
     
     def get_eeg_status(self) -> Dict[str, Any]:
         """Get EEG processor status."""
@@ -71,15 +79,13 @@ class QtIntegrationAdapter(QObject):
         }
         
         try:
-            if self.eeg_app and hasattr(self.eeg_app, 'collector_service'):
-                collector = self.eeg_app.collector_service
-                status['connected'] = collector.is_connected()
-                status['streaming'] = collector.is_streaming_active()
-                
-                if status['connected']:
-                    board_info = collector.get_board_info()
-                    status['board_name'] = board_info.get('board_name', '')
-                    status['sampling_rate'] = collector.get_sampling_rate()
+            eeg_service = self.get_eeg_service()
+            if eeg_service:
+                metadata = eeg_service.get_metadata()
+                status['connected'] = metadata.get('board_id', -1) != -1
+                status['streaming'] = eeg_service.is_streaming()
+                status['board_name'] = metadata.get('board_name', '')
+                status['sampling_rate'] = eeg_service.get_sampling_rate()
                     
         except Exception as e:
             self.logger.error(f"Error getting EEG status: {e}")
@@ -96,12 +102,13 @@ class QtIntegrationAdapter(QObject):
         }
         
         try:
-            if self.input_app and hasattr(self.input_app, 'app_coordinator'):
-                coordinator = self.input_app.app_coordinator
+            input_service = self.get_input_service()
+            if input_service:
+                metadata = input_service.get_metadata()
                 status['active'] = True
-                status['recording'] = coordinator.is_recording
-                status['collector_type'] = coordinator.collector_manager.get_current_collector_type()
-                status['active_keys'] = coordinator.collector_manager.get_active_keys()
+                status['recording'] = metadata.get('last_update', 0) > 0
+                status['collector_type'] = metadata.get('collector_type', '')
+                status['active_keys'] = input_service.get_active_keys()
                 
         except Exception as e:
             self.logger.error(f"Error getting input status: {e}")
@@ -112,8 +119,8 @@ class QtIntegrationAdapter(QObject):
         """Get current EEG data."""
         try:
             eeg_service = self.get_eeg_service()
-            if eeg_service and hasattr(eeg_service, 'get_board_data'):
-                return eeg_service.get_board_data()
+            if eeg_service:
+                return eeg_service.get_current_data()
         except Exception as e:
             self.logger.error(f"Error getting EEG data: {e}")
         return None
@@ -122,8 +129,8 @@ class QtIntegrationAdapter(QObject):
         """Get current input data."""
         try:
             input_service = self.get_input_service()
-            if input_service and hasattr(input_service, 'get_input_event'):
-                return input_service.get_input_event()
+            if input_service:
+                return input_service.get_current_event()
         except Exception as e:
             self.logger.error(f"Error getting input data: {e}")
         return None
@@ -131,12 +138,10 @@ class QtIntegrationAdapter(QObject):
     def register_eeg_callback(self, callback) -> bool:
         """Register callback for EEG data updates."""
         try:
-            if self.eeg_app and hasattr(self.eeg_app, 'collector_service'):
-                # Register with data access service for real-time updates
-                data_service = getattr(self.eeg_app, 'data_access_service', None)
-                if data_service and hasattr(data_service, 'register_local_callback'):
-                    data_service.register_local_callback(callback)
-                    return True
+            eeg_service = self.get_eeg_service()
+            if eeg_service and hasattr(eeg_service, 'register_local_callback'):
+                eeg_service.register_local_callback(callback)
+                return True
         except Exception as e:
             self.logger.error(f"Error registering EEG callback: {e}")
         return False
@@ -145,8 +150,8 @@ class QtIntegrationAdapter(QObject):
         """Register callback for input data updates."""
         try:
             input_service = self.get_input_service()
-            if input_service and hasattr(input_service, 'on_event'):
-                input_service.on_event(callback)
+            if input_service and hasattr(input_service, 'register_callback'):
+                input_service.register_callback(callback)
                 return True
         except Exception as e:
             self.logger.error(f"Error registering input callback: {e}")

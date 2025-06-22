@@ -118,3 +118,18 @@ class TimingManager:
             "callback_count": len(self.sync_callbacks),
             "thread_alive": self._timer_thread.is_alive() if self._timer_thread else False
         }
+    
+    def cleanup(self) -> None:
+        """Clean up timing manager resources."""
+        try:
+            # Stop synchronization
+            self.stop_synchronization()
+            
+            # Clear callbacks
+            with self._lock:
+                self.sync_callbacks.clear()
+            
+            logging.info("Timing manager cleaned up")
+            
+        except Exception as e:
+            logging.error(f"Error during timing manager cleanup: {e}")

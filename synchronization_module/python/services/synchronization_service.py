@@ -34,6 +34,10 @@ class SynchronizationService(SynchronizationInterface):
         self.eeg_service = None
         self.input_service = None
         
+        # Callback IDs for cleanup
+        self.eeg_callback_id = None
+        self.input_callback_id = None
+        
         # Threading
         self._lock = threading.RLock()
         
@@ -147,40 +151,113 @@ class SynchronizationService(SynchronizationInterface):
                 if sample['timestamp'] >= start_time
             ]
             
-            return {
-                'eeg_data': eeg_data,
-                'input_data': input_data,
-                'synchronized_data': synchronized,
-                'duration': duration_seconds,
-                'start_time': start_time,
-                'end_time': current_time,
-                'sample_count': len(synchronized)
-            }
+            # Convert to proper format for dataset export
+            if synchronized:
+                # Create EEG data matrix
+                eeg_samples = [s['eeg_data'] for s in synchronized if 'eeg_data' in s]
+                if eeg_samples:
+                    eeg_matrix = np.concatenate([s for s in eeg_samples if s.size > 0], axis=1)
+                else:
+                    eeg_matrix = np.array([])
+                
+                # Create input events list
+                input_events = []
+                for s in synchronized:
+                    if 'input_events' in s:
+                        for event in s['input_events']:
+                            input_events.append({
+                                'timestamp': event['timestamp'],
+                                'type': getattr(event.get('data'), 'event_type', 'input'),
+                                'data': event.get('event_string', str(event.get('data', '')))
+                            })
+                
+                return {
+                    'eeg_data': eeg_matrix,
+                    'input_events': {'events': input_events},
+                    'metadata': {
+                        'duration': duration_seconds,
+                        'start_time': start_time,
+                        'end_time': current_time,
+                        'sample_count': len(synchronized),
+                        'precision_ms': self.precision_ms
+                    },
+                    'sync_info': {
+                        'precision_ms': self.precision_ms,
+                        'sync_quality': self._calculate_overall_sync_quality(synchronized)
+                    }
+                }
+            else:
+                return {
+                    'eeg_data': np.array([]),
+                    'input_events': {'events': []},
+                    'metadata': {'duration': duration_seconds, 'sample_count': 0},
+                    'sync_info': {'precision_ms': self.precision_ms, 'sync_quality': 0.0}
+                }
     
     def _setup_data_collection(self) -> None:
         """Setup data collection from external services."""
         if self.eeg_service:
             # Register callback with EEG service
             try:
-                if hasattr(self.eeg_service, 'register_callback'):
-                    self.eeg_service.register_callback(self._on_eeg_data)
-                elif hasattr(self.eeg_service, 'register_local_callback'):
-                    self.eeg_service.register_local_callback(self._on_eeg_data)
+                # Get the data access service from EEG app
+                if hasattr(self.eeg_service, 'data_access_service'):
+                    data_service = self.eeg_service.data_access_service
+                elif hasattr(self.eeg_service, 'get_instance'):
+                    # If it's the service itself
+                    data_service = self.eeg_service
+                else:
+                    # Try to get DataAccessService instance
+                    from eeg_processor.python.services.data_access_service import DataAccessService
+                    data_service = DataAccessService.get_instance()
+                
+                if hasattr(data_service, 'register_local_callback'):
+                    self.eeg_callback_id = data_service.register_local_callback(self._on_eeg_data)
+                    logging.info("Registered EEG local callback")
+                
             except Exception as e:
                 logging.error(f"Failed to register EEG callback: {e}")
         
         if self.input_service:
-            # Register callback with input service
+            # Register callback with input service using DataAccessService pattern
             try:
-                if hasattr(self.input_service, 'register_callback'):
-                    self.input_service.register_callback(self._on_input_event)
-                elif hasattr(self.input_service, 'on_event'):
-                    self.input_service.on_event(self._on_input_event)
+                # Get the data access service from input app
+                if hasattr(self.input_service, 'data_access_service'):
+                    data_service = self.input_service.data_access_service
+                else:
+                    # Try to get DataAccessService instance
+                    from input_collector.python.services.data_access_service import DataAccessService
+                    data_service = DataAccessService.get_instance()
+                
+                if hasattr(data_service, 'register_callback'):
+                    self.input_callback_id = data_service.register_callback(self._on_input_event)
+                    logging.info("Registered input callback")
+                
             except Exception as e:
                 logging.error(f"Failed to register input callback: {e}")
     
     def _cleanup_data_collection(self) -> None:
         """Cleanup data collection."""
+        # Unregister callbacks
+        if self.eeg_callback_id is not None:
+            try:
+                from eeg_processor.python.services.data_access_service import DataAccessService
+                data_service = DataAccessService.get_instance()
+                if hasattr(data_service, 'unregister_local_callback'):
+                    data_service.unregister_local_callback(self.eeg_callback_id)
+                    logging.info("Unregistered EEG callback")
+            except Exception as e:
+                logging.error(f"Error unregistering EEG callback: {e}")
+        
+        if self.input_callback_id is not None:
+            try:
+                from input_collector.python.services.data_access_service import DataAccessService
+                data_service = DataAccessService.get_instance()
+                if hasattr(data_service, 'unregister_callback'):
+                    data_service.unregister_callback(self.input_callback_id)
+                    logging.info("Unregistered input callback")
+            except Exception as e:
+                logging.error(f"Error unregistering input callback: {e}")
+        
         # Clear buffers
         with self._lock:
             self.eeg_buffer.clear()
@@ -227,6 +304,8 @@ class SynchronizationService(SynchronizationInterface):
             # Convert event to string for LSL
             if hasattr(event_data, 'to_dict'):
                 event_str = str(event_data.to_dict())
+            elif hasattr(event_data, 'event_type'):
+                event_str = f"{event_data.event_type}:{getattr(event_data, 'data', '')}"
             else:
                 event_str = str(event_data)
             
@@ -310,6 +389,14 @@ class SynchronizationService(SynchronizationInterface):
         
         return quality
     
+    def _calculate_overall_sync_quality(self, synchronized_samples: List[Dict]) -> float:
+        """Calculate overall synchronization quality."""
+        if not synchronized_samples:
+            return 0.0
+        
+        qualities = [s.get('sync_quality', 0.0) for s in synchronized_samples]
+        return sum(qualities) / len(qualities)
+    
     def get_status(self) -> Dict[str, Any]:
         """Get synchronization service status."""
         with self._lock:
@@ -323,3 +410,27 @@ class SynchronizationService(SynchronizationInterface):
                 'has_eeg_service': self.eeg_service is not None,
                 'has_input_service': self.input_service is not None
             }
+    
+    def cleanup(self) -> None:
+        """Clean up synchronization service resources."""
+        try:
+            # Stop synchronization if active
+            if self.is_active:
+                self.stop_synchronization()
+            
+            # Cleanup timing manager
+            if hasattr(self.timing_manager, 'cleanup'):
+                self.timing_manager.cleanup()
+            
+            # Cleanup LSL manager
+            if hasattr(self.lsl_manager, 'cleanup'):
+                self.lsl_manager.cleanup()
+            
+            # Clear references
+            self.eeg_service = None
+            self.input_service = None
+            
+            logging.info("Synchronization service cleaned up")
+            
+        except Exception as e:
+            logging.error(f"Error during synchronization service cleanup: {e}")

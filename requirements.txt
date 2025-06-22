@@ -5,7 +5,7 @@ numpy
 pyqt5
 pyqtgraph
 matplotlib
-pandas # cambiar por polars
+pandas # although not used in the app itself, is required by the library. polars would be a more efficient alternative
 
 #Sync Core
 scipy
