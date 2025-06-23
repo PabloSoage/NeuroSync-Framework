@@ -1,9 +1,145 @@
-\chapter{Conclusións}
+\chapter{Conclusiones}
 \label{chap:conclusions}
+\lettrine[]{A} continuación, se detallan los aprendizajes técnicos y arquitectónicos más relevantes, la integración de los conocimientos del grado en el desarrollo del proyecto, y las oportunidades de mejora y expansión identificadas tras su implementación.
 
-\lettrine{D}{erradeiro} capítulo da memoria, onde se presentará a
-situación final do traballo, as leccións aprendidas, a relación coas
-competencias da titulación en xeral e a mención en particular,
-posibles liñas futuras,\dots
+\section{Lecciones aprendidas durante implementación}
+\label{sec:lecciones_aprendidas}
 
-\Blindtext
+\subsection{Decisiones arquitectónicas importantes}
+\label{subsec:decisiones_arquitectonicas}
+
+\subsubsection{Refactorización temprana}
+
+La refactorización temprana basada en principios SOLID fue crucial:
+
+\textbf{Beneficios obtenidos:}
+\begin{itemize}
+    \item \textbf{Improved maintainability}: Código más fácil de mantener y extender
+    \item \textbf{Better testing}: Componentes aislados facilitaron testing
+    \item \textbf{Reduced coupling}: Menor acoplamiento entre componentes
+    \item \textbf{Enhanced debugging}: Debugging más eficiente con responsabilidades claras
+\end{itemize}
+
+\subsubsection{APIs como herramienta de desarrollo}
+
+El desarrollo de APIs fue fundamental para el proceso:
+
+\textbf{Valor aportado:}
+\begin{itemize}
+    \item \textbf{Internal testing}: APIs facilitaron testing exhaustivo
+    \item \textbf{Error detection}: Revelaron errores internos no detectados
+    \item \textbf{Architecture validation}: Validaron la arquitectura del sistema
+    \item \textbf{External integration}: Facilitaron integración con herramientas externas
+\end{itemize}
+
+\subsection{Desafíos técnicos superados}
+\label{subsec:desafios_superados}
+
+\subsubsection{Threading y Qt}
+
+La integración de threading con Qt presentó desafíos:
+
+\textbf{Soluciones implementadas:}
+\begin{itemize}
+    \item \textbf{Qt Signals/Slots}: Comunicación thread-safe entre hilos
+    \item \textbf{Worker threads}: Procesamiento en hilos separados
+    \item \textbf{Event-driven architecture}: Arquitectura basada en eventos para PS4
+    \item \textbf{Adapter pattern}: Adaptadores para aislar threading complexity
+\end{itemize}
+
+\subsubsection{Performance optimization}
+
+Los datos de alta frecuencia requirieron optimizaciones específicas:
+
+\textbf{Optimizaciones implementadas:}
+\begin{itemize}
+    \item \textbf{Worker pools}: Distribución de carga de procesamiento
+    \item \textbf{Batch processing}: Procesamiento por lotes para eficiencia
+    \item \textbf{Adaptive throttling}: Throttling inteligente basado en carga
+    \item \textbf{Memory optimization}: Gestión eficiente de buffers y memoria
+\end{itemize}
+
+\subsection{Relación con competencias del grado}
+\label{subsec:relacion_competencias}
+
+\subsubsection{Aplicación de conocimientos fundamentales}
+
+El desarrollo del framework ha integrado conocimientos de múltiples asignaturas del grado:
+
+\textbf{Fundamentos de programación y arquitectura:}
+\begin{itemize}
+    \item \textbf{Diseño de Software}: Aplicación de paradigmas de programación orientada a objetos
+    \item \textbf{Concurrencia y Paralelismo}: Breve pincelada a patrones orientados a eventos
+    \item \textbf{Algoritmos + Gestión de interfaces}: Optimización de algoritmos de procesamiento de señales
+\end{itemize}
+
+\textbf{Desarrollo software y diseño:}
+\begin{itemize}
+    \item \textbf{Deseño Software}: Aplicación extensiva de principios SOLID y patrones de diseño
+    \item \textbf{Bases de Datos}: Diseño de estructuras de datos para almacenamiento eficiente
+    \item \textbf{Interfaces Persoa Máquina}: Desarrollo de interfaces intuitivas multi-modal
+\end{itemize}
+
+\textbf{Sistemas y redes:}
+\begin{itemize}
+    \item \textbf{Sistemas Operativos}: Gestión de procesos, hilos y sincronización
+    \item \textbf{Concorrencia e Paralelismo}: Thread-safety y procesamiento multiproceso
+    \item \textbf{Redes}: Implementación de comunicación WebSocket y protocols de red
+    \item \textbf{Internet e Sistemas Distribuídos}: Arquitectura REST
+\end{itemize}
+
+\subsubsection{Competencias de mención en computación}
+
+Las asignaturas de especialización han sido particularmente relevantes:
+
+\textbf{Inteligencia artificial y procesamiento:}
+\begin{itemize}
+    \item \textbf{Sistemas Inteligentes + Aprendizaxe Automática}: Base para métricas
+    \item \textbf{Visión Artificial}: Aunque no directamente aplicada a señales, se dieron multiples formas de procesar imágenes que se pueden extrapolar a señales
+    \item \textbf{Procesamento de Linguaxes}: Desarrollo de CLI (parsing)
+\end{itemize}
+
+\subsection{Competencias transversales desarrolladas}
+\label{subsec:competencias_transversales}
+
+\subsubsection{Investigación y aprendizaje autónomo}
+
+\textbf{Competencias desarrolladas:}
+\begin{itemize}
+    \item \textbf{Investigación bibliográfica}: Análisis del estado del arte en BCI
+    \item \textbf{Aprendizaje de tecnologías}: Familiarización con nuevas librerías (BrainFlow, MNE-Python)
+    \item \textbf{Resolución de problemas}
+    \item \textbf{Pensamiento crítico}: Evaluación y selección de alternativas tecnológicas
+\end{itemize}
+
+\section{Líneas de trabajo futuro}
+\label{sec:lineas_futuro}
+
+\subsection{Mejoras técnicas identificadas}
+\label{subsec:mejoras_tecnicas}
+
+\subsubsection{Modo headless completo}
+
+Una limitación importante identificada es la dependencia de Qt para el funcionamiento headless:
+
+\textbf{Problemas actuales:}
+\begin{itemize}
+    \item \textbf{Dependencias Qt}: CLI y APIs requieren componentes Qt inicializados
+    \item \textbf{Limitaciones de deployment}: Imposibilita uso en servidores sin display
+    \item \textbf{Overhead de recursos}: Inicialización innecesaria de componentes gráficos
+\end{itemize}
+
+\textbf{Soluciones propuestas:}
+\begin{itemize}
+    \item \textbf{Refactorización de servicios}: Separar lógica de negocio de componentes Qt
+    \item \textbf{Alternative backends}: Implementación de backends alternativos sin Qt
+\end{itemize}
+
+\subsubsection{Optimizaciones de rendimiento}
+
+\textbf{Áreas de mejora identificadas:}
+\begin{itemize}
+    \item \textbf{Tree.js integration}: Migración de Chart.js a Tree.js para mejor rendimiento
+    \item \textbf{CUDA acceleration}: Aceleración GPU para operaciones ICA y wavelet
+    \item \textbf{Compression algorithms}: Compresión en tiempo real para reducir overhead de red
+\end{itemize}
