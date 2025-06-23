@@ -1,0 +1,381 @@
+vale, estos son mis commits
+202ebd8 2025-06-23 07:37:56 +0200 .
+2e7345c 2025-06-23 07:35:50 +0200 end
+2ed04eb 2025-06-23 06:09:29 +0200 chapter4 v0.1
+2499068 2025-06-23 05:57:13 +0200 chapter3
+1190b15 2025-06-23 04:00:45 +0200 .
+50e8018 2025-06-23 03:33:53 +0200 .
+6fb3aff 2025-06-23 02:43:03 +0200 chapter3 v0.1
+605f86b 2025-06-23 02:02:37 +0200 chapter 2
+a5f2913 2025-06-23 01:39:50 +0200 chapter 2 no bib
+7bee885 2025-06-23 00:12:40 +0200 introduccion
+cf4ae99 2025-06-22 23:19:50 +0200 Modelo memoria
+a765fb0 2025-06-22 21:47:24 +0200 .
+5659b1b 2025-06-22 21:44:50 +0200 EP README_en
+2821d32 2025-06-22 21:39:15 +0200 ep readme es v1.0
+309dd73 2025-06-22 21:03:28 +0200 ep readme es v0.9
+f9298f4 2025-06-22 20:32:06 +0200 annotation separation
+9043582 2025-06-22 20:21:28 +0200 EP Diagrams V1
+dfa5f9e 2025-06-22 18:34:21 +0200 Sync module v0.3
+8986294 2025-06-22 13:33:01 +0200 Sync module v0.2
+4ef2b4e 2025-06-22 13:13:11 +0200 Sync module v0.1.5
+0226d77 2025-06-22 12:50:34 +0200 Sync module v0.1
+74f45b6 2025-06-22 12:13:43 +0200 deleted old sync modules
+eca6339 2025-06-22 11:52:48 +0200 comprehensive v3
+f422c39 2025-06-22 02:58:34 +0200 comprehensive v2
+e4b85f1 2025-06-22 01:17:13 +0200 .
+8b8d77f 2025-06-22 00:44:27 +0200 pre-commit
+c592ed9 2025-06-21 23:15:19 +0200 .
+16dd0a4 2025-06-21 23:06:16 +0200 CLI V1.0
+6f4aa67 2025-06-21 20:51:54 +0200 .
+6aa5267 2025-06-21 20:18:45 +0200 EP CLI v0.1
+5519541 2025-06-21 19:07:53 +0200 deleted viz api status (not working)
+c1dd002 2025-06-21 18:52:04 +0200 advanced filter methods
+3666d0a 2025-06-21 18:39:27 +0200 downsampling methods
+bf0c397 2025-06-21 18:28:05 +0200 wavelet methods
+83153c3 2025-06-21 18:07:47 +0200 mne methods
+175e53b 2025-06-21 17:07:56 +0200 ICA methods
+772dbfa 2025-06-20 16:09:40 +0200 .
+69273d8 2025-06-20 15:55:39 +0200 thread safe eeg viz api support
+028193b 2025-06-20 15:24:48 +0200 brain map api viz
+c1a3567 2025-06-20 13:34:43 +0200 Data Recording
+91f63ee 2025-06-20 06:57:25 +0200 .
+e496ef0 2025-06-20 06:56:15 +0200 apply filters
+1cea8bf 2025-06-20 06:05:33 +0200 get_eeg_metrics
+37d54ba 2025-06-20 03:44:31 +0200 Streaming methods
+dcac37e 2025-06-20 00:49:52 +0200 comprehensive v1 (TODO)
+e9294d5 2025-06-20 00:12:53 +0200 __init__.py for eeg processor module
+b8aa71c 2025-06-19 23:14:09 +0200 pre-commit
+2a730d4 2025-06-19 21:23:41 +0200 file streaming coherence
+e8f574a 2025-06-19 20:06:50 +0200 restricted params for network streamer and streaming board
+26e5c1b 2025-06-19 18:15:03 +0200 Filters and recording
+0104d82 2025-06-19 17:43:40 +0200 .
+b5d68b3 2025-06-19 16:22:58 +0200 Streaming V0.2 (refactored recording logic)
+0106024 2025-06-19 02:54:45 +0200 Streaming V0.1
+ddec195 2025-06-19 02:30:56 +0200 enhanced visualizer v1.0
+e7937da 2025-06-19 02:17:20 +0200 .
+947a7e7 2025-06-19 02:01:41 +0200 .
+cb3b313 2025-06-19 01:13:11 +0200 enhanced visualizer v0.5
+8e7c5c1 2025-06-18 22:07:10 +0200 configurable logging levels
+9690ad8 2025-06-18 22:02:01 +0200 .
+89182b9 2025-06-18 21:57:01 +0200 wavelets v0.1 (i'm not going any further)
+af7e6c4 2025-06-18 21:28:03 +0200 warnings about chebyshev (i'm not going any further with this)
+f6912e8 2025-06-18 21:05:28 +0200 all wavelets and filter types available
+434915d 2025-06-18 20:27:37 +0200 bandpass redundancy
+187e1ae 2025-06-18 19:42:07 +0200 dynamic channel selection
+718da52 2025-06-18 19:35:21 +0200 Advanced filters v0.2.3
+b1d7def 2025-06-18 18:28:30 +0200 .
+632c17e 2025-06-18 17:48:22 +0200 .
+7067748 2025-06-18 15:00:52 +0200 Advanced filters v0.2
+99df293 2025-06-18 14:00:47 +0200 ICA Real time v0.1
+2219f8c 2025-06-18 04:24:05 +0200 ICA v0.5 isolated process
+48ca143 2025-06-18 02:42:41 +0200 .
+eea9651 2025-06-18 02:25:15 +0200 ICA v0.4.5 refactor 2
+46a51bd 2025-06-17 23:48:21 +0200 ICA v0.4 Refactor
+8332e02 2025-06-17 22:49:50 +0200 .
+2c4329e 2025-06-17 22:10:48 +0200 ICA v0.3
+9886eae 2025-06-17 22:01:43 +0200 ICA v0.2
+9fba1e6 2025-06-17 21:53:07 +0200 ICA v0.1
+ad8c73c 2025-06-17 20:19:18 +0200 .
+fd1a5a9 2025-06-17 20:17:53 +0200 remove redundant filters from visualizers
+27a2578 2025-06-17 15:06:56 +0200 type hints + pre-commit + optimized imports
+70cc5f6 2025-06-17 13:47:50 +0200 graph init fix
+5de4f3e 2025-06-17 12:52:31 +0200 MP native support in api_integration.py
+45c9f65 2025-06-17 12:30:20 +0200 Direct api callback (instead of workers/mp) MP functions remain available for the future if its neccesary to apply heavy processing register_api_callback() - enables multiprocessing automatically register_api_callback_direct() - doesn't enable multiprocessing (low latency) _enable_api_multiprocessing() / _disable_api_multiprocessing() _api_worker_init(), _process_api_data_chunk(), _api_result_handler()
+4b276bc 2025-06-17 04:18:36 +0200 refactor data access services (api/local callbacks)
+7e209e2 2025-06-16 22:13:40 +0200 reduced logging levels (remaining prints in the code)
+5d9cd33 2025-06-16 20:58:18 +0200 collector service get instance
+6cfda06 2025-06-16 19:20:23 +0200 API real time (basic) filters
+b31399c 2025-06-16 18:25:10 +0200 MNE real time (basic) filter apply
+66bfcf2 2025-06-16 14:09:07 +0200 real time interval reduced to 0.5s
+7dc0029 2025-06-16 14:03:43 +0200 Real time mne plot
+ab42f52 2025-06-16 13:01:47 +0200 help system MNE
+f21c968 2025-06-16 12:53:57 +0200 .
+968a8d2 2025-06-16 12:46:33 +0200 optimize imports and pre-commit refactor
+6f8cadc 2025-06-16 04:03:51 +0200 MNE panel refactor v0.5
+92d92a2 2025-06-16 03:27:19 +0200 .
+81d497a 2025-06-16 02:49:00 +0200 PS4 controller fixed
+18197d7 2025-06-15 23:48:29 +0200 .
+30b9993 2025-06-15 23:41:23 +0200 MNE integration service SOLID Refactor V0.1
+57d66d0 2025-06-15 21:08:01 +0200 performance mode v1.1
+d6d96da 2025-06-15 20:31:24 +0200 performance mode
+61de4da 2025-06-15 19:31:28 +0200 bands
+f5f6f27 2025-06-15 19:17:40 +0200 now channel selection only applied to plot
+15600ab 2025-06-15 19:09:04 +0200 MNE integration v0.3
+98e0421 2025-06-15 18:26:55 +0200 all channels
+794db17 2025-06-15 18:12:12 +0200 MNE contrast and quality
+ddb764b 2025-06-15 16:16:41 +0200 .
+5dcec92 2025-06-15 15:50:56 +0200 MNE integration V0.2 (processes and Service)
+8439b43 2025-06-15 15:39:34 +0200 MNE integration V0.1
+beae9c1 2025-06-15 02:21:42 +0200 board parameters (api coherence)
+df2eb42 2025-06-15 00:11:05 +0200 board parameters
+520b9c8 2025-06-14 23:00:45 +0200 .
+badce4c 2025-06-14 19:52:03 +0200 board config
+3d14888 2025-06-14 19:41:36 +0200 connect to board revision
+1ad1b15 2025-06-14 19:30:09 +0200 connect to board working
+1a27bc6 2025-06-14 14:50:21 +0200 Working methods start stream and stop stream
+7306022 2025-06-14 04:48:17 +0200 EP Interaction API v0.3
+ca1f727 2025-06-14 03:12:12 +0200 pylance errors on api_explorer in register endpoint
+5dc0f5f 2025-06-13 19:20:37 +0200 pre-commit again
+10df11c 2025-06-13 19:00:50 +0200 .
+d1b1e05 2025-06-13 19:00:29 +0200 comments to english
+d585e48 2025-06-13 18:00:07 +0200 less probability of lag in web api websocket
+b19ed07 2025-06-13 17:01:06 +0200 now uses all data/event in web visualization
+fdcb38f 2025-06-13 16:45:54 +0200 Ahora no se duplican las muestras y en la visualizacion web se ven correctamente (eeg_viz accede a DataAccessService.get_instance().get_current_data() en lugar de al collector_service directamente)
+d446bad 2025-06-12 23:09:45 +0200 Hz viewer
+a5bcba8 2025-06-12 14:30:03 +0200 EP Interaction API V0.2
+9bed2a7 2025-06-12 13:09:12 +0200 .
+1844a6c 2025-06-12 13:07:54 +0200 Api explorer documentation v1.1
+47f034a 2025-06-12 12:38:22 +0200 IC Documentation v1.1
+e9d2eab 2025-06-12 02:52:51 +0200 api explorer backend refactor
+19ca546 2025-06-12 00:04:16 +0200 Api explorer refactor
+c061bd7 2025-06-11 18:48:19 +0200 Optimizations V0.2 -> Implemented workers on API Explorer backend + uses orjson instead of json.dumps() (includes tests)
+8024db6 2025-06-11 02:53:54 +0200 Api Explorer optimize v0.1
+c5177a3 2025-06-10 21:09:05 +0200 PS4 CLI events (event oriented also in GUI) Documentation update needed!
+0e50f7e 2025-06-10 19:54:00 +0200 IC PS4 controller start in GUI (documentation remaining)
+32f16ab 2025-06-10 17:22:48 +0200 .
+f5f230c 2025-06-10 02:57:18 +0200 added README - es as PDFs
+a28f95e 2025-06-10 02:53:13 +0200 .
+52f9d52 2025-06-10 02:51:32 +0200 API Explorer Documentation v1.0
+5e3f1e9 2025-06-10 00:01:57 +0200 .
+49616f2 2025-06-09 23:20:11 +0200 .
+62dfcbc 2025-06-09 23:18:04 +0200 IC Documentation v1.0 (README en - es)
+5015e3b 2025-06-09 23:03:04 +0200 IC Documentation v0.9 (diagram description remaining)
+1ef976b 2025-06-09 22:46:09 +0200 IC Documentation v0.6 (checked current diagrams)
+54e73d9 2025-06-09 20:42:39 +0200 IC Documentation v0.5
+81853f8 2025-06-09 18:20:25 +0200 Deleted old diagrams
+211a68c 2025-06-09 18:18:49 +0200 IC CLI v1.0
+c1400e0 2025-06-09 15:55:24 +0200 Monitor
+3b7bed5 2025-06-09 13:17:53 +0200 .
+f73f082 2025-06-09 04:33:39 +0200 smaller?
+017b8f9 2025-06-09 03:15:28 +0200 formatted logs v0.1
+f5d2fd8 2025-06-09 02:35:22 +0200 event monitor (warning, other monitors not working and you can't exit)
+b09b068 2025-06-08 04:14:26 +0200 pre-commit passed!
+e0f8c35 2025-06-08 03:35:03 +0200 .
+fc97c32 2025-06-08 03:34:20 +0200 .
+edfd252 2025-06-08 03:33:46 +0200 type hints 2
+89da430 2025-06-08 02:46:40 +0200 type hints 1
+a6d257b 2025-06-06 14:12:02 +0200 IC Pre-commit passed!
+cb3bd9c 2025-06-06 13:24:07 +0200 ...
+9cf7629 2025-06-06 13:21:31 +0200 .
+aaaa8ee 2025-06-06 13:06:57 +0200 event type hints
+383d394 2025-06-06 13:04:03 +0200 Interfaces type hints
+e24ffbc 2025-06-06 13:02:44 +0200 Services type hints
+a04d17c 2025-06-06 13:00:01 +0200 app coordinator type hints
+9b46358 2025-06-06 12:53:28 +0200 interaction api type hints
+d7721cb 2025-06-06 12:27:23 +0200 controllers, data access api, input collector app, csv logger type hints
+f41f5b4 2025-06-06 12:10:07 +0200 type hints for logging and import optimize
+104be69 2025-06-06 11:58:11 +0200 type hints for interaction_api_integration and IC/ui/
+ab36ad3 2025-06-06 01:31:46 +0200 visualizers pre-commit
+725a7f8 2025-06-06 01:27:07 +0200 .
+cc8dba7 2025-06-06 01:17:46 +0200 api explorer pre-commit
+a26b07c 2025-06-06 00:56:09 +0200 qt adapter IC pre-commit
+b272490 2025-06-06 00:32:55 +0200 pre-commit
+ad63d6f 2025-06-06 00:32:06 +0200 .
+1a05dc0 2025-06-06 00:26:22 +0200 safe thread
+6558ed6 2025-06-06 00:18:04 +0200 Readme and safe thread
+89a3cb0 2025-06-05 23:17:17 +0200 IC CLI V0.1 and Discarded PS4 Controller "edit keys" functionality
+722dccf 2025-06-05 22:17:36 +0200 hide unused sections in PS4 controller viz
+e7fe4f9 2025-06-05 22:09:46 +0200 PS4 UI
+aee599e 2025-06-05 21:20:17 +0200 Deleted PS4 Proofs
+f6c3724 2025-06-05 20:48:03 +0200 Fusion Data API and Integration API
+7a9bdbe 2025-06-05 19:58:05 +0200 broadcast event fix in api integration
+d1d6909 2025-06-05 19:31:51 +0200 Mouse-events working again
+4853245 2025-06-05 19:11:00 +0200 websocker ps4 logs
+ec31bff 2025-06-05 18:04:27 +0200 ...
+5a7be6b 2025-06-05 13:54:00 +0200 PS4 Edit overlays
+a4e6f9b 2025-06-05 12:34:27 +0200 PS4 image viz
+8851a2f 2025-06-05 12:23:11 +0200 ps4 controller V0.3
+1c4b7a3 2025-06-04 23:08:59 +0200 UI Manager PS4
+a04a011 2025-06-04 22:15:47 +0200 Refactor?
+7a0ac56 2025-06-04 18:59:54 +0200 right bumper in edit mode
+f07f93a 2025-06-04 18:52:53 +0200 PS4 visualizer
+bf769ab 2025-06-04 14:20:18 +0200 deleted accelerometer and gyroscope
+7cc348e 2025-06-04 14:05:03 +0200 no gamepad
+97a50ea 2025-06-04 14:04:19 +0200 controller test with gamepad
+7a52b2b 2025-06-04 03:42:53 +0200 click integration IC
+0d50fd1 2025-06-03 14:31:34 +0200 .
+42ce4c0 2025-06-03 03:16:59 +0200 click and scroll release avoidance
+b53ddcc 2025-06-03 01:36:50 +0200 avoid json merging issues IC
+de4800b 2025-06-03 01:32:58 +0200 IC Small Fixes
+e4d84f9 2025-05-29 02:13:00 +0200 .
+4d4db8a 2025-05-26 06:14:47 +0200 IC Interaction API v0.9.5
+f8f4975 2025-05-26 04:43:46 +0200 ...
+f9a2d65 2025-05-25 23:12:35 +0200 Unified websocket in api_integration IC
+6a437ac 2025-05-25 21:41:41 +0200 key release ignore
+6072fa6 2025-05-25 20:30:59 +0200 IC Interaction API v0.9
+e89d94d 2025-05-25 19:18:01 +0200 Logging checkboxes IC Interaction API v0.8
+59f3941 2025-05-25 15:21:59 +0200 Revert data_access_service.py from EC Interaction API v0.1
+0be3419 2025-05-25 15:12:33 +0200 IC Interaction API v0.7
+fa5e910 2025-05-25 03:13:51 +0200 .
+b551414 2025-05-25 02:13:54 +0200 EC Interaction API v0.1
+901689f 2025-05-25 01:32:19 +0200 safety fix
+9c98e96 2025-05-25 01:27:22 +0200 Revert "EC Interaction API v0.0.1"
+a2e3b2e 2025-05-25 01:17:00 +0200 EC Interaction API v0.0.1
+e1f0020 2025-05-24 20:33:55 +0200 Singleton
+68009cd 2025-05-24 20:02:57 +0200 not working yet
+1b499ef 2025-05-24 16:32:25 +0200 Browse files in server and dark mode consistency
+37afa72 2025-05-24 05:21:06 +0200 .?
+3921862 2025-05-24 05:11:28 +0200 using service?
+77f6d52 2025-05-24 03:28:19 +0200 IC Integration API v0.6
+edb47b2 2025-05-24 02:19:05 +0200 IC Integration API v0.5
+7d37b96 2025-05-24 00:01:30 +0200 IC Interaction API v0.4
+7c9fc1d 2025-05-23 15:49:47 +0200 Revert "IC Interaction API v0.3 (unstaged fix)"
+1b87425 2025-05-23 15:47:07 +0200 IC Interaction API v0.3 (unstaged fix)
+3c3dcb1 2025-05-23 14:41:08 +0200 IC Interaction API v0.2 (API now below PyQt5 not viceversa)
+402c094 2025-05-23 04:10:45 +0200 IC Interaction API v0.1
+e414fd8 2025-05-23 02:06:41 +0200 EP Data Polling v0.5
+b12fbcf 2025-05-22 02:26:12 +0200 Removed test_collecor.py and channel_analysis.py
+d53eb34 2025-05-22 02:20:12 +0200 Dark mode text bug #fixes 6
+064d314 2025-05-22 02:12:39 +0200 Dark mode fastapi
+e5fd460 2025-05-22 00:12:11 +0200 Graph v2.0
+38c4861 2025-05-21 23:34:16 +0200 Graph v1.0
+fa24671 2025-05-21 23:22:02 +0200 Graph v0.5
+6c7983e 2025-05-21 22:28:32 +0200 IC API Integration cleaner
+fc084fc 2025-05-21 22:26:14 +0200 deleted 2 examples and modified api_explorer to avoid unnecesary directories
+d3c0e04 2025-05-21 22:19:02 +0200 EP API Integration cleaner
+84d1137 2025-05-21 22:08:58 +0200 refactor HTML+CSS+JS out of api_explorer.py
+38c6071 2025-05-21 13:37:49 +0200 Integrated realtime list
+f86a7d9 2025-05-20 05:20:15 +0200 /realtime v0.1
+88e7058 2025-05-19 01:49:27 +0200 EP FastAPI v0.5 (real time remains)
+ea20257 2025-05-18 22:27:08 +0200 index
+7234061 2025-05-18 14:19:42 +0200 EP FastAPI v0.4
+dcda132 2025-05-18 14:07:28 +0200 EP FastAPI v0.3
+06705df 2025-05-18 13:39:28 +0200 EP FastAPI v0.2
+db82c78 2025-05-18 03:09:30 +0200 EP FastAPI v0.1
+ed5a7be 2025-05-18 01:58:44 +0200 Merge pull request 'Added fastapi interface to test the input collector data access API' (#5) from FastAPI_Proofs into main
+18a23da 2025-05-18 01:57:12 +0200 imports?
+595b46b 2025-05-18 01:51:53 +0200 Deleted server detection (previously working but not change-resilient)
+ccb4679 2025-05-17 22:49:11 +0200 V2
+2b61579 2025-05-17 22:49:01 +0200 V1
+9805278 2025-05-14 20:03:22 +0200 IC Data access API
+b50b423 2025-05-14 19:45:34 +0200 EP Data access API
+d8f432c 2025-04-30 15:17:43 +0200 help widgets
+34e9f64 2025-04-30 14:03:54 +0200 sync panel v0.1
+0366e9a 2025-04-23 17:18:00 +0200 PS4 Proofs
+4117fbc 2025-04-23 04:45:22 +0200 scroll
+6711e9c 2025-04-23 04:17:37 +0200 Integrator v0.4.1
+b851f83 2025-04-23 02:55:48 +0200 Integrator v0.4?
+92aaa80 2025-04-22 19:14:00 +0200 Synchronizer v0.1
+c9213ae 2025-04-21 22:01:43 +0200 IC Diagrams
+24c168d 2025-04-21 21:41:03 +0200 EP Diagrams
+51d7449 2025-04-21 03:31:55 +0200 Filter review
+8601013 2025-04-21 03:14:01 +0200 brain map visual bug in legend
+5ffedad 2025-04-21 02:32:29 +0200 Brain Map Update Service
+cd9c584 2025-04-21 02:17:48 +0200 EP SOLID V2
+3963109 2025-04-20 20:34:34 +0200 EP SOLID V1
+0e0cc6a 2025-04-20 19:14:48 +0200 Integrated app modification
+20e1799 2025-04-20 18:15:36 +0200 IC SOLID V3
+3d6afdb 2025-04-20 04:45:41 +0200 IC SOLID V2
+13dc109 2025-04-20 01:47:37 +0200 IC SOLID V1
+02f6bdd 2025-04-19 23:21:45 +0200 Path to dir Integrated v0.3.6
+13d32a4 2025-04-19 23:14:17 +0200 IC Scroll
+5178cb9 2025-04-19 22:48:26 +0200 Scroll in IC keyboard (test)
+fe9aabb 2025-04-19 21:12:15 +0200 Help update
+4c6f028 2025-04-19 20:41:30 +0200 Integrated v0.3.5
+9ea9924 2025-04-19 20:28:29 +0200 EP Both and Integrated v0.3
+d2e13e4 2025-04-19 01:14:26 +0200 IC CSV UI Revision
+a168981 2025-04-18 23:31:06 +0200 IC CSV log v1
+ad47971 2025-04-18 21:21:28 +0200 Integrated v0.2
+76ef276 2025-04-17 02:25:17 +0200 Integrator v1
+ece502d 2025-04-17 02:17:26 +0200 fix #3: EEG Metrics (not sure if they're ok but...)
+717b4bd 2025-04-17 01:24:40 +0200 fixes #1: Markers working
+7888575 2025-04-17 01:05:47 +0200 Sample write fix
+5a4ef1c 2025-04-16 23:23:19 +0200 Sample write fix v1
+c1a2f77 2025-04-16 22:09:59 +0200 CSV spacing
+30dc14a 2025-04-16 21:13:18 +0200 First EC CSV log and some test utilities (channel_analysis.py and test_collector.py)
+0e08c3f 2025-04-16 18:07:43 +0200 EC Diagrams
+a01b5a7 2025-04-16 17:56:05 +0200 IC Diagrams
+b84fd88 2025-04-16 17:22:38 +0200 Help system for EP
+8f8aa28 2025-04-16 16:43:28 +0200 Deleted context
+ec28fc0 2025-04-16 14:53:09 +0200 brain map signal quality
+3f28191 2025-04-16 12:10:05 +0200 Channel Names consistency
+992834b 2025-04-16 12:03:11 +0200 Signal quality
+b313873 2025-04-16 03:46:59 +0200 revision
+da52c66 2025-04-16 02:44:58 +0200 EP API Features (All boards)
+9f37bcf 2025-04-16 01:31:03 +0200 Pre-commit
+b47754b 2025-04-16 01:28:12 +0200 Added SDL to requirements
+514b28d 2025-04-15 23:47:42 +0200 IC Axis as default
+3590a29 2025-04-15 23:42:36 +0200 Script for deleting __pycache__ folders
+c8483d6 2025-04-15 23:39:28 +0200 SDL PS4 controller implementation beta (not tested) + API & Data Types context
+709662b 2025-04-15 22:18:23 +0200 EP Dark theme consistency
+5826126 2025-04-15 21:08:22 +0200 F9 toggle fix
+47e53d5 2025-04-15 20:52:02 +0200 EP Reopen window and spectrum selector/legend
+cee9089 2025-04-15 19:03:59 +0200 Removed redundant None events from mouse releasing
+d5ce60c 2025-04-15 15:15:42 +0200 Mouse button selector (fails in F9 and generates event when releasing keys or stopping scrolling)
+1f4b9ff 2025-04-15 13:55:17 +0200 IC UI Revision Add Keys Interactive
+ab40d2f 2025-04-15 13:29:55 +0200 IC UI PyQt5 V1
+0b1958c 2025-04-15 03:15:52 +0200 IC UI Revision (provisional)
+b65895a 2025-04-15 01:13:37 +0200 start mode bugfix
+e229cf6 2025-04-15 01:03:41 +0200 IC direction only revision
+fcda7c1 2025-04-15 00:27:33 +0200 Input collector log revision v2
+6952a08 2025-04-14 02:03:32 +0200 Input collector revision v1
+7a54931 2025-04-13 20:16:55 +0200 Remaining functionalities
+8b8b667 2025-04-13 00:30:16 +0200 bug_fix
+4dc097d 2025-04-12 22:36:17 +0200 eeg_processor and recorder
+21184f4 2025-04-12 21:27:04 +0200 Pre-commit
+528f2e9 2025-04-12 16:34:40 +0200 Type hints for input collector (not revised)
+432e9e1 2025-04-12 14:10:27 +0200 Input_collector (script pynput)
+ea4135f 2025-04-12 13:55:57 +0200 Initial commit
+
+IC es Input collector, EP es eeg processor
+
+Vale, te explico
+lo primero que hice fue investigar librerias disponibles, en que lenguajes estaban, cascos disponibles en el mercado, caracteristicas, para que era bueno cada uno etc. Tambien me informe sobre el sistema 10/20, el MCN, que clase de informacion o artefactos podias tener en cada una de las posiciones etc
+Posteriormente, comence con el desarrollo
+el desarrollo seguido fue incremental. inicialmente comence por el modulo de captura de inputs. desarrolle un script basico en python empleando pynput, de forma que me permitiese registrar teclas del teclado. Una vez eso ya funcionaba, añadi una especie de filtro para que solo me registrase ciertas teclas preestablecidas. Cuando eso ya funcionaba, añadi soporte para el raton, lo cual fue algo complejo, en especial en juegos en los que se bloqueaba este en el centro de la pantalla. Plantee diversos modos de monitorizar el raton pero al final me quede con la direccion de movimiento en 8 direcciones y la velocidad de movimiento en cada eje. Posteriormente, añadi soporte para los clicks del raton y tuve que filtrar los eventos de release de las teclas o botones del raton.
+Una vez tuve ese script basico funcional, traté de pasarlo a Julia, ya que era el lenguaje en el que inicialmente quise desarrollar el TFG, debido a que la libreria brainflow tambien soportaba Julia y es un lenguaje tipado de alto rendimiento. Sin embargo, la precompilacion de cada vez y los errores dificiles de depurar hicieron que continuase el desarrollo en Python debido a la naturaleza experimental iterativa/incremental del codigo y la necesidad de hacer pruebas rapidas.
+Antes del siguiente paso, se hicieron los type hints basicos del script (que aun no era modulo)
+Una vez dicho eso, comence a desarrollar una UI para el modulo de captura de inputs. La UI inicial la desarrolle en tkinter. Mi idea era añadir feedback visual de las teclas presionadas con el teclado y del movimiento del raton (representandolo como joystick). Sin embargo, no funcionaba correctamente ni tenia el rendimiento adecuado. Debido a eso y a la falta de flexibilidad para widgets avanzados de tkinter, busqué alternativas y decidí que podria estar interesante migrar a PyQt5. 
+Como aun no tenia garantias de ello ni estaba muy familiarizado con el mismo, primero comence a desarrollar el lo que serian las primeras pinceladas del modulo de captura y procesamiento de señales biometricas/EEG. En concreto, comence por usar la placa sintetica para poder visualizar ciertos datos, asi como un "recorder" para registrarlos de forma basica en un archivo. Una vez experimente con PyQt5 y comprobe su rendimiento, termine la GUI basica del modulo de captura y procesamiento de señales y migre el modulo de captura de inputs a PyQt5. 
+
+Una vez en este punto, fui perfilando dicho modulo de inputs, de forma que desde la UI podía seleccionar que teclas capturar, asi como arreglar visualmente la representacion del raton como joystick.
+Ademas, se micraron las UI a tema oscuro (unicamente), se añadio una tecla especial para iniciar y pausar la grabacion, añadieron diferentes tipos de captura de raton (distintos modos de representar el movimiento, con mas o menos detalle) y se añadio soporte inicial para SDL para soportar mandos de PS4, aunque no estaba todavia implementado el collector de PS4 que se implementaria bastante mas adelante.
+
+Se pasó pre-commit nuevamente y se volvio a retomar el modulo de captura y procesamiento de señales. En este caso, se añadio soporte basico para todos los cascos que soportaba la libreria brainflow (listado en el GUI y permitir configurar parametros sin restricciones aun), se añadio un indicador visual de la calidad de señal en el visualizador de eeg, se añadieron los nombres correctos de los canales al visualizador (en lugar de nombres genericos) y se creo un visualizador basico de la distribucion de los electrodos siguiendo el sistema 10/20 (para visualizar con mayor facilidad que canal era el que tenia mala señal etc) (brain map).
+
+Debido a mi falta de conocimiento inicial sobre diversos conceptos de eeg, para que servian diversos parametros de las placas, para que servian ciertos filtros etc, decidi añadir un sistema de ayuda. Esto es basicamente un widget "?" al lado de cada seccion que te explica con detalle para que sirve cada parametro, para que es adecuado un filtro determinado y diversos conceptos. Esta informacion fue sacada de la documentacion de brainflow, asi como de varios recursos online.
+
+Una vez eso listo, se implemento efectivamente la primera aproximacion del logger CSV del modulo de captura y procesamiento de señales, el cual necesito algunas revisiones antes de funcionar correctamente. Antes de finalizar dicho recorder, se solucionaron unos problemas que habia con el calculo de metricas del estado mental y la adicion de marcadores a los datos logeados en el CSV.
+
+entre el 17 y 19 de abril, se intentaron integrar ambos modulos visualmente y coordinar su inicio del grabador (lo cual se consiguió). Para esto ultimo, se decidio añadir al modulo de captura de inputs soporte para grabar tambien en CSV, ya que unicamente tenia soporte para JSON y se queria loguear en un mismo CSV los datos de ambos modulos. Sin embargo, dichos datos habia que sincronizarlos con precision de ms (variable), con lo que se intentó integrarlos mediante la libreria LSL (lab streaming layer). Sin embargo, debido a la estructura monolitica de los modulos y el gran tamaño de los archivos, esta resulto no ser una tarea fructifera, asi que se decidio cambiar de perspectiva.
+
+Dicho cambio fue refactorizar los modulos para que cumpliesen con los principios SOLID en la medida de lo posible, de forma que los archivos eran mucho mas pequeños y granulares, lo que facilitaba las correcciones y el mantenimiento. El día 20 de abril se comenzo con la refactorizacion del modulo de captura de inputs y, una vez este habia sido ya refactorizado y probado, se procedio con la refactorizacion del modulo de captura y procesado de señales. Esto llevó hasta el dia 21 (incluyendo correcciones y pruebas de la funcionalidad existente)
+
+dicho esto, se procedio el dia 22 y 23 de abril a tratar de desarrollar otro modulo de integracion y visualizacion (igual que se habia intentado anteriormente), ahora adaptado a la nueva estructura refactorizada del codigo y tratando de seguir los principios SOLID en la medida de lo posible
+Esto no tuvo exito y hasta el 30 de abril se intento mejorar la interfaz de ese sincronizador e incluso añadir widgets de ayuda para explicar la diferencia entre formatos de salida.
+
+El proyecto aqui sufrio un paron hasta el dia 14 de mayo debido a otros trabajos. Cuando fue retomado, se procedio con una perspectiva nueva: Añadir un API para acceder a los datos internos de cada uno de los modulos. Primero se desarrollo en el modulo de procesamiento de señales, y luego se desarrollo en el modulo de captura de inputs. Sin embargo, existia la dificultad para probar ese API ya que no habia ninguna otra aplicacion/utilidad que se iniciase con los propios modulos y permitiese acceder a esos endpoints en tiempo de ejecucion, compartiendo estado con la aplicacion principal.
+
+Para facilitar las pruebas de ese API, decidi implementar una pequeña aplicacion web con fastAPI que se iniciase con la aplicacion y expusiese los endpoints del API interno via web. Esta decision la tome debido a que me parecio muy interesante la seccion de prueba del API que proporciona fastapi/uvicorn en /docs, aunque yo diseñe dicha interfaz para darle el aspecto deseado. Hasta el 18 de mayo estuve con eso en el modulo de captura de inputs. 
+Una vez funcionaba de forma basica, se procedio a crear hasta el dia 21 de mayo dicha integracion web para el modulo de captura de señales eeg. Entre los dias 19 y 21 se procedio a crear en ambas integraciones web de ambos modulos un visualizador en tiempo real mediante websocket.
+Sin embargo, la dificultad de hacer los cambios en ambos modulos por separado, mantener la coherencia entre los APIs web y el mantenimiento de ambos, el dia 21 se refactorizo la integracion web de ambos en un nuevo modulo de exploracion web. este era generico y los modulos independientes podian registrarse a si mismos y a sus metodos para la visualizacion web.
+
+Hasta el dia 22, se estuvo implementando una funcionalidad en el explorador web mediante la cual, empleando los datos recibidos en el websocket, se podian visualizar los datos recibidos del modulo de captura de señales o en forma de tabla dinamica o en forma de graficos (con graficas unificadas/divididas/filtrado de canales...)
+Ademas se implemento tambien un toggle para alternar entre modo oscuro y claro en la web para comodidad del usuario
+
+Al tener la visualizacion de las señales eeg via web, me di cuenta de un error importante, y es que cuando se cerraba la visualizacion GUI de las señales eeg, se pausaba el stream. Eso era porque el unico punto de polling del collector, se realizaba en el propio visualizador, asi que se cambio para que el visualizador mantuviese su polling independiente, e internamente, de forma temporal (pues mas adelante se cambiaria), se realizaria un polling en el collector para mantener el stream activo
+
+Posteriormente a eso, cuando ya se probaron los metodos api de ambos modulos, para aprovechar las capacidades API, se procedio a crear el API de control/interaccion con el modulo (con sincronizacion de cambios en el GUI). Se comenzo por el modulo de captura de inputs. la version inicial fue del dia 23 al 25 de mayo. En el resto del proceso, se fueron probando, corrigiendo y añadiendo funcionalidades nuevas al API.
+Durante este proceso final, tambien se fue creando la plantilla inicial para el API de control del modulo de captura de señales, basandose en la estructura empleada para el de captura de inputs.
+Antes de finalizar dicho API de control para el sistema de captura de inputs, el dia 4 de junio se comenzo a implementar el mando de PS4 hasta el 6 de junio. Tambien ese dia se integraron en el mismo servidor web el API de acceso a datos y el API de control (registrando todos los modulos en lugar de abrir servidores independientes). El dia 6 de junio y hasta el 8 se dedico casi en su totalidad a tipar todo el codigo hasta el momento y pasar pre-commit para asegurarse de que los tipos eran correctos. 
+
+El dia 9 de junio de implemento un CLI para el moduulo de captura de inputs basado en los APIs desarrollados, sin embargo el mando de PS4 no se pudo probar hasta tiempo despues. 
+Habia principalmente un problema con el CLI, y es que los logs de la app se mezclaban con el CLI, haciendolo dificil de leer en ciertos casos. Se trato de dividir el terminal en 2 o incluso abrir una nueva terminal si se estaba en un entorno grafico pero no se logro, ya que en esta segunda aproximacion, los servicios estaban sin inicializar. Aquí me di cuenta del gran problema actual del CLI y del API, y es que no funcionan en modo headless (sin GUI). No fallan, pero para gran parte de las funcionalidades de interaccion principalmente, se tienen dependencias con Qt (Señales de sincronizacion de eventos, timers para polling...). Se procedio a crear los diagramas del modulo de captura de inputs y su documento tecnico a modo de documentacion despues de pasar pre-commit y checkear que todo estuviese tipado correctamente (esto llevo hasta el dia 10 de junio).
+Ese dia pude probar el mando de PS4 y me di cuenta de que no funcionaba desde el CLI (no podias inicializarlo). Esto era porque realizaba polling basado en los timers de Qt y el CLI no usaba Qt. La solucion fue hacer polling clasico, pero de esta forma se perdian eventos y el rendimiento caia en picado. Asi que se modifico el collector del PS4 para que fuese dirigido por eventos. Esto requirio de optimizaciones tanto en el backend como en el frontend para no sobrecargar la aplicacion principal debido al numero de logs ni sobrecargar el frontend web con las representaciones del DOM. Dichas optimizaciones incluyeron batching de eventos, workers, un modo para minimizar la informacion dibujada en el DOM para evitar sobrecargarlo, buffer circular, descarte de eventos cuando esta sobrecargado, medidor de latencia de recepcion de eventos desde el data_access_service y el uso de orjson para la serializacion rapida JSON (se fueron probando cada optimizacion independientemente antes de integrarlas).
+Una vez probado y funcionando, se refactorizo el explorador web para que fuese mas facil su mantenimiento y se actualizaron las documentaciones del tanto del explorador web como del modulo de captura de inputs para reflejar los cambios (esto llevo hasta el dia 12 de junio)
+
+Posteriormente a eso, se comprobaron los tipados nuevamente y se retomo el API de interaccion/control del modulo de captura de señales. Como bien dije anteriormente que se cambio el polling interno del collector, se añadio un modo de visualizar la tasa real de muestreo del collector en el visualizador. Haciendo esto me di cuenta de que cuando abria el visualizador, llegaba el doble de muestras al websocket y esto era porque ambos hacian polling a la vez. Así que se refactorizo el codigo para centralizar el acceso a datos en el DataAccessService en lugar de en el propio servicio del collector. Aunque esto lo solucionó, necesitaba una forma de asegurarme de que la frecuencia de muestreo que llegaba al websocket coincidia con la mostrada en el visualizador del collector. En la web se añadio un contador de eventos/s y de muestras/s basada en las muestras que habia dentro de esos eventos batch. Gracias a ello se identifico un grave problema de que llegaban muchisimas muestras duplicadas, pero como se cogia solo una muestra por batch, no se notaba visualmente. se corrigio esto y se paso el pre-commit una vez mas para asegurarse de que los tipos eran correctos. Esto llevo hasta el dia 13 de junio incluido
+
+Al finalizar por fin el acceso a datos del modulo de captura y procesamiento de señales, se comenzo de forma incremental a implementar metodo por metodo el API de control del modulo de captura de señales. inicialmente los metodos para conexion de la placa e inicio/pausa de los streams (muestreo) y los parametros de conexion de la placa.
+Despues de eso, el dia 15 ya, se comenzo con la implementacion de un visualizador MNE (integracion con brainflow) par procesamientos mas avanzados de datos hasta el dia 16. Ahi hice un inciso para solucionar que los filtros no se aplicaban ni a los datos que llegaban a MNE ni a los datos que llegaban al websocket. Ademas, me di cuenta de un error grave que inicialmente subestime: El api de acceso a datos, estaba inicializando su propia instancia del collector en lugar de llamar a get_instance(). Cuando lo cambie, el codigo fallaba por todas partes y se añadian latencias imprevistas. Esto era porque se cambiaban los tipos de datos para mandarlos al websocket y optimizar el ancho de banda, asi como ciertos subprocesos internos para servir al API estaban afectando al flujo principal de la aplicacion. Esto se soluciono como mencione antes centralizando en el servicio de acceso a datos todos esos procesados y cambiando la forma en la que servia a los consumidores de polling solicitado por los mismos a callbacks (local callbacks y api callbacks, estos ultimos pueden ser directos, o con multiprocesos, que tiene mas latencia pero es adecuado cuando un cliente necesita datos con procesados costosos en tiempo real). Con esto se centralizo toda esa logica y se finalizo la integracion con MNE tambien. (esto llevo hasta el dia 17).
+
+desde el dia 17 hasta el dia 18, ambos incluidos, se implemento el soporte para calculo y visualizacion del ICA (independent component analysis) para diferentes canales y numero de componentes, asi que un modo de actualizacion en tiempo real (al igual que se implemento en MNE) y opciones para exportar los resultados como imagenes de alta resolucion. Tambien se implementaron las transformadas con wavelets, downsampling y filtros avanzados (hasta este momento solo existian los basicos, que eran bandpass, notch y detrend).
+
+El dia 19 se mejoro la implementacion del visualizador de forma que en lugar de estar hardcodeada para que los canales eeg fuesen los 16 primeros, detectaba automaticamente los tipos de canales del casco conectado y creaba una pestaña para cada tipo de canal, de forma que se podrian seleccionar distintos presets (canales a muestrear) del casco (funcionalidad que tambien se soluciono). Este nuevo penel requirio de optimizaciones como cache de los canales existentes mientras no se reconectase la placa, inicializacion perezosa de ventanas etc, para evitar que tardase mucho en abrir y fuese instantaneo.
+Ese mismo dia, tambien se implemento la posibilidad de añadir diferentes tipos de streamers: a archivo, o via un socket local TCP/UDP, soportada esta ultima accion directamente por la libreria brainflow. Aunque el file streaming aparentemente funciobaba, para los network streamers se tuvo que restringir unicamente a datos RAW y al preset 0 de la placa (esto tanto para el streamer como para el cliente) debido a problemas de compatibilidad. 
+Una vez solucionado eso se comprobo los archivos guardados (para hacer file streaming empleaba el servicio de grabacion directamente). Me di cuenta de que tando procesados como sin procesar, siempre se almacenaban datos RAW a pesar de que en la cabecera ponia lo contrario. Esto era porque la logica de aplicado de filtros se centralizo en el servicio de acceso a datos y el servicio de grabacion dependia directamente del propio collector. Hubo que migrar toda esa logica relacionada con la grabacion al servicio de grabacion, haciendo que dependiese del servicio de acceso a datos directamente (para facilitar esa migracion, primero se migro y adapto al servicio de acceso a datos y posteriormente se migro al servicio de grabacion). Cuando ya estaba todo listo, me di cuenta de que habia varios problemas, y era que la placa sintetica "playback file board", no era capaz de reproducir un archivo procesado, y esto es porque los filtros basicos se aplicaban a todos los canales, lo que incluia al canal 0, que se trataba de un canal de control de orden de muestras generadas. Modifique los filtros para que solo se aplicasen a los canales EEG, de forma que no se aplicasen a canales auxiliares como el de control, timestamps, marcadores, acelerometro, giroscopio... Aunque ahora ya parecia funcionar, las grabaciones se pausaban en puntos aleatorios si estaban los filtros aplicados. Esto fue provocado porque cuando estaban los filtros aplicados, en lugar de acceder directamente al stream de datos en crudo, se accedia al stream de datos procesados mediante polling, lo que provocaba la perdida significativa de muestras (10-30% de las muestras) y provocaba incoherencias en el canal 0 de control. Se cambio a callbacks y eso soluciono el problema.
+
+dicho esto, hasta el dia 22, se finalizo el API de control de el modulo de captura de señales con los metodos que hiciesen falta para controlar todos los aspectos del GUI empleando señales Qt para sincronizar el estado interno con el GUI. Una vez finalizado, se implemento un CLI de la misma forma con la que se habia implementado en el modulo de captura de inputs y se paso el pre-commit para asegurar la coherencia de tipos.
+
+el dia 22, se comenzo el modulo de sincronizacion con LSL (lab streaming layer) sobre los nuevos modulos accediendo a sus datos mediante sus APIs internas mediante local callbaks e integrando ambos modulos visualmente, pero debido a fallos en la exportacion de los formatos EDF y CSV principalmente, se pauso temporalmente el desarrollo y se procedio a realizar los diagramas y documentacion del modulo de captura y procesamiento de señales (ya existian los diagramas y documentacion del explorador web y del modulo de captura de inputs) 
