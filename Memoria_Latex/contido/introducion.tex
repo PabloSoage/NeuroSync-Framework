@@ -13,9 +13,9 @@ Actualmente existe una carencia significativa de herramientas integradas que fac
 Las herramientas existentes presentan limitaciones importantes:
 
 \begin{itemize}
-    \item \textbf{Lab Streaming Layer (LSL)}: Requiere programación personalizada sustancial y no ofrece soporte nativo para hardware específico, dependiendo en muchos casos de software propietario del fabricante.
-    \item \textbf{OpenBCI}: Centrado principalmente en la adquisición de datos EEG, carece de capacidades integradas para captura sincronizada de eventos de entrada.
-    \item \textbf{BrainFlow}: Aunque proporciona una API unificada para dispositivos EEG, no incluye herramientas para sincronización con eventos de usuario ni interfaces gráficas.
+    \item \textbf{Lab Streaming Layer (LSL)}~\cite{lsl}: Requiere programación personalizada sustancial y no ofrece soporte nativo para hardware específico, dependiendo en muchos casos de software propietario del fabricante.
+    \item \textbf{OpenBCI}~\cite{openbci}: Centrado principalmente en la adquisición de datos EEG, carece de capacidades integradas para captura sincronizada de eventos de entrada.
+    \item \textbf{BrainFlow}~\cite{brainflow}: Aunque proporciona una API unificada para dispositivos EEG, no incluye herramientas para sincronización con eventos de usuario ni interfaces gráficas.
 \end{itemize}
 
 Esta fragmentación en el ecosistema de herramientas dificulta significativamente la investigación en BCI y el desarrollo de aplicaciones prácticas, creando barreras de entrada para investigadores que necesitan datasets de calidad sin invertir tiempo considerable en desarrollo de infraestructura.
@@ -29,7 +29,8 @@ El problema principal que aborda este trabajo es la ausencia de una plataforma i
     \item \textbf{Captura sincronizada}: Recoger simultáneamente señales EEG y eventos de entrada del usuario (teclado, ratón, controladores) con precisión temporal de milisegundos.
     \item \textbf{Procesamiento en tiempo real}: Aplicar algoritmos de procesamiento de señales (filtrado, análisis ICA, transformadas wavelet) durante la adquisición de datos.
     \item \textbf{Visualización integrada}: Monitorizar la calidad de las señales y los eventos capturados mediante interfaces gráficas en tiempo real.
-    \item \textbf{Exportación estandarizada}: Generar datasets en formatos estándar de la comunidad científica (BIDS, EDF+, HDF5) que faciliten el intercambio y reutilización de datos.
+    \item \textbf{Exportación estandarizada}: Generar datasets en formatos estándar de la comunidad científica (\acrshort{bids}~\cite{bids}, \acrshort{edf}+, \acrshort{hdf5}) que faciliten el intercambio y reutilización de datos.
+
     \item \textbf{Arquitectura extensible}: Permitir la integración con herramientas existentes de aprendizaje automático y facilitar el desarrollo de nuevas funcionalidades.
 \end{enumerate}
 
@@ -53,7 +54,7 @@ Para alcanzar el objetivo general, se han definido los siguientes objetivos espe
 
     \item \textbf{Implementar el módulo input\_collector}: Desarrollar un sistema robusto de captura de eventos de entrada que registre acciones de teclado, ratón y controladores PS4 con precisión temporal de milisegundos, implementando múltiples interfaces (GUI, CLI, API REST).
 
-    \item \textbf{Crear el módulo eeg\_processor}: Implementar un sistema de adquisición y procesamiento de señales EEG con soporte para dispositivos comerciales mediante BrainFlow, incluyendo algoritmos avanzados de procesamiento (ICA, wavelet, filtros digitales) y visualización en tiempo real.
+    \item \textbf{Crear el módulo eeg\_processor}: Implementar un sistema de adquisición y procesamiento de señales \acrshort{eeg} con soporte para dispositivos comerciales mediante BrainFlow~\cite{brainflow}, incluyendo algoritmos avanzados de procesamiento (\acrshort{ica}, wavelet, filtros digitales) y visualización en tiempo real.
 
     \item \textbf{Desarrollar el módulo synchronization\_module}: Diseñar e implementar un sistema de sincronización temporal que coordine los flujos de datos de los módulos anteriores y proporcione capacidades de exportación a formatos estándar (BIDS, EDF+, HDF5, CSV).
 
@@ -87,11 +88,11 @@ Las principales contribuciones de este trabajo incluyen:
 
     \item \textbf{Arquitectura dirigida por eventos}: Implementación de un sistema de comunicación desacoplado que facilita la extensibilidad y mantenimiento del código.
 
-    \item \textbf{Soporte multidispositivo}: Integración de dispositivos EEG comerciales (g.tec Unicorn) con periféricos estándar (teclado, ratón, controladores PS4) mediante APIs unificadas.
+    \item \textbf{Soporte multidispositivo}: Integración de dispositivos EEG comerciales (g.tec Unicorn~\cite{gtec_unicorn}) con periféricos estándar (teclado, ratón, controladores PS4) mediante APIs unificadas.
 
     \item \textbf{Procesamiento avanzado en tiempo real}: Implementación de algoritmos de procesamiento de señales con optimizaciones para operación en tiempo real y visualización integrada.
 
-    \item \textbf{Exportación a formatos estándar}: Soporte nativo para formatos ampliamente utilizados en neurociencia (BIDS, EDF+, HDF5), facilitando la interoperabilidad con herramientas existentes.
+    \item \textbf{Exportación a formatos estándar}: Soporte nativo para formatos ampliamente utilizados en neurociencia (\acrshort{bids}~\cite{bids}, \acrshort{edf}+, \acrshort{hdf5}), facilitando la interoperabilidad con herramientas existentes.
 \end{enumerate}
 
 \section{Estructura de la memoria}

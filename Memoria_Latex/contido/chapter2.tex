@@ -40,7 +40,7 @@ Dispositivos como los sistemas de Neuroscan, Brain Products o ANT Neuro están d
     \item Coste: €50,000-€200,000
 \end{itemize}
 
-Ejemplos representativos incluyen Brain Products actiCAP (hasta 160 canales) y g.tec g.SCARABEO (hasta 256 canales), utilizados principalmente en investigación médica avanzada.
+Ejemplos representativos incluyen Brain Products actiCAP~\cite{brainproducts_acticap} (hasta 160 canales) y g.tec g.SCARABEO~\cite{gtec_scarabeo} (hasta 256 canales), utilizados principalmente en investigación médica avanzada.
 
 \subsubsection{Sistemas de investigación de gama media}
 Incluyen dispositivos como g.tec Unicorn, OpenBCI Cyton, y Emotiv EPOC X:
@@ -55,21 +55,28 @@ La tabla~\ref{tab:dispositivos_gama_media} presenta una comparativa básica de l
 
 \begin{table}[hp!]
 \centering
-\small
-\rowcolors{2}{white}{udcgray!25}
-\begin{tabular}{l|c|c|c|c|c}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{l|c|c|c|c}
 \rowcolor{udcpink!25}
-\textbf{Dispositivo} & \textbf{Canales} & \textbf{Frecuencia} & \textbf{Resolución} & \textbf{Precio} & \textbf{Conectividad} \\
+\textbf{Dispositivo} & \textbf{Canales} & \textbf{Frecuencia} & \textbf{Resolución} & \textbf{Precio} \\
 \hline
-\textbf{g.tec Unicorn} & 8 & 250 Hz & 24 bits & €1,200 & Bluetooth \\
-\textbf{Emotiv EPOC X} & 14 & 128/256 Hz & 14/16 bits & €999 & Bluetooth 5.0 \\
-\textbf{OpenBCI Cyton} & 8 & 250 Hz & 24 bits & €947 & WiFi/Bluetooth \\
-\textbf{Neurosity Crown} & 8 & 256 Hz & 16 bits & €899 & WiFi/Bluetooth \\
-\textbf{Neuroelectrics Enobio} & 32 & 500 Hz & 24 bits & €5,000 & Bluetooth \\
+\textbf{g.tec Unicorn}~\cite{gtec_unicorn} & 8 & 250 Hz & 24 bits & €1,200 \\
+\textbf{Emotiv EPOC X}~\cite{emotiv_epoc_x} & 14 & 128/256 Hz & 14/16 bits & €999 \\
+\textbf{OpenBCI Cyton}~\cite{openbci_cyton} & 8 & 250 Hz & 24 bits & €947 \\
+\textbf{Neurosity Crown}~\cite{neurosity_crown} & 8 & 256 Hz & 16 bits & €899 \\
+\textbf{Neuroelectrics Enobio}~\cite{neuroelectrics_enobio} & 32 & 500 Hz & 24 bits & €5,000 \\
 \end{tabular}
+}
 \caption{Comparativa de dispositivos EEG de investigación de gama media}
 \label{tab:dispositivos_gama_media}
 \end{table}
+
+También se incluyen dispositivos avanzados como:
+\begin{itemize}
+    \item \textbf{Emotiv FLEX 2 Saline}~\cite{emotiv_flex_saline}: Hasta 32 canales configurables, €1,999
+    \item \textbf{OpenBCI Ultracortex Mark IV}~\cite{openbci_ultracortex}: 8-16 canales modulares
+    \item \textbf{Advanced Brain Monitoring B-Alert X10}~\cite{abm_b_alert}: 9 canales para aplicaciones de monitoreo
+\end{itemize}
 
 \subsubsection{Dispositivos de consumo}
 Dispositivos como Muse, NeuroSky, y Emotiv Insight dirigidos a aplicaciones de biofeedback y meditación:
@@ -82,9 +89,11 @@ Dispositivos como Muse, NeuroSky, y Emotiv Insight dirigidos a aplicaciones de b
 
 Dispositivos representativos incluyen:
 \begin{itemize}
-    \item \textbf{InteraXon Muse 2}: 4 canales (TP9, AF7, AF8, TP10), 256 Hz, orientado a meditación
-    \item \textbf{Emotiv Insight}: 5 canales (AF3, AF4, T7, T8, Pz), 128 Hz, €499
-    \item \textbf{NeuroSky MindWave}: 1 canal, básico para aplicaciones educativas, €99
+    \item \textbf{InteraXon Muse 2}~\cite{muse_2}: 4 canales (TP9, AF7, AF8, TP10), 256 Hz, orientado a meditación
+    \item \textbf{Emotiv Insight}~\cite{emotiv_insight}: 5 canales (AF3, AF4, T7, T8, Pz), 128 Hz, €499
+    \item \textbf{NeuroSky MindWave}~\cite{neurosky_mindwave}: 1 canal, básico para aplicaciones educativas, €99
+    \item \textbf{FocusCalm}~\cite{focuscalm}: Dispositivo de meditación con suscripción mensual
+    \item \textbf{Mendi}~\cite{mendi}: Dispositivo de entrenamiento mental con neurofeedback
 \end{itemize}
 
 \subsection{Librerías de abstracción de hardware}
@@ -162,6 +171,13 @@ MNE-Python~\cite{mne_python} es una librería de Python para análisis de señal
     \item \textbf{Visualización}: Gráficos interactivos con matplotlib
 \end{itemize}
 
+Ecosistema MNE completo incluye:
+\begin{itemize}
+    \item \textbf{MNE-MATLAB}~\cite{mne_matlab}: Herramientas MATLAB para usar el software MNE
+    \item \textbf{MNE-C}~\cite{mne_c}: Núcleo en C para procesamiento de señales MEG y EEG
+    \item \textbf{Utilidades adicionales}: Diversos repositorios especializados para casos de uso específicos
+\end{itemize}
+
 Fortalezas de MNE-Python que lo convierten en una elección popular:
 \begin{itemize}
     \item Ecosistema Python: Integración natural con NumPy, SciPy, matplotlib
@@ -174,7 +190,7 @@ Fortalezas de MNE-Python que lo convierten en una elección popular:
 \label{subsec:herramientas_desarrollo}
 
 \subsubsection{OpenViBE}
-Plataforma para diseño, prueba e implementación de aplicaciones BCI:
+OpenViBE~\cite{openvibe} es una plataforma para diseño, prueba e implementación de aplicaciones BCI:
 \begin{itemize}
     \item Entorno de desarrollo visual (drag-and-drop)
     \item Soporte para tiempo real y análisis offline
@@ -183,7 +199,7 @@ Plataforma para diseño, prueba e implementación de aplicaciones BCI:
 \end{itemize}
 
 \subsubsection{BCI2000}
-Framework para investigación BCI desarrollado en C++:
+BCI2000~\cite{bci2000} es un framework para investigación BCI desarrollado en C++:
 \begin{itemize}
     \item Arquitectura modular para adquisición, procesamiento y aplicación
     \item Soporte para múltiples paradigmas BCI
@@ -199,25 +215,27 @@ Además de las herramientas principales mencionadas anteriormente, existen diver
 \subsubsection{Librerías de análisis complementarias}
 
 \begin{itemize}
-    \item \textbf{pyEEG}: Librería Python especializada en procesamiento continuo de datos EEG basada en MNE-Python y scikit-learn. Permite generación de funciones de respuesta temporal con señales continuas.
+    \item \textbf{pyEEG}~\cite{pyeeg}: Librería Python especializada en procesamiento continuo de datos EEG basada en MNE-Python y scikit-learn. Permite generación de funciones de respuesta temporal con señales continuas.
     
-    \item \textbf{NeuroKit2}: Framework Python para análisis de señales, extracción de características y visualización de datos neurofisiológicos.
+    \item \textbf{NeuroKit2}~\cite{neurokit2}: Framework Python para análisis de señales, extracción de características y visualización de datos neurofisiológicos.
     
-    \item \textbf{BCILAB}: Plataforma MATLAB para procesamiento de señales, extracción de características y aprendizaje automático orientado a BCI (descontinuada desde 2014).
+    \item \textbf{BCILAB}~\cite{bcilab}: Plataforma MATLAB para procesamiento de señales, extracción de características y aprendizaje automático orientado a BCI (descontinuada desde 2014).
     
-    \item \textbf{EEG-ExPy}: Colección de experimentos en Python más que una librería per se, compatible con múltiples dispositivos (Muse, OpenBCI, Neurosity, BrainBit, g.tec).
+    \item \textbf{EEG-ExPy}~\cite{eeg_expy}: Colección de experimentos en Python más que una librería per se, compatible con múltiples dispositivos (Muse, OpenBCI, Neurosity, BrainBit, g.tec).
+    
+    \item \textbf{Emokit}~\cite{emokit}: Librería Python de código abierto para dispositivos Emotiv EPOC, basada en ingeniería inversa (soporte limitado a modelos anteriores a 2016).
 \end{itemize}
 
 \subsubsection{Herramientas de desarrollo específicas adicionales}
 
 \begin{itemize}
-    \item \textbf{FieldTrip}: Toolbox MATLAB para análisis y preprocesamiento de datos MEG y EEG, ampliamente utilizado en investigación neurocientífica.
+    \item \textbf{FieldTrip}~\cite{fieldtrip}: Toolbox MATLAB para análisis y preprocesamiento de datos MEG y EEG, ampliamente utilizado en investigación neurocientífica.
     
-    \item \textbf{BrainStorm}: Plataforma MATLAB especializada en visualización 3D, análisis de conectividad y preprocesamiento de señales MEG, EEG y fNIRS.
+    \item \textbf{BrainStorm}~\cite{brainstorm}: Plataforma MATLAB especializada en visualización 3D, análisis de conectividad y preprocesamiento de señales MEG, EEG y fNIRS.
     
-    \item \textbf{MoBILAB}: Herramienta MATLAB para preprocesamiento, análisis y visualización de datos EEG móviles (desarrollo discontinuado).
+    \item \textbf{MoBILAB}~\cite{mobilab}: Herramienta MATLAB para preprocesamiento, análisis y visualización de datos EEG móviles (desarrollo discontinuado).
     
-    \item \textbf{NeuroPype}: Plataforma comercial Python para procesamiento de señales, visualización y análisis en tiempo real con soporte extensivo para hardware comercial.
+    \item \textbf{NeuroPype}~\cite{neuropype}: Plataforma comercial Python para procesamiento de señales, visualización y análisis en tiempo real con soporte extensivo para hardware comercial.
 \end{itemize}
 
 \section{Análisis de soluciones existentes}
@@ -439,7 +457,7 @@ Formato universal para máxima compatibilidad:
 \section{Sistema de electrodos estándar 10-20}
 \label{sec:sistema_electrodos}
 
-Para comprender adecuadamente los dispositivos EEG y su aplicación en BCI, es fundamental entender el sistema internacional de colocación de electrodos 10-20 y sus extensiones modernas.
+Para comprender adecuadamente los dispositivos EEG y su aplicación en BCI, es fundamental entender el sistema internacional de colocación de electrodos 10-20~\cite{system_10_20} y sus extensiones modernas.
 
 \subsection{Sistema 10-20 clásico}
 \label{subsec:sistema_10_20}
@@ -569,10 +587,10 @@ El framework implementa una arquitectura que soporta múltiples interfaces simul
 Automatización de verificaciones de calidad:
 
 \begin{itemize}
-    \item \textbf{black}: Formateo automático de código Python
-    \item \textbf{mypy}: Verificación de tipos estáticos
-    \item \textbf{pydocstyle}: Verificación de docstrings
-    \item \textbf{pre-commit-hooks}: Verificaciones básicas (YAML, EOF, whitespace)
+    \item \textbf{black}~\cite{black}: Formateo automático de código Python
+    \item \textbf{mypy}~\cite{mypy}: Verificación de tipos estáticos
+    \item \textbf{pydocstyle}~\cite{pydocstyle}: Verificación de docstrings
+    \item \textbf{pre-commit-hooks}~\cite{pre_commit_hooks}: Verificaciones básicas (YAML, EOF, whitespace)
 \end{itemize}
 
 \subsubsection{Tipado estático}
@@ -605,25 +623,25 @@ La tabla~\ref{tab:comparativa_herramientas} presenta una comparativa detallada d
 
 \begin{table}[hp!]
 \centering
-\small
-\rowcolors{2}{white}{udcgray!25}
+\resizebox{\textwidth}{!}{
 \begin{tabular}{l|c|c|c|c|c}
 \rowcolor{udcpink!25}
 \textbf{Característica} & \textbf{Framework} & \textbf{BrainFlow} & \textbf{LSL} & \textbf{MNE-Python} & \textbf{OpenViBE} \\
 \hline
-\textbf{Captura EEG} & ✓ & ✓ & ✓ & ✗ & ✓ \\
-\textbf{Captura inputs usuario} & ✓ & ✗ & ✗ & ✗ & ✗ \\
-\textbf{Sincronización temporal} & ✓ & ✗ & ✓ & ✗ & Limited \\
-\textbf{GUI integrada} & ✓ & ✗ & ✗ & Limited & ✓ \\
-\textbf{CLI} & ✓ & ✗ & ✗ & ✗ & ✗ \\
-\textbf{Web API} & ✓ & ✗ & ✗ & ✗ & ✗ \\
-\textbf{Procesamiento tiempo real} & ✓ & Basic & ✗ & ✗ & ✓ \\
-\textbf{Análisis avanzado} & ✓ & ✗ & ✗ & ✓ & Limited \\
-\textbf{Formatos estándar} & ✓ & Basic & ✗ & ✓ & Limited \\
-\textbf{Multiplataforma} & ✓ & ✓ & ✓ & ✓ & ✓ \\
-\textbf{Open source} & ✓ & ✓ & ✓ & ✓ & ✓ \\
-\textbf{Facilidad de uso} & ✓ & ✗ & ✗ & ✗ & Limited \\
+\textbf{Captura EEG} & \checkmark & \checkmark & \checkmark & \ding{55} & \checkmark \\
+\textbf{Captura inputs usuario} & \checkmark & \ding{55} & \ding{55} & \ding{55} & \ding{55} \\
+\textbf{Sincronización temporal} & \checkmark & \ding{55} & \checkmark & \ding{55} & Limited \\
+\textbf{GUI integrada} & \checkmark & \ding{55} & \ding{55} & Limited & \checkmark \\
+\textbf{CLI} & \checkmark & \ding{55} & \ding{55} & \ding{55} & \ding{55} \\
+\textbf{Web API} & \checkmark & \ding{55} & \ding{55} & \ding{55} & \ding{55} \\
+\textbf{Procesamiento tiempo real} & \checkmark & Basic & \ding{55} & \ding{55} & \checkmark \\
+\textbf{Análisis avanzado} & \checkmark & \ding{55} & \ding{55} & \checkmark & Limited \\
+\textbf{Formatos estándar} & \checkmark & Basic & \ding{55} & \checkmark & Limited \\
+\textbf{Multiplataforma} & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
+\textbf{Open source} & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
+\textbf{Facilidad de uso} & \checkmark & \ding{55} & \ding{55} & \ding{55} & Limited \\
 \end{tabular}
+}
 \caption{Comparativa de características entre herramientas BCI}
 \label{tab:comparativa_herramientas}
 \end{table}
