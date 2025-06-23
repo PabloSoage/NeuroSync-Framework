@@ -206,7 +206,7 @@ El API Explorer sigue una \textbf{arquitectura de servicio basada en singleton} 
 
 \begin{figure}[hp!]
 \centering
-\includegraphics[width=0.9\textwidth]{imaxes/api_explorer_capas.pdf}
+\includegraphics[width=0.9\textwidth,height=15cm,keepaspectratio]{imaxes/api_explorer_capas.pdf}
 \caption{Arquitectura en capas del módulo api\_explorer}
 \label{fig:arquitectura_api_explorer}
 \end{figure}
@@ -261,7 +261,7 @@ Estructuras de datos en memoria:
 
 \subsubsection{API Explorer Core}
 
-El componente central \texttt{ApiExplorer} implementa un patrón singleton thread-safe que coordina todas las operaciones del framework:
+El componente central \textbf{ApiExplorer} implementa un patrón singleton thread-safe que coordina todas las operaciones del framework:
 
 \textbf{Características principales:}
 \begin{itemize}
@@ -276,7 +276,7 @@ El servicio mantiene una estructura de datos jerárquica que organiza módulos, 
 
 \subsubsection{Sistema WebSocket con Worker Pools}
 
-El \texttt{WebSocketManager} implementa una arquitectura distribuida para manejar conexiones de alta frecuencia, especialmente crítica para datos EEG en tiempo real:
+El \textbf{WebSocketManager} implementa una arquitectura distribuida para manejar conexiones de alta frecuencia, especialmente crítica para datos EEG en tiempo real:
 
 \textbf{Componentes del sistema:}
 \begin{itemize}
@@ -369,9 +369,9 @@ El sistema genera automáticamente formularios web basados en las especificacion
 \textbf{Validación y formateo de parámetros:}
 \begin{itemize}
     \item \textbf{Validación de JSON}: Los campos tipo JSON permiten validación y formateo automático, mostrando mensajes de error o éxito en la interfaz.
-    \item \textbf{Validación contextual}: Para plantillas asociadas a \texttt{board\_id} o \texttt{streamer\_type}, se verifica la presencia de campos requeridos y se sugieren mejoras.
-    \item \textbf{Limpieza de metadatos}: Antes de enviar, los campos JSON eliminan claves auxiliares (como \texttt{\_COMMENTS} o campos que empiezan por \texttt{\_}).
-    \item \textbf{Carga automática de plantillas}: Al cambiar el valor de campos selectores (como \texttt{board\_id}), se actualiza automáticamente la plantilla JSON asociada.
+    \item \textbf{Validación contextual}: Para plantillas asociadas a \textbf{board\_id} o \textbf{streamer\_type}, se verifica la presencia de campos requeridos y se sugieren mejoras.
+    \item \textbf{Limpieza de metadatos}: Antes de enviar, los campos JSON eliminan claves auxiliares (como \textbf{\_COMMENTS} o campos que empiezan por \textbf{\_}).
+    \item \textbf{Carga automática de plantillas}: Al cambiar el valor de campos selectores (como \textbf{board\_id}), se actualiza automáticamente la plantilla JSON asociada.
     \item \textbf{Botones de acción}: La interfaz incluye botones para cargar plantillas, formatear y validar JSON, con retroalimentación visual inmediata.
 \end{itemize}
 
@@ -389,13 +389,13 @@ El sistema genera automáticamente formularios web basados en las especificacion
   }
 }
 \end{verbatim}
-Los arrays pueden enviarse como \texttt{[1,2,3]} o \texttt{"1,2,3"} (se convierten automáticamente). Los campos JSON se validan y formatean antes de enviarse.
+Los arrays pueden enviarse como \textbf{[1,2,3]} o \textbf{"1,2,3"} (se convierten automáticamente). Los campos JSON se validan y formatean antes de enviarse.
 
 \subsection{Patrones arquitectónicos implementados}
 \label{subsec:patrones_api_explorer}
 
 \subsubsection{Patrón Singleton}
-El \texttt{ApiExplorer} implementa un singleton thread-safe que garantiza:
+El \textbf{ApiExplorer} implementa un singleton thread-safe que garantiza:
 \begin{itemize}
     \item \textbf{Estado global consistente}: Una única fuente de verdad para el registro de módulos
     \item \textbf{Compartición eficiente de recursos}: Reutilización de conexiones y pools de workers
@@ -442,7 +442,7 @@ El sistema mantiene una estructura jerárquica para organizar los módulos regis
 
 \subsubsection{Métricas de rendimiento}
 
-El sistema \texttt{WorkerStats} mantiene métricas detalladas por worker:
+El sistema \textbf{WorkerStats} mantiene métricas detalladas por worker:
 \begin{itemize}
     \item \textbf{Procesamiento de mensajes}: Conteo de mensajes procesados
     \item \textbf{Métricas de tiempo}: Tiempo promedio de procesamiento
@@ -486,138 +486,383 @@ El sistema implementa estrategias para evitar fugas de memoria:
 \subsection{Propósito y responsabilidades}
 \label{subsec:proposito_input_collector}
 
-El módulo input\_collector implementa un sistema integral para \textbf{captura, procesamiento y visualización} de eventos de entrada en tiempo real desde múltiples dispositivos. Su arquitectura hexagonal facilita la extensibilidad y el testing.
+Input Collector es una aplicación integral diseñada para capturar, procesar, visualizar y registrar eventos de entrada en tiempo real desde múltiples dispositivos (teclado, ratón, controladores PS4). La aplicación implementa una \textbf{arquitectura modular basada en eventos} que soporta múltiples interfaces de usuario (GUI, CLI, Web API) y proporciona capacidades extensibles para diferentes tipos de colectores y modos de visualización.
 
 \subsection{Arquitectura del módulo}
 \label{subsec:arquitectura_input_collector}
 
-La figura~\ref{fig:arquitectura_input_collector} ilustra la arquitectura interna del módulo.
+La aplicación sigue una \textbf{arquitectura hexagonal (Ports and Adapters)} combinada con patrones \textbf{Mediator}, \textbf{Observer} y \textbf{Event-Driven Architecture}, organizando el código en capas bien definidas como se muestra en la figura~\ref{fig:arquitectura_input_collector}.
 
 \begin{figure}[hp!]
 \centering
 \includegraphics[width=\textwidth]{imaxes/input_collector_arquitectura.pdf}
-\caption{Arquitectura del módulo input\_collector}
+\caption{Arquitectura hexagonal del módulo input\_collector}
 \label{fig:arquitectura_input_collector}
 \end{figure}
 
-\subsubsection{Core Event System}
+La arquitectura se estructura en cinco capas principales:
 
-Sistema de eventos independiente de framework que proporciona:
+\subsubsection{Interfaces Externas}
+Múltiples puntos de acceso al sistema:
+\begin{itemize}
+    \item \textbf{GUI (PyQt5)}: Interfaz gráfica con tema oscuro y paneles divididos
+    \item \textbf{CLI (Typer)}: Shell interactivo con monitoreo específico por colector
+    \item \textbf{Web API (API Explorer)}: Control remoto con WebSocket en tiempo real
+\end{itemize}
 
-\begin{lstlisting}[language=Python]
-class EventDispatcher:
-    def __init__(self):
-        self._subscribers: Dict[EventType, Set[callable]] = defaultdict(set)
-        self._lock = threading.RLock()
-        self._last_events: Dict[EventType, Any] = {}
-        
-    def dispatch(self, event_type: EventType, data: Any) -> None:
-        """Dispatch thread-safe de eventos"""
-        with self._lock:
-            self._last_events[event_type] = data
-            for callback in self._subscribers[event_type]:
-                try:
-                    callback(data)
-                except Exception as e:
-                    logging.error(f"Error in callback: {e}")
-\end{lstlisting}
+\subsubsection{Adaptadores}
+Capa de traducción entre interfaces y servicios core:
+\begin{itemize}
+    \item \textbf{QtInteractionAdapter}: Adaptador thread-safe para operaciones UI
+    \item \textbf{CLI Commands}: Comandos especializados para diferentes funcionalidades
+    \item \textbf{API Integrations}: Integraciones web para datos y control
+\end{itemize}
 
-\subsubsection{Collectors con capabilities dinámicas}
+\subsubsection{Capa de Servicios}
+Servicios singleton para lógica de negocio:
+\begin{itemize}
+    \item \textbf{InteractionService}: Control de aplicación expandido con thread-safety
+    \item \textbf{DataAccessService}: Acceso a datos con categorización de callbacks
+    \item \textbf{Core Event System}: Sistema de eventos framework-independiente
+\end{itemize}
 
-Los colectores implementan interfaces well-defined con capacidades detectables:
+\subsubsection{Núcleo de Aplicación}
+Coordinación central y gestión de componentes:
+\begin{itemize}
+    \item \textbf{App Coordinator}: Mediador central con integración al sistema de eventos
+    \item \textbf{Collectors Manager}: Gestor con capabilities dinámicas
+    \item \textbf{Processing}: Procesamiento y transformación de eventos
+\end{itemize}
 
-\begin{lstlisting}[language=Python]
-class PS4ControllerCollector(AbstractInputCollector):
-    def get_capabilities(self) -> Dict[str, Any]:
-        return {
-            "supports_analog_sticks": True,
-            "supports_triggers": True,
-            "button_count": 14,
-            "analog_stick_count": 2,
-            "trigger_count": 2,
-            "connection_type": "SDL2_GameController",
-            "auto_reconnect": True,
-            "thread_safe_events": True
-        }
-\end{lstlisting}
+\subsubsection{Dominio}
+Componentes fundamentales del sistema:
+\begin{itemize}
+    \item \textbf{Interfaces}: Contratos y estructuras de datos (InputData con 25+ campos)
+    \item \textbf{Visualizers}: Componentes de visualización en tiempo real
+    \item \textbf{Logging}: Sistema de registro a múltiples formatos
+\end{itemize}
 
-\subsubsection{Arquitectura thread-safe para PS4 Controller}
+\subsection{Core Event System}
+\label{subsec:core_event_system_input}
 
-El controlador PS4 implementa una arquitectura basada en hilos:
+\subsubsection{Sistema de eventos centralizado}
 
-\begin{lstlisting}[language=Python]
-class PS4ControllerCollector:
-    def __init__(self):
-        self._sdl_thread = None
-        self._stop_event = threading.Event()
-        self._controller = None
-        self._current_state = ControllerState()
-        self._state_lock = threading.Lock()
-        
-    def _sdl_event_loop(self):
-        """Loop de eventos SDL2 en hilo dedicado"""
-        while not self._stop_event.is_set():
-            sdl2.SDL_PumpEvents()
-            self._process_controller_events()
-            time.sleep(0.001)  # 1ms polling
-\end{lstlisting}
+El \textbf{Core Event System} actúa como backbone de comunicación, proporcionando un sistema de eventos framework-independiente:
+
+\textbf{Características principales:}
+\begin{itemize}
+    \item \textbf{Arquitectura dirigida por eventos}: Comunicación desacoplada entre módulos
+    \item \textbf{Thread-safe}: Múltiples locks granulares para diferentes operaciones
+    \item \textbf{Aislamiento de errores}: Los fallos en callbacks no afectan otros suscriptores
+    \item \textbf{Sincronización tardía}: Almacenamiento del último evento para suscriptores posteriores
+    \item \textbf{Framework-independiente}: No depende de Qt u otros frameworks
+\end{itemize}
+
+\subsubsection{EventDispatcher singleton}
+
+El \textbf{EventDispatcher} implementa un patrón singleton thread-safe que gestiona suscripciones y dispatch de eventos:
+
+\textbf{Funcionalidades clave:}
+\begin{itemize}
+    \item \textbf{Suscripción dinámica}: Registro y desregistro de callbacks en tiempo de ejecución
+    \item \textbf{Dispatch thread-safe}: Distribución segura de eventos entre hilos
+    \item \textbf{Tipado de eventos}: Enumeración \textbf{EventType} para eventos del sistema
+    \item \textbf{API simplificada}: Funciones utilitarias para uso común
+\end{itemize}
+
+\subsection{Colectores de entrada}
+\label{subsec:colectores_entrada}
+
+\subsubsection{CollectorManager con capabilities dinámicas}
+
+El \textbf{CollectorManager} proporciona gestión centralizada de múltiples tipos de colectores:
+
+\textbf{Capacidades soportadas:}
+\begin{itemize}
+    \item \textbf{Detección dinámica}: Capabilities específicas por colector
+    \item \textbf{Switching en caliente}: Cambio de colector sin reinicio
+    \item \textbf{Gestión de estado}: Tracking de estado activo y configuración
+    \item \textbf{Interfaz uniforme}: API consistente independiente del dispositivo
+\end{itemize}
+
+\subsubsection{KeyboardMouseCollector}
+
+Colector con múltiples modos de tracking para dispositivos tradicionales:
+
+\textbf{Modos de tracking de ratón:}
+\begin{itemize}
+    \item \textbf{Delta}: Raw movement deltas para precisión máxima
+    \item \textbf{Angle}: Dirección y ángulo (8-direccional) para análisis de patrones
+    \item \textbf{Axis}: Direcciones cardinales (N/S/E/W) simplificadas
+    \item \textbf{Joystick}: Dirección y velocidad (analog-like) para visualización
+\end{itemize}
+
+\subsubsection{PS4ControllerCollector con arquitectura event-driven}
+
+El colector de controlador PS4 implementa una arquitectura completamente event-driven:
+
+\textbf{Características arquitectónicas:}
+\begin{itemize}
+    \item \textbf{Event loop dedicado}: SDL2 event loop en hilo dedicado
+    \item \textbf{Processing thread-safe}: Locks granulares y manejo de errores
+    \item \textbf{Reconexión automática}: Manejo de desconexiones inalámbricas
+    \item \textbf{Core event integration}: Dispatch automático al sistema de eventos
+    \item \textbf{Detección de cambios}: Tracking de estados previos para triggers/sticks
+\end{itemize}
+
+\textbf{Capacidades del PS4 Controller:}
+\begin{itemize}
+    \item \textbf{Soporte analog completo}: 2 sticks analógicos y 2 triggers
+    \item \textbf{14 botones}: Incluyendo D-pad, face buttons y system buttons
+    \item \textbf{Conexión SDL2}: Soporte nativo via SDL2 GameController
+    \item \textbf{Thread-safe events}: Procesamiento seguro entre hilos
+\end{itemize}
 
 \subsection{Sistema de visualización avanzada}
 \label{subsec:visualizacion_input_collector}
 
-\subsubsection{Visualizador PS4 con paneles divididos}
+\subsubsection{Visualizadores especializados}
 
-\begin{lstlisting}[language=Python]
-class PS4ControllerVisualizer:
-    def __init__(self):
-        self.setup_split_panel_ui()
-        self.setup_realtime_logging()
-        
-    def setup_split_panel_ui(self):
-        """Configura interfaz de paneles divididos"""
-        # Panel superior: Visualización del controller
-        self.controller_panel = self.create_controller_visual()
-        
-        # Panel medio: Estado en tiempo real
-        self.state_panel = self.create_state_display()
-        
-        # Panel inferior: Log de eventos
-        self.log_panel = self.create_event_log()
-\end{lstlisting}
+El sistema incluye visualizadores específicos para cada tipo de dispositivo:
 
-\subsection{APIs de acceso y control}
-\label{subsec:apis_input_collector}
+\textbf{KeyboardVisualizer:}
+\begin{itemize}
+    \item \textbf{Teclado virtual}: Representación visual con estados de teclas
+    \item \textbf{Highlighting dinámico}: Resaltado de teclas activas
+    \item \textbf{Layout configurable}: Soporte para diferentes distribuciones
+\end{itemize}
 
-\subsubsection{DataAccessService con callbacks categorizados}
+\textbf{MouseVisualizer:}
+\begin{itemize}
+    \item \textbf{Visualización joystick}: Representación analógica del movimiento
+    \item \textbf{Múltiples modos}: Adaptación visual según modo de tracking
+    \item \textbf{Indicadores de botón}: Estado visual de botones del ratón
+\end{itemize}
 
-\begin{lstlisting}[language=Python]
-class DataAccessService:
-    def __init__(self):
-        self._api_callbacks: Dict[str, List[callable]] = defaultdict(list)
-        self._local_callbacks: Dict[str, List[callable]] = defaultdict(list)
-        
-    def register_api_callback(self, event_type: str, callback: callable):
-        """Callbacks para API externa con throttling"""
-        
-    def register_local_callback(self, event_type: str, callback: callable):
-        """Callbacks para visualizadores locales sin throttling"""
-\end{lstlisting}
+\subsubsection{PS4ControllerVisualizer con interfaz de paneles divididos}
 
-\subsubsection{InteractionService con 7 señales Qt}
+El visualizador del controlador PS4 implementa una interfaz avanzada de paneles divididos:
 
-Para mantener sincronización entre API y GUI se implementan señales específicas:
+\textbf{Estructura de paneles:}
+\begin{itemize}
+    \item \textbf{Panel superior}: Visualización del controlador con image overlay
+    \item \textbf{Panel medio}: Estado en tiempo real con valores analógicos
+    \item \textbf{Panel inferior}: Log de eventos con timestamps y colores
+\end{itemize}
 
-\begin{lstlisting}[language=Python]
-class QtInteractionAdapter(QObject):
-    # Señales para actualización thread-safe del GUI
-    recording_state_changed = pyqtSignal(bool)
-    collector_switched = pyqtSignal(str)
-    mouse_mode_changed = pyqtSignal(str)
-    edit_mode_changed = pyqtSignal(bool)
-    tracked_keys_changed = pyqtSignal(list)
-    mouse_buttons_changed = pyqtSignal(list)
-    ps4_visualization_mode_changed = pyqtSignal(str)
-\end{lstlisting}
+\textbf{Características avanzadas:}
+\begin{itemize}
+    \item \textbf{Updates thread-safe}: Señales Qt para actualizaciones desde hilos
+    \item \textbf{Edit mode avanzado}: Sistema snapshot/commit para posiciones
+    \item \textbf{Múltiples modos}: Image overlay + dibujado directo
+    \item \textbf{Logging en tiempo real}: Panel de logs con colores y timestamps
+\end{itemize}
+
+\subsection{Servicios de datos y control}
+\label{subsec:servicios_input_collector}
+
+\subsubsection{DataAccessService con categorización}
+
+El \textbf{DataAccessService} proporciona acceso estructurado a datos con categorización avanzada:
+
+\textbf{Sistema de callbacks categorizados:}
+\begin{itemize}
+    \item \textbf{API callbacks}: Para consumidores externos con throttling
+    \item \textbf{Local callbacks}: Para visualizadores locales sin throttling
+    \item \textbf{Categorización por evento}: Separación por tipo (key, mouse\_movement, controller)
+    \item \textbf{Gestión de memoria}: Límites de historial configurables
+\end{itemize}
+
+\textbf{Thread-safety mejorado:}
+\begin{itemize}
+    \item \textbf{Locks granulares}: Diferentes locks para operaciones específicas
+    \item \textbf{Estado metadata}: Tracking de información del colector activo
+    \item \textbf{Patrones reactivos}: Sistema de callbacks para consumers externos
+\end{itemize}
+
+\subsubsection{InteractionService expandido}
+
+El \textbf{InteractionService} gestiona el control de la aplicación con capacidades expandidas:
+
+\textbf{Operaciones soportadas:}
+\begin{itemize}
+    \item \textbf{Control de grabación}: Start/stop con sincronización de estado
+    \item \textbf{Switching de colectores}: Cambio dinámico con preservación de estado
+    \item \textbf{Configuración de tracking}: Múltiples modos y parámetros
+    \item \textbf{Gestión de UI}: Edit mode y configuración visual
+\end{itemize}
+
+\subsubsection{QtInteractionAdapter para thread-safety}
+
+El adaptador Qt garantiza operaciones thread-safe entre API y GUI:
+
+\textbf{Señales Qt implementadas (7 señales):}
+\begin{itemize}
+    \item \textbf{recording\_state\_changed}: Estado de grabación
+    \item \textbf{collector\_switched}: Cambio de colector activo
+    \item \textbf{mouse\_mode\_changed}: Modo de tracking del ratón
+    \item \textbf{edit\_mode\_changed}: Estado del modo de edición
+    \item \textbf{tracked\_keys\_changed}: Configuración de teclas tracked
+    \item \textbf{mouse\_buttons\_changed}: Configuración de botones del ratón
+    \item \textbf{ps4\_visualization\_mode\_changed}: Modo de visualización PS4
+\end{itemize}
+
+\subsection{Interfaz de línea de comandos}
+\label{subsec:cli_input_collector}
+
+\subsubsection{CLI avanzado con monitoreo específico}
+
+El sistema CLI implementa capacidades avanzadas de monitoreo:
+
+\textbf{Componentes principales:}
+\begin{itemize}
+    \item \textbf{CLIApp}: Aplicación principal con Typer y auto-completion
+    \item \textbf{CLIShell}: Shell interactivo estilo REPL
+    \item \textbf{PS4ControllerMonitor}: Monitor dedicado para controladores PS4
+    \item \textbf{Commands especializados}: Módulos para diferentes funcionalidades
+\end{itemize}
+
+\subsubsection{Monitor de controlador PS4}
+
+El monitor especializado para PS4 proporciona visualización en tiempo real:
+
+\textbf{Características del monitor:}
+\begin{itemize}
+    \item \textbf{Rich console interface}: Tablas y paneles en tiempo real
+    \item \textbf{Cross-platform key detection}: ESC/Q para salir en Windows/Unix
+    \item \textbf{Event-driven architecture}: Uso del core event system
+    \item \textbf{Smart collector detection}: Monitoreo específico según colector activo
+\end{itemize}
+
+\textbf{Estructura de comandos:}
+\begin{itemize}
+    \item \textbf{Data access}: \textbf{input-collector data active-keys}
+    \item \textbf{Control}: \textbf{input-collector interaction recording start}
+    \item \textbf{Monitoreo}: \textbf{input-collector monitor controller}
+    \item \textbf{Configuración}: \textbf{input-collector interaction mouse set-mode joystick}
+\end{itemize}
+
+\subsection{Sistema de logging y procesamiento}
+\label{subsec:logging_procesamiento_input}
+
+\subsubsection{Logging multi-formato}
+
+El \textbf{LoggingManager} coordina registro simultáneo a múltiples formatos:
+
+\textbf{Formatos soportados:}
+\begin{itemize}
+    \item \textbf{JSON Logger}: Formato JSON estructurado para análisis programático
+    \item \textbf{CSV Logger}: Formato tabular con headers dinámicos
+    \item \textbf{Headers dinámicos CSV}: Generación automática basada en tracked keys
+    \item \textbf{Thread-safe signals}: Comunicación mediante señales Qt
+\end{itemize}
+
+\subsubsection{EventProcessor extendido}
+
+El procesador de eventos maneja formateo específico por colector:
+
+\textbf{Características de procesamiento:}
+\begin{itemize}
+    \item \textbf{Formateo específico}: Diferente handling para keyboard/mouse vs PS4
+    \item \textbf{Detección de eventos especiales}: F9 para toggle recording, eventos de sistema
+    \item \textbf{Procesamiento de ejes}: Handling especializado para joysticks y triggers
+    \item \textbf{Thread-safe}: Procesamiento seguro con señales Qt
+\end{itemize}
+
+\subsection{Integración con APIs web}
+\label{subsec:integracion_api_input}
+
+\subsubsection{API Integration con core events}
+
+El sistema de integración API proporciona exposición web con eventos core:
+
+\textbf{Componentes de integración:}
+\begin{itemize}
+    \item \textbf{InputCollectorAPI}: API estática para control de aplicación
+    \item \textbf{InputDataAPI}: API estática para acceso a datos
+    \item \textbf{Core event integration}: WebSocket broadcasts automáticos
+    \item \textbf{PS4 state tracking}: Estado especializado para controladores
+\end{itemize}
+
+\textbf{Características web:}
+\begin{itemize}
+    \item \textbf{Enhanced fallbacks}: Operación sin web server mejorada
+    \item \textbf{Thread-safe operations}: Todas las operaciones API son thread-safe
+    \item \textbf{Real-time broadcasting}: Eventos automáticos via WebSocket
+    \item \textbf{State synchronization}: Sincronización bidireccional GUI-API
+\end{itemize}
+
+\subsection{Patrones arquitectónicos implementados}
+\label{subsec:patrones_input_collector}
+
+\subsubsection{Event-Driven Architecture}
+El sistema completo se basa en comunicación dirigida por eventos:
+\begin{itemize}
+    \item \textbf{Core Event System}: Backbone de comunicación framework-independiente
+    \item \textbf{Pub/Sub pattern}: Desacoplamiento entre componentes
+    \item \textbf{Automatic broadcasting}: Eventos automáticos para APIs y CLI
+    \item \textbf{Late subscriber synchronization}: Estabilidad para suscriptores tardíos
+\end{itemize}
+
+\subsubsection{Patrón Mediator}
+El \textbf{AppCoordinator} actúa como mediador central:
+\begin{itemize}
+    \item \textbf{Central coordination}: Gestión de estado centralizada
+    \item \textbf{Core event integration}: Comunicación con sistemas externos
+    \item \textbf{Thread-safe coordination}: Uso de señales Qt para operaciones UI
+    \item \textbf{Error handling}: Manejo de errores en coordinación
+\end{itemize}
+
+\subsubsection{Patrón Singleton}
+Servicios críticos implementan singleton thread-safe:
+\begin{itemize}
+    \item \textbf{Thread-safe implementation}: Double-checked locking
+    \item \textbf{Granular locking}: Locks específicos para operaciones
+    \item \textbf{Error isolation}: Aislamiento de fallos para estabilidad
+    \item \textbf{Resource management}: Gestión centralizada de recursos
+\end{itemize}
+
+\subsubsection{Patrón Strategy}
+Adaptación dinámica según contexto:
+\begin{itemize}
+    \item \textbf{Collector capabilities}: Capacidades dinámicas por dispositivo
+    \item \textbf{Adaptive UI}: Interfaz adaptativa según colector activo
+    \item \textbf{Multiple tracking modes}: Modos intercambiables de tracking
+    \item \textbf{Platform-specific handling}: Adaptación por sistema operativo
+\end{itemize}
+
+\subsection{Características de rendimiento}
+\label{subsec:rendimiento_input_collector}
+
+\subsubsection{Thread safety avanzado}
+
+El sistema implementa thread safety a múltiples niveles:
+\begin{itemize}
+    \item \textbf{Multiple granular locks}: Locks específicos en servicios y collectors
+    \item \textbf{Qt signal/slot threading}: Updates UI thread-safe
+    \item \textbf{SDL2 event loop threading}: Procesamiento PS4 en hilo dedicado
+    \item \textbf{Error isolation}: Aislamiento de errores en callbacks
+\end{itemize}
+
+\subsubsection{Optimizaciones de entrada}
+
+Para dispositivos de alta frecuencia como controladores:
+\begin{itemize}
+    \item \textbf{Event-driven processing}: Procesamiento basado en eventos reales
+    \item \textbf{Change detection}: Tracking de cambios para reducir overhead
+    \item \textbf{Efficient polling}: 1ms polling para SDL2 con optimizaciones
+    \item \textbf{Memory management}: Gestión eficiente de buffers de eventos
+\end{itemize}
+
+\subsubsection{Configurabilidad y extensibilidad}
+
+El sistema proporciona alta configurabilidad:
+\begin{itemize}
+    \item \textbf{Dynamic capabilities}: Adaptación automática según dispositivo
+    \item \textbf{Runtime configuration}: Cambios sin reinicio de aplicación
+    \item \textbf{Modular architecture}: Fácil adición de nuevos colectores
+    \item \textbf{Plugin-ready design}: Preparado para extensiones futuras
+\end{itemize}
 
 \section{Diseño del módulo eeg\_processor}
 \label{sec:diseno_eeg_processor}
@@ -1063,7 +1308,7 @@ class CircuitBreaker:
         self.last_failure_time = None
         self.state = "CLOSED"  # CLOSED, OPEN, HALF_OPEN
         
-    def call(self, func: callable, *args, **kwargs):
+    def call(self, func: callable, *args, }kwargs):
         """Ejecuta función con circuit breaker protection"""
         if self.state == "OPEN":
             if self._should_attempt_reset():
@@ -1072,7 +1317,7 @@ class CircuitBreaker:
                 raise CircuitBreakerOpenError()
                 
         try:
-            result = func(*args, **kwargs)
+            result = func(*args, }kwargs)
             self._on_success()
             return result
         except Exception as e:
