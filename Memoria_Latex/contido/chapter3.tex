@@ -197,144 +197,288 @@ Para actualizaciones reactivas:
 \subsection{Propósito y responsabilidades}
 \label{subsec:proposito_api_explorer}
 
-El módulo api\_explorer actúa como \textbf{framework web modular} que proporciona capacidades dinámicas de exploración y prueba de APIs. Su diseño permite que múltiples módulos registren sus APIs en tiempo de ejecución, proporcionando una interfaz unificada para interacción y monitoreo.
+API Explorer es un framework web modular diseñado para proporcionar capacidades dinámicas de exploración y prueba de APIs para módulos Python. Construido sobre FastAPI con soporte WebSocket, ofrece una interfaz moderna y responsiva que permite a múltiples módulos registrar sus APIs en tiempo de ejecución, proporcionando formularios de parámetros interactivos, transmisión de eventos en tiempo real y visualización de datos. El sistema implementa un patrón singleton para accesibilidad global manteniendo operaciones thread-safe y una arquitectura escalable.
 
 \subsection{Arquitectura del módulo}
 \label{subsec:arquitectura_api_explorer}
 
-La figura~\ref{fig:arquitectura_api_explorer} muestra la estructura interna del módulo api\_explorer.
+El API Explorer sigue una \textbf{arquitectura de servicio basada en singleton} combinada con patrones \textbf{observer} y \textbf{registry}, organizando la funcionalidad en capas bien definidas como se muestra en la figura~\ref{fig:arquitectura_api_explorer}.
 
 \begin{figure}[hp!]
 \centering
-\includegraphics[width=0.85\textwidth]{imaxes/api_explorer_arquitectura.pdf}
-\caption{Arquitectura del módulo api\_explorer}
+\includegraphics[width=0.9\textwidth]{imaxes/api_explorer_capas.pdf}
+\caption{Arquitectura en capas del módulo api\_explorer}
 \label{fig:arquitectura_api_explorer}
 \end{figure}
 
-\subsubsection{Componentes principales}
+La arquitectura se estructura en cinco capas principales:
 
+\subsubsection{Capa Cliente}
+Múltiples tipos de clientes pueden interactuar con el sistema:
 \begin{itemize}
-    \item \textbf{ApiExplorer Core}: Servicio singleton central
-    \item \textbf{WebSocketManager}: Gestión de conexiones en tiempo real
-    \item \textbf{Worker Pool}: Procesamiento distribuido para alta carga
-    \item \textbf{Fast JSON Serializer}: Optimización de serialización
-    \item \textbf{Frontend Modular}: Arquitectura JavaScript basada en managers
+    \item \textbf{Navegador Web Modular}: Frontend JavaScript basado en managers
+    \item \textbf{Cliente HTTP (REST)}: Acceso programático a APIs
+    \item \textbf{Cliente WebSocket}: Comunicación en tiempo real
 \end{itemize}
 
-\subsection{Diseño de componentes clave}
-\label{subsec:diseno_componentes_api_explorer}
+\subsubsection{Capa Presentación}
+Gestiona la interfaz de usuario y experiencia:
+\begin{itemize}
+    \item \textbf{Plantillas HTML (Jinja2)}: Generación dinámica de contenido
+    \item \textbf{CSS Responsivo}: Sistema de temas dual (oscuro/claro)
+    \item \textbf{Módulos JavaScript}: Gestión modular de funcionalidad frontend
+\end{itemize}
 
-\subsubsection{ApiExplorer Singleton}
+\subsubsection{Framework Web}
+Infraestructura de servidor y comunicación:
+\begin{itemize}
+    \item \textbf{Servidor FastAPI (uvicorn)}: Servidor web asíncrono
+    \item \textbf{WebSocket Manager (Worker Pool)}: Gestión distribuida de conexiones en tiempo real
+    \item \textbf{Servicio de Archivos Estáticos}: Distribución de recursos frontend
+\end{itemize}
 
-El componente central implementa un patrón singleton thread-safe que gestiona:
+\subsubsection{Servicio Core}
+Núcleo de la funcionalidad del framework:
+\begin{itemize}
+    \item \textbf{ApiExplorer (Singleton)}: Coordinador central del sistema
+    \item \textbf{Registro de Módulos}: Sistema de registro dinámico
+    \item \textbf{Difusión de Eventos}: Distribución de eventos a múltiples clientes
+    \item \textbf{Serialización JSON}: Optimización con orjson cuando disponible
+    \item \textbf{Validación de Parámetros}: Validación básica de entrada
+    \item \textbf{Gestión de Conexiones}: Administración del ciclo de vida de conexiones
+\end{itemize}
 
-\begin{lstlisting}[language=Python]
-class ApiExplorer:
-    _instance = None
-    _lock = threading.Lock()
-    
-    def __init__(self):
-        self._modules = {}  # Registro de módulos
-        self._websocket_manager = WebSocketManager()
-        self._server_process = None
-        
-    @classmethod
-    def get_instance(cls):
-        if cls._instance is None:
-            with cls._lock:
-                if cls._instance is None:
-                    cls._instance = cls()
-        return cls._instance
-\end{lstlisting}
+\subsubsection{Capa Datos}
+Estructuras de datos en memoria:
+\begin{itemize}
+    \item \textbf{Diccionarios de Módulos}: Metadatos de módulos registrados
+    \item \textbf{Diccionarios de Métodos}: Definiciones de métodos API
+    \item \textbf{Diccionarios de Parámetros}: Especificaciones de parámetros
+\end{itemize}
 
-\subsubsection{Sistema de registro dinámico}
+\subsection{Componentes core y su diseño}
+\label{subsec:componentes_core_api_explorer}
 
-Los módulos se registran dinámicamente mediante:
+\subsubsection{API Explorer Core}
 
-\begin{lstlisting}[language=Python]
-def register_module(self, module_id: str, name: str, description: str):
-    """Registra un nuevo módulo en el explorer"""
-    
-def add_method_group(self, module_id: str, group_id: str, name: str):
-    """Añade un grupo de métodos a un módulo"""
-    
-def register_method(self, module_id: str, group_id: str, 
-                   method_id: str, method_info: dict, handler: callable):
-    """Registra un método específico con su handler"""
-\end{lstlisting}
+El componente central \texttt{ApiExplorer} implementa un patrón singleton thread-safe que coordina todas las operaciones del framework:
 
-\subsubsection{Arquitectura WebSocket con Worker Pools}
+\textbf{Características principales:}
+\begin{itemize}
+    \item \textbf{Patrón Singleton}: Instancia única thread-safe para acceso global
+    \item \textbf{Registro Dinámico}: Registro de módulos y métodos en tiempo de ejecución
+    \item \textbf{Operaciones Thread-Safe}: Lock principal para sincronización de operaciones críticas
+    \item \textbf{Gestión de Puertos}: Detección automática de puertos disponibles
+    \item \textbf{Ciclo de Vida del Servidor}: Gestión completa de inicio/parada del servidor
+\end{itemize}
 
-Para manejar cargas elevadas de datos, especialmente del módulo eeg\_processor, se implementa una arquitectura de worker pools:
+El servicio mantiene una estructura de datos jerárquica que organiza módulos, grupos de métodos y métodos individuales, permitiendo un registro flexible y una navegación intuitiva desde la interfaz web.
 
-\begin{lstlisting}[language=Python]
-class WebSocketWorkerPool:
-    def __init__(self, module_id: str, worker_count: int = 4):
-        self.module_id = module_id
-        self.workers = []
-        self.message_queue = asyncio.Queue()
-        self.round_robin_index = 0
-        
-    async def distribute_message(self, connections: List, data: dict):
-        """Distribuye mensajes entre workers disponibles"""
-        worker = self._get_next_worker()
-        await worker.process_message(connections, data)
-\end{lstlisting}
+\subsubsection{Sistema WebSocket con Worker Pools}
 
-\subsubsection{Frontend modular JavaScript}
+El \texttt{WebSocketManager} implementa una arquitectura distribuida para manejar conexiones de alta frecuencia, especialmente crítica para datos EEG en tiempo real:
 
-El frontend se organiza en managers especializados:
+\textbf{Componentes del sistema:}
+\begin{itemize}
+    \item \textbf{WebSocketManager}: Coordinador principal de conexiones y workers
+    \item \textbf{WebSocketWorkerPool}: Pool de workers para procesamiento distribuido
+    \item \textbf{WorkerStats}: Métricas de rendimiento por worker
+    \item \textbf{FastJSONSerializer}: Serialización JSON optimizada
+\end{itemize}
 
-\begin{lstlisting}[language=JavaScript]
-// Coordinador principal
-class APIExplorer {
-    constructor() {
-        this.darkModeManager = new DarkModeManager();
-        this.webSocketManager = new WebSocketManager();
-        this.chartManager = new ChartManager();
-        this.eventDisplayManager = new EventDisplayManager();
-        this.setupManagerCommunication();
-    }
-    
-    setupManagerCommunication() {
-        // Comunicación event-driven entre managers
-        this.darkModeManager.onModeChange((isDark) => {
-            this.chartManager.updateTheme(isDark);
-        });
-    }
+\textbf{Características de rendimiento:}
+\begin{itemize}
+    \item \textbf{Arquitectura Worker Pool}: Distribución de carga entre múltiples workers
+    \item \textbf{Throttling Adaptativo}: Limitación de mensajes basada en frecuencia
+    \item \textbf{Load Balancing}: Distribución round-robin entre workers
+    \item \textbf{Performance Tracking}: Métricas de procesamiento en tiempo real
+\end{itemize}
+
+\subsubsection{Serialización JSON Optimizada}
+
+El sistema de serialización implementa optimizaciones específicas para el manejo de datos de alta frecuencia:
+
+\textbf{Optimizaciones implementadas:}
+\begin{itemize}
+    \item \textbf{Integración orjson}: Uso de orjson cuando está disponible para velocidad 2-5x superior
+    \item \textbf{Template Caching}: Pre-compilación de estructuras JSON frecuentes
+    \item \textbf{Fallback Safety}: Degradación grácil a stdlib json si orjson no está disponible
+    \item \textbf{Data Sanitization}: Limpieza automática de datos no serializables
+\end{itemize}
+
+\subsection{Arquitectura frontend modular}
+\label{subsec:arquitectura_frontend_api_explorer}
+
+\subsubsection{Sistema de managers JavaScript}
+
+El frontend implementa una arquitectura modular basada en managers especializados que se comunican mediante eventos:
+
+\textbf{Managers principales:}
+\begin{itemize}
+    \item \textbf{APIExplorer Coordinator}: Coordinación central de todos los managers
+    \item \textbf{DarkModeManager}: Gestión centralizada de temas oscuro/claro con persistencia
+    \item \textbf{WebSocketManager}: Gestión de múltiples conexiones WebSocket con buffering
+    \item \textbf{ChartManager}: Coordinación de múltiples instancias Chart.js con updates por lotes
+    \item \textbf{EventDisplayManager}: Display de eventos en tiempo real con auto-scrolling
+    \item \textbf{FileBrowserManager}: Integración con navegación de archivos del servidor
+    \item \textbf{APIMethodsManager}: Ejecución de métodos API y gestión de parámetros dinámicos, incluyendo validación avanzada y carga automática de plantillas JSON
+\end{itemize}
+
+\subsubsection{Comunicación event-driven}
+
+Los managers se comunican mediante un sistema de eventos que facilita el desacoplamiento y la extensibilidad. Por ejemplo, cambios en el modo oscuro se propagan automáticamente a los gráficos, y datos recibidos por WebSocket se distribuyen automáticamente a visualizadores y displays de eventos.
+
+\subsection{Visualización de datos y características avanzadas}
+\label{subsec:visualizacion_api_explorer}
+
+\subsubsection{Sistema de visualización}
+
+El módulo implementa un sistema completo de visualización de datos con:
+
+\textbf{Integración de gráficos:}
+\begin{itemize}
+    \item \textbf{Framework Chart.js}: Gráficos profesionales con actualizaciones en tiempo real
+    \item \textbf{Streaming en Tiempo Real}: Actualizaciones de datos en vivo con throttling inteligente
+    \item \textbf{Soporte Multi-canal}: Visualización separada o combinada para diferentes canales
+    \item \textbf{Batched Updates}: Actualizaciones por lotes para suavidad visual
+\end{itemize}
+
+\textbf{Modos de visualización:}
+\begin{itemize}
+    \item \textbf{Gráficos Combinados}: Todos los canales en un solo gráfico
+    \item \textbf{Gráficos Separados}: Gráficos individuales por canal de datos
+    \item \textbf{Filtrado por Tipo}: Filtrar display por tipo de datos (EEG, EMG, eventos)
+    \item \textbf{Auto-escalado}: Escalado dinámico basado en rangos de datos
+\end{itemize}
+
+\subsubsection{Formularios de parámetros dinámicos}
+
+El sistema genera automáticamente formularios web basados en las especificaciones de parámetros de cada método API:
+
+\textbf{Tipos de parámetros soportados:}
+\begin{itemize}
+    \item \textbf{Texto}: Inputs de texto básicos con validación
+    \item \textbf{Números}: Inputs numéricos con validación y conversión automática
+    \item \textbf{Rangos}: Sliders con formateo y validación de rango
+    \item \textbf{Selección}: Dropdowns con opciones predefinidas y disparo de carga de plantillas
+    \item \textbf{Archivos}: Navegador de archivos integrado con el servidor
+    \item \textbf{JSON Templates}: Áreas de texto con carga automática de plantillas, validación y formateo interactivo
+    \item \textbf{Arrays}: Inputs que aceptan arrays en formato JSON o separados por comas (por ejemplo, para métodos ICA)
+\end{itemize}
+
+\textbf{Validación y formateo de parámetros:}
+\begin{itemize}
+    \item \textbf{Validación de JSON}: Los campos tipo JSON permiten validación y formateo automático, mostrando mensajes de error o éxito en la interfaz.
+    \item \textbf{Validación contextual}: Para plantillas asociadas a \texttt{board\_id} o \texttt{streamer\_type}, se verifica la presencia de campos requeridos y se sugieren mejoras.
+    \item \textbf{Limpieza de metadatos}: Antes de enviar, los campos JSON eliminan claves auxiliares (como \texttt{\_COMMENTS} o campos que empiezan por \texttt{\_}).
+    \item \textbf{Carga automática de plantillas}: Al cambiar el valor de campos selectores (como \texttt{board\_id}), se actualiza automáticamente la plantilla JSON asociada.
+    \item \textbf{Botones de acción}: La interfaz incluye botones para cargar plantillas, formatear y validar JSON, con retroalimentación visual inmediata.
+\end{itemize}
+
+\textbf{Ejemplo de estructura de parámetros enviados:}
+\begin{verbatim}
+{
+  "board_id": 1,
+  "settings": {
+    "gain": 24,
+    "channels": [1,2,3,4]
+  },
+  "custom_template": {
+    "param1": "value",
+    "param2": 42
+  }
 }
-\end{lstlisting}
+\end{verbatim}
+Los arrays pueden enviarse como \texttt{[1,2,3]} o \texttt{"1,2,3"} (se convierten automáticamente). Los campos JSON se validan y formatean antes de enviarse.
 
-\subsection{Optimizaciones de rendimiento}
-\label{subsec:optimizaciones_api_explorer}
+\subsection{Patrones arquitectónicos implementados}
+\label{subsec:patrones_api_explorer}
 
-\subsubsection{Serialización JSON optimizada}
+\subsubsection{Patrón Singleton}
+El \texttt{ApiExplorer} implementa un singleton thread-safe que garantiza:
+\begin{itemize}
+    \item \textbf{Estado global consistente}: Una única fuente de verdad para el registro de módulos
+    \item \textbf{Compartición eficiente de recursos}: Reutilización de conexiones y pools de workers
+    \item \textbf{Acceso thread-safe}: Sincronización mediante locks para operaciones críticas
+\end{itemize}
 
-\begin{lstlisting}[language=Python]
-class FastJSONSerializer:
-    def __init__(self):
-        self.use_orjson = self._check_orjson_availability()
-        self.template_cache = {}
-    
-    def serialize(self, data: dict) -> str:
-        if self.use_orjson:
-            return orjson.dumps(data).decode('utf-8')
-        return json.dumps(data, default=self._json_fallback)
-\end{lstlisting}
+\subsubsection{Patrón Worker Pool}
+La gestión de WebSockets implementa un patrón worker pool que proporciona:
+\begin{itemize}
+    \item \textbf{Procesamiento distribuido}: Distribución de carga entre múltiples workers
+    \item \textbf{Balanceo de carga automático}: Distribución round-robin de mensajes
+    \item \textbf{Escalado adaptativo}: Configuración de workers basada en el tipo de módulo
+\end{itemize}
 
-\subsubsection{Throttling adaptativo}
+\subsubsection{Patrón Observer}
+El sistema de eventos implementa el patrón observer para:
+\begin{itemize}
+    \item \textbf{Difusión de eventos}: Distribución de eventos a múltiples clientes conectados
+    \item \textbf{Sistema de callbacks}: Notificaciones automáticas de cambios de estado
+    \item \textbf{Desacoplamiento}: Comunicación indirecta entre componentes
+\end{itemize}
 
-\begin{lstlisting}[language=Python]
-class AdaptiveThrottling:
-    def __init__(self, base_interval: float = 0.1):
-        self.base_interval = base_interval
-        self.current_load = 0
-        
-    def should_send_message(self, message_type: str) -> bool:
-        if message_type == "high_frequency_data":
-            return self._check_bandwidth_availability()
-        return True
-\end{lstlisting}
+\subsubsection{Patrón Registry}
+El registro dinámico de módulos utiliza el patrón registry para:
+\begin{itemize}
+    \item \textbf{Registro dinámico}: Adición de módulos y métodos en tiempo de ejecución
+    \item \textbf{Configuración runtime}: Modificación de la estructura API sin reinicio
+    \item \textbf{Extensibilidad}: Fácil integración de nuevos módulos
+\end{itemize}
+
+\subsection{Estructuras de datos}
+\label{subsec:estructuras_datos_api_explorer}
+
+\subsubsection{Información de módulos}
+
+El sistema mantiene una estructura jerárquica para organizar los módulos registrados:
+
+\begin{itemize}
+    \item \textbf{Nivel módulo}: Metadatos del módulo (nombre, descripción, configuración)
+    \item \textbf{Nivel grupo}: Agrupación lógica de métodos relacionados
+    \item \textbf{Nivel método}: Especificación detallada de cada método API
+    \item \textbf{Nivel parámetro}: Definición de tipos y validaciones de parámetros
+\end{itemize}
+
+\subsubsection{Métricas de rendimiento}
+
+El sistema \texttt{WorkerStats} mantiene métricas detalladas por worker:
+\begin{itemize}
+    \item \textbf{Procesamiento de mensajes}: Conteo de mensajes procesados
+    \item \textbf{Métricas de tiempo}: Tiempo promedio de procesamiento
+    \item \textbf{Utilización de colas}: Porcentaje de utilización de colas de mensajes
+    \item \textbf{Seguimiento de actividad}: Timestamp de última actividad
+\end{itemize}
+
+\subsection{Características de rendimiento}
+\label{subsec:rendimiento_api_explorer}
+
+\subsubsection{Manejo de datos de alta frecuencia}
+
+Para datos de alta frecuencia como señales EEG (250-1000 Hz), el sistema implementa:
+\begin{itemize}
+    \item \textbf{Worker Pool Processing}: Procesamiento distribuido entre múltiples workers
+    \item \textbf{Adaptive Throttling}: Throttling inteligente basado en frecuencia de datos
+    \item \textbf{Batch Processing}: Agrupación de eventos para eficiencia de red
+\end{itemize}
+
+\subsubsection{Optimizaciones de UI}
+
+Para mantener la responsividad de la interfaz:
+\begin{itemize}
+    \item \textbf{Batched DOM Updates}: Actualizaciones del DOM por lotes
+    \item \textbf{Throttled Chart Updates}: Limitación de actualizaciones de gráficos
+    \item \textbf{Incremental Table Updates}: Actualización incremental de tablas de datos
+\end{itemize}
+
+\subsubsection{Gestión de memoria}
+
+El sistema implementa estrategias para evitar fugas de memoria:
+\begin{itemize}
+    \item \textbf{Automatic Cleanup}: Limpieza automática de recursos no utilizados
+    \item \textbf{Connection Management}: Gestión del ciclo de vida de conexiones WebSocket
+    \item \textbf{Buffer Limits}: Límites configurables para buffers de datos
+\end{itemize}
 
 \section{Diseño del módulo input\_collector}
 \label{sec:diseno_input_collector}

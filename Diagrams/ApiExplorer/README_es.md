@@ -346,11 +346,38 @@ class APIExplorer {
 
 #### Tipos de Parámetros Soportados:
 - **Texto**: Inputs de texto básicos
-- **Números**: Inputs numéricos con validación
-- **Rangos**: Sliders con formateo personalizable
-- **Selección**: Dropdowns con opciones predefinidas
+- **Números**: Inputs numéricos con validación y conversión automática
+- **Rangos**: Sliders con formateo y validación de rango
+- **Selección**: Dropdowns con opciones predefinidas y disparo de carga de plantillas
 - **Archivos**: Navegador de archivos integrado
-- **JSON Templates**: Áreas de texto con carga automática de plantillas
+- **JSON Templates**: Áreas de texto con carga automática de plantillas, validación y formateo interactivo
+- **Arrays**: Inputs que aceptan arrays en formato JSON o separados por comas (por ejemplo, para métodos ICA)
+
+#### Validación y Formateo de Parámetros:
+- **Validación de JSON**: Los campos tipo JSON permiten validación y formateo automático, mostrando mensajes de error o éxito en la interfaz.
+- **Validación contextual**: Para plantillas asociadas a `board_id` o `streamer_type`, se verifica la presencia de campos requeridos y se sugieren mejoras.
+- **Limpieza de metadatos**: Antes de enviar, los campos JSON eliminan claves auxiliares (como `_COMMENTS` o campos que empiezan por `_`).
+
+#### Interactividad:
+- **Carga automática de plantillas**: Al cambiar el valor de campos selectores (como `board_id`), se actualiza automáticamente la plantilla JSON asociada.
+- **Botones de acción**: La interfaz incluye botones para cargar plantillas, formatear y validar JSON, con retroalimentación visual inmediata.
+
+#### Ejemplo de estructura de parámetros enviados:
+```json
+{
+  "board_id": 1,
+  "settings": {
+    "gain": 24,
+    "channels": [1,2,3,4]
+  },
+  "custom_template": {
+    "param1": "value",
+    "param2": 42
+  }
+}
+```
+- Los arrays pueden enviarse como `[1,2,3]` o `"1,2,3"` (se convierten automáticamente).
+- Los campos JSON se validan y formatean antes de enviarse.
 
 ## Patrones de Integración y Uso
 
