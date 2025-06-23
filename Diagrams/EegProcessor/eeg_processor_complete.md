@@ -3,11 +3,11 @@ classDiagram
     %% ================================================================================
     %% EEG PROCESSOR MODULE - NEUROPHYSIOLOGICAL PROCESSING FRAMEWORK
     %% ================================================================================
-    
+
     %% ================================================================================
     %% CORE APPLICATION CLASS
     %% ================================================================================
-    
+
     class EEGProcessorApp {
         <<main application>>
         +theme_manager: ThemeManager
@@ -27,7 +27,7 @@ classDiagram
         +advanced_panel: AdvancedProcessingPanel
         +mne_panel: Optional[MNEPanel]
         +status_timer: QTimer
-        
+
         +__init__() void
         +setup_ui() void
         +connect_panel_signals() void
@@ -47,7 +47,7 @@ classDiagram
         -_handle_api_board_connect_thread_safe(event: Any) void
         -_handle_api_board_disconnect_thread_safe(event: Any) void
     }
-    
+
     class AppEventHandler {
         <<thread-safe event handler>>
         +stream_start_signal: pyqtSignal
@@ -55,16 +55,16 @@ classDiagram
         +board_connect_signal: pyqtSignal
         +board_disconnect_signal: pyqtSignal
     }
-    
+
     %% ================================================================================
     %% DATA ACCESS API
     %% ================================================================================
-    
+
     class EEGDataAPI {
         <<static data access api>>
         -_signal_processor_cache: Optional[SignalProcessor]
         -_signal_processor_sampling_rate: Optional[float]
-        
+
         +get_current_data()$ Tuple[np.ndarray, List[int]]
         +get_raw_data()$ Tuple[np.ndarray, List[int]]
         +get_channel_data(channel_index: int)$ Tuple[np.ndarray, List[int]]
@@ -83,11 +83,11 @@ classDiagram
         +are_filters_enabled()$ bool
         +get_filter_settings()$ Optional[Dict[str, Any]]
     }
-    
+
     %% ================================================================================
     %% INTERACTION API
     %% ================================================================================
-    
+
     class EEGProcessorInteractionAPI {
         <<static interaction api>>
         +get_available_boards()$ List[Dict[str, Any]]
@@ -121,11 +121,11 @@ classDiagram
         +save_current_data(filename: str, data_type: str)$ Dict[str, Any]
         +get_system_status()$ Dict[str, Any]
     }
-    
+
     %% ================================================================================
     %% API INTEGRATION CLASSES
     %% ================================================================================
-    
+
     class EEGProcessorApiIntegration {
         <<api integration service>>
         +explorer: Optional[Any]
@@ -139,7 +139,7 @@ classDiagram
         -_pending_samples: np.ndarray
         -_pending_timestamps: List[int]
         -_last_websocket_time: float
-        
+
         +get_instance()$ EEGProcessorApiIntegration
         +register_api(host: str, port: int, include_interaction: bool) bool
         -_register_all_method_groups() void
@@ -179,13 +179,13 @@ classDiagram
         +_handle_get_all_channels_quality() Dict[str, Any]
         +_handle_register_data_callback() Dict[str, Any]
     }
-    
+
     class EEGProcessorInteractionApiIntegration {
         <<interaction api integration>>
         +interaction_service: InteractionService
         +module_id: str
         -_target_module_id: Optional[str]
-        
+
         +get_instance()$ EEGProcessorInteractionApiIntegration
         +register_api_methods(api_explorer: Any) void
         -_determine_target_module(api_explorer: Any) void
@@ -239,25 +239,25 @@ classDiagram
         +_handle_get_connection_status() Dict[str, Any]
         +_handle_get_system_status() Dict[str, Any]
     }
-    
+
     %% ================================================================================
     %% ENTRY POINT AND CONFIGURATION
     %% ================================================================================
-    
+
     class RunApplication {
         <<entry point>>
         +cli_thread: Optional[threading.Thread]
-        
+
         +parse_config()$ Dict[str, Any]
         +start_cli_in_thread()$ threading.Thread
         +cleanup_cli_thread()$ void
         +main()$ void
     }
-    
+
     %% ================================================================================
     %% CORE FRAMEWORK PACKAGES
     %% ================================================================================
-    
+
     class EEGProcessorPackage {
         <<framework package>>
         +EEGProcessorApp: Class
@@ -274,7 +274,7 @@ classDiagram
         +visualizers: module
         +cli: module
     }
-    
+
     class PythonPackage {
         <<python implementation>>
         +EEGProcessorApp: Class
@@ -295,16 +295,16 @@ classDiagram
         +visualizers: module
         +cli: module
     }
-    
+
     %% ================================================================================
     %% CORE INFRASTRUCTURE PACKAGES
     %% ================================================================================
-    
+
     class AdaptersPackage {
         <<external integration>>
         +QtInteractionAdapter: Class
     }
-    
+
     class CorePackage {
         <<infrastructure>>
         +EventDispatcher: Class
@@ -318,7 +318,7 @@ classDiagram
         +get_last_event: Callable
         +clear_event_history: Callable
     }
-    
+
     class InterfacesPackage {
         <<contracts>>
         +CollectorInterface: Class
@@ -333,23 +333,23 @@ classDiagram
         +MNEProcessManagerInterface: Class
         +MNERealtimeInterface: Class
     }
-    
+
     %% ================================================================================
     %% DATA MANAGEMENT PACKAGES
     %% ================================================================================
-    
+
     class CollectorsPackage {
         <<hardware interface>>
         +EEGCollector: Class
         +BrainFlowBoardConfiguration: Class
         +BoardConfiguration: Class
     }
-    
+
     class ProcessorsPackage {
         <<signal processing>>
         +SignalProcessor: Class
     }
-    
+
     class ServicesPackage {
         <<business logic>>
         +CollectorService: Class
@@ -363,14 +363,14 @@ classDiagram
         +ica: module
         +mne: module
     }
-    
+
     class ICAServicesPackage {
         <<specialized services>>
         +ICAProcessService: Class
         +ICARealtimeService: Class
         +ExportService: Class
     }
-    
+
     class MNEServicesPackage {
         <<specialized services>>
         +MNEConverterService: Class
@@ -379,11 +379,11 @@ classDiagram
         +MNEResultStorage: Class
         +MNEVisualizerService: Class
     }
-    
+
     %% ================================================================================
     %% USER INTERFACE PACKAGES
     %% ================================================================================
-    
+
     class UIPackage {
         <<user interface>>
         +BasePanel: Class
@@ -396,20 +396,20 @@ classDiagram
         +advanced: module
         +mne: module
     }
-    
+
     class AdvancedUIPackage {
         <<specialized ui>>
         +AdvancedPanelController: Class
         +dialogs: module
         +widgets: module
     }
-    
+
     class MNEUIPackage {
         <<specialized ui>>
         +MNEPanelController: Class
         +widgets: module
     }
-    
+
     class AdvancedWidgetsPackage {
         <<specialized widgets>>
         +AdvancedFilterWidget: Class
@@ -417,12 +417,12 @@ classDiagram
         +WaveletWidget: Class
         +DownsamplingWidget: Class
     }
-    
+
     class AdvancedDialogsPackage {
         <<specialized dialogs>>
         +ICAVisualizationDialog: Class
     }
-    
+
     class MNEWidgetsPackage {
         <<specialized widgets>>
         +MNEConversionWidget: Class
@@ -430,11 +430,11 @@ classDiagram
         +MNEStatusWidget: Class
         +ChannelSelectionDialog: Class
     }
-    
+
     %% ================================================================================
     %% UTILITY AND VISUALIZATION PACKAGES
     %% ================================================================================
-    
+
     class UtilsPackage {
         <<utilities>>
         +ThemeManager: Class
@@ -445,13 +445,13 @@ classDiagram
         +show_help_topic: Callable
         +show_eeg_concepts_help: Callable
     }
-    
+
     class VisualizersPackage {
         <<visualization>>
         +MultiSignalVisualizer: Class
         +BrainMapVisualizer: Class
     }
-    
+
     class CLIPackage {
         <<command line interface>>
         +app: Typer
@@ -465,28 +465,28 @@ classDiagram
         +get_collector_service: Callable
         +commands: module
     }
-    
+
     class CLICommandsPackage {
         <<command modules>>
         +data_app: Typer
         +monitor_app: Typer
         +control_app: Typer
     }
-    
+
     %% ================================================================================
     %% MODULE API FUNCTIONS
     %% ================================================================================
-    
+
     class ModuleAPIFunctions {
         <<module functions>>
         +get_api_integration()$ EEGProcessorApiIntegration
         +initialize_api(enable: bool, host: str, port: int, include_interaction: bool)$ bool
     }
-    
+
     %% ================================================================================
     %% CORE COMPONENT CLASSES
     %% ================================================================================
-    
+
     class EEGCollector {
         <<hardware interface>>
         +prepare_session() void
@@ -499,7 +499,7 @@ classDiagram
         +config_device(config: str) str
         +set_preset(preset: Any) bool
     }
-    
+
     class SignalProcessor {
         <<signal processing engine>>
         +apply_bandpass_filter(data: np.ndarray, low_freq: float, high_freq: float, sampling_rate: int, filter_type: int, order: int) np.ndarray
@@ -511,7 +511,7 @@ classDiagram
         +get_band_power(data: np.ndarray, low_freq: float, high_freq: float, sampling_rate: int) List[float]
         +calculate_eeg_metrics(data: np.ndarray, sampling_rate: int, eeg_channels: List[int]) Dict[str, float]
     }
-    
+
     class MultiSignalVisualizer {
         <<real-time visualizer>>
         +start() void
@@ -519,7 +519,7 @@ classDiagram
         +update_plots() void
         +set_frequency_range(min_freq: float, max_freq: float) void
     }
-    
+
     class BrainMapVisualizer {
         <<topographic visualizer>>
         +start() void
@@ -527,7 +527,7 @@ classDiagram
         +update_quality_display() void
         +set_quality_thresholds(excellent: float, good: float, fair: float, poor: float) void
     }
-    
+
     class QtInteractionAdapter {
         <<thread-safe adapter>>
         +connect_board(board_id: int, params: Dict[str, Any], preset: int) bool
@@ -542,7 +542,7 @@ classDiagram
         +get_recording_settings() Dict[str, Any]
         +get_streaming_settings() Dict[str, Any]
     }
-    
+
     class ThemeManager {
         <<theme management>>
         +dark_bg: str
@@ -552,14 +552,14 @@ classDiagram
         +success_color: str
         +warning_color: str
         +error_color: str
-        
+
         +apply_dark_theme(widget: QWidget) void
     }
-    
+
     %% ================================================================================
     %% EXTERNAL SERVICE DEPENDENCIES
     %% ================================================================================
-    
+
     class CollectorService {
         <<data collection service>>
         +get_instance()$ CollectorService
@@ -576,7 +576,7 @@ classDiagram
         +config_device(config_cmd: str) str
         +cleanup() void
     }
-    
+
     class DataAccessService {
         <<centralized data access>>
         +get_instance()$ DataAccessService
@@ -596,7 +596,7 @@ classDiagram
         +update_filter_settings(filter_settings: Dict[str, Any]) void
         +set_filter_processor(processor_service: Any) void
     }
-    
+
     class ProcessorService {
         <<signal processing service>>
         +apply_filters(filter_config: Dict[str, Any]) void
@@ -606,7 +606,7 @@ classDiagram
         +apply_notch_filter(data: np.ndarray, freq: float) np.ndarray
         +apply_detrend(data: np.ndarray) np.ndarray
     }
-    
+
     class RecordingService {
         <<data recording service>>
         +get_instance()$ RecordingService
@@ -618,7 +618,7 @@ classDiagram
         +get_recording_status() Dict[str, Any]
         +cleanup() void
     }
-    
+
     class VisualizationService {
         <<visualization management service>>
         +start_eeg_visualization() void
@@ -630,7 +630,7 @@ classDiagram
         +get_filter_settings() Dict[str, Any]
         +cleanup() void
     }
-    
+
     class InteractionService {
         <<interaction coordination service>>
         +get_instance()$ InteractionService
@@ -662,7 +662,7 @@ classDiagram
         +save_current_data(filename: str, data_type: str) Dict[str, Any]
         +get_system_status() Dict[str, Any]
     }
-    
+
     class AdvancedProcessingService {
         <<advanced analysis service>>
         +compute_ica(params: Dict[str, Any]) Dict[str, Any]
@@ -672,7 +672,7 @@ classDiagram
         +apply_advanced_filters(params: Dict[str, Any]) Dict[str, Any]
         +get_channel_names() List[str]
     }
-    
+
     class MNEService {
         <<mne processing service>>
         +get_instance()$ MNEService
@@ -691,29 +691,29 @@ classDiagram
         +cancel_task(task_id: str) bool
         +cleanup() void
     }
-    
+
     %% ================================================================================
     %% UI PANEL DEPENDENCIES
     %% ================================================================================
-    
+
     class BasePanel {
         <<ui panel base>>
         +status_message: pyqtSignal[str]
         +error_message: pyqtSignal[str, str]
         +content_widget: QWidget
         +layout: QVBoxLayout
-        
+
         +show_status(message: str) void
         +show_error(title: str, message: str) void
     }
-    
+
     class ConnectionPanel {
         <<connection management panel>>
         +board_connected: pyqtSignal
         +board_disconnected: pyqtSignal
         +stream_started: pyqtSignal
         +stream_stopped: pyqtSignal
-        
+
         +setup_visualization_control() void
         +setup_board_selection() void
         +setup_board_info() void
@@ -726,7 +726,7 @@ classDiagram
         +enable_streaming(enabled: bool) void
         +get_connection_settings() Dict[str, Any]
     }
-    
+
     class ProcessingPanel {
         <<signal processing panel>>
         +setup_filter_options() void
@@ -739,12 +739,12 @@ classDiagram
         +get_filter_settings() Dict[str, Any]
         +update_metrics_display(metrics_text: str) bool
     }
-    
+
     class RecordingPanel {
         <<data recording panel>>
         +recording_started: pyqtSignal
         +recording_stopped: pyqtSignal
-        
+
         +setup_recording_controls() void
         +setup_marker_controls() void
         +setup_status_display() void
@@ -754,7 +754,7 @@ classDiagram
         +enable_recording(enabled: bool) void
         +update_recording_status() void
     }
-    
+
     class StreamingPanel {
         <<data streaming panel>>
         +setup_streamer_configuration() void
@@ -767,7 +767,7 @@ classDiagram
         +get_streamer_params() Dict[str, str]
         +get_active_streamers() List[str]
     }
-    
+
     class AdvancedProcessingPanel {
         <<advanced processing panel>>
         +enable_processing(enabled: bool) void
@@ -777,18 +777,18 @@ classDiagram
         +get_downsample_settings() Dict[str, Any]
         +get_advanced_filter_settings() Dict[str, Any]
     }
-    
+
     class MNEPanel {
         <<mne integration panel>>
         +enable_processing(enabled: bool) void
         +get_mne_settings() Dict[str, Any]
         +update_mne_plot(plot_data: Dict[str, Any]) bool
     }
-    
+
     %% ================================================================================
     %% EXTERNAL FRAMEWORK DEPENDENCIES
     %% ================================================================================
-    
+
     class ApiExplorer {
         <<external api framework>>
         +get_instance()$ ApiExplorer
@@ -799,7 +799,7 @@ classDiagram
         +broadcast_event(module_id: str, payload: Dict[str, Any]) void
         +server_port: Optional[int]
     }
-    
+
     class EventDispatcher {
         <<event system>>
         +get_instance()$ EventDispatcher
@@ -808,7 +808,7 @@ classDiagram
         +get_last_event(event_type: EventType) Optional[Event]
         +clear_event_history() void
     }
-    
+
     class EventType {
         <<event types enum>>
         +STREAM_START$: EventType
@@ -828,16 +828,16 @@ classDiagram
         +DOWNSAMPLE_APPLY$: EventType
         +ADVANCED_FILTERS_APPLY$: EventType
     }
-    
+
     class BoardShim {
         <<brainflow framework>>
         +enable_dev_board_logger()$ void
     }
-    
+
     %% ================================================================================
     %% QT5 FRAMEWORK COMPONENTS
     %% ================================================================================
-    
+
     class QMainWindow {
         <<qt5 framework>>
         +setWindowTitle(title: str) void
@@ -846,77 +846,77 @@ classDiagram
         +statusBar() QStatusBar
         +closeEvent(event: QCloseEvent) void
     }
-    
+
     class QObject {
         <<qt5 framework>>
         +parent: Optional[QObject]
     }
-    
+
     class pyqtSignal {
         <<qt5 framework>>
         +emit(*args: Any) void
         +connect(slot: Callable) void
         +disconnect(slot: Optional[Callable]) void
     }
-    
+
     class QTabWidget {
         <<qt5 framework>>
         +addTab(widget: QWidget, label: str) int
         +setSizePolicy(policy: QSizePolicy) void
     }
-    
+
     class QTimer {
         <<qt5 framework>>
         +timeout: pyqtSignal
         +start(msec: int) void
         +stop() void
     }
-    
+
     class QWidget {
         <<qt5 framework>>
         +setEnabled(enabled: bool) void
         +show() void
         +hide() void
     }
-    
+
     class QVBoxLayout {
         <<qt5 framework>>
         +addWidget(widget: QWidget) void
         +addLayout(layout: QLayout) void
     }
-    
+
     class QStatusBar {
         <<qt5 framework>>
         +showMessage(message: str) void
     }
-    
+
     class QMessageBox {
         <<qt5 framework>>
         +critical(parent: QWidget, title: str, text: str)$ int
     }
-    
+
     class QCloseEvent {
         <<qt5 framework>>
     }
-    
+
     class QApplication {
         <<qt5 framework>>
         +setStyle(style: str) void
         +exec_() int
         +topLevelWidgets()$ List[QWidget]
     }
-    
+
     %% ================================================================================
     %% STANDARD LIBRARY COMPONENTS
     %% ================================================================================
-    
+
     class argparse {
         <<stdlib>>
         +ArgumentParser: Class
         +add_argument() void
         +parse_args() Namespace
     }
-    
+
     class logging {
         <<stdlib>>
         +basicConfig() void
@@ -925,14 +925,14 @@ classDiagram
         +warning(message: str) void
         +error(message: str) void
     }
-    
+
     class threading {
         <<stdlib>>
         +Thread: Class
         +start() void
         +is_alive() bool
     }
-    
+
     class asyncio {
         <<stdlib>>
         +get_event_loop() AbstractEventLoop
@@ -940,32 +940,32 @@ classDiagram
         +set_event_loop(loop: AbstractEventLoop) void
         +run_coroutine_threadsafe(coro: Coroutine, loop: AbstractEventLoop) Future
     }
-    
+
     class socket {
         <<stdlib>>
         +socket() socket
         +AF_INET$: int
         +SOCK_STREAM$: int
     }
-    
+
     class time {
         <<stdlib>>
         +time() float
     }
-    
+
     class json {
         <<stdlib>>
         +loads(s: str) Any
         +JSONDecodeError: Exception
     }
-    
+
     class numpy {
         <<external>>
         +ndarray: Class
         +array() ndarray
         +concatenate() ndarray
     }
-    
+
     class typing {
         <<stdlib>>
         +Dict
@@ -975,11 +975,11 @@ classDiagram
         +Tuple
         +Callable
     }
-    
+
     %% ================================================================================
     %% RELATIONSHIPS
     %% ================================================================================
-    
+
     %% Package Composition
     EEGProcessorPackage "1" *-- "1" PythonPackage : contains
     PythonPackage "1" *-- "1" EEGProcessorApp : contains
@@ -998,21 +998,21 @@ classDiagram
     PythonPackage "1" *-- "1" UtilsPackage : contains
     PythonPackage "1" *-- "1" VisualizersPackage : contains
     PythonPackage "1" *-- "1" CLIPackage : contains
-    
+
     %% Service Package Composition
     ServicesPackage "1" *-- "1" ICAServicesPackage : contains
     ServicesPackage "1" *-- "1" MNEServicesPackage : contains
-    
+
     %% UI Package Composition
     UIPackage "1" *-- "1" AdvancedUIPackage : contains
     UIPackage "1" *-- "1" MNEUIPackage : contains
     AdvancedUIPackage "1" *-- "1" AdvancedWidgetsPackage : contains
     AdvancedUIPackage "1" *-- "1" AdvancedDialogsPackage : contains
     MNEUIPackage "1" *-- "1" MNEWidgetsPackage : contains
-    
+
     %% CLI Package Composition
     CLIPackage "1" *-- "1" CLICommandsPackage : contains
-    
+
     %% Inheritance
     EEGProcessorApp --|> QMainWindow : extends
     AppEventHandler --|> QObject : extends
@@ -1024,7 +1024,7 @@ classDiagram
     AdvancedProcessingPanel --|> BasePanel : extends
     MNEPanel --|> BasePanel : extends
     QtInteractionAdapter --|> QObject : extends
-    
+
     %% Core Application Relationships
     EEGProcessorApp "1" *-- "1" ThemeManager : theme_manager
     EEGProcessorApp "1" *-- "1" CollectorService : collector_service
@@ -1042,16 +1042,16 @@ classDiagram
     EEGProcessorApp "1" *-- "1" AdvancedProcessingPanel : advanced_panel
     EEGProcessorApp "1" *-- "0..1" MNEPanel : mne_panel
     EEGProcessorApp "1" *-- "1" QTimer : status_timer
-    
+
     %% API Integration Relationships
     EEGProcessorApiIntegration "1" o-- "1" DataAccessService : data_service
     EEGProcessorApiIntegration "1" *-- "1" EEGProcessorInteractionApiIntegration : interaction_integration
     EEGProcessorInteractionApiIntegration "1" o-- "1" InteractionService : interaction_service
-    
+
     %% Static API Dependencies
     EEGDataAPI ..> DataAccessService : delegates to
     EEGProcessorInteractionAPI ..> InteractionService : delegates to
-    
+
     %% Core Component Dependencies
     CollectorsPackage ..> EEGCollector : contains
     ProcessorsPackage ..> SignalProcessor : contains
@@ -1059,7 +1059,7 @@ classDiagram
     VisualizersPackage ..> BrainMapVisualizer : contains
     AdaptersPackage ..> QtInteractionAdapter : contains
     UtilsPackage ..> ThemeManager : contains
-    
+
     %% Service Dependencies
     EEGProcessorApp ..> CollectorService : uses
     EEGProcessorApp ..> ProcessorService : uses
@@ -1069,47 +1069,47 @@ classDiagram
     EEGProcessorApp ..> DataAccessService : uses
     EEGProcessorApp ..> InteractionService : uses
     EEGProcessorApp ..> AdvancedProcessingService : uses
-    
+
     EEGProcessorApiIntegration ..> CollectorService : uses
     EEGProcessorApiIntegration ..> DataAccessService : uses
     EEGProcessorInteractionApiIntegration ..> InteractionService : uses
-    
+
     %% Signal Relationships
     AppEventHandler "1" *-- "4" pyqtSignal : event signals
     BasePanel "1" *-- "2" pyqtSignal : status signals
     ConnectionPanel "1" *-- "4" pyqtSignal : connection signals
     RecordingPanel "1" *-- "2" pyqtSignal : recording signals
-    
+
     %% Signal Connections
     ConnectionPanel ..> EEGProcessorApp : stream_started, stream_stopped, board_connected, board_disconnected
     RecordingPanel ..> EEGProcessorApp : recording_started, recording_stopped
-    
+
     %% Event System Dependencies
     EEGProcessorApp ..> EventDispatcher : subscribes to
     EEGProcessorApp ..> EventType : uses
-    
+
     %% External Framework Dependencies
     EEGProcessorApp ..> ThemeManager : creates
     EEGProcessorApp ..> QtInteractionAdapter : creates
     EEGProcessorApp ..> BoardShim : uses
-    
+
     EEGProcessorApiIntegration ..> ApiExplorer : uses
-    
+
     %% Module API Functions
     ModuleAPIFunctions ..> EEGProcessorApiIntegration : creates and manages
-    
+
     %% Entry Point Dependencies
     RunApplication ..> EEGProcessorApp : creates and runs
     RunApplication ..> argparse : uses
     RunApplication ..> logging : uses
     RunApplication ..> threading : uses
-    
+
     %% Qt Framework Dependencies
     EEGProcessorApp ..> QTabWidget : creates
     EEGProcessorApp ..> QVBoxLayout : creates
     EEGProcessorApp ..> QTimer : creates
     EEGProcessorApp ..> QMessageBox : uses
-    
+
     %% Standard Library Dependencies
     EEGProcessorApp ..> logging : uses
     EEGDataAPI ..> logging : uses
@@ -1119,44 +1119,44 @@ classDiagram
     EEGProcessorApiIntegration ..> time : uses
     EEGProcessorApiIntegration ..> numpy : uses
     EEGProcessorInteractionApiIntegration ..> json : uses
-    
+
     RunApplication ..> argparse : uses
     RunApplication ..> logging : uses
     RunApplication ..> threading : uses
-    
+
     %% Type Dependencies
     EEGProcessorApp ..> typing : uses
     EEGDataAPI ..> typing : uses
     EEGProcessorInteractionAPI ..> typing : uses
     EEGProcessorApiIntegration ..> typing : uses
     EEGProcessorInteractionApiIntegration ..> typing : uses
-    
+
     %% ================================================================================
     %% LOGICAL GROUPINGS
     %% ================================================================================
-    
+
     %% Core Application Components
     EEGProcessorApp -.- AppEventHandler : "core application"
-    
+
     %% API Layer
     EEGDataAPI -.- EEGProcessorInteractionAPI : "api interfaces"
     EEGProcessorApiIntegration -.- EEGProcessorInteractionApiIntegration : "api integration"
-    
+
     %% Core Infrastructure
     AdaptersPackage -.- CorePackage : "infrastructure"
     CorePackage -.- InterfacesPackage : "infrastructure"
-    
+
     %% Data Management
     CollectorsPackage -.- ProcessorsPackage : "data management"
     ProcessorsPackage -.- ServicesPackage : "data management"
-    
+
     %% User Interface
     UIPackage -.- UtilsPackage : "user interface"
     UtilsPackage -.- VisualizersPackage : "user interface"
-    
+
     %% Command Line Interface
     CLIPackage -.- CLICommandsPackage : "command line interface"
-    
+
     %% Service Layer
     CollectorService -.- DataAccessService : "core services"
     DataAccessService -.- ProcessorService : "core services"
@@ -1165,7 +1165,7 @@ classDiagram
     VisualizationService -.- InteractionService : "core services"
     InteractionService -.- AdvancedProcessingService : "core services"
     AdvancedProcessingService -.- MNEService : "core services"
-    
+
     %% UI Panel Layer
     BasePanel -.- ConnectionPanel : "ui panels"
     ConnectionPanel -.- ProcessingPanel : "ui panels"
@@ -1173,18 +1173,18 @@ classDiagram
     RecordingPanel -.- StreamingPanel : "ui panels"
     StreamingPanel -.- AdvancedProcessingPanel : "ui panels"
     AdvancedProcessingPanel -.- MNEPanel : "ui panels"
-    
+
     %% Core Components
     EEGCollector -.- SignalProcessor : "core components"
     SignalProcessor -.- MultiSignalVisualizer : "core components"
     MultiSignalVisualizer -.- BrainMapVisualizer : "core components"
     BrainMapVisualizer -.- QtInteractionAdapter : "core components"
     QtInteractionAdapter -.- ThemeManager : "core components"
-    
+
     %% External Framework Components
     ApiExplorer -.- EventDispatcher : "external frameworks"
     EventDispatcher -.- EventType : "external frameworks"
-    
+
     %% Qt Framework Components
     QMainWindow -.- QObject : "qt framework"
     QObject -.- pyqtSignal : "qt framework"
@@ -1196,7 +1196,7 @@ classDiagram
     QStatusBar -.- QMessageBox : "qt framework"
     QMessageBox -.- QCloseEvent : "qt framework"
     QCloseEvent -.- QApplication : "qt framework"
-    
+
     %% Standard Library Components
     argparse -.- logging : "standard libraries"
     logging -.- threading : "standard libraries"
@@ -1205,7 +1205,7 @@ classDiagram
     socket -.- time : "standard libraries"
     time -.- json : "standard libraries"
     json -.- typing : "standard libraries"
-    
+
     %% External Libraries
     numpy -.- BoardShim : "external libraries"
 ```

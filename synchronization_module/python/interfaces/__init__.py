@@ -10,7 +10,7 @@ from .export_interface import DatasetExporterInterface, MetadataInterface
 
 __all__ = [
     "SynchronizationInterface",
-    "LSLStreamInterface", 
+    "LSLStreamInterface",
     "DatasetExporterInterface",
     "MetadataInterface",
 ]

@@ -3,11 +3,11 @@ classDiagram
     %% ================================================================================
     %% SERVICES MODULE - SERVICE-ORIENTED ARCHITECTURE FOR EEG PROCESSING
     %% ================================================================================
-    
+
     %% ================================================================================
     %% CORE SERVICE CLASSES
     %% ================================================================================
-    
+
     class CollectorService {
         <<singleton service>>
         -_instance$: Optional[CollectorService]
@@ -23,7 +23,7 @@ classDiagram
         -_last_timestamp: float
         -_last_reported_time: float
         -_report_interval: float
-        
+
         +get_instance()$ CollectorService
         +__init__() void
         +connect_to_board(board_id: int, params: Dict[str, Any], preset: int) bool
@@ -51,7 +51,7 @@ classDiagram
         -_is_streaming_board(board_id: int) bool
         -_get_master_board_info(master_board_id: int, preset: int) Optional[Dict[str, Any]]
     }
-    
+
     class DataAccessService {
         <<singleton service>>
         -_instance$: Optional[DataAccessService]
@@ -80,7 +80,7 @@ classDiagram
         -_wavelet_coefficients: Optional[np.ndarray]
         -_wavelet_metadata: Optional[Dict[str, Any]]
         -_wavelet_target_channel: int
-        
+
         +get_instance()$ DataAccessService
         +__init__() void
         +register_local_callback(callback: Callable[[np.ndarray, List[int]], None]) int
@@ -119,12 +119,12 @@ classDiagram
         -_update_metadata_from_collector(metadata: Dict[str, Any]) void
         -_get_active_collector() Optional[Any]
     }
-    
+
     class ProcessorService {
         <<signal processing service>>
         +processor: Optional[SignalProcessor]
         +sampling_rate: int
-        
+
         +__init__() void
         +initialize_processor(sampling_rate: int) void
         +apply_bandpass_filter(data: np.ndarray, low_cutoff: float, high_cutoff: float, channels: Optional[List[int]]) np.ndarray
@@ -141,7 +141,7 @@ classDiagram
         +apply_inverse_wavelet(coefficients: np.ndarray, metadata: Dict[str, Any]) np.ndarray
         -_get_eeg_channels_only() List[int]
     }
-    
+
     class RecordingService {
         <<singleton service>>
         -_instance$: Optional[RecordingService]
@@ -151,7 +151,7 @@ classDiagram
         +filename: str
         +data_type: str
         +data_manager: RecordingDataManager
-        
+
         +get_instance()$ RecordingService
         +__init__() void
         +start_recording(filename: str, data_type: str) bool
@@ -168,7 +168,7 @@ classDiagram
         +get_board_data_count() int
         +total_recorded_samples() int
     }
-    
+
     class VisualizationService {
         <<visualization coordinator>>
         +eeg_visualizer: Optional[MultiSignalVisualizer]
@@ -180,7 +180,7 @@ classDiagram
         +notch_enabled: bool
         +notch_freq: float
         +detrend_enabled: bool
-        
+
         +__init__() void
         +create_eeg_visualizer(collector: Any, processor: Any) bool
         +create_brain_map_visualizer(collector: Any, processor: Any) bool
@@ -201,7 +201,7 @@ classDiagram
         +are_filters_applied() bool
         +get_filter_settings() Dict[str, Any]
     }
-    
+
     class InteractionService {
         <<singleton api bridge>>
         -_instance$: Optional[InteractionService]
@@ -215,7 +215,7 @@ classDiagram
         -_recording_service: Optional[RecordingService]
         -_visualization_service: Optional[VisualizationService]
         -_data_access_service: Optional[DataAccessService]
-        
+
         +get_instance()$ InteractionService
         +__init__() void
         +register_component(component_name: str, component: Any) void
@@ -263,7 +263,7 @@ classDiagram
         -_determine_streamer_type(streamer_params: str) str
         -_validate_streaming_board_preset() void
     }
-    
+
     class AdvancedProcessingService {
         <<advanced analysis service>>
         -_data_access_service: DataAccessService
@@ -273,7 +273,7 @@ classDiagram
         -_downsampling_active: bool
         -_advanced_filters_active: bool
         -_inverse_wavelet_active: bool
-        
+
         +__init__() void
         +initialize(processor_service: Any) void
         +get_channel_names() List[str]
@@ -289,7 +289,7 @@ classDiagram
         +cleanup() void
         -_ensure_processor_initialized() void
     }
-    
+
     class MNEService {
         <<singleton mne facade>>
         -_instance$: Optional[MNEService]
@@ -300,7 +300,7 @@ classDiagram
         -_visualizer_service: MNEVisualizerService
         -_realtime_service: MNERealtimeService
         -_data_access_service: DataAccessService
-        
+
         +get_instance()$ MNEService
         +__init__() void
         +is_available() bool
@@ -336,7 +336,7 @@ classDiagram
         +result_storage() MNEResultStorageInterface
         +realtime_service() MNERealtimeInterface
     }
-    
+
     class ServicesPackage {
         <<module package>>
         +CollectorService: Class
@@ -350,18 +350,18 @@ classDiagram
         +ica: module
         +mne: module
     }
-    
+
     %% ================================================================================
     %% SPECIALIZED SERVICE PACKAGES
     %% ================================================================================
-    
+
     class ICAServicesPackage {
         <<specialized services>>
         +ICAProcessService: Class
         +ICARealtimeService: Class
         +ExportService: Class
     }
-    
+
     class MNEServicesPackage {
         <<specialized services>>
         +MNEConverterService: Class
@@ -370,11 +370,11 @@ classDiagram
         +MNEProcessManager: Class
         +MNEResultStorage: Class
     }
-    
+
     %% ================================================================================
     %% SUPPORTING CLASSES
     %% ================================================================================
-    
+
     class RecordingDataManager {
         <<data manager>>
         +recording_service: RecordingService
@@ -386,7 +386,7 @@ classDiagram
         +data_type: str
         +is_recording_both: bool
         +data_callback_id: Optional[int]
-        
+
         +__init__(recording_service: RecordingService) void
         +start_recording(filename: str, data_type: str) void
         +stop_recording() void
@@ -396,20 +396,20 @@ classDiagram
         -_write_data_to_file(data: np.ndarray, data_type: str) void
         -_finalize_recording_file(file_handle: Any, recording_duration: float) void
     }
-    
+
     class RecordingFileWriter {
         <<file writer>>
         +collector: Any
-        
+
         +__init__(collector: Any) void
         +write_to_file(filename: str, data: Any, data_type: str) void
         +generate_column_names() List[str]
     }
-    
+
     %% ================================================================================
     %% EXTERNAL DEPENDENCIES
     %% ================================================================================
-    
+
     class EEGCollector {
         <<external collector>>
         +board_id: int
@@ -417,7 +417,7 @@ classDiagram
         +eeg_channels: List[int]
         +device_name: str
         +preset: int
-        
+
         +prepare_session() void
         +release_session() void
         +start_stream(buffer_size: int) void
@@ -436,11 +436,11 @@ classDiagram
         +set_preset(preset: int) bool
         +is_streaming() bool
     }
-    
+
     class SignalProcessor {
         <<external processor>>
         +sampling_rate: float
-        
+
         +bandpass_filter(data: np.ndarray, start_freq: float, stop_freq: float, order: int, filter_type: FilterTypes, ripple: float) np.ndarray
         +bandstop_filter(data: np.ndarray, start_freq: float, stop_freq: float, order: int, filter_type: FilterTypes) np.ndarray
         +remove_environmental_noise(data: np.ndarray) np.ndarray
@@ -454,13 +454,13 @@ classDiagram
         +apply_inverse_wavelet_transform(coefficients: np.ndarray, metadata: Dict[str, Any]) np.ndarray
         +get_signal_quality(data: np.ndarray, channel: int, gain: int) float
     }
-    
+
     class MultiSignalVisualizer {
         <<external visualizer>>
         +collector: Any
         +processor: Any
         +main_widget: Any
-        
+
         +start() void
         +stop() void
         +is_visible() bool
@@ -468,35 +468,35 @@ classDiagram
         +cleanup_for_disconnect() void
         +_clear_cache()$ void
     }
-    
+
     class BrainMapVisualizer {
         <<external visualizer>>
         +collector: Any
         +processor: Any
-        
+
         +start() void
         +close() void
         +is_visible() bool
         +visualization_closed() bool
     }
-    
+
     class BoardConfiguration {
         <<external config>>
         +get_all_boards()$ List[Tuple[str, int]]
         +create_input_params(board_id: int, params: Dict[str, Any])$ Any
     }
-    
+
     class EventDispatcher {
         <<external event system>>
         +get_instance()$ EventDispatcher
         +dispatch(event: Event) void
         +subscribe(event_type: EventType, callback: Callable) void
     }
-    
+
     %% ================================================================================
     %% BRAINFLOW COMPONENTS
     %% ================================================================================
-    
+
     class FilterTypes {
         <<brainflow enum>>
         +BUTTERWORTH$: FilterTypes
@@ -504,7 +504,7 @@ classDiagram
         +BESSEL$: FilterTypes
         +value: int
     }
-    
+
     class WaveletTypes {
         <<brainflow enum>>
         +DB4$: WaveletTypes
@@ -512,7 +512,7 @@ classDiagram
         +HAAR$: WaveletTypes
         +value: int
     }
-    
+
     class AggOperations {
         <<brainflow enum>>
         +MEAN$: AggOperations
@@ -520,11 +520,11 @@ classDiagram
         +EACH$: AggOperations
         +value: int
     }
-    
+
     %% ================================================================================
     %% MULTIPROCESSING COMPONENTS
     %% ================================================================================
-    
+
     class multiprocessing {
         <<stdlib>>
         +Process: Class
@@ -532,7 +532,7 @@ classDiagram
         +Pool: Class
         +cpu_count() int
     }
-    
+
     class mp_Queue {
         <<multiprocessing>>
         +put(item: Any) void
@@ -541,7 +541,7 @@ classDiagram
         +empty() bool
         +full() bool
     }
-    
+
     class mp_Pool {
         <<multiprocessing.pool>>
         +processes: int
@@ -549,17 +549,17 @@ classDiagram
         +terminate() void
         +join() void
     }
-    
+
     class queue {
         <<stdlib>>
         +Empty: Exception
         +Full: Exception
     }
-    
+
     %% ================================================================================
     %% THREADING COMPONENTS
     %% ================================================================================
-    
+
     class threading {
         <<stdlib>>
         +Thread: Class
@@ -568,7 +568,7 @@ classDiagram
         +RLock: Class
         +main_thread() Thread
     }
-    
+
     class Thread {
         <<threading>>
         +target: Callable
@@ -578,7 +578,7 @@ classDiagram
         +join(timeout: Optional[float]) void
         +is_alive() bool
     }
-    
+
     class Event {
         <<threading>>
         +set() void
@@ -586,7 +586,7 @@ classDiagram
         +is_set() bool
         +wait(timeout: Optional[float]) bool
     }
-    
+
     class Lock {
         <<threading>>
         +acquire(blocking: bool) bool
@@ -594,7 +594,7 @@ classDiagram
         +__enter__() Lock
         +__exit__(exc_type: Any, exc_val: Any, exc_tb: Any) void
     }
-    
+
     class RLock {
         <<threading>>
         +acquire(blocking: bool) bool
@@ -602,16 +602,16 @@ classDiagram
         +__enter__() RLock
         +__exit__(exc_type: Any, exc_val: Any, exc_tb: Any) void
     }
-    
+
     %% ================================================================================
     %% STANDARD LIBRARY COMPONENTS
     %% ================================================================================
-    
+
     class collections {
         <<stdlib>>
         +deque: Class
     }
-    
+
     class Deque {
         <<collections>>
         +maxlen: Optional[int]
@@ -619,7 +619,7 @@ classDiagram
         +clear() void
         +__len__() int
     }
-    
+
     class numpy {
         <<stdlib>>
         +ndarray: Class
@@ -628,7 +628,7 @@ classDiagram
         +array_equal(a: ndarray, b: ndarray) bool
         +copy(data: ndarray) ndarray
     }
-    
+
     class logging {
         <<stdlib>>
         +info(message: str) void
@@ -636,21 +636,21 @@ classDiagram
         +warning(message: str) void
         +error(message: str) void
     }
-    
+
     class time {
         <<stdlib>>
         +time() float
         +sleep(seconds: float) void
         +strftime(format: str) str
     }
-    
+
     class os {
         <<stdlib>>
         +makedirs(path: str, exist_ok: bool) void
         +path: module
         +getcwd() str
     }
-    
+
     class typing {
         <<stdlib>>
         +Dict
@@ -662,11 +662,11 @@ classDiagram
         +Callable
         +TYPE_CHECKING: bool
     }
-    
+
     %% ================================================================================
     %% RELATIONSHIPS
     %% ================================================================================
-    
+
     %% Package Composition
     ServicesPackage "1" *-- "1" CollectorService : contains
     ServicesPackage "1" *-- "1" DataAccessService : contains
@@ -678,13 +678,13 @@ classDiagram
     ServicesPackage "1" *-- "1" MNEService : contains
     ServicesPackage "1" *-- "1" ICAServicesPackage : contains
     ServicesPackage "1" *-- "1" MNEServicesPackage : contains
-    
+
     %% Core Service Relationships
     CollectorService "1" o-- "0..1" EEGCollector : collector
     CollectorService "1" *-- "0..1" Thread : _data_thread
     CollectorService "1" *-- "1" Event : _stop_event
     CollectorService "1" *-- "1" Deque : _samples_timestamps
-    
+
     DataAccessService "1" o-- "0..1" CollectorService : _collector_service
     DataAccessService "1" o-- "0..1" ProcessorService : _processor_service
     DataAccessService "1" *-- "1" Lock : _data_lock
@@ -695,87 +695,87 @@ classDiagram
     DataAccessService "1" *-- "0..1" mp_Pool : _api_process_pool
     DataAccessService "1" *-- "0..1" Thread : _api_worker_thread
     DataAccessService "1" *-- "1" Event : _api_stop_event
-    
+
     ProcessorService "1" o-- "0..1" SignalProcessor : processor
-    
+
     RecordingService "1" *-- "1" RecordingDataManager : data_manager
     RecordingDataManager "1" o-- "1" RecordingService : recording_service
-    
+
     VisualizationService "1" o-- "0..1" MultiSignalVisualizer : eeg_visualizer
     VisualizationService "1" o-- "0..1" BrainMapVisualizer : brain_map_visualizer
-    
+
     InteractionService "1" *-- "1" EventDispatcher : event_dispatcher
     InteractionService "1" o-- "0..1" CollectorService : _collector_service
     InteractionService "1" o-- "0..1" ProcessorService : _processor_service
     InteractionService "1" o-- "0..1" RecordingService : _recording_service
     InteractionService "1" o-- "0..1" VisualizationService : _visualization_service
     InteractionService "1" o-- "0..1" DataAccessService : _data_access_service
-    
+
     AdvancedProcessingService "1" o-- "1" DataAccessService : _data_access_service
     AdvancedProcessingService "1" o-- "0..1" ProcessorService : _processor_service
-    
+
     MNEService "1" *-- "1" MNEServicesPackage : contains specialized services
-    
+
     %% Supporting Class Relationships
     RecordingService "1" o-- "1" RecordingFileWriter : uses
     RecordingFileWriter "1" o-- "1" EEGCollector : collector
-    
+
     %% External Dependencies
     CollectorService ..> BoardConfiguration : uses
     CollectorService ..> DataAccessService : updates
-    
+
     ProcessorService ..> SignalProcessor : uses
     ProcessorService ..> FilterTypes : uses
     ProcessorService ..> WaveletTypes : uses
     ProcessorService ..> AggOperations : uses
-    
+
     VisualizationService ..> MultiSignalVisualizer : creates
     VisualizationService ..> BrainMapVisualizer : creates
-    
+
     InteractionService ..> BoardConfiguration : uses
     InteractionService ..> EventDispatcher : uses
-    
+
     %% Multiprocessing Dependencies
     DataAccessService ..> multiprocessing : uses
     DataAccessService ..> mp_Queue : creates
     DataAccessService ..> mp_Pool : creates
     DataAccessService ..> queue : handles exceptions
-    
+
     %% Threading Dependencies
     CollectorService ..> threading : uses
     CollectorService ..> Thread : creates
     CollectorService ..> Event : creates
-    
+
     DataAccessService ..> threading : uses
     DataAccessService ..> Thread : creates
     DataAccessService ..> Lock : creates
     DataAccessService ..> Event : creates
-    
+
     InteractionService ..> threading : uses
     InteractionService ..> RLock : uses
-    
+
     RecordingService ..> threading : uses
     RecordingService ..> RLock : uses
-    
+
     MNEService ..> threading : uses
     MNEService ..> RLock : uses
-    
+
     %% Standard Library Dependencies
     CollectorService ..> collections : uses
     CollectorService ..> Deque : creates
     CollectorService ..> numpy : uses
     CollectorService ..> logging : uses
     CollectorService ..> time : uses
-    
+
     DataAccessService ..> numpy : uses
     DataAccessService ..> logging : uses
     DataAccessService ..> time : uses
-    
+
     RecordingService ..> numpy : uses
     RecordingService ..> logging : uses
     RecordingService ..> time : uses
     RecordingService ..> os : uses
-    
+
     %% Type Hints
     CollectorService ..> typing : uses
     DataAccessService ..> typing : uses
@@ -785,39 +785,39 @@ classDiagram
     InteractionService ..> typing : uses
     AdvancedProcessingService ..> typing : uses
     MNEService ..> typing : uses
-    
+
     %% ================================================================================
     %% LOGICAL GROUPINGS
     %% ================================================================================
-    
+
     %% Core Services
     CollectorService -.- DataAccessService : "data pipeline"
     DataAccessService -.- ProcessorService : "data pipeline"
     ProcessorService -.- RecordingService : "data pipeline"
-    
+
     %% User Interface Services
     VisualizationService -.- InteractionService : "ui coordination"
-    
+
     %% Advanced Analysis Services
     AdvancedProcessingService -.- MNEService : "advanced analysis"
-    
+
     %% Specialized Service Packages
     ICAServicesPackage -.- MNEServicesPackage : "specialized analysis"
-    
+
     %% Threading Components
     threading -.- Thread : "concurrency framework"
     Thread -.- Event : "concurrency framework"
     Event -.- Lock : "concurrency framework"
     Lock -.- RLock : "concurrency framework"
-    
+
     %% Multiprocessing Components
     multiprocessing -.- mp_Queue : "multiprocessing framework"
     mp_Queue -.- mp_Pool : "multiprocessing framework"
-    
+
     %% BrainFlow Components
     FilterTypes -.- WaveletTypes : "brainflow enums"
     WaveletTypes -.- AggOperations : "brainflow enums"
-    
+
     %% Standard Library Components
     numpy -.- logging : "standard libraries"
     logging -.- time : "standard libraries"

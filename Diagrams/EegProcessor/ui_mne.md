@@ -3,16 +3,16 @@ classDiagram
     %% ================================================================================
     %% UI/MNE MODULE - MNE-PYTHON INTEGRATION USER INTERFACE ARCHITECTURE
     %% ================================================================================
-    
+
     %% ================================================================================
     %% CORE CONTROLLER CLASS
     %% ================================================================================
-    
+
     class MNEPanelController {
         <<mne coordination controller>>
         +status_message: pyqtSignal[str]
         +error_message: pyqtSignal[str, str]
-        
+
         +conversion_widget: MNEConversionWidget
         +visualization_widget: MNEVisualizationWidget
         +status_widget: MNEStatusWidget
@@ -32,7 +32,7 @@ classDiagram
         +status_timer: QTimer
         +realtime_timer: QTimer
         +filter_check_timer: QTimer
-        
+
         +__init__(conversion_widget: MNEConversionWidget, visualization_widget: MNEVisualizationWidget, status_widget: MNEStatusWidget, parent: Optional[QObject], visualization_service: Optional[Any]) void
         +enable_processing(enabled: bool) void
         +cleanup() void
@@ -66,17 +66,17 @@ classDiagram
         -_handle_topomap_band_change(freq_min: int, freq_max: int) void
         -_initialize_channel_data() void
     }
-    
+
     class MNEUIPackage {
         <<module package>>
         +MNEPanelController: Class
         +widgets: module
     }
-    
+
     %% ================================================================================
     %% SPECIALIZED WIDGET PACKAGE
     %% ================================================================================
-    
+
     class MNEWidgetsPackage {
         <<specialized widgets>>
         +MNEConversionWidget: Class
@@ -84,11 +84,11 @@ classDiagram
         +MNEStatusWidget: Class
         +ChannelSelectionDialog: Class
     }
-    
+
     %% ================================================================================
     %% MNE-SPECIFIC WIDGETS
     %% ================================================================================
-    
+
     class MNEConversionWidget {
         <<mne conversion widget>>
         +conversion_requested: pyqtSignal[dict]
@@ -97,7 +97,7 @@ classDiagram
         +realtime_requested: pyqtSignal[dict]
         +realtime_stopped: pyqtSignal
         +realtime_param_changed: pyqtSignal[str, object]
-        
+
         +conversion_mode_combo: QComboBox
         +duration_spin: QSpinBox
         +convert_to_v_check: QCheckBox
@@ -114,7 +114,7 @@ classDiagram
         +conversion_progress: QProgressBar
         +realtime_params_widget: QWidget
         +performance_channel_widget: QWidget
-        
+
         +get_conversion_parameters() Dict[str, Any]
         +get_realtime_parameters() Dict[str, Any]
         +set_conversion_state(converting: bool) void
@@ -124,7 +124,7 @@ classDiagram
         +update_filter_status(status_text: str, is_active: bool) void
         +reset_state() void
     }
-    
+
     class MNEVisualizationWidget {
         <<mne visualization widget>>
         +visualization_requested: pyqtSignal[dict]
@@ -134,7 +134,7 @@ classDiagram
         +freq_range_changed: pyqtSignal[int, int]
         +psd_mode_changed: pyqtSignal[bool]
         +topomap_band_changed: pyqtSignal[int, int]
-        
+
         +plot_type_combo: QComboBox
         +freq_min_spin: QSpinBox
         +freq_max_spin: QSpinBox
@@ -148,7 +148,7 @@ classDiagram
         +cancel_plot_btn: QPushButton
         +plot_progress: QProgressBar
         +plot_display: QLabel
-        
+
         +get_visualization_parameters() Dict[str, Any]
         +set_visualization_state(visualizing: bool) void
         +set_enabled(enabled: bool) void
@@ -157,12 +157,12 @@ classDiagram
         +display_plot(plot_data: str) void
         +reset_state() void
     }
-    
+
     class MNEStatusWidget {
         <<mne status monitoring widget>>
         +realtime_info: QLabel
         +status_text: QTextEdit
-        
+
         +add_status_message(message: str) void
         +clear_status() void
         +update_realtime_status(status_info: Dict[str, Any]) void
@@ -170,14 +170,14 @@ classDiagram
         +add_channel_update_message(old_count: int, new_count: int) void
         +add_optimization_message(channels_selected: int, total_channels: int) void
     }
-    
+
     class ChannelSelectionDialog {
         <<channel selection dialog>>
         +channel_names: List[str]
         +selected_channels: List[int]
         +checkboxes: List[QCheckBox]
         +info_label: QLabel
-        
+
         +__init__(channel_names: List[str], selected_channels: Optional[List[int]], parent: Optional[QWidget]) void
         +get_selected_channels() List[int]
         +select_all() void
@@ -185,11 +185,11 @@ classDiagram
         +update_info_label() void
         +apply_dark_theme() void
     }
-    
+
     %% ================================================================================
     %% SERVICE LAYER INTEGRATION
     %% ================================================================================
-    
+
     class MNEService {
         <<mne processing service>>
         +get_instance()$ MNEService
@@ -206,7 +206,7 @@ classDiagram
         +get_realtime_status(session_id: str) Dict[str, Any]
         +cancel_task(task_id: str) bool
     }
-    
+
     class DataAccessService {
         <<data access service>>
         +get_instance()$ DataAccessService
@@ -214,52 +214,52 @@ classDiagram
         +get_raw_data() Tuple[Any, Any]
         +get_metadata() Dict[str, Any]
     }
-    
+
     %% ================================================================================
     %% QT5 FRAMEWORK COMPONENTS
     %% ================================================================================
-    
+
     class QObject {
         <<qt5 framework>>
         +parent: Optional[QObject]
-        
+
         +__init__(parent: Optional[QObject]) void
     }
-    
+
     class pyqtSignal {
         <<qt5 framework>>
         +emit(*args: Any) void
         +connect(slot: Callable) void
         +disconnect(slot: Optional[Callable]) void
     }
-    
+
     class QWidget {
         <<qt5 framework>>
         +setEnabled(enabled: bool) void
         +parent() QWidget
     }
-    
+
     class QDialog {
         <<qt5 framework>>
         +Accepted$: int
         +exec_() int
         +setWindowTitle(title: str) void
     }
-    
+
     class QTimer {
         <<qt5 framework>>
         +timeout: pyqtSignal
         +start(msec: int) void
         +stop() void
     }
-    
+
     class QSpinBox {
         <<qt5 framework>>
         +value() int
         +setValue(value: int) void
         +valueChanged: pyqtSignal[int]
     }
-    
+
     class QCheckBox {
         <<qt5 framework>>
         +isChecked() bool
@@ -267,7 +267,7 @@ classDiagram
         +stateChanged: pyqtSignal[int]
         +toggled: pyqtSignal[bool]
     }
-    
+
     class QComboBox {
         <<qt5 framework>>
         +currentText() str
@@ -275,58 +275,58 @@ classDiagram
         +currentIndexChanged: pyqtSignal[int]
         +currentTextChanged: pyqtSignal[str]
     }
-    
+
     class QPushButton {
         <<qt5 framework>>
         +clicked: pyqtSignal
         +setEnabled(enabled: bool) void
     }
-    
+
     class QProgressBar {
         <<qt5 framework>>
         +setValue(value: int) void
         +setVisible(visible: bool) void
     }
-    
+
     class QLabel {
         <<qt5 framework>>
         +setText(text: str) void
         +setPixmap(pixmap: QPixmap) void
     }
-    
+
     class QTextEdit {
         <<qt5 framework>>
         +append(text: str) void
         +clear() void
     }
-    
+
     class QPixmap {
         <<qt5 framework>>
         +loadFromData(data: bytes) bool
         +scaled(size: QSize, aspectRatioMode: Qt.AspectRatioMode, transformMode: Qt.TransformationMode) QPixmap
     }
-    
+
     class QVBoxLayout {
         <<qt5 framework>>
         +addWidget(widget: QWidget) void
         +addLayout(layout: QLayout) void
     }
-    
+
     class QHBoxLayout {
         <<qt5 framework>>
         +addWidget(widget: QWidget) void
         +addStretch() void
     }
-    
+
     class QGroupBox {
         <<qt5 framework>>
         +setTitle(title: str) void
     }
-    
+
     %% ================================================================================
     %% STANDARD LIBRARY COMPONENTS
     %% ================================================================================
-    
+
     class logging {
         <<stdlib>>
         +info(message: str) void
@@ -334,7 +334,7 @@ classDiagram
         +warning(message: str) void
         +error(message: str) void
     }
-    
+
     class typing {
         <<stdlib>>
         +Dict
@@ -343,27 +343,27 @@ classDiagram
         +Optional
         +Tuple
     }
-    
+
     %% ================================================================================
     %% RELATIONSHIPS
     %% ================================================================================
-    
+
     %% Package Composition
     MNEUIPackage "1" *-- "1" MNEPanelController : contains
     MNEUIPackage "1" *-- "1" MNEWidgetsPackage : contains
-    
+
     MNEWidgetsPackage "1" *-- "1" MNEConversionWidget : contains
     MNEWidgetsPackage "1" *-- "1" MNEVisualizationWidget : contains
     MNEWidgetsPackage "1" *-- "1" MNEStatusWidget : contains
     MNEWidgetsPackage "1" *-- "1" ChannelSelectionDialog : contains
-    
+
     %% Inheritance
     MNEPanelController --|> QObject : extends
     MNEConversionWidget --|> QWidget : extends
     MNEVisualizationWidget --|> QWidget : extends
     MNEStatusWidget --|> QWidget : extends
     ChannelSelectionDialog --|> QDialog : extends
-    
+
     %% Core Controller Relationships
     MNEPanelController "1" o-- "1" MNEConversionWidget : conversion_widget
     MNEPanelController "1" o-- "1" MNEVisualizationWidget : visualization_widget
@@ -373,7 +373,7 @@ classDiagram
     MNEPanelController "1" *-- "1" QTimer : status_timer
     MNEPanelController "1" *-- "1" QTimer : realtime_timer
     MNEPanelController "1" *-- "1" QTimer : filter_check_timer
-    
+
     %% Widget Component Relationships
     MNEConversionWidget "1" *-- "1" QComboBox : conversion_mode_combo
     MNEConversionWidget "1" *-- "1" QSpinBox : duration_spin
@@ -384,7 +384,7 @@ classDiagram
     MNEConversionWidget "1" *-- "1" QProgressBar : conversion_progress
     MNEConversionWidget "1" *-- "*" QLabel : various labels
     MNEConversionWidget "1" *-- "2" QWidget : realtime_params_widget, performance_channel_widget
-    
+
     MNEVisualizationWidget "1" *-- "1" QComboBox : plot_type_combo
     MNEVisualizationWidget "1" *-- "4" QSpinBox : freq_min_spin, freq_max_spin, topomap_freq_min_spin, topomap_freq_max_spin
     MNEVisualizationWidget "1" *-- "1" QComboBox : topomap_band_combo
@@ -394,13 +394,13 @@ classDiagram
     MNEVisualizationWidget "1" *-- "1" QProgressBar : plot_progress
     MNEVisualizationWidget "1" *-- "1" QLabel : plot_display
     MNEVisualizationWidget "1" *-- "*" QLabel : various status labels
-    
+
     MNEStatusWidget "1" *-- "1" QLabel : realtime_info
     MNEStatusWidget "1" *-- "1" QTextEdit : status_text
-    
+
     ChannelSelectionDialog "1" *-- "*" QCheckBox : checkboxes
     ChannelSelectionDialog "1" *-- "1" QLabel : info_label
-    
+
     %% Signal Relationships
     MNEPanelController "1" *-- "2" pyqtSignal : signals
     MNEConversionWidget "1" *-- "6" pyqtSignal : signals
@@ -410,22 +410,22 @@ classDiagram
     QCheckBox "1" *-- "2" pyqtSignal : stateChanged, toggled
     QComboBox "1" *-- "2" pyqtSignal : currentIndexChanged, currentTextChanged
     QTimer "1" *-- "1" pyqtSignal : timeout
-    
+
     %% Signal Connections
     MNEConversionWidget ..> MNEPanelController : conversion_requested, conversion_cancelled, channel_selection_requested, realtime_requested, realtime_stopped, realtime_param_changed
     MNEVisualizationWidget ..> MNEPanelController : visualization_requested, visualization_cancelled, channel_selection_requested, plot_type_changed, freq_range_changed, psd_mode_changed, topomap_band_changed
-    
+
     %% Service Dependencies
     MNEPanelController ..> MNEService : uses
     MNEPanelController ..> DataAccessService : uses
-    
+
     %% Dynamic Dialog Creation
     MNEPanelController ..> ChannelSelectionDialog : creates dynamically
-    
+
     %% Qt Framework Dependencies
     MNEPanelController ..> QTimer : creates
     MNEPanelController ..> QDialog : uses
-    
+
     MNEConversionWidget ..> QVBoxLayout : creates
     MNEConversionWidget ..> QHBoxLayout : creates
     MNEConversionWidget ..> QGroupBox : creates
@@ -435,7 +435,7 @@ classDiagram
     MNEConversionWidget ..> QCheckBox : creates
     MNEConversionWidget ..> QComboBox : creates
     MNEConversionWidget ..> QProgressBar : creates
-    
+
     MNEVisualizationWidget ..> QVBoxLayout : creates
     MNEVisualizationWidget ..> QHBoxLayout : creates
     MNEVisualizationWidget ..> QGroupBox : creates
@@ -446,31 +446,31 @@ classDiagram
     MNEVisualizationWidget ..> QComboBox : creates
     MNEVisualizationWidget ..> QProgressBar : creates
     MNEVisualizationWidget ..> QPixmap : uses
-    
+
     MNEStatusWidget ..> QVBoxLayout : creates
     MNEStatusWidget ..> QGroupBox : creates
     MNEStatusWidget ..> QLabel : creates
     MNEStatusWidget ..> QTextEdit : creates
-    
+
     %% Standard Library Dependencies
     MNEPanelController ..> logging : uses
     MNEPanelController ..> typing : uses
-    
+
     %% ================================================================================
     %% LOGICAL GROUPINGS
     %% ================================================================================
-    
+
     %% Core Components
     MNEPanelController -.- MNEService : "core coordination"
-    
+
     %% Widget Categories
     MNEConversionWidget -.- MNEVisualizationWidget : "mne operation widgets"
     MNEVisualizationWidget -.- MNEStatusWidget : "mne operation widgets"
     MNEStatusWidget -.- ChannelSelectionDialog : "mne operation widgets"
-    
+
     %% Service Layer
     MNEService -.- DataAccessService : "service layer"
-    
+
     %% Qt Framework Components
     QObject -.- pyqtSignal : "qt framework"
     pyqtSignal -.- QWidget : "qt framework"
@@ -487,7 +487,7 @@ classDiagram
     QPixmap -.- QVBoxLayout : "qt framework"
     QVBoxLayout -.- QHBoxLayout : "qt framework"
     QHBoxLayout -.- QGroupBox : "qt framework"
-    
+
     %% Standard Library Components
     logging -.- typing : "standard libraries"
 ```

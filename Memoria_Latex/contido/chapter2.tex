@@ -13,11 +13,11 @@ Las interfaces cerebro-computadora han experimentado un crecimiento exponencial 
 
 \begin{itemize}
     \item \textbf{Electroencefalografía (EEG)}: Método no invasivo que registra la actividad eléctrica del cerebro mediante electrodos colocados en el cuero cabelludo. Ofrece excelente resolución temporal (milisegundos) pero limitada resolución espacial~\cite{eeg_bci_review}.
-    
+
     \item \textbf{Magnetoencefalografía (MEG)}: Detecta campos magnéticos producidos por la actividad neuronal. Proporciona mejor resolución espacial que EEG pero requiere equipamiento extremadamente costoso.
-    
+
     \item \textbf{Espectroscopía funcional de infrarrojo cercano (fNIRS)}: Mide cambios en la oxigenación sanguínea cerebral. Más robusto ante artefactos de movimiento pero con menor resolución temporal.
-    
+
     \item \textbf{Técnicas invasivas}: Incluyen electrocorticografía (ECoG) y registros intracraneales, que ofrecen la mejor resolución espacio-temporal pero conllevan riesgos quirúrgicos.
 \end{itemize}
 
@@ -216,13 +216,13 @@ Además de las herramientas principales mencionadas anteriormente, existen diver
 
 \begin{itemize}
     \item \textbf{pyEEG}~\cite{pyeeg}: Librería Python especializada en procesamiento continuo de datos EEG basada en MNE-Python y scikit-learn. Permite generación de funciones de respuesta temporal con señales continuas.
-    
+
     \item \textbf{NeuroKit2}~\cite{neurokit2}: Framework Python para análisis de señales, extracción de características y visualización de datos neurofisiológicos.
-    
+
     \item \textbf{BCILAB}~\cite{bcilab}: Plataforma MATLAB para procesamiento de señales, extracción de características y aprendizaje automático orientado a BCI (descontinuada desde 2014).
-    
+
     \item \textbf{EEG-ExPy}~\cite{eeg_expy}: Colección de experimentos en Python más que una librería per se, compatible con múltiples dispositivos (Muse, OpenBCI, Neurosity, BrainBit, g.tec).
-    
+
     \item \textbf{Emokit}~\cite{emokit}: Librería Python de código abierto para dispositivos Emotiv EPOC, basada en ingeniería inversa (soporte limitado a modelos anteriores a 2016).
 \end{itemize}
 
@@ -230,11 +230,11 @@ Además de las herramientas principales mencionadas anteriormente, existen diver
 
 \begin{itemize}
     \item \textbf{FieldTrip}~\cite{fieldtrip}: Toolbox MATLAB para análisis y preprocesamiento de datos MEG y EEG, ampliamente utilizado en investigación neurocientífica.
-    
+
     \item \textbf{BrainStorm}~\cite{brainstorm}: Plataforma MATLAB especializada en visualización 3D, análisis de conectividad y preprocesamiento de señales MEG, EEG y fNIRS.
-    
+
     \item \textbf{MoBILAB}~\cite{mobilab}: Herramienta MATLAB para preprocesamiento, análisis y visualización de datos EEG móviles (desarrollo discontinuado).
-    
+
     \item \textbf{NeuroPype}~\cite{neuropype}: Plataforma comercial Python para procesamiento de señales, visualización y análisis en tiempo real con soporte extensivo para hardware comercial.
 \end{itemize}
 
@@ -471,7 +471,7 @@ El sistema 10-20 establece la colocación estándar de electrodos EEG basada en 
         \item Iz (Inion): Punto en la protuberancia occipital externa
         \item LPA/RPA: Puntos preauriculares izquierdo y derecho
     \end{itemize}
-    
+
     \item \textbf{Nomenclatura de electrodos}:
     \begin{itemize}
         \item Fp: Pre-frontal (toma de decisiones, control de impulsos)
@@ -481,7 +481,7 @@ El sistema 10-20 establece la colocación estándar de electrodos EEG basada en 
         \item T: Temporal (procesamiento auditivo, reconocimiento de patrones)
         \item O: Occipital (procesamiento visual)
     \end{itemize}
-    
+
     \item \textbf{Numeración}: Números impares (hemisferio izquierdo), pares (derecho), 'z' (línea media)
 
     Esto se puede observar en la figura ~\ref{fig:10_20_system}
@@ -522,7 +522,7 @@ La comprensión del sistema de electrodos es crucial para el desarrollo de aplic
 \begin{itemize}
     \item \textbf{Selección de canales}: Diferentes regiones cerebrales están asociadas con distintos tipos de actividad mental
     \item \textbf{Artefactos}: Conocer la localización ayuda a identificar y filtrar artefactos (parpadeos en Fp1/Fp2, movimientos musculares en electrodos temporales)
-    \item \textbf{Paradigmas BCI}: 
+    \item \textbf{Paradigmas BCI}:
     \begin{itemize}
         \item Imaginación motora: Enfoque en C3, C4, Cz
         \item P300: Electrodos parietales (Pz, P3, P4)

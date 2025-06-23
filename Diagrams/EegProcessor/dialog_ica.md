@@ -3,16 +3,16 @@ classDiagram
     %% ================================================================================
     %% UI/ADVANCED/DIALOGS MODULE - SPECIALIZED DIALOG INTERFACES
     %% ================================================================================
-    
+
     %% ================================================================================
     %% CORE DIALOG CLASSES
     %% ================================================================================
-    
+
     class ICAVisualizationDialog {
         <<ica visualization dialog>>
         +export_overview_requested: pyqtSignal
         +export_all_requested: pyqtSignal
-        
+
         +ica_components: Dict[str, Any]
         +sampling_rate: float
         +is_realtime: bool
@@ -23,7 +23,7 @@ classDiagram
         +scroll_widget: QWidget
         +scroll_layout: QVBoxLayout
         +colormap_combo: QComboBox
-        
+
         +__init__(ica_components: Dict[str, Any], sampling_rate: float, parent: Optional[Any]) void
         +update_visualization(new_ica_components: Dict[str, Any], colormap: Optional[str]) void
         +closeEvent(event: Any) void
@@ -40,16 +40,16 @@ classDiagram
         +_export_single_component_worker(export_data: Dict[str, Any], progress_queue: mp.Queue)$ void
         +_export_single_matrix_worker(export_data: Dict[str, Any], progress_queue: mp.Queue)$ void
     }
-    
+
     class AdvancedDialogsPackage {
         <<module package>>
         +ICAVisualizationDialog: Class
     }
-    
+
     %% ================================================================================
     %% DETAIL DIALOG CLASSES (DYNAMICALLY CREATED)
     %% ================================================================================
-    
+
     class ComponentDetailDialog {
         <<dynamic dialog>>
         +component_index: int
@@ -59,12 +59,12 @@ classDiagram
         +figure: Figure
         +canvas: FigureCanvas
         +export_btn: QPushButton
-        
+
         +__init__(component_index: int, component_data: np.ndarray, time_vector: np.ndarray, sampling_rate: float, parent: QWidget) void
         +create_detailed_plot() void
         +export_component() void
     }
-    
+
     class MatrixDetailDialog {
         <<dynamic dialog>>
         +matrix_type: str
@@ -74,17 +74,17 @@ classDiagram
         +canvas: FigureCanvas
         +colormap_combo: QComboBox
         +export_btn: QPushButton
-        
+
         +__init__(matrix_type: str, matrix_data: np.ndarray, colormap: str, parent: QWidget) void
         +create_matrix_plot(colormap_name: str) FigureCanvas
         +on_colormap_change() void
         +export_matrix() void
     }
-    
+
     %% ================================================================================
     %% WORKER PROCESS FUNCTIONS
     %% ================================================================================
-    
+
     class ExportWorkerFunctions {
         <<static worker functions>>
         +_export_single_component_worker(export_data: Dict[str, Any], progress_queue: mp.Queue)$ void
@@ -92,16 +92,16 @@ classDiagram
         +_export_enhanced_overview_worker(export_data: Dict[str, Any], progress_queue: mp.Queue)$ void
         +_export_enhanced_all_images_worker(export_data: Dict[str, Any], progress_queue: mp.Queue)$ void
     }
-    
+
     %% ================================================================================
     %% QT5 FRAMEWORK COMPONENTS
     %% ================================================================================
-    
+
     class QDialog {
         <<qt5 framework>>
         +parent: Optional[QWidget]
         +modal: bool
-        
+
         +__init__(parent: Optional[QWidget]) void
         +setWindowTitle(title: str) void
         +setModal(modal: bool) void
@@ -110,14 +110,14 @@ classDiagram
         +close() void
         +closeEvent(event: QCloseEvent) void
     }
-    
+
     class pyqtSignal {
         <<qt5 framework>>
         +emit(*args: Any) void
         +connect(slot: Callable) void
         +disconnect(slot: Optional[Callable]) void
     }
-    
+
     class QVBoxLayout {
         <<qt5 framework>>
         +addWidget(widget: QWidget) void
@@ -126,14 +126,14 @@ classDiagram
         +count() int
         +itemAt(index: int) QLayoutItem
     }
-    
+
     class QHBoxLayout {
         <<qt5 framework>>
         +addWidget(widget: QWidget) void
         +addStretch() void
         +setContentsMargins(left: int, top: int, right: int, bottom: int) void
     }
-    
+
     class QScrollArea {
         <<qt5 framework>>
         +setWidgetResizable(resizable: bool) void
@@ -141,7 +141,7 @@ classDiagram
         +setVerticalScrollBarPolicy(policy: Qt.ScrollBarPolicy) void
         +setWidget(widget: QWidget) void
     }
-    
+
     class QWidget {
         <<qt5 framework>>
         +setMinimumHeight(height: int) void
@@ -150,7 +150,7 @@ classDiagram
         +deleteLater() void
         +layout() QLayout
     }
-    
+
     class QLabel {
         <<qt5 framework>>
         +setText(text: str) void
@@ -158,7 +158,7 @@ classDiagram
         +setAlignment(alignment: Qt.Alignment) void
         +setToolTip(tooltip: str) void
     }
-    
+
     class QPushButton {
         <<qt5 framework>>
         +clicked: pyqtSignal
@@ -166,7 +166,7 @@ classDiagram
         +setEnabled(enabled: bool) void
         +setToolTip(tooltip: str) void
     }
-    
+
     class QComboBox {
         <<qt5 framework>>
         +currentTextChanged: pyqtSignal[str]
@@ -180,13 +180,13 @@ classDiagram
         +itemData(index: int) Any
         +blockSignals(block: bool) bool
     }
-    
+
     class QFileDialog {
         <<qt5 framework>>
         +getSaveFileName(parent: QWidget, caption: str, directory: str, filter: str)$ Tuple[str, str]
         +getExistingDirectory(parent: QWidget, caption: str, directory: str)$ str
     }
-    
+
     class QProgressDialog {
         <<qt5 framework>>
         +setWindowTitle(title: str) void
@@ -196,34 +196,34 @@ classDiagram
         +show() void
         +close() void
     }
-    
+
     class QApplication {
         <<qt5 framework>>
         +processEvents()$ void
     }
-    
+
     class QTimer {
         <<qt5 framework>>
         +singleShot(msec: int, slot: Callable)$ void
     }
-    
+
     class Qt {
         <<qt5 constants>>
         +AlignCenter$: Qt.Alignment
         +ScrollBarAlwaysOff$: Qt.ScrollBarPolicy
         +ScrollBarAsNeeded$: Qt.ScrollBarPolicy
     }
-    
+
     %% ================================================================================
     %% MATPLOTLIB COMPONENTS
     %% ================================================================================
-    
+
     class matplotlib {
         <<plotting library>>
         +use(backend: str) void
         +rcParams: Dict[str, Any]
     }
-    
+
     class pyplot {
         <<matplotlib>>
         +figure(figsize: Tuple[float, float]) Figure
@@ -234,7 +234,7 @@ classDiagram
         +tight_layout() void
         +close(fig: Figure) void
     }
-    
+
     class Figure {
         <<matplotlib>>
         +add_subplot(nrows: int, ncols: int, index: int) Axes
@@ -243,7 +243,7 @@ classDiagram
         +savefig(filename: str, dpi: int, bbox_inches: str) void
         +clear() void
     }
-    
+
     class Axes {
         <<matplotlib>>
         +imshow(data: np.ndarray, aspect: str, cmap: str, interpolation: str) AxesImage
@@ -267,7 +267,7 @@ classDiagram
         +time_vector: np.ndarray
         +matrix_type: str
     }
-    
+
     class FigureCanvas {
         <<matplotlib.backends.backend_qt5agg>>
         +figure: Figure
@@ -278,42 +278,42 @@ classDiagram
         +setParent(parent: Optional[QWidget]) void
         +deleteLater() void
     }
-    
+
     class AxesImage {
         <<matplotlib>>
         +set_data(data: np.ndarray) void
         +set_clim(vmin: float, vmax: float) void
     }
-    
+
     class Line2D {
         <<matplotlib>>
         +set_data(x: np.ndarray, y: np.ndarray) void
     }
-    
+
     class Colorbar {
         <<matplotlib>>
         +set_label(label: str, fontsize: int) void
     }
-    
+
     %% ================================================================================
     %% SCIPY COMPONENTS
     %% ================================================================================
-    
+
     class scipy_signal {
         <<scipy library>>
         +welch(x: np.ndarray, fs: float, nperseg: int) Tuple[np.ndarray, np.ndarray]
     }
-    
+
     %% ================================================================================
     %% MULTIPROCESSING COMPONENTS
     %% ================================================================================
-    
+
     class multiprocessing {
         <<stdlib>>
         +Process: Class
         +Queue: Class
     }
-    
+
     class Process {
         <<multiprocessing>>
         +target: Callable
@@ -322,7 +322,7 @@ classDiagram
         +is_alive() bool
         +join(timeout: Optional[float]) void
     }
-    
+
     class Queue {
         <<multiprocessing>>
         +put(item: Any) void
@@ -330,11 +330,11 @@ classDiagram
         +get_nowait() Any
         +empty() bool
     }
-    
+
     %% ================================================================================
     %% STANDARD LIBRARY COMPONENTS
     %% ================================================================================
-    
+
     class numpy {
         <<stdlib>>
         +ndarray: Class
@@ -345,14 +345,14 @@ classDiagram
         +max(data: ndarray) float
         +ceil(x: float) int
     }
-    
+
     class time {
         <<stdlib>>
         +time() float
         +strftime(format: str, t: Optional[time.struct_time]) str
         +localtime(timestamp: float) time.struct_time
     }
-    
+
     class typing {
         <<stdlib>>
         +Dict
@@ -361,17 +361,17 @@ classDiagram
         +Optional
         +Tuple
     }
-    
+
     %% ================================================================================
     %% RELATIONSHIPS
     %% ================================================================================
-    
+
     %% Package Composition
     AdvancedDialogsPackage "1" *-- "1" ICAVisualizationDialog : contains
-    
+
     %% Inheritance
     ICAVisualizationDialog --|> QDialog : extends
-    
+
     %% Core Component Relationships
     ICAVisualizationDialog "1" *-- "0..1" Figure : figure
     ICAVisualizationDialog "1" *-- "0..1" FigureCanvas : canvas
@@ -379,31 +379,31 @@ classDiagram
     ICAVisualizationDialog "1" *-- "1" QWidget : scroll_widget
     ICAVisualizationDialog "1" *-- "1" QVBoxLayout : scroll_layout
     ICAVisualizationDialog "1" *-- "1" QComboBox : colormap_combo
-    
+
     %% Dynamic Dialog Creation
     ICAVisualizationDialog ..> ComponentDetailDialog : creates dynamically
     ICAVisualizationDialog ..> MatrixDetailDialog : creates dynamically
-    
+
     ComponentDetailDialog "1" *-- "1" Figure : figure
     ComponentDetailDialog "1" *-- "1" FigureCanvas : canvas
     ComponentDetailDialog "1" *-- "1" QPushButton : export_btn
-    
+
     MatrixDetailDialog "1" *-- "1" Figure : figure
     MatrixDetailDialog "1" *-- "1" FigureCanvas : canvas
     MatrixDetailDialog "1" *-- "1" QComboBox : colormap_combo
     MatrixDetailDialog "1" *-- "1" QPushButton : export_btn
-    
+
     %% Signal Relationships
     ICAVisualizationDialog "1" *-- "2" pyqtSignal : signals
     QPushButton "1" *-- "1" pyqtSignal : clicked
     QComboBox "1" *-- "1" pyqtSignal : currentTextChanged
-    
+
     %% Worker Process Dependencies
     ICAVisualizationDialog ..> ExportWorkerFunctions : uses static methods
     ICAVisualizationDialog ..> multiprocessing : uses
     ICAVisualizationDialog ..> Process : creates
     ICAVisualizationDialog ..> Queue : creates
-    
+
     %% Qt Framework Dependencies
     ICAVisualizationDialog ..> QVBoxLayout : creates
     ICAVisualizationDialog ..> QHBoxLayout : creates
@@ -414,7 +414,7 @@ classDiagram
     ICAVisualizationDialog ..> QApplication : uses
     ICAVisualizationDialog ..> QTimer : uses
     ICAVisualizationDialog ..> Qt : uses constants
-    
+
     %% Matplotlib Dependencies
     ICAVisualizationDialog ..> matplotlib : configures
     ICAVisualizationDialog ..> pyplot : uses
@@ -424,37 +424,37 @@ classDiagram
     ICAVisualizationDialog ..> AxesImage : updates
     ICAVisualizationDialog ..> Line2D : updates
     ICAVisualizationDialog ..> Colorbar : creates
-    
+
     Figure "1" *-- "*" Axes : contains
     Figure "1" *-- "1" FigureCanvas : canvas
     Axes "1" *-- "*" AxesImage : contains
     Axes "1" *-- "*" Line2D : contains
-    
+
     %% Scipy Dependencies
     ExportWorkerFunctions ..> scipy_signal : uses
     ComponentDetailDialog ..> scipy_signal : uses
-    
+
     %% Standard Library Dependencies
     ICAVisualizationDialog ..> numpy : uses
     ICAVisualizationDialog ..> time : uses
     ICAVisualizationDialog ..> typing : uses
-    
+
     ExportWorkerFunctions ..> numpy : uses
     ExportWorkerFunctions ..> matplotlib : uses
     ExportWorkerFunctions ..> pyplot : uses
-    
+
     %% Event Handling
     Figure ..> ICAVisualizationDialog : click events
     Axes ..> ICAVisualizationDialog : picker events
-    
+
     %% ================================================================================
     %% LOGICAL GROUPINGS
     %% ================================================================================
-    
+
     %% Dialog Components
     ICAVisualizationDialog -.- ComponentDetailDialog : "dialog hierarchy"
     ComponentDetailDialog -.- MatrixDetailDialog : "dialog hierarchy"
-    
+
     %% Qt Framework Components
     QDialog -.- pyqtSignal : "qt framework"
     pyqtSignal -.- QVBoxLayout : "qt framework"
@@ -464,7 +464,7 @@ classDiagram
     QWidget -.- QLabel : "qt framework"
     QLabel -.- QPushButton : "qt framework"
     QPushButton -.- QComboBox : "qt framework"
-    
+
     %% Matplotlib Components
     matplotlib -.- pyplot : "plotting framework"
     pyplot -.- Figure : "plotting framework"
@@ -473,11 +473,11 @@ classDiagram
     FigureCanvas -.- AxesImage : "plotting framework"
     AxesImage -.- Line2D : "plotting framework"
     Line2D -.- Colorbar : "plotting framework"
-    
+
     %% Multiprocessing Components
     multiprocessing -.- Process : "multiprocessing framework"
     Process -.- Queue : "multiprocessing framework"
-    
+
     %% Standard Library Components
     numpy -.- time : "standard libraries"
     time -.- typing : "standard libraries"

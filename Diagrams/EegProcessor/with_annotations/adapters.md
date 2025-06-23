@@ -3,16 +3,16 @@ classDiagram
     %% ================================================================================
     %% ADAPTERS MODULE - CROSS-FRAMEWORK INTEGRATION SYSTEM
     %% ================================================================================
-    
+
     %% ================================================================================
     %% CORE ADAPTER CLASS
     %% ================================================================================
-    
+
     class QtInteractionAdapter {
         <<adapter>>
         -main_app: Optional[Any]
         -_executor: ThreadPoolExecutor
-        
+
         +__init__(main_app: Optional[Any]) void
         +connect_board(board_id: int, params: Dict[str, Any], preset: int) bool
         +disconnect_board(force_ui_update: bool) bool
@@ -41,11 +41,11 @@ classDiagram
         -_update_all_panels_connection_state(connected: bool) void
         +__del__() void
     }
-    
+
     %% ================================================================================
     %% GUI PANEL INTERFACES (TARGET COMPONENTS)
     %% ================================================================================
-    
+
     class ConnectionPanel {
         <<gui component>>
         +board_type_combo: QComboBox
@@ -59,7 +59,7 @@ classDiagram
         -_update_params_from_dict(params: Dict[str, Any]) void
         -_update_connection_state(connected: bool) void
     }
-    
+
     class ProcessingPanel {
         <<gui component>>
         +apply_filters() void
@@ -69,7 +69,7 @@ classDiagram
         +get_filter_settings() Dict[str, Any]
         -_update_filter_controls(filter_config: Dict[str, Any]) void
     }
-    
+
     class RecordingPanel {
         <<gui component>>
         +record_file_edit: QLineEdit
@@ -83,7 +83,7 @@ classDiagram
         +enable_recording(enabled: bool) void
         +get_recording_settings() Dict[str, Any]
     }
-    
+
     class StreamingPanel {
         <<gui component>>
         +streamers_list: QListWidget
@@ -93,7 +93,7 @@ classDiagram
         +send_board_config() void
         +enable_streaming(enabled: bool) void
     }
-    
+
     class MNEPanel {
         <<gui component>>
         +mne_duration_spin: QSpinBox
@@ -101,7 +101,7 @@ classDiagram
         +plot_mne_visualization(plot_type: str) void
         +enable_processing(enabled: bool) void
     }
-    
+
     class AdvancedPanel {
         <<gui component>>
         +ica_components_spin: QSpinBox
@@ -113,7 +113,7 @@ classDiagram
         +compute_wavelet() void
         +enable_processing(enabled: bool) void
     }
-    
+
     class EEGProcessorApp {
         <<main application>>
         +connection_panel: ConnectionPanel
@@ -124,18 +124,18 @@ classDiagram
         +advanced_panel: AdvancedPanel
         +show_status_message(message: str) void
     }
-    
+
     %% ================================================================================
     %% QT5 FRAMEWORK COMPONENTS
     %% ================================================================================
-    
+
     class QObject {
         <<qt5 framework>>
         +parent() QObject
         +setParent(parent: QObject) void
         +deleteLater() void
     }
-    
+
     class QApplication {
         <<qt5 framework>>
         +instance()$ QApplication
@@ -143,7 +143,7 @@ classDiagram
         +processEvents() void
         +quit() void
     }
-    
+
     class QThread {
         <<qt5 framework>>
         +currentThread()$ QThread
@@ -152,7 +152,7 @@ classDiagram
         +wait() bool
         +isRunning() bool
     }
-    
+
     class QTimer {
         <<qt5 framework>>
         +singleShot(msec: int, slot: Callable)$ void
@@ -160,7 +160,7 @@ classDiagram
         +stop() void
         +timeout: pyqtSignal
     }
-    
+
     class QComboBox {
         <<qt5 framework>>
         +count() int
@@ -169,7 +169,7 @@ classDiagram
         +currentIndex() int
         +addItem(text: str, userData: Any) void
     }
-    
+
     class QLineEdit {
         <<qt5 framework>>
         +setText(text: str) void
@@ -177,14 +177,14 @@ classDiagram
         +clear() void
         +setEnabled(enabled: bool) void
     }
-    
+
     class QRadioButton {
         <<qt5 framework>>
         +setChecked(checked: bool) void
         +isChecked() bool
         +setEnabled(enabled: bool) void
     }
-    
+
     class QSpinBox {
         <<qt5 framework>>
         +setValue(value: int) void
@@ -193,7 +193,7 @@ classDiagram
         +setMaximum(max: int) void
         +setEnabled(enabled: bool) void
     }
-    
+
     class QListWidget {
         <<qt5 framework>>
         +count() int
@@ -202,17 +202,17 @@ classDiagram
         +addItem(text: str) void
         +takeItem(row: int) QListWidgetItem
     }
-    
+
     class QListWidgetItem {
         <<qt5 framework>>
         +text() str
         +setText(text: str) void
     }
-    
+
     %% ================================================================================
     %% THREADING COMPONENTS
     %% ================================================================================
-    
+
     class ThreadPoolExecutor {
         <<concurrent.futures>>
         +max_workers: int
@@ -220,14 +220,14 @@ classDiagram
         +submit(func: Callable, *args: Any, **kwargs: Any) Future
         +shutdown(wait: bool) void
     }
-    
+
     class threading {
         <<stdlib>>
         +Event: Class
         +Lock: Class
         +current_thread() Thread
     }
-    
+
     class Event {
         <<threading>>
         +set() void
@@ -235,16 +235,16 @@ classDiagram
         +clear() void
         +is_set() bool
     }
-    
+
     class TimeoutError {
         <<exception>>
         +__init__(message: str) void
     }
-    
+
     %% ================================================================================
     %% STANDARD LIBRARY COMPONENTS
     %% ================================================================================
-    
+
     class logging {
         <<stdlib>>
         +info(message: str) void
@@ -252,7 +252,7 @@ classDiagram
         +error(message: str) void
         +debug(message: str) void
     }
-    
+
     class typing {
         <<stdlib>>
         +Any
@@ -261,25 +261,25 @@ classDiagram
         +TypeVar
         +Dict
     }
-    
+
     %% ================================================================================
     %% RELATIONSHIPS
     %% ================================================================================
-    
+
     %% Inheritance
     QtInteractionAdapter --|> QObject : extends
-    
+
     %% Composition and Aggregation
     QtInteractionAdapter "1" *-- "1" ThreadPoolExecutor : _executor
     QtInteractionAdapter "1" o-- "1" EEGProcessorApp : main_app
-    
+
     EEGProcessorApp "1" *-- "1" ConnectionPanel : connection_panel
     EEGProcessorApp "1" *-- "1" ProcessingPanel : processing_panel
     EEGProcessorApp "1" *-- "1" RecordingPanel : recording_panel
     EEGProcessorApp "1" *-- "1" StreamingPanel : streaming_panel
     EEGProcessorApp "1" *-- "1" MNEPanel : mne_panel
     EEGProcessorApp "1" *-- "1" AdvancedPanel : advanced_panel
-    
+
     ConnectionPanel "1" *-- "2..*" QComboBox : ui_controls
     RecordingPanel "1" *-- "1" QLineEdit : record_file_edit
     RecordingPanel "1" *-- "3" QRadioButton : data_type_radios
@@ -289,9 +289,9 @@ classDiagram
     MNEPanel "1" *-- "1" QSpinBox : mne_duration_spin
     AdvancedPanel "1" *-- "2" QSpinBox : parameter_spins
     AdvancedPanel "1" *-- "3" QComboBox : selection_combos
-    
+
     QListWidget "1" *-- "*" QListWidgetItem : items
-    
+
     %% Dependencies and Usage
     QtInteractionAdapter ..> QApplication : uses
     QtInteractionAdapter ..> QThread : uses
@@ -301,7 +301,7 @@ classDiagram
     QtInteractionAdapter ..> TimeoutError : throws
     QtInteractionAdapter ..> logging : uses
     QtInteractionAdapter ..> typing : uses
-    
+
     %% API Target Relationships
     QtInteractionAdapter ..> ConnectionPanel : controls
     QtInteractionAdapter ..> ProcessingPanel : controls
@@ -309,52 +309,52 @@ classDiagram
     QtInteractionAdapter ..> StreamingPanel : controls
     QtInteractionAdapter ..> MNEPanel : controls
     QtInteractionAdapter ..> AdvancedPanel : controls
-    
+
     %% Thread Safety Dependencies
     QtInteractionAdapter ..> ThreadPoolExecutor : executes in
     ThreadPoolExecutor ..> Event : synchronizes with
-    
+
     %% ================================================================================
     %% LOGICAL GROUPINGS
     %% ================================================================================
-    
+
     %% Connection Operations Group
     ConnectionPanel -.- ProcessingPanel : "gui panel coordination"
     ProcessingPanel -.- RecordingPanel : "gui panel coordination"
     RecordingPanel -.- StreamingPanel : "gui panel coordination"
     StreamingPanel -.- MNEPanel : "gui panel coordination"
     MNEPanel -.- AdvancedPanel : "gui panel coordination"
-    
+
     %% Qt Framework Group
     QObject -.- QApplication : "qt framework core"
     QApplication -.- QThread : "qt framework core"
     QThread -.- QTimer : "qt framework core"
-    
+
     %% UI Controls Group
     QComboBox -.- QLineEdit : "qt ui controls"
     QLineEdit -.- QRadioButton : "qt ui controls"
     QRadioButton -.- QSpinBox : "qt ui controls"
     QSpinBox -.- QListWidget : "qt ui controls"
-    
+
     %% Threading Group
     ThreadPoolExecutor -.- threading : "concurrency support"
     threading -.- Event : "concurrency support"
-    
+
     %% ================================================================================
     %% NOTES
     %% ================================================================================
-    
+
     note for QtInteractionAdapter "Thread-Safe Qt API Adapter:\n• Bridge between external APIs and PyQt5 GUI components\n• Thread-safe execution with QThread detection and main thread marshalling\n• ThreadPoolExecutor integration for non-blocking operations (5-second timeout)\n• Panel operation support covering all application functionality\n• Exception isolation ensuring single operation failures don't affect overall stability\n• QTimer-based asynchronous execution preventing GUI blocking during API calls\n• Cross-panel state synchronization maintaining consistent application behavior\n• Settings retrieval with error handling and default value management"
-    
+
     note for EEGProcessorApp "Main Application Integration:\n• Central application instance containing all GUI panels\n• Panel lifecycle management with proper initialization and cleanup\n• Cross-panel communication coordination via adapter pattern\n• Status message propagation with proper thread marshalling\n• Application state management ensuring consistent behavior across operations"
-    
+
     note "Panel Operation Categories:\n• Connection: Board connection/disconnection, streaming control, parameter management\n• Processing: Filter application, metrics calculation, brain map visualization\n• Recording: Start/stop recording, marker insertion, file management, data type selection\n• Streaming: Streamer management, board configuration, real-time control\n• MNE: Data conversion, advanced visualization, neurophysiological analysis\n• Advanced: ICA computation, wavelet transforms, advanced signal processing"
-    
+
     note "Thread Safety Architecture:\n• QApplication thread detection ensuring proper main thread execution\n• ThreadPoolExecutor for API operations with configurable timeout management\n• Event-based synchronization between worker threads and main GUI thread\n• Exception handling with detailed logging and user-friendly error messages\n• Resource cleanup coordination ensuring proper system shutdown\n• Timeout detection and recovery preventing system freezing during operations"
-    
+
     note "API Integration Features:\n• Dynamic parameter validation with real-time UI synchronization\n• Intelligent combo box selection with data-value matching and fallback\n• Cross-panel state synchronization ensuring consistent application behavior\n• Multi-format recording support with automatic file validation\n• Real-time processing coordination with progress tracking and error recovery\n• Advanced analysis operations including ICA, wavelets, and MNE integration"
-    
+
     note "Error Handling and Recovery:\n• Exception isolation preventing cascade failures across operations\n• Graceful degradation when GUI components are unavailable\n• Detailed logging with context preservation for troubleshooting\n• User-friendly error messages with actionable recovery suggestions\n• Automatic cleanup and resource management preventing memory leaks\n• Timeout management with configurable limits and recovery procedures"
-    
+
     note "Adapter Pattern Benefits:\n• Clean separation between API operations and GUI implementation\n• Standardized method signatures enabling consistent external integration\n• Modular design supporting easy extension and customization\n• Backward compatibility ensuring existing API consumers continue functioning\n• Future-proof architecture supporting additional frameworks and patterns\n• Maintainable codebase with clear responsibilities and interfaces"
 ```

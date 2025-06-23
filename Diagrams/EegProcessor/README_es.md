@@ -203,7 +203,7 @@ filtered_data = processor.bandpass_filter(
 
 #### Paneles UI:
 
-##### **ConnectionPanel**: 
+##### **ConnectionPanel**:
 - **Selección de placa**: Filtrado inteligente y categorización
 - **Validación dinámica de parámetros**: Retroalimentación visual para campos requeridos/opcionales
 - **Configuración de placa de streaming**: Validación de preset con prevención de errores de socket
@@ -275,7 +275,7 @@ filtered_data = processor.bandpass_filter(
 # Capacidades de detección de tipos de canal
 SUPPORTED_CHANNEL_TYPES = {
     "EEG": "Señales de electroencefalografía",
-    "EMG": "Señales de electromiografía", 
+    "EMG": "Señales de electromiografía",
     "ECG": "Señales de electrocardiografía",
     "EOG": "Señales de electrooculografía",
     "EDA": "Actividad electrodérmica",

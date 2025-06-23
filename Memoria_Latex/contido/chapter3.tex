@@ -1382,7 +1382,7 @@ Este capítulo ha presentado el análisis y diseño completo del framework desar
 
 \begin{enumerate}
     \item \textbf{Análisis de requisitos exhaustivo}: 24 requisitos funcionales y 17 no funcionales que guían el desarrollo del sistema, estableciendo las bases para un framework robusto y escalable.
-    
+
     \item \textbf{Arquitectura general orientada a servicios}: El framework implementa una arquitectura SOA con comunicación dirigida por eventos, proporcionando:
     \begin{itemize}
         \item Separación clara de responsabilidades entre módulos
@@ -1390,14 +1390,14 @@ Este capítulo ha presentado el análisis y diseño completo del framework desar
         \item Soporte multi-interfaz simultáneo (GUI, CLI, API REST)
         \item Extensibilidad y mantenibilidad a largo plazo
     \end{itemize}
-    
+
     \item \textbf{Diseño detallado de tres (placeholder) módulos principales}:
     \begin{itemize}
         \item \textbf{api\_explorer}: Framework web modular con arquitectura singleton, worker pools para alta concurrencia, y frontend JavaScript basado en managers especializados
         \item \textbf{input\_collector}: Sistema de captura multi-dispositivo con arquitectura hexagonal, Core Event System framework-independiente, y soporte completo para teclado, ratón y controladores PS4
         \item \textbf{eeg\_processor}: Framework de procesamiento neuroseñal con arquitectura SOA, soporte para 20+ fabricantes de dispositivos EEG, análisis avanzado (ICA, wavelet, MNE-Python) y interfaces multi-modal
     \end{itemize}
-    
+
     \item \textbf{Patrones arquitectónicos implementados}:
     \begin{itemize}
         \item \textbf{Event-Driven Architecture}: Sistema de eventos centralizado para comunicación desacoplada
@@ -1407,7 +1407,7 @@ Este capítulo ha presentado el análisis y diseño completo del framework desar
         \item \textbf{Strategy Pattern}: Para adaptación dinámica según contexto y dispositivos
         \item \textbf{Factory Pattern}: Para creación dinámica de configuraciones
     \end{itemize}
-    
+
     \item \textbf{Integración inter-módulo avanzada}:
     \begin{itemize}
         \item \textbf{Lab Streaming Layer (LSL)}: Sincronización temporal de microsegundos
@@ -1415,7 +1415,7 @@ Este capítulo ha presentado el análisis y diseño completo del framework desar
         \item \textbf{WebSocket streaming}: Comunicación tiempo real de alta frecuencia
         \item \textbf{Core Event Systems}: Comunicación framework-independiente
     \end{itemize}
-    
+
     \item \textbf{Consideraciones de implementación críticas}:
     \begin{itemize}
         \item \textbf{Thread safety}: Estrategias granulares de sincronización

@@ -413,10 +413,10 @@ explorer.broadcast_event("mi_modulo", event_data)
 # Inicialización del servidor
 def setup_api():
     explorer = ApiExplorer.get_instance()
-    
+
     # Registrar módulos
     register_modules(explorer)
-    
+
     # Iniciar servidor
     explorer.start_server(host="localhost", port=8000, block=False)
     return explorer

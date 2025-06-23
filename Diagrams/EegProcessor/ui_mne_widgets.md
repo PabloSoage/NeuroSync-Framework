@@ -3,11 +3,11 @@ classDiagram
     %% ================================================================================
     %% UI/MNE/WIDGETS MODULE - MNE-SPECIFIC USER INTERFACE COMPONENTS
     %% ================================================================================
-    
+
     %% ================================================================================
     %% CORE WIDGET CLASSES
     %% ================================================================================
-    
+
     class MNEConversionWidget {
         <<mne conversion widget>>
         +conversion_requested: pyqtSignal[dict]
@@ -16,7 +16,7 @@ classDiagram
         +realtime_requested: pyqtSignal[dict]
         +realtime_stopped: pyqtSignal
         +realtime_param_changed: pyqtSignal[str, object]
-        
+
         +conversion_mode_combo: QComboBox
         +duration_spin: QSpinBox
         +convert_to_v_check: QCheckBox
@@ -35,7 +35,7 @@ classDiagram
         +mode_info_label: QLabel
         +realtime_params_widget: QWidget
         +performance_channel_widget: QWidget
-        
+
         +__init__(parent: Optional[QWidget]) void
         +setup_ui() void
         +get_conversion_parameters() Dict[str, Any]
@@ -56,7 +56,7 @@ classDiagram
         -_request_realtime() void
         -_update_performance_warning(value: int) void
     }
-    
+
     class MNEVisualizationWidget {
         <<mne visualization widget>>
         +visualization_requested: pyqtSignal[dict]
@@ -66,7 +66,7 @@ classDiagram
         +freq_range_changed: pyqtSignal[int, int]
         +psd_mode_changed: pyqtSignal[bool]
         +topomap_band_changed: pyqtSignal[int, int]
-        
+
         +plot_type_combo: QComboBox
         +freq_min_spin: QSpinBox
         +freq_max_spin: QSpinBox
@@ -84,7 +84,7 @@ classDiagram
         +cancel_plot_btn: QPushButton
         +plot_progress: QProgressBar
         +plot_display: QLabel
-        
+
         +__init__(parent: Optional[QWidget]) void
         +setup_ui() void
         +get_visualization_parameters() Dict[str, Any]
@@ -107,12 +107,12 @@ classDiagram
         -_request_visualization() void
         -_get_topomap_frequency_range() Tuple[int, int]
     }
-    
+
     class MNEStatusWidget {
         <<mne status monitoring widget>>
         +realtime_info: QLabel
         +status_text: QTextEdit
-        
+
         +__init__(parent: Optional[QWidget]) void
         +setup_ui() void
         +add_status_message(message: str) void
@@ -122,14 +122,14 @@ classDiagram
         +add_channel_update_message(old_count: int, new_count: int) void
         +add_optimization_message(channels_selected: int, total_channels: int) void
     }
-    
+
     class ChannelSelectionDialog {
         <<channel selection dialog>>
         +channel_names: List[str]
         +selected_channels: List[int]
         +checkboxes: List[QCheckBox]
         +info_label: QLabel
-        
+
         +__init__(channel_names: List[str], selected_channels: Optional[List[int]], parent: Optional[QWidget]) void
         +setup_ui() void
         +apply_dark_theme() void
@@ -138,7 +138,7 @@ classDiagram
         +update_info_label() void
         +get_selected_channels() List[int]
     }
-    
+
     class MNEWidgetsPackage {
         <<module package>>
         +MNEConversionWidget: Class
@@ -146,26 +146,26 @@ classDiagram
         +MNEStatusWidget: Class
         +ChannelSelectionDialog: Class
     }
-    
+
     %% ================================================================================
     %% EXTERNAL UTILITY CLASSES
     %% ================================================================================
-    
+
     class HelpButton {
         <<external utility>>
         +topic: str
-        
+
         +__init__(topic: str, parent: QWidget) void
     }
-    
+
     %% ================================================================================
     %% QT5 FRAMEWORK COMPONENTS
     %% ================================================================================
-    
+
     class QWidget {
         <<qt5 framework>>
         +parent: Optional[QWidget]
-        
+
         +__init__(parent: Optional[QWidget]) void
         +setEnabled(enabled: bool) void
         +setVisible(visible: bool) void
@@ -176,12 +176,12 @@ classDiagram
         +setLayout(layout: QLayout) void
         +size() QSize
     }
-    
+
     class QDialog {
         <<qt5 framework>>
         +Accepted$: int
         +Rejected$: int
-        
+
         +__init__(parent: Optional[QWidget]) void
         +setWindowTitle(title: str) void
         +setModal(modal: bool) void
@@ -190,42 +190,42 @@ classDiagram
         +accept() void
         +reject() void
     }
-    
+
     class pyqtSignal {
         <<qt5 framework>>
         +emit(*args: Any) void
         +connect(slot: Callable) void
         +disconnect(slot: Optional[Callable]) void
     }
-    
+
     class QVBoxLayout {
         <<qt5 framework>>
         +addWidget(widget: QWidget) void
         +addLayout(layout: QLayout) void
         +setContentsMargins(left: int, top: int, right: int, bottom: int) void
     }
-    
+
     class QHBoxLayout {
         <<qt5 framework>>
         +addWidget(widget: QWidget) void
         +addLayout(layout: QLayout) void
         +addStretch() void
     }
-    
+
     class QGridLayout {
         <<qt5 framework>>
         +addWidget(widget: QWidget, row: int, column: int) void
         +setSpacing(spacing: int) void
     }
-    
+
     class QGroupBox {
         <<qt5 framework>>
         +title: str
-        
+
         +__init__(title: str) void
         +setTitle(title: str) void
     }
-    
+
     class QLabel {
         <<qt5 framework>>
         +setText(text: str) void
@@ -240,7 +240,7 @@ classDiagram
         +hide() void
         +show() void
     }
-    
+
     class QPushButton {
         <<qt5 framework>>
         +clicked: pyqtSignal
@@ -249,7 +249,7 @@ classDiagram
         +setStyleSheet(style: str) void
         +setToolTip(tooltip: str) void
     }
-    
+
     class QSpinBox {
         <<qt5 framework>>
         +valueChanged: pyqtSignal[int]
@@ -259,7 +259,7 @@ classDiagram
         +setSuffix(suffix: str) void
         +setToolTip(tooltip: str) void
     }
-    
+
     class QCheckBox {
         <<qt5 framework>>
         +stateChanged: pyqtSignal[int]
@@ -269,7 +269,7 @@ classDiagram
         +setEnabled(enabled: bool) void
         +setToolTip(tooltip: str) void
     }
-    
+
     class QComboBox {
         <<qt5 framework>>
         +currentIndexChanged: pyqtSignal[int]
@@ -284,14 +284,14 @@ classDiagram
         +setEnabled(enabled: bool) void
         +setToolTip(tooltip: str) void
     }
-    
+
     class QProgressBar {
         <<qt5 framework>>
         +setValue(value: int) void
         +setRange(min: int, max: int) void
         +setVisible(visible: bool) void
     }
-    
+
     class QTextEdit {
         <<qt5 framework>>
         +append(text: str) void
@@ -300,71 +300,71 @@ classDiagram
         +setMaximumHeight(height: int) void
         +setStyleSheet(style: str) void
     }
-    
+
     class QScrollArea {
         <<qt5 framework>>
         +setWidgetResizable(resizable: bool) void
         +setWidget(widget: QWidget) void
         +setMaximumHeight(height: int) void
     }
-    
+
     class QFrame {
         <<qt5 framework>>
         +setFrameShape(shape: QFrame.Shape) void
         +setFrameShadow(shadow: QFrame.Shadow) void
     }
-    
+
     class QDialogButtonBox {
         <<qt5 framework>>
         +Ok$: int
         +Cancel$: int
         +accepted: pyqtSignal
         +rejected: pyqtSignal
-        
+
         +__init__(buttons: int) void
     }
-    
+
     class QPixmap {
         <<qt5 framework>>
         +loadFromData(data: bytes) bool
         +isNull() bool
         +scaled(size: QSize, aspectRatioMode: Qt.AspectRatioMode, transformMode: Qt.TransformationMode) QPixmap
     }
-    
+
     class QSize {
         <<qt5 framework>>
         +width() int
         +height() int
     }
-    
+
     class Qt {
         <<qt5 constants>>
         +AlignCenter$: Qt.Alignment
         +KeepAspectRatio$: Qt.AspectRatioMode
         +SmoothTransformation$: Qt.TransformationMode
     }
-    
+
     %% ================================================================================
     %% STANDARD LIBRARY COMPONENTS
     %% ================================================================================
-    
+
     class base64 {
         <<stdlib>>
         +b64decode(s: str) bytes
     }
-    
+
     class logging {
         <<stdlib>>
         +error(message: str) void
         +info(message: str) void
         +debug(message: str) void
     }
-    
+
     class time {
         <<stdlib>>
         +strftime(format: str) str
     }
-    
+
     class typing {
         <<stdlib>>
         +Any
@@ -373,23 +373,23 @@ classDiagram
         +List
         +Tuple
     }
-    
+
     %% ================================================================================
     %% RELATIONSHIPS
     %% ================================================================================
-    
+
     %% Package Composition
     MNEWidgetsPackage "1" *-- "1" MNEConversionWidget : contains
     MNEWidgetsPackage "1" *-- "1" MNEVisualizationWidget : contains
     MNEWidgetsPackage "1" *-- "1" MNEStatusWidget : contains
     MNEWidgetsPackage "1" *-- "1" ChannelSelectionDialog : contains
-    
+
     %% Inheritance
     MNEConversionWidget --|> QWidget : extends
     MNEVisualizationWidget --|> QWidget : extends
     MNEStatusWidget --|> QWidget : extends
     ChannelSelectionDialog --|> QDialog : extends
-    
+
     %% Core Component Relationships - MNEConversionWidget
     MNEConversionWidget "1" *-- "1" QComboBox : conversion_mode_combo
     MNEConversionWidget "1" *-- "1" QSpinBox : duration_spin
@@ -404,7 +404,7 @@ classDiagram
     MNEConversionWidget "1" *-- "1" QProgressBar : conversion_progress
     MNEConversionWidget "1" *-- "*" QLabel : various labels
     MNEConversionWidget "1" *-- "2" QWidget : realtime_params_widget, performance_channel_widget
-    
+
     %% Core Component Relationships - MNEVisualizationWidget
     MNEVisualizationWidget "1" *-- "1" QComboBox : plot_type_combo
     MNEVisualizationWidget "1" *-- "2" QSpinBox : freq_min_spin, freq_max_spin
@@ -417,18 +417,18 @@ classDiagram
     MNEVisualizationWidget "1" *-- "1" QProgressBar : plot_progress
     MNEVisualizationWidget "1" *-- "1" QLabel : plot_display
     MNEVisualizationWidget "1" *-- "*" QLabel : various status labels
-    
+
     %% Core Component Relationships - MNEStatusWidget
     MNEStatusWidget "1" *-- "1" QLabel : realtime_info
     MNEStatusWidget "1" *-- "1" QTextEdit : status_text
-    
+
     %% Core Component Relationships - ChannelSelectionDialog
     ChannelSelectionDialog "1" *-- "*" QCheckBox : checkboxes
     ChannelSelectionDialog "1" *-- "1" QLabel : info_label
     ChannelSelectionDialog "1" *-- "1" QScrollArea : scroll area
     ChannelSelectionDialog "1" *-- "1" QFrame : container frame
     ChannelSelectionDialog "1" *-- "1" QDialogButtonBox : button box
-    
+
     %% Signal Relationships
     MNEConversionWidget "1" *-- "6" pyqtSignal : signals
     MNEVisualizationWidget "1" *-- "8" pyqtSignal : signals
@@ -437,17 +437,17 @@ classDiagram
     QCheckBox "1" *-- "2" pyqtSignal : stateChanged, toggled
     QComboBox "1" *-- "2" pyqtSignal : currentIndexChanged, currentTextChanged
     QDialogButtonBox "1" *-- "2" pyqtSignal : accepted, rejected
-    
+
     %% Layout Relationships
     MNEConversionWidget "1" *-- "1" QVBoxLayout : main layout
     MNEVisualizationWidget "1" *-- "1" QVBoxLayout : main layout
     MNEStatusWidget "1" *-- "1" QVBoxLayout : main layout
     ChannelSelectionDialog "1" *-- "1" QVBoxLayout : main layout
     ChannelSelectionDialog "1" *-- "1" QGridLayout : checkbox grid
-    
+
     %% External Dependencies
     MNEConversionWidget ..> HelpButton : uses
-    
+
     %% Qt Framework Dependencies
     MNEConversionWidget ..> QVBoxLayout : creates
     MNEConversionWidget ..> QHBoxLayout : creates
@@ -458,7 +458,7 @@ classDiagram
     MNEConversionWidget ..> QCheckBox : creates
     MNEConversionWidget ..> QComboBox : creates
     MNEConversionWidget ..> QProgressBar : creates
-    
+
     MNEVisualizationWidget ..> QVBoxLayout : creates
     MNEVisualizationWidget ..> QHBoxLayout : creates
     MNEVisualizationWidget ..> QGroupBox : creates
@@ -470,12 +470,12 @@ classDiagram
     MNEVisualizationWidget ..> QProgressBar : creates
     MNEVisualizationWidget ..> QPixmap : uses
     MNEVisualizationWidget ..> Qt : uses constants
-    
+
     MNEStatusWidget ..> QVBoxLayout : creates
     MNEStatusWidget ..> QGroupBox : creates
     MNEStatusWidget ..> QLabel : creates
     MNEStatusWidget ..> QTextEdit : creates
-    
+
     ChannelSelectionDialog ..> QVBoxLayout : creates
     ChannelSelectionDialog ..> QHBoxLayout : creates
     ChannelSelectionDialog ..> QGridLayout : creates
@@ -485,26 +485,26 @@ classDiagram
     ChannelSelectionDialog ..> QScrollArea : creates
     ChannelSelectionDialog ..> QFrame : creates
     ChannelSelectionDialog ..> QDialogButtonBox : creates
-    
+
     %% Standard Library Dependencies
     MNEVisualizationWidget ..> base64 : uses
     MNEVisualizationWidget ..> logging : uses
     MNEStatusWidget ..> time : uses
-    
+
     MNEConversionWidget ..> typing : uses
     MNEVisualizationWidget ..> typing : uses
     MNEStatusWidget ..> typing : uses
     ChannelSelectionDialog ..> typing : uses
-    
+
     %% ================================================================================
     %% LOGICAL GROUPINGS
     %% ================================================================================
-    
+
     %% Core Widget Categories
     MNEConversionWidget -.- MNEVisualizationWidget : "mne operation widgets"
     MNEVisualizationWidget -.- MNEStatusWidget : "mne operation widgets"
     MNEStatusWidget -.- ChannelSelectionDialog : "mne operation widgets"
-    
+
     %% Qt Framework Components
     QWidget -.- QDialog : "qt framework"
     QDialog -.- pyqtSignal : "qt framework"
@@ -525,7 +525,7 @@ classDiagram
     QDialogButtonBox -.- QPixmap : "qt framework"
     QPixmap -.- QSize : "qt framework"
     QSize -.- Qt : "qt framework"
-    
+
     %% Standard Library Components
     base64 -.- logging : "standard libraries"
     logging -.- time : "standard libraries"

@@ -11,12 +11,14 @@ from .hdf5_exporter import HDF5Exporter
 # Try to import other exporters with fallback
 try:
     from .edf_exporter import EDFExporter
+
     EDF_AVAILABLE = True
 except ImportError:
     EDF_AVAILABLE = False
 
 try:
     from .bids_exporter import BIDSExporter
+
     BIDS_AVAILABLE = True
 except ImportError:
     BIDS_AVAILABLE = False

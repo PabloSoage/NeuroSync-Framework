@@ -3,16 +3,16 @@ classDiagram
     %% ================================================================================
     %% PROCESSORS MODULE - SIGNAL PROCESSING SYSTEM
     %% ================================================================================
-    
+
     %% ================================================================================
     %% CORE SIGNAL PROCESSOR
     %% ================================================================================
-    
+
     class SignalProcessor {
         <<signal processing engine>>
         +sampling_rate: float
         +processed_data: Optional[np.ndarray]
-        
+
         +__init__(sampling_rate: float) void
         +bandpass_filter(data: np.ndarray, start_freq: float, stop_freq: float, order: int, filter_type: FilterTypes, ripple: float) np.ndarray
         +bandstop_filter(data: np.ndarray, start_freq: float, stop_freq: float, order: int, filter_type: FilterTypes) np.ndarray
@@ -35,16 +35,16 @@ classDiagram
         +apply_inverse_wavelet_transform(coefficients: np.ndarray, metadata: Dict[str, Any]) np.ndarray
         -_is_synthetic_or_problematic_data(data: np.ndarray) bool
     }
-    
+
     class ProcessorsPackage {
         <<module package>>
         +SignalProcessor: Class
     }
-    
+
     %% ================================================================================
     %% BRAINFLOW DATA FILTER COMPONENTS
     %% ================================================================================
-    
+
     class DataFilter {
         <<brainflow framework>>
         +perform_bandpass(data: np.ndarray, sampling_rate: float, start_freq: float, stop_freq: float, order: int, filter_type: FilterTypes, ripple: int)$ void
@@ -66,11 +66,11 @@ classDiagram
         +perform_inverse_wavelet_transform(coeffs_tuple: Tuple[np.ndarray, List[int]], original_length: int, wavelet: WaveletTypes, decomp_level: int, extension_type: int)$ np.ndarray
         +get_nearest_power_of_two(n: int)$ int
     }
-    
+
     %% ================================================================================
     %% BRAINFLOW FILTER ENUMS
     %% ================================================================================
-    
+
     class FilterTypes {
         <<brainflow enum>>
         +BUTTERWORTH$: FilterTypes
@@ -79,7 +79,7 @@ classDiagram
         +BESSEL$: FilterTypes
         +value: int
     }
-    
+
     class WaveletTypes {
         <<brainflow enum>>
         +DAUBECHIES_4$: WaveletTypes
@@ -111,14 +111,14 @@ classDiagram
         +DB4$: WaveletTypes
         +value: int
     }
-    
+
     class NoiseTypes {
         <<brainflow enum>>
         +FIFTY$: NoiseTypes
         +SIXTY$: NoiseTypes
         +value: int
     }
-    
+
     class AggOperations {
         <<brainflow enum>>
         +MEAN$: AggOperations
@@ -126,14 +126,14 @@ classDiagram
         +EACH$: AggOperations
         +value: int
     }
-    
+
     class DetrendOperations {
         <<brainflow enum>>
         +CONSTANT$: DetrendOperations
         +LINEAR$: DetrendOperations
         +value: int
     }
-    
+
     class WindowOperations {
         <<brainflow enum>>
         +NO_WINDOW$: WindowOperations
@@ -142,21 +142,21 @@ classDiagram
         +BLACKMAN_HARRIS$: WindowOperations
         +value: int
     }
-    
+
     class WaveletDenoisingTypes {
         <<brainflow enum>>
         +VISUSHRINK$: WaveletDenoisingTypes
         +SURESHRINK$: WaveletDenoisingTypes
         +value: int
     }
-    
+
     class ThresholdTypes {
         <<brainflow enum>>
         +SOFT$: ThresholdTypes
         +HARD$: ThresholdTypes
         +value: int
     }
-    
+
     class WaveletExtensionTypes {
         <<brainflow enum>>
         +SYMMETRIC$: WaveletExtensionTypes
@@ -165,36 +165,36 @@ classDiagram
         +CONSTANT$: WaveletExtensionTypes
         +value: int
     }
-    
+
     class NoiseEstimationLevelTypes {
         <<brainflow enum>>
         +FIRST_LEVEL$: NoiseEstimationLevelTypes
         +ALL_LEVELS$: NoiseEstimationLevelTypes
         +value: int
     }
-    
+
     %% ================================================================================
     %% BRAINFLOW ML MODEL COMPONENTS
     %% ================================================================================
-    
+
     class MLModel {
         <<brainflow framework>>
         +model_params: BrainFlowModelParams
-        
+
         +__init__(model_params: BrainFlowModelParams) void
         +prepare() void
         +release() void
         +predict(feature_vector: np.ndarray) float
     }
-    
+
     class BrainFlowModelParams {
         <<brainflow framework>>
         +metric: int
         +classifier: int
-        
+
         +__init__(metric: int, classifier: int) void
     }
-    
+
     class BrainFlowMetrics {
         <<brainflow enum>>
         +MINDFULNESS$: BrainFlowMetrics
@@ -202,7 +202,7 @@ classDiagram
         +USER_DEFINED$: BrainFlowMetrics
         +value: int
     }
-    
+
     class BrainFlowClassifiers {
         <<brainflow enum>>
         +DEFAULT_CLASSIFIER$: BrainFlowClassifiers
@@ -210,20 +210,20 @@ classDiagram
         +ONNX_CLASSIFIER$: BrainFlowClassifiers
         +value: int
     }
-    
+
     %% ================================================================================
     %% SCIPY INTEGRATION (OPTIONAL)
     %% ================================================================================
-    
+
     class scipy_signal {
         <<external library>>
         +savgol_filter(data: np.ndarray, window_length: int, polyorder: int) np.ndarray
     }
-    
+
     %% ================================================================================
     %% STANDARD LIBRARY COMPONENTS
     %% ================================================================================
-    
+
     class numpy {
         <<stdlib>>
         +ndarray: Class
@@ -241,7 +241,7 @@ classDiagram
         +min(data: Any) Any
         +max(data: Any) Any
     }
-    
+
     class logging {
         <<stdlib>>
         +info(message: str) void
@@ -249,7 +249,7 @@ classDiagram
         +error(message: str) void
         +debug(message: str) void
     }
-    
+
     class typing {
         <<stdlib>>
         +Dict
@@ -258,19 +258,19 @@ classDiagram
         +Any
         +Optional
     }
-    
+
     %% ================================================================================
     %% RELATIONSHIPS
     %% ================================================================================
-    
+
     %% Package Composition
     ProcessorsPackage "1" *-- "1" SignalProcessor : contains
-    
+
     %% Core Processing Dependencies
     SignalProcessor ..> DataFilter : uses for all filtering operations
     SignalProcessor ..> MLModel : uses for EEG metrics
     SignalProcessor ..> BrainFlowModelParams : creates for ML models
-    
+
     %% Filter Type Dependencies
     SignalProcessor ..> FilterTypes : uses for filter selection
     SignalProcessor ..> WaveletTypes : uses for wavelet operations
@@ -282,41 +282,41 @@ classDiagram
     SignalProcessor ..> ThresholdTypes : uses for wavelet thresholding
     SignalProcessor ..> WaveletExtensionTypes : uses for wavelet transforms
     SignalProcessor ..> NoiseEstimationLevelTypes : uses for noise estimation
-    
+
     %% ML Model Dependencies
     MLModel "1" *-- "1" BrainFlowModelParams : model_params
     BrainFlowModelParams ..> BrainFlowMetrics : uses for metric selection
     BrainFlowModelParams ..> BrainFlowClassifiers : uses for classifier selection
-    
+
     %% Optional External Dependencies
     SignalProcessor ..> scipy_signal : uses optionally for enhanced stability
-    
+
     %% Standard Library Dependencies
     SignalProcessor ..> numpy : uses extensively for array operations
     SignalProcessor ..> logging : uses for debugging and monitoring
     SignalProcessor ..> typing : uses for type hints
-    
+
     %% ================================================================================
     %% LOGICAL GROUPINGS
     %% ================================================================================
-    
+
     %% Filter Operations Group
     FilterTypes -.- WaveletTypes : "filter types"
     WaveletTypes -.- NoiseTypes : "filter types"
     NoiseTypes -.- AggOperations : "filter types"
     AggOperations -.- DetrendOperations : "filter types"
     DetrendOperations -.- WindowOperations : "filter types"
-    
+
     %% Wavelet Operations Group
     WaveletDenoisingTypes -.- ThresholdTypes : "wavelet processing"
     ThresholdTypes -.- WaveletExtensionTypes : "wavelet processing"
     WaveletExtensionTypes -.- NoiseEstimationLevelTypes : "wavelet processing"
-    
+
     %% ML Model Group
     MLModel -.- BrainFlowModelParams : "ml framework"
     BrainFlowModelParams -.- BrainFlowMetrics : "ml framework"
     BrainFlowMetrics -.- BrainFlowClassifiers : "ml framework"
-    
+
     %% Standard Library Group
     numpy -.- logging : "standard libraries"
     logging -.- typing : "standard libraries"

@@ -10,6 +10,6 @@ from .unified_app import UnifiedApp, run_unified_app
 
 __all__ = [
     "SynchronizationPanel",
-    "UnifiedApp", 
+    "UnifiedApp",
     "run_unified_app",
 ]

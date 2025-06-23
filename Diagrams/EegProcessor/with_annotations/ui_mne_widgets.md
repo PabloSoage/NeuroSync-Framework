@@ -3,11 +3,11 @@ classDiagram
     %% ================================================================================
     %% UI/MNE/WIDGETS MODULE - MNE-SPECIFIC USER INTERFACE COMPONENTS
     %% ================================================================================
-    
+
     %% ================================================================================
     %% CORE WIDGET CLASSES
     %% ================================================================================
-    
+
     class MNEConversionWidget {
         <<mne conversion widget>>
         +conversion_requested: pyqtSignal[dict]
@@ -16,7 +16,7 @@ classDiagram
         +realtime_requested: pyqtSignal[dict]
         +realtime_stopped: pyqtSignal
         +realtime_param_changed: pyqtSignal[str, object]
-        
+
         +conversion_mode_combo: QComboBox
         +duration_spin: QSpinBox
         +convert_to_v_check: QCheckBox
@@ -35,7 +35,7 @@ classDiagram
         +mode_info_label: QLabel
         +realtime_params_widget: QWidget
         +performance_channel_widget: QWidget
-        
+
         +__init__(parent: Optional[QWidget]) void
         +setup_ui() void
         +get_conversion_parameters() Dict[str, Any]
@@ -56,7 +56,7 @@ classDiagram
         -_request_realtime() void
         -_update_performance_warning(value: int) void
     }
-    
+
     class MNEVisualizationWidget {
         <<mne visualization widget>>
         +visualization_requested: pyqtSignal[dict]
@@ -66,7 +66,7 @@ classDiagram
         +freq_range_changed: pyqtSignal[int, int]
         +psd_mode_changed: pyqtSignal[bool]
         +topomap_band_changed: pyqtSignal[int, int]
-        
+
         +plot_type_combo: QComboBox
         +freq_min_spin: QSpinBox
         +freq_max_spin: QSpinBox
@@ -84,7 +84,7 @@ classDiagram
         +cancel_plot_btn: QPushButton
         +plot_progress: QProgressBar
         +plot_display: QLabel
-        
+
         +__init__(parent: Optional[QWidget]) void
         +setup_ui() void
         +get_visualization_parameters() Dict[str, Any]
@@ -107,12 +107,12 @@ classDiagram
         -_request_visualization() void
         -_get_topomap_frequency_range() Tuple[int, int]
     }
-    
+
     class MNEStatusWidget {
         <<mne status monitoring widget>>
         +realtime_info: QLabel
         +status_text: QTextEdit
-        
+
         +__init__(parent: Optional[QWidget]) void
         +setup_ui() void
         +add_status_message(message: str) void
@@ -122,14 +122,14 @@ classDiagram
         +add_channel_update_message(old_count: int, new_count: int) void
         +add_optimization_message(channels_selected: int, total_channels: int) void
     }
-    
+
     class ChannelSelectionDialog {
         <<channel selection dialog>>
         +channel_names: List[str]
         +selected_channels: List[int]
         +checkboxes: List[QCheckBox]
         +info_label: QLabel
-        
+
         +__init__(channel_names: List[str], selected_channels: Optional[List[int]], parent: Optional[QWidget]) void
         +setup_ui() void
         +apply_dark_theme() void
@@ -138,7 +138,7 @@ classDiagram
         +update_info_label() void
         +get_selected_channels() List[int]
     }
-    
+
     class MNEWidgetsPackage {
         <<module package>>
         +MNEConversionWidget: Class
@@ -146,26 +146,26 @@ classDiagram
         +MNEStatusWidget: Class
         +ChannelSelectionDialog: Class
     }
-    
+
     %% ================================================================================
     %% EXTERNAL UTILITY CLASSES
     %% ================================================================================
-    
+
     class HelpButton {
         <<external utility>>
         +topic: str
-        
+
         +__init__(topic: str, parent: QWidget) void
     }
-    
+
     %% ================================================================================
     %% QT5 FRAMEWORK COMPONENTS
     %% ================================================================================
-    
+
     class QWidget {
         <<qt5 framework>>
         +parent: Optional[QWidget]
-        
+
         +__init__(parent: Optional[QWidget]) void
         +setEnabled(enabled: bool) void
         +setVisible(visible: bool) void
@@ -176,12 +176,12 @@ classDiagram
         +setLayout(layout: QLayout) void
         +size() QSize
     }
-    
+
     class QDialog {
         <<qt5 framework>>
         +Accepted$: int
         +Rejected$: int
-        
+
         +__init__(parent: Optional[QWidget]) void
         +setWindowTitle(title: str) void
         +setModal(modal: bool) void
@@ -190,42 +190,42 @@ classDiagram
         +accept() void
         +reject() void
     }
-    
+
     class pyqtSignal {
         <<qt5 framework>>
         +emit(*args: Any) void
         +connect(slot: Callable) void
         +disconnect(slot: Optional[Callable]) void
     }
-    
+
     class QVBoxLayout {
         <<qt5 framework>>
         +addWidget(widget: QWidget) void
         +addLayout(layout: QLayout) void
         +setContentsMargins(left: int, top: int, right: int, bottom: int) void
     }
-    
+
     class QHBoxLayout {
         <<qt5 framework>>
         +addWidget(widget: QWidget) void
         +addLayout(layout: QLayout) void
         +addStretch() void
     }
-    
+
     class QGridLayout {
         <<qt5 framework>>
         +addWidget(widget: QWidget, row: int, column: int) void
         +setSpacing(spacing: int) void
     }
-    
+
     class QGroupBox {
         <<qt5 framework>>
         +title: str
-        
+
         +__init__(title: str) void
         +setTitle(title: str) void
     }
-    
+
     class QLabel {
         <<qt5 framework>>
         +setText(text: str) void
@@ -240,7 +240,7 @@ classDiagram
         +hide() void
         +show() void
     }
-    
+
     class QPushButton {
         <<qt5 framework>>
         +clicked: pyqtSignal
@@ -249,7 +249,7 @@ classDiagram
         +setStyleSheet(style: str) void
         +setToolTip(tooltip: str) void
     }
-    
+
     class QSpinBox {
         <<qt5 framework>>
         +valueChanged: pyqtSignal[int]
@@ -259,7 +259,7 @@ classDiagram
         +setSuffix(suffix: str) void
         +setToolTip(tooltip: str) void
     }
-    
+
     class QCheckBox {
         <<qt5 framework>>
         +stateChanged: pyqtSignal[int]
@@ -269,7 +269,7 @@ classDiagram
         +setEnabled(enabled: bool) void
         +setToolTip(tooltip: str) void
     }
-    
+
     class QComboBox {
         <<qt5 framework>>
         +currentIndexChanged: pyqtSignal[int]
@@ -284,14 +284,14 @@ classDiagram
         +setEnabled(enabled: bool) void
         +setToolTip(tooltip: str) void
     }
-    
+
     class QProgressBar {
         <<qt5 framework>>
         +setValue(value: int) void
         +setRange(min: int, max: int) void
         +setVisible(visible: bool) void
     }
-    
+
     class QTextEdit {
         <<qt5 framework>>
         +append(text: str) void
@@ -300,71 +300,71 @@ classDiagram
         +setMaximumHeight(height: int) void
         +setStyleSheet(style: str) void
     }
-    
+
     class QScrollArea {
         <<qt5 framework>>
         +setWidgetResizable(resizable: bool) void
         +setWidget(widget: QWidget) void
         +setMaximumHeight(height: int) void
     }
-    
+
     class QFrame {
         <<qt5 framework>>
         +setFrameShape(shape: QFrame.Shape) void
         +setFrameShadow(shadow: QFrame.Shadow) void
     }
-    
+
     class QDialogButtonBox {
         <<qt5 framework>>
         +Ok$: int
         +Cancel$: int
         +accepted: pyqtSignal
         +rejected: pyqtSignal
-        
+
         +__init__(buttons: int) void
     }
-    
+
     class QPixmap {
         <<qt5 framework>>
         +loadFromData(data: bytes) bool
         +isNull() bool
         +scaled(size: QSize, aspectRatioMode: Qt.AspectRatioMode, transformMode: Qt.TransformationMode) QPixmap
     }
-    
+
     class QSize {
         <<qt5 framework>>
         +width() int
         +height() int
     }
-    
+
     class Qt {
         <<qt5 constants>>
         +AlignCenter$: Qt.Alignment
         +KeepAspectRatio$: Qt.AspectRatioMode
         +SmoothTransformation$: Qt.TransformationMode
     }
-    
+
     %% ================================================================================
     %% STANDARD LIBRARY COMPONENTS
     %% ================================================================================
-    
+
     class base64 {
         <<stdlib>>
         +b64decode(s: str) bytes
     }
-    
+
     class logging {
         <<stdlib>>
         +error(message: str) void
         +info(message: str) void
         +debug(message: str) void
     }
-    
+
     class time {
         <<stdlib>>
         +strftime(format: str) str
     }
-    
+
     class typing {
         <<stdlib>>
         +Any
@@ -373,23 +373,23 @@ classDiagram
         +List
         +Tuple
     }
-    
+
     %% ================================================================================
     %% RELATIONSHIPS
     %% ================================================================================
-    
+
     %% Package Composition
     MNEWidgetsPackage "1" *-- "1" MNEConversionWidget : contains
     MNEWidgetsPackage "1" *-- "1" MNEVisualizationWidget : contains
     MNEWidgetsPackage "1" *-- "1" MNEStatusWidget : contains
     MNEWidgetsPackage "1" *-- "1" ChannelSelectionDialog : contains
-    
+
     %% Inheritance
     MNEConversionWidget --|> QWidget : extends
     MNEVisualizationWidget --|> QWidget : extends
     MNEStatusWidget --|> QWidget : extends
     ChannelSelectionDialog --|> QDialog : extends
-    
+
     %% Core Component Relationships - MNEConversionWidget
     MNEConversionWidget "1" *-- "1" QComboBox : conversion_mode_combo
     MNEConversionWidget "1" *-- "1" QSpinBox : duration_spin
@@ -404,7 +404,7 @@ classDiagram
     MNEConversionWidget "1" *-- "1" QProgressBar : conversion_progress
     MNEConversionWidget "1" *-- "*" QLabel : various labels
     MNEConversionWidget "1" *-- "2" QWidget : realtime_params_widget, performance_channel_widget
-    
+
     %% Core Component Relationships - MNEVisualizationWidget
     MNEVisualizationWidget "1" *-- "1" QComboBox : plot_type_combo
     MNEVisualizationWidget "1" *-- "2" QSpinBox : freq_min_spin, freq_max_spin
@@ -417,18 +417,18 @@ classDiagram
     MNEVisualizationWidget "1" *-- "1" QProgressBar : plot_progress
     MNEVisualizationWidget "1" *-- "1" QLabel : plot_display
     MNEVisualizationWidget "1" *-- "*" QLabel : various status labels
-    
+
     %% Core Component Relationships - MNEStatusWidget
     MNEStatusWidget "1" *-- "1" QLabel : realtime_info
     MNEStatusWidget "1" *-- "1" QTextEdit : status_text
-    
+
     %% Core Component Relationships - ChannelSelectionDialog
     ChannelSelectionDialog "1" *-- "*" QCheckBox : checkboxes
     ChannelSelectionDialog "1" *-- "1" QLabel : info_label
     ChannelSelectionDialog "1" *-- "1" QScrollArea : scroll area
     ChannelSelectionDialog "1" *-- "1" QFrame : container frame
     ChannelSelectionDialog "1" *-- "1" QDialogButtonBox : button box
-    
+
     %% Signal Relationships
     MNEConversionWidget "1" *-- "6" pyqtSignal : signals
     MNEVisualizationWidget "1" *-- "8" pyqtSignal : signals
@@ -437,17 +437,17 @@ classDiagram
     QCheckBox "1" *-- "2" pyqtSignal : stateChanged, toggled
     QComboBox "1" *-- "2" pyqtSignal : currentIndexChanged, currentTextChanged
     QDialogButtonBox "1" *-- "2" pyqtSignal : accepted, rejected
-    
+
     %% Layout Relationships
     MNEConversionWidget "1" *-- "1" QVBoxLayout : main layout
     MNEVisualizationWidget "1" *-- "1" QVBoxLayout : main layout
     MNEStatusWidget "1" *-- "1" QVBoxLayout : main layout
     ChannelSelectionDialog "1" *-- "1" QVBoxLayout : main layout
     ChannelSelectionDialog "1" *-- "1" QGridLayout : checkbox grid
-    
+
     %% External Dependencies
     MNEConversionWidget ..> HelpButton : uses
-    
+
     %% Qt Framework Dependencies
     MNEConversionWidget ..> QVBoxLayout : creates
     MNEConversionWidget ..> QHBoxLayout : creates
@@ -458,7 +458,7 @@ classDiagram
     MNEConversionWidget ..> QCheckBox : creates
     MNEConversionWidget ..> QComboBox : creates
     MNEConversionWidget ..> QProgressBar : creates
-    
+
     MNEVisualizationWidget ..> QVBoxLayout : creates
     MNEVisualizationWidget ..> QHBoxLayout : creates
     MNEVisualizationWidget ..> QGroupBox : creates
@@ -470,12 +470,12 @@ classDiagram
     MNEVisualizationWidget ..> QProgressBar : creates
     MNEVisualizationWidget ..> QPixmap : uses
     MNEVisualizationWidget ..> Qt : uses constants
-    
+
     MNEStatusWidget ..> QVBoxLayout : creates
     MNEStatusWidget ..> QGroupBox : creates
     MNEStatusWidget ..> QLabel : creates
     MNEStatusWidget ..> QTextEdit : creates
-    
+
     ChannelSelectionDialog ..> QVBoxLayout : creates
     ChannelSelectionDialog ..> QHBoxLayout : creates
     ChannelSelectionDialog ..> QGridLayout : creates
@@ -485,26 +485,26 @@ classDiagram
     ChannelSelectionDialog ..> QScrollArea : creates
     ChannelSelectionDialog ..> QFrame : creates
     ChannelSelectionDialog ..> QDialogButtonBox : creates
-    
+
     %% Standard Library Dependencies
     MNEVisualizationWidget ..> base64 : uses
     MNEVisualizationWidget ..> logging : uses
     MNEStatusWidget ..> time : uses
-    
+
     MNEConversionWidget ..> typing : uses
     MNEVisualizationWidget ..> typing : uses
     MNEStatusWidget ..> typing : uses
     ChannelSelectionDialog ..> typing : uses
-    
+
     %% ================================================================================
     %% LOGICAL GROUPINGS
     %% ================================================================================
-    
+
     %% Core Widget Categories
     MNEConversionWidget -.- MNEVisualizationWidget : "mne operation widgets"
     MNEVisualizationWidget -.- MNEStatusWidget : "mne operation widgets"
     MNEStatusWidget -.- ChannelSelectionDialog : "mne operation widgets"
-    
+
     %% Qt Framework Components
     QWidget -.- QDialog : "qt framework"
     QDialog -.- pyqtSignal : "qt framework"
@@ -525,31 +525,31 @@ classDiagram
     QDialogButtonBox -.- QPixmap : "qt framework"
     QPixmap -.- QSize : "qt framework"
     QSize -.- Qt : "qt framework"
-    
+
     %% Standard Library Components
     base64 -.- logging : "standard libraries"
     logging -.- time : "standard libraries"
     time -.- typing : "standard libraries"
-    
+
     %% ================================================================================
     %% NOTES
     %% ================================================================================
-    
+
     note for MNEConversionWidget "Advanced MNE Data Conversion Interface:\n• Multi-mode conversion system with flexible, performance, and real-time processing modes\n• Dynamic parameter controls with real-time signal emission for live processing coordination\n• Intelligent performance monitoring with CPU usage warnings for high-frequency operations\n• Filter integration with processing panel filters (bandpass, notch, detrend) for enhanced signal conditioning\n• Real-time mode with configurable update intervals (0.5-30 seconds) and adaptive performance warnings\n• Channel selection optimization for performance mode with computation load reduction indicators\n• Mode-specific UI adaptation with automatic control visibility and configuration management\n• Dynamic status updates with color-coded indicators and performance optimization guidance\n• Thread-safe state management with proper UI updates and resource lifecycle control\n• Integration with MNE services for seamless data conversion and processing pipeline coordination"
-    
+
     note for MNEVisualizationWidget "Dynamic MNE Visualization Control Interface:\n• Multiple plot type support: Power Spectral Density (PSD), Topomaps, Raw Data, Spectrograms\n• Real-time parameter updates with immediate signal emission for live processing without restart\n• Advanced frequency range controls with validation and predefined band configurations\n• Intelligent topomap frequency band selection (Alpha, Beta, Gamma, Delta, Theta, Custom ranges)\n• PSD mode optimization with individual channel display vs averaged analysis with variability bands\n• Channel selection integration with real-time optimization indicators and performance monitoring\n• Base64 image display system with automatic scaling, error handling, and responsive layout\n• Real-time mode indicators with automatic UI adaptation and live update status display\n• Performance-aware visualization with adaptive refresh rates and resource optimization\n• Qt signal architecture enabling loose coupling with visualization services and real-time coordination"
-    
+
     note for MNEStatusWidget "Real-Time Operation Monitoring and Performance Analytics:\n• Timestamped status message logging with monospace font for detailed operation tracking\n• Advanced real-time session monitoring with performance metrics and efficiency analysis\n• CPU usage warnings and timeout detection for high-frequency operations with adaptive recommendations\n• Channel optimization analytics with computation load indicators and performance improvement suggestions\n• Performance correlation analysis comparing processing time vs update interval for efficiency optimization\n• Color-coded status system (green for normal operation, amber for warnings, red for critical errors)\n• Session analytics including uptime tracking, update count monitoring, and performance trend analysis\n• Intelligent performance warnings with contextual recommendations for system optimization\n• Memory-efficient logging with automatic message management and resource cleanup\n• Integration with real-time processing services for system monitoring and feedback"
-    
+
     note for ChannelSelectionDialog "Reusable Channel Selection Interface with Performance Optimization:\n• Efficient grid-based checkbox layout for scalable channel selection supporting large electrode arrays\n• Bulk selection operations (Select All/Deselect All) for rapid workflow optimization and configuration\n• Real-time selection count display with immediate validation and performance impact indicators\n• Scrollable interface design for handling large channel counts (32, 64, 128+ channels) efficiently\n• Consistent dark theme integration maintaining application visual coherence and user experience\n• Modal dialog architecture ensuring focused channel selection workflow without distraction\n• Keyboard navigation support and accessibility features for enhanced usability and workflow efficiency\n• Performance impact analysis showing computational load reduction based on channel selection\n• Memory-efficient checkbox management with proper resource cleanup and state preservation\n• Cross-widget compatibility enabling reuse across different analysis modes and processing workflows"
-    
+
     note "Real-Time Processing Architecture and Performance Optimization:\n• Dynamic Parameter Updates: Real-time parameter modification without requiring session restart or recomputation\n• Performance Monitoring: CPU usage tracking with adaptive warnings and optimization recommendations\n• Adaptive UI Management: Automatic interface reconfiguration based on processing mode and performance requirements\n• Resource Optimization: Channel selection optimization with clear indicators of computational load reduction benefits\n• Signal Architecture: Qt signal/slot system enabling loose coupling between UI components and backend services\n• Thread Safety: Proper UI thread marshalling for safe cross-thread updates and resource management\n• Memory Efficiency: Optimized image handling, automatic cleanup, and resource lifecycle management\n• Error Recovery: Robust error handling with detailed user feedback and automatic recovery mechanisms"
-    
+
     note "User Experience and Interface Design Excellence:\n• Consistent Dark Theme: Professional dark theme styling across all widgets maintaining visual coherence\n• Intuitive Mode Switching: Automatic UI reconfiguration with clear visual indicators and contextual guidance\n• Performance Feedback: Real-time performance indicators with color-coded warnings and optimization suggestions\n• Visual Status Cues: Emoji indicators, progress bars, and color-coded status for immediate feedback\n• Contextual Help: Integrated tooltips and help system providing parameter guidance and best practices\n• Responsive Layout: Adaptive design supporting different window sizes and screen resolutions\n• Accessibility Features: Keyboard navigation, screen reader compatibility, and high contrast support\n• Workflow Optimization: Streamlined interfaces reducing clicks and cognitive load for efficient operation"
-    
+
     note "Technical Integration and Service Coordination:\n• MNE Service Integration: Seamless coordination with MNE processing services and data conversion pipeline\n• Data Access Coordination: Real-time integration with data access service for continuous data retrieval\n• Filter Service Integration: Dynamic coordination with processing panel filters for advanced signal conditioning\n• Event System Integration: Application-wide state synchronization through event dispatcher coordination\n• Performance Service Integration: CPU monitoring, timeout detection, and adaptive optimization strategies\n• Visualization Service Coordination: Real-time plot generation with base64 encoding and efficient display\n• Channel Management: Intelligent channel selection with cross-widget state synchronization\n• Error Handling: Exception management with detailed logging and user-friendly feedback"
-    
+
     note "Advanced Features and Capabilities:\n• Multi-Mode Processing: Flexible (all channels), Performance (selected), Real-time (adaptive) processing modes\n• Parameter Validation: Range checking with stability analysis and mathematical validation\n• Performance Analytics: Real-time efficiency monitoring with adaptive recommendations and optimization guidance\n• Image Processing: Base64 image handling with automatic scaling, caching, and memory optimization\n• State Management: Proper widget lifecycle control with automatic resource cleanup and state preservation\n• Cross-Platform Support: Consistent behavior and appearance across different operating systems\n• Extensibility: Plugin-like architecture enabling easy addition of new visualization types and analysis methods\n• Documentation Integration: Inline help system with context-sensitive guidance and parameter explanations"
-    
+
     note "Performance Monitoring and Optimization Features:\n• CPU Usage Analytics: Real-time monitoring with warnings for high-frequency operations and resource optimization\n• Memory Efficiency: Optimized buffer management with automatic cleanup and leak prevention\n• Adaptive Processing: Dynamic parameter adjustment based on system capabilities and processing load\n• Timeout Management: Intelligent timeout detection with automatic recovery and performance recommendations\n• Channel Optimization: Performance impact analysis showing computational benefits of channel selection\n• Resource Tracking: Monitoring of processing time, memory usage, and system efficiency\n• Bottleneck Detection: Automatic identification of performance bottlenecks with optimization suggestions\n• Scalability Support: Efficient handling of large datasets and high channel counts with adaptive strategies"
 ```

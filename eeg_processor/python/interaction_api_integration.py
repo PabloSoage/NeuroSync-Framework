@@ -2073,8 +2073,6 @@ class EEGProcessorInteractionApiIntegration:
                     "error": "INVALID_DURATION",
                 }
 
-
-
             # Convert string to boolean
             use_filters_bool = use_filters.lower() == "true"
 

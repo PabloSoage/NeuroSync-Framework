@@ -386,10 +386,10 @@ explorer.broadcast_event("my_module", event_data)
 # Server initialization
 def setup_api():
     explorer = ApiExplorer.get_instance()
-    
+
     # Register modules
     register_modules(explorer)
-    
+
     # Start server
     explorer.start_server(host="localhost", port=8000, block=False)
     return explorer

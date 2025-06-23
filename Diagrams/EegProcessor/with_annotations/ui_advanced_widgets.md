@@ -3,16 +3,16 @@ classDiagram
     %% ================================================================================
     %% UI/ADVANCED/WIDGETS MODULE - ADVANCED PROCESSING WIDGET COMPONENTS
     %% ================================================================================
-    
+
     %% ================================================================================
     %% CORE WIDGET CLASSES
     %% ================================================================================
-    
+
     class AdvancedFilterWidget {
         <<advanced filter widget>>
         +apply_requested: pyqtSignal[dict]
         +settings_changed: pyqtSignal[dict]
-        
+
         +applied: bool
         +channel_names: List[str]
         +selected_channels: List[int]
@@ -25,7 +25,7 @@ classDiagram
         +filter_channel_select_btn: QPushButton
         +filter_channel_info_label: QLabel
         +apply_adv_filter_btn: QPushButton
-        
+
         +__init__(parent: Optional[Any]) void
         +update_channels(channel_names: List[str]) void
         +set_processing_panel_reference(processing_panel: Any) void
@@ -39,7 +39,7 @@ classDiagram
         -_toggle_advanced_filters() void
         -_on_settings_changed() void
     }
-    
+
     class ICAWidget {
         <<ica analysis widget>>
         +compute_requested: pyqtSignal[dict]
@@ -49,7 +49,7 @@ classDiagram
         +realtime_start_requested: pyqtSignal[dict]
         +realtime_stop_requested: pyqtSignal
         +realtime_interval_changed: pyqtSignal[float]
-        
+
         +channel_names: List[str]
         +selected_channels: List[int]
         +ica_results: Optional[Dict[str, Any]]
@@ -64,7 +64,7 @@ classDiagram
         +window_size_spin: QDoubleSpinBox
         +realtime_status_label: QLabel
         +colormap_combo: QComboBox
-        
+
         +__init__(parent: Optional[Any]) void
         +update_channels(channel_names: List[str]) void
         +set_ica_results(ica_results: Dict[str, Any]) void
@@ -81,13 +81,13 @@ classDiagram
         -_on_realtime_enable_changed(state: int) void
         -_on_interval_changed(value: float) void
     }
-    
+
     class WaveletWidget {
         <<wavelet analysis widget>>
         +compute_requested: pyqtSignal[dict]
         +apply_inverse_requested: pyqtSignal[bool]
         +settings_changed: pyqtSignal[dict]
-        
+
         +channel_names: List[str]
         +wavelet_results: Optional[Dict[str, Any]]
         +inverse_applied: bool
@@ -98,7 +98,7 @@ classDiagram
         +apply_denoising_check: QCheckBox
         +compute_wavelet_btn: QPushButton
         +inverse_wavelet_btn: QPushButton
-        
+
         +__init__(parent: Optional[Any]) void
         +update_channels(channel_names: List[str]) void
         +set_wavelet_results(coefficients: Any, metadata: Dict[str, Any]) void
@@ -110,17 +110,17 @@ classDiagram
         -_toggle_inverse_transform() void
         -_on_settings_changed() void
     }
-    
+
     class DownsamplingWidget {
         <<downsampling widget>>
         +apply_requested: pyqtSignal[dict]
         +settings_changed: pyqtSignal[dict]
-        
+
         +applied: bool
         +downsample_factor_spin: QSpinBox
         +downsample_agg_combo: QComboBox
         +apply_downsample_btn: QPushButton
-        
+
         +__init__(parent: Optional[Any]) void
         +set_enabled(enabled: bool) void
         +get_downsample_settings() Dict[str, Any]
@@ -128,7 +128,7 @@ classDiagram
         -_toggle_downsampling() void
         -_on_settings_changed() void
     }
-    
+
     class AdvancedWidgetsPackage {
         <<module package>>
         +AdvancedFilterWidget: Class
@@ -136,37 +136,37 @@ classDiagram
         +WaveletWidget: Class
         +DownsamplingWidget: Class
     }
-    
+
     %% ================================================================================
     %% EXTERNAL DIALOG CLASSES
     %% ================================================================================
-    
+
     class ChannelSelectionDialog {
         <<external dialog>>
         +channel_names: List[str]
         +selected_channels: List[int]
-        
+
         +__init__(channel_names: List[str], selected_channels: List[int], parent: QWidget) void
         +get_selected_channels() List[int]
         +exec_() int
         +setWindowTitle(title: str) void
     }
-    
+
     class HelpButton {
         <<external utility>>
         +topic: str
-        
+
         +__init__(topic: str, parent: QWidget) void
     }
-    
+
     %% ================================================================================
     %% QT5 FRAMEWORK COMPONENTS
     %% ================================================================================
-    
+
     class QWidget {
         <<qt5 framework>>
         +parent: Optional[QWidget]
-        
+
         +__init__(parent: Optional[QWidget]) void
         +setEnabled(enabled: bool) void
         +show() void
@@ -175,7 +175,7 @@ classDiagram
         +setToolTip(tooltip: str) void
         +setStyleSheet(style: str) void
     }
-    
+
     class pyqtSignal {
         <<qt5 framework>>
         +emit(*args: Any) void
@@ -183,29 +183,29 @@ classDiagram
         +disconnect(slot: Optional[Callable]) void
         +blockSignals(block: bool) bool
     }
-    
+
     class QVBoxLayout {
         <<qt5 framework>>
         +addWidget(widget: QWidget) void
         +addLayout(layout: QLayout) void
         +setContentsMargins(left: int, top: int, right: int, bottom: int) void
     }
-    
+
     class QHBoxLayout {
         <<qt5 framework>>
         +addWidget(widget: QWidget) void
         +addLayout(layout: QLayout) void
         +addStretch() void
     }
-    
+
     class QGroupBox {
         <<qt5 framework>>
         +title: str
-        
+
         +__init__(title: str) void
         +setTitle(title: str) void
     }
-    
+
     class QLabel {
         <<qt5 framework>>
         +setText(text: str) void
@@ -215,7 +215,7 @@ classDiagram
         +hide() void
         +show() void
     }
-    
+
     class QPushButton {
         <<qt5 framework>>
         +clicked: pyqtSignal
@@ -224,7 +224,7 @@ classDiagram
         +setStyleSheet(style: str) void
         +setToolTip(tooltip: str) void
     }
-    
+
     class QSpinBox {
         <<qt5 framework>>
         +valueChanged: pyqtSignal[int]
@@ -233,7 +233,7 @@ classDiagram
         +value() int
         +setToolTip(tooltip: str) void
     }
-    
+
     class QDoubleSpinBox {
         <<qt5 framework>>
         +valueChanged: pyqtSignal[float]
@@ -245,7 +245,7 @@ classDiagram
         +setSingleStep(step: float) void
         +setToolTip(tooltip: str) void
     }
-    
+
     class QComboBox {
         <<qt5 framework>>
         +currentIndexChanged: pyqtSignal[int]
@@ -263,7 +263,7 @@ classDiagram
         +setVisible(visible: bool) void
         +blockSignals(block: bool) bool
     }
-    
+
     class QCheckBox {
         <<qt5 framework>>
         +stateChanged: pyqtSignal[int]
@@ -273,7 +273,7 @@ classDiagram
         +setToolTip(tooltip: str) void
         +blockSignals(block: bool) bool
     }
-    
+
     class QFrame {
         <<qt5 framework>>
         +setFrameShape(shape: QFrame.Shape) void
@@ -281,14 +281,14 @@ classDiagram
         +HLine$: QFrame.Shape
         +Sunken$: QFrame.Shadow
     }
-    
+
     class QDialog {
         <<qt5 framework>>
         +Accepted$: int
         +exec_() int
         +setWindowTitle(title: str) void
     }
-    
+
     class QMessageBox {
         <<qt5 framework>>
         +warning(parent: QWidget, title: str, text: str)$ int
@@ -296,11 +296,11 @@ classDiagram
         +Yes$: int
         +No$: int
     }
-    
+
     %% ================================================================================
     %% BRAINFLOW COMPONENTS
     %% ================================================================================
-    
+
     class FilterTypes {
         <<brainflow enum>>
         +BUTTERWORTH$: FilterTypes
@@ -311,7 +311,7 @@ classDiagram
         +BESSEL_ZERO_PHASE$: FilterTypes
         +value: int
     }
-    
+
     class WindowOperations {
         <<brainflow enum>>
         +NO_WINDOW$: WindowOperations
@@ -320,7 +320,7 @@ classDiagram
         +BLACKMAN_HARRIS$: WindowOperations
         +value: int
     }
-    
+
     class WaveletTypes {
         <<brainflow enum>>
         +HAAR$: WaveletTypes
@@ -370,14 +370,14 @@ classDiagram
         +SYM10$: WaveletTypes
         +value: int
     }
-    
+
     class WaveletExtensionTypes {
         <<brainflow enum>>
         +SYMMETRIC$: WaveletExtensionTypes
         +PERIODIC$: WaveletExtensionTypes
         +value: int
     }
-    
+
     class AggOperations {
         <<brainflow enum>>
         +MEAN$: AggOperations
@@ -385,11 +385,11 @@ classDiagram
         +EACH$: AggOperations
         +value: int
     }
-    
+
     %% ================================================================================
     %% STANDARD LIBRARY COMPONENTS
     %% ================================================================================
-    
+
     class logging {
         <<stdlib>>
         +info(message: str) void
@@ -397,7 +397,7 @@ classDiagram
         +warning(message: str) void
         +error(message: str) void
     }
-    
+
     class typing {
         <<stdlib>>
         +Dict
@@ -405,23 +405,23 @@ classDiagram
         +Any
         +Optional
     }
-    
+
     %% ================================================================================
     %% RELATIONSHIPS
     %% ================================================================================
-    
+
     %% Package Composition
     AdvancedWidgetsPackage "1" *-- "1" AdvancedFilterWidget : contains
     AdvancedWidgetsPackage "1" *-- "1" ICAWidget : contains
     AdvancedWidgetsPackage "1" *-- "1" WaveletWidget : contains
     AdvancedWidgetsPackage "1" *-- "1" DownsamplingWidget : contains
-    
+
     %% Inheritance
     AdvancedFilterWidget --|> QWidget : extends
     ICAWidget --|> QWidget : extends
     WaveletWidget --|> QWidget : extends
     DownsamplingWidget --|> QWidget : extends
-    
+
     %% Core Component Relationships
     AdvancedFilterWidget "1" *-- "1" QVBoxLayout : layout
     AdvancedFilterWidget "1" *-- "1" QComboBox : filter_type_combo
@@ -432,7 +432,7 @@ classDiagram
     AdvancedFilterWidget "1" *-- "1" QPushButton : apply_adv_filter_btn
     AdvancedFilterWidget "1" *-- "1" QLabel : filter_channel_info_label
     AdvancedFilterWidget "1" *-- "1" QLabel : ripple_label
-    
+
     ICAWidget "1" *-- "1" QVBoxLayout : layout
     ICAWidget "1" *-- "1" QSpinBox : ica_components_spin
     ICAWidget "1" *-- "1" QPushButton : ica_channel_select_btn
@@ -443,7 +443,7 @@ classDiagram
     ICAWidget "1" *-- "1" QDoubleSpinBox : window_size_spin
     ICAWidget "1" *-- "1" QLabel : realtime_status_label
     ICAWidget "1" *-- "1" QComboBox : colormap_combo
-    
+
     WaveletWidget "1" *-- "1" QVBoxLayout : layout
     WaveletWidget "1" *-- "1" QComboBox : wavelet_type_combo
     WaveletWidget "1" *-- "1" QSpinBox : wavelet_level_spin
@@ -452,25 +452,25 @@ classDiagram
     WaveletWidget "1" *-- "1" QCheckBox : apply_denoising_check
     WaveletWidget "1" *-- "1" QPushButton : compute_wavelet_btn
     WaveletWidget "1" *-- "1" QPushButton : inverse_wavelet_btn
-    
+
     DownsamplingWidget "1" *-- "1" QVBoxLayout : layout
     DownsamplingWidget "1" *-- "1" QSpinBox : downsample_factor_spin
     DownsamplingWidget "1" *-- "1" QComboBox : downsample_agg_combo
     DownsamplingWidget "1" *-- "1" QPushButton : apply_downsample_btn
-    
+
     %% Signal Relationships
     AdvancedFilterWidget "1" *-- "2" pyqtSignal : signals
     ICAWidget "1" *-- "7" pyqtSignal : signals
     WaveletWidget "1" *-- "3" pyqtSignal : signals
     DownsamplingWidget "1" *-- "2" pyqtSignal : signals
-    
+
     %% Qt Component Signal Connections
     QPushButton "1" *-- "1" pyqtSignal : clicked
     QSpinBox "1" *-- "1" pyqtSignal : valueChanged
     QDoubleSpinBox "1" *-- "1" pyqtSignal : valueChanged
     QComboBox "1" *-- "2" pyqtSignal : currentIndexChanged, currentTextChanged
     QCheckBox "1" *-- "1" pyqtSignal : stateChanged
-    
+
     %% External Dependencies
     AdvancedFilterWidget ..> ChannelSelectionDialog : creates
     ICAWidget ..> ChannelSelectionDialog : creates
@@ -478,14 +478,14 @@ classDiagram
     ICAWidget ..> HelpButton : uses
     WaveletWidget ..> HelpButton : uses
     DownsamplingWidget ..> HelpButton : uses
-    
+
     %% BrainFlow Dependencies
     AdvancedFilterWidget ..> FilterTypes : uses
     AdvancedFilterWidget ..> WindowOperations : uses
     WaveletWidget ..> WaveletTypes : uses
     WaveletWidget ..> WaveletExtensionTypes : uses
     DownsamplingWidget ..> AggOperations : uses
-    
+
     %% Qt Framework Dependencies
     AdvancedFilterWidget ..> QVBoxLayout : creates
     AdvancedFilterWidget ..> QHBoxLayout : creates
@@ -497,7 +497,7 @@ classDiagram
     AdvancedFilterWidget ..> QComboBox : creates
     AdvancedFilterWidget ..> QMessageBox : uses
     AdvancedFilterWidget ..> QDialog : uses
-    
+
     ICAWidget ..> QVBoxLayout : creates
     ICAWidget ..> QHBoxLayout : creates
     ICAWidget ..> QGroupBox : creates
@@ -509,7 +509,7 @@ classDiagram
     ICAWidget ..> QCheckBox : creates
     ICAWidget ..> QFrame : creates
     ICAWidget ..> QDialog : uses
-    
+
     WaveletWidget ..> QVBoxLayout : creates
     WaveletWidget ..> QHBoxLayout : creates
     WaveletWidget ..> QGroupBox : creates
@@ -518,7 +518,7 @@ classDiagram
     WaveletWidget ..> QSpinBox : creates
     WaveletWidget ..> QComboBox : creates
     WaveletWidget ..> QCheckBox : creates
-    
+
     DownsamplingWidget ..> QVBoxLayout : creates
     DownsamplingWidget ..> QHBoxLayout : creates
     DownsamplingWidget ..> QGroupBox : creates
@@ -526,23 +526,23 @@ classDiagram
     DownsamplingWidget ..> QPushButton : creates
     DownsamplingWidget ..> QSpinBox : creates
     DownsamplingWidget ..> QComboBox : creates
-    
+
     %% Standard Library Dependencies
     AdvancedFilterWidget ..> logging : uses
     AdvancedFilterWidget ..> typing : uses
     ICAWidget ..> typing : uses
     WaveletWidget ..> typing : uses
     DownsamplingWidget ..> typing : uses
-    
+
     %% ================================================================================
     %% LOGICAL GROUPINGS
     %% ================================================================================
-    
+
     %% Widget Categories
     AdvancedFilterWidget -.- ICAWidget : "advanced analysis widgets"
     ICAWidget -.- WaveletWidget : "advanced analysis widgets"
     WaveletWidget -.- DownsamplingWidget : "advanced analysis widgets"
-    
+
     %% Qt Framework Components
     QWidget -.- pyqtSignal : "qt framework"
     pyqtSignal -.- QVBoxLayout : "qt framework"
@@ -555,35 +555,35 @@ classDiagram
     QDoubleSpinBox -.- QComboBox : "qt framework"
     QComboBox -.- QCheckBox : "qt framework"
     QCheckBox -.- QFrame : "qt framework"
-    
+
     %% BrainFlow Components
     FilterTypes -.- WindowOperations : "brainflow enums"
     WindowOperations -.- WaveletTypes : "brainflow enums"
     WaveletTypes -.- WaveletExtensionTypes : "brainflow enums"
     WaveletExtensionTypes -.- AggOperations : "brainflow enums"
-    
+
     %% Standard Library Components
     logging -.- typing : "standard libraries"
-    
+
     %% ================================================================================
     %% NOTES
     %% ================================================================================
-    
+
     note for AdvancedFilterWidget "Advanced Filtering Widget:\n• Filter type selection with 6 mathematical implementations\n• Butterworth, Chebyshev Type 1, Bessel filters with standard and zero-phase variants\n• Configurable filter order (1-10) with stability warnings for high-order configurations\n• Window function selection (Hanning, Hamming, Blackman-Harris) for frequency domain operations\n• Ripple control for Chebyshev filters with stability validation and warning system\n• Channel-specific filtering with intelligent selection interface and performance indicators\n• Dynamic parameter integration with basic bandpass settings from processing panel\n• Real-time parameter updates with immediate application to active data streams\n• Stability monitoring with automatic detection of potentially unstable configurations\n• User-friendly warnings and guidance for parameter selection and filter stability"
-    
+
     note for ICAWidget "Independent Component Analysis Widget:\n• Configurable component count (1-16) with automatic optimization recommendations\n• Advanced channel selection with performance impact analysis and memory usage indicators\n• Standard ICA computation with progress monitoring and result visualization\n• Real-time ICA monitoring with sliding window analysis (0.5-2.0s configurable intervals)\n• Dynamic parameter updates during active sessions without requiring restart or recomputation\n• Component visualization with 8 professional colormap options (Viridis, Plasma, Inferno, etc.)\n• Export capabilities for overview plots and detailed individual component analysis\n• Performance optimization strategies with intelligent channel reduction for efficiency\n• Real-time status monitoring with detailed feedback and session management\n• Integration with advanced processing services for seamless analysis workflow coordination"
-    
+
     note for WaveletWidget "Wavelet Transform Analysis Widget:\n• Wavelet type selection including 40+ wavelets across multiple families\n• Daubechies (DB1-DB15), Biorthogonal (BIOR), Coiflets (COIF1-5), Symlets (SYM2-10)\n• Configurable decomposition levels (1-8) with frequency separation guidance and analysis depth control\n• Single-channel analysis with intelligent channel selection and computational optimization\n• Extension type control (Symmetric, Periodic) for boundary condition handling and edge effects\n• Optional wavelet denoising with advanced artifact removal capabilities before transformation\n• Inverse wavelet transform with real-time toggle capabilities and immediate effect visualization\n• Dynamic parameter updates for live coefficient modification and interactive analysis\n• Coefficient storage and management with metadata preservation for analysis continuity\n• Integration with visualization systems for immediate feedback on parameter changes and results"
-    
+
     note for DownsamplingWidget "Data Downsampling Operations Widget:\n• Configurable downsampling factors (2-10x) with computational load reduction indicators\n• Multiple aggregation methods: Mean (averaging), Median (robust), Each (selective sampling)\n• Real-time application with immediate effect on data streams and all connected visualizations\n• Dynamic parameter updates with automatic recomputation and stream synchronization\n• Memory usage optimization with clear indicators of computational load reduction benefits\n• Performance monitoring showing processing time improvements and storage optimization\n• Integration with visualization systems providing immediate visual feedback on parameter effects\n• Seamless coordination with other processing widgets for complex analysis pipeline creation"
-    
+
     note "Advanced Widget Architecture Features:\n• Signal-Based Communication: Qt signal/slot architecture for responsive UI updates and loose coupling\n• Real-Time Processing: Dynamic parameter updates with immediate effect on active data streams\n• Thread-Safe Operations: Proper synchronization between UI thread and background processing\n• Resource Management: Automatic cleanup and memory optimization with lifecycle management\n• Error Handling: Validation with detailed user feedback and automatic recovery\n• Performance Optimization: Adaptive strategies based on computational load and system capabilities\n• Integration Capabilities: Seamless coordination with advanced processing services and data streams\n• User Experience: Intuitive parameter controls with validation, warnings, and best practice guidance"
-    
+
     note "Channel Selection and Performance Optimization:\n• Intelligent Channel Selection: Performance-aware selection with memory usage and processing indicators\n• Cross-Widget Coordination: Consistent channel selection across different analysis widgets\n• Real-Time Updates: Dynamic channel availability updates based on streaming status and data quality\n• Performance Impact Analysis: Clear indicators of computational load changes with parameter modifications\n• Memory Usage Optimization: Automatic detection of optimal parameter ranges for system capabilities\n• Processing Load Monitoring: Real-time feedback on computational efficiency and resource utilization\n• Adaptive Recommendations: Smart suggestions for parameter optimization based on current system state"
-    
+
     note "Dynamic Processing and Real-Time Features:\n• Live Parameter Updates: Immediate effect application without requiring analysis restart or recomputation\n• Session Management: Proper state tracking for real-time processing sessions with recovery capabilities\n• Adaptive Timeouts: Intelligent timeout management based on processing complexity and system load\n• Memory Efficiency: Optimized buffer management with automatic resource cleanup and leak prevention\n• Performance Monitoring: Real-time tracking of processing efficiency with adaptive optimization strategies\n• Error Recovery: Robust error handling with detailed feedback and automatic recovery mechanisms\n• Cross-Component Synchronization: Coordinated updates across multiple widgets for consistent analysis state"
-    
+
     note "Stability and Validation System:\n• Parameter Validation: Range checking with mathematical stability analysis\n• Filter Stability Warnings: Automatic detection of potentially unstable filter configurations with user guidance\n• BrainFlow Integration: Proper enum usage and parameter validation for all BrainFlow operations\n• Edge Case Handling: Graceful degradation for boundary conditions and parameter edge cases\n• User Guidance: Detailed tooltips, warnings, and recommendations for optimal parameter selection\n• Cross-Validation: Consistency checking between related parameters across different analysis methods\n• Recovery Mechanisms: Automatic fallback to stable configurations when instability is detected"
-    
+
     note "Integration and Workflow Coordination:\n• Advanced Processing Service Integration: Seamless coordination with backend computation services\n• Data Access Service Synchronization: Real-time coordination with continuous data streams and buffer management\n• Visualization System Integration: Immediate feedback and result display with multiple visualization types\n• Event System Coordination: Application-wide state updates and synchronization through event dispatcher\n• Help System Integration: Context-sensitive help and guidance for all parameters and operations\n• Cross-Platform Compatibility: Consistent behavior and appearance across different operating systems\n• Extensibility: Plugin-like architecture enabling easy addition of new analysis methods and parameters"
 ```

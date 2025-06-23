@@ -9,6 +9,6 @@ the unified GUI application.
 from .synchronization_app import SynchronizationApp, run_synchronization_app
 
 __all__ = [
-    "SynchronizationApp", 
+    "SynchronizationApp",
     "run_synchronization_app",
 ]

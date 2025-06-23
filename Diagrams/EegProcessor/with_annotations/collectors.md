@@ -3,7 +3,7 @@ classDiagram
     %% ================================================================================
     %% COLLECTORS MODULE - EEG DATA COLLECTION SYSTEM
     %% ================================================================================
-    
+
     %% Core Collector Implementation
     class EEGCollector {
         <<concrete>>
@@ -26,7 +26,7 @@ classDiagram
         -available_presets: List[int]
         -device_name: str
         -num_rows: int
-        
+
         +__init__(board_id: int, params: Optional[BrainFlowInputParams], preset: int) void
         +prepare_session() void
         +start_stream(buffer_size: int) void
@@ -48,12 +48,12 @@ classDiagram
         -_extract_timestamps(data: np.ndarray) List[int]
         -_get_channels_safely(channel_func: Any, channel_type: str, master_board_id: Optional[int]) List[int]
     }
-    
+
     %% Board Configuration Management
     class BrainFlowBoardConfiguration {
         <<concrete>>
         +presets: Dict[str, int]
-        
+
         +__init__() void
         +get_all_boards() List[Tuple[str, int]]
         +get_board_groups() Dict[str, List[Tuple[str, int]]]
@@ -64,7 +64,7 @@ classDiagram
         +get_protocol_types() Dict[int, str]
         +is_field_optional_for_board(param: str, board_id: int) bool
     }
-    
+
     %% Static Configuration Wrapper
     class BoardConfiguration {
         <<utility>>
@@ -77,11 +77,11 @@ classDiagram
         +get_protocol_types()$ Dict[int, str]
         +is_field_optional_for_board(param: str, board_id: int)$ bool
     }
-    
+
     %% ================================================================================
     %% INTERFACE DEFINITIONS
     %% ================================================================================
-    
+
     class CollectorInterface {
         <<interface>>
         +prepare_session() void
@@ -92,18 +92,18 @@ classDiagram
         +get_device_info() Dict[str, Any]
         +get_eeg_channels() List[int]
     }
-    
+
     class MarkerInterface {
         <<interface>>
         +insert_marker(marker_value: float) void
     }
-    
+
     class ConfigurableCollectorInterface {
         <<interface>>
         +config_device(config: str) str
         +set_preset(preset: int) bool
     }
-    
+
     class BoardInterface {
         <<interface>>
         +get_all_boards() List[Tuple[str, int]]
@@ -113,16 +113,16 @@ classDiagram
         +get_preset_info() Dict[int, str]
         +get_board_description(board_id: int, preset: Optional[int]) Dict
     }
-    
+
     %% ================================================================================
     %% BRAINFLOW LIBRARY COMPONENTS
     %% ================================================================================
-    
+
     class BoardShim {
         <<external library>>
         +board_id: int
         +input_params: BrainFlowInputParams
-        
+
         +__init__(board_id: int, input_params: BrainFlowInputParams) void
         +prepare_session() void
         +start_stream(buffer_size: int) void
@@ -143,7 +143,7 @@ classDiagram
         +get_board_presets(board_id: int)$ List[int]
         +enable_dev_board_logger()$ void
     }
-    
+
     class BrainFlowInputParams {
         <<external library>>
         +serial_port: str
@@ -155,10 +155,10 @@ classDiagram
         +file: str
         +master_board: int
         +timeout: int
-        
+
         +__init__() void
     }
-    
+
     class BoardIds {
         <<external library enum>>
         +SYNTHETIC_BOARD$ int
@@ -187,36 +187,36 @@ classDiagram
         +STREAMING_BOARD$ int
         +NO_BOARD$ int
     }
-    
+
     class BrainFlowPresets {
         <<external library enum>>
         +DEFAULT_PRESET$ int
         +AUXILIARY_PRESET$ int
         +ANCILLARY_PRESET$ int
     }
-    
+
     class BrainFlowError {
         <<external library exception>>
         +exit_code: int
         +message: str
     }
-    
+
     class BrainFlowExitCodes {
         <<external library enum>>
         +BOARD_NOT_CREATED_ERROR$ int
         +ANOTHER_BOARD_IS_CREATED_ERROR$ int
     }
-    
+
     %% ================================================================================
     %% STANDARD LIBRARY COMPONENTS
     %% ================================================================================
-    
+
     class numpy {
         <<external library>>
         +ndarray: Class
         +array(data: Any) ndarray
     }
-    
+
     class logging {
         <<stdlib>>
         +info(message: str) void
@@ -224,28 +224,28 @@ classDiagram
         +error(message: str) void
         +debug(message: str) void
     }
-    
+
     class time {
         <<stdlib>>
         +time() float
         +sleep(seconds: float) void
     }
-    
+
     %% ================================================================================
     %% RELATIONSHIPS
     %% ================================================================================
-    
+
     %% Interface Implementation
     EEGCollector ..|> CollectorInterface : implements
     EEGCollector ..|> MarkerInterface : implements
     EEGCollector ..|> ConfigurableCollectorInterface : implements
     BrainFlowBoardConfiguration ..|> BoardInterface : implements
-    
+
     %% Composition and Aggregation
     EEGCollector "1" *-- "1" BoardShim : contains
     EEGCollector "1" *-- "1" BrainFlowInputParams : contains
     BoardShim ..> BrainFlowInputParams : uses
-    
+
     %% Dependencies
     EEGCollector ..> BoardIds : uses
     EEGCollector ..> BrainFlowPresets : uses
@@ -254,30 +254,30 @@ classDiagram
     EEGCollector ..> numpy : uses
     EEGCollector ..> logging : uses
     EEGCollector ..> time : uses
-    
+
     BrainFlowBoardConfiguration ..> BoardShim : uses
     BrainFlowBoardConfiguration ..> BoardIds : uses
     BrainFlowBoardConfiguration ..> BrainFlowPresets : uses
     BrainFlowBoardConfiguration ..> BrainFlowInputParams : creates
     BrainFlowBoardConfiguration ..> logging : uses
-    
+
     %% Static Delegation
     BoardConfiguration ..> BrainFlowBoardConfiguration : delegates to
-    
+
     %% BrainFlow Internal Relationships
     BoardShim ..> BoardIds : uses
     BoardShim ..> BrainFlowPresets : uses
     BoardShim ..> BrainFlowError : throws
-    
+
     %% ================================================================================
     %% NOTES
     %% ================================================================================
-    
+
     note for EEGCollector "Multi-Interface EEG Collector:\n• Implements CollectorInterface for basic data operations\n• Implements MarkerInterface for event marker insertion\n• Implements ConfigurableCollectorInterface for device config\n• Supports multiple BrainFlow presets (DEFAULT, AUXILIARY, ANCILLARY)\n• Handles various EEG devices (OpenBCI, Muse, Neurosity, g.tec, etc.)\n• Provides automatic channel detection and board information\n• Supports streaming boards with master board configuration\n• Thread-safe data collection operations"
-    
+
     note for BrainFlowBoardConfiguration "Board Configuration Management:\n• Provides board information and requirements\n• Handles parameter validation and BrainFlowInputParams creation\n• Groups boards by manufacturer for easier selection\n• Manages preset information and detailed board descriptions\n• Determines required vs optional parameters per board type\n• Supports special boards (Synthetic, Playback, Streaming)\n• Handles undocumented boards with fallback strategies"
-    
+
     note for BoardConfiguration "Static Compatibility Wrapper:\n• Provides backward compatibility for existing code\n• Delegates all operations to BrainFlowBoardConfiguration\n• Maintains stable API while allowing future enhancements\n• Static methods for easy access without instantiation"
-    
+
     note "Collectors Module Architecture:\n• Multi-interface design for flexible EEG data collection\n• Board support with automatic configuration\n• Error handling and logging throughout\n• Support for real-time streaming and marker insertion\n• Configurable presets for different data types\n• Extensible design for future enhancements"
 ```
