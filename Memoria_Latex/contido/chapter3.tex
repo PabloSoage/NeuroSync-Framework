@@ -109,14 +109,7 @@ Los requisitos funcionales del sistema se organizan en cuatro categorías princi
 \subsection{Visión general}
 \label{subsec:vision_general}
 
-El framework implementa una \textbf{arquitectura orientada a servicios} con \textbf{comunicación dirigida por eventos}, organizada en cuatro módulos principales que pueden operar independientemente o de forma coordinada. La figura~\ref{fig:arquitectura_general} ilustra la estructura general del sistema.
-
-\begin{figure}[hp!]
-\centering
-\includegraphics[width=\textwidth]{imaxes/arquitectura_general.pdf}
-\caption{Arquitectura general del framework}
-\label{fig:arquitectura_general}
-\end{figure}
+El framework implementa una \textbf{arquitectura orientada a servicios} con \textbf{comunicación dirigida por eventos}, organizada en cuatro módulos principales que pueden operar independientemente o de forma coordinada.
 
 \subsection{Principios arquitectónicos}
 \label{subsec:principios_arquitectonicos}
@@ -495,7 +488,7 @@ La aplicación sigue una \textbf{arquitectura hexagonal (Ports and Adapters)} co
 
 \begin{figure}[hp!]
 \centering
-\includegraphics[width=\textwidth]{imaxes/input_collector_arquitectura.pdf}
+\includegraphics[width=\textwidth,height=15cm,keepaspectratio]{imaxes/input_collector_arquitectura.pdf}
 \caption{Arquitectura hexagonal del módulo input\_collector}
 \label{fig:arquitectura_input_collector}
 \end{figure}
@@ -870,273 +863,400 @@ El sistema proporciona alta configurabilidad:
 \subsection{Propósito y responsabilidades}
 \label{subsec:proposito_eeg_processor}
 
-El módulo eeg\_processor implementa un \textbf{framework modular para procesamiento de señales EEG} en tiempo real que soporta múltiples dispositivos de hardware, análisis avanzado y múltiples interfaces de usuario.
+EEG Processor es un framework modular para procesamiento de señales EEG en tiempo real que soporta múltiples dispositivos de hardware (OpenBCI, g.tec, Muse, ANT Neuro, Neurosity), análisis avanzado (ICA, wavelet transforms, MNE-Python), y múltiples interfaces (GUI Qt5, CLI, REST API). Implementa una \textbf{arquitectura orientada a servicios} con \textbf{patrones dirigidos por eventos} para procesamiento de neuroseñales.
 
 \subsection{Arquitectura del módulo}
 \label{subsec:arquitectura_eeg_processor}
 
-La figura~\ref{fig:arquitectura_eeg_processor} muestra la arquitectura orientada a servicios del módulo.
+La aplicación sigue una \textbf{arquitectura orientada a servicios (SOA)} combinada con patrones \textbf{dirigidos por eventos}, \textbf{Singleton} y \textbf{MVC}, organizando el código en capas especializadas como se muestra en la figura~\ref{fig:arquitectura_eeg_processor}.
 
 \begin{figure}[hp!]
 \centering
-\includegraphics[width=\textwidth]{imaxes/eeg_processor_arquitectura.pdf}
-\caption{Arquitectura del módulo eeg\_processor}
+\includegraphics[width=\textwidth,height=15cm,keepaspectratio]{imaxes/arquitectura_eeg_processor.pdf}
+\caption{Arquitectura SOA del módulo eeg\_processor}
 \label{fig:arquitectura_eeg_processor}
 \end{figure}
 
-\subsubsection{Capa de abstracción de hardware}
+La arquitectura se estructura en cinco capas principales:
 
-La integración con BrainFlow se abstrae mediante interfaces que soportan 20+ fabricantes:
+\subsubsection{Interfaces Externas}
+Múltiples puntos de acceso al sistema:
+\begin{itemize}
+    \item \textbf{GUI (Qt5 MVC)}: Interfaz basada en paneles con controladores especializados
+    \item \textbf{CLI (Typer)}: Shell interactivo con salida Rich y monitoreo tiempo real
+    \item \textbf{REST API (WebSocket+HTTP)}: Control remoto con streaming de alta frecuencia
+\end{itemize}
 
-\begin{lstlisting}[language=Python]
-class EEGCollector(CollectorInterface, MarkerInterface, 
-                   ConfigurableCollectorInterface):
-    def __init__(self):
-        self.board_id = None
-        self.board = None
-        self._preset_mode = BrainFlowPresets.DEFAULT_PRESET
-        
-    def get_supported_boards(self) -> Dict[str, List[int]]:
-        return {
-            "OpenBCI": [BoardIds.CYTON_BOARD, BoardIds.GANGLION_BOARD],
-            "g.tec": [BoardIds.UNICORN_BOARD],
-            "Muse": [BoardIds.MUSE_2_BOARD, BoardIds.MUSE_S_BOARD],
-            "ANT Neuro": [BoardIds.ANT_NEURO_EE_410_BOARD],
-            "Neurosity": [BoardIds.NOTION_1_BOARD, BoardIds.NOTION_2_BOARD]
-        }
-\end{lstlisting}
+\subsubsection{Adaptadores}
+Puentes thread-safe entre frameworks:
+\begin{itemize}
+    \item \textbf{QtInteractionAdapter}: Adaptador thread-safe con ThreadPoolExecutor
+    \item \textbf{CLI Commands}: Comandos especializados para datos, monitoreo e interacción
+    \item \textbf{API Integrations}: Integración WebSocket con modo dual (directo/multiproceso)
+\end{itemize}
 
-\subsubsection{Motor de procesamiento de señales}
+\subsubsection{Capa de Servicios}
+Servicios singleton para lógica de negocio especializada:
+\begin{itemize}
+    \item \textbf{CollectorService}: Gestión singleton de colección EEG con soporte multi-preset
+    \item \textbf{Data Access Service}: Acceso centralizado con gestión de buffer thread-safe
+    \item \textbf{Advanced Analysis Services}: ICA, MNE, wavelet con multiprocesamiento
+\end{itemize}
 
-El SignalProcessor implementa múltiples algoritmos con monitoreo de estabilidad:
+\subsubsection{Controladores UI}
+Arquitectura MVC basada en paneles:
+\begin{itemize}
+    \item \textbf{Panel-Based MVC}: Controladores coordinando múltiples widgets especializados
+    \item \textbf{MNE Panel Controller}: Conversión y visualización MNE-Python asíncrona
+    \item \textbf{Advanced Panel Controller}: ICA, wavelet, filtrado avanzado
+\end{itemize}
 
-\begin{lstlisting}[language=Python]
-class SignalProcessor:
-    def __init__(self, sampling_rate: int):
-        self.sampling_rate = sampling_rate
-        self._stability_monitor = FilterStabilityMonitor()
-        
-    def bandpass_filter(self, data: np.ndarray, start_freq: float, 
-                       stop_freq: float, order: int = 4,
-                       filter_type: FilterTypes = FilterTypes.BUTTERWORTH):
-        """Filtro pasa-banda con monitoreo de estabilidad"""
-        
-        # Validación de estabilidad para datos sintéticos
-        if self._stability_monitor.is_synthetic_data(data):
-            order = min(order, 2)  # Reducir orden para estabilidad
-            
-        return self._apply_zero_phase_filter(data, start_freq, stop_freq, order)
-\end{lstlisting}
+\subsubsection{Núcleo}
+Componentes fundamentales del framework:
+\begin{itemize}
+    \item \textbf{Event System}: Sistema de eventos con 40+ tipos y tracking histórico
+    \item \textbf{Signal Processing}: Motor con múltiples algoritmos y monitoreo de estabilidad
+    \item \textbf{Hardware Abstraction}: Capa BrainFlow para 20+ fabricantes
+\end{itemize}
 
-\subsubsection{Arquitectura MVC basada en paneles}
+\subsection{Core Event System}
+\label{subsec:core_event_system_eeg}
 
-La UI se organiza en paneles con controladores especializados:
+\subsubsection{Sistema de eventos especializado}
 
-\begin{lstlisting}[language=Python]
-class MNEPanelController:
-    def __init__(self, parent):
-        self.parent = parent
-        self.widgets = self._create_widgets()
-        self.setup_connections()
-        
-    def _create_widgets(self):
-        return {
-            'conversion': MNEConversionWidget(),
-            'visualization': MNEVisualizationWidget(),
-            'status': MNEStatusWidget(),
-            'channel_selection': ChannelSelectionDialog()
-        }
-        
-    def setup_connections(self):
-        """Conecta señales entre widgets del panel"""
-        self.widgets['conversion'].conversion_completed.connect(
-            self.widgets['visualization'].enable_visualization)
-\end{lstlisting}
+El sistema de eventos del módulo EEG extiende el concepto básico con características específicas para procesamiento de neuroseñales:
+
+\textbf{Características especializadas:}
+\begin{itemize}
+    \item \textbf{40+ tipos de eventos}: CONNECTION, PROCESSING, VISUALIZATION, MNE, ICA, WAVELET
+    \item \textbf{Seguimiento histórico}: 1000 eventos con rotación automática para análisis
+    \item \textbf{Operaciones thread-safe}: RLock protection para operaciones concurrentes
+    \item \textbf{Suscriptores tardíos}: Entrega automática del último evento por tipo
+    \item \textbf{Aislamiento de errores}: Fallos en callbacks no comprometen otros suscriptores
+\end{itemize}
+
+\subsubsection{Event payload estructurado}
+
+Los eventos incluyen dataclass \textbf{Event} con timestamp, source y data payload para trazabilidad completa y debugging avanzado.
+
+\subsection{Capa de abstracción de hardware}
+\label{subsec:abstraccion_hardware_eeg}
+
+\subsubsection{EEGCollector con soporte multi-dispositivo}
+
+El \textbf{EEGCollector} proporciona una interfaz unificada para 20+ fabricantes de dispositivos EEG:
+
+\textbf{Ejemplos de dispositivos soportados:}
+\begin{itemize}
+    \item \textbf{OpenBCI}: Cyton Board, Ganglion Board con configuración personalizable
+    \item \textbf{g.tec}: Unicorn Board con mapeo automático de canales
+    \item \textbf{Muse}: Muse 2, Muse S con detección de tipo de señal
+    \item \textbf{ANT Neuro}: eego mylab con soporte profesional
+    \item \textbf{Neurosity}: Notion 1, Notion 2 con métricas cognitivas
+    \item \textbf{BrainBit}: BrainBit, BrainBit BLED con conectividad Bluetooth
+\end{itemize}
+
+\subsubsection{Configuración avanzada de dispositivos}
+
+\textbf{BrainFlowBoardConfiguration} gestiona configuración específica por fabricante:
+\begin{itemize}
+    \item \textbf{Soporte multi-preset}: Streams DEFAULT, AUXILIARY, ANCILLARY
+    \item \textbf{Inserción de marcadores tiempo real}: Sincronización de microsegundo
+    \item \textbf{Detección automática de canales}: EEG, EMG, ECG, acelerómetro, giroscopio
+    \item \textbf{Placas de streaming}: Configuración de placa maestra con validación de preset
+    \item \textbf{Operaciones thread-safe}: Gestión de buffer y recuperación de datos
+\end{itemize}
+
+\subsection{Motor de procesamiento de señales}
+\label{subsec:motor_procesamiento_eeg}
+
+\subsubsection{SignalProcessor con algoritmos avanzados}
+
+El motor de procesamiento implementa múltiples familias de algoritmos con optimizaciones específicas:
+
+\textbf{Filtrado avanzado:}
+\begin{itemize}
+    \item \textbf{Múltiples implementaciones}: Butterworth, Chebyshev Tipo 1, Bessel
+    \item \textbf{Procesamiento fase cero}: Eliminación de distorsión de fase
+    \item \textbf{Monitoreo de estabilidad}: Ajuste automático para datos sintéticos
+    \item \textbf{Filtros especializados}: Notch (50/60 Hz), detrend, pasa-banda configurable
+\end{itemize}
+
+\textbf{Análisis avanzado:}
+\begin{itemize}
+    \item \textbf{Análisis wavelet}: 15+ familias (Daubechies, Biorthogonal, Coiflets, Symlets)
+    \item \textbf{FastICA}: Configuración de 1-16 componentes con selección de canales
+    \item \textbf{Métricas EEG}: Potencias de banda (Delta, Theta, Alpha, Beta, Gamma)
+    \item \textbf{Métricas cognitivas}: Puntuaciones de atención, concentración, relajación
+    \item \textbf{Evaluación de calidad}: Sistema de 5 niveles con detección de saturación
+\end{itemize}
 
 \subsection{Servicios especializados}
-\label{subsec:servicios_eeg_processor}
+\label{subsec:servicios_especializados_eeg}
 
 \subsubsection{Servicios ICA con multiprocesamiento}
 
-\begin{lstlisting}[language=Python]
-class ICAProcessService:
-    def __init__(self):
-        self.process_pool = ProcessPoolExecutor(max_workers=2)
-        
-    async def process_ica_async(self, data: np.ndarray, 
-                               n_components: int) -> Dict[str, Any]:
-        """Procesamiento ICA asíncrono con multiproceso"""
-        loop = asyncio.get_event_loop()
-        
-        result = await loop.run_in_executor(
-            self.process_pool,
-            self._run_ica_process,
-            data, n_components
-        )
-        
-        return result
-\end{lstlisting}
+Los servicios ICA implementan procesamiento distribuido para análisis de componentes independientes:
 
-\subsubsection{Integración MNE-Python}
+\textbf{ICAProcessService:}
+\begin{itemize}
+    \item \textbf{Procesamiento multiproceso}: Integración con señales Qt para UI responsiva
+    \item \textbf{Configuración flexible}: 1-16 componentes con selección de canales
+    \item \textbf{Monitoreo tiempo real}: ICARealtimeService con ventana deslizante
+    \item \textbf{Exportación por lotes}: ExportService con seguimiento de progreso
+\end{itemize}
 
-\begin{lstlisting}[language=Python]
-class MNEConverterService:
-    def __init__(self):
-        self._conversion_cache = {}
-        
-    async def convert_to_mne_async(self, mode: str = "flexible") -> mne.io.Raw:
-        """Conversión asíncrona BrainFlow -> MNE"""
-        
-        if mode == "performance":
-            # Modo optimizado con canales seleccionados
-            channels = self._get_selected_channels()
-            data = self._get_channel_subset(channels)
-        elif mode == "realtime":
-            # Modo tiempo real con ventana deslizante
-            data = self._get_recent_data_window()
-        else:
-            # Modo flexible con todos los datos
-            data = self._get_all_data()
-            
-        return self._create_mne_raw_object(data)
-\end{lstlisting}
+\subsubsection{Servicios MNE-Python}
 
-\subsection{Sistema de callbacks y optimización}
-\label{subsec:callbacks_eeg_processor}
+Integración completa con MNE-Python para análisis neurocientífico avanzado:
 
-\subsubsection{DataAccessService con callbacks categorizados}
+\textbf{MNEConverterService:}
+\begin{itemize}
+    \item \textbf{Conversión asíncrona}: BrainFlow → MNE con múltiples modos
+    \item \textbf{Modo flexible}: Conversión de todos los canales para análisis completo
+    \item \textbf{Modo rendimiento}: Canales seleccionados para optimización
+    \item \textbf{Modo tiempo real}: Ventana deslizante para procesamiento continuo
+\end{itemize}
 
-\begin{lstlisting}[language=Python]
-class DataAccessService:
-    def __init__(self):
-        self._api_callbacks = []
-        self._local_callbacks = []
-        self._performance_mode = False
-        
-    def register_api_callback(self, callback: callable, 
-                            performance_mode: bool = False):
-        """API callbacks con modo performance para filtros complejos"""
-        callback_info = {
-            'callback': callback,
-            'performance_mode': performance_mode
-        }
-        self._api_callbacks.append(callback_info)
-        
-    def _process_api_callbacks(self, data: np.ndarray):
-        for callback_info in self._api_callbacks:
-            if callback_info['performance_mode']:
-                # Procesamiento en worker process separado
-                self._process_in_worker(callback_info['callback'], data)
-            else:
-                callback_info['callback'](data)
-\end{lstlisting}
+\textbf{MNEVisualizerService:}
+\begin{itemize}
+    \item \textbf{Visualización avanzada}: PSD, topomaps, espectrogramas, datos en bruto
+    \item \textbf{Calidad publicación}: Gráficos de alta resolución (200 DPI)
+    \item \textbf{Procesamiento tiempo real}: Sesiones configurables con updates dinámicos
+    \item \textbf{MNEProcessManager}: Coordinación multiproceso para operaciones CPU-intensivas
+\end{itemize}
 
-\subsubsection{InteractionService con 40+ señales Qt}
+\subsection{Arquitectura UI basada en paneles}
+\label{subsec:arquitectura_ui_eeg}
 
-Debido a la complejidad de la interfaz basada en paneles múltiples:
+\subsubsection{Sistema MVC especializado}
 
-\begin{lstlisting}[language=Python]
-class QtInteractionAdapter(QObject):
-    # Señales de conexión
-    board_connected = pyqtSignal(bool)
-    stream_started = pyqtSignal(bool)
-    
-    # Señales de procesamiento
-    filters_applied = pyqtSignal(dict)
-    metrics_calculated = pyqtSignal(dict)
-    
-    # Señales MNE
-    mne_conversion_completed = pyqtSignal(bool)
-    mne_visualization_updated = pyqtSignal(str)
-    
-    # Señales de análisis avanzado
-    ica_process_completed = pyqtSignal(dict)
-    wavelet_analysis_completed = pyqtSignal(dict)
-    
-    # ... más de 30 señales adicionales para cobertura completa
-\end{lstlisting}
+La interfaz implementa una arquitectura MVC basada en paneles con controladores especializados:
 
-\section{Diseño del módulo synchronization\_module}
-\label{sec:diseno_synchronization_module}
+\textbf{Paneles principales:}
+\begin{itemize}
+    \item \textbf{ConnectionPanel}: Selección de placa con validación dinámica
+    \item \textbf{ProcessingPanel}: Filtros tiempo real con visualización de mapa cerebral
+    \item \textbf{MNE Panel}: Conversión multi-modo con visualización avanzada
+    \item \textbf{Advanced Panel}: ICA, wavelet, filtrado avanzado
+\end{itemize}
 
-\subsection{Propósito y responsabilidades}
-\label{subsec:proposito_synchronization_module}
+\subsubsection{ConnectionPanel con validación dinámica}
 
-El módulo synchronization\_module integra los flujos de datos de input\_collector y eeg\_processor, proporcionando \textbf{sincronización temporal de alta precisión} y \textbf{exportación a formatos estándar}.
+\textbf{Características del panel de conexión:}
+\begin{itemize}
+    \item \textbf{Selección inteligente}: Filtrado y categorización por fabricante
+    \item \textbf{Validación dinámica}: Retroalimentación visual para campos requeridos/opcionales
+    \item \textbf{Configuración streaming}: Validación de preset con prevención de errores
+    \item \textbf{Información tiempo real}: Mapeo de canales, frecuencia de muestreo, detalles de hardware
+\end{itemize}
 
-\subsection{Arquitectura del módulo}
-\label{subsec:arquitectura_synchronization_module}
+\subsubsection{ProcessingPanel con filtros tiempo real}
 
-\subsubsection{Core de sincronización}
+\textbf{Capacidades de procesamiento:}
+\begin{itemize}
+    \item \textbf{Aplicación tiempo real}: Filtros durante procesamiento activo sin reinicio
+    \item \textbf{Filtrado integral}: Pasabanda (1-200 Hz), Notch (50/60 Hz), Detrend
+    \item \textbf{Métricas EEG}: Cálculo de potencias de banda con análisis estadístico
+    \item \textbf{Mapa cerebral}: Visualización optimizada con datos de streaming
+\end{itemize}
 
-\begin{lstlisting}[language=Python]
-class LSLManager:
-    def __init__(self):
-        self.input_inlet = None
-        self.eeg_inlet = None
-        self.sync_buffer = SynchronizedBuffer()
-        
-    def setup_synchronization(self, precision_level: str = "high"):
-        """Configura sincronización LSL con diferentes niveles de precisión"""
-        
-        if precision_level == "high":
-            self.time_correction_interval = 0.1  # 100ms
-            self.buffer_size = 1000
-        elif precision_level == "medium":
-            self.time_correction_interval = 0.5  # 500ms
-            self.buffer_size = 500
-        else:  # low
-            self.time_correction_interval = 1.0  # 1s
-            self.buffer_size = 200
-\end{lstlisting}
+\subsubsection{MNE Panel con principios SOLID}
 
-\subsubsection{Sistema de exportación}
+El panel MNE implementa principios SOLID con composición de widgets:
 
-\begin{lstlisting}[language=Python]
-class ExportManager:
-    def __init__(self):
-        self.exporters = {
-            'bids': BIDSExporter(),
-            'edf': EDFExporter(), 
-            'hdf5': HDF5Exporter(),
-            'csv': CSVExporter()
-        }
-        
-    async def export_dataset(self, format_type: str, 
-                           synchronized_data: SynchronizedDataset):
-        """Exportación asíncrona a formato especificado"""
-        
-        exporter = self.exporters[format_type]
-        
-        # Generación de metadatos estándar
-        metadata = self._generate_metadata(synchronized_data)
-        
-        # Exportación con progress tracking
-        return await exporter.export_async(synchronized_data, metadata)
-\end{lstlisting}
+\textbf{MNEPanelController:}
+\begin{itemize}
+    \item \textbf{Conversión multi-modo}: Flexible, rendimiento, tiempo real
+    \item \textbf{Visualización avanzada}: PSD, topomaps, espectrogramas coordinados
+    \item \textbf{Sesiones tiempo real}: Actualizaciones de parámetros sin reinicio
+    \item \textbf{Integración filtros}: Coordinación fluida con panel de procesamiento
+\end{itemize}
 
-\subsubsection{Interfaz unificada}
+\textbf{Widgets especializados:}
+\begin{itemize}
+    \item \textbf{MNEConversionWidget}: Interfaz multi-modo con advertencias de rendimiento
+    \item \textbf{MNEVisualizationWidget}: Controles con actualizaciones tiempo real
+    \item \textbf{ChannelSelectionDialog}: Selección basada en cuadrícula con optimización
+\end{itemize}
 
-\begin{lstlisting}[language=Python]
-class UnifiedApp(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.input_collector_panel = self._create_input_panel()
-        self.eeg_processor_panel = self._create_eeg_panel()
-        self.synchronization_panel = self._create_sync_panel()
-        
-        self.setup_inter_panel_communication()
-        
-    def setup_inter_panel_communication(self):
-        """Configura comunicación entre paneles mediante LSL"""
-        self.sync_service = SynchronizationService()
-        
-        # Conectar eventos de ambos módulos
-        self.sync_service.connect_input_stream()
-        self.sync_service.connect_eeg_stream()
-\end{lstlisting}
+\subsection{Sistema de visualización científica}
+\label{subsec:visualizacion_cientifica_eeg}
 
-\section{Integración entre módulos}
+\subsubsection{MultiSignalVisualizer~\ref{fig:multi_signal_viz}}
+
+Visualización biosignal multi-página con detección inteligente:
+
+\textbf{Características avanzadas:}
+\begin{itemize}
+    \item \textbf{Detección inteligente}: EEG, EMG, ECG, EOG, EDA, PPG, acelerómetro, giroscopio
+    \item \textbf{Arquitectura carga perezosa}: Caché para optimización de rendimiento
+    \item \textbf{Interfaz multi-pestaña}: Separación por modalidad de señal
+    \item \textbf{Integración tiempo real}: Coordinación con DataAccessService
+    \item \textbf{Optimización rendimiento}: Actualizaciones selectivas, operaciones eficientes en memoria
+\end{itemize}
+
+\begin{figure}[hp!]
+\centering
+\includegraphics[width=\textwidth,height=15cm,keepaspectratio]{imaxes/multi_signal_viz.png}
+\caption{MultiSignalVisualizer}
+\label{fig:multi_signal_viz}
+\end{figure}
+
+\subsubsection{BrainMapVisualizer}
+
+Mapeo topográfico cerebral con estándares internacionales:
+
+\textbf{Características del mapa cerebral:}
+\begin{itemize}
+    \item \textbf{Posicionamiento 10-20/10-10}: Posiciones estándar de electrodos
+    \item \textbf{Calidad tiempo real}: Indicadores codificados por color (5 niveles)
+    \item \textbf{Regiones anatómicas}: Superposiciones frontal, central, parietal, occipital
+    \item \textbf{Compatibilidad G.tec}: Mapeo automático de canales para Unicorn
+    \item \textbf{Elementos interactivos}: Etiquetas de electrodos con leyenda de calidad
+\end{itemize}
+
+En la figura ~\ref{fig:brain_map_viz} se puede observar la disposicion de los electrodos en el brain map junto a la calidad de la señal.
+En la figura ~\ref{fig:g_tec_suite} se puede observar la misma información en la propia suite de g.tec
+
+\begin{figure}[hp!]
+\centering
+\includegraphics[width=\textwidth,height=15cm,keepaspectratio]{imaxes/brain_map_viz.png}
+\caption{Brain Map Visualizer}
+\label{fig:brain_map_viz}
+\end{figure}
+\begin{figure}[hp!]
+\centering
+\includegraphics[width=\textwidth,height=15cm,keepaspectratio]{imaxes/g_tec_suite.png}
+\caption{G.Tec Suite Unicorn Hybrid Black}
+\label{fig:g_tec_suite}
+\end{figure}
+
+\subsection{CLI avanzado con Rich console}
+\label{subsec:cli_avanzado_eeg}
+
+\subsubsection{Sistema CLI modular}
+
+El CLI implementa capacidades avanzadas con framework Typer:
+
+\textbf{Componentes principales:}
+\begin{itemize}
+    \item \textbf{CLIApp}: Aplicación Typer con autocompletado y registro de comandos
+    \item \textbf{CLIShell}: Shell interactivo estilo REPL con historial
+    \item \textbf{Módulos especializados}: DataCommands, MonitorCommands, InteractionCommands
+\end{itemize}
+
+\subsubsection{Comandos especializados}
+
+\textbf{Estructura de comandos:}
+\begin{itemize}
+    \item \textbf{Data access}: \textbf{data current-data --max-samples 1000}
+    \item \textbf{Control}: \textbf{control connect-board --board-id 1 --preset 0}
+    \item \textbf{Monitoreo}: \textbf{monitor realtime --channels 1,2,3,4}
+    \item \textbf{Procesamiento}: \textbf{control apply-filters --bandpass-low 1 --bandpass-high 50}
+\end{itemize}
+
+\textbf{Características avanzadas:}
+\begin{itemize}
+    \item \textbf{Salida Rich}: Tablas, paneles, visualizaciones tiempo real
+    \item \textbf{Soporte multiplataforma}: Compatibilidad Windows/Linux/macOS
+    \item \textbf{Shell interactivo}: Interfaz REPL con historial de comandos
+\end{itemize}
+
+\subsection{Integración con APIs web}
+\label{subsec:integracion_api_eeg}
+
+\subsubsection{API con WebSocket}
+
+El sistema API proporciona streaming de alta frecuencia con modo dual:
+
+\textbf{Componentes de integración:}
+\begin{itemize}
+    \item \textbf{EEGDataAPI}: API estática para acceso a datos y metadatos
+    \item \textbf{EEGProcessorInteractionAPI}: API estática para control del sistema
+    \item \textbf{Dos modos de Streaming}: Directo (baja latencia ~15ms), Multiproceso (más latencia, pero para procesamientos demandantes)
+    \item \textbf{WebSocket tiempo real}: Difusión de payload estructurado para datos EEG
+\end{itemize}
+
+\textbf{Capacidades API:}
+\begin{itemize}
+    \item \textbf{Gestión de placas}: Conexión, configuración, detección de dispositivos
+    \item \textbf{Control de procesamiento}: Filtros, métricas, análisis avanzado tiempo real
+    \item \textbf{Grabación}: Inicio/parada con inserción de marcadores
+    \item \textbf{Análisis}: ICA, wavelet, conversión MNE, exportación de resultados
+\end{itemize}
+
+\subsection{Patrones arquitectónicos implementados}
+\label{subsec:patrones_eeg_processor}
+
+\subsubsection{Arquitectura Orientada a Servicios (SOA)}
+El sistema se organiza en servicios especializados con responsabilidades claras:
+\begin{itemize}
+    \item \textbf{Servicios singleton}: Inicialización thread-safe con verificación doble
+    \item \textbf{Coordinación de servicios}: InteractionService como orquestador central
+    \item \textbf{Límites claros}: Interfaces bien definidas para cada área funcional
+\end{itemize}
+
+\subsubsection{Modelo-Vista-Controlador (MVC)}
+La UI implementa MVC especializado para aplicaciones científicas:
+\begin{itemize}
+    \item \textbf{MVC basado en paneles}: Controladores coordinando múltiples widgets
+    \item \textbf{Controladores especializados}: MNEPanelController, AdvancedPanelController
+    \item \textbf{Comunicación señal/slot}: Arquitectura Qt para UI responsiva
+    \item \textbf{Gestión de estado}: Consistencia a través de contextos operacionales
+\end{itemize}
+
+\subsubsection{Multiprocesamiento y Multihilo}
+Arquitectura concurrente para operaciones CPU-intensivas:
+\begin{itemize}
+    \item \textbf{Operaciones CPU-intensivas}: ICA, MNE en procesos separados
+    \item \textbf{Hilos en segundo plano}: Colección de datos, procesamiento tiempo real
+    \item \textbf{Comunicación thread-safe}: Señales Qt, colas multiproceso
+    \item \textbf{Gestión de ciclo de vida}: Limpieza apropiada y optimización de memoria
+\end{itemize}
+
+\subsubsection{Patrones Factory y Strategy}
+Adaptación dinámica según contexto y dispositivo:
+\begin{itemize}
+    \item \textbf{Factory configuración}: Creación dinámica de parámetros por dispositivo
+    \item \textbf{Strategy procesamiento}: Múltiples tipos de filtros y algoritmos
+    \item \textbf{Strategy visualización}: UI adaptativa basada en capacidades del dispositivo
+    \item \textbf{Strategy detección}: Reconocimiento inteligente de tipos de canal
+\end{itemize}
+
+\subsection{Características de rendimiento}
+\label{subsec:rendimiento_eeg_processor}
+
+\subsubsection{Optimizaciones tiempo real}
+
+Para procesamiento EEG de alta frecuencia (250-1000 Hz):
+\begin{itemize}
+    \item \textbf{Pipelines optimizados}: Renderizado de 50-100ms para actualizaciones fluidas
+    \item \textbf{Gestión adaptiva de timeout}: Basada en complejidad de procesamiento
+    \item \textbf{Operaciones eficientes en memoria}: Gestión automática de buffer
+    \item \textbf{Monitoreo de rendimiento}: Optimización de uso de CPU con advertencias
+\end{itemize}
+
+\subsubsection{Escalabilidad y concurrencia}
+
+\begin{itemize}
+    \item \textbf{Soporte multiproceso}: Operaciones ICA y MNE en procesos separados
+    \item \textbf{Thread safety avanzado}: Locks granulares y comunicación por señales
+    \item \textbf{Gestión de recursos}: Pools de hilos y limpieza automática
+    \item \textbf{Streaming adaptativo}: Modo dual para diferentes requisitos de latencia
+\end{itemize}
+
+\subsubsection{Características educativas}
+
+El sistema incluye características específicas para investigación y educación:
+\begin{itemize}
+    \item \textbf{Sistema de ayuda integral}: 25+ temas con antecedentes teóricos
+    \item \textbf{Orientación contextual}: Recomendaciones de parámetros basadas en contexto
+    \item \textbf{Complejidad progresiva}: Configuración básica → investigación avanzada
+    \item \textbf{Documentación integrada}: Ayuda con mejores prácticas
+\end{itemize}
+
+\section{Integración entre módulos (placeholder, no definitivo)}
 \label{sec:integracion_modulos}
 
 \subsection{Comunicación inter-módulo}
@@ -1144,70 +1264,41 @@ class UnifiedApp(QMainWindow):
 
 \subsubsection{Lab Streaming Layer (LSL)}
 
-Para sincronización temporal de alta precisión:
+Para sincronización temporal de alta precisión entre módulos, el framework utiliza Lab Streaming Layer como protocolo estándar:
 
-\begin{lstlisting}[language=Python]
-class LSLStreamManager:
-    def __init__(self):
-        self.streams = {}
-        
-    def create_input_stream(self):
-        """Crea stream LSL para eventos de entrada"""
-        info = StreamInfo(
-            'InputEvents', 'Events', 1, 0,  # irregular rate
-            'string', 'input_collector_001'
-        )
-        self.streams['input'] = StreamOutlet(info)
-        
-    def create_eeg_stream(self):
-        """Crea stream LSL para datos EEG"""
-        info = StreamInfo(
-            'EEGData', 'EEG', 8, 250,  # 8 channels, 250 Hz
-            'float32', 'eeg_processor_001'
-        )
-        self.streams['eeg'] = StreamOutlet(info)
-\end{lstlisting}
+\textbf{Características de LSL:}
+\begin{itemize}
+    \item \textbf{Sincronización temporal}: Precisión de microsegundos para correlación de eventos
+    \item \textbf{Streams especializados}: Input events (irregular), EEG data (250-1000 Hz)
+    \item \textbf{Descubrimiento automático}: Auto-detección de streams en la red local
+    \item \textbf{Buffering inteligente}: Gestión automática de buffers para diferentes frecuencias
+    \item \textbf{Recuperación de timestamp}: Corrección de deriva de reloj entre dispositivos
+\end{itemize}
 
-\subsubsection{API REST común}
+\subsubsection{API REST común via api\_explorer}
 
-Coordinación mediante api\_explorer:
+Los módulos se registran dinámicamente en api\_explorer para coordinación centralizada:
 
-\begin{lstlisting}[language=Python]
-class ModuleCoordinator:
-    def __init__(self):
-        self.api_explorer = ApiExplorer.get_instance()
-        self.registered_modules = set()
-        
-    def register_all_modules(self):
-        """Registra todos los módulos en api_explorer"""
-        
-        # Registro de input_collector
-        self._register_input_collector()
-        
-        # Registro de eeg_processor  
-        self._register_eeg_processor()
-        
-        # Registro de synchronization_module
-        self._register_synchronization_module()
-        
-    def coordinate_recording_session(self):
-        """Coordina sesión de grabación entre módulos"""
-        # Iniciar captura en ambos módulos simultáneamente
-        # Sincronizar timestamps via LSL
-        # Coordinar finalización y exportación
-\end{lstlisting}
+\textbf{Registro modular:}
+\begin{itemize}
+    \item \textbf{input\_collector}: APIs para captura de eventos y control de dispositivos
+    \item \textbf{eeg\_processor}: APIs para procesamiento de señales y análisis avanzado
+    \item \textbf{Coordinación cruzada}: Inicio/parada sincronizado de sesiones de grabación
+    \item \textbf{Estado compartido}: Información de estado entre módulos vía WebSocket
+\end{itemize}
 
 \subsection{Flujo de datos sincronizado}
 \label{subsec:flujo_datos_sincronizado}
 
-La figura~\ref{fig:flujo_datos_sincronizado} ilustra el flujo de datos entre módulos durante una sesión de captura.
-
-\begin{figure}[hp!]
-\centering
-\includegraphics[width=\textwidth]{imaxes/flujo_datos_sincronizado.pdf}
-\caption{Flujo de datos sincronizado entre módulos}
-\label{fig:flujo_datos_sincronizado}
-\end{figure}
+\textbf{Secuencia de sincronización:}
+\begin{enumerate}
+    \item \textbf{Inicialización}: Establecimiento de streams LSL en ambos módulos
+    \item \textbf{Calibración temporal}: Sincronización de relojes y corrección de deriva
+    \item \textbf{Inicio coordinado}: Comando simultáneo de grabación via api\_explorer
+    \item \textbf{Streaming continuo}: Datos EEG y eventos de entrada con timestamps LSL
+    \item \textbf{Correlación temporal}: Asociación de eventos con señales EEG
+    \item \textbf{Finalización sincronizada}: Parada coordinada y exportación de datasets
+\end{enumerate}
 
 \section{Consideraciones de implementación}
 \label{sec:consideraciones_implementacion}
@@ -1217,113 +1308,72 @@ La figura~\ref{fig:flujo_datos_sincronizado} ilustra el flujo de datos entre mó
 
 \subsubsection{Estrategias de sincronización}
 
+El framework implementa múltiples estrategias de sincronización adaptadas a diferentes contextos:
+
 \begin{itemize}
-    \item \textbf{Granular locking}: Locks específicos para diferentes operaciones
-    \item \textbf{Qt Signals/Slots}: Comunicación thread-safe para UI
-    \item \textbf{Immutable data structures}: Cuando es posible para evitar locks
-    \item \textbf{Actor model}: En WebSocket workers para aislamiento
+    \item \textbf{Granular locking}: Locks específicos para operaciones críticas diferentes
+    \item \textbf{Qt Signals/Slots}: Comunicación thread-safe entre hilos de worker y UI
+    \item \textbf{Immutable data structures}: Uso de estructuras inmutables cuando es posible
+    \item \textbf{Actor model}: En WebSocket workers para aislamiento de procesamiento
+    \item \textbf{Event-driven communication}: Sistema de eventos framework-independiente
 \end{itemize}
 
-\subsubsection{Manejo de recursos}
+\subsubsection{Gestión de recursos thread-safe}
 
-\begin{lstlisting}[language=Python]
-class ResourceManager:
-    def __init__(self):
-        self._resources = {}
-        self._resource_locks = defaultdict(threading.Lock)
-        
-    def acquire_resource(self, resource_id: str, timeout: float = 5.0):
-        """Adquisición thread-safe de recursos con timeout"""
-        lock = self._resource_locks[resource_id]
-        
-        if lock.acquire(timeout=timeout):
-            try:
-                yield self._resources[resource_id]
-            finally:
-                lock.release()
-        else:
-            raise TimeoutError(f"Could not acquire {resource_id}")
-\end{lstlisting}
+Los recursos críticos se gestionan mediante patrones thread-safe específicos:
+\begin{itemize}
+    \item \textbf{Resource pools}: Para buffers de datos de alta frecuencia
+    \item \textbf{Connection management}: Gestión de conexiones de dispositivos
+    \item \textbf{Memory management}: Limpieza automática de recursos no utilizados
+    \item \textbf{Timeout handling}: Gestión de timeouts para operaciones bloqueantes
+\end{itemize}
 
 \subsection{Optimizaciones de rendimiento}
 \label{subsec:optimizaciones_rendimiento}
 
-\subsubsection{Buffer management}
+\subsubsection{Gestión eficiente de memoria}
 
-\begin{lstlisting}[language=Python]
-class CircularBuffer:
-    def __init__(self, size: int):
-        self.size = size
-        self.buffer = np.zeros((size,))
-        self.head = 0
-        self.count = 0
-        self._lock = threading.Lock()
-        
-    def append(self, data: np.ndarray):
-        """Thread-safe append con overwrite automático"""
-        with self._lock:
-            end_pos = (self.head + len(data)) % self.size
-            if end_pos > self.head:
-                self.buffer[self.head:end_pos] = data
-            else:
-                # Wrap around
-                split_point = self.size - self.head
-                self.buffer[self.head:] = data[:split_point]
-                self.buffer[:end_pos] = data[split_point:]
-\end{lstlisting}
+Para el manejo de datos de alta frecuencia, se implementan optimizaciones específicas:
 
-\subsubsection{Memory pooling}
+\begin{itemize}
+    \item \textbf{Circular buffers}: Para datos continuos con overwrite automático
+    \item \textbf{Memory pooling}: Pre-asignación de chunks para evitar allocations frecuentes
+    \item \textbf{Copy-on-write}: Optimización para compartir datos entre componentes
+    \item \textbf{Garbage collection optimization}: Estrategias para minimizar GC pressure
+\end{itemize}
 
-\begin{lstlisting}[language=Python]
-class MemoryPool:
-    def __init__(self, chunk_size: int, pool_size: int = 10):
-        self.chunk_size = chunk_size
-        self.available = queue.Queue()
-        
-        # Pre-allocate memory chunks
-        for _ in range(pool_size):
-            chunk = np.zeros(chunk_size, dtype=np.float32)
-            self.available.put(chunk)
-            
-    def get_chunk(self) -> np.ndarray:
-        """Obtiene chunk pre-allocado o crea uno nuevo"""
-        try:
-            return self.available.get_nowait()
-        except queue.Empty:
-            return np.zeros(self.chunk_size, dtype=np.float32)
-\end{lstlisting}
+\subsubsection{Optimizaciones de procesamiento}
+
+\begin{itemize}
+    \item \textbf{Vectorización NumPy}: Uso intensivo de operaciones vectorizadas
+    \item \textbf{Paralelización}: Multiprocesamiento para operaciones CPU-intensivas
+    \item \textbf{Caching inteligente}: Caché de resultados de computaciones costosas
+    \item \textbf{Lazy evaluation}: Evaluación perezosa para operaciones opcionales
+\end{itemize}
 
 \subsection{Manejo de errores y recuperación}
 \label{subsec:manejo_errores}
 
-\subsubsection{Circuit breaker pattern}
+\subsubsection{Estrategias de recuperación}
 
-\begin{lstlisting}[language=Python]
-class CircuitBreaker:
-    def __init__(self, failure_threshold: int = 5, 
-                 recovery_timeout: float = 60.0):
-        self.failure_threshold = failure_threshold
-        self.recovery_timeout = recovery_timeout
-        self.failure_count = 0
-        self.last_failure_time = None
-        self.state = "CLOSED"  # CLOSED, OPEN, HALF_OPEN
-        
-    def call(self, func: callable, *args, }kwargs):
-        """Ejecuta función con circuit breaker protection"""
-        if self.state == "OPEN":
-            if self._should_attempt_reset():
-                self.state = "HALF_OPEN"
-            else:
-                raise CircuitBreakerOpenError()
-                
-        try:
-            result = func(*args, }kwargs)
-            self._on_success()
-            return result
-        except Exception as e:
-            self._on_failure()
-            raise e
-\end{lstlisting}
+El sistema implementa múltiples niveles de manejo de errores:
+
+\begin{itemize}
+    \item \textbf{Circuit breaker pattern}: Para protección contra fallos repetidos
+    \item \textbf{Graceful degradation}: Funcionamiento reducido ante fallos parciales
+    \item \textbf{Automatic retry}: Reintentos automáticos con backoff exponencial
+    \item \textbf{Error isolation}: Aislamiento de errores para evitar propagación
+    \item \textbf{Health monitoring}: Monitoreo continuo del estado del sistema
+\end{itemize}
+
+\subsubsection{Logging y diagnóstico}
+
+\begin{itemize}
+    \item \textbf{Structured logging}: Logs estructurados para análisis automatizado
+    \item \textbf{Performance metrics}: Métricas de rendimiento para optimización
+    \item \textbf{Error tracking}: Seguimiento detallado de errores y contexto
+    \item \textbf{Debug modes}: Modos de debugging para desarrollo y producción
+\end{itemize}
 
 \section{Resumen del capítulo}
 \label{sec:resumen_analisis_diseno}
@@ -1331,21 +1381,59 @@ class CircuitBreaker:
 Este capítulo ha presentado el análisis y diseño completo del framework desarrollado, abarcando:
 
 \begin{enumerate}
-    \item \textbf{Análisis de requisitos exhaustivo}: 24 requisitos funcionales y 17 no funcionales que guían el desarrollo
+    \item \textbf{Análisis de requisitos exhaustivo}: 24 requisitos funcionales y 17 no funcionales que guían el desarrollo del sistema, estableciendo las bases para un framework robusto y escalable.
     
-    \item \textbf{Arquitectura general orientada a servicios}: Con comunicación dirigida por eventos y soporte multi-interfaz
-    
-    \item \textbf{Diseño detallado de cuatro módulos}:
+    \item \textbf{Arquitectura general orientada a servicios}: El framework implementa una arquitectura SOA con comunicación dirigida por eventos, proporcionando:
     \begin{itemize}
-        \item \textbf{api\_explorer}: Framework web modular con worker pools
-        \item \textbf{input\_collector}: Captura multi-dispositivo con arquitectura hexagonal
-        \item \textbf{eeg\_processor}: Procesamiento avanzado con servicios especializados
-        \item \textbf{synchronization\_module}: Integración temporal y exportación estándar
+        \item Separación clara de responsabilidades entre módulos
+        \item Comunicación desacoplada mediante múltiples protocolos (Core Events, REST, WebSocket, LSL)
+        \item Soporte multi-interfaz simultáneo (GUI, CLI, API REST)
+        \item Extensibilidad y mantenibilidad a largo plazo
     \end{itemize}
     
-    \item \textbf{Patrones arquitectónicos modernos}: Event-driven architecture, MVC, Singleton, Observer
+    \item \textbf{Diseño detallado de tres (placeholder) módulos principales}:
+    \begin{itemize}
+        \item \textbf{api\_explorer}: Framework web modular con arquitectura singleton, worker pools para alta concurrencia, y frontend JavaScript basado en managers especializados
+        \item \textbf{input\_collector}: Sistema de captura multi-dispositivo con arquitectura hexagonal, Core Event System framework-independiente, y soporte completo para teclado, ratón y controladores PS4
+        \item \textbf{eeg\_processor}: Framework de procesamiento neuroseñal con arquitectura SOA, soporte para 20+ fabricantes de dispositivos EEG, análisis avanzado (ICA, wavelet, MNE-Python) y interfaces multi-modal
+    \end{itemize}
     
-    \item \textbf{Consideraciones de implementación}: Thread safety, optimizaciones de rendimiento y manejo de errores
+    \item \textbf{Patrones arquitectónicos implementados}:
+    \begin{itemize}
+        \item \textbf{Event-Driven Architecture}: Sistema de eventos centralizado para comunicación desacoplada
+        \item \textbf{Modelo-Vista-Controlador (MVC)}: Implementado en interfaces complejas con controladores especializados
+        \item \textbf{Singleton Pattern}: Para servicios centralizados con thread-safety
+        \item \textbf{Observer Pattern}: Para actualizaciones reactivas via Qt Signals/Slots
+        \item \textbf{Strategy Pattern}: Para adaptación dinámica según contexto y dispositivos
+        \item \textbf{Factory Pattern}: Para creación dinámica de configuraciones
+    \end{itemize}
+    
+    \item \textbf{Integración inter-módulo avanzada}:
+    \begin{itemize}
+        \item \textbf{Lab Streaming Layer (LSL)}: Sincronización temporal de microsegundos
+        \item \textbf{API REST centralizada}: Coordinación via api\_explorer
+        \item \textbf{WebSocket streaming}: Comunicación tiempo real de alta frecuencia
+        \item \textbf{Core Event Systems}: Comunicación framework-independiente
+    \end{itemize}
+    
+    \item \textbf{Consideraciones de implementación críticas}:
+    \begin{itemize}
+        \item \textbf{Thread safety}: Estrategias granulares de sincronización
+        \item \textbf{Optimizaciones de rendimiento}: Memory pooling, circular buffers, vectorización
+        \item \textbf{Manejo de errores}: Circuit breaker, graceful degradation, error isolation
+        \item \textbf{Escalabilidad}: Arquitectura preparada para extensiones futuras
+    \end{itemize}
 \end{enumerate}
 
-El diseño resultante proporciona una base sólida para la implementación de un framework robusto, extensible y escalable que cumple con los objetivos establecidos para el desarrollo de interfaces cerebro-computadora. La arquitectura modular facilita el desarrollo incremental, la testabilidad y el mantenimiento a largo plazo del sistema.
+El diseño resultante proporciona una base para el desarrollo de interfaces cerebro-computadora, cumpliendo con los objetivos de:
+
+\begin{itemize}
+    \item \textbf{Modularidad}: Componentes independientes con interfaces bien definidas
+    \item \textbf{Extensibilidad}: Fácil adición de nuevos dispositivos, algoritmos y funcionalidades
+    \item \textbf{Escalabilidad}: Arquitectura preparada para cargas de trabajo variables
+    \item \textbf{Mantenibilidad}: Código bien estructurado con patrones establecidos
+    \item \textbf{Usabilidad}: Múltiples interfaces adaptadas a diferentes tipos de usuarios
+    \item \textbf{Rendimiento}: Optimizaciones específicas para datos de alta frecuencia
+\end{itemize}
+
+La arquitectura modular facilita el desarrollo incremental, la testabilidad individual de componentes, y el mantenimiento a largo plazo del sistema.
