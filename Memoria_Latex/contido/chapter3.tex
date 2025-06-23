@@ -1,0 +1,962 @@
+\chapter{Análisis y diseño}
+\label{chap:analisis_diseno}
+
+\lettrine{E}{n} este capítulo se presenta el análisis de requisitos del framework desarrollado, la arquitectura general del sistema y el diseño detallado de cada uno de los módulos componentes. El diseño se basa en una metodología incremental que ha evolucionado desde prototipos iniciales hasta una arquitectura modular robusta que cumple con los principios \acrshort{solid} y patrones de diseño modernos.
+
+\section{Análisis de requisitos}
+\label{sec:analisis_requisitos}
+
+\subsection{Requisitos funcionales}
+\label{subsec:requisitos_funcionales}
+
+Los requisitos funcionales del sistema se organizan en cuatro categorías principales, correspondientes a los módulos del framework:
+
+\subsubsection{Captura de eventos de entrada}
+\label{subsubsec:req_captura_entrada}
+
+\begin{enumerate}
+    \item \textbf{RF-01}: El sistema debe capturar eventos de teclado con precisión temporal de milisegundos
+    \item \textbf{RF-02}: El sistema debe capturar eventos de ratón (botones, movimiento, rueda) con múltiples modos de seguimiento
+    \item \textbf{RF-03}: El sistema debe soportar controladores PS4 con captura de botones, sticks analógicos y triggers
+    \item \textbf{RF-04}: El sistema debe proporcionar visualización en tiempo real de todos los dispositivos de entrada
+    \item \textbf{RF-05}: El sistema debe permitir configuración dinámica de teclas/botones a monitorizar
+    \item \textbf{RF-06}: El sistema debe registrar eventos en múltiples formatos (CSV, JSON) simultáneamente
+\end{enumerate}
+
+\subsubsection{Procesamiento de señales EEG}
+\label{subsubsec:req_procesamiento_eeg}
+
+\begin{enumerate}
+    \item \textbf{RF-07}: El sistema debe soportar múltiples dispositivos EEG comerciales mediante BrainFlow
+    \item \textbf{RF-08}: El sistema debe implementar filtros digitales en tiempo real (pasa-banda, notch, detrend)
+    \item \textbf{RF-09}: El sistema debe proporcionar análisis avanzado mediante \acrshort{ica}, transformadas wavelet y downsampling
+    \item \textbf{RF-10}: El sistema debe integrar MNE-Python para análisis neurocientífico avanzado
+    \item \textbf{RF-11}: El sistema debe visualizar señales EEG en tiempo real con mapas topográficos cerebrales
+    \item \textbf{RF-12}: El sistema debe evaluar calidad de señal con indicadores visuales
+    \item \textbf{RF-13}: El sistema debe permitir inserción de marcadores temporales durante la grabación
+\end{enumerate}
+
+\subsubsection{Sincronización y exportación de datos}
+\label{subsubsec:req_sincronizacion}
+
+\begin{enumerate}
+    \item \textbf{RF-14}: El sistema debe sincronizar temporalmente señales EEG y eventos de entrada
+    \item \textbf{RF-15}: El sistema debe exportar datos a formatos estándar (\acrshort{bids}, \acrshort{edf}+, \acrshort{hdf5}, \acrshort{csv})
+    \item \textbf{RF-16}: El sistema debe utilizar \acrshort{lsl} para sincronización de alta precisión
+    \item \textbf{RF-17}: El sistema debe generar metadatos completos para datasets exportados
+    \item \textbf{RF-18}: El sistema debe proporcionar interfaz unificada para coordinar ambos módulos
+\end{enumerate}
+
+\subsubsection{APIs y interfaces de usuario}
+\label{subsubsec:req_interfaces}
+
+\begin{enumerate}
+    \item \textbf{RF-19}: El sistema debe proporcionar interfaz gráfica responsiva basada en PyQt5
+    \item \textbf{RF-20}: El sistema debe implementar \acrshort{cli} con capacidades de monitoreo en tiempo real
+    \item \textbf{RF-21}: El sistema debe exponer \acrshort{api} \acrshort{rest} para control remoto
+    \item \textbf{RF-22}: El sistema debe proporcionar WebSocket para streaming de datos en tiempo real
+    \item \textbf{RF-23}: El sistema debe incluir explorador web de APIs con documentación interactiva
+    \item \textbf{RF-24}: El sistema debe soportar modo headless para uso programático
+\end{enumerate}
+
+\subsection{Requisitos no funcionales}
+\label{subsec:requisitos_no_funcionales}
+
+\subsubsection{Rendimiento}
+\label{subsubsec:req_rendimiento}
+
+\begin{itemize}
+    \item \textbf{RNF-01}: Latencia de captura de eventos < 50ms
+    \item \textbf{RNF-02}: Procesamiento EEG en tiempo real para frecuencias de muestreo hasta 1000 Hz
+    \item \textbf{RNF-03}: Sincronización temporal con precisión < 10ms
+    \item \textbf{RNF-04}: Soporte para streaming WebSocket con latencia < 15ms
+    \item \textbf{RNF-05}: Uso de memoria optimizado con buffers configurables
+\end{itemize}
+
+\subsubsection{Usabilidad}
+\label{subsubsec:req_usabilidad}
+
+\begin{itemize}
+    \item \textbf{RNF-06}: Interfaz gráfica intuitiva con tema oscuro/claro
+    \item \textbf{RNF-07}: Documentación contextual integrada (25+ temas de ayuda)
+    \item \textbf{RNF-08}: Configuración sin necesidad de programación para usuarios básicos
+    \item \textbf{RNF-09}: Retroalimentación visual inmediata del estado del sistema
+\end{itemize}
+
+\subsubsection{Extensibilidad}
+\label{subsubsec:req_extensibilidad}
+
+\begin{itemize}
+    \item \textbf{RNF-10}: Arquitectura modular que permita adición de nuevos colectores
+    \item \textbf{RNF-11}: Interfaces bien definidas para integración con herramientas externas
+    \item \textbf{RNF-12}: Sistema de plugins para algoritmos de procesamiento personalizados
+    \item \textbf{RNF-13}: Compatibilidad con formatos de datos emergentes
+\end{itemize}
+
+\subsubsection{Calidad}
+\label{subsubsec:req_calidad}
+
+\begin{itemize}
+    \item \textbf{RNF-14}: Código con tipado estático completo (mypy compliance)
+    \item \textbf{RNF-15}: Documentación de código con docstrings (pydocstyle compliance)
+    \item \textbf{RNF-16}: Formateo automático de código (black compliance)
+    \item \textbf{RNF-17}: Thread-safety en todas las operaciones concurrentes
+\end{itemize}
+
+\section{Arquitectura general del sistema}
+\label{sec:arquitectura_general}
+
+\subsection{Visión general}
+\label{subsec:vision_general}
+
+El framework implementa una \textbf{arquitectura orientada a servicios} con \textbf{comunicación dirigida por eventos}, organizada en cuatro módulos principales que pueden operar independientemente o de forma coordinada. La figura~\ref{fig:arquitectura_general} ilustra la estructura general del sistema.
+
+\begin{figure}[hp!]
+\centering
+\includegraphics[width=\textwidth]{imaxes/arquitectura_general.pdf}
+\caption{Arquitectura general del framework}
+\label{fig:arquitectura_general}
+\end{figure}
+
+\subsection{Principios arquitectónicos}
+\label{subsec:principios_arquitectonicos}
+
+\subsubsection{Separación de responsabilidades}
+Cada módulo tiene responsabilidades claramente definidas:
+
+\begin{itemize}
+    \item \textbf{input\_collector}: Captura y procesamiento de eventos de entrada
+    \item \textbf{eeg\_processor}: Adquisición y análisis de señales EEG
+    \item \textbf{api\_explorer}: Framework web para exploración de APIs
+    \item \textbf{synchronization\_module}: Coordinación temporal y exportación de datasets
+\end{itemize}
+
+\subsubsection{Comunicación desacoplada}
+Los módulos se comunican mediante:
+
+\begin{itemize}
+    \item \textbf{Core Event System}: Sistema de eventos independiente de framework
+    \item \textbf{APIs REST}: Interfaces well-defined para comunicación inter-módulo
+    \item \textbf{WebSocket}: Streaming de datos en tiempo real
+    \item \textbf{LSL Streams}: Sincronización temporal de alta precisión
+\end{itemize}
+
+\subsubsection{Arquitectura multi-interfaz}
+Cada módulo soporta múltiples interfaces simultáneamente:
+
+\begin{itemize}
+    \item \textbf{GUI}: Interfaces PyQt5 con diseño responsivo
+    \item \textbf{CLI}: Interfaces Typer con Rich para output avanzado
+    \item \textbf{API REST}: Control programático y integración externa
+    \item \textbf{WebSocket}: Monitoreo en tiempo real
+\end{itemize}
+
+\subsection{Patrones arquitectónicos implementados}
+\label{subsec:patrones_arquitectonicos_impl}
+
+\subsubsection{Event-Driven Architecture}
+Sistema de eventos centralizado que facilita:
+
+\begin{itemize}
+    \item \textbf{Desacoplamiento}: Componentes independientes
+    \item \textbf{Extensibilidad}: Fácil adición de suscriptores
+    \item \textbf{Thread-safety}: Comunicación segura entre hilos
+    \item \textbf{Framework-agnostic}: Independiente de Qt u otros frameworks
+\end{itemize}
+
+\subsubsection{Singleton Pattern}
+Servicios centralizados con:
+
+\begin{itemize}
+    \item \textbf{Thread-safe implementation}: Double-checked locking
+    \item \textbf{Lazy initialization}: Inicialización bajo demanda
+    \item \textbf{Resource management}: Gestión centralizada de recursos
+\end{itemize}
+
+\subsubsection{Model-View-Controller (MVC)}
+Implementado en interfaces complejas:
+
+\begin{itemize}
+    \item \textbf{Separación de lógica}: Modelo, vista y control independientes
+    \item \textbf{Reutilización}: Modelos compartidos entre vistas
+    \item \textbf{Testabilidad}: Componentes aislados para pruebas
+\end{itemize}
+
+\subsubsection{Observer Pattern}
+Para actualizaciones reactivas:
+
+\begin{itemize}
+    \item \textbf{Qt Signals/Slots}: Comunicación UI thread-safe
+    \item \textbf{Callback systems}: Notificaciones de cambios de estado
+    \item \textbf{Event broadcasting}: Distribución de eventos a múltiples consumidores
+\end{itemize}
+
+\section{Diseño del módulo api\_explorer}
+\label{sec:diseno_api_explorer}
+
+\subsection{Propósito y responsabilidades}
+\label{subsec:proposito_api_explorer}
+
+El módulo api\_explorer actúa como \textbf{framework web modular} que proporciona capacidades dinámicas de exploración y prueba de APIs. Su diseño permite que múltiples módulos registren sus APIs en tiempo de ejecución, proporcionando una interfaz unificada para interacción y monitoreo.
+
+\subsection{Arquitectura del módulo}
+\label{subsec:arquitectura_api_explorer}
+
+La figura~\ref{fig:arquitectura_api_explorer} muestra la estructura interna del módulo api\_explorer.
+
+\begin{figure}[hp!]
+\centering
+\includegraphics[width=0.85\textwidth]{imaxes/api_explorer_arquitectura.pdf}
+\caption{Arquitectura del módulo api\_explorer}
+\label{fig:arquitectura_api_explorer}
+\end{figure}
+
+\subsubsection{Componentes principales}
+
+\begin{itemize}
+    \item \textbf{ApiExplorer Core}: Servicio singleton central
+    \item \textbf{WebSocketManager}: Gestión de conexiones en tiempo real
+    \item \textbf{Worker Pool}: Procesamiento distribuido para alta carga
+    \item \textbf{Fast JSON Serializer}: Optimización de serialización
+    \item \textbf{Frontend Modular}: Arquitectura JavaScript basada en managers
+\end{itemize}
+
+\subsection{Diseño de componentes clave}
+\label{subsec:diseno_componentes_api_explorer}
+
+\subsubsection{ApiExplorer Singleton}
+
+El componente central implementa un patrón singleton thread-safe que gestiona:
+
+\begin{lstlisting}[language=Python]
+class ApiExplorer:
+    _instance = None
+    _lock = threading.Lock()
+    
+    def __init__(self):
+        self._modules = {}  # Registro de módulos
+        self._websocket_manager = WebSocketManager()
+        self._server_process = None
+        
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = cls()
+        return cls._instance
+\end{lstlisting}
+
+\subsubsection{Sistema de registro dinámico}
+
+Los módulos se registran dinámicamente mediante:
+
+\begin{lstlisting}[language=Python]
+def register_module(self, module_id: str, name: str, description: str):
+    """Registra un nuevo módulo en el explorer"""
+    
+def add_method_group(self, module_id: str, group_id: str, name: str):
+    """Añade un grupo de métodos a un módulo"""
+    
+def register_method(self, module_id: str, group_id: str, 
+                   method_id: str, method_info: dict, handler: callable):
+    """Registra un método específico con su handler"""
+\end{lstlisting}
+
+\subsubsection{Arquitectura WebSocket con Worker Pools}
+
+Para manejar cargas elevadas de datos, especialmente del módulo eeg\_processor, se implementa una arquitectura de worker pools:
+
+\begin{lstlisting}[language=Python]
+class WebSocketWorkerPool:
+    def __init__(self, module_id: str, worker_count: int = 4):
+        self.module_id = module_id
+        self.workers = []
+        self.message_queue = asyncio.Queue()
+        self.round_robin_index = 0
+        
+    async def distribute_message(self, connections: List, data: dict):
+        """Distribuye mensajes entre workers disponibles"""
+        worker = self._get_next_worker()
+        await worker.process_message(connections, data)
+\end{lstlisting}
+
+\subsubsection{Frontend modular JavaScript}
+
+El frontend se organiza en managers especializados:
+
+\begin{lstlisting}[language=JavaScript]
+// Coordinador principal
+class APIExplorer {
+    constructor() {
+        this.darkModeManager = new DarkModeManager();
+        this.webSocketManager = new WebSocketManager();
+        this.chartManager = new ChartManager();
+        this.eventDisplayManager = new EventDisplayManager();
+        this.setupManagerCommunication();
+    }
+    
+    setupManagerCommunication() {
+        // Comunicación event-driven entre managers
+        this.darkModeManager.onModeChange((isDark) => {
+            this.chartManager.updateTheme(isDark);
+        });
+    }
+}
+\end{lstlisting}
+
+\subsection{Optimizaciones de rendimiento}
+\label{subsec:optimizaciones_api_explorer}
+
+\subsubsection{Serialización JSON optimizada}
+
+\begin{lstlisting}[language=Python]
+class FastJSONSerializer:
+    def __init__(self):
+        self.use_orjson = self._check_orjson_availability()
+        self.template_cache = {}
+    
+    def serialize(self, data: dict) -> str:
+        if self.use_orjson:
+            return orjson.dumps(data).decode('utf-8')
+        return json.dumps(data, default=self._json_fallback)
+\end{lstlisting}
+
+\subsubsection{Throttling adaptativo}
+
+\begin{lstlisting}[language=Python]
+class AdaptiveThrottling:
+    def __init__(self, base_interval: float = 0.1):
+        self.base_interval = base_interval
+        self.current_load = 0
+        
+    def should_send_message(self, message_type: str) -> bool:
+        if message_type == "high_frequency_data":
+            return self._check_bandwidth_availability()
+        return True
+\end{lstlisting}
+
+\section{Diseño del módulo input\_collector}
+\label{sec:diseno_input_collector}
+
+\subsection{Propósito y responsabilidades}
+\label{subsec:proposito_input_collector}
+
+El módulo input\_collector implementa un sistema integral para \textbf{captura, procesamiento y visualización} de eventos de entrada en tiempo real desde múltiples dispositivos. Su arquitectura hexagonal facilita la extensibilidad y el testing.
+
+\subsection{Arquitectura del módulo}
+\label{subsec:arquitectura_input_collector}
+
+La figura~\ref{fig:arquitectura_input_collector} ilustra la arquitectura interna del módulo.
+
+\begin{figure}[hp!]
+\centering
+\includegraphics[width=\textwidth]{imaxes/input_collector_arquitectura.pdf}
+\caption{Arquitectura del módulo input\_collector}
+\label{fig:arquitectura_input_collector}
+\end{figure}
+
+\subsubsection{Core Event System}
+
+Sistema de eventos independiente de framework que proporciona:
+
+\begin{lstlisting}[language=Python]
+class EventDispatcher:
+    def __init__(self):
+        self._subscribers: Dict[EventType, Set[callable]] = defaultdict(set)
+        self._lock = threading.RLock()
+        self._last_events: Dict[EventType, Any] = {}
+        
+    def dispatch(self, event_type: EventType, data: Any) -> None:
+        """Dispatch thread-safe de eventos"""
+        with self._lock:
+            self._last_events[event_type] = data
+            for callback in self._subscribers[event_type]:
+                try:
+                    callback(data)
+                except Exception as e:
+                    logging.error(f"Error in callback: {e}")
+\end{lstlisting}
+
+\subsubsection{Collectors con capabilities dinámicas}
+
+Los colectores implementan interfaces well-defined con capacidades detectables:
+
+\begin{lstlisting}[language=Python]
+class PS4ControllerCollector(AbstractInputCollector):
+    def get_capabilities(self) -> Dict[str, Any]:
+        return {
+            "supports_analog_sticks": True,
+            "supports_triggers": True,
+            "button_count": 14,
+            "analog_stick_count": 2,
+            "trigger_count": 2,
+            "connection_type": "SDL2_GameController",
+            "auto_reconnect": True,
+            "thread_safe_events": True
+        }
+\end{lstlisting}
+
+\subsubsection{Arquitectura thread-safe para PS4 Controller}
+
+El controlador PS4 implementa una arquitectura basada en hilos:
+
+\begin{lstlisting}[language=Python]
+class PS4ControllerCollector:
+    def __init__(self):
+        self._sdl_thread = None
+        self._stop_event = threading.Event()
+        self._controller = None
+        self._current_state = ControllerState()
+        self._state_lock = threading.Lock()
+        
+    def _sdl_event_loop(self):
+        """Loop de eventos SDL2 en hilo dedicado"""
+        while not self._stop_event.is_set():
+            sdl2.SDL_PumpEvents()
+            self._process_controller_events()
+            time.sleep(0.001)  # 1ms polling
+\end{lstlisting}
+
+\subsection{Sistema de visualización avanzada}
+\label{subsec:visualizacion_input_collector}
+
+\subsubsection{Visualizador PS4 con paneles divididos}
+
+\begin{lstlisting}[language=Python]
+class PS4ControllerVisualizer:
+    def __init__(self):
+        self.setup_split_panel_ui()
+        self.setup_realtime_logging()
+        
+    def setup_split_panel_ui(self):
+        """Configura interfaz de paneles divididos"""
+        # Panel superior: Visualización del controller
+        self.controller_panel = self.create_controller_visual()
+        
+        # Panel medio: Estado en tiempo real
+        self.state_panel = self.create_state_display()
+        
+        # Panel inferior: Log de eventos
+        self.log_panel = self.create_event_log()
+\end{lstlisting}
+
+\subsection{APIs de acceso y control}
+\label{subsec:apis_input_collector}
+
+\subsubsection{DataAccessService con callbacks categorizados}
+
+\begin{lstlisting}[language=Python]
+class DataAccessService:
+    def __init__(self):
+        self._api_callbacks: Dict[str, List[callable]] = defaultdict(list)
+        self._local_callbacks: Dict[str, List[callable]] = defaultdict(list)
+        
+    def register_api_callback(self, event_type: str, callback: callable):
+        """Callbacks para API externa con throttling"""
+        
+    def register_local_callback(self, event_type: str, callback: callable):
+        """Callbacks para visualizadores locales sin throttling"""
+\end{lstlisting}
+
+\subsubsection{InteractionService con 7 señales Qt}
+
+Para mantener sincronización entre API y GUI se implementan señales específicas:
+
+\begin{lstlisting}[language=Python]
+class QtInteractionAdapter(QObject):
+    # Señales para actualización thread-safe del GUI
+    recording_state_changed = pyqtSignal(bool)
+    collector_switched = pyqtSignal(str)
+    mouse_mode_changed = pyqtSignal(str)
+    edit_mode_changed = pyqtSignal(bool)
+    tracked_keys_changed = pyqtSignal(list)
+    mouse_buttons_changed = pyqtSignal(list)
+    ps4_visualization_mode_changed = pyqtSignal(str)
+\end{lstlisting}
+
+\section{Diseño del módulo eeg\_processor}
+\label{sec:diseno_eeg_processor}
+
+\subsection{Propósito y responsabilidades}
+\label{subsec:proposito_eeg_processor}
+
+El módulo eeg\_processor implementa un \textbf{framework modular para procesamiento de señales EEG} en tiempo real que soporta múltiples dispositivos de hardware, análisis avanzado y múltiples interfaces de usuario.
+
+\subsection{Arquitectura del módulo}
+\label{subsec:arquitectura_eeg_processor}
+
+La figura~\ref{fig:arquitectura_eeg_processor} muestra la arquitectura orientada a servicios del módulo.
+
+\begin{figure}[hp!]
+\centering
+\includegraphics[width=\textwidth]{imaxes/eeg_processor_arquitectura.pdf}
+\caption{Arquitectura del módulo eeg\_processor}
+\label{fig:arquitectura_eeg_processor}
+\end{figure}
+
+\subsubsection{Capa de abstracción de hardware}
+
+La integración con BrainFlow se abstrae mediante interfaces que soportan 20+ fabricantes:
+
+\begin{lstlisting}[language=Python]
+class EEGCollector(CollectorInterface, MarkerInterface, 
+                   ConfigurableCollectorInterface):
+    def __init__(self):
+        self.board_id = None
+        self.board = None
+        self._preset_mode = BrainFlowPresets.DEFAULT_PRESET
+        
+    def get_supported_boards(self) -> Dict[str, List[int]]:
+        return {
+            "OpenBCI": [BoardIds.CYTON_BOARD, BoardIds.GANGLION_BOARD],
+            "g.tec": [BoardIds.UNICORN_BOARD],
+            "Muse": [BoardIds.MUSE_2_BOARD, BoardIds.MUSE_S_BOARD],
+            "ANT Neuro": [BoardIds.ANT_NEURO_EE_410_BOARD],
+            "Neurosity": [BoardIds.NOTION_1_BOARD, BoardIds.NOTION_2_BOARD]
+        }
+\end{lstlisting}
+
+\subsubsection{Motor de procesamiento de señales}
+
+El SignalProcessor implementa múltiples algoritmos con monitoreo de estabilidad:
+
+\begin{lstlisting}[language=Python]
+class SignalProcessor:
+    def __init__(self, sampling_rate: int):
+        self.sampling_rate = sampling_rate
+        self._stability_monitor = FilterStabilityMonitor()
+        
+    def bandpass_filter(self, data: np.ndarray, start_freq: float, 
+                       stop_freq: float, order: int = 4,
+                       filter_type: FilterTypes = FilterTypes.BUTTERWORTH):
+        """Filtro pasa-banda con monitoreo de estabilidad"""
+        
+        # Validación de estabilidad para datos sintéticos
+        if self._stability_monitor.is_synthetic_data(data):
+            order = min(order, 2)  # Reducir orden para estabilidad
+            
+        return self._apply_zero_phase_filter(data, start_freq, stop_freq, order)
+\end{lstlisting}
+
+\subsubsection{Arquitectura MVC basada en paneles}
+
+La UI se organiza en paneles con controladores especializados:
+
+\begin{lstlisting}[language=Python]
+class MNEPanelController:
+    def __init__(self, parent):
+        self.parent = parent
+        self.widgets = self._create_widgets()
+        self.setup_connections()
+        
+    def _create_widgets(self):
+        return {
+            'conversion': MNEConversionWidget(),
+            'visualization': MNEVisualizationWidget(),
+            'status': MNEStatusWidget(),
+            'channel_selection': ChannelSelectionDialog()
+        }
+        
+    def setup_connections(self):
+        """Conecta señales entre widgets del panel"""
+        self.widgets['conversion'].conversion_completed.connect(
+            self.widgets['visualization'].enable_visualization)
+\end{lstlisting}
+
+\subsection{Servicios especializados}
+\label{subsec:servicios_eeg_processor}
+
+\subsubsection{Servicios ICA con multiprocesamiento}
+
+\begin{lstlisting}[language=Python]
+class ICAProcessService:
+    def __init__(self):
+        self.process_pool = ProcessPoolExecutor(max_workers=2)
+        
+    async def process_ica_async(self, data: np.ndarray, 
+                               n_components: int) -> Dict[str, Any]:
+        """Procesamiento ICA asíncrono con multiproceso"""
+        loop = asyncio.get_event_loop()
+        
+        result = await loop.run_in_executor(
+            self.process_pool,
+            self._run_ica_process,
+            data, n_components
+        )
+        
+        return result
+\end{lstlisting}
+
+\subsubsection{Integración MNE-Python}
+
+\begin{lstlisting}[language=Python]
+class MNEConverterService:
+    def __init__(self):
+        self._conversion_cache = {}
+        
+    async def convert_to_mne_async(self, mode: str = "flexible") -> mne.io.Raw:
+        """Conversión asíncrona BrainFlow -> MNE"""
+        
+        if mode == "performance":
+            # Modo optimizado con canales seleccionados
+            channels = self._get_selected_channels()
+            data = self._get_channel_subset(channels)
+        elif mode == "realtime":
+            # Modo tiempo real con ventana deslizante
+            data = self._get_recent_data_window()
+        else:
+            # Modo flexible con todos los datos
+            data = self._get_all_data()
+            
+        return self._create_mne_raw_object(data)
+\end{lstlisting}
+
+\subsection{Sistema de callbacks y optimización}
+\label{subsec:callbacks_eeg_processor}
+
+\subsubsection{DataAccessService con callbacks categorizados}
+
+\begin{lstlisting}[language=Python]
+class DataAccessService:
+    def __init__(self):
+        self._api_callbacks = []
+        self._local_callbacks = []
+        self._performance_mode = False
+        
+    def register_api_callback(self, callback: callable, 
+                            performance_mode: bool = False):
+        """API callbacks con modo performance para filtros complejos"""
+        callback_info = {
+            'callback': callback,
+            'performance_mode': performance_mode
+        }
+        self._api_callbacks.append(callback_info)
+        
+    def _process_api_callbacks(self, data: np.ndarray):
+        for callback_info in self._api_callbacks:
+            if callback_info['performance_mode']:
+                # Procesamiento en worker process separado
+                self._process_in_worker(callback_info['callback'], data)
+            else:
+                callback_info['callback'](data)
+\end{lstlisting}
+
+\subsubsection{InteractionService con 40+ señales Qt}
+
+Debido a la complejidad de la interfaz basada en paneles múltiples:
+
+\begin{lstlisting}[language=Python]
+class QtInteractionAdapter(QObject):
+    # Señales de conexión
+    board_connected = pyqtSignal(bool)
+    stream_started = pyqtSignal(bool)
+    
+    # Señales de procesamiento
+    filters_applied = pyqtSignal(dict)
+    metrics_calculated = pyqtSignal(dict)
+    
+    # Señales MNE
+    mne_conversion_completed = pyqtSignal(bool)
+    mne_visualization_updated = pyqtSignal(str)
+    
+    # Señales de análisis avanzado
+    ica_process_completed = pyqtSignal(dict)
+    wavelet_analysis_completed = pyqtSignal(dict)
+    
+    # ... más de 30 señales adicionales para cobertura completa
+\end{lstlisting}
+
+\section{Diseño del módulo synchronization\_module}
+\label{sec:diseno_synchronization_module}
+
+\subsection{Propósito y responsabilidades}
+\label{subsec:proposito_synchronization_module}
+
+El módulo synchronization\_module integra los flujos de datos de input\_collector y eeg\_processor, proporcionando \textbf{sincronización temporal de alta precisión} y \textbf{exportación a formatos estándar}.
+
+\subsection{Arquitectura del módulo}
+\label{subsec:arquitectura_synchronization_module}
+
+\subsubsection{Core de sincronización}
+
+\begin{lstlisting}[language=Python]
+class LSLManager:
+    def __init__(self):
+        self.input_inlet = None
+        self.eeg_inlet = None
+        self.sync_buffer = SynchronizedBuffer()
+        
+    def setup_synchronization(self, precision_level: str = "high"):
+        """Configura sincronización LSL con diferentes niveles de precisión"""
+        
+        if precision_level == "high":
+            self.time_correction_interval = 0.1  # 100ms
+            self.buffer_size = 1000
+        elif precision_level == "medium":
+            self.time_correction_interval = 0.5  # 500ms
+            self.buffer_size = 500
+        else:  # low
+            self.time_correction_interval = 1.0  # 1s
+            self.buffer_size = 200
+\end{lstlisting}
+
+\subsubsection{Sistema de exportación}
+
+\begin{lstlisting}[language=Python]
+class ExportManager:
+    def __init__(self):
+        self.exporters = {
+            'bids': BIDSExporter(),
+            'edf': EDFExporter(), 
+            'hdf5': HDF5Exporter(),
+            'csv': CSVExporter()
+        }
+        
+    async def export_dataset(self, format_type: str, 
+                           synchronized_data: SynchronizedDataset):
+        """Exportación asíncrona a formato especificado"""
+        
+        exporter = self.exporters[format_type]
+        
+        # Generación de metadatos estándar
+        metadata = self._generate_metadata(synchronized_data)
+        
+        # Exportación con progress tracking
+        return await exporter.export_async(synchronized_data, metadata)
+\end{lstlisting}
+
+\subsubsection{Interfaz unificada}
+
+\begin{lstlisting}[language=Python]
+class UnifiedApp(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.input_collector_panel = self._create_input_panel()
+        self.eeg_processor_panel = self._create_eeg_panel()
+        self.synchronization_panel = self._create_sync_panel()
+        
+        self.setup_inter_panel_communication()
+        
+    def setup_inter_panel_communication(self):
+        """Configura comunicación entre paneles mediante LSL"""
+        self.sync_service = SynchronizationService()
+        
+        # Conectar eventos de ambos módulos
+        self.sync_service.connect_input_stream()
+        self.sync_service.connect_eeg_stream()
+\end{lstlisting}
+
+\section{Integración entre módulos}
+\label{sec:integracion_modulos}
+
+\subsection{Comunicación inter-módulo}
+\label{subsec:comunicacion_inter_modulo}
+
+\subsubsection{Lab Streaming Layer (LSL)}
+
+Para sincronización temporal de alta precisión:
+
+\begin{lstlisting}[language=Python]
+class LSLStreamManager:
+    def __init__(self):
+        self.streams = {}
+        
+    def create_input_stream(self):
+        """Crea stream LSL para eventos de entrada"""
+        info = StreamInfo(
+            'InputEvents', 'Events', 1, 0,  # irregular rate
+            'string', 'input_collector_001'
+        )
+        self.streams['input'] = StreamOutlet(info)
+        
+    def create_eeg_stream(self):
+        """Crea stream LSL para datos EEG"""
+        info = StreamInfo(
+            'EEGData', 'EEG', 8, 250,  # 8 channels, 250 Hz
+            'float32', 'eeg_processor_001'
+        )
+        self.streams['eeg'] = StreamOutlet(info)
+\end{lstlisting}
+
+\subsubsection{API REST común}
+
+Coordinación mediante api\_explorer:
+
+\begin{lstlisting}[language=Python]
+class ModuleCoordinator:
+    def __init__(self):
+        self.api_explorer = ApiExplorer.get_instance()
+        self.registered_modules = set()
+        
+    def register_all_modules(self):
+        """Registra todos los módulos en api_explorer"""
+        
+        # Registro de input_collector
+        self._register_input_collector()
+        
+        # Registro de eeg_processor  
+        self._register_eeg_processor()
+        
+        # Registro de synchronization_module
+        self._register_synchronization_module()
+        
+    def coordinate_recording_session(self):
+        """Coordina sesión de grabación entre módulos"""
+        # Iniciar captura en ambos módulos simultáneamente
+        # Sincronizar timestamps via LSL
+        # Coordinar finalización y exportación
+\end{lstlisting}
+
+\subsection{Flujo de datos sincronizado}
+\label{subsec:flujo_datos_sincronizado}
+
+La figura~\ref{fig:flujo_datos_sincronizado} ilustra el flujo de datos entre módulos durante una sesión de captura.
+
+\begin{figure}[hp!]
+\centering
+\includegraphics[width=\textwidth]{imaxes/flujo_datos_sincronizado.pdf}
+\caption{Flujo de datos sincronizado entre módulos}
+\label{fig:flujo_datos_sincronizado}
+\end{figure}
+
+\section{Consideraciones de implementación}
+\label{sec:consideraciones_implementacion}
+
+\subsection{Thread safety y concurrencia}
+\label{subsec:thread_safety}
+
+\subsubsection{Estrategias de sincronización}
+
+\begin{itemize}
+    \item \textbf{Granular locking}: Locks específicos para diferentes operaciones
+    \item \textbf{Qt Signals/Slots}: Comunicación thread-safe para UI
+    \item \textbf{Immutable data structures}: Cuando es posible para evitar locks
+    \item \textbf{Actor model}: En WebSocket workers para aislamiento
+\end{itemize}
+
+\subsubsection{Manejo de recursos}
+
+\begin{lstlisting}[language=Python]
+class ResourceManager:
+    def __init__(self):
+        self._resources = {}
+        self._resource_locks = defaultdict(threading.Lock)
+        
+    def acquire_resource(self, resource_id: str, timeout: float = 5.0):
+        """Adquisición thread-safe de recursos con timeout"""
+        lock = self._resource_locks[resource_id]
+        
+        if lock.acquire(timeout=timeout):
+            try:
+                yield self._resources[resource_id]
+            finally:
+                lock.release()
+        else:
+            raise TimeoutError(f"Could not acquire {resource_id}")
+\end{lstlisting}
+
+\subsection{Optimizaciones de rendimiento}
+\label{subsec:optimizaciones_rendimiento}
+
+\subsubsection{Buffer management}
+
+\begin{lstlisting}[language=Python]
+class CircularBuffer:
+    def __init__(self, size: int):
+        self.size = size
+        self.buffer = np.zeros((size,))
+        self.head = 0
+        self.count = 0
+        self._lock = threading.Lock()
+        
+    def append(self, data: np.ndarray):
+        """Thread-safe append con overwrite automático"""
+        with self._lock:
+            end_pos = (self.head + len(data)) % self.size
+            if end_pos > self.head:
+                self.buffer[self.head:end_pos] = data
+            else:
+                # Wrap around
+                split_point = self.size - self.head
+                self.buffer[self.head:] = data[:split_point]
+                self.buffer[:end_pos] = data[split_point:]
+\end{lstlisting}
+
+\subsubsection{Memory pooling}
+
+\begin{lstlisting}[language=Python]
+class MemoryPool:
+    def __init__(self, chunk_size: int, pool_size: int = 10):
+        self.chunk_size = chunk_size
+        self.available = queue.Queue()
+        
+        # Pre-allocate memory chunks
+        for _ in range(pool_size):
+            chunk = np.zeros(chunk_size, dtype=np.float32)
+            self.available.put(chunk)
+            
+    def get_chunk(self) -> np.ndarray:
+        """Obtiene chunk pre-allocado o crea uno nuevo"""
+        try:
+            return self.available.get_nowait()
+        except queue.Empty:
+            return np.zeros(self.chunk_size, dtype=np.float32)
+\end{lstlisting}
+
+\subsection{Manejo de errores y recuperación}
+\label{subsec:manejo_errores}
+
+\subsubsection{Circuit breaker pattern}
+
+\begin{lstlisting}[language=Python]
+class CircuitBreaker:
+    def __init__(self, failure_threshold: int = 5, 
+                 recovery_timeout: float = 60.0):
+        self.failure_threshold = failure_threshold
+        self.recovery_timeout = recovery_timeout
+        self.failure_count = 0
+        self.last_failure_time = None
+        self.state = "CLOSED"  # CLOSED, OPEN, HALF_OPEN
+        
+    def call(self, func: callable, *args, **kwargs):
+        """Ejecuta función con circuit breaker protection"""
+        if self.state == "OPEN":
+            if self._should_attempt_reset():
+                self.state = "HALF_OPEN"
+            else:
+                raise CircuitBreakerOpenError()
+                
+        try:
+            result = func(*args, **kwargs)
+            self._on_success()
+            return result
+        except Exception as e:
+            self._on_failure()
+            raise e
+\end{lstlisting}
+
+\section{Resumen del capítulo}
+\label{sec:resumen_analisis_diseno}
+
+Este capítulo ha presentado el análisis y diseño completo del framework desarrollado, abarcando:
+
+\begin{enumerate}
+    \item \textbf{Análisis de requisitos exhaustivo}: 24 requisitos funcionales y 17 no funcionales que guían el desarrollo
+    
+    \item \textbf{Arquitectura general orientada a servicios}: Con comunicación dirigida por eventos y soporte multi-interfaz
+    
+    \item \textbf{Diseño detallado de cuatro módulos}:
+    \begin{itemize}
+        \item \textbf{api\_explorer}: Framework web modular con worker pools
+        \item \textbf{input\_collector}: Captura multi-dispositivo con arquitectura hexagonal
+        \item \textbf{eeg\_processor}: Procesamiento avanzado con servicios especializados
+        \item \textbf{synchronization\_module}: Integración temporal y exportación estándar
+    \end{itemize}
+    
+    \item \textbf{Patrones arquitectónicos modernos}: Event-driven architecture, MVC, Singleton, Observer
+    
+    \item \textbf{Consideraciones de implementación}: Thread safety, optimizaciones de rendimiento y manejo de errores
+\end{enumerate}
+
+El diseño resultante proporciona una base sólida para la implementación de un framework robusto, extensible y escalable que cumple con los objetivos establecidos para el desarrollo de interfaces cerebro-computadora. La arquitectura modular facilita el desarrollo incremental, la testabilidad y el mantenimiento a largo plazo del sistema.

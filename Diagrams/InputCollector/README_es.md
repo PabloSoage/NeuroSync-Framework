@@ -106,15 +106,16 @@ dispatch(EventType.INPUT, {
 
 ### 3. **Collectors** (`collectors/`)
 
-**Propósito**: Captura de eventos de entrada desde diferentes dispositivos con arquitectura thread-safe.
+**Propósito**: Captura de eventos de entrada desde diferentes dispositivos con arquitectura thread-safe y event-driven.
 
 #### Componentes:
 - **`CollectorManager`**: Gestor central con capabilities dinámicas
 - **`KeyboardMouseCollector`**: Colector con múltiples modos de tracking
-- **`PS4ControllerCollector`**: Arquitectura basada en hilos con SDL2 event loop
+- **`PS4ControllerCollector`**: Arquitectura **event-driven** basada en hilos con SDL2 event loop
 
 #### Características del PS4ControllerCollector:
-- **Arquitectura basada en hilos**: SDL2 event loop en hilo dedicado
+- **Arquitectura completamente event-driven**: El colector procesa y despacha eventos en tiempo real a través de callbacks y suscripciones, desacoplando la captura de eventos del procesamiento y visualización.
+- **Event loop dedicado**: SDL2 event loop en hilo dedicado para captura eficiente y asincrónica.
 - **Reconexión automática**: Manejo de desconexiones
 - **Event processing thread-safe**: Locks granulares y manejo de errores
 - **Detección de cambios**: Tracking de estados previos para trigger/stick
@@ -131,7 +132,8 @@ dispatch(EventType.INPUT, {
     "trigger_count": 2,
     "connection_type": "SDL2_GameController",
     "auto_reconnect": True,
-    "thread_safe_events": True
+    "thread_safe_events": True,
+    "event_driven": True
 }
 ```
 
