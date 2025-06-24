@@ -1,0 +1,179 @@
+\chapter{Metodología y planificación del trabajo}
+
+\section{Enfoque metodológico}
+
+Este proyecto se ha desarrollado siguiendo un modelo \textbf{incremental-iterativo} que combina las ventajas de una definición temprana de requisitos con la flexibilidad necesaria para refinar el resultado en ciclos sucesivos:
+
+\begin{itemize}
+    \item \textbf{Incrementalidad}: el software se construye por módulos funcionales independientes (captura de inputs → procesamiento EEG → APIs de integración → explorador web), cada uno de los cuales añade nuevas prestaciones al sistema global.
+    
+    \item \textbf{Iteración}: cada módulo se somete a múltiples rondas de desarrollo, validación y refactorización antes de proceder al siguiente. Esto garantiza la detección rápida de errores y su corrección.
+    
+    \item \textbf{Refactorización continua}: aplicación de principios SOLID para mejorar la mantenibilidad y escalabilidad del código, especialmente tras identificar limitaciones arquitecturales.
+    
+    \item \textbf{Validación experimental}: en todas las etapas se emplean casos de prueba reales (dispositivos sintéticos, controladores físicos, cascos EEG) para contrastar el funcionamiento.
+\end{itemize}
+
+La metodología se adaptó durante el desarrollo para responder a desafíos técnicos específicos, como la migración de Julia a Python por eficiencia de desarrollo, o la transición de arquitecturas monolíticas a modulares siguiendo principios SOLID.
+
+\section{Fases y actividades}
+
+\begin{table}[H]
+\centering
+\caption{Cronograma general del proyecto (abril-junio 2025)}
+\label{tab:cronograma}
+\begin{tabular}{|c|l|c|}
+\hline
+\textbf{Fase} & \textbf{Actividad} & \textbf{Período} \\
+\hline
+1 & Investigación de tecnologías BCI y análisis del estado del arte & 01/04-11/04 \\
+\hline
+2 & Desarrollo del módulo de captura de inputs (IC) & 12/04-15/04 \\
+\hline
+3 & Desarrollo del módulo de procesamiento EEG (EP) & 12/04-19/04 \\
+\hline
+4 & Primera integración y sistema de logging & 16/04-19/04 \\
+\hline
+5 & Refactorización SOLID de ambos módulos & 20/04-21/04 \\
+\hline
+6 & Desarrollo de módulo de sincronización (LSL) & 22/04-30/04 \\
+\hline
+7 & \textit{Pausa por otros compromisos académicos} & 01/05-13/05 \\
+\hline
+8 & Desarrollo de APIs de acceso a datos & 14/05-18/05 \\
+\hline
+9 & Desarrollo del explorador web (FastAPI) & 18/05-22/05 \\
+\hline
+10 & APIs de control e interacción & 23/05-06/06 \\
+\hline
+11 & Implementación de controlador PS4 y CLI & 04/06-12/06 \\
+\hline
+12 & Desarrollo de funcionalidades avanzadas (MNE, ICA, filtros) & 13/06-21/06 \\
+\hline
+13 & Documentación técnica y memoria & 22/06-23/06 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Detalles por fase}
+
+\textbf{Fase 1-3: Desarrollo inicial (12-19 abril)}
+\begin{itemize}
+    \item Implementación básica con pynput para captura de teclado/ratón
+    \item Migración de tkinter a PyQt5 por limitaciones de rendimiento
+    \item Integración inicial con BrainFlow para procesamiento EEG
+    \item Sistema de ayuda contextual para parámetros técnicos
+\end{itemize}
+
+\textbf{Fase 5: Refactorización SOLID (20-21 abril)}
+\begin{itemize}
+    \item Reestructuración arquitectural por limitaciones de mantenibilidad
+    \item Separación de responsabilidades en servicios independientes
+    \item Implementación de patrones de diseño (Singleton, Observer)
+\end{itemize}
+
+\textbf{Fase 8-9: Arquitectura API (14-22 mayo)}
+\begin{itemize}
+    \item Desarrollo de APIs REST para acceso a datos internos
+    \item Implementación de explorador web con FastAPI
+    \item Visualización en tiempo real mediante WebSockets
+\end{itemize}
+
+\textbf{Fase 12: Funcionalidades avanzadas (13-21 junio)}
+\begin{itemize}
+    \item Integración con MNE-Python para análisis avanzado
+    \item Implementación de ICA (Independent Component Analysis)
+    \item Filtros avanzados y transformadas wavelet
+    \item Optimización de rendimiento con callbacks y multiprocesamiento
+\end{itemize}
+
+\section{Recursos y costes}
+
+\subsection{Hardware}
+\begin{itemize}
+    \item Ordenador portátil de desarrollo (especificaciones no críticas)
+    \item Controlador PS4 DualShock para pruebas de entrada
+    \item Dispositivos EEG sintéticos (simulados via BrainFlow)
+\end{itemize}
+
+\subsection{Software}
+\begin{itemize}
+    \item \textbf{Lenguajes}: Python 3.8+, JavaScript, HTML/CSS
+    \item \textbf{Frameworks}: PyQt5, FastAPI, MNE-Python
+    \item \textbf{Librerías principales}: BrainFlow, NumPy, SciPy, pynput
+    \item \textbf{Herramientas}: Git, pre-commit, orjson, SDL2
+    \item \textbf{Costes directos}: nulos (todas las licencias son libres)
+\end{itemize}
+
+\subsection{Estimación temporal}
+\begin{itemize}
+    \item \textbf{Desarrollo efectivo}: ~70 días (con pausa de 2 semanas)
+    \item \textbf{Dedicación estimada}: ~350 horas
+    \item \textbf{Commits realizados}: 200+ (alta frecuencia iterativa)
+\end{itemize}
+
+\section{Análisis de riesgos y mitigación}
+
+\begin{table}[H]
+\centering
+\caption{Principales riesgos identificados y estrategias de mitigación}
+\label{tab:riesgos}
+\begin{tabular}{|p{4cm}|c|c|p{5cm}|}
+\hline
+\textbf{Riesgo} & \textbf{Prob.} & \textbf{Impacto} & \textbf{Estrategia de mitigación} \\
+\hline
+Incompatibilidad entre módulos desarrollados independientemente & Alta & Alta & Refactorización SOLID y desarrollo de APIs estándar \\
+\hline
+Limitaciones de rendimiento en tiempo real & Media & Alta & Implementación de callbacks, multiprocesamiento y optimizaciones específicas \\
+\hline
+Curva de aprendizaje de tecnologías BCI & Media & Media & Investigación previa exhaustiva y sistema de ayuda integrado \\
+\hline
+Problemas de sincronización temporal entre módulos & Alta & Media & Implementación de LSL y timestamps precisos \\
+\hline
+Dependencias con bibliotecas externas (BrainFlow, MNE) & Baja & Alta & Uso de APIs estables y manejo de excepciones robusto \\
+\hline
+Escalabilidad del código monolítico inicial & Alta & Media & Refactorización temprana aplicando principios SOLID \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Seguimiento y control}
+
+\subsection{Control de versiones}
+\begin{itemize}
+    \item \textbf{Repositorio Git}: con más de 200 commits documentando el progreso
+    \item \textbf{Estrategia de branching}: desarrollo directo en main con commits frecuentes
+    \item \textbf{Versionado}: etiquetas semánticas para releases funcionales
+\end{itemize}
+
+\subsection{Metodología de desarrollo}
+\begin{itemize}
+    \item \textbf{Integración continua}: uso de pre-commit hooks para calidad de código
+    \item \textbf{Type hints}: tipado progresivo para mejorar mantenibilidad
+    \item \textbf{Documentación}: generación automática de documentación técnica
+\end{itemize}
+
+\subsection{Hitos principales}
+\begin{itemize}
+    \item \textbf{Milestone 1}: Módulos básicos funcionales (19/04)
+    \item \textbf{Milestone 2}: Refactorización SOLID completada (21/04)
+    \item \textbf{Milestone 3}: APIs funcionales y explorador web (22/05)
+    \item \textbf{Milestone 4}: Sistema completo con funcionalidades avanzadas (21/06)
+\end{itemize}
+
+\section{Desviaciones y lecciones aprendidas}
+
+\subsection{Cambios metodológicos}
+\begin{itemize}
+    \item \textbf{Migración Julia → Python}: La precompilación y debugging complejo de Julia resultaron incompatibles con el desarrollo iterativo necesario
+    \item \textbf{Refactorización SOLID}: La arquitectura monolítica inicial se volvió inmanejable, requiriendo una reestructuración completa
+    \item \textbf{APIs como solución de integración}: Tras fallos con LSL, los APIs REST se convirtieron en la estrategia principal de integración
+\end{itemize}
+
+\subsection{Desafíos técnicos superados}
+\begin{itemize}
+    \item Sincronización de datos en tiempo real entre módulos independientes
+    \item Optimización de rendimiento para evitar pérdida de muestras
+    \item Compatibilidad entre diferentes tipos de dispositivos BCI
+    \item Implementación de modo headless para APIs sin dependencias GUI
+\end{itemize}
