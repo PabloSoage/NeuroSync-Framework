@@ -1,12 +1,12 @@
 \chapter{Tecnologías y herramientas}
 \label{chap:tecnologias}
 
-\lettrine{E}{l} desarrollo de un \textit{framework} integrado para interfaces cerebro-computadora requiere la selección cuidadosa de tecnologías y herramientas que proporcionen las capacidades necesarias para captura, procesamiento y análisis de señales biomédicas en tiempo real. Este capítulo presenta las tecnologías empleadas en el desarrollo del sistema, justificando las decisiones técnicas tomadas y describiendo cómo contribuyen al cumplimiento de los objetivos del proyecto.
+\lettrine{E}{l} desarrollo de un sistema integrado para interfaces cerebro-computadora requiere la selección cuidadosa de tecnologías y herramientas que proporcionen las capacidades necesarias para captura, procesamiento y análisis de señales biomédicas en tiempo real. Este capítulo presenta las tecnologías empleadas en el desarrollo del sistema, justificando las decisiones técnicas tomadas y describiendo cómo contribuyen al cumplimiento de los objetivos del proyecto.
 
 \section{Arquitectura tecnológica general}
 \label{sec:arquitectura_tecnologica}
 
-La arquitectura tecnológica del \textit{framework} se fundamenta en una estrategia de capas que separa claramente las responsabilidades y facilita el mantenimiento y extensión del sistema. Esta separación permite que cada capa utilice las tecnologías más apropiadas para sus funciones específicas, mientras mantiene interfaces bien definidas para la comunicación entre componentes.
+La arquitectura tecnológica del proyecto se fundamenta en una estrategia de capas que separa claramente las responsabilidades y facilita el mantenimiento y extensión del sistema. Esta separación permite que cada capa utilice las tecnologías más apropiadas para sus funciones específicas, mientras mantiene interfaces bien definidas para la comunicación entre componentes.
 
 La capa de adquisición de datos utiliza bibliotecas especializadas para la captura de señales \acrshort{eeg} y eventos de entrada de usuario, garantizando la precisión temporal necesaria para aplicaciones \acrshort{bci}. La capa de procesamiento emplea bibliotecas científicas optimizadas para el análisis de señales biomédicas, mientras que la capa de presentación implementa múltiples interfaces de usuario utilizando tecnologías apropiadas para cada contexto de uso.
 
@@ -14,6 +14,8 @@ Esta arquitectura multicapa permite la evolución independiente de cada componen
 
 \section{Lenguajes de programación}
 \label{sec:lenguajes_programacion}
+
+La selección de lenguajes de programación constituye una decisión fundamental que afecta tanto el rendimiento como la mantenibilidad del sistema desarrollado. El proyecto emplea una estrategia multilinguística que aprovecha las fortalezas específicas de cada lenguaje para diferentes componentes del sistema, maximizando la eficiencia y facilitando la integración con el ecosistema tecnológico existente.
 
 \subsection{Python como lenguaje principal}
 \label{subsec:python_principal}
@@ -24,20 +26,20 @@ El ecosistema científico de Python es excepcionalmente maduro y robusto, propor
 
 La integración natural con bibliotecas especializadas en neurociencia como \textit{MNE-Python} y \textit{BrainFlow} constituye una ventaja decisiva. Estas bibliotecas proporcionan funcionalidades específicamente diseñadas para el análisis de señales \acrshort{eeg} y la integración con dispositivos comerciales, respectivamente. La disponibilidad de bindings nativos de Python para estas bibliotecas elimina la necesidad de desarrollar interfaces de comunicación complejas.
 
-El soporte moderno para tipado estático mediante \textit{type hints}, introducido en Python 3.5 y mejorado continuamente, permite combinar la flexibilidad tradicional de Python con las ventajas de verificación de tipos que facilitan el desarrollo de sistemas robustos. Esta característica es particularmente valiosa en un proyecto de la complejidad del \textit{framework} desarrollado, donde la detección temprana de errores de tipos puede prevenir fallos críticos en tiempo de ejecución.
+El soporte moderno para tipado estático mediante \textit{type hints}, introducido en Python 3.5 y mejorado continuamente, permite combinar la flexibilidad tradicional de Python con las ventajas de verificación de tipos que facilitan el desarrollo de sistemas robustos. Esta característica es particularmente valiosa en un proyecto de la complejidad del sistema desarrollado, donde la detección temprana de errores de tipos puede prevenir fallos críticos en tiempo de ejecución.
 
 El rendimiento de Python, frecuentemente criticado, resulta adecuado para las necesidades del proyecto cuando se aprovechan las operaciones vectorizadas de \textit{NumPy} y las implementaciones optimizadas en C/Fortran de \textit{SciPy}. Las pruebas realizadas demuestran que el sistema puede procesar señales \acrshort{eeg} de 8 canales a 250Hz con latencias inferiores a 10ms, cumpliendo los requisitos de tiempo real necesarios para aplicaciones \acrshort{bci}.
 
 \subsection{JavaScript para interfaces web}
 \label{subsec:javascript_web}
 
-JavaScript ES6+ se emplea en el desarrollo de las interfaces web del módulo explorador, proporcionando capacidades de visualización interactiva y comunicación en tiempo real con el backend. La elección de JavaScript moderno permite aprovechar características avanzadas del lenguaje que mejoran significativamente la organización del código y su mantenibilidad.
+JavaScript ES6+ se emplea en el desarrollo del módulo web dedicado a la exploración y pruebas del \acrshort{api}, proporcionando capacidades de visualización interactiva y comunicación en tiempo real con el backend. La elección de JavaScript moderno permite aprovechar características avanzadas del lenguaje que mejoran significativamente la organización del código y su mantenibilidad.
 
-La implementación utiliza una arquitectura modular basada en managers especializados que encapsulan funcionalidades específicas como la comunicación \acrshort{websocket}, la visualización de gráficos, y la gestión del estado de la aplicación. Esta aproximación facilita el mantenimiento del código y permite la reutilización de componentes en diferentes contextos.
+La implementación web utiliza una arquitectura modular basada en managers especializados que encapsulan funcionalidades específicas como la comunicación \acrshort{websocket}, la visualización de gráficos, y la gestión del estado de la aplicación. Esta aproximación facilita el mantenimiento del código y permite la reutilización de componentes en diferentes contextos.
 
 El soporte nativo para \acrshort{websocket} en navegadores modernos elimina la necesidad de bibliotecas adicionales para la comunicación bidireccional en tiempo real, reduciendo la complejidad del sistema y mejorando el rendimiento. La implementación utiliza estrategias de reconnexión automática y manejo robusto de errores para garantizar la estabilidad de la comunicación.
 
-La integración con \textit{Chart.js} proporciona capacidades avanzadas de visualización específicamente optimizadas para datos científicos, incluyendo gráficos de series temporales con actualizaciones en tiempo real y capacidades de zoom interactivo. Esta biblioteca ha demostrado ser capaz de manejar streams de datos de alta frecuencia sin degradación significativa del rendimiento.
+La integración con \textit{Chart.js} proporciona capacidades de visualización adaptadas a las necesidades del módulo de exploración web, incluyendo gráficos de series temporales y capacidades de zoom interactivo. Esta biblioteca ha demostrado capacidad para manejar streams de datos en tiempo real, aunque optimizaciones futuras podrían considerar la migración a \textit{Three.js} para aprovechar aceleración \acrshort{gpu} en visualizaciones complejas.
 
 \section{Frameworks y bibliotecas principales}
 \label{sec:frameworks_principales}
@@ -45,26 +47,26 @@ La integración con \textit{Chart.js} proporciona capacidades avanzadas de visua
 \subsection{PyQt5 para interfaces gráficas}
 \label{subsec:pyqt5_interfaces}
 
-\textit{PyQt5} constituye la base tecnológica para todas las interfaces gráficas del sistema, proporcionando widgets nativos del sistema operativo con rendimiento superior y capacidades avanzadas de visualización. Esta elección se fundamenta en varios factores técnicos y estratégicos que resultan críticos para el éxito del proyecto.
+\textit{PyQt5} constituye la base tecnológica para la interfaz gráfica del sistema, proporcionando widgets nativos del sistema operativo con rendimiento superior y capacidades avanzadas de visualización. Esta elección se fundamenta en varios factores técnicos y estratégicos que resultan críticos para el éxito del proyecto.
 
 El rendimiento de \textit{PyQt5} es significativamente superior al de alternativas como \textit{Tkinter} o frameworks web embebidos, especialmente para aplicaciones que requieren actualización frecuente de elementos gráficos como las visualizaciones de señales \acrshort{eeg} en tiempo real. Las pruebas realizadas demuestran que \textit{PyQt5} puede actualizar gráficos de 8 canales simultáneos a 50Hz sin degradación perceptible del rendimiento.
 
-La arquitectura de señales y slots de \textit{Qt} proporciona un mecanismo robusto y eficiente para la comunicación entre componentes de la interfaz de usuario, eliminando la necesidad de polling y reduciendo significativamente la complejidad del código de coordinación. Este mecanismo es particularmente valioso en aplicaciones multihilo como el \textit{framework} desarrollado, donde la sincronización entre hilos de adquisición de datos y actualización de interfaz es crítica.
+La arquitectura de señales y slots de \textit{Qt} proporciona un mecanismo robusto y eficiente para la comunicación entre componentes de la interfaz de usuario, eliminando la necesidad de polling y reduciendo significativamente la complejidad del código de coordinación. Este mecanismo es particularmente valioso en aplicaciones multihilo como el sistema desarrollado, donde la sincronización entre hilos de adquisición de datos y actualización de interfaz es crítica.
 
-Las capacidades avanzadas de \textit{PyQt5} incluyen soporte nativo para gráficos 2D de alto rendimiento mediante \textit{QPainter}, widgets personalizados con dibujado directo, y gestión sofisticada de recursos como imágenes y fuentes. Estas características permiten implementar visualizaciones especializadas como mapas de topografía cerebral y representaciones de calidad de señal de forma eficiente.
+Las capacidades avanzadas de \textit{PyQt5} se complementan con \textit{PyQtGraph} para visualizaciones científicas de alto rendimiento, aprovechando capacidades de aceleración \acrshort{gpu} cuando están disponibles. Esta combinación es especialmente valiosa para visualizadores de señales \acrshort{eeg} en tiempo real, donde es necesario actualizar continuamente múltiples canales simultáneamente con alta frecuencia de refresco. Aunque también se utiliza para implementar mapas de topografía cerebral y representaciones de calidad de señal, estas visualizaciones son menos demandantes computacionalmente que los streams de datos en tiempo real.
 
 El soporte multiplataforma de \textit{Qt} garantiza que las interfaces gráficas funcionen de forma consistente en \textit{Windows}, \textit{macOS} y \textit{Linux}, utilizando widgets nativos de cada sistema operativo para proporcionar una experiencia de usuario familiar. Esta compatibilidad es esencial considerando la diversidad de plataformas utilizadas en entornos de investigación neurocientífica.
 
 \subsection{FastAPI para servicios web}
 \label{subsec:fastapi_servicios}
 
-\textit{FastAPI} se seleccionó como framework para el desarrollo de las \acrshort{api} \acrshort{rest} y servicios web del sistema debido a su combinación única de alto rendimiento, facilidad de desarrollo, y características modernas que facilitan la creación de \acrshort{api} robustas y bien documentadas.
+\textit{FastAPI} se seleccionó como base tecnológica para el desarrollo de las \acrshort{api} \acrshort{rest} y servicios web del sistema debido a su combinación única de alto rendimiento, facilidad de desarrollo, y características modernas que facilitan la creación de \acrshort{api} robustas y bien documentadas.
 
-El rendimiento de \textit{FastAPI} es excepcional entre los frameworks Python, alcanzando velocidades comparables a frameworks de \textit{Node.js} y \textit{Go} gracias a su implementación basada en \textit{Starlette} y \textit{Pydantic}. Este rendimiento es crítico para el módulo explorador web, que debe servir datos de señales \acrshort{eeg} con latencias mínimas para proporcionar visualizaciones en tiempo real efectivas.
+El rendimiento de \textit{FastAPI} es excepcional entre los frameworks Python, alcanzando velocidades comparables a frameworks de \textit{Node.js} y \textit{Go} gracias a su implementación basada en \textit{Starlette} y \textit{Pydantic}~\cite{fastapi_benchmark}. Este rendimiento es crítico para el módulo explorador web, que debe servir datos de señales \acrshort{eeg} con latencias mínimas para proporcionar visualizaciones en tiempo real efectivas.
 
-La generación automática de documentación \acrshort{openapi}/\textit{Swagger} elimina la necesidad de mantener documentación de \acrshort{api} separadamente del código, garantizando que la documentación permanezca actualizada con los cambios del sistema. Esta característica facilita significativamente la adopción del \textit{framework} por parte de desarrolladores que deseen integrar sus propias aplicaciones con el sistema.
+La generación automática de documentación \acrfull{openapi}/\textit{Swagger} elimina la necesidad de mantener documentación de \acrshort{api} separadamente del código, garantizando que la documentación permanezca actualizada con los cambios del sistema. Esta característica facilita significativamente la adopción del sistema por parte de desarrolladores que deseen integrar sus propias aplicaciones con la plataforma.
 
-La validación automática de datos de entrada mediante \textit{Pydantic} proporciona garantías de tipo y validación de formato sin código adicional, reduciendo significativamente la posibilidad de errores en tiempo de ejecución debido a datos malformados. Esta validación es particularmente importante en un sistema que maneja datos científicos donde la integridad de los datos es fundamental.
+La validación automática de datos de entrada mediante \textit{Pydantic} proporciona garantías de tipo y validación de formato sin código \gls{boilerplate} adicional, reduciendo significativamente la posibilidad de errores en tiempo de ejecución debido a datos malformados. Esta validación es particularmente importante en un sistema que maneja datos científicos donde la integridad de los datos es fundamental.
 
 El soporte nativo para \acrshort{websocket} permite implementar comunicación bidireccional de baja latencia sin bibliotecas adicionales, facilitando la implementación de funcionalidades de monitorización en tiempo real. La implementación incluye manejo automático de reconexión y distribución de mensajes a múltiples clientes conectados simultáneamente.
 
@@ -73,7 +75,7 @@ El soporte nativo para \acrshort{websocket} permite implementar comunicación bi
 
 La combinación de \textit{Typer} y \textit{Rich} proporciona la base tecnológica para las interfaces de línea de comandos del sistema, creando herramientas \acrshort{cli} modernas con capacidades avanzadas de presentación y validación automática de parámetros.
 
-\textit{Typer} aprovecha las anotaciones de tipo de Python para generar automáticamente parsers de argumentos de línea de comandos, eliminando la necesidad de código boilerplate extenso y reduciendo la posibilidad de inconsistencias entre la implementación y la documentación. Esta aproximación basada en tipos garantiza que los comandos \acrshort{cli} mantengan coherencia con las \acrshort{api} internas del sistema.
+\textit{Typer} aprovecha las anotaciones de tipo de Python para generar automáticamente parsers de argumentos de línea de comandos, eliminando la necesidad de código \gls{boilerplate} extenso y reduciendo la posibilidad de inconsistencias entre la implementación y la documentación. Esta aproximación basada en tipos garantiza que los comandos \acrshort{cli} mantengan coherencia con las \acrshort{api} internas del sistema.
 
 La generación automática de ayuda contextual y autocompletado de comandos mejora significativamente la experiencia de usuario para investigadores que prefieren interfaces de línea de comandos para la automatización de tareas. El sistema de ayuda generado incluye información detallada sobre parámetros, tipos esperados, y valores por defecto, facilitando el aprendizaje y uso efectivo de los comandos.
 
@@ -87,31 +89,33 @@ La integración entre \textit{Typer} y \textit{Rich} permite crear interfaces \a
 \subsection{NumPy y SciPy: fundamentos del procesamiento numérico}
 \label{subsec:numpy_scipy}
 
-\textit{NumPy} y \textit{SciPy} constituyen los cimientos del procesamiento numérico en el \textit{framework}, proporcionando estructuras de datos eficientes y algoritmos optimizados que son esenciales para el manejo de señales biomédicas en tiempo real.
+\textit{NumPy} y \textit{SciPy} constituyen los cimientos del procesamiento numérico en el sistema, proporcionando estructuras de datos eficientes y algoritmos optimizados que son esenciales para el manejo de señales biomédicas en tiempo real.
 
 \textit{NumPy} proporciona arrays multidimensionales con operaciones vectorizadas implementadas en C, ofreciendo rendimiento comparable a implementaciones nativas para operaciones matemáticas fundamentales. Esta eficiencia es crítica para el procesamiento de señales \acrshort{eeg} donde se manejan matrices de datos de dimensiones significativas (canales × muestras × tiempo) que requieren operaciones matemáticas intensivas.
 
-Las operaciones vectorizadas de \textit{NumPy} eliminan la necesidad de bucles explícitos en Python para la mayoría de operaciones de procesamiento de señales, resultando en mejoras de rendimiento de órdenes de magnitud. Esta característica es particularmente importante para algoritmos como el cálculo de transformadas de Fourier, filtrado digital, y análisis estadístico que se ejecutan continuamente durante la captura de datos.
+Las operaciones vectorizadas de \textit{NumPy} eliminan la necesidad de bucles explícitos en Python para la mayoría de operaciones de procesamiento de señales, resultando en mejoras de rendimiento de órdenes de magnitud~\cite{van2011numpy}. Esta característica es particularmente importante para algoritmos como el cálculo de transformadas de Fourier, filtrado digital, y análisis estadístico que se ejecutan continuamente durante la captura de datos.
 
-\textit{SciPy} extiende las capacidades de \textit{NumPy} con algoritmos científicos especializados implementados por expertos en cada dominio. Para el procesamiento de señales biomédicas, \textit{SciPy} proporciona implementaciones optimizadas de filtros digitales (Butterworth, Chebyshev, elípticos), transformadas tiempo-frecuencia, y métodos de análisis estadístico que han sido validados extensivamente en la literatura científica.
+\textit{SciPy} extiende las capacidades de \textit{NumPy} con algoritmos científicos especializados implementados por expertos en cada dominio. Para el procesamiento de señales biomédicas, \textit{SciPy} proporciona implementaciones optimizadas de filtros digitales (Butterworth, Chebyshev, elípticos), transformadas tiempo-frecuencia, y métodos de análisis estadístico que han sido validados extensivamente en la literatura científica~\cite{virtanen2020scipy}.
 
 La integración natural entre \textit{NumPy} y \textit{SciPy} con otras bibliotecas del ecosistema científico de Python garantiza interoperabilidad sin fricciones, eliminando la necesidad de conversiones de formato de datos que podrían introducir latencia o pérdida de precisión. Esta integración es fundamental para un sistema que debe combinar múltiples bibliotecas especializadas de forma coherente.
 
 \subsection{MNE-Python para análisis neurocientífico avanzado}
 \label{subsec:mne_python}
 
-\textit{MNE-Python} se integra como biblioteca especializada para análisis neurocientífico avanzado, proporcionando algoritmos específicamente diseñados y validados para el procesamiento de señales \acrshort{eeg} y \acrshort{meg}. Esta integración permite al \textit{framework} acceder a décadas de desarrollo en metodología de análisis de señales cerebrales.
+\textit{MNE-Python}~\cite{gramfort2013meg} se integra como biblioteca especializada para análisis neurocientífico avanzado, proporcionando algoritmos específicamente diseñados y validados para el procesamiento de señales \acrshort{eeg} y \acrshort{meg}. Esta integración permite al sistema acceder a décadas de desarrollo en metodología de análisis de señales cerebrales.
 
 La biblioteca proporciona implementaciones robustas de algoritmos críticos para aplicaciones \acrshort{bci} incluyendo \acrfull{ica} para separación de fuentes, análisis tiempo-frecuencia mediante transformadas \textit{wavelet}, y métodos estadísticos para análisis de conectividad cerebral. Estos algoritmos han sido desarrollados y refinados por neurocientíficos especializados, garantizando su validez científica y robustez matemática.
 
-El soporte nativo para formatos de datos estándar en neurociencia (\acrshort{bids}, \acrshort{edf}+, \textit{FIF}) facilita la interoperabilidad con herramientas existentes en el ecosistema neurocientífico. Esta compatibilidad es esencial para usuarios que deseen integrar el \textit{framework} con flujos de trabajo de análisis existentes o compartir datos con colaboradores que utilicen otras herramientas.
+El soporte nativo para formatos de datos estándar en neurociencia (\acrshort{bids}, \acrshort{edf}+, \acrshort{fif}) facilita la interoperabilidad con herramientas existentes en el ecosistema neurocientífico. Esta compatibilidad es esencial para usuarios que deseen integrar el sistema con flujos de trabajo de análisis existentes o compartir datos con colaboradores que utilicen otras herramientas.
 
-Las capacidades de visualización científica de \textit{MNE-Python} incluyen topografías cerebrales, gráficos de densidad espectral de potencia, y representaciones tiempo-frecuencia que proporcionan insights visuales críticos para la interpretación de datos \acrshort{eeg}. Estas visualizaciones están específicamente diseñadas para datos neurocientíficos y siguen convenciones establecidas en la literatura científica.
+Las capacidades de visualización científica de \textit{MNE-Python} incluyen topografías cerebrales, gráficos de densidad espectral de potencia, y representaciones tiempo-frecuencia que proporcionan \gls{insights} visuales críticos para la interpretación de datos \acrshort{eeg}. Estas visualizaciones están específicamente diseñadas para datos neurocientíficos y siguen convenciones establecidas en la literatura científica~\cite{gramfort2013meg}.
 
-La arquitectura orientada a objetos de \textit{MNE-Python} facilita la integración con el diseño del \textit{framework}, permitiendo crear pipelines de procesamiento que combinan las capacidades de adquisición en tiempo real del sistema con los algoritmos de análisis avanzado de la biblioteca de forma natural y eficiente.
+La arquitectura orientada a objetos de \textit{MNE-Python} facilita la integración con el diseño del sistema, permitiendo crear pipelines de procesamiento que combinan las capacidades de adquisición en tiempo real del sistema con los algoritmos de análisis avanzado de la biblioteca de forma natural y eficiente.
 
 \section{Tecnologías de captura de entrada}
 \label{sec:tecnologias_captura}
+
+La captura precisa de eventos de entrada del usuario constituye uno de los pilares fundamentales del sistema, ya que la sincronización temporal entre señales cerebrales y acciones del usuario es crítica para el desarrollo de aplicaciones \acrshort{bci} efectivas. Las tecnologías seleccionadas para esta función deben proporcionar acceso de bajo nivel a eventos del sistema operativo con mínima latencia y máxima precisión temporal.
 
 \subsection{pynput para captura de teclado y ratón}
 \label{subsec:pynput_captura}
@@ -120,9 +124,9 @@ La arquitectura orientada a objetos de \textit{MNE-Python} facilita la integraci
 
 La capacidad multiplataforma de \textit{pynput} garantiza funcionamiento consistente en \textit{Windows}, \textit{macOS} y \textit{Linux}, utilizando las \acrshort{api} nativas de cada sistema operativo para acceder a eventos de entrada con mínima latencia. Esta compatibilidad es crítica considerando la diversidad de plataformas utilizadas en entornos de investigación neurocientífica.
 
-El acceso a eventos de bajo nivel del sistema operativo permite obtener timestamps precisos con resolución de milisegundos, característiza esencial para establecer correlaciones temporales válidas entre actividad cerebral y acciones del usuario. La precisión temporal es fundamental para aplicaciones \acrshort{bci} donde pequeñas diferencias temporales pueden afectar significativamente la efectividad de los modelos predictivos.
+El acceso a eventos de bajo nivel del sistema operativo permite obtener timestamps precisos con resolución de milisegundos, característica esencial para establecer correlaciones temporales válidas entre actividad cerebral y acciones del usuario. La precisión temporal es fundamental para aplicaciones \acrshort{bci} donde pequeñas diferencias temporales pueden afectar significativamente la efectividad de los modelos predictivos.
 
-La arquitectura basada en callbacks de \textit{pynput} se integra naturalmente con el diseño dirigido por eventos del \textit{framework}, permitiendo procesamiento asíncrono de eventos de entrada sin bloquear otros componentes del sistema. Esta integración es particularmente importante en un sistema multihilo donde la coordinación entre diferentes fuentes de datos es crítica.
+La arquitectura basada en callbacks de \textit{pynput} se integra naturalmente con el diseño dirigido por eventos del sistema desarrollado, permitiendo procesamiento asíncrono de eventos de entrada sin bloquear otros componentes del sistema. Esta integración es particularmente importante en un sistema multihilo donde la coordinación entre diferentes fuentes de datos es crítica.
 
 \subsection{PySDL2 para controladores de juego}
 \label{subsec:pysdl2_controladores}
@@ -133,23 +137,25 @@ La implementación utiliza la biblioteca \textit{SDL2} subyacente, ampliamente u
 
 El soporte para retroalimentación háptica (vibración) del controlador \textit{PS4} abre posibilidades para aplicaciones de neurofeedback donde la respuesta táctil puede utilizarse como canal de comunicación adicional entre el sistema \acrshort{bci} y el usuario. Aunque esta funcionalidad no está completamente implementada en la versión actual, la infraestructura tecnológica está preparada para su desarrollo futuro.
 
-La integración con el sistema de eventos del \textit{framework} permite tratar eventos de controlador de forma consistente con otros tipos de entrada, simplificando el procesamiento unificado de múltiples modalidades de entrada y facilitando el desarrollo de aplicaciones que combinen diferentes tipos de dispositivos de entrada.
+La integración con el sistema de eventos del proyecto permite tratar eventos de controlador de forma consistente con otros tipos de entrada, simplificando el procesamiento unificado de múltiples modalidades de entrada y facilitando el desarrollo de aplicaciones que combinen diferentes tipos de dispositivos de entrada.
 
 \section{Formatos de exportación de datos}
 \label{sec:formatos_exportacion}
 
-\subsection{BIDS: Brain Imaging Data Structure}
+La capacidad de exportar datos en formatos estándar reconocidos por la comunidad científica es fundamental para garantizar la interoperabilidad del sistema con herramientas existentes y facilitar la reproducibilidad de experimentos. La selección de formatos de exportación responde a diferentes necesidades de la comunidad neurocientífica, desde estándares médicos hasta formatos optimizados para análisis de datos de gran volumen.
+
+\subsection{\acrshort{bids}: Brain Imaging Data Structure}
 \label{subsec:bids_formato}
 
-\acrfull{bids} representa el estándar de facto para la organización de datos neurocientíficos, proporcionando una estructura jerárquica bien definida que facilita el intercambio, reutilización y análisis reproducible de datos cerebrales. La implementación de soporte \acrshort{bids} en el \textit{framework} garantiza interoperabilidad máxima con herramientas existentes en el ecosistema neurocientífico.
+\acrfull{bids}~\cite{bids} representa el estándar de facto para la organización de datos neurocientíficos, proporcionando una estructura jerárquica bien definida que facilita el intercambio, reutilización y análisis reproducible de datos cerebrales. La implementación de soporte \acrshort{bids} en el sistema garantiza interoperabilidad máxima con herramientas existentes en el ecosistema neurocientífico.
 
 La estructura jerárquica de \acrshort{bids} organiza datos por sujeto, sesión, y tarea, proporcionando un marco conceptual que se adapta naturalmente a experimentos \acrshort{bci} donde típicamente se registran múltiples sesiones de diferentes participantes realizando tareas específicas. Esta organización facilita el análisis estadístico posterior y la comparación entre condiciones experimentales.
 
 Los metadatos \acrshort{json} integrados en \acrshort{bids} permiten documentar exhaustivamente las condiciones de adquisición, parámetros de hardware, y metodología experimental. Esta documentación es esencial para la reproducibilidad científica y facilita la comprensión de los datos por parte de investigadores que no participaron en la adquisición original.
 
-El soporte de \acrshort{bids} para eventos temporales (events.tsv) proporciona un mecanismo estándar para documentar la sincronización entre señales cerebrales y eventos experimentales, característica central del \textit{framework} desarrollado. Esta estandarización facilita el desarrollo de herramientas de análisis que pueden procesar datos de múltiples fuentes de forma consistente.
+El soporte de \acrshort{bids} para eventos temporales (events.tsv) proporciona un mecanismo estándar para documentar la sincronización entre señales cerebrales y eventos experimentales, característica central del sistema desarrollado. Esta estandarización facilita el desarrollo de herramientas de análisis que pueden procesar datos de múltiples fuentes de forma consistente.
 
-\subsection{EDF+: European Data Format Plus}
+\subsection{\acrshort{edf}+: European Data Format Plus}
 \label{subsec:edf_formato}
 
 \acrfull{edf}+ constituye un estándar ampliamente adoptado en entornos clínicos y de investigación médica para el almacenamiento de señales biomédicas. El soporte para este formato garantiza compatibilidad con una amplia gama de herramientas de análisis médico y facilita la transición de datos entre contextos de investigación y aplicación clínica.
@@ -160,7 +166,7 @@ El formato \acrshort{edf}+ proporciona metadatos integrados para información de
 
 La implementación utiliza la biblioteca \textit{pyedflib}, que proporciona lectura y escritura eficiente de archivos \acrshort{edf}+ con manejo robusto de diferentes variantes del formato y validación automática de la integridad de los datos. Esta robustez es esencial para garantizar la calidad de los datos exportados.
 
-\subsection{HDF5: Hierarchical Data Format}
+\subsection{\acrshort{hdf5}: Hierarchical Data Format}
 \label{subsec:hdf5_formato}
 
 \acrfull{hdf5} proporciona capacidades avanzadas de almacenamiento para datos científicos de gran volumen, ofreciendo características como compresión integrada, acceso parcial a datos, y estructura jerárquica flexible que son particularmente valiosas para datasets \acrshort{bci} de gran tamaño.
@@ -171,24 +177,26 @@ Las capacidades de compresión de \acrshort{hdf5} pueden reducir significativame
 
 El acceso parcial a datos permite cargar selectivamente subconjuntos de datos sin leer archivos completos en memoria, facilitando el análisis de datasets que exceden la memoria disponible del sistema. Esta característica es valiosa para análisis de sesiones largas o datasets que combinan múltiples sesiones.
 
-\subsection{CSV: máxima compatibilidad}
+\subsection{\acrshort{csv}: máxima compatibilidad}
 \label{subsec:csv_formato}
 
-\acrfull{csv} proporciona compatibilidad universal para intercambio de datos, garantizando que los datos generados por el \textit{framework} puedan ser procesados por prácticamente cualquier herramienta de análisis, desde hojas de cálculo hasta lenguajes de programación especializados como \textit{R} o \textit{MATLAB}.
+\acrfull{csv} proporciona compatibilidad universal para intercambio de datos, garantizando que los datos generados por el sistema puedan ser procesados por prácticamente cualquier herramienta de análisis, desde hojas de cálculo hasta lenguajes de programación especializados como \textit{R} o \textit{MATLAB}.
 
 La simplicidad del formato \acrshort{csv} facilita la inspección manual de datos y el desarrollo de scripts de procesamiento personalizados, características valiosas durante el desarrollo de nuevos algoritmos de análisis o la depuración de metodologías experimentales. Esta transparencia es fundamental en investigación científica donde la comprensión detallada de los datos es esencial.
 
-La implementación utiliza headers dinámicos que se adaptan automáticamente a los tipos de datos capturados, proporcionando flexibilidad para diferentes configuraciones experimentales sin requerir modificaciones del código. Esta adaptabilidad facilita el uso del \textit{framework} en diferentes contextos de investigación.
+La implementación utiliza headers dinámicos que se adaptan automáticamente a los tipos de datos capturados, proporcionando flexibilidad para diferentes configuraciones experimentales sin requerir modificaciones del código. Esta adaptabilidad facilita el uso del sistema en diferentes contextos de investigación.
 
-El procesamiento eficiente mediante bibliotecas como \textit{pandas} permite análisis rápido de datos \acrshort{csv}, especialmente valioso para análisis exploratorio y validación de datos durante el desarrollo experimental. La integración natural con herramientas estadísticas de \textit{Python} y \textit{R} facilita el desarrollo de pipelines de análisis personalizados.
+El procesamiento eficiente mediante bibliotecas como \textit{pandas} permite análisis rápido de datos \acrshort{csv}, especialmente valioso para análisis exploratorio y validación de datos durante el desarrollo experimental. Optimizaciones futuras podrían considerar la integración con \textit{polars} para mejorar significativamente el rendimiento en datasets de gran tamaño. La integración natural con herramientas estadísticas de \textit{Python} y \textit{R} facilita el desarrollo de pipelines de análisis personalizados.
 
 \section{Tecnologías de comunicación y serialización}
 \label{sec:comunicacion_serializacion}
 
+La comunicación eficiente y la serialización optimizada de datos constituyen aspectos críticos del sistema, especialmente considerando los requisitos de tiempo real y los volúmenes significativos de datos que deben transmitirse entre diferentes componentes del sistema. Las tecnologías seleccionadas para estas funciones deben equilibrar rendimiento, confiabilidad y facilidad de uso.
+
 \subsection{WebSocket para comunicación en tiempo real}
 \label{subsec:websocket_tiempo_real}
 
-La implementación de \acrshort{websocket} proporciona comunicación bidireccional de baja latencia entre el backend del \textit{framework} y las interfaces web, enabling visualización y control en tiempo real a través de navegadores web sin necesidad de instalación de software adicional.
+La implementación de \acrshort{websocket} proporciona comunicación bidireccional de baja latencia entre el backend del sistema y las interfaces web, enabling visualización y control en tiempo real a través de navegadores web sin necesidad de instalación de software adicional.
 
 Las pruebas de rendimiento demuestran latencias consistentes inferiores a 15ms para la transmisión de eventos de datos entre el servidor y clientes web, cumpliendo los requisitos de tiempo real necesarios para aplicaciones \acrshort{bci} interactivas. Esta latencia baja es crítica para proporcionar feedback visual inmediato que facilite la interpretación de señales cerebrales.
 
@@ -213,7 +221,7 @@ La validación robusta de datos no serializables previene fallos en tiempo de ej
 \subsection{Sistema de control de calidad integrado}
 \label{subsec:control_calidad_integrado}
 
-El \textit{framework} implementa un sistema integrado de control de calidad de código basado en \textit{pre-commit hooks} que ejecuta automáticamente verificaciones de calidad antes de cada commit, garantizando la consistencia del código y la detección temprana de problemas potenciales.
+El sistema implementa un control de calidad de código integrado basado en \textit{pre-commit hooks} que ejecuta automáticamente verificaciones de calidad antes de cada commit, garantizando la consistencia del código y la detección temprana de problemas potenciales.
 
 \textit{Black} proporciona formateo automático de código Python siguiendo un estilo consistente y bien definido, eliminando debates sobre estilo de código y garantizando legibilidad uniforme a través de todo el proyecto. Esta consistencia es particularmente valiosa en un proyecto complejo donde diferentes módulos deben mantener coherencia visual y estructural.
 
@@ -230,7 +238,7 @@ Las anotaciones de tipo sirven como documentación ejecutable que describe las i
 
 El soporte de \acrshort{ide} mejorado incluye autocompletado más preciso, navegación de código basada en tipos, y detección de errores en tiempo de edición. Estas características aceleran significativamente el desarrollo y reducen la frecuencia de errores básicos de tipos que podrían introducir bugs sutiles.
 
-La refactorización segura facilitada por el tipado estático permite realizar cambios estructurales importantes con confianza, ya que \textit{mypy} puede detectar automáticamente ubicaciones donde los cambios de interface requieren actualizaciones correspondientes. Esta capacidad es fundamental para la evolución continua del \textit{framework}.
+La refactorización segura facilitada por el tipado estático permite realizar cambios estructurales importantes con confianza, ya que \textit{mypy} puede detectar automáticamente ubicaciones donde los cambios de interface requieren actualizaciones correspondientes. Esta capacidad es fundamental para la evolución continua del sistema.
 
 \section{Gestión de dependencias}
 \label{sec:gestion_dependencias}
@@ -238,11 +246,11 @@ La refactorización segura facilitada por el tipado estático permite realizar c
 \subsection{Estrategia de dependencias escalable}
 \label{subsec:estrategia_dependencias}
 
-El \textit{framework} implementa una estrategia sofisticada de gestión de dependencias que equilibra funcionalidad, facilidad de instalación, y flexibilidad de despliegue mediante la categorización de dependencias en núcleo mínimo y extensiones opcionales.
+El sistema implementa una estrategia de gestión de dependencias que equilibra funcionalidad, facilidad de instalación, y flexibilidad de despliegue mediante la categorización de dependencias en núcleo mínimo y extensiones opcionales.
 
-Las dependencias del núcleo mínimo incluyen únicamente las bibliotecas esenciales para funcionalidades básicas de captura y procesamiento, manteniendo el footprint de instalación reducido y minimizando conflictos potenciales con otros paquetes Python. Esta aproximación facilita la adopción inicial del \textit{framework} y reduce las barreras de entrada para nuevos usuarios.
+Las dependencias del núcleo mínimo incluyen únicamente las bibliotecas esenciales para funcionalidades básicas de captura y procesamiento, manteniendo el \gls{footprint} de instalación reducido y minimizando conflictos potenciales con otros paquetes Python. Esta aproximación facilita la adopción inicial del sistema y reduce las barreras de entrada para nuevos usuarios.
 
-Las dependencias opcionales se organizan por funcionalidad, permitiendo a los usuarios instalar únicamente las capacidades que requieren para sus casos de uso específicos. Esta modularidad es particularmente valiosa considerando que diferentes usuarios pueden requerir subconjuntos muy diferentes de la funcionalidad total del \textit{framework}.
+Las dependencias opcionales se organizan por funcionalidad, permitiendo a los usuarios instalar únicamente las capacidades que requieren para sus casos de uso específicos. Esta modularidad es particularmente valiosa considerando que diferentes usuarios pueden requerir subconjuntos muy diferentes de la funcionalidad total del sistema.
 
 \subsection{Dependencias principales del proyecto}
 \label{subsec:dependencias_principales}
@@ -312,7 +320,7 @@ Las decisiones tecnológicas del proyecto se fundamentan en criterios específic
 
 El rendimiento en tiempo real constituye un criterio fundamental, ya que las aplicaciones \acrshort{bci} requieren latencias mínimas para proporcionar feedback efectivo. Todas las tecnologías seleccionadas han demostrado capacidad para procesar señales biomédicas con latencias inferiores a los límites críticos para aplicaciones interactivas.
 
-La integración con el ecosistema científico existente es prioritaria para facilitar la adopción del \textit{framework} por parte de investigadores que ya utilizan herramientas establecidas. Esta integración reduce las barreras de entrada y facilita la incorporación del \textit{framework} en flujos de trabajo de investigación existentes.
+La integración con el ecosistema científico existente es prioritaria para facilitar la adopción del sistema por parte de investigadores que ya utilizan herramientas establecidas. Esta integración reduce las barreras de entrada y facilita la incorporación del sistema en flujos de trabajo de investigación existentes.
 
 La mantenibilidad y extensibilidad del código son fundamentales para la sostenibilidad a largo plazo del proyecto. Las tecnologías seleccionadas proporcionan arquitecturas claras, documentación extensa, y comunidades activas que garantizan soporte continuado y evolución con las necesidades cambiantes del campo.
 
@@ -327,4 +335,4 @@ Para el lenguaje principal, se consideró inicialmente \textit{Julia} debido a s
 
 \textit{Flask} se consideró como alternativa más simple a \textit{FastAPI} para servicios web, pero el rendimiento superior y las características modernas de \textit{FastAPI} (generación automática de documentación, validación de tipos, soporte WebSocket nativo) proporcionan ventajas significativas que justifican la adopción de la tecnología más avanzada.
 
-Estas decisiones reflejan una estrategia que prioriza las capacidades técnicas necesarias para cumplir los objetivos del proyecto sobre la simplicidad absoluta, reconociendo que la complejidad adicional se justifica por las capacidades mejoradas que resultan esenciales para el éxito del \textit{framework}.
+Estas decisiones reflejan una estrategia que prioriza las capacidades técnicas necesarias para cumplir los objetivos del proyecto sobre la simplicidad absoluta, reconociendo que la complejidad adicional se justifica por las capacidades mejoradas que resultan esenciales para el éxito del sistema.
