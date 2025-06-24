@@ -14,47 +14,48 @@ Este proyecto se ha desarrollado siguiendo un modelo \textbf{incremental-iterati
     \item \textbf{Validación experimental}: en todas las etapas se emplean casos de prueba reales (dispositivos sintéticos, controladores físicos, cascos EEG) para contrastar el funcionamiento.
 \end{itemize}
 
-La metodología evolucionó durante el desarrollo para responder a desafíos técnicos específicos, como la migración de Julia a Python por eficiencia de desarrollo, múltiples fallos de integración directa, y la eventual adopción de arquitecturas API como solución robusta.
+La metodología evolucionó durante el desarrollo para responder a desafíos técnicos específicos, como la migración de Julia a Python por necesidad de desarrollo ágil, múltiples fallos de integración directa, y la eventual adopción de arquitecturas API como solución robusta.
 
 \section{Fases y actividades}
 
 \begin{table}[hp!]
-\centering
-\resizebox{\textwidth}{!}{
-\begin{tabular}{c|l|c}
-\rowcolor{udcpink!25}
-\textbf{Fase} & \textbf{Actividad} & \textbf{Período} \\
-\hline
-0 & Investigación de tecnologías BCI y estado del arte & Marzo 2025 \\
-1.1 & Desarrollo inicial script captura de inputs & 12/04-13/04 \\
-1.2 & Intento de migración a Julia (fallido) & 13/04 \\
-1.3 & Desarrollo UI para módulo de inputs (tkinter → PyQt5) & 14/04-15/04 \\
-2.1 & Desarrollo inicial módulo procesamiento EEG & 14/04-16/04 \\
-2.2 & Expansión funcionalidades EEG (brain map, ayuda, CSV) & 16/04-17/04 \\
-3 & \textbf{Primer intento integración} (monolítica con LSL) & 17/04-19/04 \\
-4 & Refactorización SOLID de ambos módulos & 20/04-21/04 \\
-5 & \textbf{Segundo intento integración} (post-refactorización) & 22/04-30/04 \\
-6 & \textit{Pausa por otros compromisos académicos} & 01/05-13/05 \\
-7.1 & Desarrollo APIs de acceso a datos & 14/05-18/05 \\
-7.2 & Explorador web individual por módulo & 18/05-21/05 \\
-7.3 & Refactorización a explorador web unificado & 21/05-22/05 \\
-8.1 & APIs de control módulo inputs & 23/05-06/06 \\
-8.2 & Implementación controlador PS4 & 04/06-06/06 \\
-8.3 & Tipado masivo y pre-commit & 06/06-08/06 \\
-9.1 & CLI inputs (con problemas headless identificados) & 09/06-12/06 \\
-9.2 & Optimizaciones PS4 y arquitectura por eventos & 10/06-12/06 \\
-10.1 & API control módulo EEG (básico) & 13/06-14/06 \\
-10.2 & Integración MNE y centralización DataAccessService & 15/06-17/06 \\
-10.3 & Funcionalidades avanzadas (ICA, wavelets, filtros) & 17/06-18/06 \\
-10.4 & Detección automática canales y streamers & 19/06-20/06 \\
-10.5 & Migración lógica filtros y corrección grabación & 20/06-21/06 \\
-10.6 & Finalización API control EEG y CLI & 21/06-22/06 \\
-11 & \textbf{Módulo integración final} con LSL (pausado) & 22/06-23/06 \\
-12 & Documentación técnica y memoria & 22/06-23/06 \\
-\end{tabular}
-}
-\caption{Cronograma detallado del proyecto (marzo-junio 2025)}
-\label{tab:cronograma}
+  \centering
+  \resizebox{\textwidth}{!}{
+    \rowcolors{2}{white}{udcgray!25}
+    \begin{tabular}{c|l|c}
+    \rowcolor{udcpink!25}
+    \textbf{Fase} & \textbf{Actividad} & \textbf{Período} \\
+    \hline
+    0 & Investigación de tecnologías BCI y estado del arte & Marzo 2025 \\
+    1.1 & Desarrollo inicial script captura de inputs & 12/04-13/04 \\
+    1.2 & Intento de migración a Julia (fallido) & 13/04 \\
+    1.3 & Desarrollo UI para módulo de inputs (tkinter → PyQt5) & 14/04-15/04 \\
+    2.1 & Desarrollo inicial módulo procesamiento EEG & 14/04-16/04 \\
+    2.2 & Expansión funcionalidades EEG (brain map, ayuda, CSV) & 16/04-17/04 \\
+    3 & \textbf{Primer intento integración} (monolítica con LSL) & 17/04-19/04 \\
+    4 & Refactorización SOLID de ambos módulos & 20/04-21/04 \\
+    5 & \textbf{Segundo intento integración} (post-refactorización) & 22/04-30/04 \\
+    6 & \textit{Pausa por otros compromisos académicos} & 01/05-13/05 \\
+    7.1 & Desarrollo APIs de acceso a datos & 14/05-18/05 \\
+    7.2 & Explorador web individual por módulo & 18/05-21/05 \\
+    7.3 & Refactorización a explorador web unificado & 21/05-22/05 \\
+    8.1 & APIs de control módulo inputs & 23/05-06/06 \\
+    8.2 & Implementación controlador PS4 & 04/06-06/06 \\
+    8.3 & Tipado masivo y pre-commit & 06/06-08/06 \\
+    9.1 & CLI inputs (con problemas headless identificados) & 09/06-12/06 \\
+    9.2 & Optimizaciones PS4 y arquitectura por eventos & 10/06-12/06 \\
+    10.1 & API control módulo EEG (básico) & 13/06-14/06 \\
+    10.2 & Integración MNE y centralización DataAccessService & 15/06-17/06 \\
+    10.3 & Funcionalidades avanzadas (ICA, wavelets, filtros) & 17/06-18/06 \\
+    10.4 & Detección automática canales y streamers & 19/06-20/06 \\
+    10.5 & Migración lógica filtros y corrección grabación & 20/06-21/06 \\
+    10.6 & Finalización API control EEG y CLI & 21/06-22/06 \\
+    11 & \textbf{Módulo integración final} con LSL (pausado) & 22/06-23/06 \\
+    12 & Documentación técnica y memoria & 22/06-23/06 \\
+    \end{tabular}
+  }
+  \caption{Cronograma detallado del proyecto (marzo-junio 2025)}
+  \label{tab:cronograma}
 \end{table}
 
 \subsection{Detalles por fase}
@@ -70,9 +71,9 @@ La metodología evolucionó durante el desarrollo para responder a desafíos té
 \textbf{Fase 1: Desarrollo módulo inputs (12-15 abril)}
 \begin{itemize}
     \item Script básico con pynput: teclado → filtros → ratón complejo → clicks
-    \item Intento fallido de migración a Julia por debugging complejo
+    \item Intento fallido de migración a Julia por dificultad desarrollo ágil
     \item UI inicial en tkinter (fallida por rendimiento)
-    \item Experimentación con PyQt5 via módulo EEG
+    \item Experimentación con PyQt5 vía módulo EEG
     \item Migración definitiva a PyQt5 y refinamiento visual
 \end{itemize}
 
@@ -129,7 +130,7 @@ La metodología evolucionó durante el desarrollo para responder a desafíos té
     \item CLI módulo inputs basado en APIs
     \item \textbf{Identificación problema}: modo headless no funcional (dependencias Qt)
     \item PS4 no funcional en CLI (timers Qt)
-    \item Migración a arquitectura dirigida por eventos
+    \item Migración PS4 a arquitectura dirigida por eventos
     \item Optimizaciones masivas: batching, workers, buffer circular, orjson
 \end{itemize}
 
@@ -137,12 +138,13 @@ La metodología evolucionó durante el desarrollo para responder a desafíos té
 \begin{itemize}
     \item API control EEG: conexión placa, streams, parámetros
     \item Integración MNE-Python, centralización DataAccessService
+    \item \textbf{Migración polling → callbacks}: tanto visualizadores locales como APIs
     \item ICA, transformadas wavelet, filtros avanzados
     \item Detección automática canales, presets dinámicos
-    \item Streamers archivo/TCP/UDP con restricciones RAW
+    \item Streamers archivo (procesado soportado) y TCP/UDP (solo RAW)
     \item Migración lógica filtros al servicio grabación
     \item Corrección problemas filtros canales auxiliares
-    \item Migración polling → callbacks para evitar pérdida muestras
+    \item Cambio a callbacks en grabación para evitar pérdida muestras
 \end{itemize}
 
 \section{Recursos y costes}
@@ -174,23 +176,22 @@ La metodología evolucionó durante el desarrollo para responder a desafíos té
 \section{Análisis de riesgos y mitigación}
 
 \begin{table}[hp!]
-\centering
-\resizebox{\textwidth}{!}{
-\begin{tabular}{l|c|c|l}
-\rowcolor{udcpink!25}
-\textbf{Riesgo} & \textbf{Prob.} & \textbf{Impacto} & \textbf{Estrategia de mitigación} \\
-\hline
-Fallos repetidos integración módulos & Alta & Alta & Múltiples enfoques: LSL monolítico → SOLID → APIs \\
-Escalabilidad código monolítico & Alta & Alta & Refactorización SOLID tras primer fallo integración \\
-Dependencias GUI en modo headless & Media & Media & Identificadas pero no resueltas completamente \\
-Rendimiento tiempo real crítico & Media & Alta & Eventos, callbacks, optimizaciones específicas \\
-Curva aprendizaje tecnologías BCI & Media & Media & Investigación exhaustiva, sistema ayuda integrado \\
-Sincronización temporal precisa & Alta & Media & Múltiples estrategias hasta solución viable \\
-Dependencias bibliotecas externas & Baja & Alta & APIs estables, manejo robusto excepciones \\
-\end{tabular}
-}
-\caption{Principales riesgos identificados y estrategias de mitigación}
-\label{tab:riesgos}
+  \centering
+  \rowcolors{2}{white}{udcgray!25}
+  \begin{tabular}{l|c|c|l}
+  \rowcolor{udcpink!25}
+  \textbf{Riesgo} & \textbf{Prob.} & \textbf{Impacto} & \textbf{Estrategia de mitigación} \\
+  \hline
+  Fallos repetidos integración módulos & Alta & Alta & Múltiples enfoques: LSL monolítico → SOLID → APIs \\
+  Escalabilidad código monolítico & Alta & Alta & Refactorización SOLID tras primer fallo integración \\
+  Dependencias GUI en modo headless & Media & Media & Identificadas pero no resueltas completamente \\
+  Rendimiento tiempo real crítico & Media & Alta & Eventos parciales, callbacks selectivos, optimizaciones \\
+  Curva aprendizaje tecnologías BCI & Media & Media & Investigación exhaustiva, sistema ayuda integrado \\
+  Sincronización temporal precisa & Alta & Media & Múltiples estrategias hasta solución viable \\
+  Dependencias bibliotecas externas & Baja & Alta & APIs estables, manejo robusto excepciones \\
+  \end{tabular}
+  \caption{Principales riesgos identificados y estrategias de mitigación}
+  \label{tab:riesgos}
 \end{table}
 
 \section{Seguimiento y control}
@@ -206,7 +207,7 @@ Dependencias bibliotecas externas & Baja & Alta & APIs estables, manejo robusto 
 \begin{itemize}
     \item \textbf{Integración continua}: pre-commit hooks para calidad código
     \item \textbf{Type hints}: tipado progresivo, sesiones masivas tipado
-    \item \textbf{Documentación}: generación automática documentación técnica
+    \item \textbf{Documentación}: elaboración de documentación técnica
 \end{itemize}
 
 \subsection{Hitos principales}
@@ -215,16 +216,17 @@ Dependencias bibliotecas externas & Baja & Alta & APIs estables, manejo robusto 
     \item \textbf{Milestone 2}: Refactorización SOLID + segundo fallo (30/04)
     \item \textbf{Milestone 3}: Arquitectura API funcional (22/05)
     \item \textbf{Milestone 4}: Sistema completo con funcionalidades avanzadas (22/06)
+    \item \textbf{Milestone 5}: Desarrollo módulo integración final (22/06-23/06)
 \end{itemize}
 
 \section{Desviaciones y lecciones aprendidas}
 
 \subsection{Evolución metodológica}
 \begin{itemize}
-    \item \textbf{Julia → Python}: Precompilación y debugging complejo incompatibles con desarrollo iterativo
+    \item \textbf{Julia → Python}: Precompilación y debugging dificultaron desarrollo ágil con cambios rápidos
     \item \textbf{Dos fallos integración consecutivos}: Monolítica con LSL → SOLID con LSL → arquitectura API
     \item \textbf{tkinter → PyQt5}: Limitaciones rendimiento obligaron cambio framework UI
-    \item \textbf{Polling → eventos → callbacks}: Evolución arquitectural por problemas rendimiento
+    \item \textbf{Migración arquitectural selectiva}: Polling → eventos (PS4) y callbacks (grabación) según contexto
 \end{itemize}
 
 \subsection{Problemas no resueltos}
@@ -238,6 +240,255 @@ Dependencias bibliotecas externas & Baja & Alta & APIs estables, manejo robusto 
 \begin{itemize}
     \item \textbf{APIs como backbone}: Solución robusta tras múltiples fallos integración directa
     \item \textbf{DataAccessService centralizado}: Eliminó duplicaciones y inconsistencias
-    \item \textbf{Callbacks vs polling}: Solucionó pérdida muestras (10-30\%) en grabación
-    \item \textbf{Arquitectura dirigida por eventos}: Mejoró rendimiento PS4 drasticamente
+    \item \textbf{Migración a callbacks}: Tanto locales como API, eliminó polling concurrente y mejoró rendimiento
+    \item \textbf{Callbacks en grabación}: Solucionó pérdida muestras (10-30\%) específicamente
+    \item \textbf{Arquitectura dirigida por eventos}: Mejoró rendimiento PS4 drásticamente
+    \item \textbf{Streamers diferenciados}: Archivo con formato procesado, red solo RAW por compatibilidad
+\end{itemize}
+
+\section{Planificación inicial del proyecto}
+
+La planificación inicial del proyecto contemplaba un desarrollo más lineal basado en integración directa entre módulos, sin anticipar las dificultades que posteriormente surgirían. El diagrama de Gantt inicial se muestra a continuación:
+
+\begin{sidewaysfigure}[p]
+\centering
+\resizebox{0.9\textwidth}{0.6\textheight}{
+\begin{ganttchart}[
+    canvas/.append style={fill=none, draw=black!5, line width=.75pt},
+    hgrid style/.style={draw=black!5, line width=.75pt},
+    vgrid={*1{draw=black!5, line width=.75pt}},
+    title/.style={draw=none, fill=none},
+    title label font=\bfseries\small,
+    title label node/.append style={below=5pt},
+    include title in canvas=false,
+    bar label font=\mdseries\small\color{black!70},
+    bar label node/.append style={left=2cm},
+    bar/.append style={draw=none, fill=black!63},
+    bar incomplete/.append style={fill=red!50},
+    milestone/.append style={fill=yellow, draw=black, diamond},
+    bar progress label font=\mdseries\small\color{black!70},
+    group incomplete/.append style={fill=groupblue},
+    group left shift=0,
+    group right shift=0,
+    group height=.5,
+    group peaks tip position=0,
+    group label node/.append style={left=1cm},
+    group progress label font=\bfseries\small
+  ]{1}{60}
+  
+  \gantttitle{Abril 2025}{15} \gantttitle{Mayo 2025}{15} \gantttitle{Junio 2025}{15} \gantttitle{Final}{15} \\
+  \gantttitlelist{12,19,26}{5} \gantttitlelist{3,10,17}{5} \gantttitlelist{24,31,7}{5} \gantttitlelist{14,21,28}{5} \\
+  
+  \ganttgroup[progress=100]{Desarrollo módulos básicos}{1}{10} \\
+  \ganttbar[progress=100]{Módulo captura inputs}{1}{6} \\
+  \ganttbar[progress=100]{Módulo procesamiento EEG}{5}{10} \\
+  
+  \ganttgroup[progress=100]{Integración directa (planificada)}{11}{15} \\
+  \ganttbar[progress=0, bar/.append style={fill=red!50}]{Sincronización LSL}{11}{15} \\
+  
+  \ganttgroup[progress=100]{Funcionalidades avanzadas}{16}{35} \\
+  \ganttbar[progress=100]{Optimizaciones y mejoras}{16}{25} \\
+  \ganttbar[progress=100]{Análisis avanzado EEG}{26}{35} \\
+  
+  \ganttgroup[progress=100]{Documentación}{36}{40} \\
+  \ganttbar[progress=100]{Memoria y documentación técnica}{36}{40} \\
+  
+\end{ganttchart}
+}
+\caption{Diagrama de Gantt - Planificación inicial del proyecto}
+\label{fig:gantt_inicial}
+\end{sidewaysfigure}
+
+\section{Costes del proyecto}
+
+\subsection{Recursos hardware utilizados}
+
+\begin{table}[hp!]
+  \centering
+  \resizebox{\textwidth}{!}{
+    \rowcolors{2}{white}{udcgray!25}
+    \begin{tabular}{l|c|c}
+    \rowcolor{udcpink!25}
+    \textbf{Hardware} & \textbf{Especificaciones} & \textbf{Uso} \\
+    \hline
+    \textit{PC desarrollo} & Intel i7-7700K + 32GB RAM & Desarrollo completo \\
+    \textit{Controlador PS4} & DualShock 4 & Pruebas entrada gamepad \\
+    \textit{Casco EEG} & g.tec Unicorn (8 canales, 250Hz) & Validación final \\
+    \textit{Dispositivos sintéticos} & BrainFlow synthetic boards & Desarrollo y pruebas \\
+    \end{tabular}
+  }
+  \caption{Hardware utilizado en el proyecto}
+  \label{tab:hardware}
+\end{table}
+
+\subsection{Software y herramientas}
+
+\begin{table}[hp!]
+  \centering
+  \resizebox{\textwidth}{!}{
+    \rowcolors{2}{white}{udcgray!25}
+    \begin{tabular}{l|l|c}
+    \rowcolor{udcpink!25}
+    \textbf{Categoría} & \textbf{Herramientas} & \textbf{Coste} \\
+    \hline
+    \textit{Lenguajes} & Python 3.8+, JavaScript, HTML/CSS & Libre \\
+    \textit{Frameworks} & PyQt5, FastAPI, MNE-Python & Libre \\
+    \textit{Librerías BCI} & BrainFlow, LSL, NumPy, SciPy & Libre \\
+    \textit{Desarrollo} & Git, pre-commit, orjson, SDL2 & Libre \\
+    \textit{Sistema operativo} & Windows 10/11 & Licencia existente \\
+    \hline
+    \textbf{Total software} & & \textbf{0€} \\
+    \end{tabular}
+  }
+  \caption{Software y herramientas utilizadas}
+  \label{tab:software}
+\end{table}
+
+\subsection{Estimación temporal}
+
+\begin{table}[hp!]
+  \centering
+  \resizebox{\textwidth}{!}{
+    \rowcolors{2}{white}{udcgray!25}
+    \begin{tabular}{l|c}
+    \rowcolor{udcpink!25}
+    \textbf{Concepto} & \textbf{Valor} \\
+    \hline
+    \textit{Período de desarrollo} & Abril - Junio 2025 \\
+    \textit{Días efectivos} & ~70 días (con pausa 2 semanas) \\
+    \textit{Dedicación estimada} & ~350 horas \\
+    \textit{Commits realizados} & 200+ \\
+    \textit{Modalidad} & Desarrollo individual \\
+    \end{tabular}
+  }
+  \caption{Estimación temporal del proyecto}
+  \label{tab:temporal}
+\end{table}
+
+\section{Desvíos y replanificación}
+
+Durante el desarrollo del proyecto se produjeron varios desvíos significativos respecto a la planificación inicial:
+
+\subsection{Principales desvíos identificados}
+
+\begin{itemize}
+    \item \textbf{Fallo integración monolítica (17-19 abril)}: La integración directa con LSL falló debido al tamaño de archivos monolíticos, requiriendo refactorización SOLID completa.
+    
+    \item \textbf{Segundo fallo integración post-SOLID (22-30 abril)}: Incluso tras la refactorización, persistieron problemas de integración, obligando a cambiar estrategia hacia APIs.
+    
+    \item \textbf{Pausa no planificada (1-13 mayo)}: Otros compromisos académicos causaron pausa de 2 semanas no contemplada inicialmente.
+    
+    \item \textbf{Desarrollo arquitectura API no planificada (14-22 mayo)}: Solución emergente que requirió desarrollo de explorador web y APIs completas.
+    
+    \item \textbf{Problemas modo headless (9-12 junio)}: Identificación tardía de dependencias Qt que impiden funcionamiento CLI autónomo.
+    
+    \item \textbf{Expansión funcionalidades EEG (13-22 junio)}: Desarrollo de MNE, ICA y filtros avanzados más extenso de lo previsto.
+\end{itemize}
+
+\subsection{Cronograma real con desvíos}
+
+\begin{sidewaysfigure}[p]
+\centering
+\resizebox{0.95\textwidth}{0.8\textheight}{
+\begin{ganttchart}[
+    canvas/.append style={fill=none, draw=black!5, line width=.75pt},
+    hgrid style/.style={draw=black!5, line width=.75pt},
+    vgrid={*1{draw=black!5, line width=.75pt}},
+    title/.style={draw=none, fill=none},
+    title label font=\bfseries\small,
+    title label node/.append style={below=5pt},
+    include title in canvas=false,
+    bar label font=\mdseries\small\color{black!70},
+    bar label node/.append style={left=2cm},
+    bar/.append style={draw=none, fill=black!63},
+    bar incomplete/.append style={fill=red!50},
+    milestone/.append style={fill=yellow, draw=black, diamond},
+    bar progress label font=\mdseries\small\color{black!70},
+    group incomplete/.append style={fill=groupblue},
+    group left shift=0,
+    group right shift=0,
+    group height=.5,
+    group peaks tip position=0,
+    group label node/.append style={left=1cm},
+    group progress label font=\bfseries\small
+  ]{1}{84}
+  
+  \gantttitle{Abril 2025}{21} \gantttitle{Mayo 2025}{21} \gantttitle{Junio 2025}{21} \gantttitle{Final}{21} \\
+  \gantttitlelist{12,19,26}{7} \gantttitlelist{3,10,17}{7} \gantttitlelist{24,31,7}{7} \gantttitlelist{14,21,28}{7} \\
+  
+  \ganttgroup[progress=100]{Desarrollo módulos básicos}{1}{12} \\
+  \ganttbar[progress=100]{Script inputs + UI PyQt5}{1}{7} \\
+  \ganttbar[progress=100]{Módulo EEG + brain map}{8}{12} \\
+  
+  \ganttgroup[progress=100]{Primer intento integración}{13}{16} \\
+  \ganttbar[progress=100, bar/.append style={fill=red!70}]{LSL monolítico (fallido)}{13}{16} \\
+  \ganttmilestone[milestone/.append style={fill=red}]{Fallo integración 1}{16} \\
+  
+  \ganttgroup[progress=100]{Refactorización SOLID}{17}{19} \\
+  \ganttbar[progress=100]{Reestructuración módulos}{17}{19} \\
+  
+  \ganttgroup[progress=100]{Segundo intento integración}{20}{28} \\
+  \ganttbar[progress=100, bar/.append style={fill=red!70}]{Módulo integrador (fallido)}{20}{28} \\
+  \ganttmilestone[milestone/.append style={fill=red}]{Fallo integración 2}{28} \\
+  
+  \ganttgroup[progress=0]{Pausa no planificada}{29}{42} \\
+  \ganttbar[progress=0, bar/.append style={fill=gray!50}]{Otros compromisos académicos}{29}{42} \\
+  
+  \ganttgroup[progress=100]{Arquitectura API (emergente)}{43}{56} \\
+  \ganttbar[progress=100, bar/.append style={fill=green!70}]{APIs acceso datos}{43}{49} \\
+  \ganttbar[progress=100, bar/.append style={fill=green!70}]{Explorador web unificado}{50}{53} \\
+  \ganttbar[progress=100, bar/.append style={fill=green!70}]{APIs control inputs}{54}{56} \\
+  \ganttmilestone[milestone/.append style={fill=green}]{Arquitectura API exitosa}{56} \\
+  
+  \ganttgroup[progress=100]{CLIs y optimizaciones}{57}{63} \\
+  \ganttbar[progress=100]{CLI inputs + PS4 + eventos}{57}{63} \\
+  \ganttmilestone[milestone/.append style={fill=orange}]{Problema headless identificado}{61} \\
+  
+  \ganttgroup[progress=100]{Funcionalidades avanzadas EEG}{64}{77} \\
+  \ganttbar[progress=100]{API control EEG + MNE}{64}{70} \\
+  \ganttbar[progress=100]{ICA + wavelets + filtros}{71}{77} \\
+  
+  \ganttgroup[progress=50]{Integración final}{78}{80} \\
+  \ganttbar[progress=50, bar/.append style={fill=orange!50}]{Módulo LSL (pausado por bugs)}{78}{80} \\
+  \ganttmilestone[milestone/.append style={fill=orange}]{Integración pausada}{80} \\
+  
+\end{ganttchart}
+}
+\caption{Diagrama de Gantt - Desarrollo real con desvíos}
+\label{fig:gantt_final}
+\end{sidewaysfigure}
+
+\subsection{Impacto de los desvíos}
+
+\begin{table}[hp!]
+  \centering
+  \resizebox{\textwidth}{!}{
+    \rowcolors{2}{white}{udcgray!25}
+    \begin{tabular}{l|c|c}
+    \rowcolor{udcpink!25}
+    \textbf{Desvío} & \textbf{Tiempo impacto} & \textbf{Resultado} \\
+    \hline
+    \textit{Refactorización SOLID no planificada} & +2 días & Arquitectura mejorada \\
+    \textit{Cambio estrategia a APIs} & +1 semana & Solución robusta encontrada \\
+    \textit{Pausa no planificada} & +2 semanas & Sin impacto técnico \\
+    \textit{Desarrollo explorador web} & +3 días & Funcionalidad añadida inesperada \\
+    \textit{Optimizaciones PS4} & +2 días & Rendimiento mejorado \\
+    \textit{Funcionalidades avanzadas extendidas} & +1 semana & Alcance ampliado \\
+    \textit{Integración final incompleta} & -1 día & Funcionalidad pospuesta \\
+    \hline
+    \textbf{Balance total} & \textbf{+2,5 semanas} & \textbf{Alcance ampliado} \\
+    \end{tabular}
+  }
+  \caption{Impacto de los principales desvíos del proyecto}
+  \label{tab:impacto_desvios}
+\end{table}
+
+\subsection{Lecciones aprendidas de la planificación}
+
+\begin{itemize}
+    \item \textbf{Integración temprana crítica}: Los fallos de integración tardía son más costosos de resolver
+    \item \textbf{Flexibilidad arquitectural}: Cambiar estrategia hacia APIs resultó más efectivo que insistir con LSL
+    \item \textbf{Desarrollo iterativo efectivo}: Los 200+ commits demuestran la eficacia del enfoque incremental
+    \item \textbf{Identificación tardía de problemas}: El modo headless debería haberse considerado desde el diseño inicial
+    \item \textbf{Valor de la refactorización}: La reestructuración SOLID facilitó desarrollos posteriores
 \end{itemize}
