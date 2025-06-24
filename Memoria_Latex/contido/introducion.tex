@@ -5,7 +5,7 @@
 
 Las \acrfull{bci} representan un paradigma fundamentalmente diferente que podría revolucionar esta interacción~\cite{eeg_bci_review,wolpaw2002brain}. Estos sistemas permiten establecer canales de comunicación directa entre el cerebro humano y dispositivos electrónicos, interpretando las señales neurológicas sin necesidad de actividad muscular consciente~\cite{dornhege2007toward}. Esta capacidad abre posibilidades extraordinarias en campos tan diversos como la medicina rehabilitadora, donde pueden restaurar capacidades de comunicación a personas con lesiones medulares severas~\cite{wolpaw2002brain}, la accesibilidad tecnológica, proporcionando nuevas formas de interacción para personas con discapacidades motoras, y el desarrollo de paradigmas de interacción completamente nuevos que podrían transformar la forma en que los humanos utilizamos la tecnología.
 
-El fundamento de los sistemas \acrshort{bci} reside en la capacidad de capturar y interpretar \gls{biosenial} generadas por la actividad neuronal. Los sistemas \acrshort{bci} modernos se clasifican principalmente según el método de adquisición de señales neurológicas, incluyendo la \acrfull{eeg}, la \acrfull{meg}, la \acrfull{fnirs} y técnicas invasivas como la \acrfull{ecog}. Entre estas modalidades, la \acrshort{eeg} se ha establecido como la técnica predominante para aplicaciones \acrshort{bci} no invasivas debido a su excelente resolución temporal (del orden de milisegundos), su naturaleza completamente no invasiva y la disponibilidad creciente de dispositivos comerciales accesibles~\cite{eeg_bci_review,wolpaw2002brain,dornhege2007toward}. A continuación se analizará en detalle el panorama actual de estas tecnologías y las limitaciones que motivan el desarrollo de nuevas soluciones integradas.
+El fundamento de los sistemas \acrshort{bci} reside en la capacidad de capturar y interpretar \gls{biosenial} generadas por la actividad neuronal. Los sistemas \acrshort{bci} modernos se clasifican principalmente según el método de adquisición de señales neurológicas, incluyendo la \acrfull{eeg}, la \acrfull{meg}, la \acrfull{fnirs} y técnicas invasivas como la \acrfull{ecog}~\cite{eeg_bci_review,dornhege2007toward}. Entre estas modalidades, la \acrshort{eeg} se ha establecido como la técnica predominante para aplicaciones \acrshort{bci} no invasivas debido a su excelente resolución temporal (del orden de milisegundos), su naturaleza completamente no invasiva y la disponibilidad creciente de dispositivos comerciales accesibles~\cite{eeg_bci_review,wolpaw2002brain,dornhege2007toward}. En el Capítulo~\ref{chap:estado_arte} se analizará en detalle el panorama actual de estas tecnologías y las limitaciones que motivan el desarrollo de nuevas soluciones integradas.
 
 Uno de los obstáculos más importantes en el desarrollo de sistemas \acrshort{bci} efectivos es la necesidad de \gls{dataset} de alta calidad que contengan señales \acrshort{eeg} sincronizadas temporalmente con las intenciones o acciones del usuario. Esta \gls{sincronizacion} es crítica porque permite establecer correlaciones estadísticamente significativas entre patrones específicos de actividad cerebral y las intenciones del usuario~\cite{eeg_desynchronization}. El fundamento neurofisiológico de estas correlaciones reside en fenómenos como la \gls{desincronizacion}, donde la actividad neuronal de fondo se modifica cuando el cerebro se prepara para una acción específica. Por ejemplo, cuando una persona imagina mover su mano derecha, se produce una disminución en la potencia de las frecuencias mu (8-13Hz) y beta (13-30Hz) sobre las áreas motoras contralaterales del cerebro~\cite{eeg_desynchronization}. Capturar precisamente cuándo ocurre esta imaginación de movimiento en relación con el patrón \acrshort{eeg} observado es fundamental para entrenar algoritmos de \acrfull{ml} que puedan reconocer y clasificar estas intenciones en tiempo real. Sin esta sincronización temporal precisa, los modelos predictivos no pueden establecer las asociaciones necesarias entre estados cerebrales y intenciones del usuario, limitando significativamente la efectividad de los sistemas \acrshort{bci}.
 
@@ -32,65 +32,57 @@ Para evaluar adecuadamente la viabilidad y posicionamiento estratégico de la so
 \subsection{Fortalezas del sistema propuesto}
 \label{subsec:fortalezas}
 
-\begin{itemize}
-    \item \textbf{Integración multidispositivo}: El \textit{framework} proporciona por primera vez una solución unificada que integra múltiples fuentes de entrada (\acrshort{eeg}, teclado, ratón, controladores) en un único sistema sincronizado, eliminando la necesidad de combinar herramientas fragmentadas.
+El \textit{framework} desarrollado presenta ventajas competitivas significativas que lo posicionan favorablemente en el ecosistema \acrshort{bci}. La integración multidispositivo constituye una fortaleza fundamental, proporcionando por primera vez una solución unificada que integra múltiples fuentes de entrada (\acrshort{eeg}, teclado, ratón, controladores) en un único sistema sincronizado, eliminando la necesidad de combinar herramientas fragmentadas que tradicionalmente han dificultado el desarrollo de aplicaciones \acrshort{bci}.
 
-    \item \textbf{Arquitectura extensible y modular}: El diseño basado en principios \acrshort{solid} y patrones dirigidos por eventos facilita la incorporación de nuevos dispositivos, algoritmos de procesamiento y técnicas de análisis sin modificar el núcleo del sistema.
+La arquitectura extensible y modular, basada en principios \acrshort{solid} y patrones dirigidos por eventos, facilita la incorporación de nuevos dispositivos, algoritmos de procesamiento y técnicas de análisis sin modificar el núcleo del sistema. Esta flexibilidad arquitectónica garantiza que el \textit{framework} pueda evolucionar con los avances tecnológicos del campo \acrshort{bci}.
 
-    \item \textbf{Múltiples interfaces de usuario}: La disponibilidad simultánea de interfaces gráficas, de línea de comandos y \acrshort{api} web permite que usuarios con diferentes niveles técnicos y contextos de uso puedan aprovechar las capacidades del sistema.
+La disponibilidad simultánea de múltiples interfaces de usuario (\acrfull{gui}, \acrfull{cli} y \acrshort{api} web) permite que usuarios con diferentes niveles técnicos y contextos de uso puedan aprovechar las capacidades del sistema. Esta diversidad de interfaces elimina las barreras de adopción que tradicionalmente han limitado el acceso a herramientas \acrshort{bci} avanzadas.
 
-    \item \textbf{Soporte de formatos estándar}: La exportación nativa a formatos ampliamente utilizados en neurociencia (\acrshort{bids}, \acrshort{edf}+, \acrshort{hdf5}) aumenta significativamente la usabilidad para investigadores y facilita la interoperabilidad con herramientas existentes.
+El soporte nativo para formatos estándar ampliamente utilizados en neurociencia (\acrshort{bids}, \acrshort{edf}+, \acrshort{hdf5}) aumenta significativamente la usabilidad para investigadores y facilita la interoperabilidad con herramientas existentes, promoviendo la colaboración científica y la reproducibilidad de experimentos.
 
-    \item \textbf{Procesamiento avanzado en tiempo real}: La implementación de algoritmos sofisticados como \acrshort{ica}, transformadas \textit{wavelet} y filtros digitales con optimizaciones para tiempo real proporciona capacidades de análisis que tradicionalmente requerían procesamiento \textit{offline}.
-\end{itemize}
+Finalmente, la implementación de algoritmos sofisticados como \acrshort{ica}, transformadas \textit{wavelet} y filtros digitales con optimizaciones para tiempo real proporciona capacidades de análisis que tradicionalmente requerían procesamiento \textit{offline}, ampliando significativamente las posibilidades de aplicación en entornos interactivos.
 
 \subsection{Debilidades a considerar}
 \label{subsec:debilidades}
 
-\begin{itemize}
-    \item \textbf{Dependencia de bibliotecas externas}: La dependencia crítica de bibliotecas como \textit{BrainFlow} para la adquisición de señales \acrshort{eeg} podría limitar las funcionalidades del sistema si estas bibliotecas presentan limitaciones o discontinúan su desarrollo.
+El sistema presenta ciertas limitaciones técnicas y operativas que deben considerarse cuidadosamente. La dependencia crítica de bibliotecas como \textit{BrainFlow} para la adquisición de señales \acrshort{eeg} podría limitar las funcionalidades del sistema si estas bibliotecas presentan limitaciones o discontinúan su desarrollo, requiriendo estrategias de mitigación y alternativas de contingencia.
 
-    \item \textbf{Desafíos de sincronización temporal}: La sincronización precisa entre diferentes fuentes de datos presenta complejidades técnicas debido a latencias variables en diferentes sistemas operativos y configuraciones de hardware, lo que podría afectar la calidad de los \gls{dataset} generados.
+La sincronización precisa entre diferentes fuentes de datos presenta complejidades técnicas debido a latencias variables en diferentes sistemas operativos y configuraciones de hardware, lo que podría afectar la calidad de los \gls{dataset} generados. Esta variabilidad requiere calibración cuidadosa y validación continua para garantizar la precisión temporal necesaria en aplicaciones \acrshort{bci}.
 
-    \item \textbf{Limitaciones de escalabilidad}: Aunque el sistema está optimizado para tiempo real, el procesamiento simultáneo de múltiples dispositivos \acrshort{eeg} de alta resolución podría requerir recursos computacionales significativos que limiten su aplicabilidad en sistemas con recursos limitados.
+Aunque el sistema está optimizado para tiempo real, el procesamiento simultáneo de múltiples dispositivos \acrshort{eeg} de alta resolución podría requerir recursos computacionales significativos que limiten su aplicabilidad en sistemas con recursos limitados, especialmente en entornos educativos o de investigación con presupuestos restringidos.
 
-    \item \textbf{Curva de aprendizaje inicial}: A pesar de las interfaces simplificadas, el dominio \acrshort{bci} requiere conocimientos especializados en procesamiento de señales y neurociencia que podrían representar una barrera inicial para algunos usuarios.
-\end{itemize}
+A pesar de las interfaces simplificadas, el dominio \acrshort{bci} requiere conocimientos especializados en procesamiento de señales y neurociencia que podrían representar una barrera inicial para algunos usuarios, requiriendo documentación extensiva y materiales educativos de soporte.
 
 \subsection{Oportunidades en el entorno}
 \label{subsec:oportunidades}
 
-\begin{itemize}
-    \item \textbf{Crecimiento exponencial del campo \acrshort{bci}}: El interés creciente en aplicaciones \acrshort{bci} en medicina rehabilitadora, accesibilidad tecnológica y nuevas interfaces de usuario crea un mercado en expansión que demanda herramientas más accesibles y potentes.
+El contexto actual presenta oportunidades significativas para la adopción y expansión del \textit{framework}. El crecimiento exponencial del campo \acrshort{bci}, impulsado por aplicaciones en medicina rehabilitadora, accesibilidad tecnológica y nuevas interfaces de usuario, crea un mercado en expansión que demanda herramientas más accesibles y potentes para investigadores y desarrolladores.
 
-    \item \textbf{Carencia de soluciones integradas}: La fragmentación actual del ecosistema de herramientas \acrshort{bci} representa una oportunidad significativa para una solución que integre captura sincronizada de señales \acrshort{eeg} y eventos de usuario.
+La fragmentación actual del ecosistema de herramientas \acrshort{bci} representa una oportunidad estratégica para una solución que integre captura sincronizada de señales \acrshort{eeg} y eventos de usuario. Esta integración puede posicionar al \textit{framework} como una herramienta de referencia en la comunidad científica.
 
-    \item \textbf{Democratización de la investigación \acrshort{bci}}: La reducción de barreras técnicas puede facilitar el acceso a la investigación \acrshort{bci} para grupos con menos recursos técnicos, ampliando potencialmente la base de usuarios y contribuyendo al avance del campo.
+La democratización de la investigación \acrshort{bci} a través de la reducción de barreras técnicas puede facilitar el acceso para grupos con menos recursos técnicos, ampliando potencialmente la base de usuarios y contribuyendo al avance del campo. Esta democratización es especialmente relevante en contextos educativos y de investigación emergente.
 
-    \item \textbf{Tendencia hacia código abierto}: La preferencia creciente por soluciones de código abierto en investigación científica posiciona favorablemente al \textit{framework} frente a alternativas comerciales cerradas.
+La tendencia creciente hacia soluciones de código abierto en investigación científica posiciona favorablemente al \textit{framework} frente a alternativas comerciales cerradas, especialmente cuando se considera la transparencia y reproducibilidad que demanda la comunidad científica.
 
-    \item \textbf{Evolución de hardware accesible}: La disponibilidad creciente de dispositivos \acrshort{eeg} de bajo coste y alta calidad amplía el mercado potencial de usuarios que podrían beneficiarse del sistema.
-\end{itemize}
+La evolución continua hacia dispositivos \acrshort{eeg} de bajo coste y alta calidad amplía el mercado potencial de usuarios que podrían beneficiarse del sistema, creando oportunidades para aplicaciones en contextos previamente inaccesibles debido a limitaciones económicas.
 
 \subsection{Amenazas externas}
 \label{subsec:amenazas}
 
-\begin{itemize}
-    \item \textbf{Competencia de soluciones comerciales}: La aparición de nuevas soluciones comerciales similares, especialmente de empresas con mayores recursos, podría limitar la adopción del \textit{framework} de código abierto.
+El entorno competitivo presenta desafíos que requieren atención estratégica. La potencial aparición de soluciones comerciales similares, especialmente de empresas con mayores recursos de desarrollo y marketing, podría limitar la adopción del \textit{framework} de código abierto si no se mantiene una ventaja competitiva clara en funcionalidad y soporte comunitario.
 
-    \item \textbf{Evolución rápida del hardware \acrshort{eeg}}: Los avances acelerados en tecnología de dispositivos \acrshort{eeg} podrían requerir actualizaciones frecuentes y significativas del sistema para mantener la compatibilidad y relevancia.
+Los avances acelerados en tecnología de dispositivos \acrshort{eeg} podrían requerir actualizaciones frecuentes y significativas del sistema para mantener la compatibilidad y relevancia. Esta evolución tecnológica demanda una arquitectura flexible y recursos de desarrollo continuos.
 
-    \item \textbf{Cambios en estándares de la industria}: La evolución de formatos de datos y protocolos de comunicación en el campo \acrshort{bci} podría requerir adaptaciones importantes del \textit{framework}.
+Los cambios en estándares de la industria y la evolución de formatos de datos y protocolos de comunicación en el campo \acrshort{bci} podrían requerir adaptaciones importantes del \textit{framework}, especialmente si estos cambios no son anticipados en el diseño arquitectónico.
 
-    \item \textbf{Limitaciones regulatorias}: El desarrollo de regulaciones más estrictas para aplicaciones \acrshort{bci}, especialmente en contextos médicos, podría crear barreras adicionales para la adopción del sistema.
+El desarrollo potencial de regulaciones más estrictas para aplicaciones \acrshort{bci}, especialmente en contextos médicos, podría crear barreras adicionales para la adopción del sistema, requiriendo compliance con estándares que podrían no haber sido considerados en el diseño inicial.
 
-    \item \textbf{Fragmentación de la comunidad}: La falta de consenso en la comunidad \acrshort{bci} sobre estándares y mejores prácticas podría limitar la adopción uniforme de cualquier solución integrada.
-\end{itemize}
+La falta de consenso en la comunidad \acrshort{bci} sobre estándares y mejores prácticas podría limitar la adopción uniforme de cualquier solución integrada, requiriendo esfuerzos de coordinación comunitaria y construcción de consenso.
 
 \section{Objetivos}
 \label{sec:objetivos}
 
-Para abordar las limitaciones identificadas y aprovechar las oportunidades reveladas por el análisis \acrshort{dafo}, este trabajo define los siguientes objetivos que guiarán el desarrollo de la solución propuesta.
+Para abordar las limitaciones identificadas en el análisis del problema y aprovechar las oportunidades estratégicas reveladas por el análisis \acrshort{dafo}, este trabajo define un conjunto coherente de objetivos que guían el desarrollo de la solución propuesta hacia la resolución efectiva de las carencias identificadas en el ecosistema \acrshort{bci}.
 
 \subsection{Objetivo general}
 \label{subsec:objetivo_general}
@@ -127,21 +119,21 @@ Un aspecto clave del desarrollo ha sido la aplicación de técnicas de refactori
 
 La validación del sistema se ha realizado mediante el desarrollo de \acrfull{api} que han permitido la verificación exhaustiva de funcionalidades y la detección de errores internos. Adicionalmente, se han integrado herramientas de calidad de código como \textit{pre-commit hooks}, tipado estático, formateo automático y verificación de documentación para mantener estándares durante todo el proceso de desarrollo.
 
-Los detalles específicos de la metodología, incluyendo las fases del proyecto, cronograma detallado y análisis de riesgos, se presentan en el Capítulo \ref{chap:metodologia} de esta memoria.
+Los detalles específicos de la metodología, incluyendo las fases del proyecto, cronograma detallado y análisis de riesgos, se presentan en el Capítulo~\ref{chap:metodologia} de esta memoria.
 
 \section{Estructura de la memoria}
 \label{sec:estructura}
 
 Esta memoria se organiza siguiendo una estructura lógica que guía al lector desde la contextualización del problema hasta la presentación de resultados y conclusiones.
 
-El Capítulo \ref{chap:estado_arte} presenta una revisión exhaustiva del estado del arte en tecnologías \acrshort{bci}, analizando las herramientas existentes para captura y procesamiento de datos \acrshort{eeg}, identificando sus limitaciones y oportunidades de mejora que justifican el desarrollo de la solución propuesta.
+El Capítulo~\ref{chap:estado_arte} presenta una revisión exhaustiva del estado del arte en tecnologías \acrshort{bci}, analizando las herramientas existentes para captura y procesamiento de datos \acrshort{eeg}, identificando sus limitaciones y oportunidades de mejora que justifican el desarrollo de la solución propuesta.
 
-El Capítulo \ref{chap:metodologia} describe en detalle la metodología de desarrollo empleada, incluyendo la planificación del proyecto, cronograma, análisis de riesgos y estrategias de mitigación. Se documentan las fases del desarrollo incremental-iterativo y las lecciones aprendidas durante el proceso.
+El Capítulo~\ref{chap:metodologia} describe en detalle la metodología de desarrollo empleada, incluyendo la planificación del proyecto, cronograma, análisis de riesgos y estrategias de mitigación. Se documentan las fases del desarrollo incremental-iterativo y las lecciones aprendidas durante el proceso.
 
-El Capítulo \ref{chap:analisis_diseno} aborda el análisis y diseño del sistema, presentando los requisitos funcionales y no funcionales identificados, la arquitectura general de la solución y el diseño detallado de cada componente. Se justifican las decisiones de diseño principales y se describe cómo la arquitectura propuesta aborda las limitaciones identificadas.
+El Capítulo~\ref{chap:analisis_diseno} aborda el análisis y diseño del sistema, presentando los requisitos funcionales y no funcionales identificados, la arquitectura general de la solución y el diseño detallado de cada componente. Se justifican las decisiones de diseño principales y se describe cómo la arquitectura propuesta aborda las limitaciones identificadas.
 
-El Capítulo \ref{chap:implementacion} documenta la implementación del sistema, describiendo las decisiones técnicas específicas, los desafíos encontrados durante el desarrollo y las soluciones adoptadas. Se presentan los aspectos más técnicos de cada módulo y se analizan las optimizaciones realizadas para garantizar el rendimiento en tiempo real.
+El Capítulo~\ref{chap:implementacion} documenta la implementación del sistema, describiendo las decisiones técnicas específicas, los desafíos encontrados durante el desarrollo y las soluciones adoptadas. Se presentan los aspectos más técnicos de cada módulo y se analizan las optimizaciones realizadas para garantizar el rendimiento en tiempo real.
 
-Finalmente, el Capítulo \ref{chap:conclusiones} presenta las conclusiones del trabajo, evaluando el cumplimiento de los objetivos propuestos, analizando las limitaciones de la solución desarrollada y proponiendo líneas de trabajo futuro que podrían extender y mejorar la plataforma.
+Finalmente, el Capítulo~\ref{chap:conclusiones} presenta las conclusiones del trabajo, evaluando el cumplimiento de los objetivos propuestos, analizando las limitaciones de la solución desarrollada y proponiendo líneas de trabajo futuro que podrían extender y mejorar la plataforma.
 
 Los anexos complementan la memoria principal con documentación técnica detallada, manuales de usuario y material adicional que facilita la comprensión y utilización del sistema desarrollado.
