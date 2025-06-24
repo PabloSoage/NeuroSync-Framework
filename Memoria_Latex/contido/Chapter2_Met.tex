@@ -5,102 +5,161 @@
 Este proyecto se ha desarrollado siguiendo un modelo \textbf{incremental-iterativo} que combina las ventajas de una definición temprana de requisitos con la flexibilidad necesaria para refinar el resultado en ciclos sucesivos:
 
 \begin{itemize}
-    \item \textbf{Incrementalidad}: el software se construye por módulos funcionales independientes (captura de inputs → procesamiento EEG → APIs de integración → explorador web), cada uno de los cuales añade nuevas prestaciones al sistema global.
+    \item \textbf{Incrementalidad}: el software se construye por módulos funcionales independientes, cada uno de los cuales añade nuevas prestaciones al sistema global.
     
-    \item \textbf{Iteración}: cada módulo se somete a múltiples rondas de desarrollo, validación y refactorización antes de proceder al siguiente. Esto garantiza la detección rápida de errores y su corrección.
+    \item \textbf{Iteración}: cada módulo se somete a múltiples rondas de desarrollo, validación y refactorización. Esto garantiza la detección rápida de errores y su corrección.
     
-    \item \textbf{Refactorización continua}: aplicación de principios SOLID para mejorar la mantenibilidad y escalabilidad del código, especialmente tras identificar limitaciones arquitecturales.
+    \item \textbf{Adaptación evolutiva}: la metodología se adaptó según los fallos encontrados, especialmente en los múltiples intentos de integración entre módulos.
     
     \item \textbf{Validación experimental}: en todas las etapas se emplean casos de prueba reales (dispositivos sintéticos, controladores físicos, cascos EEG) para contrastar el funcionamiento.
 \end{itemize}
 
-La metodología se adaptó durante el desarrollo para responder a desafíos técnicos específicos, como la migración de Julia a Python por eficiencia de desarrollo, o la transición de arquitecturas monolíticas a modulares siguiendo principios SOLID.
+La metodología evolucionó durante el desarrollo para responder a desafíos técnicos específicos, como la migración de Julia a Python por eficiencia de desarrollo, múltiples fallos de integración directa, y la eventual adopción de arquitecturas API como solución robusta.
 
 \section{Fases y actividades}
 
-\begin{table}[H]
+\begin{table}[hp!]
 \centering
-\caption{Cronograma general del proyecto (abril-junio 2025)}
-\label{tab:cronograma}
-\begin{tabular}{|c|l|c|}
-\hline
+\resizebox{\textwidth}{!}{
+\begin{tabular}{c|l|c}
+\rowcolor{udcpink!25}
 \textbf{Fase} & \textbf{Actividad} & \textbf{Período} \\
 \hline
-1 & Investigación de tecnologías BCI y análisis del estado del arte & 01/04-11/04 \\
-\hline
-2 & Desarrollo del módulo de captura de inputs (IC) & 12/04-15/04 \\
-\hline
-3 & Desarrollo del módulo de procesamiento EEG (EP) & 12/04-19/04 \\
-\hline
-4 & Primera integración y sistema de logging & 16/04-19/04 \\
-\hline
-5 & Refactorización SOLID de ambos módulos & 20/04-21/04 \\
-\hline
-6 & Desarrollo de módulo de sincronización (LSL) & 22/04-30/04 \\
-\hline
-7 & \textit{Pausa por otros compromisos académicos} & 01/05-13/05 \\
-\hline
-8 & Desarrollo de APIs de acceso a datos & 14/05-18/05 \\
-\hline
-9 & Desarrollo del explorador web (FastAPI) & 18/05-22/05 \\
-\hline
-10 & APIs de control e interacción & 23/05-06/06 \\
-\hline
-11 & Implementación de controlador PS4 y CLI & 04/06-12/06 \\
-\hline
-12 & Desarrollo de funcionalidades avanzadas (MNE, ICA, filtros) & 13/06-21/06 \\
-\hline
-13 & Documentación técnica y memoria & 22/06-23/06 \\
-\hline
+0 & Investigación de tecnologías BCI y estado del arte & Marzo 2025 \\
+1.1 & Desarrollo inicial script captura de inputs & 12/04-13/04 \\
+1.2 & Intento de migración a Julia (fallido) & 13/04 \\
+1.3 & Desarrollo UI para módulo de inputs (tkinter → PyQt5) & 14/04-15/04 \\
+2.1 & Desarrollo inicial módulo procesamiento EEG & 14/04-16/04 \\
+2.2 & Expansión funcionalidades EEG (brain map, ayuda, CSV) & 16/04-17/04 \\
+3 & \textbf{Primer intento integración} (monolítica con LSL) & 17/04-19/04 \\
+4 & Refactorización SOLID de ambos módulos & 20/04-21/04 \\
+5 & \textbf{Segundo intento integración} (post-refactorización) & 22/04-30/04 \\
+6 & \textit{Pausa por otros compromisos académicos} & 01/05-13/05 \\
+7.1 & Desarrollo APIs de acceso a datos & 14/05-18/05 \\
+7.2 & Explorador web individual por módulo & 18/05-21/05 \\
+7.3 & Refactorización a explorador web unificado & 21/05-22/05 \\
+8.1 & APIs de control módulo inputs & 23/05-06/06 \\
+8.2 & Implementación controlador PS4 & 04/06-06/06 \\
+8.3 & Tipado masivo y pre-commit & 06/06-08/06 \\
+9.1 & CLI inputs (con problemas headless identificados) & 09/06-12/06 \\
+9.2 & Optimizaciones PS4 y arquitectura por eventos & 10/06-12/06 \\
+10.1 & API control módulo EEG (básico) & 13/06-14/06 \\
+10.2 & Integración MNE y centralización DataAccessService & 15/06-17/06 \\
+10.3 & Funcionalidades avanzadas (ICA, wavelets, filtros) & 17/06-18/06 \\
+10.4 & Detección automática canales y streamers & 19/06-20/06 \\
+10.5 & Migración lógica filtros y corrección grabación & 20/06-21/06 \\
+10.6 & Finalización API control EEG y CLI & 21/06-22/06 \\
+11 & \textbf{Módulo integración final} con LSL (pausado) & 22/06-23/06 \\
+12 & Documentación técnica y memoria & 22/06-23/06 \\
 \end{tabular}
+}
+\caption{Cronograma detallado del proyecto (marzo-junio 2025)}
+\label{tab:cronograma}
 \end{table}
 
 \subsection{Detalles por fase}
 
-\textbf{Fase 1-3: Desarrollo inicial (12-19 abril)}
+\textbf{Fase 0: Investigación previa (marzo 2025)}
 \begin{itemize}
-    \item Implementación básica con pynput para captura de teclado/ratón
-    \item Migración de tkinter a PyQt5 por limitaciones de rendimiento
-    \item Integración inicial con BrainFlow para procesamiento EEG
-    \item Sistema de ayuda contextual para parámetros técnicos
+    \item Análisis de librerías BCI y lenguajes soportados
+    \item Estudio de cascos EEG comerciales y características
+    \item Investigación sistema 10/20 y tipos de artefactos
+    \item Evaluación inicial Julia vs Python
 \end{itemize}
 
-\textbf{Fase 5: Refactorización SOLID (20-21 abril)}
+\textbf{Fase 1: Desarrollo módulo inputs (12-15 abril)}
 \begin{itemize}
-    \item Reestructuración arquitectural por limitaciones de mantenibilidad
-    \item Separación de responsabilidades en servicios independientes
-    \item Implementación de patrones de diseño (Singleton, Observer)
+    \item Script básico con pynput: teclado → filtros → ratón complejo → clicks
+    \item Intento fallido de migración a Julia por debugging complejo
+    \item UI inicial en tkinter (fallida por rendimiento)
+    \item Experimentación con PyQt5 via módulo EEG
+    \item Migración definitiva a PyQt5 y refinamiento visual
 \end{itemize}
 
-\textbf{Fase 8-9: Arquitectura API (14-22 mayo)}
+\textbf{Fase 2: Desarrollo módulo EEG (14-17 abril)}
 \begin{itemize}
-    \item Desarrollo de APIs REST para acceso a datos internos
-    \item Implementación de explorador web con FastAPI
-    \item Visualización en tiempo real mediante WebSockets
+    \item Experimento inicial con BrainFlow y placa sintética
+    \item Soporte todos los cascos BrainFlow y calidad de señal
+    \item Brain map (distribución electrodos sistema 10/20)
+    \item Sistema de ayuda contextual por falta conocimiento EEG
+    \item Logger CSV con métricas mentales y marcadores
 \end{itemize}
 
-\textbf{Fase 12: Funcionalidades avanzadas (13-21 junio)}
+\textbf{Fase 3: Primer intento integración (17-19 abril)}
 \begin{itemize}
-    \item Integración con MNE-Python para análisis avanzado
-    \item Implementación de ICA (Independent Component Analysis)
-    \item Filtros avanzados y transformadas wavelet
-    \item Optimización de rendimiento con callbacks y multiprocesamiento
+    \item Integración visual exitosa y coordinación grabadores
+    \item Soporte CSV en módulo inputs para unificar logs
+    \item \textbf{Fallo}: LSL con arquitectura monolítica por tamaño archivos
+\end{itemize}
+
+\textbf{Fase 4: Refactorización SOLID (20-21 abril)}
+\begin{itemize}
+    \item Reestructuración completa módulo inputs (día 20)
+    \item Reestructuración completa módulo EEG (día 21)
+    \item Archivos granulares, servicios independientes, patrones diseño
+\end{itemize}
+
+\textbf{Fase 5: Segundo intento integración (22-30 abril)}
+\begin{itemize}
+    \item Nuevo módulo integrador con arquitectura refactorizada
+    \item \textbf{Segundo fallo}: persistencia problemas integración
+    \item Mejoras interfaz y widgets ayuda formatos salida
+\end{itemize}
+
+\textbf{Fase 7: Arquitectura API (14-22 mayo)}
+\begin{itemize}
+    \item APIs acceso datos (módulo inputs primero, modulo EEG después)
+    \item Explorador web FastAPI para pruebas API
+    \item Visualizadores tiempo real WebSocket independientes
+    \item Refactorización a explorador web genérico unificado
+    \item Corrección problema polling concurrente
+\end{itemize}
+
+\textbf{Fase 8: APIs control (23 mayo - 8 junio)}
+\begin{itemize}
+    \item API control módulo inputs con sincronización GUI
+    \item Plantilla inicial API control EEG
+    \item Implementación controlador PS4 con SDL
+    \item Unificación servidores web (datos + control)
+    \item Tipado masivo y pre-commit
+\end{itemize}
+
+\textbf{Fase 9: CLIs y optimizaciones (9-12 junio)}
+\begin{itemize}
+    \item CLI módulo inputs basado en APIs
+    \item \textbf{Identificación problema}: modo headless no funcional (dependencias Qt)
+    \item PS4 no funcional en CLI (timers Qt)
+    \item Migración a arquitectura dirigida por eventos
+    \item Optimizaciones masivas: batching, workers, buffer circular, orjson
+\end{itemize}
+
+\textbf{Fase 10: Funcionalidades avanzadas EEG (13-22 junio)}
+\begin{itemize}
+    \item API control EEG: conexión placa, streams, parámetros
+    \item Integración MNE-Python, centralización DataAccessService
+    \item ICA, transformadas wavelet, filtros avanzados
+    \item Detección automática canales, presets dinámicos
+    \item Streamers archivo/TCP/UDP con restricciones RAW
+    \item Migración lógica filtros al servicio grabación
+    \item Corrección problemas filtros canales auxiliares
+    \item Migración polling → callbacks para evitar pérdida muestras
 \end{itemize}
 
 \section{Recursos y costes}
 
 \subsection{Hardware}
 \begin{itemize}
-    \item Ordenador portátil de desarrollo (especificaciones no críticas)
+    \item PC de desarrollo: Intel i7-7700K + 32GB RAM
     \item Controlador PS4 DualShock para pruebas de entrada
-    \item Dispositivos EEG sintéticos (simulados via BrainFlow)
+    \item Casco EEG g.tec Unicorn para validación final (250Hz, 8 canales)
+    \item Dispositivos EEG sintéticos BrainFlow para desarrollo (250Hz, múltiples canales)
 \end{itemize}
 
 \subsection{Software}
 \begin{itemize}
     \item \textbf{Lenguajes}: Python 3.8+, JavaScript, HTML/CSS
     \item \textbf{Frameworks}: PyQt5, FastAPI, MNE-Python
-    \item \textbf{Librerías principales}: BrainFlow, NumPy, SciPy, pynput
+    \item \textbf{Librerías principales}: BrainFlow, NumPy, SciPy, pynput, LSL
     \item \textbf{Herramientas}: Git, pre-commit, orjson, SDL2
     \item \textbf{Costes directos}: nulos (todas las licencias son libres)
 \end{itemize}
@@ -109,71 +168,76 @@ La metodología se adaptó durante el desarrollo para responder a desafíos téc
 \begin{itemize}
     \item \textbf{Desarrollo efectivo}: ~70 días (con pausa de 2 semanas)
     \item \textbf{Dedicación estimada}: ~350 horas
-    \item \textbf{Commits realizados}: 200+ (alta frecuencia iterativa)
+    \item \textbf{Commits realizados}: 200+ (desarrollo altamente iterativo)
 \end{itemize}
 
 \section{Análisis de riesgos y mitigación}
 
-\begin{table}[H]
+\begin{table}[hp!]
 \centering
-\caption{Principales riesgos identificados y estrategias de mitigación}
-\label{tab:riesgos}
-\begin{tabular}{|p{4cm}|c|c|p{5cm}|}
-\hline
+\resizebox{\textwidth}{!}{
+\begin{tabular}{l|c|c|l}
+\rowcolor{udcpink!25}
 \textbf{Riesgo} & \textbf{Prob.} & \textbf{Impacto} & \textbf{Estrategia de mitigación} \\
 \hline
-Incompatibilidad entre módulos desarrollados independientemente & Alta & Alta & Refactorización SOLID y desarrollo de APIs estándar \\
-\hline
-Limitaciones de rendimiento en tiempo real & Media & Alta & Implementación de callbacks, multiprocesamiento y optimizaciones específicas \\
-\hline
-Curva de aprendizaje de tecnologías BCI & Media & Media & Investigación previa exhaustiva y sistema de ayuda integrado \\
-\hline
-Problemas de sincronización temporal entre módulos & Alta & Media & Implementación de LSL y timestamps precisos \\
-\hline
-Dependencias con bibliotecas externas (BrainFlow, MNE) & Baja & Alta & Uso de APIs estables y manejo de excepciones robusto \\
-\hline
-Escalabilidad del código monolítico inicial & Alta & Media & Refactorización temprana aplicando principios SOLID \\
-\hline
+Fallos repetidos integración módulos & Alta & Alta & Múltiples enfoques: LSL monolítico → SOLID → APIs \\
+Escalabilidad código monolítico & Alta & Alta & Refactorización SOLID tras primer fallo integración \\
+Dependencias GUI en modo headless & Media & Media & Identificadas pero no resueltas completamente \\
+Rendimiento tiempo real crítico & Media & Alta & Eventos, callbacks, optimizaciones específicas \\
+Curva aprendizaje tecnologías BCI & Media & Media & Investigación exhaustiva, sistema ayuda integrado \\
+Sincronización temporal precisa & Alta & Media & Múltiples estrategias hasta solución viable \\
+Dependencias bibliotecas externas & Baja & Alta & APIs estables, manejo robusto excepciones \\
 \end{tabular}
+}
+\caption{Principales riesgos identificados y estrategias de mitigación}
+\label{tab:riesgos}
 \end{table}
 
 \section{Seguimiento y control}
 
 \subsection{Control de versiones}
 \begin{itemize}
-    \item \textbf{Repositorio Git}: con más de 200 commits documentando el progreso
-    \item \textbf{Estrategia de branching}: desarrollo directo en main con commits frecuentes
+    \item \textbf{Repositorio Git}: más de 200 commits documentando progreso
+    \item \textbf{Estrategia}: desarrollo directo en main con commits frecuentes
     \item \textbf{Versionado}: etiquetas semánticas para releases funcionales
 \end{itemize}
 
 \subsection{Metodología de desarrollo}
 \begin{itemize}
-    \item \textbf{Integración continua}: uso de pre-commit hooks para calidad de código
-    \item \textbf{Type hints}: tipado progresivo para mejorar mantenibilidad
-    \item \textbf{Documentación}: generación automática de documentación técnica
+    \item \textbf{Integración continua}: pre-commit hooks para calidad código
+    \item \textbf{Type hints}: tipado progresivo, sesiones masivas tipado
+    \item \textbf{Documentación}: generación automática documentación técnica
 \end{itemize}
 
 \subsection{Hitos principales}
 \begin{itemize}
-    \item \textbf{Milestone 1}: Módulos básicos funcionales (19/04)
-    \item \textbf{Milestone 2}: Refactorización SOLID completada (21/04)
-    \item \textbf{Milestone 3}: APIs funcionales y explorador web (22/05)
-    \item \textbf{Milestone 4}: Sistema completo con funcionalidades avanzadas (21/06)
+    \item \textbf{Milestone 1}: Módulos básicos + primer fallo integración (19/04)
+    \item \textbf{Milestone 2}: Refactorización SOLID + segundo fallo (30/04)
+    \item \textbf{Milestone 3}: Arquitectura API funcional (22/05)
+    \item \textbf{Milestone 4}: Sistema completo con funcionalidades avanzadas (22/06)
 \end{itemize}
 
 \section{Desviaciones y lecciones aprendidas}
 
-\subsection{Cambios metodológicos}
+\subsection{Evolución metodológica}
 \begin{itemize}
-    \item \textbf{Migración Julia → Python}: La precompilación y debugging complejo de Julia resultaron incompatibles con el desarrollo iterativo necesario
-    \item \textbf{Refactorización SOLID}: La arquitectura monolítica inicial se volvió inmanejable, requiriendo una reestructuración completa
-    \item \textbf{APIs como solución de integración}: Tras fallos con LSL, los APIs REST se convirtieron en la estrategia principal de integración
+    \item \textbf{Julia → Python}: Precompilación y debugging complejo incompatibles con desarrollo iterativo
+    \item \textbf{Dos fallos integración consecutivos}: Monolítica con LSL → SOLID con LSL → arquitectura API
+    \item \textbf{tkinter → PyQt5}: Limitaciones rendimiento obligaron cambio framework UI
+    \item \textbf{Polling → eventos → callbacks}: Evolución arquitectural por problemas rendimiento
 \end{itemize}
 
-\subsection{Desafíos técnicos superados}
+\subsection{Problemas no resueltos}
 \begin{itemize}
-    \item Sincronización de datos en tiempo real entre módulos independientes
-    \item Optimización de rendimiento para evitar pérdida de muestras
-    \item Compatibilidad entre diferentes tipos de dispositivos BCI
-    \item Implementación de modo headless para APIs sin dependencias GUI
+    \item \textbf{Modo headless CLI}: Dependencias Qt impiden funcionamiento completamente autónomo
+    \item \textbf{Separación logs CLI}: Mezclado logs aplicación principal con CLI
+    \item \textbf{Exportación EDF/CSV}: Fallos pausaron desarrollo módulo integración final
+\end{itemize}
+
+\subsection{Decisiones arquitecturales exitosas}
+\begin{itemize}
+    \item \textbf{APIs como backbone}: Solución robusta tras múltiples fallos integración directa
+    \item \textbf{DataAccessService centralizado}: Eliminó duplicaciones y inconsistencias
+    \item \textbf{Callbacks vs polling}: Solucionó pérdida muestras (10-30\%) en grabación
+    \item \textbf{Arquitectura dirigida por eventos}: Mejoró rendimiento PS4 drasticamente
 \end{itemize}
