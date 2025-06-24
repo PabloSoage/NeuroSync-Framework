@@ -178,19 +178,21 @@ La metodología evolucionó durante el desarrollo para responder a desafíos té
 
 \begin{table}[hp!]
   \centering
-  \rowcolors{2}{white}{udcgray!25}
-  \begin{tabular}{l|c|c|l}
-  \rowcolor{udcpink!25}
-  \textbf{Riesgo} & \textbf{Prob.} & \textbf{Impacto} & \textbf{Estrategia de mitigación} \\
-  \hline
-  Fallos repetidos integración módulos & Alta & Alta & Múltiples enfoques: LSL monolítico → SOLID → APIs \\
-  Escalabilidad código monolítico & Alta & Alta & Refactorización SOLID tras primer fallo integración \\
-  Dependencias GUI en modo headless & Media & Media & Identificadas pero no resueltas completamente \\
-  Rendimiento tiempo real crítico & Media & Alta & Eventos parciales, callbacks selectivos, optimizaciones \\
-  Curva aprendizaje tecnologías BCI & Media & Media & Investigación exhaustiva, sistema ayuda integrado \\
-  Sincronización temporal precisa & Alta & Media & Múltiples estrategias hasta solución viable \\
-  Dependencias bibliotecas externas & Baja & Alta & APIs estables, manejo robusto excepciones \\
-  \end{tabular}
+  \resizebox{\textwidth}{!}{
+    \rowcolors{2}{white}{udcgray!25}
+    \begin{tabular}{l|c|c|l}
+    \rowcolor{udcpink!25}
+    \textbf{Riesgo} & \textbf{Prob.} & \textbf{Impacto} & \textbf{Estrategia de mitigación} \\
+    \hline
+    Fallos repetidos integración módulos & Alta & Alta & Múltiples enfoques: LSL monolítico → SOLID → APIs \\
+    Escalabilidad código monolítico & Alta & Alta & Refactorización SOLID tras primer fallo integración \\
+    Dependencias GUI en modo headless & Media & Media & Identificadas pero no resueltas completamente \\
+    Rendimiento tiempo real crítico & Media & Alta & Eventos parciales, callbacks selectivos, optimizaciones \\
+    Curva aprendizaje tecnologías BCI & Media & Media & Investigación exhaustiva, sistema ayuda integrado \\
+    Sincronización temporal precisa & Alta & Media & Múltiples estrategias hasta solución viable \\
+    Dependencias bibliotecas externas & Baja & Alta & APIs estables, manejo robusto excepciones \\
+    \end{tabular}
+  }
   \caption{Principales riesgos identificados y estrategias de mitigación}
   \label{tab:riesgos}
 \end{table}

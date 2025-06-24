@@ -1,42 +1,42 @@
-#Core
-pynput
-brainflow
-numpy
-pyqt5
-pyqtgraph
-matplotlib
-pandas # although not used in the app itself, is required by the library. polars would be a more efficient alternative
+# Core
+pynput==1.8.1
+brainflow==5.16.0
+numpy==2.2.4
+pyqt5==5.15.11
+pyqtgraph==0.13.7
+matplotlib==3.10.1
+pandas==2.2.3  # although not used in the app itself, is required by the library. polars would be a more efficient alternative
 
-#Sync Core
-scipy
+# Sync Core
+scipy==1.15.2
 
 # LSL for synchronization
-pylsl
+pylsl==1.17.6
 
 # Dataset export formats
-h5py
-tables
+h5py==3.13.0
+tables==3.10.2
 
 # Optional EDF+ support
-pyedflib
+pyedflib==0.1.40
 
 # Optional BIDS support and MNE visualization
-mne
-mne-bids
-pybv >= 0.7.3
+mne==1.9.0
+mne-bids==0.16.0
+pybv>=0.7.6
 
 # Optional dependencies for Peripherals like PS4 controllers
-pysdl2
-pysdl2-dll
+pysdl2==0.9.17
+pysdl2-dll==2.32.0
 
 # Optional dependencies for API testing
-fastapi
-uvicorn[standard]
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
 
-#Optional dependencies for performance improvements
+# Optional dependencies for performance improvements
 orjson>=3.9.0  # Much faster JSON serialization (2-5x speedup)
 
 # Optional CLI dependencies
-typer>=0.9.0
-rich>=13.3.0
+typer>=0.16.0
+rich>=14.0.0
 keyboard>=0.13.5
