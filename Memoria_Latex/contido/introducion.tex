@@ -3,36 +3,99 @@
 
 \lettrine{L}{a} evolución de la interacción humano-computadora ha experimentado transformaciones revolucionarias en las últimas décadas. Desde las primeras interfaces basadas en comandos de texto hasta los modernos sistemas táctiles y de reconocimiento de voz, cada avance ha ampliado las posibilidades de comunicación entre personas y máquinas~\cite{eeg_bci_review,wolpaw2002brain}. Sin embargo, todas estas modalidades comparten una característica común: requieren algún tipo de actividad física consciente por parte del usuario, ya sea escribir, hacer clic, tocar una pantalla o hablar.
 
-Las interfaces cerebro-computadora (\acrfull{bci}) representan un paradigma fundamentalmente diferente que podría revolucionar esta interacción~\cite{eeg_bci_review,wolpaw2002brain}. Estos sistemas permiten establecer canales de comunicación directa entre el cerebro humano y dispositivos electrónicos, interpretando las señales neurológicas sin necesidad de actividad muscular consciente. Esta capacidad abre posibilidades extraordinarias en campos tan diversos como la medicina rehabilitadora, donde pueden restaurar capacidades de comunicación a personas con lesiones medulares severas, la accesibilidad tecnológica, proporcionando nuevas formas de interacción para personas con discapacidades motoras, y el desarrollo de paradigmas de interacción completamente nuevos que podrían transformar la forma en que los humanos utilizamos la tecnología.
+Las \acrfull{bci} representan un paradigma fundamentalmente diferente que podría revolucionar esta interacción~\cite{eeg_bci_review,wolpaw2002brain}. Estos sistemas permiten establecer canales de comunicación directa entre el cerebro humano y dispositivos electrónicos, interpretando las señales neurológicas sin necesidad de actividad muscular consciente~\cite{dornhege2007toward}. Esta capacidad abre posibilidades extraordinarias en campos tan diversos como la medicina rehabilitadora, donde pueden restaurar capacidades de comunicación a personas con lesiones medulares severas~\cite{wolpaw2002brain}, la accesibilidad tecnológica, proporcionando nuevas formas de interacción para personas con discapacidades motoras, y el desarrollo de paradigmas de interacción completamente nuevos que podrían transformar la forma en que los humanos utilizamos la tecnología.
 
-El fundamento de los sistemas \acrshort{bci} reside en la capacidad de capturar y interpretar señales bioeléctricas generadas por la actividad neuronal. La electroencefalografía (\acrfull{eeg}) se ha establecido como la técnica predominante para aplicaciones \acrshort{bci} no invasivas debido a su excelente resolución temporal, su naturaleza no invasiva y la disponibilidad de dispositivos comerciales accesibles~\cite{eeg_bci_review,wolpaw2002brain,dornhege2007toward}. Sin embargo, el desarrollo efectivo de sistemas \acrshort{bci} presenta desafíos técnicos significativos que han limitado su adopción práctica.
+El fundamento de los sistemas \acrshort{bci} reside en la capacidad de capturar y interpretar \gls{biosenial} generadas por la actividad neuronal. Los sistemas \acrshort{bci} modernos se clasifican principalmente según el método de adquisición de señales neurológicas, incluyendo la \acrfull{eeg}, la \acrfull{meg}, la \acrfull{fnirs} y técnicas invasivas como la \acrfull{ecog}. Entre estas modalidades, la \acrshort{eeg} se ha establecido como la técnica predominante para aplicaciones \acrshort{bci} no invasivas debido a su excelente resolución temporal (del orden de milisegundos), su naturaleza completamente no invasiva y la disponibilidad creciente de dispositivos comerciales accesibles~\cite{eeg_bci_review,wolpaw2002brain,dornhege2007toward}. A continuación se analizará en detalle el panorama actual de estas tecnologías y las limitaciones que motivan el desarrollo de nuevas soluciones integradas.
 
-Uno de los obstáculos más importantes en el desarrollo de sistemas \acrshort{bci} efectivos es la necesidad de datasets de alta calidad que contengan señales \acrshort{eeg} sincronizadas temporalmente con las intenciones o acciones del usuario. Esta sincronización es crítica porque permite establecer correlaciones estadísticamente significativas entre patrones específicos de actividad cerebral y las intenciones del usuario. Por ejemplo, cuando una persona imagina mover su mano derecha, se produce una desincronización relacionada con eventos en las frecuencias mu y beta sobre las áreas motoras contralaterales del cerebro. Capturar precisamente cuándo ocurre esta imaginación de movimiento en relación con el patrón \acrshort{eeg} observado es fundamental para entrenar algoritmos de aprendizaje automático que puedan reconocer y clasificar estas intenciones en tiempo real.
+Uno de los obstáculos más importantes en el desarrollo de sistemas \acrshort{bci} efectivos es la necesidad de \gls{dataset} de alta calidad que contengan señales \acrshort{eeg} sincronizadas temporalmente con las intenciones o acciones del usuario. Esta \gls{sincronizacion} es crítica porque permite establecer correlaciones estadísticamente significativas entre patrones específicos de actividad cerebral y las intenciones del usuario~\cite{eeg_desynchronization}. El fundamento neurofisiológico de estas correlaciones reside en fenómenos como la \gls{desincronizacion}, donde la actividad neuronal de fondo se modifica cuando el cerebro se prepara para una acción específica. Por ejemplo, cuando una persona imagina mover su mano derecha, se produce una disminución en la potencia de las frecuencias mu (8-13Hz) y beta (13-30Hz) sobre las áreas motoras contralaterales del cerebro~\cite{eeg_desynchronization}. Capturar precisamente cuándo ocurre esta imaginación de movimiento en relación con el patrón \acrshort{eeg} observado es fundamental para entrenar algoritmos de \acrfull{ml} que puedan reconocer y clasificar estas intenciones en tiempo real. Sin esta sincronización temporal precisa, los modelos predictivos no pueden establecer las asociaciones necesarias entre estados cerebrales y intenciones del usuario, limitando significativamente la efectividad de los sistemas \acrshort{bci}.
 
-Sin embargo, el ecosistema actual de herramientas para el desarrollo de sistemas \acrshort{bci} presenta una fragmentación significativa que dificulta la creación de estos datasets de calidad. Las herramientas existentes tienden a abordar aspectos específicos del problema de forma aislada, sin proporcionar soluciones integradas que cubran todo el flujo de trabajo necesario desde la captura hasta el análisis de datos.
+Sin embargo, el ecosistema actual de herramientas para el desarrollo de sistemas \acrshort{bci} presenta una fragmentación significativa que dificulta la creación de estos \gls{dataset} de calidad. Las herramientas existentes tienden a abordar aspectos específicos del problema de forma aislada, sin proporcionar soluciones integradas que cubran todo el flujo de trabajo necesario desde la captura hasta el análisis de datos.
 
 \section{Definición del problema}
 \label{sec:problema}
 
-El problema central que motiva este trabajo es la ausencia de una plataforma integrada que facilite la generación de datasets de calidad para el desarrollo de sistemas \acrshort{bci}. Esta carencia se manifiesta en varios aspectos críticos que limitan tanto la investigación académica como el desarrollo de aplicaciones prácticas en el campo.
+El problema central que motiva este trabajo es la ausencia de una plataforma integrada que facilite la generación de \gls{dataset} de calidad para el desarrollo de sistemas \acrshort{bci}. Esta carencia se manifiesta en varios aspectos críticos que limitan tanto la investigación académica como el desarrollo de aplicaciones prácticas en el campo.
 
-En primer lugar, no existe una solución que proporcione captura sincronizada de señales \acrshort{eeg} junto con eventos de entrada convencionales del usuario. Esta sincronización temporal es fundamental para establecer las correlaciones necesarias entre actividad cerebral e intenciones del usuario. Las herramientas actuales como \textit{Lab Streaming Layer} requieren programación personalizada sustancial y conocimientos técnicos avanzados, mientras que bibliotecas como \textit{BrainFlow} se centran únicamente en la adquisición de datos \acrshort{eeg} sin proporcionar capacidades para la captura de eventos de usuario.
+En primer lugar, no existe una solución que proporcione captura sincronizada de señales \acrshort{eeg} junto con eventos de entrada convencionales del usuario. Esta \gls{sincronizacion} temporal es fundamental para establecer las correlaciones necesarias entre actividad cerebral e intenciones del usuario~\cite{eeg_desynchronization,Pontifex2023}. Las herramientas actuales como \textit{Lab Streaming Layer} requieren programación personalizada sustancial y conocimientos técnicos avanzados, mientras que bibliotecas como \textit{BrainFlow} se centran únicamente en la adquisición de datos \acrshort{eeg} sin proporcionar capacidades para la captura de eventos de usuario.
 
-En segundo lugar, existe una carencia de interfaces de usuario accesibles que permitan a investigadores sin conocimientos de programación avanzados generar estos datasets. La mayoría de herramientas existentes están diseñadas para desarrolladores expertos, creando barreras de entrada significativas para investigadores en neurociencia, psicología o medicina que podrían beneficiarse de estas tecnologías.
+En segundo lugar, existe una carencia de interfaces de usuario accesibles que permitan a investigadores sin conocimientos de programación avanzados generar estos \gls{dataset}. La mayoría de herramientas existentes están diseñadas para desarrolladores expertos, creando barreras de entrada significativas para investigadores en neurociencia, psicología o medicina que podrían beneficiarse de estas tecnologías.
 
-Adicionalmente, la falta de estandarización en formatos de exportación de datos complica el intercambio y reutilización de datasets entre diferentes grupos de investigación. Cada herramienta tiende a utilizar formatos propietarios o específicos, dificultando la reproducibilidad de experimentos y la colaboración científica.
+Adicionalmente, la falta de estandarización en formatos de exportación de datos complica el intercambio y reutilización de \gls{dataset} entre diferentes grupos de investigación. Cada herramienta tiende a utilizar formatos propietarios o específicos, dificultando la reproducibilidad de experimentos y la colaboración científica.
 
 Por último, no existe una arquitectura extensible que permita integrar fácilmente nuevos tipos de dispositivos de entrada o algoritmos de procesamiento, limitando la evolución y adaptación de las herramientas a medida que avanzan las tecnologías \acrshort{bci}.
+
+\section{Análisis \acrfull{dafo}}
+\label{sec:analisis_dafo}
+
+Para evaluar adecuadamente la viabilidad y posicionamiento estratégico de la solución propuesta, se presenta un análisis \acrshort{dafo} que examina las fortalezas internas del sistema, sus debilidades, las oportunidades del entorno y las amenazas externas que podrían afectar su desarrollo y adopción.
+
+\subsection{Fortalezas del sistema propuesto}
+\label{subsec:fortalezas}
+
+\begin{itemize}
+    \item \textbf{Integración multidispositivo}: El \textit{framework} proporciona por primera vez una solución unificada que integra múltiples fuentes de entrada (\acrshort{eeg}, teclado, ratón, controladores) en un único sistema sincronizado, eliminando la necesidad de combinar herramientas fragmentadas.
+
+    \item \textbf{Arquitectura extensible y modular}: El diseño basado en principios \acrshort{solid} y patrones dirigidos por eventos facilita la incorporación de nuevos dispositivos, algoritmos de procesamiento y técnicas de análisis sin modificar el núcleo del sistema.
+
+    \item \textbf{Múltiples interfaces de usuario}: La disponibilidad simultánea de interfaces gráficas, de línea de comandos y \acrshort{api} web permite que usuarios con diferentes niveles técnicos y contextos de uso puedan aprovechar las capacidades del sistema.
+
+    \item \textbf{Soporte de formatos estándar}: La exportación nativa a formatos ampliamente utilizados en neurociencia (\acrshort{bids}, \acrshort{edf}+, \acrshort{hdf5}) aumenta significativamente la usabilidad para investigadores y facilita la interoperabilidad con herramientas existentes.
+
+    \item \textbf{Procesamiento avanzado en tiempo real}: La implementación de algoritmos sofisticados como \acrshort{ica}, transformadas \textit{wavelet} y filtros digitales con optimizaciones para tiempo real proporciona capacidades de análisis que tradicionalmente requerían procesamiento \textit{offline}.
+\end{itemize}
+
+\subsection{Debilidades a considerar}
+\label{subsec:debilidades}
+
+\begin{itemize}
+    \item \textbf{Dependencia de bibliotecas externas}: La dependencia crítica de bibliotecas como \textit{BrainFlow} para la adquisición de señales \acrshort{eeg} podría limitar las funcionalidades del sistema si estas bibliotecas presentan limitaciones o discontinúan su desarrollo.
+
+    \item \textbf{Desafíos de sincronización temporal}: La sincronización precisa entre diferentes fuentes de datos presenta complejidades técnicas debido a latencias variables en diferentes sistemas operativos y configuraciones de hardware, lo que podría afectar la calidad de los \gls{dataset} generados.
+
+    \item \textbf{Limitaciones de escalabilidad}: Aunque el sistema está optimizado para tiempo real, el procesamiento simultáneo de múltiples dispositivos \acrshort{eeg} de alta resolución podría requerir recursos computacionales significativos que limiten su aplicabilidad en sistemas con recursos limitados.
+
+    \item \textbf{Curva de aprendizaje inicial}: A pesar de las interfaces simplificadas, el dominio \acrshort{bci} requiere conocimientos especializados en procesamiento de señales y neurociencia que podrían representar una barrera inicial para algunos usuarios.
+\end{itemize}
+
+\subsection{Oportunidades en el entorno}
+\label{subsec:oportunidades}
+
+\begin{itemize}
+    \item \textbf{Crecimiento exponencial del campo \acrshort{bci}}: El interés creciente en aplicaciones \acrshort{bci} en medicina rehabilitadora, accesibilidad tecnológica y nuevas interfaces de usuario crea un mercado en expansión que demanda herramientas más accesibles y potentes.
+
+    \item \textbf{Carencia de soluciones integradas}: La fragmentación actual del ecosistema de herramientas \acrshort{bci} representa una oportunidad significativa para una solución que integre captura sincronizada de señales \acrshort{eeg} y eventos de usuario.
+
+    \item \textbf{Democratización de la investigación \acrshort{bci}}: La reducción de barreras técnicas puede facilitar el acceso a la investigación \acrshort{bci} para grupos con menos recursos técnicos, ampliando potencialmente la base de usuarios y contribuyendo al avance del campo.
+
+    \item \textbf{Tendencia hacia código abierto}: La preferencia creciente por soluciones de código abierto en investigación científica posiciona favorablemente al \textit{framework} frente a alternativas comerciales cerradas.
+
+    \item \textbf{Evolución de hardware accesible}: La disponibilidad creciente de dispositivos \acrshort{eeg} de bajo coste y alta calidad amplía el mercado potencial de usuarios que podrían beneficiarse del sistema.
+\end{itemize}
+
+\subsection{Amenazas externas}
+\label{subsec:amenazas}
+
+\begin{itemize}
+    \item \textbf{Competencia de soluciones comerciales}: La aparición de nuevas soluciones comerciales similares, especialmente de empresas con mayores recursos, podría limitar la adopción del \textit{framework} de código abierto.
+
+    \item \textbf{Evolución rápida del hardware \acrshort{eeg}}: Los avances acelerados en tecnología de dispositivos \acrshort{eeg} podrían requerir actualizaciones frecuentes y significativas del sistema para mantener la compatibilidad y relevancia.
+
+    \item \textbf{Cambios en estándares de la industria}: La evolución de formatos de datos y protocolos de comunicación en el campo \acrshort{bci} podría requerir adaptaciones importantes del \textit{framework}.
+
+    \item \textbf{Limitaciones regulatorias}: El desarrollo de regulaciones más estrictas para aplicaciones \acrshort{bci}, especialmente en contextos médicos, podría crear barreras adicionales para la adopción del sistema.
+
+    \item \textbf{Fragmentación de la comunidad}: La falta de consenso en la comunidad \acrshort{bci} sobre estándares y mejores prácticas podría limitar la adopción uniforme de cualquier solución integrada.
+\end{itemize}
 
 \section{Objetivos}
 \label{sec:objetivos}
 
-Para abordar las limitaciones identificadas, este trabajo define los siguientes objetivos que guiarán el desarrollo de la solución propuesta.
+Para abordar las limitaciones identificadas y aprovechar las oportunidades reveladas por el análisis \acrshort{dafo}, este trabajo define los siguientes objetivos que guiarán el desarrollo de la solución propuesta.
 
 \subsection{Objetivo general}
 \label{subsec:objetivo_general}
 
-El objetivo principal de este Trabajo de Fin de Grado es desarrollar una plataforma software integrada que facilite la captura, sincronización y procesamiento de señales \acrshort{eeg} junto con eventos de entrada de usuario, proporcionando las herramientas necesarias para la generación de datasets de calidad orientados al desarrollo de interfaces cerebro-computadora.
+El objetivo principal de este \acrfull{tfg} es crear una plataforma software que facilite la captura, sincronización y procesamiento de señales \acrshort{eeg} junto con eventos de entrada de usuario, proporcionando las herramientas necesarias para la generación de \gls{dataset} de calidad que puedan ser utilizados en el desarrollo de \gls{bci}.
 
 \subsection{Objetivos específicos}
 \label{subsec:objetivos_especificos}
@@ -42,17 +105,15 @@ Del objetivo general se derivan los siguientes objetivos específicos que estruc
 \begin{enumerate}
     \item \textbf{Realizar un estudio exhaustivo del estado de la cuestión}: Analizar las herramientas existentes para el desarrollo de sistemas \acrshort{bci}, identificando sus fortalezas, limitaciones y oportunidades de mejora. Este análisis incluirá tanto sistemas existentes como bibliotecas de soporte en las que se puede basar el desarrollo.
 
-    \item \textbf{Desarrollar un sistema de captura sincronizada de datos}: Implementar un sistema robusto que capture simultáneamente señales \acrshort{eeg} y eventos de entrada del usuario (teclado, ratón, controladores de juego) con precisión temporal de milisegundos, garantizando la sincronización necesaria para establecer correlaciones válidas.
+    \item \textbf{Desarrollar un sistema robusto de captura de eventos de usuario}: Implementar un sistema que registre eventos de teclado, ratón y controladores con precisión temporal de milisegundos, incluyendo sistemas de marcado temporal para correlacionar estos eventos con señales cerebrales.
 
-    \item \textbf{Implementar capacidades de procesamiento de señales en tiempo real}: Desarrollar un sistema de procesamiento que aplique algoritmos avanzados de análisis de señales durante la captura, incluyendo filtrado digital, análisis de componentes independientes y transformadas tiempo-frecuencia.
+    \item \textbf{Implementar un sistema de adquisición y procesado de señales \acrshort{eeg}}: Desarrollar capacidades de captura de señales \acrshort{eeg} con soporte para dispositivos comerciales, incluyendo procesamiento de señales en tiempo real con algoritmos avanzados como filtrado digital, \acrfull{ica} y transformadas tiempo-frecuencia.
 
-    \item \textbf{Crear interfaces de usuario múltiples y accesibles}: Diseñar e implementar interfaces gráficas, de línea de comandos y web que permitan a usuarios con diferentes niveles de conocimiento técnico utilizar la plataforma de forma efectiva.
+    \item \textbf{Crear un sistema de generación y almacenamiento de \gls{dataset}}: Implementar funcionalidades para la captura sincronizada de señales \acrshort{eeg} y eventos de entrada, con exportación a formatos estándar como \acrfull{hdf5}, \acrfull{edf}+ y \acrfull{bids} que faciliten el futuro entrenamiento de modelos predictivos.
 
-    \item \textbf{Desarrollar capacidades de exportación a formatos estándar}: Implementar soporte para la exportación de datos a formatos ampliamente utilizados en la comunidad científica, incluyendo \acrfull{bids}, \acrfull{edf}+ y \acrfull{hdf5}, facilitando la interoperabilidad con herramientas existentes.
+    \item \textbf{Desarrollar interfaces de visualización}: Crear interfaces para monitorizar en tiempo real tanto señales \acrshort{eeg} como eventos de entrada, proporcionando múltiples modalidades de acceso (\acrfull{gui}, \acrfull{cli} y \acrfull{api} web) que permitan a usuarios con diferentes niveles de conocimiento técnico utilizar la plataforma.
 
-    \item \textbf{Diseñar una arquitectura extensible}: Crear una arquitectura modular basada en principios \acrfull{solid}~\cite{martin2003agile} que facilite la integración de nuevos dispositivos, algoritmos de procesamiento y formatos de exportación.
-
-    \item \textbf{Validar la efectividad del sistema}: Realizar pruebas exhaustivas que demuestren la capacidad de la plataforma para generar datasets de calidad con la precisión temporal y la integridad de datos necesarias para aplicaciones \acrshort{bci}.
+    \item \textbf{Diseñar una arquitectura extensible}: Crear una arquitectura modular basada en principios \acrfull{solid}~\cite{martin2003agile} que permita la integración con herramientas existentes de \acrfull{ml} y facilite la incorporación de nuevos dispositivos y técnicas de procesamiento.
 \end{enumerate}
 
 \section{Metodología}
@@ -64,38 +125,23 @@ La metodología se caracteriza por el desarrollo modular, donde cada componente 
 
 Un aspecto clave del desarrollo ha sido la aplicación de técnicas de refactorización continua, especialmente la reestructuración del código siguiendo principios \acrshort{solid} para mejorar la mantenibilidad y extensibilidad del sistema. Esta decisión resultó especialmente valiosa cuando se detectaron limitaciones en los enfoques iniciales de integración entre módulos.
 
-La validación del sistema se ha realizado mediante el desarrollo de \acrfull{api} que han permitido la verificación exhaustiva de funcionalidades y la detección de errores internos. Adicionalmente, se han integrado herramientas de calidad de código como \textit{pre-commit hooks}, tipado estático, formateo automático y verificación de documentación para mantener estándares elevados durante todo el proceso de desarrollo.
+La validación del sistema se ha realizado mediante el desarrollo de \acrfull{api} que han permitido la verificación exhaustiva de funcionalidades y la detección de errores internos. Adicionalmente, se han integrado herramientas de calidad de código como \textit{pre-commit hooks}, tipado estático, formateo automático y verificación de documentación para mantener estándares durante todo el proceso de desarrollo.
 
-Los detalles específicos de la metodología, incluyendo las fases del proyecto, cronograma detallado y análisis de riesgos, se presentan en el Capítulo 2 de esta memoria.
-
-\section{Contribuciones principales}
-\label{sec:contribuciones}
-
-Este trabajo aporta las siguientes contribuciones al campo de las interfaces cerebro-computadora:
-
-\begin{enumerate}
-    \item \textbf{Primera plataforma integrada para generación de datasets \acrshort{bci}}: El sistema desarrollado es la primera solución que combina captura sincronizada de señales \acrshort{eeg} y eventos de usuario con múltiples interfaces de usuario en una arquitectura cohesiva, eliminando la necesidad de combinar herramientas fragmentadas.
-
-    \item \textbf{Arquitectura dirigida por eventos para sistemas \acrshort{bci}}: Se ha diseñado e implementado un sistema de comunicación desacoplado basado en eventos que facilita la extensibilidad y el mantenimiento del código, estableciendo un patrón arquitectónico reutilizable para futuras aplicaciones en el dominio.
-
-    \item \textbf{Soporte multidispositivo con \acrshort{api} unificadas}: La plataforma integra dispositivos \acrshort{eeg} comerciales con periféricos estándar mediante interfaces de programación unificadas, simplificando significativamente el desarrollo de aplicaciones \acrshort{bci}.
-
-    \item \textbf{Procesamiento avanzado optimizado para tiempo real}: Se han implementado algoritmos de procesamiento de señales con optimizaciones específicas para operación en tiempo real, incluyendo visualización integrada y análisis de calidad de señal.
-
-    \item \textbf{Exportación nativa a formatos estándar de neurociencia}: El sistema proporciona soporte directo para formatos ampliamente utilizados en la comunidad científica, facilitando la interoperabilidad con herramientas existentes y mejorando la reproducibilidad de experimentos.
-\end{enumerate}
+Los detalles específicos de la metodología, incluyendo las fases del proyecto, cronograma detallado y análisis de riesgos, se presentan en el Capítulo \ref{chap:metodologia} de esta memoria.
 
 \section{Estructura de la memoria}
 \label{sec:estructura}
 
 Esta memoria se organiza siguiendo una estructura lógica que guía al lector desde la contextualización del problema hasta la presentación de resultados y conclusiones.
 
-El \textbf{Capítulo 2} presenta una revisión exhaustiva del estado del arte en tecnologías \acrshort{bci}, analizando las herramientas existentes para captura y procesamiento de datos \acrshort{eeg}, identificando sus limitaciones y oportunidades de mejora. Adicionalmente, este capítulo describe en detalle la metodología de desarrollo empleada, incluyendo la planificación del proyecto, análisis de riesgos y estrategias de mitigación.
+El Capítulo \ref{chap:estado_arte} presenta una revisión exhaustiva del estado del arte en tecnologías \acrshort{bci}, analizando las herramientas existentes para captura y procesamiento de datos \acrshort{eeg}, identificando sus limitaciones y oportunidades de mejora que justifican el desarrollo de la solución propuesta.
 
-El \textbf{Capítulo 3} aborda el análisis y diseño del sistema, presentando los requisitos funcionales y no funcionales identificados, la arquitectura general de la solución y el diseño detallado de cada componente. Se justifican las decisiones de diseño principales y se describe cómo la arquitectura propuesta aborda las limitaciones identificadas en el estado del arte.
+El Capítulo \ref{chap:metodologia} describe en detalle la metodología de desarrollo empleada, incluyendo la planificación del proyecto, cronograma, análisis de riesgos y estrategias de mitigación. Se documentan las fases del desarrollo incremental-iterativo y las lecciones aprendidas durante el proceso.
 
-El \textbf{Capítulo 4} documenta la implementación del sistema, describiendo las decisiones técnicas específicas, los desafíos encontrados durante el desarrollo y las soluciones adoptadas. Se presentan los aspectos más técnicos de cada módulo y se analizan las optimizaciones realizadas para garantizar el rendimiento en tiempo real.
+El Capítulo \ref{chap:analisis_diseno} aborda el análisis y diseño del sistema, presentando los requisitos funcionales y no funcionales identificados, la arquitectura general de la solución y el diseño detallado de cada componente. Se justifican las decisiones de diseño principales y se describe cómo la arquitectura propuesta aborda las limitaciones identificadas.
 
-Finalmente, el \textbf{Capítulo 5} presenta las conclusiones del trabajo, evaluando el cumplimiento de los objetivos propuestos, analizando las limitaciones de la solución desarrollada y proponiendo líneas de trabajo futuro que podrían extender y mejorar la plataforma.
+El Capítulo \ref{chap:implementacion} documenta la implementación del sistema, describiendo las decisiones técnicas específicas, los desafíos encontrados durante el desarrollo y las soluciones adoptadas. Se presentan los aspectos más técnicos de cada módulo y se analizan las optimizaciones realizadas para garantizar el rendimiento en tiempo real.
+
+Finalmente, el Capítulo \ref{chap:conclusiones} presenta las conclusiones del trabajo, evaluando el cumplimiento de los objetivos propuestos, analizando las limitaciones de la solución desarrollada y proponiendo líneas de trabajo futuro que podrían extender y mejorar la plataforma.
 
 Los anexos complementan la memoria principal con documentación técnica detallada, manuales de usuario y material adicional que facilita la comprensión y utilización del sistema desarrollado.
