@@ -1,0 +1,415 @@
+\chapter{Desarrollo}
+\label{chap:desarrollo}
+
+\lettrine{E}{l} desarrollo del sistema se ha realizado siguiendo una metodología incremental-iterativa que ha permitido evolucionar desde prototipos funcionales simples hasta una arquitectura modular robusta. Este capítulo documenta el proceso de desarrollo completo, desde el análisis inicial de requisitos hasta la implementación final del sistema, describiendo las iteraciones principales, los desafíos encontrados y las soluciones arquitectónicas adoptadas para superarlos.
+
+La metodología empleada se caracteriza por ciclos de desarrollo cortos con validación continua, refactorización proactiva cuando se identifican limitaciones arquitectónicas, y adaptación flexible a los aprendizajes obtenidos durante la implementación. Esta aproximación ha resultado especialmente valiosa en un dominio técnico complejo como el desarrollo de sistemas \acrshort{bci}, donde la experimentación y validación temprana son fundamentales para el éxito del proyecto.
+
+\section{Análisis de requisitos}
+\label{sec:analisis_requisitos_dev}
+
+El análisis de requisitos se realizó de forma evolutiva, refinándose a medida que se profundizaba en el dominio del problema y se obtenía retroalimentación de los prototipos desarrollados. Los requisitos iniciales se establecieron basándose en el análisis del estado del arte y las limitaciones identificadas en las herramientas existentes, mientras que los requisitos detallados emergieron durante el proceso de desarrollo incremental.
+
+\subsection{Requisitos funcionales principales}
+\label{subsec:requisitos_funcionales_dev}
+
+Los requisitos funcionales del sistema se organizaron en cuatro categorías principales que reflejan la arquitectura modular adoptada. La captura sincronizada de eventos constituye el requisito central del sistema, exigiendo la capacidad de registrar eventos de teclado, ratón y controladores con precisión temporal de milisegundos, incluyendo timestamps sincronizados que permitan correlacionar estos eventos con señales cerebrales. Esta funcionalidad debe soportar múltiples dispositivos de entrada simultáneamente y proporcionar filtrado configurable de eventos para evitar ruido en los datos capturados.
+
+El procesamiento de señales \acrshort{eeg} en tiempo real representa otro conjunto crítico de requisitos, incluyendo soporte para múltiples dispositivos comerciales mediante la biblioteca \textit{BrainFlow}, visualización en tiempo real de señales con detección automática de tipos de canales, y aplicación de algoritmos de procesamiento avanzados como filtrado digital, \acrfull{ica} y transformadas \textit{wavelet}. El sistema debe proporcionar monitoreo de calidad de señal y permitir la inserción manual de marcadores durante la grabación para correlación posterior con eventos experimentales.
+
+La generación y exportación de datasets requiere capacidades de sincronización temporal precisa entre señales \acrshort{eeg} y eventos de entrada, con exportación automática a formatos estándar como \acrshort{bids}, \acrshort{edf}+, \acrshort{hdf5} y \acrshort{csv}. El sistema debe mantener metadatos completos sobre las condiciones de adquisición y proporcionar herramientas para validación de la integridad de los datos exportados.
+
+Finalmente, las interfaces de usuario múltiples deben proporcionar acceso completo a todas las funcionalidades del sistema a través de interfaces gráficas intuitivas, herramientas de línea de comandos para automatización, y \acrshort{api} web para integración con herramientas externas. Estas interfaces deben mantener sincronización de estado y proporcionar retroalimentación visual inmediata sobre el funcionamiento del sistema.
+
+\subsection{Requisitos no funcionales críticos}
+\label{subsec:requisitos_no_funcionales_dev}
+
+Los requisitos de rendimiento establecen restricciones estrictas sobre la latencia del sistema, exigiendo que la captura de eventos de entrada mantenga latencias inferiores a 50ms y que el procesamiento de señales \acrshort{eeg} permita visualización en tiempo real sin pérdida de muestras. El sistema debe soportar frecuencias de muestreo de hasta 1000Hz para señales \acrshort{eeg} y manejar múltiples streams de datos simultáneamente sin degradación del rendimiento.
+
+La usabilidad requiere interfaces intuitivas que permitan a investigadores con diferentes niveles técnicos utilizar efectivamente el sistema. Las interfaces gráficas deben proporcionar retroalimentación visual clara sobre el estado del sistema y la calidad de los datos, mientras que las herramientas de línea de comandos deben validar automáticamente los parámetros.
+
+La extensibilidad arquitectónica exige una estructura modular que permita la adición de nuevos tipos de dispositivos, algoritmos de procesamiento y formatos de exportación sin modificaciones del núcleo del sistema. La arquitectura debe facilitar el mantenimiento del código y la colaboración de múltiples desarrolladores mediante principios de diseño sólidos y documentación completa.
+
+La calidad del código requiere tipado estático completo, cobertura de pruebas adecuada y cumplimiento de estándares de codificación establecidos. El sistema debe mantener thread-safety en todas las operaciones concurrentes y proporcionar manejo robusto de errores con recuperación automática cuando sea posible.
+
+\subsection{Casos de uso principales}
+\label{subsec:casos_uso_principales}
+
+Los casos de uso del sistema reflejan diferentes contextos de utilización que van desde investigación académica hasta desarrollo de aplicaciones comerciales. El caso de uso primario consiste en la generación de datasets para entrenamiento de modelos \acrshort{ml}, donde un investigador configura el sistema para capturar señales \acrshort{eeg} de un participante mientras este realiza tareas específicas usando dispositivos de entrada convencionales. El sistema debe sincronizar temporalmente ambos tipos de datos y exportar el dataset resultante en formatos compatibles con herramientas de análisis estadístico.
+
+El análisis de señales en tiempo real constituye otro caso de uso importante, donde el sistema proporciona visualización inmediata de señales cerebrales con aplicación de filtros y algoritmos de procesamiento para facilitar la interpretación de datos durante experimentos en vivo. Esta funcionalidad es especialmente valiosa para validación de paradigmas experimentales y ajuste de parámetros de adquisición.
+
+El desarrollo de aplicaciones \acrshort{bci} personalizadas utiliza las \acrshort{api} del sistema para acceder programáticamente a datos de señales y eventos, permitiendo la creación de interfaces especializadas o la integración con herramientas existentes de análisis de datos. Este caso de uso requiere documentación extensa de las \acrshort{api} y ejemplos de código para facilitar la adopción por parte de desarrolladores externos.
+
+\section{Primera iteración: Prototipos funcionales}
+\label{sec:primera_iteracion}
+
+La primera iteración del desarrollo se centró en la creación de prototipos funcionales que validaran la viabilidad técnica de los conceptos centrales del sistema. Esta fase se caracterizó por experimentos rápidos con diferentes tecnologías y bibliotecas para establecer las bases técnicas del proyecto.
+
+\subsection{Investigación preliminar y selección tecnológica}
+\label{subsec:investigacion_preliminar}
+
+La fase inicial del proyecto comenzó con una investigación exhaustiva del ecosistema tecnológico disponible para el desarrollo de sistemas \acrshort{bci}. Esta investigación abarcó el análisis de bibliotecas especializadas como \textit{BrainFlow} para adquisición de señales \acrshort{eeg}, \textit{Lab Streaming Layer} para sincronización de datos, y \textit{MNE-Python} para procesamiento avanzado de señales biomédicas. La evaluación incluyó tanto las capacidades técnicas como la facilidad de integración y el soporte comunitario de cada herramienta.
+
+El estudio de dispositivos \acrshort{eeg} comerciales se enfocó en identificar las características técnicas relevantes como número de canales, frecuencia de muestreo, resolución y métodos de conectividad. Se analizaron dispositivos que van desde sistemas clínicos de alta gama hasta dispositivos de consumo accesibles, evaluando especialmente aquellos soportados por \textit{BrainFlow} para garantizar compatibilidad con la biblioteca de abstracción seleccionada.
+
+La investigación del sistema internacional 10-20 para posicionamiento de electrodos proporcionó el conocimiento fundamental necesario para implementar visualizaciones anatómicamente correctas de la actividad cerebral. Este estudio incluyó el análisis de extensiones modernas como el sistema \acrshort{mcn} y la comprensión de los tipos de artefactos que pueden aparecer en diferentes posiciones de electrodos.
+
+La evaluación inicial de lenguajes de programación consideró tanto \textit{Julia} como \textit{Python}, analizando las ventajas de rendimiento de \textit{Julia} frente a la madurez del ecosistema científico de \textit{Python}. Esta evaluación resultó en la selección tentativa de \textit{Julia} para el desarrollo inicial, decisión que posteriormente sería reconsiderada basándose en experiencias prácticas de desarrollo.
+
+\subsection{Desarrollo del prototipo de captura de entrada}
+\label{subsec:prototipo_captura_entrada}
+
+El desarrollo comenzó con la implementación de un script básico en \textit{Python} utilizando la biblioteca \textit{pynput} para capturar eventos de teclado. Este prototipo inicial demostró la viabilidad de obtener timestamps precisos para eventos de entrada y estableció las bases para el sistema de sincronización temporal que sería fundamental para todo el proyecto.
+
+La expansión del prototipo para incluir filtrado de teclas específicas reveló la importancia de proporcionar configurabilidad en la captura de eventos. Esta funcionalidad permite a los investigadores enfocar la captura en eventos relevantes para sus experimentos específicos, reduciendo el ruido en los datos y mejorando la eficiencia del procesamiento posterior.
+
+La incorporación de soporte para eventos de ratón presentó desafíos técnicos significativos, especialmente en aplicaciones de juegos donde el cursor se mantiene centrado en la pantalla. La solución desarrollada incluyó múltiples modos de captura que representan el movimiento del ratón como direcciones en 8 puntos cardinales con información de velocidad, proporcionando flexibilidad para diferentes tipos de paradigmas experimentales.
+
+La adición de soporte para clicks de ratón y el filtrado de eventos de liberación completó las capacidades básicas de captura de entrada. Esta implementación reveló la complejidad inherente en el manejo de eventos de entrada a bajo nivel y la importancia de proporcionar filtrado configurable para diferentes tipos de eventos.
+
+\subsection{Experiencia con Julia y migración a Python}
+\label{subsec:experiencia_julia}
+
+El intento de migración del prototipo a \textit{Julia} proporcionó experiencia valiosa sobre las ventajas y limitaciones de este lenguaje para desarrollo experimental. Aunque \textit{Julia} ofrece rendimiento superior y tipado fuerte que resultaría beneficioso para procesamiento intensivo de señales, la precompilación requerida para cada ejecución y la dificultad para depurar errores complejos resultaron incompatibles con la metodología de desarrollo iterativo adoptada.
+
+La naturaleza experimental del proyecto requería ciclos rápidos de prueba y modificación que se veían significativamente obstaculizados por los tiempos de compilación de \textit{Julia}. Adicionalmente, la menor madurez del ecosistema de \textit{Julia} para desarrollo de interfaces gráficas y herramientas de desarrollo complicaba la implementación de funcionalidades avanzadas del sistema.
+
+Esta experiencia ilustró la importancia de seleccionar tecnologías que se alineen no solo con los requisitos técnicos del producto final, sino también con la metodología de desarrollo adoptada. La decisión de continuar con \textit{Python} resultó estratégicamente correcta, facilitando el desarrollo rápido y la integración con el rico ecosistema de bibliotecas científicas disponibles.
+
+\subsection{Desarrollo inicial de interfaces gráficas}
+\label{subsec:desarrollo_inicial_gui}
+
+La implementación de la primera interfaz gráfica utilizando \textit{tkinter} sirvió como experimento para validar conceptos de visualización en tiempo real de eventos de entrada. Esta interfaz incluía representación visual de teclas presionadas y visualización del movimiento del ratón como un joystick analógico, proporcionando retroalimentación visual inmediata sobre la actividad del usuario.
+
+Sin embargo, las limitaciones de rendimiento de \textit{tkinter} para actualizaciones frecuentes de elementos gráficos se manifestaron rápidamente, especialmente cuando se intentaba visualizar streams de datos de alta frecuencia. La falta de widgets especializados para aplicaciones científicas y las limitaciones de personalización visual llevaron a la búsqueda de alternativas más robustas.
+
+La experimentación con \textit{PyQt5} reveló capacidades superiores tanto en rendimiento como en flexibilidad de diseño. La arquitectura de señales y slots de \textit{Qt} proporcionó un mecanismo elegante para la comunicación entre componentes de la interfaz, mientras que las capacidades gráficas avanzadas permitieron implementar visualizaciones más sofisticadas de los datos de entrada.
+
+Esta experiencia estableció \textit{PyQt5} como la tecnología base para todas las interfaces gráficas del sistema, decisión que se validaría continuamente a lo largo del desarrollo del proyecto a medida que se implementaban visualizaciones más complejas para señales \acrshort{eeg} y análisis de datos.
+
+\section{Segunda iteración: Módulo de procesamiento EEG}
+\label{sec:segunda_iteracion}
+
+Mientras se experimentaba con \textit{PyQt5} para el módulo de captura de entrada, se inició el desarrollo paralelo del módulo de procesamiento de señales \acrshort{eeg}. Esta aproximación de desarrollo paralelo permitió validar la elección tecnológica mientras se avanzaba en funcionalidades complementarias del sistema.
+
+\subsection{Experimentación con BrainFlow}
+\label{subsec:experimentacion_brainflow}
+
+El desarrollo del módulo \acrshort{eeg} comenzó con experimentos usando la placa sintética de \textit{BrainFlow}, que proporciona datos simulados con características similares a señales \acrshort{eeg} reales. Esta experimentación inicial fue fundamental para comprender la \acrshort{api} de \textit{BrainFlow} y establecer los patrones de adquisición de datos que se utilizarían en el sistema.
+
+La implementación de un grabador básico para registrar datos en archivos permitió validar el flujo completo de adquisición, procesamiento y almacenamiento de datos. Este prototipo reveló la importancia de manejar apropiadamente los buffers de datos para evitar pérdida de muestras y la necesidad de implementar monitoreo de calidad de señal para detectar problemas de adquisición.
+
+La validación con \textit{PyQt5} demostró que esta tecnología podía manejar efectivamente la visualización en tiempo real de múltiples canales de datos \acrshort{eeg} simultáneamente. Las pruebas de rendimiento confirmaron que el sistema podía mantener actualizaciones fluidas incluso con frecuencias de muestreo altas, estableciendo la confianza necesaria para proceder con la migración completa del módulo de entrada a esta tecnología.
+
+\subsection{Expansión de capacidades de dispositivos}
+\label{subsec:expansion_dispositivos}
+
+La implementación de soporte para todos los dispositivos compatibles con \textit{BrainFlow} requirió el desarrollo de un sistema de configuración dinámico que pudiera adaptarse a las características específicas de cada fabricante. Esta implementación incluyó la generación automática de parámetros de configuración basados en las especificaciones del dispositivo seleccionado, con validación de parámetros requeridos y opcionales.
+
+El desarrollo del indicador visual de calidad de señal proporcionó retroalimentación inmediata sobre la calidad de la conexión entre electrodos y cuero cabelludo. Esta funcionalidad es crítica para garantizar la validez de los datos capturados y permitir ajustes en tiempo real de la configuración experimental. La implementación incluyó un sistema de cinco niveles de calidad con codificación de colores intuitiva.
+
+La integración de nombres correctos de canales basados en el sistema internacional 10-20 mejoró significativamente la usabilidad del sistema para investigadores familiarizados con la nomenclatura estándar de electrodos. Esta funcionalidad incluyó mapeo automático entre las designaciones específicas del fabricante y la nomenclatura estándar, facilitando la interpretación de datos y la comparación entre diferentes dispositivos.
+
+\subsection{Implementación del Brain Map}
+\label{subsec:implementacion_brain_map}
+
+El desarrollo del visualizador de distribución de electrodos siguiendo el sistema 10-20 representó uno de los componentes más técnicamente desafiantes de esta iteración. Esta visualización requirió la implementación de algoritmos para posicionamiento espacial preciso de electrodos en una representación bidimensional de la superficie craneal, con interpolación de colores para representar valores de calidad de señal.
+
+La implementación utilizó coordenadas polares para calcular posiciones de electrodos basándose en las especificaciones del sistema 10-20, con transformación a coordenadas cartesianas para renderizado en \textit{PyQt5}. Esta aproximación garantiza precisión anatómica en la representación visual y facilita la identificación rápida de electrodos con problemas de señal.
+
+El sistema de leyenda interactiva permite a los usuarios comprender inmediatamente la codificación de colores utilizada para representar diferentes niveles de calidad de señal. Esta funcionalidad incluyó tooltips con información detallada sobre cada electrodo y recomendaciones para mejorar la calidad de señal cuando se detectan problemas.
+
+\subsection{Sistema de ayuda contextual}
+\label{subsec:sistema_ayuda}
+
+La implementación de un sistema de ayuda contextual respondió a la necesidad de proporcionar educación técnica integrada para usuarios que no poseen conocimientos profundos sobre procesamiento de señales \acrshort{eeg}. Este sistema incluyó más de 25 temas diferentes que cubren desde conceptos básicos de neurofisiología hasta parámetros técnicos específicos de filtros digitales.
+
+Cada widget de ayuda proporciona explicaciones detalladas sobre la funcionalidad específica, recomendaciones de uso, y referencias a literatura científica relevante. La información fue compilada de documentación oficial de \textit{BrainFlow}, recursos educativos de neurociencia, y mejores prácticas establecidas en la comunidad \acrshort{bci}.
+
+La interfaz de ayuda utiliza un diseño modal que no interfiere con el flujo de trabajo principal pero proporciona acceso inmediato a información relevante cuando se necesita. Esta aproximación equilibra la accesibilidad de la información con la simplicidad de la interfaz principal, manteniendo la usabilidad para usuarios experimentados.
+
+\subsection{Implementación del sistema de grabación}
+\label{subsec:sistema_grabacion}
+
+El desarrollo del sistema de grabación en formato \acrshort{csv} incluyó capacidades para almacenar tanto datos de señales como metadatos de configuración experimental. Esta implementación requirió el diseño de un formato de archivo que mantuviera la integridad temporal de los datos mientras proporcionaba información suficiente para reproducir las condiciones experimentales.
+
+La integración de métricas de estado mental calculadas en tiempo real añadió valor analítico a los datos capturados. Estas métricas, proporcionadas por \textit{BrainFlow}, incluyen estimaciones de concentración, relajación y otros estados cognitivos que pueden ser útiles para análisis posteriores o aplicaciones de neurofeedback.
+
+El sistema de marcadores temporales permite la inserción manual de eventos durante la grabación, facilitando la correlación posterior con estímulos experimentales o acciones específicas del participante. Esta funcionalidad resultó fundamental para preparar la sincronización con eventos de entrada del usuario que sería implementada en iteraciones posteriores.
+
+\section{Tercera iteración: Primer intento de integración}
+\label{sec:tercera_iteracion}
+
+Con ambos módulos funcionales de forma independiente, la tercera iteración se enfocó en integrarlos para crear un sistema unificado capaz de capturar señales \acrshort{eeg} y eventos de entrada de forma sincronizada. Esta fase reveló las primeras limitaciones arquitectónicas significativas del diseño inicial.
+
+\subsection{Integración visual y coordinación de grabadores}
+\label{subsec:integracion_visual}
+
+La integración visual de ambos módulos se logró exitosamente mediante el desarrollo de una interfaz unificada que permitía controlar tanto la captura de señales \acrshort{eeg} como los eventos de entrada desde una única aplicación. Esta integración incluyó la sincronización de controles de grabación para garantizar que ambos módulos iniciaran y detuvieran la captura simultáneamente.
+
+La coordinación de grabadores requirió el desarrollo de un sistema de señales que permitiera comunicación entre módulos previamente independientes. Esta implementación inicial utilizó un patrón de observador simple que propagaba comandos de inicio y detención entre los diferentes subsistemas de grabación.
+
+Sin embargo, la integración reveló inmediatamente problemas de sincronización temporal debido a diferencias en los mecanismos de timestamping utilizados por cada módulo. Aunque ambos módulos registraban timestamps, no existía un reloj común que garantizara la sincronización precisa necesaria para aplicaciones \acrshort{bci}.
+
+\subsection{Unificación de formatos de grabación}
+\label{subsec:unificacion_formatos}
+
+Para facilitar el análisis posterior de datos sincronizados, se decidió implementar soporte para grabación en formato \acrshort{csv} en el módulo de captura de entrada, que previamente solo soportaba \acrshort{json}. Esta unificación permitiría combinar datos de ambos módulos en archivos con estructura similar, simplificando el procesamiento posterior.
+
+La implementación de exportación \acrshort{csv} para eventos de entrada requirió el diseño de un esquema de datos que pudiera representar la diversidad de eventos capturados (teclado, ratón, controladores) en un formato tabular consistente. Esta decisión de diseño tendría implicaciones importantes para la escalabilidad del sistema a medida que se añadieran nuevos tipos de dispositivos de entrada.
+
+Sin embargo, la unificación de formatos no resolvió el problema fundamental de sincronización temporal, ya que cada módulo seguía utilizando su propio sistema de timestamps sin coordenación externa. Esta limitación se convirtió en el obstáculo principal para avanzar hacia un sistema verdaderamente integrado.
+
+\subsection{Experimentación con Lab Streaming Layer}
+\label{subsec:experimentacion_lsl}
+
+La identificación de problemas de sincronización temporal llevó a la experimentación con \textit{Lab Streaming Layer} (\acrshort{lsl}) como solución para la coordinación temporal entre módulos. \acrshort{lsl} proporciona un protocolo de red especializado para streaming de datos temporales con corrección automática de deriva de reloj, características que parecían ideales para los requisitos del proyecto.
+
+Sin embargo, la implementación de \acrshort{lsl} con la arquitectura monolítica existente se encontró con obstáculos significativos. Los archivos de código de gran tamaño dificultaban la identificación de puntos apropiados para integración, mientras que el acoplamiento estrecho entre componentes complicaba la refactorización necesaria para soportar streaming de datos externo.
+
+La complejidad de depuración en el código monolítico se magnificó al intentar integrar una biblioteca externa sofisticada como \acrshort{lsl}. Los errores se propagaban a través de múltiples componentes acoplados, haciendo extremadamente difícil identificar la fuente de problemas de integración y validar que la sincronización funcionara correctamente.
+
+Esta experiencia reveló que las limitaciones no residían en las herramientas disponibles, sino en la arquitectura del código desarrollado. La estructura monolítica impedía la modularidad necesaria para integración efectiva con bibliotecas externas, estableciendo la necesidad de una refactorización arquitectónica fundamental.
+
+\section{Cuarta iteración: Refactorización SOLID}
+\label{sec:cuarta_iteracion}
+
+El fallo del primer intento de integración motivó una refactorización completa de ambos módulos para seguir principios \acrshort{solid} de diseño de software. Esta iteración se enfocó en reestructurar el código existente sin perder funcionalidad, creando una base arquitectónica sólida para futuras integraciones.
+
+\subsection{Reestructuración del módulo de captura de entrada}
+\label{subsec:reestructuracion_entrada}
+
+La refactorización del módulo de captura de entrada comenzó con la identificación de responsabilidades específicas que habían estado mezcladas en el código monolítico original. Esta separación incluyó la extracción de lógica de captura de eventos, procesamiento de datos, gestión de estado, y presentación de interfaces de usuario en componentes independientes.
+
+La implementación del principio de responsabilidad única requirió la creación de múltiples clases especializadas: gestores de colectores para diferentes tipos de dispositivos, servicios de acceso a datos para abstraer el almacenamiento interno, y adaptadores para comunicación entre componentes con diferentes interfaces. Esta granularidad mejoró significativamente la legibilidad y mantenibilidad del código.
+
+El principio abierto/cerrado se implementó mediante el uso extensivo de interfaces y abstracciones que permiten añadir nuevos tipos de colectores o algoritmos de procesamiento sin modificar código existente. Esta arquitectura facilitaría la incorporación futura de dispositivos adicionales y técnicas de análisis avanzadas.
+
+La inversión de dependencias se logró mediante la introducción de un sistema de inyección de dependencias que permite configurar dinámicamente las relaciones entre componentes. Esta flexibilidad resultó especialmente valiosa para pruebas unitarias y para adaptación a diferentes contextos de ejecución.
+
+\subsection{Reestructuración del módulo EEG}
+\label{subsec:reestructuracion_eeg}
+
+La refactorización del módulo \acrshort{eeg} siguió patrones similares pero requirió consideración especial para las características únicas del procesamiento de señales en tiempo real. La separación incluyó servicios especializados para adquisición de datos, procesamiento de señales, gestión de dispositivos, y visualización de resultados.
+
+La implementación de servicios singleton para componentes críticos como el colector de datos garantiza consistencia en el acceso a recursos compartidos mientras mantiene thread-safety para operaciones concurrentes. Esta aproximación es especialmente importante en aplicaciones que manejan streams de datos de alta frecuencia donde la sincronización incorrecta puede resultar en pérdida de datos.
+
+El diseño modular permitió la separación clara entre algoritmos de procesamiento y lógica de presentación, facilitando la reutilización de componentes de procesamiento en diferentes contextos y simplificando la implementación de nuevos algoritmos sin afectar la interfaz de usuario existente.
+
+La arquitectura dirigida por eventos implementada durante esta refactorización estableció las bases para el sistema de comunicación inter-módulo que sería crucial en iteraciones posteriores. Este sistema proporciona comunicación desacoplada entre componentes mientras mantiene la responsividad necesaria para aplicaciones en tiempo real.
+
+\subsection{Validación de funcionalidad preservada}
+\label{subsec:validacion_funcionalidad}
+
+La refactorización se realizó de forma incremental con validación continua para garantizar que no se perdiera funcionalidad durante el proceso de reestructuración. Esta validación incluyó pruebas exhaustivas de todas las características existentes después de cada cambio arquitectónico significativo.
+
+El desarrollo de pruebas automatizadas durante la refactorización estableció las bases para un sistema de calidad de código que se mantendría en el resto del proyecto. Estas pruebas no solo validaron la preservación de funcionalidad, sino que también documentaron el comportamiento esperado del sistema de forma ejecutable.
+
+La mejora en tiempo de depuración fue inmediatamente evidente después de la refactorización, con problemas que anteriormente requerían horas de investigación ahora localizables en minutos debido a la separación clara de responsabilidades y el acoplamiento reducido entre componentes.
+
+Esta experiencia validó la importancia de invertir tiempo en calidad arquitectónica durante las fases tempranas del desarrollo, estableciendo el precedente para futuras decisiones de refactorización proactiva cuando se identificaran limitaciones similares.
+
+\section{Quinta iteración: Segundo intento de integración}
+\label{sec:quinta_iteracion}
+
+Con la nueva arquitectura modular en lugar, se realizó un segundo intento de integración entre módulos utilizando \acrshort{lsl} para sincronización temporal. Aunque esta iteración produjo avances técnicos significativos, reveló que los problemas de integración eran más profundos que simples deficiencias organizacionales del código.
+
+\subsection{Desarrollo del módulo integrador}
+\label{subsec:modulo_integrador}
+
+El módulo integrador fue diseñado como un componente independiente que podía comunicarse con ambos módulos existentes a través de interfaces bien definidas. Esta aproximación permitía mantener la independencia funcional de cada módulo mientras proporcionaba capacidades de coordinación centralizadas para operaciones que requerían sincronización.
+
+La implementación incluyó un sistema de configuración unificado que permitía establecer parámetros de sincronización, seleccionar dispositivos de cada módulo, y configurar formatos de exportación para datos combinados. Esta interfaz proporcionaba un punto de control único para experimentos que requerían captura de múltiples modalidades de datos.
+
+El desarrollo de widgets de ayuda especializados para explicar las diferencias entre formatos de exportación demostró el compromiso continuo con la accesibilidad para usuarios no técnicos. Esta documentación integrada se convirtió en una característica distintiva del sistema que facilitaría significativamente su adopción por parte de investigadores sin antecedentes técnicos profundos.
+
+\subsection{Persistencia de problemas arquitectónicos}
+\label{subsec:problemas_arquitectonicos}
+
+A pesar de las mejoras arquitectónicas significativas, el segundo intento de integración reveló problemas más fundamentales relacionados con el diseño de interfaces entre módulos. La comunicación entre componentes refactorizados seguía requiriendo conocimiento específico sobre la implementación interna de cada módulo, violando principios de encapsulación.
+
+Los problemas de sincronización temporal persistieron debido a diferencias en los modelos de hilos utilizados por cada módulo. Aunque cada módulo había sido refactorizado internamente, las interfaces entre módulos no habían sido diseñadas específicamente para soportar operaciones distribuidas con requisitos de sincronización estrictos.
+
+La complejidad de configuración del sistema integrado se incrementó exponencialmente comparada con la suma de las complejidades individuales de cada módulo. Esta emergencia de complejidad indicaba problemas fundamentales en la aproximación de integración que no podían ser resueltos mediante mejoras incrementales.
+
+Esta experiencia estableció que la integración exitosa requeriría un cambio paradigmático en la aproximación arquitectónica, alejándose de la integración directa hacia modelos de comunicación más flexibles y desacoplados.
+
+\section{Sexta iteración: Arquitectura API emergente}
+\label{sec:sexta_iteracion}
+
+Después de un período de pausa para otros compromisos académicos, el desarrollo se reanudó con una perspectiva completamente nueva basada en arquitecturas \acrshort{api} que permitirían comunicación desacoplada entre módulos. Esta aproximación representó un cambio fundamental hacia servicios distribuidos que se comunicarían a través de interfaces bien definidas.
+
+\subsection{Desarrollo de APIs de acceso a datos}
+\label{subsec:apis_acceso_datos}
+
+El desarrollo de \acrshort{api} de acceso a datos comenzó con el módulo de procesamiento de señales \acrshort{eeg}, que requería capacidades de streaming de datos de alta frecuencia. Esta implementación incluyó endpoints \acrshort{rest} para acceso a metadatos del sistema y streaming en tiempo real mediante \acrshort{websocket} para transmisión eficiente de datos continuos.
+
+La arquitectura \acrshort{api} permitió separar completamente la lógica de adquisición de datos de su consumo, facilitando el desarrollo de múltiples clientes que podrían acceder a los mismos datos sin interferir entre sí. Esta separación resultó especialmente valiosa para implementar diferentes tipos de visualizadores y herramientas de análisis.
+
+El desarrollo del \acrshort{api} para el módulo de captura de entrada siguió patrones similares pero requirió consideración especial para eventos discretos versus streams continuos. La implementación incluyó capacidades de filtrado en tiempo real y agregación de eventos para diferentes tipos de consumidores con requisitos de latencia variables.
+
+La experiencia de desarrollo de estas \acrshort{api} reveló inmediatamente la necesidad de herramientas de prueba y documentación integradas, estableciendo los requisitos para el explorador web que sería desarrollado en fases posteriores de esta iteración.
+
+\subsection{Implementación del explorador web}
+\label{subsec:explorador_web}
+
+La implementación inicial de aplicaciones web separadas para probar cada \acrshort{api} utilizó \textit{FastAPI} y \textit{uvicorn} para proporcionar interfaces web modernas con documentación automática. Esta aproximación permitía validar la funcionalidad de las \acrshort{api} mientras se desarrollaban, proporcionando retroalimentación inmediata sobre problemas de diseño o implementación.
+
+El desarrollo de visualizadores en tiempo real mediante \acrshort{websocket} demostró la viabilidad de la arquitectura para aplicaciones interactivas de alto rendimiento. Estos visualizadores podían mostrar señales \acrshort{eeg} y eventos de entrada en tiempo real sin impactar el rendimiento de los módulos principales, validando la separación arquitectónica.
+
+Sin embargo, el mantenimiento de aplicaciones web separadas para cada módulo comenzó a crear problemas de duplicación de código y inconsistencia en interfaces de usuario. Esta observación motivó la refactorización hacia un explorador web unificado que pudiera manejar múltiples módulos dinámicamente.
+
+\subsection{Refactorización a explorador web unificado}
+\label{subsec:explorador_unificado}
+
+La refactorización del explorador web hacia una aplicación unificada requirió el diseño de un sistema de registro dinámico que permitiera a módulos independientes exponer sus \acrshort{api} a través de una interfaz web común. Esta implementación utilizó patrones de registro dinámico y metadatos estructurados para generar automáticamente interfaces de usuario apropiadas para cada tipo de \acrshort{api}.
+
+El explorador unificado implementó capacidades avanzadas de visualización que podían adaptarse automáticamente al tipo de datos proporcionados por cada módulo. Para señales \acrshort{eeg}, esto incluyó gráficos de series temporales con múltiples canales y capacidades de zoom interactivo. Para eventos de entrada, se implementaron tablas dinámicas con filtrado en tiempo real y agregación configurable.
+
+La implementación de toggles para alternar entre modos oscuro y claro demostró la atención al detalle en la experiencia de usuario que caracterizaría todo el proyecto. Esta funcionalidad, aunque aparentemente menor, resultó especialmente valiosa para sesiones de trabajo prolongadas y diferentes condiciones de iluminación.
+
+El sistema de visualización de datos reveló un error crítico en la implementación del módulo \acrshort{eeg}: cuando se cerraba el visualizador \acrfull{gui}, el stream de datos se pausaba porque el único punto de polling del colector se realizaba en el visualizador mismo. Esta dependencia inesperada motivó una refactorización fundamental del modelo de adquisición de datos que se abordaría en iteraciones posteriores.
+
+\section{Séptima iteración: APIs de control e interacción}
+\label{sec:septima_iteracion}
+
+Con las \acrshort{api} de acceso a datos funcionando correctamente, la séptima iteración se enfocó en desarrollar \acrshort{api} de control que permitieran manipular remotamente los módulos del sistema. Esta funcionalidad era esencial para crear interfaces de usuario alternativas y facilitar la automatización de experimentos.
+
+\subsection{API de control para módulo de entrada}
+\label{subsec:api_control_entrada}
+
+El desarrollo del \acrshort{api} de control para el módulo de captura de entrada requirió la implementación de sincronización bidireccional entre comandos \acrshort{api} y la interfaz gráfica local. Esta sincronización se logró mediante el uso de señales \textit{Qt} que propagaban cambios de estado entre diferentes contextos de ejecución.
+
+La implementación incluyó capacidades para controlar remotamente el inicio y parada de grabación, configuración de teclas monitorizadas, selección de modos de captura de ratón, y configuración de parámetros de filtrado. Cada operación incluía validación de parámetros y manejo robusto de errores para prevenir estados inconsistentes del sistema.
+
+El desarrollo de este \acrshort{api} reveló la complejidad inherente en mantener coherencia entre múltiples interfaces que manipulan el mismo estado subyacente. La solución implementada utilizó un patrón de mediador que centralizaba las operaciones de cambio de estado y garantizaba que todas las interfaces reflejaran consistentemente el estado actual del sistema.
+
+Las pruebas del \acrshort{api} de control confirmaron que la arquitectura permitía desarrollar interfaces de usuario completamente independientes que podían proporcionar funcionalidad equivalente a la interfaz gráfica nativa. Esta capacidad resultaría fundamental para el desarrollo posterior de herramientas de línea de comandos y la integración con sistemas de automatización.
+
+\subsection{Implementación del controlador PS4}
+\label{subsec:controlador_ps4}
+
+La implementación de soporte para el controlador \acrshort{ps4} DualShock utilizó la biblioteca \textit{PySDL2} para acceso de bajo nivel a eventos del controlador. Esta implementación incluyó soporte completo para todos los controles analógicos y digitales del dispositivo, incluyendo sticks analógicos, triggers de presión variable, y botones direccionales.
+
+El desarrollo reveló desafíos técnicos significativos relacionados con la latencia y precisión de captura de eventos de controladores inalámbricos. La implementación inicial utilizó polling basado en timers de \textit{Qt}, pero esta aproximación resultó en pérdida significativa de eventos cuando se ejecutaba en contextos sin interfaz gráfica.
+
+La solución implementada utilizó un hilo dedicado para el procesamiento de eventos \textit{SDL2} con detección de cambios basada en comparación de estados previos. Esta arquitectura dirigida por eventos proporcionó captura completa de eventos con latencia mínima, independientemente del contexto de ejecución.
+
+La integración del controlador \acrshort{ps4} también incluyó capacidades de retroalimentación háptica mediante vibración, aunque esta funcionalidad se implementó como infraestructura preparatoria para desarrollos futuros más que como una característica activa del sistema actual.
+
+\subsection{Unificación de servidores web}
+\label{subsec:unificacion_servidores}
+
+La consolidación de \acrshort{api} de acceso a datos y control en un único servidor web eliminó la complejidad de gestionar múltiples puertos y configuraciones de red. Esta unificación facilitó significativamente la configuración del sistema y redujo la superficie de ataque de seguridad al minimizar el número de servicios de red expuestos.
+
+La implementación utilizó patrones de registro dinámico que permitían a cada módulo contribuir tanto endpoints de datos como de control a un espacio de nombres unificado. Esta aproximación mantuvo la separación lógica entre diferentes tipos de \acrshort{api} mientras proporcionaba una interfaz de acceso simplificada para clientes externos.
+
+El sistema unificado incluyó capacidades de autenticación y autorización preparatorias, aunque estas funcionalidades no se activaron en la implementación actual debido a los requisitos de simplicity para entornos de investigación. Sin embargo, la infraestructura está preparada para contextos de producción que requieran seguridad adicional.
+
+\subsection{Tipado masivo y herramientas de calidad}
+\label{subsec:tipado_calidad}
+
+La implementación extensiva de \textit{type hints} en todo el código base mejoró significativamente la robustez del sistema y facilitó la detección temprana de errores de tipos. Esta inversión en calidad de código resultó especialmente valiosa cuando se integraron múltiples componentes complejos con interfaces sofisticadas.
+
+La configuración de \textit{pre-commit hooks} automatizó la verificación de calidad de código, incluyendo formateo automático con \textit{black}, verificación de tipos con \textit{mypy}, y validación de documentación con \textit{pydocstyle}. Esta automatización garantizó estándares consistentes a lo largo de todo el desarrollo posterior.
+
+El proceso de tipado masivo reveló varios errores sutiles en la lógica del sistema que habían pasado desapercibidos durante el desarrollo inicial. La resolución de estos problemas resultó en un sistema más robusto y predecible, especialmente importante para aplicaciones que manejan datos científicos donde la precisión es crítica.
+
+\section{Octava iteración: CLIs y optimizaciones de rendimiento}
+\label{sec:octava_iteracion}
+
+Con las \acrshort{api} completamente funcionales, la octava iteración se enfocó en desarrollar interfaces de línea de comandos y optimizar el rendimiento del sistema para casos de uso intensivos. Esta fase reveló limitaciones importantes en la arquitectura que requerirían soluciones innovadoras.
+
+\subsection{Desarrollo de interfaces CLI}
+\label{subsec:desarrollo_cli}
+
+El desarrollo de la interfaz de línea de comandos para el módulo de captura de entrada utilizó las \acrshort{api} existentes como backend, proporcionando acceso completo a todas las funcionalidades del sistema a través de comandos de terminal. Esta implementación utilizó \textit{Typer} para generación automática de comandos y \textit{Rich} para formateo avanzado de salida.
+
+La interfaz \acrshort{cli} incluyó comandos especializados para diferentes aspectos del sistema: comandos de acceso a datos para consultar el estado actual, comandos de interacción para controlar la grabación y configuración, y comandos de monitoreo para visualización en tiempo real de actividad del sistema. Cada comando incluyó documentación extensa y validación automática de parámetros.
+
+Sin embargo, las pruebas del \acrshort{cli} revelaron un problema fundamental: la mezcla de logs de la aplicación principal con la salida del \acrshort{cli} hacía difícil la lectura en ciertos contextos. Los intentos de dividir el terminal o abrir terminales separadas no tuvieron éxito debido a limitaciones en la inicialización de servicios sin contexto gráfico.
+
+\subsection{Identificación de problemas en modo headless}
+\label{subsec:problemas_headless}
+
+Las pruebas exhaustivas del \acrshort{cli} revelaron que el sistema no funcionaba correctamente en modo headless (sin interfaz gráfica) debido a dependencias ocultas de \textit{Qt} en componentes que aparentemente eran independientes de la interfaz de usuario. Estas dependencias incluían señales de sincronización de eventos, timers para polling, e inicialización de recursos gráficos.
+
+El problema se manifestó especialmente con el controlador \acrshort{ps4}, que no podía inicializarse desde el \acrshort{cli} porque su implementación dependía de timers de \textit{Qt} que no están disponibles en contextos sin interfaz gráfica. Esta limitación comprometía significativamente la utilidad del \acrshort{cli} para casos de uso automatizados.
+
+La identificación de este problema motivó una reevaluación fundamental de las dependencias arquitectónicas del sistema. Aunque el sistema podía funcionar en modo híbrido (con \acrfull{gui}, \acrshort{cli} y \acrshort{api} web simultáneamente), la falta de capacidades completamente headless limitaba su aplicabilidad en entornos de servidor y automatización.
+
+\subsection{Migración a arquitectura dirigida por eventos}
+\label{subsec:arquitectura_eventos}
+
+La solución al problema del controlador \acrshort{ps4} en modo headless requirió una migración fundamental de polling basado en timers a una arquitectura completamente dirigida por eventos. Esta migración incluyó la implementación de un hilo dedicado para procesamiento de eventos \textit{SDL2} con un bucle de eventos independiente de \textit{Qt}.
+
+La nueva arquitectura utilizó detección de cambios basada en comparación de estados previos para triggers y sticks analógicos, eliminando la necesidad de polling constante mientras garantizaba la captura completa de eventos. Esta aproximación proporcionó mejor rendimiento y menor latencia comparada con la implementación basada en polling.
+
+Sin embargo, la migración a eventos generó nuevos desafíos de rendimiento debido al volumen significativamente mayor de eventos generados por controles analógicos. El sistema comenzó a experimentar sobrecarga tanto en el backend como en el frontend web, requiriendo optimizaciones extensivas para mantener la responsividad.
+
+\subsection{Optimizaciones masivas de rendimiento}
+\label{subsec:optimizaciones_rendimiento}
+
+La implementación de optimizaciones de rendimiento incluyó múltiples estrategias coordinadas para manejar el volumen elevado de eventos generados por la arquitectura dirigida por eventos. El batching de eventos agrupó múltiples eventos en transmisiones únicas para reducir la sobrecarga de comunicación de red.
+
+La implementación de worker pools distribuyó el procesamiento de eventos entre múltiples hilos, permitiendo que el sistema mantuviera responsividad incluso bajo cargas de trabajo intensivas. Esta arquitectura incluyó load balancing automático y escalado dinámico basado en la carga actual del sistema.
+
+El sistema de buffer circular con descarte de eventos cuando se detectaba sobrecarga proporcionó degradación elegante del rendimiento en lugar de fallos catastróficos. Esta implementación incluyó métricas de latencia en tiempo real que permitían monitorear el health del sistema y ajustar parámetros automáticamente.
+
+La migración a \textit{orjson} para serialización \acrshort{json} proporcionó mejoras de rendimiento de 2-5x comparadas con la biblioteca estándar, especialmente importante para la transmisión de grandes volúmenes de datos de eventos a través de conexiones \acrshort{websocket}. Cada optimización se probó independientemente antes de integración para validar su efectividad específica.
+
+\section{Novena iteración: Funcionalidades avanzadas EEG}
+\label{sec:novena_iteracion}
+
+La iteración final del desarrollo se enfocó en completar las capacidades avanzadas del módulo de procesamiento \acrshort{eeg}, incluyendo la implementación del \acrshort{api} de control completo, integración con \textit{MNE-Python}, y algoritmos de procesamiento sofisticados. Esta fase también incluyó optimizaciones críticas para el modelo de acceso a datos.
+
+\subsection{Finalización del API de control EEG}
+\label{subsec:api_control_eeg}
+
+El desarrollo del \acrshort{api} de control para el módulo \acrshort{eeg} siguió patrones establecidos en iteraciones anteriores pero requirió manejo de más de 40 señales \textit{Qt} para sincronización completa entre comandos \acrshort{api} y la interfaz gráfica. Esta complejidad reflejó la sofisticación del módulo \acrshort{eeg} comparado con el módulo de captura de entrada.
+
+La implementación incluyó capacidades para configuración remota de dispositivos, control de streams de datos, aplicación de filtros en tiempo real, y gestión de múltiples presets de canales. Cada operación incluyó validación exhaustiva de parámetros específicos del dispositivo y manejo de errores robusto para prevenir configuraciones inválidas.
+
+El desarrollo del \acrshort{api} reveló numerosos problemas en la implementación del módulo que habían pasado desapercibidos durante el desarrollo de la interfaz gráfica. Estos problemas incluyeron funcionalidades incompletas, errores internos en la lógica de aplicación, y características avanzadas que no habían sido completamente implementadas. La resolución de estos problemas mejoró significativamente la robustez general del sistema.
+
+\subsection{Integración MNE-Python y centralización de acceso a datos}
+\label{subsec:integracion_mne_centralizacion}
+
+La integración con \textit{MNE-Python} requirió el desarrollo de servicios de conversión que pudieran transformar datos de \textit{BrainFlow} a formatos compatibles con \textit{MNE} en tiempo real. Esta implementación incluyó múltiples modos de conversión: modo flexible para análisis completos, modo rendimiento para subconjuntos de canales, y modo tiempo real para procesamiento continuo.
+
+Durante la implementación se identificó un error crítico en el servicio de acceso a datos: estaba inicializando su propia instancia del colector en lugar de utilizar la instancia singleton compartida. Cuando se corrigió este problema, el código falló extensivamente debido a cambios de tipos de datos para optimización de ancho de banda y latencias imprevistas introducidas por subprocesos internos.
+
+La solución requirió una centralización completa del acceso a datos en el \textit{DataAccessService}, eliminando duplicaciones y inconsistencias que habían complicado el desarrollo. Esta centralización incluyó la migración de polling solicitado por consumidores a un sistema de callbacks que proporcionaba mejor rendimiento y menos acoplamiento entre componentes.
+
+El sistema de callbacks implementó dos categorías principales: callbacks locales para visualizadores con latencia mínima, y callbacks de \acrshort{api} que podían operar en modo directo o multiproceso dependiendo de los requisitos computacionales del consumidor. Esta flexibilidad permitió optimización específica para diferentes casos de uso.
+
+\subsection{Algoritmos de procesamiento avanzado}
+\label{subsec:algoritmos_avanzados}
+
+La implementación de análisis de componentes independientes (\acrshort{ica}) incluyó soporte para configuración de 1-16 componentes con selección flexible de canales, procesamiento en tiempo real mediante ventana deslizante, y capacidades de exportación de resultados como imágenes de alta resolución. El análisis \acrshort{ica} utiliza multiprocesamiento para mantener la responsividad de la interfaz durante operaciones computacionalmente intensivas.
+
+Las transformadas \textit{wavelet} se implementaron con soporte para 15+ familias diferentes, incluyendo Daubechies, Biorthogonal, Coiflets y Symlets, con configuración flexible de niveles de descomposición. Esta implementación proporciona análisis tiempo-frecuencia avanzado que complementa las capacidades de análisis espectral tradicionales.
+
+Los filtros digitales avanzados expandieron significativamente las capacidades básicas existentes, añadiendo soporte para múltiples implementaciones (Butterworth, Chebyshev Tipo 1, Bessel), filtros especializados como notch configurable para eliminación de interferencias de línea eléctrica, y filtros adaptativos que pueden ajustar automáticamente sus parámetros basándose en las características de la señal.
+
+\subsection{Detección automática de canales y optimizaciones}
+\label{subsec:deteccion_canales}
+
+La implementación de detección automática de tipos de canales eliminó la restricción anterior de asumir que los primeros 16 canales eran siempre \acrshort{eeg}. El nuevo sistema detecta automáticamente \acrshort{eeg}, \acrshort{emg}, \acrshort{ecg}, acelerómetro, giroscopio y otros tipos de canales, creando pestañas especializadas para cada modalidad de datos.
+
+Esta funcionalidad requirió el desarrollo de un sistema de caché para tipos de canales que permanece válido mientras no se reconecte el dispositivo, inicialización perezosa de ventanas para evitar delays en la apertura de interfaces, y optimización de consultas de metadatos para minimizar la latencia de inicialización.
+
+El soporte para múltiples presets de dispositivos permite seleccionar diferentes configuraciones de canales soportadas por el hardware, facilitando la optimización para diferentes tipos de experimentos. Esta funcionalidad incluyó validación automática de compatibilidad entre presets y algoritmos de procesamiento seleccionados.
+
+\subsection{Streamers y corrección de problemas de grabación}
+\label{subsec:streamers_grabacion}
+
+La implementación de diferentes tipos de streamers incluyó soporte para streaming a archivo local (que soporta datos procesados) y streaming via TCP/UDP (limitado a datos RAW debido a restricciones de \textit{BrainFlow}). Esta diferenciación reflejó una comprensión madura de los requisitos de compatibilidad para diferentes casos de uso.
+
+La identificación de problemas en la grabación reveló que todos los archivos almacenaban datos RAW independientemente de la configuración de filtros aplicados. Este problema se originaba porque la lógica de aplicación de filtros estaba centralizada en el servicio de acceso a datos mientras el servicio de grabación accedía directamente al colector.
+
+La migración de la lógica de grabación para que dependiera del servicio de acceso a datos resolvió este problema pero reveló nuevos desafíos: los filtros se aplicaban a todos los canales incluyendo canales de control, timestamps y marcadores, causando problemas de compatibilidad con placas sintéticas que utilizan estos canales para sincronización interna.
+
+La solución final restringió la aplicación de filtros únicamente a canales \acrshort{eeg}, preservando la integridad de canales auxiliares. Adicionalmente, la migración de polling a callbacks en el servicio de grabación eliminó la pérdida significativa de muestras (10-30\%) que ocurría cuando los filtros estaban activos, resolviendo problemas de incoherencia en canales de control.
+
