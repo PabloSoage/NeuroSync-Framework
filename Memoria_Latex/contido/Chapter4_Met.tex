@@ -5,11 +5,11 @@
 
 Este proyecto se ha desarrollado siguiendo un modelo \textbf{incremental-iterativo} que combina las ventajas de una definición temprana de requisitos con la flexibilidad necesaria para refinar el resultado en ciclos sucesivos. Esta metodología emergió como la más apropiada para abordar la complejidad inherente del desarrollo de sistemas \acrshort{bci}, donde la experimentación y validación temprana son fundamentales para el éxito del proyecto.
 
-La \textbf{incrementalidad} permite que el software se construya por módulos funcionales independientes, cada uno de los cuales añade nuevas prestaciones al sistema global sin comprometer la estabilidad de componentes previamente desarrollados. Esta aproximación ha sido especialmente valiosa en un proyecto donde diferentes subsistemas (captura \acrshort{eeg}, eventos de entrada, procesamiento de señales) pueden desarrollarse en paralelo y validarse de forma independiente.
+La \textbf{incrementalidad} permite que el \textit{software} se construya por módulos funcionales independientes, cada uno de los cuales añade nuevas prestaciones al sistema global sin comprometer la estabilidad de componentes previamente desarrollados. Esta aproximación ha sido especialmente valiosa en un proyecto donde diferentes subsistemas (captura \acrshort{eeg}, eventos de entrada, procesamiento de señales) pueden desarrollarse en paralelo y validarse de forma independiente.
 
 La \textbf{iteración} garantiza que cada módulo se somete a múltiples rondas de desarrollo, validación y refactorización, permitiendo la detección rápida de errores y su corrección antes de que se propaguen a otros componentes del sistema. Esta característica resultó fundamental durante las fases de integración, donde se identificaron limitaciones arquitectónicas que requirieron refactorización significativa.
 
-La \textbf{adaptación evolutiva} de la metodología según los fallos encontrados ha sido una característica distintiva del proyecto. La metodología inicial se adaptó para responder a desafíos específicos como la migración temprana de Julia a Python, los múltiples intentos fallidos de integración directa entre módulos, y la eventual adopción de arquitecturas \acrshort{api} como solución robusta para la comunicación entre componentes.
+La \textbf{adaptación evolutiva} de la metodología según los fallos encontrados ha sido una característica distintiva del proyecto. La metodología inicial se adaptó para responder a desafíos específicos como la migración temprana de \textit{Julia} a \textit{Python}, los múltiples intentos fallidos de integración directa entre módulos, y la eventual adopción de arquitecturas \acrshort{api} como solución robusta para la comunicación entre componentes.
 
 La \textbf{validación experimental} continua mediante casos de prueba reales ha proporcionado retroalimentación constante sobre el funcionamiento del sistema. La utilización de dispositivos sintéticos, controladores físicos y cascos \acrshort{eeg} reales en todas las etapas del desarrollo ha garantizado que las decisiones de diseño estén fundamentadas en evidencia empírica más que en asunciones teóricas.
 
@@ -25,31 +25,31 @@ El desarrollo del proyecto se estructuró en fases bien definidas que reflejan t
     \rowcolor{udcpink!25}
     \textbf{Fase} & \textbf{Actividad} & \textbf{Período} \\
     \hline
-    0 & Investigación de tecnologías BCI y estado del arte & Marzo 2025 \\
-    1.1 & Desarrollo inicial script captura de inputs & 12/04-13/04 \\
-    1.2 & Intento de migración a Julia (fallido) & 13/04 \\
-    1.3 & Desarrollo UI para módulo de inputs (tkinter → PyQt5) & 14/04-15/04 \\
-    2.1 & Desarrollo inicial módulo procesamiento EEG & 14/04-16/04 \\
-    2.2 & Expansión funcionalidades EEG (brain map, ayuda, CSV) & 16/04-17/04 \\
-    3 & \textbf{Primer intento integración} (monolítica con LSL) & 17/04-19/04 \\
-    4 & Refactorización SOLID de ambos módulos & 20/04-21/04 \\
+    0 & Investigación de tecnologías \acrshort{bci} y estado del arte & Marzo 2025 \\
+    1.1 & Desarrollo inicial \textit{script} captura de \textit{inputs} & 12/04-13/04 \\
+    1.2 & Intento de migración a \textit{Julia} (fallido) & 13/04 \\
+    1.3 & Desarrollo \acrshort{ui} para módulo de \textit{inputs} (\textit{tkinter} → \textit{PyQt5}) & 14/04-15/04 \\
+    2.1 & Desarrollo inicial módulo procesamiento \acrshort{eeg} & 14/04-16/04 \\
+    2.2 & Expansión funcionalidades \acrshort{eeg} (\textit{brain map}, ayuda, \acrshort{csv}) & 16/04-17/04 \\
+    3 & \textbf{Primer intento integración} (monolítica con \acrshort{lsl}) & 17/04-19/04 \\
+    4 & Refactorización \acrshort{solid} de ambos módulos & 20/04-21/04 \\
     5 & \textbf{Segundo intento integración} (post-refactorización) & 22/04-30/04 \\
     6 & \textit{Pausa por otros compromisos académicos} & 01/05-13/05 \\
-    7.1 & Desarrollo APIs de acceso a datos & 14/05-18/05 \\
+    7.1 & Desarrollo \acrshort{api} de acceso a datos & 14/05-18/05 \\
     7.2 & Explorador web individual por módulo & 18/05-21/05 \\
     7.3 & Refactorización a explorador web unificado & 21/05-22/05 \\
-    8.1 & APIs de control módulo inputs & 23/05-06/06 \\
-    8.2 & Implementación controlador PS4 & 04/06-06/06 \\
-    8.3 & Tipado masivo y pre-commit & 06/06-08/06 \\
-    9.1 & CLI inputs (con problemas headless identificados) & 09/06-12/06 \\
-    9.2 & Optimizaciones PS4 y arquitectura por eventos & 10/06-12/06 \\
-    10.1 & API control módulo EEG (básico) & 13/06-14/06 \\
-    10.2 & Integración MNE y centralización DataAccessService & 15/06-17/06 \\
-    10.3 & Funcionalidades avanzadas (ICA, wavelets, filtros) & 17/06-18/06 \\
-    10.4 & Detección automática canales y streamers & 19/06-20/06 \\
+    8.1 & \acrshort{api} de control módulo \textit{inputs} & 23/05-06/06 \\
+    8.2 & Implementación controlador \acrshort{ps4} & 04/06-06/06 \\
+    8.3 & Tipado masivo y \textit{pre-commit} & 06/06-08/06 \\
+    9.1 & \acrshort{cli} \textit{inputs} (con problemas \textit{headless} identificados) & 09/06-12/06 \\
+    9.2 & Optimizaciones \acrshort{ps4} y arquitectura por eventos & 10/06-12/06 \\
+    10.1 & \acrshort{api} control módulo \acrshort{eeg} (básico) & 13/06-14/06 \\
+    10.2 & Integración \textit{MNE} y centralización \textit{DataAccessService} & 15/06-17/06 \\
+    10.3 & Funcionalidades avanzadas (\acrshort{ica}, \gls{wavelet}, filtros) & 17/06-18/06 \\
+    10.4 & Detección automática canales y \gls{streaming} & 19/06-20/06 \\
     10.5 & Migración lógica filtros y corrección grabación & 20/06-21/06 \\
-    10.6 & Finalización API control EEG y CLI & 21/06-22/06 \\
-    11 & \textbf{Módulo integración final} con LSL (pausado) & 22/06-23/06 \\
+    10.6 & Finalización \acrshort{api} control \acrshort{eeg} y \acrshort{cli} & 21/06-22/06 \\
+    11 & \textbf{Módulo integración final} con \acrshort{lsl} (pausado) & 22/06-23/06 \\
     12 & Documentación técnica y memoria & 22/06-23/06 \\
     \end{tabular}
   }
@@ -61,27 +61,27 @@ El cronograma revela varios aspectos importantes de la evolución del proyecto. 
 
 \section{Recursos y costes}
 
-La planificación de recursos constituye un aspecto fundamental para evaluar la viabilidad del proyecto y establecer las bases para su replicación o extensión futura. El proyecto se ha desarrollado con una estrategia de optimización de recursos que maximiza la utilización de herramientas de código abierto y hardware disponible, minimizando los costes directos mientras mantiene estándares profesionales de desarrollo.
+La planificación de recursos constituye un aspecto fundamental para evaluar la viabilidad del proyecto y establecer las bases para su replicación o extensión futura. El proyecto se ha desarrollado con una estrategia de optimización de recursos que maximiza la utilización de herramientas de código abierto y \textit{hardware} disponible, minimizando los costes directos mientras mantiene estándares profesionales de desarrollo.
 
-\subsection{Hardware}
+\subsection{\textit{Hardware}}
 
-Los recursos hardware utilizados en el proyecto reflejan una estrategia equilibrada entre capacidades técnicas necesarias y disponibilidad de equipamiento. El ordenador personal de desarrollo, equipado con procesador Intel i7-7700K y 32GB de RAM, ha proporcionado capacidades computacionales suficientes para el procesamiento en tiempo real de señales \acrshort{eeg} y el desarrollo simultáneo de múltiples módulos del sistema.
+Los recursos \textit{hardware} utilizados en el proyecto reflejan una estrategia equilibrada entre capacidades técnicas necesarias y disponibilidad de equipamiento. El ordenador personal de desarrollo, equipado con procesador \textit{Intel i7-7700K} y 32GB de \acrshort{ram}, ha proporcionado capacidades computacionales suficientes para el procesamiento en tiempo real de señales \acrshort{eeg} y el desarrollo simultáneo de múltiples módulos del sistema.
 
-El controlador PS4 DualShock ha servido como dispositivo de prueba para validar las capacidades de captura de eventos de controladores de juego, ampliando el espectro de modalidades de entrada soportadas por el sistema. Esta inclusión ha demostrado la extensibilidad del sistema para incorporar dispositivos de entrada no convencionales en aplicaciones \acrshort{bci}.
+El controlador \acrshort{ps4} \textit{DualShock} ha servido como dispositivo de prueba para validar las capacidades de captura de eventos de controladores de juego, ampliando el espectro de modalidades de entrada soportadas por el sistema. Esta inclusión ha demostrado la extensibilidad del sistema para incorporar dispositivos de entrada no convencionales en aplicaciones \acrshort{bci}.
 
-El casco \acrshort{eeg} g.tec Unicorn, con sus características de 8 canales y frecuencia de muestreo de 250Hz, ha proporcionado la validación final del sistema con datos reales de señales cerebrales. La disponibilidad de este dispositivo profesional ha sido crucial para verificar que el sistema desarrollado funciona correctamente con hardware comercial de calidad investigativa.
+El casco \acrshort{eeg} \textit{g.tec Unicorn}, con sus características de 8 canales y frecuencia de muestreo de 250Hz, ha proporcionado la validación final del sistema con datos reales de señales cerebrales~\cite{gtec_unicorn}. La disponibilidad de este dispositivo profesional ha sido crucial para verificar que el sistema desarrollado funciona correctamente con \textit{hardware} comercial de calidad investigativa.
 
-Los dispositivos \acrshort{eeg} sintéticos de BrainFlow han facilitado el desarrollo y las pruebas durante todo el proyecto, permitiendo la validación de algoritmos y procedimientos sin depender constantemente de hardware físico especializado.
+Los dispositivos \acrshort{eeg} sintéticos de \textit{BrainFlow} han facilitado el desarrollo y las pruebas durante todo el proyecto, permitiendo la validación de algoritmos y procedimientos sin depender constantemente de \textit{hardware} físico especializado~\cite{brainflow}.
 
-\subsection{Software}
+\subsection{\textit{Software}}
 
-El ecosistema de software seleccionado refleja una estrategia de desarrollo que prioriza la calidad, sostenibilidad y accesibilidad del proyecto. La utilización exclusiva de lenguajes y herramientas de código abierto (Python, JavaScript, HTML/CSS) garantiza que el sistema pueda ser replicado y extendido sin restricciones de licencias comerciales.
+El ecosistema de \textit{software} seleccionado refleja una estrategia de desarrollo que prioriza la calidad, sostenibilidad y accesibilidad del proyecto. La utilización exclusiva de lenguajes y herramientas de código abierto (\textit{Python}, \textit{JavaScript}, \textit{HTML/CSS}) garantiza que el sistema pueda ser replicado y extendido sin restricciones de licencias comerciales.
 
-Los frameworks seleccionados (PyQt5, FastAPI, MNE-Python) proporcionan capacidades profesionales para desarrollo de interfaces gráficas, servicios web y procesamiento científico respectivamente, manteniendo estándares industriales sin costes de licencia. La selección de estas herramientas se basó en criterios de robustez, documentación extensa y comunidades activas de soporte.
+Los \textit{frameworks} seleccionados (\textit{PyQt5}, \textit{FastAPI}, \textit{MNE-Python}) proporcionan capacidades profesionales para desarrollo de interfaces gráficas, servicios web y procesamiento científico respectivamente, manteniendo estándares industriales sin costes de licencia~\cite{gramfort2013meg}. La selección de estas herramientas se basó en criterios de robustez, documentación extensa y comunidades activas de soporte.
 
-Las librerías principales (BrainFlow, NumPy, SciPy, pynput, LSL) constituyen la base tecnológica del sistema, proporcionando capacidades especializadas para cada dominio funcional. La disponibilidad gratuita de estas herramientas de calidad profesional ha sido fundamental para mantener los costes directos del proyecto en cero.
+Las librerías principales (\textit{BrainFlow}, \textit{NumPy}, \textit{SciPy}, \textit{pynput}, \acrshort{lsl}) constituyen la base tecnológica del sistema, proporcionando capacidades especializadas para cada dominio funcional~\cite{brainflow,van2011numpy,virtanen2020scipy,kothe2013lab}. La disponibilidad gratuita de estas herramientas de calidad profesional ha sido fundamental para mantener los costes directos del proyecto en cero.
 
-Las herramientas de desarrollo (Git, pre-commit, orjson, SDL2) han facilitado el mantenimiento de estándares de calidad de código y la gestión eficiente del proyecto, contribuyendo significativamente a la robustez y mantenibilidad del sistema final.
+Las herramientas de desarrollo (\textit{Git}, \textit{pre-commit}, \textit{orjson}, \textit{SDL2}) han facilitado el mantenimiento de estándares de calidad de código y la gestión eficiente del proyecto, contribuyendo significativamente a la robustez y mantenibilidad del sistema final.
 
 \subsection{Estimación temporal}
 
@@ -106,7 +106,7 @@ La evaluación temporal del proyecto revela aspectos importantes sobre la comple
   \label{tab:temporal}
 \end{table}
 
-La dedicación estimada de 350 horas refleja la intensidad del desarrollo, con un promedio de 5 horas diarias durante los períodos activos. Esta estimación incluye tiempo de investigación, desarrollo, pruebas, refactorización y documentación. El número de commits realizados (más de 200) indica un desarrollo altamente iterativo con frecuentes ciclos de validación y mejora, característica esencial en proyectos de investigación y desarrollo experimental.
+La dedicación estimada de 350 horas refleja la intensidad del desarrollo, con un promedio de 5 horas diarias durante los períodos activos. Esta estimación incluye tiempo de investigación, desarrollo, pruebas, refactorización y documentación. El número de \textit{commits} realizados (más de 200) indica un desarrollo altamente iterativo con frecuentes ciclos de validación y mejora, característica esencial en proyectos de investigación y desarrollo experimental.
 
 \section{Análisis de riesgos y mitigación}
 
@@ -120,22 +120,22 @@ La identificación proactiva de riesgos y el desarrollo de estrategias de mitiga
     \rowcolor{udcpink!25}
     \textbf{Riesgo} & \textbf{Prob.} & \textbf{Impacto} & \textbf{Estrategia de mitigación} \\
     \hline
-    Fallos repetidos integración módulos & Alta & Alta & Múltiples enfoques: LSL monolítico → SOLID → APIs \\
-    Escalabilidad código monolítico & Alta & Alta & Refactorización SOLID tras primer fallo integración \\
-    Dependencias GUI en modo headless & Media & Media & Identificadas pero no resueltas completamente \\
-    Rendimiento tiempo real crítico & Media & Alta & Eventos parciales, callbacks selectivos, optimizaciones \\
-    Curva aprendizaje tecnologías BCI & Media & Media & Investigación exhaustiva, sistema ayuda integrado \\
-    Sincronización temporal precisa & Alta & Media & Múltiples estrategias hasta solución viable \\
-    Dependencias bibliotecas externas & Baja & Alta & APIs estables, manejo robusto excepciones \\
+    Fallos repetidos integración módulos & Alta & Alta & Múltiples enfoques: \acrshort{lsl} monolítica → \acrshort{solid} → \acrshort{api} \\
+    Escalabilidad código monolítico & Alta & Alta & Refactorización \acrshort{solid} tras primer fallo integración \\
+    Dependencias \acrshort{gui} en modo \textit{headless} & Media & Media & Identificadas pero no resueltas completamente \\
+    Rendimiento tiempo real crítico & Media & Alta & Eventos parciales, \gls{callback} selectivos, optimizaciones \\
+    Curva aprendizaje tecnologías \acrshort{bci} & Media & Media & Investigación exhaustiva, sistema ayuda integrado \\
+    \gls{sincronizacion} temporal precisa & Alta & Media & Múltiples estrategias hasta solución viable \\
+    Dependencias bibliotecas externas & Baja & Alta & \acrshort{api} estables, manejo robusto excepciones \\
     \end{tabular}
   }
   \caption{Principales riesgos identificados y estrategias de mitigación}
   \label{tab:riesgos}
 \end{table}
 
-El riesgo más significativo identificado fue la posibilidad de fallos repetidos en la integración entre módulos, que efectivamente se materializó durante el desarrollo. La estrategia de mitigación implementada implicó el desarrollo de múltiples enfoques arquitectónicos progresivamente más robustos, desde integración monolítica con LSL hasta arquitecturas basadas en principios SOLID y finalmente sistemas basados en APIs. Esta progresión metodológica demostró la importancia de mantener flexibilidad arquitectónica en proyectos de investigación experimental.
+El riesgo más significativo identificado fue la posibilidad de fallos repetidos en la integración entre módulos, que efectivamente se materializó durante el desarrollo. La estrategia de mitigación implementada implicó el desarrollo de múltiples enfoques arquitectónicos progresivamente más robustos, desde integración monolítica con \acrshort{lsl} hasta arquitecturas basadas en principios \acrshort{solid} y finalmente sistemas basados en \acrshort{api}. Esta progresión metodológica demostró la importancia de mantener flexibilidad arquitectónica en proyectos de investigación experimental.
 
-El riesgo de escalabilidad del código monolítico se abordó mediante refactorización proactiva siguiendo principios SOLID, lo que facilitó significativamente el desarrollo posterior y la integración de nuevas funcionalidades. Esta decisión, aunque requirió tiempo adicional inicialmente, resultó en beneficios sustanciales durante las fases posteriores del proyecto.
+El riesgo de escalabilidad del código monolítico se abordó mediante refactorización proactiva siguiendo principios \acrshort{solid}, lo que facilitó significativamente el desarrollo posterior y la integración de nuevas funcionalidades~\cite{martin2003agile}. Esta decisión, aunque requirió tiempo adicional inicialmente, resultó en beneficios sustanciales durante las fases posteriores del proyecto.
 
 \section{Seguimiento y control}
 
@@ -143,27 +143,27 @@ La implementación de mecanismos robustos de seguimiento y control ha sido funda
 
 \subsection{Control de versiones}
 
-El repositorio Git ha servido como columna vertebral para el seguimiento del progreso del proyecto, documentando más de 200 commits que reflejan la evolución detallada del sistema desde sus primeras implementaciones hasta la versión final. Esta granularidad en el control de versiones ha facilitado la identificación de puntos específicos donde se introdujeron cambios significativos y ha permitido la reversión segura cuando fue necesario.
+El repositorio \textit{Git} ha servido como columna vertebral para el seguimiento del progreso del proyecto, documentando más de 200 \textit{commits} que reflejan la evolución detallada del sistema desde sus primeras implementaciones hasta la versión final. Esta granularidad en el control de versiones ha facilitado la identificación de puntos específicos donde se introdujeron cambios significativos y ha permitido la reversión segura cuando fue necesario.
 
-La estrategia de desarrollo directo en la rama principal con commits frecuentes ha demostrado ser apropiada para un proyecto de desarrollo individual, permitiendo un flujo de trabajo ágil sin la complejidad adicional de gestión de ramas múltiples. Esta aproximación ha facilitado la documentación continua del progreso y ha proporcionado puntos de control regulares para la evaluación del sistema.
+La estrategia de desarrollo directo en la rama principal con \textit{commits} frecuentes ha demostrado ser apropiada para un proyecto de desarrollo individual, permitiendo un flujo de trabajo ágil sin la complejidad adicional de gestión de ramas múltiples. Esta aproximación ha facilitado la documentación continua del progreso y ha proporcionado puntos de control regulares para la evaluación del sistema.
 
-El versionado mediante etiquetas semánticas para releases funcionales ha proporcionado hitos claros que marcan la disponibilidad de funcionalidades específicas, facilitando la comunicación del progreso y la planificación de actividades dependientes.
+El versionado mediante etiquetas semánticas para \textit{releases} funcionales ha proporcionado hitos claros que marcan la disponibilidad de funcionalidades específicas, facilitando la comunicación del progreso y la planificación de actividades dependientes.
 
 \subsection{Metodología de desarrollo}
 
-La integración continua mediante pre-commit hooks ha garantizado que el código mantuviera estándares de calidad consistentes a lo largo del desarrollo. Esta automatización ha eliminado la variabilidad en la aplicación de estándares de formato y ha detectado problemas potenciales antes de que se incorporaran al repositorio principal.
+La integración continua mediante \textit{pre-commit hooks} ha garantizado que el código mantuviera estándares de calidad consistentes a lo largo del desarrollo. Esta automatización ha eliminado la variabilidad en la aplicación de estándares de formato y ha detectado problemas potenciales antes de que se incorporaran al repositorio principal.
 
-La implementación progresiva de type hints ha mejorado significativamente la robustez del código y ha facilitado la detección temprana de errores de tipos. Las sesiones específicas dedicadas al tipado masivo han consolidado esta práctica y han establecido las bases para un mantenimiento más efectivo del sistema.
+La implementación progresiva de \textit{type hints} ha mejorado significativamente la robustez del código y ha facilitado la detección temprana de errores de tipos. Las sesiones específicas dedicadas al tipado masivo han consolidado esta práctica y han establecido las bases para un mantenimiento más efectivo del sistema.
 
 La elaboración continua de documentación técnica ha garantizado que el conocimiento del sistema quede preservado y accesible para futuras extensiones o mantenimiento. Esta documentación ha evolucionado paralelamente al código, manteniendo siempre una correspondencia precisa entre implementación y descripción.
 
 \subsection{Hitos principales}
 
-Los hitos del proyecto reflejan tanto los éxitos como los desafíos encontrados durante el desarrollo. El primer milestone (19/04) marcó la finalización de módulos básicos pero también reveló las primeras limitaciones de integración directa. El segundo milestone (30/04) consolidó la refactorización SOLID pero confirmó que los problemas de integración requerían un cambio de estrategia más fundamental.
+Los hitos del proyecto reflejan tanto los éxitos como los desafíos encontrados durante el desarrollo. El primer \textit{milestone} (19/04) marcó la finalización de módulos básicos pero también reveló las primeras limitaciones de integración directa. El segundo \textit{milestone} (30/04) consolidó la refactorización \acrshort{solid} pero confirmó que los problemas de integración requerían un cambio de estrategia más fundamental.
 
-El tercer milestone (22/05) representó un punto de inflexión crítico con la implementación exitosa de la arquitectura API, estableciendo las bases para todo el desarrollo posterior. El cuarto milestone (22/06) documentó la finalización del sistema completo con funcionalidades avanzadas, cumpliendo los objetivos técnicos principales del proyecto.
+El tercer \textit{milestone} (22/05) representó un punto de inflexión crítico con la implementación exitosa de la arquitectura \acrshort{api}, estableciendo las bases para todo el desarrollo posterior. El cuarto \textit{milestone} (22/06) documentó la finalización del sistema completo con funcionalidades avanzadas, cumpliendo los objetivos técnicos principales del proyecto.
 
-El quinto milestone (22/06-23/06) refleja el intento de desarrollo de un módulo de integración final que, aunque no se completó debido a limitaciones de tiempo, demostró la viabilidad de extensiones futuras del sistema.
+El quinto \textit{milestone} (22/06-23/06) refleja el intento de desarrollo de un módulo de integración final que, aunque no se completó debido a limitaciones de tiempo, demostró la viabilidad de extensiones futuras del sistema.
 
 \section{Desvíos y replanificación}
 
@@ -171,37 +171,37 @@ El desarrollo del proyecto experimentó varios desvíos significativos respecto 
 
 \subsection{Evolución metodológica}
 
-Los cambios metodológicos más significativos reflejaron las limitaciones descubiertas durante la implementación y la necesidad de adaptar la estrategia de desarrollo a los desafíos técnicos específicos del dominio \acrshort{bci}. La migración temprana de Julia a Python ilustró la importancia de priorizar la productividad de desarrollo sobre el rendimiento teórico, especialmente en fases experimentales donde los cambios rápidos son fundamentales.
+Los cambios metodológicos más significativos reflejaron las limitaciones descubiertas durante la implementación y la necesidad de adaptar la estrategia de desarrollo a los desafíos técnicos específicos del dominio \acrshort{bci}. La migración temprana de \textit{Julia} a \textit{Python} ilustró la importancia de priorizar la productividad de desarrollo sobre el rendimiento teórico, especialmente en fases experimentales donde los cambios rápidos son fundamentales.
 
-Los dos fallos consecutivos de integración directa entre módulos revelaron limitaciones fundamentales en la aproximación arquitectónica inicial. La progresión desde integración monolítica con LSL hacia refactorización SOLID y finalmente hacia arquitectura API demostró la importancia de mantener múltiples estrategias de contingencia en proyectos de investigación.
+Los dos fallos consecutivos de integración directa entre módulos revelaron limitaciones fundamentales en la aproximación arquitectónica inicial. La progresión desde integración monolítica con \acrshort{lsl} hacia refactorización \acrshort{solid} y finalmente hacia arquitectura \acrshort{api} demostró la importancia de mantener múltiples estrategias de contingencia en proyectos de investigación.
 
-El cambio de tkinter a PyQt5 para interfaces gráficas ejemplificó cómo las limitaciones de rendimiento pueden forzar decisiones técnicas que inicialmente parecían innecesarias. Esta migración resultó beneficiosa a largo plazo, proporcionando capacidades superiores para visualización de señales biomédicas.
+El cambio de \textit{tkinter} a \textit{PyQt5} para interfaces gráficas ejemplificó cómo las limitaciones de rendimiento pueden forzar decisiones técnicas que inicialmente parecían innecesarias. Esta migración resultó beneficiosa a largo plazo, proporcionando capacidades superiores para visualización de señales biomédicas.
 
-La migración selectiva de \gls{polling} a arquitecturas dirigidas por eventos (específicamente para PS4) y \gls{callback} (para grabación, visualizadores y APIs) demostró que las decisiones arquitectónicas deben adaptarse al contexto específico de cada componente más que aplicar patrones uniformes a todo el sistema.
+La migración selectiva de \gls{polling} a arquitecturas dirigidas por eventos (específicamente para \acrshort{ps4}) y \gls{callback} (para grabación, visualizadores y \acrshort{api}) demostró que las decisiones arquitectónicas deben adaptarse al contexto específico de cada componente más que aplicar patrones uniformes a todo el sistema.
 
 \subsection{Problemas no resueltos}
 
-Algunos desafíos técnicos identificados durante el desarrollo no fueron completamente resueltos dentro del alcance temporal del proyecto. Las dependencias Qt que impiden el funcionamiento completamente autónomo en modo headless representan una limitación arquitectónica que requeriría refactorización significativa para resolver completamente.
+Algunos desafíos técnicos identificados durante el desarrollo no fueron completamente resueltos dentro del alcance temporal del proyecto. Las dependencias \textit{Qt} que impiden el funcionamiento completamente autónomo en modo \textit{headless} representan una limitación arquitectónica que requeriría refactorización significativa para resolver completamente.
 
-La separación incompleta de logs entre la aplicación principal y las interfaces CLI refleja decisiones de diseño tempranas que no anticiparon la importancia de esta distinción. Esta limitación afecta la experiencia de usuario en entornos automatizados pero no compromete la funcionalidad fundamental del sistema.
+La separación incompleta de \textit{logs} entre la aplicación principal y las interfaces \acrshort{cli} refleja decisiones de diseño tempranas que no anticiparon la importancia de esta distinción. Esta limitación afecta la experiencia de usuario en entornos automatizados pero no compromete la funcionalidad fundamental del sistema.
 
-Los fallos en exportación EDF/CSV que pausaron el desarrollo del módulo de integración final ilustran cómo problemas aparentemente menores pueden tener impactos desproporcionados en funcionalidades de alto nivel. Estos problemas se han documentado para futuras resoluciones.
+Los fallos en exportación \acrshort{edf}/\acrshort{csv} que pausaron el desarrollo del módulo de integración final ilustran cómo problemas aparentemente menores pueden tener impactos desproporcionados en funcionalidades de alto nivel. Estos problemas se han documentado para futuras resoluciones.
 
 \subsection{Decisiones arquitecturales exitosas}
 
-Las decisiones arquitectónicas que resultaron exitosas proporcionaron estabilidad y extensibilidad al sistema desarrollado. La implementación de APIs como backbone de comunicación entre módulos demostró ser una solución robusta que superó las limitaciones de integración directa, facilitando tanto el desarrollo como futuras extensiones.
+Las decisiones arquitectónicas que resultaron exitosas proporcionaron estabilidad y extensibilidad al sistema desarrollado. La implementación de \acrshort{api} como \textit{backbone} de comunicación entre módulos demostró ser una solución robusta que superó las limitaciones de integración directa, facilitando tanto el desarrollo como futuras extensiones.
 
-La centralización mediante DataAccessService eliminó duplicaciones e inconsistencias que habían complicado el desarrollo inicial, proporcionando un punto único de control para acceso a datos que simplificó significativamente la arquitectura general.
+La centralización mediante \textit{DataAccessService} eliminó duplicaciones e inconsistencias que habían complicado el desarrollo inicial, proporcionando un punto único de control para acceso a datos que simplificó significativamente la arquitectura general.
 
-La migración a \gls{callback} tanto para visualizadores locales como para APIs mejoró sustancialmente el rendimiento del sistema al eliminar \gls{polling} concurrente innecesario. Esta optimización fue particularmente notable en el módulo de grabación, donde redujo la pérdida de muestras del 10-30\% a niveles negligibles.
+La migración a \gls{callback} tanto para visualizadores locales como para \acrshort{api} mejoró sustancialmente el rendimiento del sistema al eliminar \gls{polling} concurrente innecesario. Esta optimización fue particularmente notable en el módulo de grabación, donde redujo la pérdida de muestras del 10-30\% a niveles negligibles.
 
-La implementación de arquitectura dirigida por eventos para el controlador PS4 resolvió problemas de rendimiento que habían limitado su funcionalidad en interfaces CLI, demostrando que patrones arquitectónicos específicos pueden ser más apropiados que soluciones genéricas.
+La implementación de arquitectura dirigida por eventos para el controlador \acrshort{ps4} resolvió problemas de rendimiento que habían limitado su funcionalidad en interfaces \acrshort{cli}, demostrando que patrones arquitectónicos específicos pueden ser más apropiados que soluciones genéricas.
 
-La diferenciación entre streamers de archivo (que soportan datos procesados) y streamers de red (limitados a datos RAW) reflejó una comprensión madura de los requisitos de compatibilidad diferentes para diversos casos de uso, optimizando el sistema para múltiples contextos de aplicación.
+La diferenciación entre \gls{streaming} de archivo (que soportan datos procesados) y \gls{streaming} de red (limitados a datos \textit{RAW}) reflejó una comprensión madura de los requisitos de compatibilidad diferentes para diversos casos de uso, optimizando el sistema para múltiples contextos de aplicación.
 
 \section{Planificación inicial del proyecto}
 
-La planificación inicial del proyecto contemplaba un desarrollo más lineal y predecible, basado en la asunción de que la integración directa entre módulos desarrollados independientemente sería relativamente directa. El diagrama de Gantt inicial, mostrado en la Figura~\ref{fig:gantt_inicial}, refleja esta perspectiva optimista que subestimó la complejidad de los desafíos de integración en sistemas \acrshort{bci}.
+La planificación inicial del proyecto contemplaba un desarrollo más lineal y predecible, basado en la asunción de que la integración directa entre módulos desarrollados independientemente sería relativamente directa. El diagrama de \textit{Gantt} inicial, mostrado en la Figura~\ref{fig:gantt_inicial}, refleja esta perspectiva optimista que subestimó la complejidad de los desafíos de integración en sistemas \acrshort{bci}.
 
 \begin{sidewaysfigure}[p]
 \centering
@@ -233,34 +233,34 @@ La planificación inicial del proyecto contemplaba un desarrollo más lineal y p
   \gantttitlelist{12,19,26}{5} \gantttitlelist{3,10,17}{5} \gantttitlelist{24,31,7}{5} \gantttitlelist{14,21,28}{5} \\
   
   \ganttgroup[progress=100]{Desarrollo módulos básicos}{1}{10} \\
-  \ganttbar[progress=100]{Módulo captura inputs}{1}{6} \\
-  \ganttbar[progress=100]{Módulo procesamiento EEG}{5}{10} \\
+  \ganttbar[progress=100]{Módulo captura \textit{inputs}}{1}{6} \\
+  \ganttbar[progress=100]{Módulo procesamiento \acrshort{eeg}}{5}{10} \\
   
   \ganttgroup[progress=100]{Integración directa (planificada)}{11}{15} \\
-  \ganttbar[progress=0, bar/.append style={fill=red!50}]{Sincronización LSL}{11}{15} \\
+  \ganttbar[progress=0, bar/.append style={fill=red!50}]{Sincronización \acrshort{lsl}}{11}{15} \\
   
   \ganttgroup[progress=100]{Funcionalidades avanzadas}{16}{35} \\
   \ganttbar[progress=100]{Optimizaciones y mejoras}{16}{25} \\
-  \ganttbar[progress=100]{Análisis avanzado EEG}{26}{35} \\
+  \ganttbar[progress=100]{Análisis avanzado \acrshort{eeg}}{26}{35} \\
   
   \ganttgroup[progress=100]{Documentación}{36}{40} \\
   \ganttbar[progress=100]{Memoria y documentación técnica}{36}{40} \\
   
 \end{ganttchart}
 }
-\caption{Diagrama de Gantt - Planificación inicial del proyecto}
+\caption{Diagrama de \textit{Gantt} - Planificación inicial del proyecto}
 \label{fig:gantt_inicial}
 \end{sidewaysfigure}
 
-La planificación inicial asumía que la fase de integración directa mediante LSL sería relativamente breve y no problemática, asignando únicamente 5 días para esta actividad crítica. Esta subestimación refleja la dificultad inherente de predecir la complejidad de integración en sistemas experimentales donde las interfaces entre componentes no están completamente definidas al inicio del proyecto.
+La planificación inicial asumía que la fase de integración directa mediante \acrshort{lsl} sería relativamente breve y no problemática, asignando únicamente 5 días para esta actividad crítica. Esta subestimación refleja la dificultad inherente de predecir la complejidad de integración en sistemas experimentales donde las interfaces entre componentes no están completamente definidas al inicio del proyecto.
 
 \section{Costes del proyecto}
 
 La evaluación económica del proyecto revela un modelo de desarrollo altamente eficiente que ha maximizado la utilización de recursos disponibles mientras mantiene estándares profesionales. El análisis detallado de costes proporciona información valiosa para la planificación de proyectos similares y demuestra la viabilidad de desarrollo de sistemas \acrshort{bci} avanzados con recursos limitados.
 
-\subsection{Recursos hardware utilizados}
+\subsection{Recursos \textit{hardware} utilizados}
 
-Los recursos hardware empleados reflejan una estrategia de optimización que aprovecha equipamiento disponible sin comprometer las capacidades técnicas necesarias para el desarrollo de sistemas \acrshort{bci}. La Tabla~\ref{tab:hardware} detalla las especificaciones y utilización de cada componente hardware.
+Los recursos \textit{hardware} empleados reflejan una estrategia de optimización que aprovecha equipamiento disponible sin comprometer las capacidades técnicas necesarias para el desarrollo de sistemas \acrshort{bci}. La Tabla~\ref{tab:hardware} detalla las especificaciones y utilización de cada componente \textit{hardware}.
 
 \begin{table}[hp!]
   \centering
@@ -268,23 +268,23 @@ Los recursos hardware empleados reflejan una estrategia de optimización que apr
     \rowcolors{2}{white}{udcgray!25}
     \begin{tabular}{l|c|c}
     \rowcolor{udcpink!25}
-    \textbf{Hardware} & \textbf{Especificaciones} & \textbf{Uso} \\
+    \textbf{\textit{Hardware}} & \textbf{Especificaciones} & \textbf{Uso} \\
     \hline
-    \textit{PC desarrollo} & Intel i7-7700K + 32GB RAM & Desarrollo completo \\
-    \textit{Controlador PS4} & DualShock 4 & Pruebas entrada gamepad \\
-    \textit{Casco EEG} & g.tec Unicorn (8 canales, 250Hz) & Validación final \\
-    \textit{Dispositivos sintéticos} & BrainFlow synthetic boards & Desarrollo y pruebas \\
+    \textit{PC desarrollo} & \textit{Intel i7-7700K} + 32GB \acrshort{ram} & Desarrollo completo \\
+    \textit{Controlador PS4} & \textit{DualShock 4} & Pruebas entrada \textit{gamepad} \\
+    \textit{Casco EEG} & \textit{g.tec Unicorn} (8 canales, 250Hz) & Validación final \\
+    \textit{Dispositivos sintéticos} & \textit{BrainFlow synthetic boards} & Desarrollo y pruebas \\
     \end{tabular}
   }
-  \caption{Hardware utilizado en el proyecto}
+  \caption{\textit{Hardware} utilizado en el proyecto}
   \label{tab:hardware}
 \end{table}
 
-El PC de desarrollo ha proporcionado capacidades computacionales suficientes para todas las fases del proyecto, desde desarrollo de código hasta procesamiento en tiempo real de señales \acrshort{eeg} de múltiples canales. La configuración de 32GB de RAM ha sido particularmente valiosa durante las fases de desarrollo intensivo con múltiples herramientas ejecutándose simultáneamente.
+El \textit{PC} de desarrollo ha proporcionado capacidades computacionales suficientes para todas las fases del proyecto, desde desarrollo de código hasta procesamiento en tiempo real de señales \acrshort{eeg} de múltiples canales. La configuración de 32GB de \acrshort{ram} ha sido particularmente valiosa durante las fases de desarrollo intensivo con múltiples herramientas ejecutándose simultáneamente.
 
-\subsection{Software y herramientas}
+\subsection{\textit{Software} y herramientas}
 
-La estrategia de software adoptada ha resultado en costes directos nulos mientras proporciona capacidades equivalentes a soluciones comerciales costosas como \textit{MATLAB} (€2,150/año académico)~\cite{matlab_pricing}, \textit{BrainVision Analyzer} (€15,000-25,000)~\cite{brainproducts_analyzer} o \textit{Curry 8 Neuroimaging Suite} (€30,000+)~\cite{curry_neuroscan}. La Tabla~\ref{tab:software} documenta todas las herramientas utilizadas y confirma el éxito de la estrategia de código abierto.
+La estrategia de \textit{software} adoptada ha resultado en costes directos nulos mientras proporciona capacidades equivalentes a soluciones comerciales costosas como \textit{MATLAB} (€2,150/año académico)~\cite{matlab_pricing}, \textit{BrainVision Analyzer} (€15,000-25,000)~\cite{brainproducts_analyzer} o \textit{Curry 8 Neuroimaging Suite} (€30,000+)~\cite{curry_neuroscan}. La Tabla~\ref{tab:software} documenta todas las herramientas utilizadas y confirma el éxito de la estrategia de código abierto.
 
 \begin{table}[hp!]
   \centering
@@ -294,36 +294,37 @@ La estrategia de software adoptada ha resultado en costes directos nulos mientra
     \rowcolor{udcpink!25}
     \textbf{Categoría} & \textbf{Herramientas} & \textbf{Coste} \\
     \hline
-    \textit{Lenguajes} & Python 3.8+, JavaScript, HTML/CSS & Libre \\
-    \textit{Frameworks} & PyQt5, FastAPI, MNE-Python & Libre \\
-    \textit{Librerías BCI} & BrainFlow, NumPy, SciPy & Libre \\
-    \textit{Protocolos de sincronización} & LSL (Lab Streaming Layer) & Libre \\
-    \textit{Desarrollo} & Git, pre-commit, orjson, SDL2 & Libre \\
-    \textit{Sistema operativo} & Windows 11 & Licencia existente \\
+    \textit{Lenguajes} & \textit{Python 3.8+}, \textit{JavaScript}, \textit{HTML/CSS} & Libre \\
+    \textit{Frameworks} & \textit{PyQt5}, \textit{FastAPI}, \textit{MNE-Python} & Libre \\
+    \textit{Librerías BCI} & \textit{BrainFlow}, \textit{NumPy}, \textit{SciPy} & Libre \\
+    \textit{Protocolos de sincronización} & \acrshort{lsl} (\textit{Lab Streaming Layer}) & Libre \\
+    \textit{Desarrollo} & \textit{Git}, \textit{pre-commit}, \textit{orjson}, \textit{SDL2} & Libre \\
+    \textit{Sistema operativo} & \textit{Windows 11} & Licencia existente \\
     \hline
     \textbf{Total software} & & \textbf{0€} \\
     \end{tabular}
   }
-  \caption{Software y herramientas utilizadas}
+  \caption{\textit{Software} y herramientas utilizadas}
   \label{tab:software}
 \end{table}
 
-La selección estratégica de herramientas de código abierto ha eliminado completamente los costes de licencias de software sin comprometer la calidad o capacidades del sistema desarrollado. Esta aproximación ha demostrado que es posible desarrollar sistemas \acrshort{bci} profesionales utilizando exclusivamente herramientas libres.
+La selección estratégica de herramientas de código abierto ha eliminado completamente los costes de licencias de \textit{software} sin comprometer la calidad o capacidades del sistema desarrollado. Esta aproximación ha demostrado que es posible desarrollar sistemas \acrshort{bci} profesionales utilizando exclusivamente herramientas libres.
 
 \section{Desvíos y replanificación}
 
 El análisis de los desvíos respecto a la planificación inicial proporciona perspectivas valiosas sobre la naturaleza impredecible del desarrollo de sistemas \acrshort{bci} y la importancia de mantener flexibilidad metodológica en proyectos de investigación experimental.
+
 \subsection{Principales desvíos identificados}
 
 Los desvíos más significativos del proyecto reflejaron tanto limitaciones en la estimación inicial de complejidad como eventos externos no anticipados. El fallo de integración monolítica (17-19 abril) reveló limitaciones fundamentales en la estrategia arquitectónica inicial, requiriendo una refactorización completa que no había sido contemplada en la planificación original.
 
-El segundo fallo de integración post-SOLID (22-30 abril) confirmó que los problemas de integración eran más profundos que simples deficiencias de organización de código, forzando un cambio estratégico hacia arquitecturas API que tampoco había sido anticipado. Esta experiencia ilustra la dificultad de predecir completamente los desafíos técnicos en dominios experimentales.
+El segundo fallo de integración post-\acrshort{solid} (22-30 abril) confirmó que los problemas de integración eran más profundos que simples deficiencias de organización de código, forzando un cambio estratégico hacia arquitecturas \acrshort{api} que tampoco había sido anticipado. Esta experiencia ilustra la dificultad de predecir completamente los desafíos técnicos en dominios experimentales.
 
 La pausa no planificada (1-13 mayo) debido a otros compromisos académicos demostró la importancia de considerar restricciones externas en la planificación de proyectos de investigación. Aunque esta pausa no tuvo impacto técnico directo, ilustra cómo factores externos pueden afectar la continuidad del desarrollo.
 
-El desarrollo no planificado de arquitectura API (14-22 mayo) emergió como solución a los problemas de integración pero requirió tiempo significativo no contemplado inicialmente. Esta fase incluyó el desarrollo de un explorador web completo que, aunque no estaba en los objetivos originales, añadió valor considerable al sistema final.
+El desarrollo no planificado de arquitectura \acrshort{api} (14-22 mayo) emergió como solución a los problemas de integración pero requirió tiempo significativo no contemplado inicialmente. Esta fase incluyó el desarrollo de un explorador web completo que, aunque no estaba en los objetivos originales, añadió valor considerable al sistema final.
 
-La identificación tardía de problemas en modo headless (9-12 junio) reveló limitaciones arquitectónicas que habrían sido preferibles detectar durante fases iniciales del diseño. Esta experiencia subraya la importancia de considerar múltiples contextos de uso desde las etapas tempranas del proyecto.
+La identificación tardía de problemas en modo \textit{headless} (9-12 junio) reveló limitaciones arquitectónicas que habrían sido preferibles detectar durante fases iniciales del diseño. Esta experiencia subraya la importancia de considerar múltiples contextos de uso desde las etapas tempranas del proyecto.
 
 \subsection{Cronograma real con desvíos}
 
@@ -359,14 +360,14 @@ El cronograma real del proyecto, documentado en la Figura~\ref{fig:gantt_final},
   \gantttitlelist{12,19,26}{7} \gantttitlelist{3,10,17}{7} \gantttitlelist{24,31,7}{7} \gantttitlelist{14,21,28}{7} \\
   
   \ganttgroup[progress=100]{Desarrollo módulos básicos}{1}{12} \\
-  \ganttbar[progress=100]{Script inputs + UI PyQt5}{1}{7} \\
-  \ganttbar[progress=100]{Módulo EEG + brain map}{8}{12} \\
+  \ganttbar[progress=100]{\textit{Script inputs} + \acrshort{ui} \textit{PyQt5}}{1}{7} \\
+  \ganttbar[progress=100]{Módulo \acrshort{eeg} + \textit{brain map}}{8}{12} \\
   
   \ganttgroup[progress=100]{Primer intento integración}{13}{16} \\
-  \ganttbar[progress=100, bar/.append style={fill=red!70}]{LSL monolítico (fallido)}{13}{16} \\
+  \ganttbar[progress=100, bar/.append style={fill=red!70}]{\acrshort{lsl} monolítico (fallido)}{13}{16} \\
   \ganttmilestone[milestone/.append style={fill=red}]{Fallo integración 1}{16} \\
   
-  \ganttgroup[progress=100]{Refactorización SOLID}{17}{19} \\
+  \ganttgroup[progress=100]{Refactorización \acrshort{solid}}{17}{19} \\
   \ganttbar[progress=100]{Reestructuración módulos}{17}{19} \\
   
   \ganttgroup[progress=100]{Segundo intento integración}{20}{28} \\
@@ -376,31 +377,31 @@ El cronograma real del proyecto, documentado en la Figura~\ref{fig:gantt_final},
   \ganttgroup[progress=0]{Pausa no planificada}{29}{42} \\
   \ganttbar[progress=0, bar/.append style={fill=gray!50}]{Otros compromisos académicos}{29}{42} \\
   
-  \ganttgroup[progress=100]{Arquitectura API (emergente)}{43}{56} \\
-  \ganttbar[progress=100, bar/.append style={fill=green!70}]{APIs acceso datos}{43}{49} \\
+  \ganttgroup[progress=100]{Arquitectura \acrshort{api} (emergente)}{43}{56} \\
+  \ganttbar[progress=100, bar/.append style={fill=green!70}]{\acrshort{api} acceso datos}{43}{49} \\
   \ganttbar[progress=100, bar/.append style={fill=green!70}]{Explorador web unificado}{50}{53} \\
-  \ganttbar[progress=100, bar/.append style={fill=green!70}]{APIs control inputs}{54}{56} \\
-  \ganttmilestone[milestone/.append style={fill=green}]{Arquitectura API exitosa}{56} \\
+  \ganttbar[progress=100, bar/.append style={fill=green!70}]{\acrshort{api} control \textit{inputs}}{54}{56} \\
+  \ganttmilestone[milestone/.append style={fill=green}]{Arquitectura \acrshort{api} exitosa}{56} \\
   
-  \ganttgroup[progress=100]{CLIs y optimizaciones}{57}{63} \\
-  \ganttbar[progress=100]{CLI inputs + PS4 + eventos}{57}{63} \\
-  \ganttmilestone[milestone/.append style={fill=orange}]{Problema headless identificado}{61} \\
+  \ganttgroup[progress=100]{\acrshort{cli} y optimizaciones}{57}{63} \\
+  \ganttbar[progress=100]{\acrshort{cli} \textit{inputs} + \acrshort{ps4} + eventos}{57}{63} \\
+  \ganttmilestone[milestone/.append style={fill=orange}]{Problema \textit{headless} identificado}{61} \\
   
-  \ganttgroup[progress=100]{Funcionalidades avanzadas EEG}{64}{77} \\
-  \ganttbar[progress=100]{API control EEG + MNE}{64}{70} \\
-  \ganttbar[progress=100]{ICA + wavelets + filtros}{71}{77} \\
+  \ganttgroup[progress=100]{Funcionalidades avanzadas \acrshort{eeg}}{64}{77} \\
+  \ganttbar[progress=100]{\acrshort{api} control \acrshort{eeg} + \textit{MNE}}{64}{70} \\
+  \ganttbar[progress=100]{\acrshort{ica} + \gls{wavelet} + filtros}{71}{77} \\
   
   \ganttgroup[progress=50]{Integración final}{78}{80} \\
-  \ganttbar[progress=50, bar/.append style={fill=orange!50}]{Módulo LSL (pausado por bugs)}{78}{80} \\
+  \ganttbar[progress=50, bar/.append style={fill=orange!50}]{Módulo \acrshort{lsl} (pausado por \textit{bugs})}{78}{80} \\
   \ganttmilestone[milestone/.append style={fill=orange}]{Integración pausada}{80} \\
   
 \end{ganttchart}
 }
-\caption{Diagrama de Gantt - Desarrollo real con desvíos}
+\caption{Diagrama de \textit{Gantt} - Desarrollo real con desvíos}
 \label{fig:gantt_final}
 \end{sidewaysfigure}
 
-La comparación entre los diagramas de Gantt inicial y final ilustra dramáticamente cómo los proyectos de investigación experimental pueden divergir de planificaciones iniciales aparentemente razonables. El desarrollo real muestra múltiples fallos, replanificaciones y emergencia de soluciones no anticipadas que finalmente resultaron en un sistema más robusto.
+La comparación entre los diagramas de \textit{Gantt} inicial y final ilustra dramáticamente cómo los proyectos de investigación experimental pueden divergir de planificaciones iniciales aparentemente razonables. El desarrollo real muestra múltiples fallos, replanificaciones y emergencia de soluciones no anticipadas que finalmente resultaron en un sistema más robusto.
 
 \subsection{Impacto de los desvíos}
 

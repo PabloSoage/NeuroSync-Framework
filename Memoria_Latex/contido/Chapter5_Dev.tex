@@ -15,7 +15,7 @@ El análisis de requisitos se realizó de forma evolutiva, refinándose a medida
 
 Los requisitos funcionales del sistema se organizaron en cuatro categorías principales que reflejan la arquitectura modular adoptada. La captura sincronizada de eventos constituye el requisito central del sistema, exigiendo la capacidad de registrar eventos de teclado, ratón y controladores con precisión temporal de milisegundos, incluyendo \gls{timestamp} sincronizados que permitan correlacionar estos eventos con señales cerebrales. Esta funcionalidad debe soportar múltiples dispositivos de entrada simultáneamente y proporcionar filtrado configurable de eventos para evitar ruido en los datos capturados.
 
-El procesamiento de señales \acrshort{eeg} en tiempo real representa otro conjunto crítico de requisitos, incluyendo soporte para múltiples dispositivos comerciales mediante la biblioteca \textit{BrainFlow}, visualización en tiempo real de señales con detección automática de tipos de canales, y aplicación de algoritmos de procesamiento avanzados como filtrado digital, \acrfull{ica} y transformadas \textit{wavelet}. El sistema debe proporcionar monitoreo de calidad de señal y permitir la inserción manual de marcadores durante la grabación para correlación posterior con eventos experimentales.
+El procesamiento de señales \acrshort{eeg} en tiempo real representa otro conjunto crítico de requisitos, incluyendo soporte para múltiples dispositivos comerciales mediante la biblioteca \textit{BrainFlow}~\cite{brainflow}, visualización en tiempo real de señales con detección automática de tipos de canales, y aplicación de algoritmos de procesamiento avanzados como filtrado digital, \acrfull{ica} y transformadas \textit{wavelet}. El sistema debe proporcionar monitoreo de calidad de señal y permitir la inserción manual de marcadores durante la grabación para correlación posterior con eventos experimentales.
 
 La generación y exportación de \gls{dataset} requiere capacidades de sincronización temporal precisa entre señales \acrshort{eeg} y eventos de entrada, con exportación automática a formatos estándar como \acrshort{bids}, \acrshort{edf}+, \acrshort{hdf5} y \acrshort{csv}. El sistema debe mantener metadatos completos sobre las condiciones de adquisición y proporcionar herramientas para validación de la integridad de los datos exportados.
 
@@ -49,11 +49,11 @@ La primera iteración del desarrollo se centró en la creación de prototipos fu
 \subsection{Investigación preliminar y selección tecnológica}
 \label{subsec:investigacion_preliminar}
 
-La fase inicial del proyecto comenzó con una investigación exhaustiva del ecosistema tecnológico disponible para el desarrollo de sistemas \acrshort{bci}. Esta investigación abarcó el análisis de bibliotecas especializadas como \textit{BrainFlow} para adquisición de señales \acrshort{eeg}, \textit{Lab Streaming Layer} para sincronización de datos, y \textit{MNE-Python} para procesamiento avanzado de señales biomédicas. La evaluación incluyó tanto las capacidades técnicas como la facilidad de integración y la madurez del ecosistema de desarrollo de cada herramienta.
+La fase inicial del proyecto comenzó con una investigación exhaustiva del ecosistema tecnológico disponible para el desarrollo de sistemas \acrshort{bci}. Esta investigación abarcó el análisis de bibliotecas especializadas como \textit{BrainFlow} para adquisición de señales \acrshort{eeg}~\cite{brainflow}, \textit{Lab Streaming Layer} para sincronización de datos~\cite{kothe2013lab}, y \textit{MNE-Python} para procesamiento avanzado de señales biomédicas~\cite{gramfort2013meg}. La evaluación incluyó tanto las capacidades técnicas como la facilidad de integración y la madurez del ecosistema de desarrollo de cada herramienta.
 
-El estudio de dispositivos \acrshort{eeg} comerciales se enfocó en identificar las características técnicas relevantes como número de canales, frecuencia de muestreo, resolución y métodos de conectividad. Se analizaron dispositivos que van desde sistemas clínicos de alta gama hasta dispositivos de consumo accesibles, evaluando especialmente aquellos soportados por \textit{BrainFlow} para garantizar compatibilidad con la biblioteca de abstracción seleccionada.
+El estudio de dispositivos \acrshort{eeg} comerciales se enfocó en identificar las características técnicas relevantes como número de canales, frecuencia de muestreo, resolución y métodos de conectividad. Se analizaron dispositivos que van desde sistemas clínicos de alta gama hasta dispositivos de consumo accesibles, evaluando especialmente aquellos soportados por \textit{BrainFlow} para garantizar compatibilidad con la biblioteca de abstracción seleccionada~\cite{brainflow}.
 
-La investigación del sistema internacional 10-20 para posicionamiento de electrodos y su extensión \acrshort{mcn} proporcionó el conocimiento fundamental necesario para implementar visualizaciones anatómicamente correctas de la actividad cerebral. Este estudio incluyó la comprensión de los tipos de artefactos que pueden aparecer en diferentes posiciones de electrodos y las características de cada posición en términos de actividad neuronal capturable.
+La investigación del sistema internacional 10-20 para posicionamiento de electrodos y su extensión \acrshort{mcn} proporcionó el conocimiento fundamental necesario para implementar visualizaciones anatómicamente correctas de la actividad cerebral~\cite{jasper1958report,klem1999ten}. Este estudio incluyó la comprensión de los tipos de \gls{artefacto} que pueden aparecer en diferentes posiciones de electrodos y las características de cada posición en términos de actividad neuronal capturable.
 
 La evaluación inicial de lenguajes de programación consideró tanto \textit{Julia} como \textit{Python}, analizando las ventajas de rendimiento de \textit{Julia} frente a la madurez del ecosistema científico de \textit{Python}. Esta evaluación resultó en la selección tentativa de \textit{Julia} para el desarrollo inicial, decisión que posteriormente sería reconsiderada basándose en experiencias prácticas de desarrollo.
 
@@ -98,7 +98,7 @@ Mientras se experimentaba con \textit{PyQt5} para el módulo de captura de entra
 
 El desarrollo del módulo \acrshort{eeg} comenzó con experimentos usando la placa sintética de \textit{BrainFlow}, que proporciona datos simulados con características similares a señales \acrshort{eeg} reales. Esta experimentación inicial fue fundamental para comprender la \acrshort{api} de \textit{BrainFlow} y establecer los patrones de adquisición de datos que se utilizarían en el sistema.
 
-La implementación de un grabador básico para registrar datos en archivos permitió validar el flujo completo de adquisición, procesamiento y almacenamiento de datos. Este prototipo reveló la importancia de manejar apropiadamente los buffers de datos para evitar pérdida de muestras y la necesidad de implementar monitoreo de calidad de señal para detectar problemas de adquisición.
+La implementación de un grabador básico para registrar datos en archivos permitió validar el flujo completo de adquisición, procesamiento y almacenamiento de datos. Este prototipo reveló la importancia de manejar apropiadamente los \gls{buffer} de datos para evitar pérdida de muestras y la necesidad de implementar monitoreo de calidad de señal para detectar problemas de adquisición.
 
 La validación con \textit{PyQt5} demostró que esta tecnología podía manejar efectivamente la visualización en tiempo real de múltiples canales de datos \acrshort{eeg} simultáneamente. Las pruebas de rendimiento confirmaron que el sistema podía mantener actualizaciones fluidas incluso con frecuencias de muestreo altas, estableciendo la confianza necesaria para proceder con la migración completa del módulo de entrada a esta tecnología.
 
@@ -107,9 +107,9 @@ La validación con \textit{PyQt5} demostró que esta tecnología podía manejar 
 
 La implementación de soporte para todos los dispositivos compatibles con \textit{BrainFlow} requirió el desarrollo de un sistema de configuración dinámico que pudiera adaptarse a las características específicas de cada fabricante. Esta implementación incluyó la generación automática de parámetros de configuración basados en las especificaciones del dispositivo seleccionado, con validación de parámetros requeridos y opcionales.
 
-El desarrollo del indicador visual de calidad de señal utilizó el método de \textit{railed percentage} proporcionado por \textit{BrainFlow}, que evalúa la calidad de la señal detectando cuándo los valores se aproximan a los límites del rango de medición del amplificador, indicando posible saturación o problemas de conexión. Esta funcionalidad proporcionó retroalimentación inmediata sobre la calidad de la conexión entre electrodos y cuero cabelludo, crítica para garantizar la validez de los datos capturados.
+El desarrollo del indicador visual de calidad de señal utilizó el método de \textit{railed percentage} proporcionado por \textit{BrainFlow}, que evalúa la calidad de la señal detectando cuándo los valores se aproximan a los límites del rango de medición del amplificador, indicando posible saturación o problemas de conexión~\cite{Nolan2010}. Esta funcionalidad proporcionó retroalimentación inmediata sobre la calidad de la conexión entre electrodos y cuero cabelludo, crítica para garantizar la validez de los datos capturados.
 
-La integración de nombres correctos de canales basados en el sistema internacional 10-20 mejoró significativamente la usabilidad del sistema para investigadores familiarizados con la nomenclatura estándar de electrodos. Esta funcionalidad incluyó mapeo automático entre las designaciones específicas del fabricante y la nomenclatura estándar, facilitando la interpretación de datos y la comparación entre diferentes dispositivos.
+La integración de nombres correctos de canales basados en el sistema internacional 10-20 mejoró significativamente la usabilidad del sistema para investigadores familiarizados con la nomenclatura estándar de electrodos~\cite{jasper1958report}. Esta funcionalidad incluyó mapeo automático entre las designaciones específicas del fabricante y la nomenclatura estándar, facilitando la interpretación de datos y la comparación entre diferentes dispositivos.
 
 \subsection{Implementación del Brain Map}
 \label{subsec:implementacion_brain_map}
@@ -125,18 +125,18 @@ El sistema permite identificar rápidamente electrodos con problemas de señal y
 
 La implementación de un sistema de ayuda contextual respondió específicamente a la barrera inicial de conocimientos sobre la biblioteca \textit{BrainFlow}, parámetros de configuración de dispositivos, métricas y filtros \acrshort{bci} que se identificó durante el desarrollo. Este sistema incluyó más de 25 \gls{widget} de ayuda que cubren desde conceptos básicos de neurofisiología hasta parámetros técnicos específicos de filtros digitales.
 
-Cada widget de ayuda proporciona explicaciones orientativas sobre funcionalidades específicas, interpretaciones de gráficos, conceptos sobre \acrshort{bci} (frecuencias alpha, beta, convenciones de nomenclatura de electrodos), qué se visualiza en cada gráfico, qué es \acrshort{ica}, configuraciones de filtros adecuadas para diferentes casos, y guías de uso de la aplicación (grabación, streaming, opciones). La información fue compilada de documentación oficial de \textit{BrainFlow} y recursos educativos \textit{online}.
+Cada \gls{widget} de ayuda proporciona explicaciones orientativas sobre funcionalidades específicas, interpretaciones de gráficos, conceptos sobre \acrshort{bci} (frecuencias \textit{alpha}, \textit{beta}, convenciones de nomenclatura de electrodos), qué se visualiza en cada gráfico, qué es \acrshort{ica}, configuraciones de filtros adecuadas para diferentes casos, y guías de uso de la aplicación (grabación, \textit{streaming}, opciones). La información fue compilada de documentación oficial de \textit{BrainFlow} y recursos educativos \textit{online}~\cite{brainflow}.
 
 La interfaz de ayuda utiliza un diseño modal accesible mediante iconos "?" que no interfiere con el flujo de trabajo principal pero proporciona acceso inmediato a información relevante cuando se necesita. Esta aproximación equilibra la accesibilidad de la información con la simplicidad de la interfaz principal, manteniendo la usabilidad para usuarios experimentados.
 
 \subsection{Implementación del sistema de grabación}
 \label{subsec:sistema_grabacion}
 
-El desarrollo del sistema de grabación en formato \acrshort{csv} incluyó metadatos básicos en las cabeceras: fecha y hora de inicio de grabación, identificación de la placa, preset utilizado, número de canales, tiempo de grabación, número de muestras, y especificación de si los datos son en crudo o procesados. La estructura incluye una fila con nombres de canales para \acrshort{eeg} (Fz, PO7, etc.) y otros tipos de canales (\acrshort{emg}, \acrshort{ecg}, acelerómetro, giroscopio, temperatura), junto con tres canales especiales: \gls{timestamp}, marcadores y CH\_0 (canal de control de \textit{BrainFlow} para mantener orden de muestras en reproducción).
+El desarrollo del sistema de grabación en formato \acrshort{csv} incluyó metadatos básicos en las cabeceras: fecha y hora de inicio de grabación, identificación de la placa, \textit{preset} utilizado, número de canales, tiempo de grabación, número de muestras, y especificación de si los datos son en crudo o procesados. La estructura incluye una fila con nombres de canales para \acrshort{eeg} (Fz, PO7, etc.) y otros tipos de canales (\acrshort{emg}, \acrshort{ecg}, acelerómetro, giroscopio, temperatura), junto con tres canales especiales: \gls{timestamp}, marcadores y CH\_0 (canal de control de \textit{BrainFlow} para mantener orden de muestras en reproducción).
 
-La integración de métricas de estado mental calculadas en tiempo real añadió valor analítico a los datos capturados. Estas métricas, proporcionadas por \textit{BrainFlow}, incluyen estimaciones de concentración, relajación y otros estados cognitivos que pueden ser útiles para análisis posteriores o aplicaciones de neurofeedback.
+La integración de métricas de estado mental calculadas en tiempo real añadió valor analítico a los datos capturados. Estas métricas, proporcionadas por \textit{BrainFlow}, incluyen estimaciones de concentración, relajación y otros estados cognitivos que pueden ser útiles para análisis posteriores o aplicaciones de \gls{neurofeedback}~\cite{brainflow}.
 
-El sistema de marcadores temporales permite la inserción manual de eventos durante la grabación, funcionalidad que se utiliza específicamente durante la grabación, streaming a archivo, o sincronización de datos, pero limitada exclusivamente al formato \acrshort{csv} ya que los otros formatos no soportan esta característica.
+El sistema de marcadores temporales permite la inserción manual de eventos durante la grabación, funcionalidad que se utiliza específicamente durante la grabación, \textit{streaming} a archivo, o sincronización de datos, pero limitada exclusivamente al formato \acrshort{csv} ya que los otros formatos no soportan esta característica.
 
 \section{Tercera iteración: Primer intento de integración}
 \label{sec:tercera_iteracion}
@@ -164,9 +164,9 @@ Sin embargo, la unificación de formatos no resolvió el problema fundamental de
 \subsection{Experimentación con Lab Streaming Layer}
 \label{subsec:experimentacion_lsl}
 
-La identificación de problemas de sincronización temporal llevó a la experimentación con \textit{Lab Streaming Layer} (\acrshort{lsl}) como solución para la coordinación temporal entre módulos. \acrshort{lsl} proporciona un protocolo de red especializado para streaming de datos temporales con corrección automática de deriva de reloj, características que parecían ideales para los requisitos del proyecto.
+La identificación de problemas de sincronización temporal llevó a la experimentación con \textit{Lab Streaming Layer} (\acrshort{lsl}) como solución para la coordinación temporal entre módulos~\cite{kothe2013lab}. \acrshort{lsl} proporciona un protocolo de red especializado para \textit{streaming} de datos temporales con corrección automática de deriva de reloj, características que parecían ideales para los requisitos del proyecto.
 
-Sin embargo, la implementación de \acrshort{lsl} con la arquitectura monolítica existente se encontró con obstáculos significativos. Los archivos de código de gran tamaño dificultaban la identificación de puntos apropiados para integración, mientras que el acoplamiento estrecho entre componentes complicaba la refactorización necesaria para soportar streaming de datos externo. Esta resultó no ser una tarea fructífera debido a la estructura monolítica de los módulos.
+Sin embargo, la implementación de \acrshort{lsl} con la arquitectura monolítica existente se encontró con obstáculos significativos. Los archivos de código de gran tamaño dificultaban la identificación de puntos apropiados para integración, mientras que el acoplamiento estrecho entre componentes complicaba la refactorización necesaria para soportar \textit{streaming} de datos externo. Esta resultó no ser una tarea fructífera debido a la estructura monolítica de los módulos.
 
 La complejidad de depuración en el código monolítico se magnificó al intentar integrar una biblioteca externa sofisticada como \acrshort{lsl}. Los errores se propagaban a través de múltiples componentes acoplados, haciendo extremadamente difícil identificar la fuente de problemas de integración y validar que la sincronización funcionara correctamente.
 
@@ -175,7 +175,7 @@ Esta experiencia reveló que las limitaciones no residían en las herramientas d
 \section{Cuarta iteración: Refactorización SOLID}
 \label{sec:cuarta_iteracion}
 
-El fallo del primer intento de integración motivó una refactorización completa de ambos módulos para seguir principios \acrshort{solid} de diseño de software. Esta iteración se enfocó en reestructurar el código existente sin perder funcionalidad, creando una base arquitectónica sólida para futuras integraciones.
+El fallo del primer intento de integración motivó una refactorización completa de ambos módulos para seguir principios \acrshort{solid} de diseño de \textit{software}~\cite{martin2003agile}. Esta iteración se enfocó en reestructurar el código existente sin perder funcionalidad, creando una base arquitectónica sólida para futuras integraciones.
 
 \subsection{Reestructuración del módulo de captura de entrada}
 \label{subsec:reestructuracion_entrada}
@@ -193,7 +193,7 @@ La inversión de dependencias se logró mediante la introducción de un patrón 
 
 La refactorización del módulo \acrshort{eeg} siguió patrones similares pero requirió consideración especial para las características únicas del procesamiento de señales en tiempo real. La separación incluyó servicios especializados para adquisición de datos, procesamiento de señales, gestión de dispositivos, y visualización de resultados.
 
-La implementación de servicios singleton para componentes críticos como el colector de datos garantiza consistencia en el acceso a recursos compartidos mientras mantiene \gls{thread-safety} para operaciones concurrentes. Esta aproximación es especialmente importante en aplicaciones que manejan streams de datos de alta frecuencia donde la sincronización incorrecta puede resultar en pérdida de datos.
+La implementación de servicios \textit{singleton} para componentes críticos como el colector de datos garantiza consistencia en el acceso a recursos compartidos mientras mantiene \gls{thread-safety} para operaciones concurrentes. Esta aproximación es especialmente importante en aplicaciones que manejan \textit{streams} de datos de alta frecuencia donde la sincronización incorrecta puede resultar en pérdida de datos.
 
 El diseño modular permitió la separación clara entre algoritmos de procesamiento y lógica de presentación, facilitando la reutilización de componentes de procesamiento en diferentes contextos y simplificando la implementación de nuevos algoritmos sin afectar la interfaz de usuario existente.
 
@@ -254,7 +254,7 @@ La experiencia de desarrollo de estas \acrshort{api} reveló inmediatamente la n
 \subsection{Implementación del explorador web}
 \label{subsec:explorador_web}
 
-Para facilitar las pruebas de las \acrshort{api}, se decidió implementar una pequeña aplicación web con \textit{FastAPI} que se iniciara con la aplicación y expusiera los endpoints del \acrshort{api} interno vía web. Esta decisión se basó en el interés por la sección de prueba del \acrshort{api} que proporciona \textit{FastAPI}/\textit{uvicorn} en /docs, aunque se diseñó una interfaz personalizada para darle el aspecto deseado.
+Para facilitar las pruebas de las \acrshort{api}, se decidió implementar una pequeña aplicación web con \textit{FastAPI} que se iniciara con la aplicación y expusiera los \textit{endpoints} del \acrshort{api} interno vía web~\cite{fastapi_benchmark}. Esta decisión se basó en el interés por la sección de prueba del \acrshort{api} que proporciona \textit{FastAPI}/\textit{uvicorn} en /docs, aunque se diseñó una interfaz personalizada para darle el aspecto deseado.
 
 La implementación inicial creó aplicaciones web separadas para cada módulo, pero la dificultad de hacer cambios en ambos módulos por separado, mantener la coherencia entre las \acrshort{api} web y el mantenimiento de ambos motivó la refactorización hacia un explorador web unificado. Este nuevo módulo era genérico y los módulos independientes podían registrarse a sí mismos y a sus métodos para la visualización web.
 
@@ -269,7 +269,7 @@ La refactorización del explorador web hacia una aplicación unificada requirió
 
 El explorador unificado implementó capacidades avanzadas de visualización que podían adaptarse automáticamente al tipo de datos proporcionados por cada módulo. La tabla dinámica también se implementó para señales \acrshort{eeg} como otra forma de visualización, mientras que para eventos de entrada se muestra simplemente el \acrshort{json} estructurado correspondiente.
 
-El sistema de visualización de datos reveló un error crítico en la implementación del módulo \acrshort{eeg}: cuando se cerraba el visualizador \acrfull{gui}, el stream de datos se pausaba porque el único punto de \gls{polling} del colector se realizaba en el visualizador mismo. Se solucionó temporalmente haciendo que el visualizador mantuviera su \gls{polling} independiente, e internamente se realizara un \gls{polling} en el colector para mantener el stream activo, aunque esto se cambiaría posteriormente.
+El sistema de visualización de datos reveló un error crítico en la implementación del módulo \acrshort{eeg}: cuando se cerraba el visualizador \acrfull{gui}, el \textit{stream} de datos se pausaba porque el único punto de \gls{polling} del colector se realizaba en el visualizador mismo. Se solucionó temporalmente haciendo que el visualizador mantuviera su \gls{polling} independiente, e internamente se realizara un \gls{polling} en el colector para mantener el \textit{stream} activo, aunque esto se cambiaría posteriormente.
 
 \section{Séptima iteración: APIs de control e interacción}
 \label{sec:septima_iteracion}
@@ -290,7 +290,7 @@ Las pruebas del \acrshort{api} de control confirmaron que la arquitectura permit
 \subsection{Implementación del controlador PS4}
 \label{subsec:controlador_ps4}
 
-La implementación de soporte para el controlador \acrfull{ps4} DualShock utilizó la biblioteca \textit{PySDL2} para acceso de bajo nivel a eventos del controlador. Esta implementación incluyó soporte completo para todos los controles analógicos y digitales del dispositivo, incluyendo sticks analógicos, triggers de presión variable, y botones direccionales.
+La implementación de soporte para el controlador \acrfull{ps4} \textit{DualShock} utilizó la biblioteca \textit{PySDL2} para acceso de bajo nivel a eventos del controlador. Esta implementación incluyó soporte completo para todos los controles analógicos y digitales del dispositivo, incluyendo \textit{sticks} analógicos, \textit{triggers} de presión variable, y botones direccionales.
 
 El desarrollo se realizó utilizando conexión por cable para evitar posibles problemas de latencia inalámbrica. La implementación inicial utilizó \gls{polling} basado en \gls{timers} de \textit{Qt}, pero esta aproximación no funcionaba en contextos \acrshort{headless} ya que el \acrshort{cli} no utilizaba \textit{Qt} y los \gls{timers} no estaban disponibles.
 
@@ -301,7 +301,7 @@ La solución implementada cambió inicialmente a \gls{polling} clásico, pero es
 
 La consolidación de \acrshort{api} de acceso a datos y control en un único servidor web eliminó la complejidad de gestionar múltiples puertos y configuraciones de red. Esta unificación facilitó significativamente la configuración del sistema y simplificó la arquitectura general.
 
-La implementación utilizó patrones de registro dinámico que permitían a cada módulo contribuir tanto endpoints de datos como de control a un espacio de nombres unificado. Esta aproximación mantuvo la separación lógica entre diferentes tipos de \acrshort{api} mientras proporcionaba una interfaz de acceso simplificada para clientes externos.
+La implementación utilizó patrones de registro dinámico que permitían a cada módulo contribuir tanto \textit{endpoints} de datos como de control a un espacio de nombres unificado. Esta aproximación mantuvo la separación lógica entre diferentes tipos de \acrshort{api} mientras proporcionaba una interfaz de acceso simplificada para clientes externos.
 
 \subsection{Tipado masivo y herramientas de calidad}
 \label{subsec:tipado_calidad}
@@ -340,18 +340,18 @@ La identificación de este problema motivó una reevaluación fundamental de las
 
 La solución al problema del controlador \acrshort{ps4} en modo \acrshort{headless} se describe en detalle en la sección anterior, requiriendo la migración completa hacia una arquitectura dirigida por eventos independiente de \textit{Qt}.
 
-La nueva arquitectura utilizó detección de cambios basada en comparación de estados previos para triggers y sticks analógicos, eliminando la necesidad de \gls{polling} constante mientras garantizaba la captura completa de eventos. Esta aproximación proporcionó mejor rendimiento y menor latencia comparada con la implementación basada en \gls{polling}.
+La nueva arquitectura utilizó detección de cambios basada en comparación de estados previos para \textit{triggers} y \textit{sticks} analógicos, eliminando la necesidad de \gls{polling} constante mientras garantizaba la captura completa de eventos. Esta aproximación proporcionó mejor rendimiento y menor latencia comparada con la implementación basada en \gls{polling}.
 
-Sin embargo, la migración a eventos generó nuevos desafíos de rendimiento debido al volumen significativamente mayor de eventos generados por controles analógicos. El sistema comenzó a experimentar sobrecarga tanto en el backend como en el frontend web, requiriendo optimizaciones extensivas para mantener la responsividad.
+Sin embargo, la migración a eventos generó nuevos desafíos de rendimiento debido al volumen significativamente mayor de eventos generados por controles analógicos. El sistema comenzó a experimentar sobrecarga tanto en el \textit{backend} como en el \textit{frontend} web, requiriendo optimizaciones extensivas para mantener la responsividad.
 
 \subsection{Optimizaciones masivas de rendimiento}
 \label{subsec:optimizaciones_rendimiento}
 
-La implementación de optimizaciones de rendimiento incluyó múltiples estrategias coordinadas para manejar el volumen elevado de eventos generados por la arquitectura dirigida por eventos. El batching de eventos agrupó múltiples eventos en transmisiones únicas para reducir la sobrecarga de comunicación de red.
+La implementación de optimizaciones de rendimiento incluyó múltiples estrategias coordinadas para manejar el volumen elevado de eventos generados por la arquitectura dirigida por eventos. El \textit{batching} de eventos agrupó múltiples eventos en transmisiones únicas para reducir la sobrecarga de comunicación de red.
 
-La implementación de worker pools distribuyó el procesamiento de eventos entre múltiples hilos, permitiendo que el sistema mantuviera responsividad incluso bajo cargas de trabajo intensivas. Esta arquitectura incluyó load balancing automático y escalado dinámico basado en la carga actual del sistema.
+La implementación de \textit{worker pools} distribuyó el procesamiento de eventos entre múltiples hilos, permitiendo que el sistema mantuviera responsividad incluso bajo cargas de trabajo intensivas. Esta arquitectura incluyó \textit{load balancing} automático y escalado dinámico basado en la carga actual del sistema.
 
-El sistema de buffer circular con descarte de eventos cuando se detectaba sobrecarga proporcionó degradación elegante del rendimiento en lugar de fallos catastróficos. Se implementó un modo para minimizar la información dibujada en el \acrshort{dom} para evitar sobrecargarlo, y se añadió un medidor de latencia de recepción de eventos desde el \textit{DataAccessService}.
+El sistema de \gls{buffer} circular con descarte de eventos cuando se detectaba sobrecarga proporcionó degradación elegante del rendimiento en lugar de fallos catastróficos. Se implementó un modo para minimizar la información dibujada en el \acrshort{dom} para evitar sobrecargarlo, y se añadió un medidor de latencia de recepción de eventos desde el \textit{DataAccessService}.
 
 La migración a \textit{orjson} para serialización \acrshort{json} proporcionó mejoras de rendimiento de 2-5x comparadas con la biblioteca estándar, especialmente importante para la transmisión de grandes volúmenes de datos de eventos a través de conexiones \acrshort{websocket}. Cada optimización se probó independientemente antes de integración para validar su efectividad específica.
 
@@ -372,7 +372,7 @@ El desarrollo del \acrshort{api} reveló numerosos problemas en la implementaci�
 \subsection{Integración MNE-Python y centralización de acceso a datos}
 \label{subsec:integracion_mne_centralizacion}
 
-La integración con \textit{MNE-Python} requirió el desarrollo de servicios de conversión que pudieran transformar datos de \textit{BrainFlow} a formatos compatibles con \textit{MNE} en tiempo real. Esta implementación incluyó múltiples modos de conversión: modo flexible para análisis completos, modo rendimiento para subconjuntos de canales, y modo tiempo real para procesamiento continuo.
+La integración con \textit{MNE-Python} requirió el desarrollo de servicios de conversión que pudieran transformar datos de \textit{BrainFlow} a formatos compatibles con \textit{MNE} en tiempo real~\cite{gramfort2013meg,brainflow}. Esta implementación incluyó múltiples modos de conversión: modo flexible para análisis completos, modo rendimiento para subconjuntos de canales, y modo tiempo real para procesamiento continuo.
 
 Durante la implementación se identificó el error crítico del \textit{get\_instance()} mencionado en la sección de tipado masivo: cuando se corrigió, provocó fallos generalizados debido a los cambios de tipos de datos y subprocesos internos que afectaban al flujo principal.
 
@@ -385,9 +385,9 @@ El sistema de \gls{callback} implementó dos categorías principales: \gls{callb
 
 La implementación de análisis de componentes independientes (\acrshort{ica}) incluyó soporte para configuración de 1-16 componentes con selección flexible de canales, procesamiento en tiempo real mediante ventana deslizante, y capacidades de exportación de resultados como imágenes de alta resolución. El análisis \acrshort{ica} utiliza multiprocesamiento para mantener la responsividad de la interfaz durante operaciones computacionalmente intensivas.
 
-Las transformadas \textit{wavelet} se implementaron con soporte para 15+ familias diferentes, incluyendo Daubechies, Biorthogonal, Coiflets y Symlets, con configuración flexible de niveles de descomposición. Esta implementación proporciona análisis tiempo-frecuencia avanzado que complementa las capacidades de análisis espectral tradicionales.
+Las transformadas \textit{wavelet} se implementaron con soporte para 15+ familias diferentes, incluyendo \textit{Daubechies}, \textit{Biorthogonal}, \textit{Coiflets} y \textit{Symlets}, con configuración flexible de niveles de descomposición. Esta implementación proporciona análisis tiempo-frecuencia avanzado que complementa las capacidades de análisis espectral tradicionales.
 
-Los filtros digitales avanzados expandieron significativamente las capacidades básicas existentes (bandpass, notch y detrend), añadiendo soporte para múltiples implementaciones (Butterworth, Chebyshev Tipo 1, Bessel), filtros especializados como notch configurable para eliminación de interferencias de línea eléctrica, y downsampling con diferentes métodos de agregación.
+Los filtros digitales avanzados expandieron significativamente las capacidades básicas existentes (\textit{bandpass}, \textit{notch} y \textit{detrend}), añadiendo soporte para múltiples implementaciones (\textit{Butterworth}, \textit{Chebyshev} Tipo 1, \textit{Bessel}), filtros especializados como \textit{notch} configurable para eliminación de interferencias de línea eléctrica, y \textit{downsampling} con diferentes métodos de agregación.
 
 \subsection{Detección automática de canales y optimizaciones}
 \label{subsec:deteccion_canales}
@@ -396,18 +396,18 @@ La implementación de detección automática de tipos de canales eliminó la res
 
 Esta funcionalidad requirió el desarrollo de un sistema de caché para tipos de canales que permanece válido mientras no se reconecte el dispositivo, inicialización perezosa de ventanas para evitar delays en la apertura de interfaces, y optimización de consultas de metadatos para minimizar la latencia de inicialización.
 
-El soporte para múltiples presets de dispositivos permite seleccionar diferentes configuraciones de canales soportadas por el hardware, facilitando la optimización para diferentes tipos de experimentos. Esta funcionalidad incluyó validación automática de compatibilidad entre presets y algoritmos de procesamiento seleccionados.
+El soporte para múltiples \textit{presets} de dispositivos permite seleccionar diferentes configuraciones de canales soportadas por el \textit{hardware}, facilitando la optimización para diferentes tipos de experimentos. Esta funcionalidad incluyó validación automática de compatibilidad entre \textit{presets} y algoritmos de procesamiento seleccionados.
 
 \subsection{Streamers y corrección de problemas de grabación}
 \label{subsec:streamers_grabacion}
 
-La implementación de diferentes tipos de streamers incluyó soporte para streaming a archivo local (que soporta datos procesados) y streaming via TCP/UDP (limitado a datos RAW y restringido al preset 0 tanto en streamer como en cliente debido a problemas de compatibilidad). Esta diferenciación reflejó una comprensión madura de los requisitos de compatibilidad para diferentes casos de uso.
+La implementación de diferentes tipos de \textit{streamers} incluyó soporte para \textit{streaming} a archivo local (que soporta datos procesados) y \textit{streaming} via \acrshort{tcp}/\acrshort{udp} (limitado a datos \textit{RAW} y restringido al \textit{preset} 0 tanto en \textit{streamer} como en cliente debido a problemas de compatibilidad). Esta diferenciación reflejó una comprensión madura de los requisitos de compatibilidad para diferentes casos de uso.
 
-La identificación de problemas en la grabación reveló que todos los archivos almacenaban datos RAW independientemente de la configuración de filtros aplicados. Este problema se originaba porque la lógica de aplicación de filtros estaba centralizada en el servicio de acceso a datos mientras el servicio de grabación accedía directamente al colector.
+La identificación de problemas en la grabación reveló que todos los archivos almacenaban datos \textit{RAW} independientemente de la configuración de filtros aplicados. Este problema se originaba porque la lógica de aplicación de filtros estaba centralizada en el servicio de acceso a datos mientras el servicio de grabación accedía directamente al colector.
 
-La migración de la lógica de grabación se realizó en dos pasos: primero se migró y adaptó al servicio de acceso a datos, y posteriormente se migró al servicio de grabación para que dependiera del servicio de acceso a datos. Sin embargo, esto reveló que los filtros básicos se aplicaban a todos los canales incluyendo el canal CH\_0 (canal de control de \textit{BrainFlow} para orden de muestras), causando problemas con la placa sintética "playback file board" que no podía reproducir archivos procesados.
+La migración de la lógica de grabación se realizó en dos pasos: primero se migró y adaptó al servicio de acceso a datos, y posteriormente se migró al servicio de grabación para que dependiera del servicio de acceso a datos. Sin embargo, esto reveló que los filtros básicos se aplicaban a todos los canales incluyendo el canal CH\_0 (canal de control de \textit{BrainFlow} para orden de muestras), causando problemas con la placa sintética \textit{"playback file board"} que no podía reproducir archivos procesados.
 
-La solución final restringió la aplicación de filtros únicamente a canales \acrshort{eeg}, preservando la integridad de canales auxiliares como control, \gls{timestamp}, marcadores, acelerómetro y giroscopio. Adicionalmente, cuando los filtros estaban activos, el sistema accedía al stream de datos procesados mediante \gls{polling}, causando pérdida significativa de muestras (10-30\%) e incoherencias en el canal de control. La migración a \gls{callback} en el servicio de grabación eliminó este problema.
+La solución final restringió la aplicación de filtros únicamente a canales \acrshort{eeg}, preservando la integridad de canales auxiliares como control, \gls{timestamp}, marcadores, acelerómetro y giroscopio. Adicionalmente, cuando los filtros estaban activos, el sistema accedía al \textit{stream} de datos procesados mediante \gls{polling}, causando pérdida significativa de muestras (10-30\%) e incoherencias en el canal de control. La migración a \gls{callback} en el servicio de grabación eliminó este problema.
 
 \section{Décima iteración: Intento de integración final}
 \label{sec:decima_iteracion}
@@ -417,7 +417,7 @@ La iteración final del desarrollo se enfocó en crear un módulo de sincronizac
 \subsection{Desarrollo del módulo de sincronización LSL}
 \label{subsec:modulo_sincronizacion_lsl}
 
-El módulo de sincronización se diseñó para aprovechar la arquitectura \acrshort{api} desarrollada, accediendo a los datos de ambos módulos mediante \gls{callback} locales que proporcionaban acceso directo a los streams de datos sin la sobrecarga de comunicación web. Esta aproximación prometía resolver los problemas de integración que habían frustrado intentos anteriores.
+El módulo de sincronización se diseñó para aprovechar la arquitectura \acrshort{api} desarrollada, accediendo a los datos de ambos módulos mediante \gls{callback} locales que proporcionaban acceso directo a los \textit{streams} de datos sin la sobrecarga de comunicación web. Esta aproximación prometía resolver los problemas de integración que habían frustrado intentos anteriores.
 
 La implementación incluía capacidades para configurar parámetros de sincronización, coordinar el inicio y parada de ambos módulos, y exportar datos sincronizados en formatos estándar. El diseño aprovechaba las lecciones aprendidas de iteraciones anteriores, utilizando la arquitectura modular y los principios \acrshort{solid} que habían demostrado su efectividad.
 
