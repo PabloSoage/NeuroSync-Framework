@@ -1,0 +1,167 @@
+\chapter{Gestión detallada de dependencias del sistema}
+\label{chap:dependencias_detalladas}
+
+\lettrine{E}{l} manejo eficiente de dependencias constituye un aspecto crítico para la sostenibilidad y adoptabilidad del sistema desarrollado. Este anexo proporciona documentación detallada de la estrategia de gestión de dependencias implementada, incluyendo las decisiones técnicas que sustentan la arquitectura modular de dependencias.
+
+\section{Estrategia de dependencias escalable}
+\label{sec:estrategia_dependencias}
+
+El sistema implementa una estrategia de gestión de dependencias que equilibra funcionalidad, facilidad de instalación, y flexibilidad de despliegue mediante la categorización de dependencias en núcleo mínimo y extensiones opcionales.
+
+Las dependencias del núcleo mínimo incluyen únicamente las bibliotecas esenciales para funcionalidades básicas de captura y procesamiento, manteniendo el \textit{footprint} de instalación reducido y minimizando conflictos potenciales con otros paquetes Python. Esta aproximación facilita la adopción inicial del sistema y reduce las barreras de entrada para nuevos usuarios.
+
+Las dependencias opcionales se organizan por funcionalidad mediante comentarios en el archivo \texttt{requirements.txt}, permitiendo a los usuarios instalar únicamente las capacidades que requieren para sus casos de uso específicos. Cuando una dependencia opcional no está disponible, el sistema implementa \textit{graceful degradation}, utilizando alternativas menos eficientes, como \texttt{json} en lugar de \texttt{orjson}, o mostrando mensajes informativos sin interrumpir la funcionalidad principal.
+
+\section{Dependencias principales del proyecto}
+\label{sec:dependencias_principales}
+
+Las dependencias principales del proyecto se organizan según aparecen en el archivo \texttt{requirements.txt}:
+
+\subsection{Núcleo fundamental}
+\label{subsec:nucleo_fundamental}
+
+\textbf{Dependencias obligatorias:}
+\begin{itemize}
+    \item \textbf{pynput 1.8.1}: Captura de eventos de teclado y ratón multiplataforma~\cite{pynput_docs}
+    \item \textbf{brainflow 5.16.0}: Interfaz unificada para dispositivos EEG comerciales~\cite{brainflow}
+    \item \textbf{numpy 2.2.4}: Computación matricial eficiente y operaciones vectorizadas~\cite{van2011numpy}
+    \item \textbf{pyqt5 5.15.11}: \textit{Framework} de interfaz gráfica nativo multiplataforma~\cite{pyqt5_docs}
+    \item \textbf{pyqtgraph 0.13.7}: Visualización científica optimizada para Qt
+    \item \textbf{matplotlib 3.10.1}: Visualización científica y generación de gráficos
+    \item \textbf{pandas 2.2.3}: Manipulación y análisis de datos estructurados (requerido por bibliotecas, aunque no se usa directamente en la aplicación)
+\end{itemize}
+
+\subsection{Procesamiento de señales}
+\label{subsec:procesamiento_seniales}
+
+\textbf{Sincronización y procesamiento:}
+\begin{itemize}
+    \item \textbf{scipy 1.15.2}: Algoritmos científicos y procesamiento de señales avanzado~\cite{virtanen2020scipy}
+    \item \textbf{pylsl 1.17.6}: Protocolo Lab Streaming Layer para sincronización~\cite{kothe2013lab}
+\end{itemize}
+
+\subsection{Exportación de datos}
+\label{subsec:exportacion_datos}
+
+\textbf{Formatos de almacenamiento:}
+\begin{itemize}
+    \item \textbf{h5py 3.13.0}: Interfaz Python para formato HDF5~\cite{folk2011overview}
+    \item \textbf{tables 3.10.2}: Extensiones avanzadas para HDF5 con compresión y indexado
+\end{itemize}
+
+\subsection{Dependencias opcionales}
+\label{subsec:dependencias_opcionales}
+
+\textbf{Soporte EDF+ (opcional):}
+\begin{itemize}
+    \item \textbf{pyedflib 0.1.40}: Soporte para formato EDF+ médico~\cite{kemp2003european}
+\end{itemize}
+
+\textbf{Soporte BIDS y visualización MNE (opcional):}
+\begin{itemize}
+    \item \textbf{mne 1.9.0}: Biblioteca principal para análisis de señales MEG/EEG~\cite{gramfort2013meg}
+    \item \textbf{mne-bids 0.16.0}: Soporte para estándar BIDS~\cite{bids}
+    \item \textbf{pybv 0.7.6+}: Utilidades para formatos de datos BrainVision
+\end{itemize}
+
+\textbf{Controladores PS4 (opcional):}
+\begin{itemize}
+    \item \textbf{pysdl2 0.9.17}: \textit{Bindings} Python para biblioteca SDL2~\cite{pysdl2_docs}
+    \item \textbf{pysdl2-dll 2.32.0}: Bibliotecas dinámicas SDL2 precompiladas
+\end{itemize}
+
+\textbf{API testing (opcional):}
+\begin{itemize}
+    \item \textbf{fastapi 0.115.12}: \textit{Framework} web moderno para API REST~\cite{fastapi_benchmark}
+    \item \textbf{uvicorn[standard] 0.34.2}: Servidor ASGI de alto rendimiento
+\end{itemize}
+
+\textbf{Mejoras de rendimiento (opcional):}
+\begin{itemize}
+    \item \textbf{orjson 3.9.0+}: Serialización JSON optimizada (2-5x más rápida)~\cite{orjson_docs}
+\end{itemize}
+
+\textbf{Interfaces CLI (opcional):}
+\begin{itemize}
+    \item \textbf{typer 0.16.0+}: \textit{Framework} CLI moderno basado en \textit{type hints}~\cite{typer_docs}
+    \item \textbf{rich 14.0.0+}: Formateo avanzado de salida de consola~\cite{rich_docs}
+    \item \textbf{keyboard 0.13.5+}: Captura de teclado para interfaces CLI
+\end{itemize}
+
+\section{Gestión de dependencias opcionales}
+\label{sec:gestion_opcionales}
+
+El sistema maneja las dependencias opcionales mediante un enfoque de \textit{graceful degradation} que permite funcionalidad básica incluso cuando ciertos paquetes no están disponibles:
+
+\subsection{Alternativas automáticas}
+\label{subsec:alternativas_automaticas}
+
+\textbf{Serialización JSON:}
+\begin{itemize}
+    \item \textbf{Preferido}: \texttt{orjson} para rendimiento optimizado (2-5x más rápido)
+    \item \textbf{Alternativa}: \texttt{json} estándar de Python si orjson no está disponible
+\end{itemize}
+
+\textbf{Análisis neurocientífico:}
+\begin{itemize}
+    \item \textbf{MNE-Python}: Funcionalidades avanzadas de análisis disponibles si está instalado
+    \item \textbf{Sin MNE}: Procesamiento básico con NumPy/SciPy únicamente
+\end{itemize}
+
+\textbf{Controladores de juego:}
+\begin{itemize}
+    \item \textbf{PySDL2}: Soporte completo para controladores PS4 si está disponible
+    \item \textbf{Sin PySDL2}: Notificación al usuario sobre funcionalidad no disponible
+\end{itemize}
+
+\subsection{Organización en requirements.txt}
+\label{subsec:organizacion_requirements}
+
+El archivo \texttt{requirements.txt} organiza las dependencias mediante comentarios que indican su función y opcionalidad:
+
+\begin{verbatim}
+# Core
+pynput==1.8.1
+brainflow==5.16.0
+numpy==2.2.4
+pyqt5==5.15.11
+pyqtgraph==0.13.7
+matplotlib==3.10.1
+pandas==2.2.3
+
+# Sync Core
+scipy==1.15.2
+
+# LSL for synchronization
+pylsl==1.17.6
+
+# Dataset export formats
+h5py==3.13.0
+tables==3.10.2
+
+# Optional EDF+ support
+pyedflib==0.1.40
+
+# Optional BIDS support and MNE visualization
+mne==1.9.0
+mne-bids==0.16.0
+pybv>=0.7.6
+
+# Optional dependencies for Peripherals like PS4 controllers
+pysdl2==0.9.17
+pysdl2-dll==2.32.0
+
+# Optional dependencies for API testing
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+
+# Optional dependencies for performance improvements
+orjson>=3.9.0
+
+# Optional CLI dependencies
+typer>=0.16.0
+rich>=14.0.0
+keyboard>=0.13.5
+\end{verbatim}
+
+Esta estrategia de gestión de dependencias permite que el sistema sea accesible para usuarios con diferentes necesidades, desde instalaciones mínimas para casos de uso básicos hasta configuraciones completas con todas las funcionalidades opcionales habilitadas.
