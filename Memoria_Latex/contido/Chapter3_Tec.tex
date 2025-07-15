@@ -132,6 +132,13 @@ El sistema implementa un control de calidad de código integrado basado en \text
 
 La implementación extensiva de \textit{type hints} en Python facilita el desarrollo mediante autocompletado mejorado en IDEs y verificación automática de tipos~\cite{mypy_docs}. Las anotaciones de tipo sirven como documentación que puede ser verificada automáticamente, facilitando el mantenimiento del código.
 
+\subsection{Dispositivos de validación}
+\label{subsec:dispositivos_validacion}
+
+El casco \acrshort{eeg} g.tec Unicorn, con sus 8 \gls{canal} y frecuencia de muestreo de 250Hz, proporciona validación con datos reales de señales cerebrales~\cite{gtec_unicorn}. Este dispositivo permite verificar que el sistema desarrollado funciona correctamente con \textit{hardware} comercial adecuado para fines de investigación.
+
+Los dispositivos \acrshort{eeg} sintéticos de BrainFlow facilitan el desarrollo y las pruebas durante todo el proyecto, permitiendo la validación de algoritmos y procedimientos sin depender constantemente de \textit{hardware} físico especializado~\cite{brainflow}.
+
 \section{Resumen de tecnologías seleccionadas}
 \label{sec:resumen_tecnologias}
 
