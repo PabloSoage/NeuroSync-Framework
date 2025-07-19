@@ -48,10 +48,10 @@ Los requisitos no funcionales establecieron las restricciones de calidad y rendi
     \item \textbf{RNF-10}: Cumplimiento de estándares de codificación establecidos
 \end{itemize}
 
-\subsection{Casos de uso principales}
-\label{subsec:casos_uso_principales}
+\subsection{Análisis de casos de uso}
+\label{subsec:analisis_casos_uso}
 
-Los casos de uso identificados guiaron el desarrollo de funcionalidades específicas:
+Los casos de uso identificados proporcionan el contexto funcional que guía el desarrollo de cada iteración:
 
 \begin{itemize}
     \item \textbf{CU-01}: Generación de \textit{datasets} para entrenamiento \acrshort{ml}
@@ -74,7 +74,17 @@ La primera iteración se enfocó en desarrollar las capacidades básicas de capt
 
 \textbf{Requisitos abordados}: RF-01, RF-02, RNF-01, RNF-06
 
-\textbf{Casos de uso}: CU-01 (parcial), CU-02 (parcial)
+\textbf{Casos de uso específicos}: 
+\begin{itemize}
+    \item \textbf{CU-01 (parcial)}: Captura de eventos de entrada para correlación posterior con señales cerebrales
+    \item \textbf{CU-02 (parcial)}: Registro temporal preciso de acciones del usuario durante experimentos
+\end{itemize}
+
+\textbf{Actores beneficiados}:
+\begin{itemize}
+    \item Investigador \acrshort{bci}: Podrá utilizar la captura de eventos para correlacionar con señales cerebrales
+    \item Desarrollador de aplicaciones: Podrá integrar eventos de entrada en sistemas \acrshort{bci} personalizados
+\end{itemize}
 
 \textbf{Criterios de aceptación}:
 \begin{itemize}
@@ -159,7 +169,19 @@ La segunda iteración desarrolló las capacidades de captura y procesamiento de 
 
 \textbf{Requisitos abordados}: RF-04, RF-05, RF-06, RF-07, RF-11, RF-12, RNF-02, RNF-05
 
-\textbf{Casos de uso}: CU-02, CU-04, CU-05
+\textbf{Casos de uso específicos}:
+\begin{itemize}
+    \item \textbf{CU-02}: Visualización en tiempo real de señales cerebrales durante experimentos
+    \item \textbf{CU-04}: Herramientas de análisis para investigación neurocientífica
+    \item \textbf{CU-05}: Validación de calidad de señal y configuración experimental
+\end{itemize}
+
+\textbf{Actores beneficiados}:
+\begin{itemize}
+    \item Investigador neurocientífico: Podrá utilizar las herramientas de visualización y análisis \acrshort{eeg}
+    \item Personal técnico de laboratorio: Podrá configurar y monitorizar dispositivos \acrshort{eeg}
+    \item Usuarios del sistema: Podrán verificar la calidad de señal durante experimentos
+\end{itemize}
 
 \textbf{Criterios de aceptación}:
 \begin{itemize}
@@ -240,7 +262,17 @@ Esta iteración abordó la integración visual y funcional de ambos módulos, re
 
 \textbf{Requisitos abordados}: RF-08, RF-09, RNF-04
 
-\textbf{Casos de uso}: CU-01, CU-02
+\textbf{Casos de uso específicos}:
+\begin{itemize}
+    \item \textbf{CU-01}: Generación de \textit{datasets} sincronizados para entrenamiento de modelos
+    \item \textbf{CU-02}: Análisis integrado de señales cerebrales y acciones del usuario
+\end{itemize}
+
+\textbf{Actores beneficiados}:
+\begin{itemize}
+    \item Investigador \acrshort{bci}: Se habría beneficiado de datos sincronizados para entrenamiento de modelos
+    \item Analista de datos: Habría podido utilizar \textit{datasets} integrados para análisis estadísticos
+\end{itemize}
 
 \textbf{Limitaciones identificadas}:
 \begin{itemize}
@@ -301,6 +333,18 @@ La refactorización completa de ambos módulos siguiendo principios \acrshort{so
 \textbf{Objetivos específicos}: Reestructurar código existente aplicando principios \acrshort{solid} (RNF-03).
 
 \textbf{Requisitos abordados}: RNF-03, RNF-04, RNF-08, RNF-09
+
+\textbf{Casos de uso específicos}:
+\begin{itemize}
+    \item \textbf{CU-01 a CU-06}: Preparación arquitectónica para soporte robusto de todos los casos de uso identificados
+\end{itemize}
+
+\textbf{Actores beneficiados}:
+\begin{itemize}
+    \item Desarrolladores futuros: Podrán trabajar con código mantenible y extensible
+    \item Colaboradores del proyecto: Podrán contribuir más fácilmente al sistema
+    \item Usuarios del sistema: Experimentarán mayor estabilidad y menos errores
+\end{itemize}
 
 \textbf{Principios aplicados}:
 \begin{itemize}
@@ -367,6 +411,18 @@ Con la nueva arquitectura modular, se realizó un segundo intento de integració
 
 \textbf{Objetivos específicos}: Integrar módulos refactorizados mediante componente coordinador
 
+\textbf{Casos de uso específicos}:
+\begin{itemize}
+    \item \textbf{CU-01}: Coordinación visual de grabación de datos sincronizados
+    \item \textbf{CU-02}: Interfaz unificada para análisis conjunto
+\end{itemize}
+
+\textbf{Actores beneficiados}:
+\begin{itemize}
+    \item Investigadores: Se habrían beneficiado de una interfaz unificada para experimentos
+    \item Administradores de laboratorio: Habrían podido utilizar configuración centralizada de sistemas
+\end{itemize}
+
 \textbf{Problemas persistentes identificados}:
 \begin{itemize}
     \item Comunicación entre módulos requería conocimiento específico de implementaciones internas
@@ -407,7 +463,18 @@ Después de una pausa por otros compromisos académicos, el desarrollo se reanud
 
 \textbf{Requisitos abordados}: RF-10, RNF-04, RNF-06
 
-\textbf{Casos de uso}: CU-03, CU-06
+\textbf{Casos de uso específicos}:
+\begin{itemize}
+    \item \textbf{CU-03}: Desarrollo de aplicaciones \acrshort{bci} personalizadas mediante acceso programático
+    \item \textbf{CU-06}: Integración con herramientas de análisis mediante interfaces bien definidas
+\end{itemize}
+
+\textbf{Actores beneficiados}:
+\begin{itemize}
+    \item Desarrollador de aplicaciones \acrshort{bci}: Podrá acceder a datos mediante diversas interfaces
+    \item Investigador con conocimientos técnicos: Podrá utilizar visualización web para análisis
+    \item Integrador de sistemas: Podrá conectar el sistema con herramientas externas
+\end{itemize}
 
 \textbf{Motivación del cambio}: La necesidad de acceso directo a datos internos de cada módulo para implementar sincronización efectiva entre sistemas independientes.
 
@@ -470,6 +537,19 @@ Esta iteración completó la arquitectura \acrshort{api} con capacidades de cont
 
 \textbf{Requisitos abordados}: RF-03, RF-10, RNF-04, RNF-07
 
+\textbf{Casos de uso específicos}:
+\begin{itemize}
+    \item \textbf{CU-03}: Control remoto de sistemas para desarrollo de aplicaciones personalizadas
+    \item \textbf{CU-06}: Integración programática con herramientas existentes mediante \acrshort{api}
+\end{itemize}
+
+\textbf{Actores beneficiados}:
+\begin{itemize}
+    \item Desarrollador de automatización: Podrá utilizar \acrshort{api} de control para \textit{scripts}
+    \item Investigador en neurociencia aplicada a  juegos: Podrá beneficiarse del soporte para controladores \acrshort{ps4}
+    \item Equipo de desarrollo: Podrá beneficiarse de estándares de código automatizados
+\end{itemize}
+
 \subsection{Diseño de la iteración}
 \label{subsec:diseno_iteracion_7}
 
@@ -530,6 +610,19 @@ Esta iteración implementó interfaces de línea de comandos y realizó optimiza
 \textbf{Objetivos específicos}: Implementar interfaces \acrshort{cli} y resolver problemas de compatibilidad \textit{headless}.
 
 \textbf{Requisitos abordados}: RF-10, RNF-06, RNF-08
+
+\textbf{Casos de uso específicos}:
+\begin{itemize}
+    \item \textbf{CU-03}: Acceso desde línea de comandos para desarrollo de aplicaciones
+    \item \textbf{CU-06}: Automatización de experimentos mediante \textit{scripts}
+\end{itemize}
+
+\textbf{Actores beneficiados}:
+\begin{itemize}
+    \item Usuario técnico avanzado: Podrá utilizar interfaces \acrshort{cli} para automatización
+    \item Administrador de sistemas: Podrá implementar soluciones en entornos de servidor
+    \item Investigador en experimentos que requieren alto rendimiento: Podrá beneficiarse de optimizaciones de velocidad
+\end{itemize}
 
 \textbf{Limitaciones identificadas}: Dependencias \textit{Qt} ocultas que impedían funcionamiento completamente \textit{headless}
 
@@ -602,7 +695,19 @@ Esta iteración implementó capacidades avanzadas de procesamiento \acrshort{eeg
 
 \textbf{Requisitos abordados}: RF-06, RF-09, RNF-02, RNF-09
 
-\textbf{Casos de uso}: CU-04, CU-05, CU-06
+\textbf{Casos de uso específicos}:
+\begin{itemize}
+    \item \textbf{CU-04}: Herramientas avanzadas para investigación neurocientífica
+    \item \textbf{CU-05}: Validación de paradigmas mediante análisis sofisticados
+    \item \textbf{CU-06}: Integración con \textit{MNE-Python} y herramientas estándar
+\end{itemize}
+
+\textbf{Actores beneficiados}:
+\begin{itemize}
+    \item Investigador neurocientífico: Podrá utilizar algoritmos avanzados para análisis especializado
+    \item Especialista en procesamiento de señales: Podrá configurar filtros y análisis complejos
+    \item Investigador computacional: Podrá beneficiarse de integración con \textit{MNE-Python}
+\end{itemize}
 
 \subsection{Diseño de la iteración}
 \label{subsec:diseno_iteracion_9}
@@ -692,6 +797,26 @@ Se migró la lógica de grabación al \textit{DataAccessService} y posteriorment
 \label{sec:decima_iteracion}
 
 Se desarrolló un módulo de sincronización con \acrshort{lsl} que accedía a datos mediante \acrshort{api} internas con \glspl{callback} locales, pero se pausó por problemas técnicos específicos.
+
+\subsection{Análisis de la iteración}
+\label{subsec:analisis_iteracion_10}
+
+\textbf{Objetivos específicos}: Implementar sincronización temporal precisa mediante \acrshort{lsl} (RF-08, RF-09).
+
+\textbf{Requisitos abordados}: RF-08, RF-09, RNF-04
+
+\textbf{Casos de uso específicos}:
+\begin{itemize}
+    \item \textbf{CU-01}: Generación de \textit{datasets} completamente sincronizados para entrenamiento de modelos
+    \item \textbf{CU-02}: Análisis integrado en tiempo real de señales cerebrales y acciones del usuario
+\end{itemize}
+
+\textbf{Actores beneficiados}:
+\begin{itemize}
+    \item Investigador \acrshort{bci}: Habría podido generar \textit{datasets} precisamente sincronizados
+    \item Desarrollador de modelos \acrshort{ml}: Habría podido entrenar con datos de mejor calidad temporal
+    \item Investigador en neurociencia: Habría podido realizar estudios de correlación temporal precisa
+\end{itemize}
 
 \subsection{Desarrollo del módulo de sincronización}
 \label{subsec:modulo_sincronizacion}
