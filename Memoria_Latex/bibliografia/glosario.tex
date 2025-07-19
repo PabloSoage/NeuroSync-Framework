@@ -282,3 +282,93 @@
   name=railed percentage,
   description={Métrica de calidad de señal EEG que evalúa el porcentaje de muestras que se aproximan a los límites del rango de medición del amplificador, indicando posible saturación o problemas de conexión de electrodos.}
 }
+
+\newglossaryentry{delta_smoothing}{
+  name=delta smoothing,
+  description={Técnica de suavizado aplicada a los valores delta de movimiento del ratón para reducir el ruido y proporcionar una representación más estable del movimiento, especialmente útil en aplicaciones que requieren precisión en el tracking.}
+}
+
+\newglossaryentry{sistema_10_20}{
+  name=sistema 10-20,
+  description={Sistema estándar internacional para el posicionamiento de electrodos EEG basado en distancias del 10\% y 20\% entre puntos anatómicos específicos del cráneo, proporcionando ubicaciones reproducibles para la colocación de electrodos.}
+}
+
+\newglossaryentry{sistema_10_10}{
+  name=sistema 10-10,
+  description={Extensión del sistema 10-20 que incluye posiciones adicionales de electrodos basadas en subdivisiones del 10\% de las distancias anatómicas, permitiendo mayor resolución espacial en el registro EEG.}
+}
+
+\newglossaryentry{callback}{
+  name=callback,
+  description={Función que se ejecuta como respuesta a un evento específico, permitiendo procesamiento asíncrono sin bloquear la ejecución principal del programa.}
+}
+
+\newglossaryentry{overhead}{
+  name=overhead,
+  description={Sobrecarga adicional de recursos computacionales (tiempo de procesamiento, memoria, ancho de banda) requerida por un sistema o proceso más allá del trabajo útil que realiza, a menudo asociada con operaciones de gestión o comunicación.}
+}
+
+\newglossaryentry{presets}{
+  name=presets,
+  description={Configuraciones predefinidas de dispositivos EEG que especifican qué tipos de canales están disponibles: default (todos los canales del dispositivo), auxiliary data (únicamente acelerómetro, giroscopio...), ancillary data (únicamente PPG, temperatura...).}
+}
+
+\newglossaryentry{matriz_mixing}{
+  name=matriz mixing,
+  description={En análisis de componentes independientes (ICA), matriz que define cómo se combinan linealmente los componentes independientes para generar las señales observadas en los electrodos.}
+}
+
+\newglossaryentry{matriz_unmixing}{
+  name=matriz unmixing,
+  description={En análisis de componentes independientes (ICA), matriz inversa de la matriz mixing que permite separar las señales mezcladas en sus componentes independientes originales.}
+}
+
+\newglossaryentry{ica_analysis}{
+  name=análisis de componentes independientes,
+  description={Técnica de procesamiento de señales que separa una mezcla multivariante de señales en componentes estadísticamente independientes, utilizada en EEG para separar artefactos de la actividad neuronal de interés.}
+}
+
+\newglossaryentry{weight_distribution}{
+  name=weight distribution,
+  description={Representación espacial de los pesos de un componente ICA sobre el cuero cabelludo, mostrando qué regiones cerebrales contribuyen más al componente específico.}
+}
+
+\newglossaryentry{power_spectral_density}{
+  name=power spectral density,
+  description={Distribución de la potencia de una señal en función de la frecuencia, proporcionando información sobre qué frecuencias dominan en la señal temporal analizada.}
+}
+
+\newglossaryentry{familias_wavelet}{
+  name=familias wavelet,
+  description={Diferentes tipos de funciones wavelet con características específicas: Daubechies (compactas y ortogonales), Biorthogonal (reconstrucción perfecta), Coiflets (momentos nulos), Symlets (simétricas), cada una optimizada para diferentes tipos de análisis de señales.}
+}
+
+\newglossaryentry{filtros_digitales}{
+  name=filtros digitales,
+  description={Algoritmos que procesan señales digitales para eliminar o atenuar componentes no deseados: bandpass (pasa determinado rango de frecuencias), notch (elimina frecuencia específica), detrend (elimina tendencias lineales). Las implementaciones incluyen Butterworth, Chebyshev y Bessel.}
+}
+
+\newglossaryentry{downsampling}{
+  name=downsampling,
+  description={Proceso de reducir la frecuencia de muestreo de una señal digital mediante diferentes métodos de agregación (promedio, mediana, decimación), utilizado para reducir el volumen de datos manteniendo la información relevante.}
+}
+
+\newglossaryentry{dom}{
+  name=DOM,
+  description={Document Object Model: representación estructurada de un documento HTML o XML como un árbol de objetos, que permite a los scripts acceder y modificar dinámicamente el contenido, estructura y estilo de las páginas web.}
+}
+
+\newglossaryentry{power_spectrum}{
+  name=power spectrum,
+  description={Representación de la distribución de potencia de una señal en función de la frecuencia, mostrando qué componentes frecuenciales contienen más energía en la señal analizada.}
+}
+
+\newglossaryentry{band_powers}{
+  name=band powers,
+  description={Potencia en dB calculada en bandas de frecuencia específicas del EEG: delta (1-4Hz), theta (4-8Hz), alpha (8-13Hz), beta (13-30Hz) y gamma (30-100Hz), proporcionando información sobre diferentes estados cerebrales y actividad neuronal.}
+}
+
+\newglossaryentry{topomaps}{
+  name=topomaps,
+  description={Representaciones topográficas bidimensionales de la actividad eléctrica cerebral sobre el cuero cabelludo, utilizando mapas de colores para mostrar la distribución espacial de voltajes o potencias en diferentes regiones cerebrales.}
+}
