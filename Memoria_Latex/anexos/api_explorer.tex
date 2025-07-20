@@ -1,0 +1,104 @@
+\chapter{Módulo \textit{API Explorer} - Documentación Técnica}
+\label{chap:anexo_api_explorer}
+
+\section{Introducción al Módulo}
+\label{sec:intro_api_explorer}
+
+El módulo \textit{API Explorer} constituye un \gls{framework} web especializado que proporciona capacidades dinámicas de exploración y control remoto de funcionalidades del sistema. Su desarrollo se centró en crear una plataforma unificada que permita a múltiples módulos registrar sus servicios de forma dinámica, proporcionando interfaces web para control remoto y monitoreo en tiempo real.
+
+\subsection{Objetivos Técnicos}
+\label{subsec:objetivos_api_explorer}
+
+El desarrollo del módulo se orientó hacia objetivos específicos para la creación de un punto de acceso web unificado:
+
+\begin{itemize}
+    \item \textbf{Registro Dinámico}: Arquitectura que permite a módulos externos registrar sus \acrshort{api} en tiempo de ejecución
+    \item \textbf{Interfaz Web Responsiva}: Desarrollo de interfaces adaptables con soporte para tema oscuro/claro
+    \item \textbf{Comunicación Tiempo Real}: Implementación de \gls{websocket} con arquitectura de \gls{worker} \textit{pools} para streaming de datos
+    \item \textbf{Visualización Integrada}: Capacidades de visualización científica mediante \textit{Chart.js} con actualizaciones en tiempo real
+    \item \textbf{Arquitectura Escalable}: Patrones \textit{singleton} y \textit{observer} para gestión eficiente de recursos
+\end{itemize}
+
+\section{Documentación Técnica Detallada}
+\label{sec:doc_tecnica_api_explorer}
+
+La documentación técnica completa incluye especificaciones de arquitectura de servicio basada en \textit{singleton}, sistema de \textit{workers} para \gls{websocket}, arquitectura \textit{frontend} modular, y patrones de integración:
+
+\includepdf[pages=-]{imaxes/api_explorer_doc.pdf}
+
+\section{Arquitectura del Framework Web}
+\label{sec:arquitectura_framework}
+
+El módulo implementa una arquitectura web completa que facilita tanto la exploración interactiva como la integración con otros sistemas mediante \acrshort{api}.
+
+\subsection{Arquitectura Backend}
+\label{subsec:arquitectura_backend}
+
+La arquitectura \textit{backend} se fundamenta en \textit{FastAPI} con soporte \gls{websocket} completo, implementando un patrón \textit{singleton} \gls{thread-safe} para gestión centralizada de estado. El sistema de \gls{worker} \textit{pools} distribuye la carga de procesamiento de \gls{websocket} entre múltiples \glspl{worker}, permitiendo manejo eficiente de datos de alta frecuencia con \gls{throttling} adaptativo y balance de carga automático.
+
+El registro dinámico de módulos permite que cada componente del sistema exponga sus funcionalidades mediante una interfaz estandarizada, proporcionando formularios de parámetros interactivos que se generan automáticamente basándose en la especificación de métodos de cada módulo.
+
+\subsection{Arquitectura Frontend Modular}
+\label{subsec:arquitectura_frontend}
+
+La arquitectura \textit{frontend} implementa un sistema modular de \gls{managers} especializados que se comunican mediante eventos, proporcionando separación clara de responsabilidades y mantenibilidad. Los \gls{managers} principales incluyen gestión de tema oscuro/claro con persistencia, coordinación de conexiones \gls{websocket} con \textit{buffering} de eventos, gestión de instancias \textit{Chart.js} con actualizaciones por lotes, y navegación integrada del sistema de archivos del servidor.
+
+La interfaz web responsiva basada en \gls{bootstrap} proporciona experiencia de usuario consistente en múltiples dispositivos, con formularios dinámicos que se adaptan automáticamente a los tipos de parámetros definidos por cada módulo.
+
+\section{Diagramas \acrshort{uml} y Arquitectura}
+\label{sec:diagramas_api_explorer}
+
+El diagrama \acrshort{uml} ilustra la estructura modular del \gls{framework} web y sus patrones de integración con módulos externos.
+
+\subsection{Diagrama del Sistema}
+\label{subsec:diagrama_sistema_api}
+
+La Figura~\ref{fig:api_explorer} presenta la arquitectura completa del módulo, mostrando la integración entre los componentes \textit{backend} basados en \textit{FastAPI}, el sistema de \gls{websocket} con \textit{\gls{worker} pools}, y la arquitectura \textit{frontend} modular con \gls{managers} especializados.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/api_explorer.pdf}
+    \caption{Diagrama \acrshort{uml} del módulo \textit{API Explorer}}
+    \label{fig:api_explorer}
+\end{figure}
+
+\section{Funcionalidades Principales}
+\label{sec:funcionalidades_api_explorer}
+
+\subsection{Sistema de Registro Dinámico}
+\label{subsec:registro_dinamico}
+
+El sistema permite a módulos externos registrar sus funcionalidades mediante un patrón de registro dinámico que no requiere modificaciones en el código del \textit{API Explorer}. Cada módulo puede definir grupos de métodos organizados jerárquicamente, especificar tipos de parámetros con validación automática, y proporcionar descripciones detalladas que se reflejan automáticamente en la interfaz web.
+
+\subsection{Visualización de Datos en Tiempo Real}
+\label{subsec:visualizacion_tiempo_real}
+
+Las capacidades de visualización integran \textit{Chart.js} para proporcionar gráficos profesionales con actualizaciones en tiempo real mediante \gls{websocket}. El sistema soporta visualización multi-canal con gráficos separados o combinados, escalado dinámico basado en datos entrantes, y actualización por lotes para suavidad visual durante streaming de datos de alta frecuencia.
+
+\subsection{Formularios Dinámicos de Parámetros}
+\label{subsec:formularios_dinamicos}
+
+El sistema genera automáticamente formularios interactivos basándose en las especificaciones de parámetros de cada módulo. Los tipos soportados incluyen campos de texto con validación, controles numéricos con rangos específicos, selectores con opciones predefinidas, navegador de archivos integrado, y áreas de texto \acrshort{json} con validación y formateo automático. La carga automática de plantillas se activa al cambiar valores de selectores específicos, proporcionando retroalimentación visual para validación de parámetros.
+
+\section{Casos de Uso Principales}
+\label{sec:casos_uso_api_explorer}
+
+\subsection{Control Remoto de Módulos}
+\label{subsec:control_remoto}
+
+El \gls{framework} facilita el control remoto completo de los módulos del sistema mediante interfaces web, eliminando la necesidad de conocimientos de programación para operaciones básicas. Los investigadores pueden iniciar y detener adquisición de datos, modificar parámetros de procesamiento en tiempo real, y monitorear el estado del sistema desde cualquier dispositivo con navegador web.
+
+\subsection{Monitoreo en Tiempo Real}
+\label{subsec:monitoreo_tiempo_real}
+
+Las capacidades de monitoreo proporcionan visibilidad completa del estado del sistema mediante streaming de eventos en tiempo real, visualización de datos de alta frecuencia con actualización continua, y métricas de rendimiento del sistema~\cite{Mullen2015}. Esta funcionalidad resulta especialmente valiosa para sesiones de adquisición prolongadas donde el monitoreo remoto facilita la supervisión continua sin interrumpir el proceso de captura de datos.
+
+\subsection{Desarrollo y Depuración}
+\label{subsec:desarrollo_depuracion}
+
+El sistema facilita el desarrollo y depuración de nuevos módulos proporcionando interfaces de prueba inmediatas para nuevas funcionalidades, visualización de datos para validación de algoritmos, y logging centralizado de eventos del sistema. Los desarrolladores pueden probar \acrshort{api} sin desarrollar interfaces específicas, acelerar significativamente los ciclos de desarrollo e iteración.
+
+\subsection{Integración con Sistemas Externos}
+\label{subsec:integracion_sistemas_externos}
+
+La arquitectura basada en \acrshort{rest} y \gls{websocket} facilita la integración con sistemas externos, permitiendo control desde otras aplicaciones, streaming de datos hacia sistemas de análisis externos, y coordinación con herramientas de terceros. Esta capacidad expande significativamente las posibilidades de integración del sistema completo en \textit{workflows} de investigación existentes.

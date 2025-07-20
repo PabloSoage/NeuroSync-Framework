@@ -75,6 +75,25 @@ La documentación técnica completa del módulo, incluyendo especificaciones de 
 
 Esta documentación proporciona los fundamentos técnicos necesarios para comprender la implementación de servicios especializados, realizar modificaciones en algoritmos de procesamiento, o integrar nuevas capacidades de análisis neurofisiológico.
 
+\section{Módulo \textit{API Explorer}}
+\label{sec:modulo_api_explorer}
+
+\textit{API Explorer} constituye el \gls{framework} web unificado del sistema, proporcionando capacidades de exploración dinámica y control remoto de las funcionalidades de los demás módulos. Su desarrollo se centró en crear una plataforma web que facilite tanto la exploración interactiva como la integración con otros sistemas.
+
+\subsection{Framework Web Modular}
+\label{subsec:framework_web_modular}
+
+El módulo implementa una arquitectura web completa basada en \textit{FastAPI} con soporte \gls{websocket} para comunicación en tiempo real. El sistema de registro dinámico permite que módulos externos expongan sus funcionalidades mediante interfaces web generadas automáticamente, mientras que la arquitectura de \gls{worker} \textit{pools} gestiona eficientemente el streaming de datos de alta frecuencia con \gls{throttling} adaptativo.
+
+La arquitectura \textit{frontend} modular implementa \gls{managers} especializados que coordinan visualización de datos mediante \textit{Chart.js}, gestión de temas oscuro/claro, y formularios dinámicos que se adaptan automáticamente a los tipos de parámetros definidos por cada módulo.
+
+\subsection{Documentación Técnica Detallada}
+\label{subsec:documentacion_api_explorer}
+
+La documentación técnica completa del módulo se encuentra disponible en el \textbf{Anexo~\ref{chap:anexo_api_explorer}} de este documento, incluyendo especificaciones de arquitectura, patrones de integración y casos de uso detallados.
+
+Esta documentación proporciona los fundamentos necesarios para comprender la implementación del \gls{framework} web, realizar extensiones de funcionalidad, o integrar nuevos módulos en la plataforma unificada.
+
 \section{Integración y Extensibilidad del Sistema}
 \label{sec:integracion_extensibilidad_sistema}
 
