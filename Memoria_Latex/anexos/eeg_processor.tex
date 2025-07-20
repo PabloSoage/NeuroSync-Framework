@@ -1,0 +1,341 @@
+\chapter{Módulo \textit{EEG Processor} - Documentación Técnica}
+\label{chap:anexo_eeg_processor}
+
+\section{Introducción al Módulo}
+\label{sec:intro_eeg_processor}
+
+El módulo \textit{EEG Processor} constituye el núcleo especializado del sistema para captura, procesamiento y análisis de \gls{biosenial}es \acrshort{eeg} en tiempo real. Su desarrollo integra una arquitectura orientada a servicios que soporta múltiples fabricantes de dispositivos comerciales, algoritmos de análisis neurofisiológico avanzados, y capacidades de visualización científica de calidad profesional.
+
+\subsection{Objetivos Técnicos}
+\label{subsec:objetivos_eeg_processor}
+
+El desarrollo del módulo se orientó hacia objetivos técnicos específicos para el procesamiento de neuroseñales:
+
+\begin{itemize}
+    \item \textbf{Abstracción Multi-Hardware}: Soporte unificado para más de 20 fabricantes mediante \textit{BrainFlow}
+    \item \textbf{Procesamiento Tiempo Real}: Algoritmos optimizados para análisis con latencia mínima
+    \item \textbf{Análisis Avanzado}: Integración de \acrshort{ica}, transformadas \gls{wavelet} y \textit{MNE-Python}
+    \item \textbf{Calidad Científica}: Visualización y exportación orientadas a investigación
+    \item \textbf{Arquitectura Extensible}: Servicios modulares para integración con sistemas externos
+\end{itemize}
+
+\section{Documentación Técnica Detallada}
+\label{sec:doc_tecnica_eeg_processor}
+
+La documentación técnica completa del módulo, incluyendo especificaciones de arquitectura orientada a servicios, algoritmos de procesamiento de señales, integración con dispositivos comerciales, y capacidades de análisis avanzado, se encuentra disponible en el siguiente documento:
+
+\includepdf[pages=-]{imaxes/eeg_processor_doc.pdf}
+
+\section{Visualizadores Especializados}
+\label{sec:visualizadores_eeg}
+
+El módulo incluye visualizadores especializados diseñados para diferentes aspectos del análisis de señales \acrshort{eeg}, proporcionando herramientas de visualización científica que facilitan tanto el monitoreo en tiempo real como el análisis detallado de \gls{biosenial}es.
+
+\subsection{Visualizador Multi-Señal}
+\label{subsec:visualizador_multi_senal}
+
+El \textit{MultiSignalVisualizer} constituye el componente principal de visualización, proporcionando capacidades de renderizado en tiempo real para múltiples tipos de \gls{biosenial}es. Como se muestra en la Figura~\ref{fig:multi_signal_viz}, el visualizador implementa detección inteligente de tipos de canal, separando automáticamente las señales en pestañas especializadas para \acrshort{eeg}, \acrshort{emg}, \acrshort{ecg}, acelerómetro, giroscopio y otras modalidades de biosensores.
+
+\begin{figure}[hp!]
+\centering
+\includegraphics[width=\textwidth,height=7cm,keepaspectratio]{imaxes/multi_signal_viz.png}
+\caption{Visualizador multi-señal mostrando canales EEG en tiempo real con detección automática de tipos de canal y organización por pestañas especializadas}
+\label{fig:multi_signal_viz}
+\end{figure}
+
+\subsection{Mapa Topográfico Cerebral}
+\label{subsec:mapa_topografico}
+
+El \textit{Brain Map Visualizer} proporciona representación topográfica de la actividad cerebral distribuida sobre el cuero cabelludo, implementando el sistema de posicionamiento estándar 10-20/10-10 para ubicación de electrodos. La Figura~\ref{fig:brain_map_viz} ilustra las capacidades de mapeo en tiempo real con indicadores de calidad de señal codificados por color, permitiendo monitoreo inmediato del estado de conexión de electrodos y distribución espacial de la actividad neuronal.
+
+\begin{figure}[hp!]
+\centering
+\includegraphics[width=\textwidth,height=7cm,keepaspectratio]{imaxes/brain_map_viz.png}
+\caption{Brain Map Visualizer con representación topográfica en tiempo real, mostrando posicionamiento estándar de electrodos y indicadores de calidad de señal por código de colores}
+\label{fig:brain_map_viz}
+\end{figure}
+
+\subsection{Validación con Hardware Comercial}
+\label{subsec:validacion_hardware}
+
+La validación del módulo con dispositivos comerciales demuestra la efectividad de la arquitectura desarrollada. La Figura~\ref{fig:g_tec_suite} presenta la interfaz del \textit{software} propietario \textit{Unicorn Suite} de \textit{g.tec} utilizado con el dispositivo \textit{g.tec Unicorn Hybrid Black}. Esta comparación con las capacidades mostradas en las figuras anteriores evidencia que el módulo desarrollado proporciona funcionalidades de visualización equivalentes a las herramientas comerciales especializadas, manteniendo la flexibilidad de un sistema de código abierto.
+
+\begin{figure}[hp!]
+\centering
+\includegraphics[width=\textwidth,height=5cm,keepaspectratio]{imaxes/g_tec_suite.png}
+\caption{Interfaz de la suite propietaria Unicorn de g.tec utilizada con el dispositivo g.tec Unicorn Hybrid Black, mostrando las capacidades de referencia del software comercial}
+\label{fig:g_tec_suite}
+\end{figure}
+
+\section{Diagramas \acrshort{uml} y Arquitectura}
+\label{sec:diagramas_eeg_processor}
+
+Los diagramas \acrshort{uml} que siguen ilustran la arquitectura orientada a servicios del módulo, organizados por subsistemas especializados.
+
+\subsection{Diagrama General del Sistema}
+\label{subsec:diagrama_general_eeg}
+
+El diagrama completo de la Figura~\ref{fig:ep_complete} presenta la arquitectura global del módulo con todos los servicios y sus interacciones, proporcionando una visión integral de la estructura orientada a servicios implementada.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ep_complete.pdf}
+    \caption{Diagrama \acrshort{uml} completo del módulo \textit{EEG Processor}}
+    \label{fig:ep_complete}
+\end{figure}
+
+\subsection{Diagrama Parcial Simplificado}
+\label{subsec:diagrama_parcial_eeg}
+
+Para facilitar la comprensión de los servicios principales, la Figura~\ref{fig:ep_partial} presenta una versión simplificada que enfatiza los componentes centrales y sus relaciones fundamentales en la arquitectura de servicios.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ep_partial.pdf}
+    \caption{Diagrama \acrshort{uml} simplificado del módulo \textit{EEG Processor}}
+    \label{fig:ep_partial}
+\end{figure}
+
+\subsection{Diagramas por Subsistema}
+\label{subsec:diagramas_subsistemas_eeg}
+
+Los siguientes diagramas detallan cada subsistema específico del módulo, organizados según su función arquitectónica en la estructura orientada a servicios.
+
+\subsubsection{Sistema de Eventos Core}
+\label{subsubsec:diagrama_core_events_eeg}
+
+La Figura~\ref{fig:ep_core_events} detalla el sistema de eventos centralizado que gestiona más de 40 tipos de eventos especializados, proporcionando comunicación \gls{thread-safe} entre todos los servicios del módulo.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ep_event_system.pdf}
+    \caption{Diagrama del sistema de eventos core}
+    \label{fig:ep_core_events}
+\end{figure}
+
+\subsubsection{Interfaces y Contratos}
+\label{subsubsec:diagrama_interfaces_eeg}
+
+La estructura de interfaces especializadas para dispositivos \acrshort{eeg} se presenta en la Figura~\ref{fig:ep_interfaces}, mostrando los contratos para colectores, grabación, y procesamiento de \gls{biosenial}es.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ep_interfaces.pdf}
+    \caption{Diagrama de interfaces y contratos especializados}
+    \label{fig:ep_interfaces}
+\end{figure}
+
+\subsubsection{Colectores EEG}
+\label{subsubsec:diagrama_collectors_eeg}
+
+Los colectores especializados para dispositivos \acrshort{eeg} y su integración con \textit{BrainFlow} se muestran en la Figura~\ref{fig:ep_collectors}, destacando la abstracción de múltiples fabricantes de hardware.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ep_collectors.pdf}
+    \caption{Diagrama de colectores EEG especializados}
+    \label{fig:ep_collectors}
+\end{figure}
+
+\subsubsection{Motor de Procesamiento de Señales}
+\label{subsubsec:diagrama_processors_eeg}
+
+La Figura~\ref{fig:ep_processors} ilustra el motor de procesamiento que implementa múltiples algoritmos avanzados incluyendo \gls{filtros_digitales}, análisis \gls{wavelet}, y evaluación de calidad de señal.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ep_processors.pdf}
+    \caption{Diagrama del motor de procesamiento de señales}
+    \label{fig:ep_processors}
+\end{figure}
+
+\subsubsection{Capa de Servicios Centrales}
+\label{subsubsec:diagrama_services_eeg}
+
+Los servicios centrales del sistema y su coordinación se presentan en la Figura~\ref{fig:ep_services}, mostrando la arquitectura \textit{singleton} y los patrones de coordinación entre servicios especializados.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ep_services.pdf}
+    \caption{Diagrama de la capa de servicios centrales}
+    \label{fig:ep_services}
+\end{figure}
+
+\subsubsection{Servicios ICA Especializados}
+\label{subsubsec:diagrama_ica_services}
+
+La arquitectura de los servicios de análisis de componentes independientes se detalla en la Figura~\ref{fig:ep_ica_services}, incluyendo procesamiento multiproceso y monitoreo en tiempo real.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ep_ica_services.pdf}
+    \caption{Diagrama de servicios ICA especializados}
+    \label{fig:ep_ica_services}
+\end{figure}
+
+\subsubsection{Servicios MNE-Python}
+\label{subsubsec:diagrama_mne_services}
+
+La Figura~\ref{fig:ep_mne_services} muestra la integración con \textit{MNE-Python} para análisis neurofisiológico avanzado, incluyendo conversión de datos y visualización científica.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ep_mne_services.pdf}
+    \caption{Diagrama de servicios MNE-Python}
+    \label{fig:ep_mne_services}
+\end{figure}
+
+\subsubsection{Visualizadores Científicos}
+\label{subsubsec:diagrama_visualizers_eeg}
+
+La arquitectura de los componentes de visualización científica se presenta en la Figura~\ref{fig:ep_visualizers}, incluyendo mapeo topográfico cerebral y visualización multi-canal en tiempo real.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ep_visualizers.pdf}
+    \caption{Diagrama de visualizadores científicos}
+    \label{fig:ep_visualizers}
+\end{figure}
+
+\subsubsection{Gestión de Interfaz de Usuario}
+\label{subsubsec:diagrama_ui_eeg}
+
+La Figura~\ref{fig:ep_ui} muestra la estructura \acrshort{mvc} basada en paneles, con controladores especializados que coordinan múltiples \glspl{widget} para diferentes aspectos del procesamiento \acrshort{eeg}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ep_ui.pdf}
+    \caption{Diagrama de gestión de interfaz de usuario MVC}
+    \label{fig:ep_ui}
+\end{figure}
+
+\subsubsection{Paneles Avanzados}
+\label{subsubsec:diagrama_ui_advanced}
+
+La estructura de los paneles para análisis avanzado se detalla en la Figura~\ref{fig:ep_ui_advanced}, mostrando la organización de \glspl{widget} especializados para \acrshort{ica}, \gls{wavelet} y filtrado avanzado.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ep_ui_advanced.pdf}
+    \caption{Diagrama de paneles de análisis avanzado}
+    \label{fig:ep_ui_advanced}
+\end{figure}
+
+\subsubsection{Widgets Avanzados Especializados}
+\label{subsubsec:diagrama_widgets_advanced}
+
+La Figura~\ref{fig:ep_widgets_advanced} presenta los \glspl{widget} especializados para análisis avanzado, incluyendo configuración de parámetros y visualización de resultados en tiempo real.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ep_ui_advanced_widgets.pdf}
+    \caption{Diagrama de widgets de análisis avanzado}
+    \label{fig:ep_widgets_advanced}
+\end{figure}
+
+\subsubsection{Integración MNE en UI}
+\label{subsubsec:diagrama_ui_mne}
+
+La arquitectura de los paneles \textit{MNE} se muestra en la Figura~\ref{fig:ep_ui_mne}, ilustrando la integración de capacidades de análisis neurofisiológico en la interfaz de usuario.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ep_ui_mne.pdf}
+    \caption{Diagrama de paneles MNE-Python}
+    \label{fig:ep_ui_mne}
+\end{figure}
+
+\subsubsection{Widgets MNE Especializados}
+\label{subsubsec:diagrama_widgets_mne}
+
+La Figura~\ref{fig:ep_widgets_mne} detalla los \glspl{widget} especializados para \textit{MNE-Python}, incluyendo conversión de datos, visualización avanzada y selección de canales.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ep_ui_mne_widgets.pdf}
+    \caption{Diagrama de widgets MNE especializados}
+    \label{fig:ep_widgets_mne}
+\end{figure}
+
+\subsubsection{Diálogo de Visualización ICA}
+\label{subsubsec:diagrama_dialog_ica}
+
+El sistema de diálogos para visualización \acrshort{ica} se presenta en la Figura~\ref{fig:ep_dialog_ica}, mostrando la interfaz especializada para análisis de componentes independientes.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ep_dialog_ica.pdf}
+    \caption{Diagrama de diálogo de visualización ICA}
+    \label{fig:ep_dialog_ica}
+\end{figure}
+
+\subsubsection{Utilidades del Sistema}
+\label{subsubsec:diagrama_utils_eeg}
+
+La Figura~\ref{fig:ep_utils} ilustra las utilidades de soporte del sistema, incluyendo gestión de temas y sistema de ayuda contextual con más de 25 temas especializados.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ep_utils.pdf}
+    \caption{Diagrama de utilidades del sistema}
+    \label{fig:ep_utils}
+\end{figure}
+
+\subsubsection{Adaptadores de Framework}
+\label{subsubsec:diagrama_adapters_eeg}
+
+Los adaptadores que facilitan la integración \gls{thread-safe} entre \textit{Qt} y los servicios centrales se muestran en la Figura~\ref{fig:ep_adapters}, destacando la arquitectura que permite operaciones seguras entre hilos.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ep_adapters.pdf}
+    \caption{Diagrama de adaptadores de framework}
+    \label{fig:ep_adapters}
+\end{figure}
+
+\subsubsection{Interfaz de Línea de Comandos}
+\label{subsubsec:diagrama_cli_eeg}
+
+La estructura de la interfaz de línea de comandos especializada se presenta en la Figura~\ref{fig:ep_cli}, mostrando el shell interactivo y las capacidades de procesamiento sin interfaz gráfica.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ep_cli.pdf}
+    \caption{Diagrama de la interfaz de línea de comandos}
+    \label{fig:ep_cli}
+\end{figure}
+
+\subsubsection{Comandos CLI Especializados}
+\label{subsubsec:diagrama_cli_commands_eeg}
+
+Finalmente, la Figura~\ref{fig:ep_cli_commands} detalla los comandos especializados para procesamiento \acrshort{eeg}, incluyendo control de dispositivos, monitoreo en tiempo real y análisis de datos.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ep_cli_commands.pdf}
+    \caption{Diagrama de comandos CLI especializados}
+    \label{fig:ep_cli_commands}
+\end{figure}
+
+\section{Casos de Uso Principales}
+\label{sec:casos_uso_eeg}
+
+\subsection{Investigación Neurocientífica Avanzada}
+\label{subsec:investigacion_neurocientifica}
+
+El módulo proporciona herramientas especializadas para investigación con soporte para más de 20 fabricantes de dispositivos comerciales, algoritmos de análisis avanzados incluyendo \acrshort{ica} con 1-16 componentes configurables, integración completa con \textit{MNE-Python} para análisis neurofisiológico, y visualización de calidad científica con exportación de alta resolución para los \gls{ica_analysis}.
+
+\subsection{Desarrollo de Interfaces Cerebro-Computadora}
+\label{subsec:desarrollo_bci}
+
+Las capacidades de procesamiento en tiempo real facilitan extracción de características con latencia mínima, cálculo de métricas cognitivas basadas en \gls{machine_learning}, análisis de \gls{band_powers} en tiempo real (Delta, Theta, Alpha, Beta, Gamma), y evaluación continua de calidad de señal.
+
+\subsection{Aplicaciones Clínicas y Diagnósticas}
+\label{subsec:aplicaciones_clinicas}
+
+El sistema de monitoreo de calidad de señal en tiempo real, detección automática de \glspl{artefacto} mediante análisis \acrshort{ica}, grabación multi-formato con inserción precisa de marcadores, y compatibilidad con estándares clínicos proporcionan herramientas especializadas para entornos médicos.
+
+\subsection{Análisis de Neuroseñales Multi-Modal}
+\label{subsec:analisis_multimodal}
+
+La detección inteligente de tipos de canal (\acrshort{eeg}, \acrshort{emg}, \acrshort{ecg}, EOG, EDA, PPG, acelerómetro, giroscopio), visualización especializada por modalidad de señal, procesamiento coordinado de múltiples fuentes de datos, y análisis correlacional entre diferentes tipos de \gls{biosenial}es amplían las capacidades hacia estudios integrales.

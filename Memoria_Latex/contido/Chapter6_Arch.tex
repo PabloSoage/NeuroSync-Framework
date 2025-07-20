@@ -1,7 +1,7 @@
 \chapter{Arquitectura del Sistema}
 \label{chap:arquitectura}
 
-\lettrine{L}{a} arquitectura del sistema desarrollado refleja la evolución desde prototipos funcionales simples hacia un ecosistema modular robusto capaz de manejar múltiples modalidades de datos biomédicos en tiempo real. Este capítulo presenta una visión general de la arquitectura del sistema, describiendo los patrones arquitectónicos fundamentales y las decisiones de diseño que facilitan la operación coordinada de los tres módulos principales.
+\lettrine{L}{a} arquitectura del sistema desarrollado implementa un ecosistema modular robusto capaz de manejar múltiples modalidades de datos biomédicos en tiempo real. Este capítulo presenta una visión general de la arquitectura del sistema, describiendo los patrones arquitectónicos fundamentales y las decisiones de diseño tomadas que facilitan la operación independiente de los tres módulos principales.
 
 El sistema final está compuesto por tres módulos independientes pero interoperables: \textbf{\textit{Input Collector}} para captura de eventos de usuario, \textbf{\textit{EEG Processor}} para procesamiento de señales cerebrales, y \textbf{\textit{API Explorer}} como \gls{framework} web unificado para exploración y control remoto. Cada módulo implementa patrones arquitectónicos específicos optimizados para sus requisitos particulares, mientras mantiene la capacidad de exposición de funcionalidades mediante \acrshort{api} que facilitan la integración futura.
 
@@ -21,14 +21,14 @@ El desarrollo del sistema ha consolidado un conjunto de principios arquitectóni
 
 \textbf{Separación de Responsabilidades}: La arquitectura implementa clara separación entre capas de presentación, lógica de negocio, acceso a datos, y abstracción de \textit{hardware}. Esta separación facilita significativamente el mantenimiento y la extensibilidad, como se evidenció durante las múltiples refactorizaciones realizadas durante el desarrollo.
 
-\subsection{Coordinación Entre Módulos}
-\label{subsec:comunicacion_inter_modulos}
+\subsection{Flujos de Datos del Sistema}
+\label{subsec:flujos_datos_sistema}
 
-Aunque los módulos operan independientemente, el sistema proporciona múltiples mecanismos para la coordinación cuando las aplicaciones lo requieren.
+Cada módulo del sistema puede operar completamente independiente, generando y procesando sus propios flujos de datos. Esta aproximación permite que los investigadores utilicen los módulos según sus necesidades específicas sin requerir la activación completa del sistema.
 
 \textbf{Sincronización Basada en Archivos}: Cada módulo puede grabar independientemente en formatos \acrshort{csv} con \gls{timestamp} precisos, permitiendo análisis correlacional posterior que evita la sobrecarga de sincronización en tiempo real. Esta aproximación resultó especialmente valiosa durante las fases de validación del sistema.
 
-\textbf{Control Remoto via \acrshort{api}}: Los módulos exponen \acrshort{api} \acrshort{rest} que permiten control externo y acceso a datos desde otras aplicaciones. \textit{API Explorer} puede actuar como agregador que coordina operaciones entre módulos de forma transparente.
+\textbf{Control Remoto via \acrshort{api}}: Los módulos exponen \acrshort{api} \acrshort{rest} que permiten control externo y acceso a datos desde otras aplicaciones. \textit{API Explorer} puede actuar como agregador que facilita operaciones entre módulos de forma transparente.
 
 \textbf{Streaming de Eventos}: El sistema de eventos interno de cada módulo puede transmitir información hacia \textit{API Explorer} mediante \gls{websocket}, facilitando monitoreo remoto y visualización coordinada en tiempo real.
 
@@ -58,6 +58,23 @@ La documentación técnica completa del módulo, incluyendo especificaciones arq
 
 Esta documentación proporciona los detalles técnicos necesarios para comprender completamente la implementación, realizar modificaciones, o extender las capacidades del módulo según requisitos específicos de aplicación.
 
+\section{Módulo \textit{EEG Processor}}
+\label{sec:modulo_eeg_processor}
+
+\textit{EEG Processor} constituye el núcleo especializado del sistema para procesamiento de \glspl{biosenial} cerebrales, implementando una arquitectura orientada a servicios que integra múltiples fabricantes de dispositivos comerciales con algoritmos de análisis neurofisiológico avanzados.
+
+\subsection{Arquitectura Orientada a Servicios}
+\label{subsec:arquitectura_servicios_eeg}
+
+El módulo adopta una arquitectura orientada a servicios que separa efectivamente las responsabilidades entre colección de datos, procesamiento de señales, análisis avanzado, y presentación de resultados. La integración con \textit{BrainFlow} como capa de abstracción de \textit{hardware} proporciona soporte unificado para más de 20 fabricantes de dispositivos, facilitando significativamente el desarrollo de aplicaciones que necesiten funcionar con múltiples tipos de \textit{hardware} sin modificaciones específicas.
+
+\subsection{Documentación Técnica Detallada}
+\label{subsec:documentacion_eeg_processor}
+
+La documentación técnica completa del módulo, incluyendo especificaciones de la arquitectura orientada a servicios, algoritmos de procesamiento de señales, integración con dispositivos comerciales, análisis de patrones \acrshort{mvc}, y capacidades de análisis avanzado, se encuentra disponible en el \textbf{Anexo~\ref{chap:anexo_eeg_processor}} de este documento.
+
+Esta documentación proporciona los fundamentos técnicos necesarios para comprender la implementación de servicios especializados, realizar modificaciones en algoritmos de procesamiento, o integrar nuevas capacidades de análisis neurofisiológico.
+
 \section{Integración y Extensibilidad del Sistema}
 \label{sec:integracion_extensibilidad_sistema}
 
@@ -70,13 +87,9 @@ La arquitectura modular facilita tanto la integración como la extensión futura
 
 El sistema implementa múltiples optimizaciones para manejar datos de alta frecuencia en tiempo real. Estas incluyen \gls{batching} de eventos para reducir \gls{overhead} de comunicación, \gls{worker} \textit{pools} para distribución de procesamiento, \gls{buffer} circular con \gls{descarte_adaptativo} para degradación elegante del rendimiento, y \gls{serializacion} optimizada con \textit{orjson} que proporciona mejoras de rendimiento de 2-5x comparado con la biblioteca estándar.
 
-La gestión de memoria implementa límites de \gls{buffer} configurables con limpieza automática, mientras que el diseño \gls{thread-safety} utiliza \textit{locks} granulares, señales \acrshort{qt} para comunicación segura entre hilos, y aislamiento de errores que previene la propagación de fallos entre componentes.
+La gestión de memoria implementa límites de \gls{buffer} configurables con limpieza automática, mientras que el diseño \gls{thread-safe} utiliza \textit{locks} granulares, señales \acrshort{qt} para comunicación segura entre hilos, y aislamiento de errores que previene la propagación de fallos entre componentes.
 
 \section{Extensibilidad y Mantenimiento}
 \label{sec:extensibilidad_mantenimiento}
 
 La arquitectura del sistema facilita extensiones futuras mediante la implementación de principios \acrshort{solid}, patrones de extensión bien definidos, y separación clara de responsabilidades. El sistema de registro dinámico en \textit{API Explorer} permite la adición de nuevos módulos sin modificación del código existente.
-
-Los patrones arquitectónicos compartidos, junto con la documentación técnica exhaustiva y los diagramas \acrshort{uml} detallados, proporcionan fundamentos sólidos para el mantenimiento continuo y la evolución del sistema hacia capacidades más avanzadas.
-
-El diseño resultante proporciona una plataforma robusta y extensible para investigación en interfaces cerebro-computadora que combina facilidad de uso con capacidades técnicas avanzadas, permitiendo que investigadores con diferentes niveles técnicos puedan aprovechar las capacidades del sistema desde uso básico hasta integración avanzada.
