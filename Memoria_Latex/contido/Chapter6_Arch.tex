@@ -1,234 +1,82 @@
 \chapter{Arquitectura del Sistema}
 \label{chap:arquitectura}
 
-\lettrine{L}{a} arquitectura del sistema desarrollado refleja la evolución desde prototipos funcionales simples hacia un ecosistema modular robusto capaz de manejar múltiples modalidades de datos biomédicos en tiempo real. Este capítulo presenta los detalles técnicos de la arquitectura final, describiendo los patrones arquitectónicos implementados, las decisiones de diseño que resultaron exitosas, y las características técnicas que permiten la operación coordinada de los tres módulos principales del sistema.
+\lettrine{L}{a} arquitectura del sistema desarrollado refleja la evolución desde prototipos funcionales simples hacia un ecosistema modular robusto capaz de manejar múltiples modalidades de datos biomédicos en tiempo real. Este capítulo presenta una visión general de la arquitectura del sistema, describiendo los patrones arquitectónicos fundamentales y las decisiones de diseño que facilitan la operación coordinada de los tres módulos principales.
 
-El sistema final está compuesto por tres módulos independientes pero interoperables: \textbf{\textit{Input Collector}} para captura de eventos de usuario, \textbf{\textit{EEG Processor}} para procesamiento de señales cerebrales, y \textbf{\textit{API Explorer}} como \gls{framework} web unificado para exploración y control remoto. Cada módulo implementa patrones arquitectónicos específicos optimizados para sus requisitos particulares, mientras mantiene interfaces consistentes que facilitan la integración y extensibilidad futura.
+El sistema final está compuesto por tres módulos independientes pero interoperables: \textbf{\textit{Input Collector}} para captura de eventos de usuario, \textbf{\textit{EEG Processor}} para procesamiento de señales cerebrales, y \textbf{\textit{API Explorer}} como \gls{framework} web unificado para exploración y control remoto. Cada módulo implementa patrones arquitectónicos específicos optimizados para sus requisitos particulares, mientras mantiene la capacidad de exposición de funcionalidades mediante \acrshort{api} que facilitan la integración futura.
 
-\section{Patrones Arquitectónicos Fundamentales}
-\label{sec:patrones_arquitectonicos}
+\section{Visión General de la Arquitectura}
+\label{sec:vision_general_arquitectura}
 
-La arquitectura del sistema se basa en la aplicación sistemática de patrones arquitectónicos probados que proporcionan separación de responsabilidades, \gls{thread-safety}, y extensibilidad. Los patrones seleccionados surgieron de las lecciones aprendidas durante las iteraciones de desarrollo y refactorización \acrshort{solid}, validándose su efectividad a través de la implementación práctica.
+La arquitectura global del sistema se fundamenta en principios de diseño modular que permiten que cada módulo opere de forma completamente independiente. Esta independencia no impide la coordinación cuando es necesaria, sino que la facilita mediante mecanismos bien definidos de intercambio de datos y control remoto.
 
-\subsection{Arquitectura Dirigida por Eventos}
-\label{subsec:arquitectura_eventos}
+\subsection{Principios Arquitectónicos Fundamentales}
+\label{subsec:principios_fundamentales}
 
-Todos los módulos implementan un sistema de eventos centralizado que actúa como columna vertebral de comunicación, eliminando dependencias directas entre componentes y facilitando la coordinación de operaciones complejas.
+El desarrollo del sistema ha consolidado un conjunto de principios arquitectónicos que se aplican consistentemente a través de todos los módulos, proporcionando coherencia estructural y facilitando tanto el mantenimiento como la extensibilidad futura.
 
-\textbf{\textit{Input Collector}} utiliza un \textit{EventDispatcher} \textit{singleton} \gls{thread-safety} que gestiona más de 15 tipos de eventos (INPUT, STATE\_CHANGE, RECORDING\_STARTED, etc.) con capacidades de sincronización tardía para suscriptores que se registran después del \textit{dispatch} del evento. El sistema incluye aislamiento de errores donde los fallos en \gls{callback} no afectan otros suscriptores, y almacenamiento del último evento para nuevos suscriptores.
+\textbf{Arquitectura Dirigida por Eventos}: La comunicación interna de cada módulo utiliza un sistema de eventos centralizado que actúa como columna vertebral, eliminando dependencias directas entre componentes y facilitando la coordinación de operaciones complejas. Este patrón ha demostrado ser especialmente efectivo para el manejo de datos de alta frecuencia y operaciones asíncronas.
 
-\textbf{\textit{EEG Processor}} extiende este concepto con más de 40 tipos de eventos especializados (CONNECTION, PROCESSING, VISUALIZATION, MNE, ICA) y incluye seguimiento de historial con rotación automática de 1000 eventos. La implementación utiliza \textit{RLock} para operaciones \gls{thread-safety} y optimización basada en conjuntos para operaciones O(1).
+\textbf{Patrón Singleton Thread-Safe}: Los servicios centrales de cada módulo implementan el patrón \textit{singleton} con \gls{double_checked_locking} para garantizar una instancia única con operaciones seguras en entornos multihilo. La \gls{inicializacion_perezosa} optimiza el uso de recursos retrasando la creación de objetos hasta que sean realmente necesarios.
 
-\textbf{\textit{API Explorer}} integra eventos de múltiples módulos mediante \gls{websocket} \textit{broadcasting} automático, proporcionando un canal unificado para monitoreo y control remoto de todo el sistema.
+\textbf{Separación de Responsabilidades}: La arquitectura implementa clara separación entre capas de presentación, lógica de negocio, acceso a datos, y abstracción de \textit{hardware}. Esta separación facilita significativamente el mantenimiento y la extensibilidad, como se evidenció durante las múltiples refactorizaciones realizadas durante el desarrollo.
 
-\subsection{Patrón \textit{Singleton} con \gls{thread-safety}}
-\label{subsec:patron_singleton}
+\subsection{Coordinación Entre Módulos}
+\label{subsec:comunicacion_inter_modulos}
 
-Los servicios centrales implementan el patrón \textit{singleton} con \textit{double-checked locking} para garantizar instancia única \gls{thread-safety} con inicialización perezosa. Esta implementación es crítica para mantener consistencia de estado en aplicaciones multihilo que manejan datos de alta frecuencia.
+Aunque los módulos operan independientemente, el sistema proporciona múltiples mecanismos para la coordinación cuando las aplicaciones lo requieren.
 
-El \textit{CollectorService} en \textit{EEG Processor} ejemplifica esta implementación con bloqueo granular para diferentes operaciones: un \textit{lock} principal para inicialización, \textit{locks} separados para gestión de \gls{buffer}, y \textit{locks} específicos para operaciones de grabación. Esta granularidad minimiza contención entre hilos mientras mantiene consistencia de datos.
+\textbf{Sincronización Basada en Archivos}: Cada módulo puede grabar independientemente en formatos \acrshort{csv} con \gls{timestamp} precisos, permitiendo análisis correlacional posterior que evita la sobrecarga de sincronización en tiempo real. Esta aproximación resultó especialmente valiosa durante las fases de validación del sistema.
 
-\subsection{Arquitectura Orientada a Servicios}
-\label{subsec:arquitectura_servicios}
+\textbf{Control Remoto via \acrshort{api}}: Los módulos exponen \acrshort{api} \acrshort{rest} que permiten control externo y acceso a datos desde otras aplicaciones. \textit{API Explorer} puede actuar como agregador que coordina operaciones entre módulos de forma transparente.
 
-\textit{EEG Processor} implementa una arquitectura orientada a servicios completa con más de 12 servicios especializados: \textit{CollectorService}, \textit{DataAccessService}, \textit{ProcessorService}, \textit{RecordingService}, \textit{VisualizationService}, \textit{InteractionService}, \textit{AdvancedProcessingService}, \textit{MNEService}, y servicios especializados para \acrshort{ica} y análisis \gls{wavelet}.
-
-Cada servicio mantiene responsabilidades claramente definidas con interfaces \acrshort{abc} que garantizan contratos consistentes. La comunicación entre servicios utiliza el sistema de eventos centralizado, eliminando dependencias circulares y facilitando pruebas unitarias mediante \textit{mocking}.
+\textbf{Streaming de Eventos}: El sistema de eventos interno de cada módulo puede transmitir información hacia \textit{API Explorer} mediante \gls{websocket}, facilitando monitoreo remoto y visualización coordinada en tiempo real.
 
 \section{Módulo \textit{Input Collector}}
 \label{sec:modulo_input_collector}
 
-\textit{Input Collector} implementa una arquitectura hexagonal (\textit{Ports and Adapters}) que separa la lógica de dominio de las interfaces externas, facilitando múltiples puntos de entrada (\acrshort{gui}, \acrshort{cli}, \acrshort{api}) sin duplicación de funcionalidad.
+\textit{Input Collector} constituye el componente del sistema especializado en captura, procesamiento y visualización de eventos de entrada desde múltiples dispositivos en tiempo real. Su desarrollo se centró en resolver los desafíos únicos asociados con la captura de eventos de usuario con latencia mínima y precisión temporal.
 
-\subsection{Arquitectura de Captura de Eventos}
-\label{subsec:arquitectura_captura_eventos}
+\subsection{Enfoque Arquitectónico}
+\label{subsec:enfoque_arquitectonico_input}
 
-El módulo soporta múltiples dispositivos de entrada con arquitecturas especializadas según las características del dispositivo:
+El módulo implementa una arquitectura hexagonal que separa efectivamente la lógica de dominio de las interfaces externas. Esta decisión arquitectónica permitió desarrollar soporte unificado para dispositivos tan diversos como teclado, ratón y controladores \acrshort{ps4}, mientras se mantenían múltiples interfaces de acceso sin duplicación de funcionalidad.
 
-\textbf{Teclado y Ratón}: Utiliza \textit{pynput} con \gls{polling} basado en \gls{timers} de \acrshort{qt} para captura \textit{cross-platform}. Incluye múltiples modos de \textit{tracking} de ratón: \textit{delta} (movimiento en bruto), \textit{angle} (direcciones discretas), \textit{axis} (direcciones cardinales N/S/E/W), y \textit{joystick} (direcciones analógicas con velocidad por eje).
+La arquitectura dirigida por eventos demostró ser particularmente efectiva para el controlador \acrshort{ps4}, donde se implementó un \textit{event loop} \acrshort{sdl} dedicado que resolvió completamente los problemas de rendimiento y compatibilidad que habían limitado la funcionalidad en interfaces \acrshort{cli}. Esta implementación elimina las dependencias de \gls{timers} \acrshort{qt} y proporciona captura con latencia mínima independiente del contexto de ejecución.
 
-\textbf{Controlador PS4}: Implementa arquitectura completamente dirigida por eventos usando \acrshort{sdl} con \textit{event loop} dedicado en hilo separado. Esta aproximación resolvió problemas de rendimiento que limitaban la funcionalidad en interfaces \acrshort{cli}, eliminando dependencias de \gls{timers} \acrshort{qt} y proporcionando captura de eventos con latencia mínima independiente del contexto de ejecución.
+\subsection{Capacidades y Aplicaciones}
+\label{subsec:capacidades_aplicaciones_input}
 
-Las capacidades del controlador \acrshort{ps4} incluyen soporte para \textit{analog sticks}, \textit{triggers}, 14 botones, 2 \textit{analog sticks}, 2 \textit{triggers}, conexión mediante \acrshort{sdl} \textit{GameController}, reconexión automática, eventos \gls{thread-safety}, y arquitectura dirigida por eventos.
+El sistema de captura soporta múltiples modos de seguimiento que se adaptan a diferentes requisitos de aplicación. Los modos de \textit{tracking} de ratón incluyen \textit{delta} para movimiento en bruto, \textit{angle} para direcciones discretas, \textit{axis} para direcciones cardinales, y \textit{joystick} para representación analógica con velocidad por eje.
 
-\subsection{Sistema de Visualización Avanzado}
-\label{subsec:sistema_visualizacion_avanzado}
+El objetivo principal del módulo es la generación de \textit{datasets} de alta calidad con marcado temporal preciso que permita la sincronización posterior con señales cerebrales para el desarrollo de sistemas \acrshort{bci}. Los \gls{timestamp} de microsegundo facilitan el análisis correlacional entre patrones de entrada y actividad neuronal, habilitando estudios sobre \gls{imaginacion_motora}, análisis de comportamientos de usuario durante tareas específicas, y desarrollo de interfaces cerebro-computadora híbridas que combinen intenciones detectadas mediante \acrshort{eeg} con acciones explícitas del usuario.
 
-El sistema de visualización utiliza interfaces adaptativas que se ajustan dinámicamente según las capacidades del colector activo. El \textit{PS4ControllerVisualizer} implementa una interfaz de paneles divididos con visualización del controlador, panel de estado en tiempo real, y \textit{logging} de eventos con colores y \gls{timestamp}.
+\subsection{Documentación Técnica Detallada}
+\label{subsec:documentacion_input_collector}
 
-La visualización incluye un sistema de \textit{edit mode} avanzado con \textit{snapshot/commit} para personalización de posiciones de elementos visuales, múltiples modos de renderizado (\textit{image overlay} + dibujado directo), y actualizaciones \gls{thread-safety} mediante señales \acrshort{qt}.
+La documentación técnica completa del módulo, incluyendo especificaciones arquitectónicas detalladas, diagramas \acrshort{uml} de todos los subsistemas, análisis de patrones de diseño implementados, y guías de integración, se encuentra disponible en el \textbf{Anexo~\ref{chap:anexo_input_collector}} de este documento.
 
-\subsection{Interfaces Múltiples}
-\label{subsec:interfaces_multiples}
+Esta documentación proporciona los detalles técnicos necesarios para comprender completamente la implementación, realizar modificaciones, o extender las capacidades del módulo según requisitos específicos de aplicación.
 
-El módulo proporciona tres interfaces completas que comparten el mismo núcleo de funcionalidad:
+\section{Integración y Extensibilidad del Sistema}
+\label{sec:integracion_extensibilidad_sistema}
 
-\textbf{GUI}: Aplicación \textit{PyQt5} con tema oscuro, controles adaptativos según el colector activo, y visualización en tiempo real de todos los eventos capturados.
+La arquitectura modular facilita tanto la integración como la extensión futura del sistema. Para aplicaciones que requieren correlación entre eventos de entrada y señales cerebrales, los módulos pueden coordinarse temporalmente mediante la captura simultánea con \gls{timestamp} sincronizados que permitan análisis posterior.
 
-\textbf{CLI}: Shell interactivo desarrollado con \textit{Typer} y \textit{Rich} que incluye comandos especializados para monitoreo de controladores \acrshort{ps4}, detección inteligente de teclas \textit{cross-platform} (ESC/Q para salir), y display de tablas en tiempo real con información detallada del estado del dispositivo.
+\textit{API Explorer} proporciona un punto de control unificado que permite la coordinación de operaciones entre módulos cuando es necesario, mientras que las capacidades de registro independientes facilitan análisis posterior con sincronización basada en \gls{timestamp} de alta precisión.
 
-\textbf{API Web}: Integración con \textit{API Explorer} que proporciona control remoto completo, \gls{streaming} de eventos via \gls{websocket}, y formularios dinámicos para configuración de parámetros.
+\section{Consideraciones de Rendimiento}
+\label{sec:rendimiento_sistema}
 
-\section{Módulo \textit{EEG Processor}}
-\label{sec:modulo_eeg_processor}
+El sistema implementa múltiples optimizaciones para manejar datos de alta frecuencia en tiempo real. Estas incluyen \gls{batching} de eventos para reducir \gls{overhead} de comunicación, \gls{worker} \textit{pools} para distribución de procesamiento, \gls{buffer} circular con \gls{descarte_adaptativo} para degradación elegante del rendimiento, y \gls{serializacion} optimizada con \textit{orjson} que proporciona mejoras de rendimiento de 2-5x comparado con la biblioteca estándar.
 
-\textit{EEG Processor} implementa una arquitectura orientada a servicios especializada en procesamiento de señales biomédicas en tiempo real, soportando más de 20 fabricantes de dispositivos \acrshort{eeg} y algoritmos de análisis avanzados.
+La gestión de memoria implementa límites de \gls{buffer} configurables con limpieza automática, mientras que el diseño \gls{thread-safety} utiliza \textit{locks} granulares, señales \acrshort{qt} para comunicación segura entre hilos, y aislamiento de errores que previene la propagación de fallos entre componentes.
 
-\subsection{Abstracción de \textit{Hardware}}
-\label{subsec:abstraccion_hardware}
+\section{Extensibilidad y Mantenimiento}
+\label{sec:extensibilidad_mantenimiento}
 
-El módulo utiliza \textit{BrainFlow} como capa de abstracción de \textit{hardware}, proporcionando soporte unificado para dispositivos de fabricantes como OpenBCI, g.tec, Muse, ANT Neuro, Neurosity, y BrainBit. La implementación incluye:
+La arquitectura del sistema facilita extensiones futuras mediante la implementación de principios \acrshort{solid}, patrones de extensión bien definidos, y separación clara de responsabilidades. El sistema de registro dinámico en \textit{API Explorer} permite la adición de nuevos módulos sin modificación del código existente.
 
-\textbf{Configuración Multi-Preset}: Soporte para flujos de datos DEFAULT (todos los canales), AUXILIARY (acelerómetro, giroscopio), y ANCILLARY (PPG, temperatura) con detección automática de tipos de canal.
+Los patrones arquitectónicos compartidos, junto con la documentación técnica exhaustiva y los diagramas \acrshort{uml} detallados, proporcionan fundamentos sólidos para el mantenimiento continuo y la evolución del sistema hacia capacidades más avanzadas.
 
-\textbf{Inserción de Marcadores}: \gls{sincronizacion} de microsegundo con datos \acrshort{eeg} para correlación precisa con eventos experimentales.
-
-\textbf{Gestión de Calidad}: Sistema de evaluación de calidad de señal de 5 niveles utilizando el método \gls{railed_percentage} que detecta saturación y problemas de conexión de electrodos.
-
-\subsection{Motor de Procesamiento de Señales}
-\label{subsec:motor_procesamiento}
-
-El \textit{SignalProcessor} implementa algoritmos avanzados optimizados para datos \acrshort{eeg}:
-
-\textbf{Filtrado Digital}: Múltiples implementaciones (Butterworth, Chebyshev Tipo 1, Bessel) con filtros de fase cero, monitoreo inteligente de estabilidad, y ajuste automático de parámetros para datos sintéticos.
-
-\textbf{Análisis \gls{wavelet}}: Soporte para 15+ \gls{familias_wavelet} (Daubechies, Biorthogonal, Coiflets, Symlets) con capacidades de eliminación de ruido y análisis tiempo-frecuencia.
-
-\textbf{\gls{ica_analysis}}: Implementación \textit{FastICA} con configuración de 1-16 componentes, selección flexible de canales, y procesamiento multiproceso para operaciones CPU-intensivas.
-
-\textbf{Métricas EEG}: Cálculo de \gls{band_powers} (Delta: 1-4Hz, Theta: 4-8Hz, Alpha: 8-13Hz, Beta: 13-30Hz, Gamma: 30-100Hz) y métricas cognitivas basadas en \gls{machine_learning}.
-
-\subsection{Integración MNE-Python}
-\label{subsec:integracion_mne}
-
-El módulo incluye integración completa con \textit{MNE-Python} para análisis neurofisiológico avanzado:
-
-\textbf{Conversión Multi-Modo}: Modo flexible (todos los canales), modo rendimiento (canales seleccionados), y modo tiempo real (intervalos de actualización configurables).
-
-\textbf{Visualización Avanzada}: Generación de \gls{power_spectral_density}, \gls{topomaps}, espectrogramas, y visualización de datos en bruto con calidad de publicación (200 DPI).
-
-\textbf{Sesiones Tiempo Real}: Capacidad de actualizar parámetros de procesamiento dinámicamente sin reiniciar sesiones, optimización multiproceso para operaciones CPU-intensivas.
-
-\subsection{Arquitectura MVC de Paneles}
-\label{subsec:arquitectura_mvc_paneles}
-
-La interfaz de usuario implementa una arquitectura \acrshort{mvc} basada en paneles con controladores especializados:
-
-\textbf{ConnectionPanel}: Selección de placa con filtrado inteligente, validación dinámica de parámetros, y configuración de placas de \gls{streaming} con validación de \gls{presets}.
-
-\textbf{ProcessingPanel}: Aplicación de filtros en tiempo real con actualizaciones dinámicas, filtrado integral (\textit{bandpass}, \textit{notch}, \textit{detrend}), y visualización de mapa cerebral optimizada.
-
-\textbf{MNEPanel}: Implementación de principios \acrshort{solid} con controlador que coordina múltiples \gls{widget}, conversión multi-modo, y visualización avanzada integrada.
-
-\textbf{AdvancedPanel}: \gls{widget} especializados para \acrshort{ica} (monitoreo tiempo real), \gls{wavelet} (análisis de transformadas), y filtrado avanzado con análisis de estabilidad.
-
-\section{Módulo \textit{API Explorer}}
-\label{sec:modulo_api_explorer}
-
-\textit{API Explorer} actúa como \gls{framework} web unificado que permite a múltiples módulos exponer sus \acrshort{api} de forma coordinada, proporcionando una interfaz web moderna para exploración, pruebas, y control remoto del sistema completo.
-
-\subsection{Arquitectura de Registro Dinámico}
-\label{subsec:arquitectura_registro_dinamico}
-
-El sistema utiliza un patrón de registro dinámico donde los módulos se registran en tiempo de ejecución. Esta aproximación permite que cada módulo contribuya con sus \acrshort{api} específicas sin requerir modificaciones en el código del \textit{API Explorer}, facilitando la extensibilidad y mantenimiento del sistema.
-
-\subsection{Sistema \gls{websocket} con \gls{worker} Pools}
-\label{subsec:sistema_websocket}
-
-La arquitectura \gls{websocket} utiliza \gls{worker} \textit{pools} para manejar múltiples conexiones concurrentes con procesamiento distribuido:
-
-\textbf{WebSocketManager}: Coordina múltiples \gls{worker} con \textit{load balancing} automático tipo \textit{round-robin}.
-
-\textbf{\textit{Throttling} Adaptativo}: Limitación de mensajes basada en frecuencia de datos para prevenir sobrecarga de clientes.
-
-\textbf{Métricas de Rendimiento}: Seguimiento de mensajes procesados por \gls{worker}, tiempo promedio de procesamiento, y utilización de colas.
-
-\subsection{\textit{Frontend} Modular}
-\label{subsec:frontend_modular}
-
-El \textit{frontend} implementa una arquitectura basada en \gls{managers} con comunicación dirigida por eventos:
-
-\textbf{DarkModeManager}: Gestión centralizada de temas oscuro/claro con persistencia de preferencias y actualización automática de temas de \textit{Chart.js}.
-
-\textbf{ChartManager}: Coordinación de múltiples instancias \textit{Chart.js} con actualizaciones por lotes, \textit{throttling} basado en frecuencia, y soporte multi-canal.
-
-\textbf{WebSocketManager}: Gestión de múltiples conexiones con \gls{buffer} para eventos de alta frecuencia y optimización de rendimiento.
-
-\textbf{APIMethodsManager}: Ejecución de métodos \acrshort{api} con formularios de parámetros dinámicos, incluyendo validación \acrshort{json}, navegador de archivos integrado, y carga automática de plantillas.
-
-\section{Sincronización y Comunicación Inter-Módulos}
-\label{sec:sincronizacion_comunicacion}
-
-La comunicación entre módulos se realiza a través de múltiples capas que proporcionan flexibilidad y robustez:
-
-\subsection{Nivel de Archivo}
-\label{subsec:nivel_archivo}
-
-Cada módulo puede grabar independientemente en formatos \acrshort{csv} con \gls{timestamp} precisos, permitiendo \gls{sincronizacion} \textit{offline} posterior. Esta aproximación evita sobrecarga \acrshort{cpu} en tiempo real y previene fallos de sincronización durante operaciones críticas.
-
-\subsection{Nivel de API}
-\label{subsec:nivel_api}
-
-Los módulos exponen \acrshort{api} \acrshort{rest} que permiten control programático y acceso a datos. El \textit{API Explorer} actúa como agregador que puede coordinar operaciones entre múltiples módulos simultáneamente.
-
-\subsection{Nivel de Eventos}
-\label{subsec:nivel_eventos}
-
-El sistema de eventos core proporciona comunicación en tiempo real entre módulos activos, con \textit{broadcasting} automático vía \gls{websocket} para monitoreo remoto y visualización coordinada.
-
-\section{Características de Rendimiento}
-\label{sec:caracteristicas_rendimiento}
-
-El sistema implementa múltiples optimizaciones para manejar datos de alta frecuencia en tiempo real:
-
-\subsection{Optimizaciones de Datos}
-\label{subsec:optimizaciones_datos}
-
-\textbf{\gls{batching} de Eventos}: Agrupación de múltiples eventos en transmisiones únicas para reducir \gls{overhead} de comunicación de red.
-
-\textbf{\gls{worker} Pools}: Distribución de procesamiento entre múltiples hilos con \textit{load balancing} automático y escalado dinámico.
-
-\textbf{\gls{buffer} Circular}: Implementación con \gls{descarte_adaptativo} que proporciona degradación elegante del rendimiento en lugar de fallos catastróficos.
-
-\textbf{\gls{serializacion} Optimizada}: Migración a \textit{orjson} con mejoras de rendimiento 2-5x para transmisión de grandes volúmenes de datos.
-
-\subsection{Gestión de Memoria}
-\label{subsec:gestion_memoria}
-
-Los servicios implementan límites de \gls{buffer} configurables con limpieza automática, gestión de ciclo de vida de recursos, y operaciones eficientes en memoria que minimizan la \gls{footprint} del sistema.
-
-\subsection{\gls{thread-safety}}
-\label{subsec:thread_safety}
-
-Toda la arquitectura está diseñada para operación \gls{thread-safety} utilizando:
-
-\textbf{\textit{Locks} Granulares}: Diferentes \textit{locks} para diferentes tipos de operaciones, minimizando contención.
-
-\textbf{Señales Qt}: Comunicación \gls{thread-safety} para actualizaciones de \acrshort{ui}.
-
-\textbf{Aislamiento de Errores}: Los fallos en un componente no propagan a otros componentes del sistema.
-
-\section{Extensibilidad y Mantenibilidad}
-\label{sec:extensibilidad_mantenibilidad}
-
-La arquitectura del sistema está diseñada para facilitar extensiones futuras y mantenimiento continuo:
-
-\subsection{Principios SOLID}
-\label{subsec:principios_solid}
-
-Todos los módulos implementan los cinco principios \acrshort{solid}:
-
-\textbf{Single Responsibility}: Cada clase tiene una responsabilidad claramente definida.
-
-\textbf{Open/Closed}: Las clases están abiertas para extensión pero cerradas para modificación.
-
-\textbf{Liskov Substitution}: Las implementaciones pueden ser sustituidas por sus abstracciones.
-
-\textbf{Interface Segregation}: Las interfaces son específicas para diferentes capacidades.
-
-\textbf{Dependency Inversion}: Los módulos dependen de abstracciones, no de implementaciones concretas.
-
-\subsection{Patrones de Extensión}
-\label{subsec:patrones_extension}
-
-\textbf{Arquitectura de \gls{plugins}}: El
+El diseño resultante proporciona una plataforma robusta y extensible para investigación en interfaces cerebro-computadora que combina facilidad de uso con capacidades técnicas avanzadas, permitiendo que investigadores con diferentes niveles técnicos puedan aprovechar las capacidades del sistema desde uso básico hasta integración avanzada.

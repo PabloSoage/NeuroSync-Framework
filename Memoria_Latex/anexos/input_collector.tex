@@ -1,0 +1,228 @@
+\chapter{Módulo \textit{Input Collector} - Documentación Técnica}
+\label{chap:anexo_input_collector}
+
+\section{Introducción al Módulo}
+\label{sec:intro_input_collector}
+
+El módulo \textit{Input Collector} proporciona capacidades especializadas para la captura, procesamiento y visualización de eventos de entrada desde múltiples dispositivos en tiempo real. Su desarrollo se orientó específicamente hacia la resolución de los desafíos asociados con la sincronización temporal precisa y el manejo de dispositivos heterogéneos.
+
+\subsection{Objetivos Técnicos}
+\label{subsec:objetivos_input_collector}
+
+El desarrollo del módulo se centró en objetivos técnicos específicos:
+
+\begin{itemize}
+    \item \textbf{Captura Universal}: Arquitectura extensible que unifica el manejo de dispositivos diversos
+    \item \textbf{Precisión Temporal}: Captura y procesamiento con latencia mínima y marcado temporal preciso
+    \item \textbf{Accesibilidad Múltiple}: Interfaces diversas que facilitan diferentes patrones de uso
+    \item \textbf{Visualización Dinámica}: Representaciones gráficas adaptativas según el dispositivo activo
+\end{itemize}
+
+\section{Documentación Técnica Detallada}
+\label{sec:doc_tecnica_input_collector}
+
+La documentación técnica completa del módulo, incluyendo especificaciones de arquitectura, patrones de diseño, interfaces de programación, casos de uso detallados y guías de implementación, se encuentra disponible en el siguiente documento:
+
+\includepdf[pages=-]{imaxes/input_collector_doc.pdf}
+
+\section{Diagramas \acrshort{uml} y Arquitectura}
+\label{sec:diagramas_input_collector}
+
+Los diagramas \acrshort{uml} que siguen ilustran la estructura arquitectónica del módulo, organizados por subsistemas para facilitar la comprensión de cada componente específico.
+
+\subsection{Diagrama General del Sistema}
+\label{subsec:diagrama_general_input}
+
+El diagrama completo de la Figura~\ref{fig:ic_complete} presenta la arquitectura global del módulo con todas las relaciones entre componentes, proporcionando una visión integral de la estructura del sistema.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ic_complete.pdf}
+    \caption{Diagrama \acrshort{uml} completo del módulo \textit{Input Collector}}
+    \label{fig:ic_complete}
+\end{figure}
+
+\subsection{Diagrama Parcial Simplificado}
+\label{subsec:diagrama_parcial_input}
+
+Para facilitar la comprensión de las relaciones principales, la Figura~\ref{fig:ic_partial} presenta una versión simplificada que omite detalles de implementación menores, enfocándose en los componentes y conexiones fundamentales.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ic_partial.pdf}
+    \caption{Diagrama \acrshort{uml} simplificado del módulo \textit{Input Collector}}
+    \label{fig:ic_partial}
+\end{figure}
+
+\subsection{Diagramas por Subsistema}
+\label{subsec:diagramas_subsistemas_input}
+
+Los siguientes diagramas detallan cada subsistema específico del módulo, organizados según su función arquitectónica.
+
+\subsubsection{Sistema de Eventos Core}
+\label{subsubsec:diagrama_core_events}
+
+La Figura~\ref{fig:ic_core_events} detalla el sistema de eventos centralizado que actúa como columna vertebral de comunicación del módulo, mostrando los patrones de suscripción y distribución de eventos.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ic_core_event_system.pdf}
+    \caption{Diagrama del sistema de eventos core}
+    \label{fig:ic_core_events}
+\end{figure}
+
+\subsubsection{Interfaces y Contratos}
+\label{subsubsec:diagrama_interfaces}
+
+La estructura de interfaces y contratos se presenta en la Figura~\ref{fig:ic_interfaces}, ilustrando las abstracciones que permiten la extensibilidad del sistema y la integración de nuevos componentes.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ic_interfaces.pdf}
+    \caption{Diagrama de interfaces y contratos}
+    \label{fig:ic_interfaces}
+\end{figure}
+
+\subsubsection{Colectores de Entrada}
+\label{subsubsec:diagrama_collectors}
+
+Los diferentes colectores de entrada y su arquitectura especializada se muestran en la Figura~\ref{fig:ic_collectors}, destacando las implementaciones específicas para cada tipo de dispositivo.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ic_collectors.pdf}
+    \includegraphics[page=2,width=0.97\textwidth]{anexos/diagramas/ic_collectors.pdf}
+    \caption{Diagrama de colectores de entrada}
+    \label{fig:ic_collectors}
+\end{figure}
+
+\subsubsection{Procesamiento de Eventos}
+\label{subsubsec:diagrama_processing}
+
+La Figura~\ref{fig:ic_processing} ilustra el flujo de procesamiento de eventos desde la captura hasta la distribución, incluyendo las transformaciones y filtros aplicados.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ic_event_processing.pdf}
+    \caption{Diagrama de procesamiento de eventos}
+    \label{fig:ic_processing}
+\end{figure}
+
+\subsubsection{Capa de Servicios}
+\label{subsubsec:diagrama_services}
+
+Los servicios centrales del sistema y sus interacciones se presentan en la Figura~\ref{fig:ic_services}, mostrando la arquitectura \textit{singleton} y los patrones de acceso a datos.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ic_services.pdf}
+    \caption{Diagrama de la capa de servicios}
+    \label{fig:ic_services}
+\end{figure}
+
+\subsubsection{Visualizadores}
+\label{subsubsec:diagrama_visualizers}
+
+La arquitectura de los componentes de visualización se detalla en la Figura~\ref{fig:ic_visualizers}, incluyendo los visualizadores especializados para cada tipo de dispositivo y sus capacidades de renderizado.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ic_visualizers.pdf}
+    \caption{Diagrama de visualizadores}
+    \label{fig:ic_visualizers}
+\end{figure}
+
+\subsubsection{Gestión de Interfaz de Usuario}
+\label{subsubsec:diagrama_ui}
+
+La Figura~\ref{fig:ic_ui} muestra la estructura de gestión de la interfaz de usuario, incluyendo los \gls{managers} y coordinadores responsables de la experiencia de usuario.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ic_ui.pdf}
+    \caption{Diagrama de gestión de interfaz de usuario}
+    \label{fig:ic_ui}
+\end{figure}
+
+\subsubsection{Sistema de Logging}
+\label{subsubsec:diagrama_logging}
+
+El sistema de registro de datos y su arquitectura multi-formato se presenta en la Figura~\ref{fig:ic_logging}, mostrando los diferentes \textit{loggers} y sus capacidades de salida.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ic_logging.pdf}
+    \caption{Diagrama del sistema de logging}
+    \label{fig:ic_logging}
+\end{figure}
+
+\subsubsection{Coordinador de Aplicación}
+\label{subsubsec:diagrama_coordinator}
+
+La Figura~\ref{fig:ic_coordinator} ilustra el coordinador central de la aplicación y su papel como mediador entre los diferentes subsistemas del módulo.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ic_app_coordinator.pdf}
+    \caption{Diagrama del coordinador de aplicación}
+    \label{fig:ic_coordinator}
+\end{figure}
+
+\subsubsection{Adaptadores de Framework}
+\label{subsubsec:diagrama_adapters}
+
+Los adaptadores que facilitan la integración con diferentes \textit{frameworks} se muestran en la Figura~\ref{fig:ic_adapters}, destacando la arquitectura que permite la independencia de tecnologías específicas.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ic_adapters.pdf}
+    \caption{Diagrama de adaptadores de framework}
+    \label{fig:ic_adapters}
+\end{figure}
+
+\subsubsection{Interfaz de Línea de Comandos}
+\label{subsubsec:diagrama_cli}
+
+La estructura de la interfaz de línea de comandos se presenta en la Figura~\ref{fig:ic_cli}, mostrando la organización modular que facilita la extensión de comandos.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ic_cli.pdf}
+    \caption{Diagrama de la interfaz de línea de comandos}
+    \label{fig:ic_cli}
+\end{figure}
+
+\subsubsection{Comandos CLI Especializados}
+\label{subsubsec:diagrama_cli_commands}
+
+Finalmente, la Figura~\ref{fig:ic_cli_commands} detalla los comandos especializados disponibles en la interfaz de línea de comandos y sus relaciones con los servicios subyacentes.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[page=1,width=\textwidth]{anexos/diagramas/ic_cli_commands.pdf}
+    \caption{Diagrama de comandos CLI especializados}
+    \label{fig:ic_cli_commands}
+\end{figure}
+
+\section{Casos de Uso Principales}
+\label{sec:casos_uso_input}
+
+\subsection{Generación de Datasets BCI}
+\label{subsec:generacion_datasets_bci}
+
+El caso de uso principal del módulo es la captura de eventos de entrada con \gls{timestamp} precisos que faciliten la sincronización posterior con señales cerebrales. Esta capacidad permite generar \textit{datasets} de alta calidad para entrenar sistemas \acrshort{bci}, donde la correlación temporal entre intenciones (detectadas mediante \acrshort{eeg}) y acciones físicas del usuario es fundamental para el desarrollo de modelos predictivos efectivos.
+
+\subsection{Análisis de Comportamiento de Usuario}
+\label{subsec:analisis_comportamiento_usuario}
+
+El módulo facilita el análisis detallado de comportamientos de usuario durante tareas específicas, como partidas de videojuegos o interacciones con interfaces complejas. Los datos capturados permiten identificar patrones de uso, evaluar estrategias de interacción, y correlacionar comportamientos observados con estados mentales detectados mediante técnicas neurofisiológicas.
+
+\subsection{Validación y Testing de Controladores}
+\label{subsec:validacion_testing}
+
+Las capacidades de visualización en tiempo real del estado completo del dispositivo, análisis de latencia de respuesta con marcado temporal preciso, y calibración de componentes analógicos proporcionan herramientas especializadas para validación técnica de dispositivos de entrada.
+
+\subsection{Investigación en Experiencia de Usuario}
+\label{subsec:investigacion_experiencia}
+
+El seguimiento detallado de interacciones facilita estudios de usabilidad mediante análisis de patrones de movimiento, generación de datos para análisis de comportamiento de usuario, y evaluación de accesibilidad con monitoreo de patrones de uso.
