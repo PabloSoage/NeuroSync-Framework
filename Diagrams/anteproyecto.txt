@@ -1,0 +1,75 @@
+## 6. Título Galego
+Framework de Captura e Sincronización de Datos para a Creación de Datasets Orientados a Interfaces Cerebro-Computador
+
+## 7. Título castelán
+Framework de Captura y Sincronización de Datos para la Creación de Datasets Orientados a Interfaces Cerebro-Computadora
+
+## 8. Título inglés
+Data Capture and Synchronization Framework for Brain-Computer Interface Dataset Creation
+
+## 12. Breve i
+La interacción entre el ser humano y los ordenadores ha evolucionado considerablemente en las últimas décadas, desde interfaces basadas en comandos hasta entornos gráficos e interfaces táctiles. Sin embargo, estas modalidades de interacción siguen dependiendo de acciones físicas explícitas del usuario. Las interfaces cerebro-computadora (BCI) representan un paradigma revolucionario que podría transformar esta interacción, permitiendo a las personas comunicarse con dispositivos electrónicos directamente mediante señales cerebrales, sin necesidad de movimiento físico.
+
+El desarrollo de sistemas BCI efectivos enfrenta importantes retos, entre ellos la falta de herramientas accesibles para investigadores y desarrolladores que faciliten la captura sincronizada de señales electroencefalográficas (EEG) junto con las entradas convencionales del usuario. Esta sincronización es fundamental para crear conjuntos de datos que permitan establecer correlaciones entre la actividad cerebral y las acciones del usuario, base para el entrenamiento de modelos predictivos.
+
+Un análisis DAFO de la situación actual revela:
+
+**Fortalezas del sistema propuesto:**
+- Integración de múltiples fuentes de entrada (EEG, teclado, ratón, controladores) en un único framework sincronizado
+- Arquitectura extensible y modular que facilita la incorporación de nuevos dispositivos y técnicas
+- Generación de datasets en formatos estándar que aumenta su usabilidad para investigadores
+
+**Debilidades a considerar:**
+- Dependencia de bibliotecas externas como BrainFlow que podrían tener limitaciones
+- Posibles desafíos en la sincronización precisa debido a latencias variables en diferentes sistemas
+
+**Oportunidades en el entorno:**
+- Creciente interés en el campo BCI con aplicaciones en medicina, accesibilidad y nuevas interfaces
+- Falta de herramientas open-source que integren captura sincronizada de señales EEG e inputs de usuario
+- Potencial para posicionar el sistema dentro del ecosistema de herramientas para investigación en BCI, cubriendo un nicho específico en la preparación de datasets
+
+**Amenazas externas:**
+- Aparición de nuevas soluciones similares que podrían surgir debido al creciente interés en el campo BCI
+- Rápida evolución del hardware de EEG que podría requerir actualizaciones frecuentes
+
+Si bien existen componentes individuales como Lab Streaming Layer (LSL), OpenBCI o BrainFlow, ninguno proporciona una solución integrada con interfaces gráficas y soporte específico para dispositivos como el g.tec Unicorn Hybrid Black. Particularmente, LSL requiere programación personalizada sustancial y no ofrece soporte nativo para hardware específico, dependiendo en muchos casos de software propietario del fabricante.
+
+Este proyecto aborda esta necesidad desarrollando un sistema completo que captura simultáneamente señales EEG y eventos de entrada del usuario (teclado, ratón y controladores), sincronizándolos temporalmente con precisión de milisegundos. El sistema se diseña como una plataforma abierta y extensible que facilita la adquisición de datos, su procesamiento y su almacenamiento estructurado, constituyendo una base sólida para futuros desarrollos en el campo de las interfaces cerebro-ordenador con aplicaciones potenciales en accesibilidad, medicina rehabilitadora, y nuevos paradigmas de interacción.
+
+## 13. Obxectivos concretos
+El objetivo principal de este proyecto es crear una plataforma software que facilite la captura, sincronización y procesamiento de señales EEG junto con eventos de entrada de usuario, proporcionando las herramientas necesarias para la generación de datasets de calidad que puedan ser utilizados en el desarrollo de interfaces cerebro-ordenador. Este objetivo general se desglosa en los siguientes objetivos específicos:
+
+1. Desarrollar un módulo robusto de captura de inputs de usuario que registre eventos de teclado, ratón y controladores con precisión temporal de milisegundos.
+2. Implementar un módulo de adquisición y procesado de señales EEG con soporte para dispositivos comerciales utilizando la biblioteca BrainFlow, incluyendo sistemas de marcado temporal para correlacionar las señales con eventos de entrada.
+3. Implementar un sistema de generación y almacenamiento de datasets en formatos estándar (como HDF5, EDF+, o BIDS) que facilite el futuro entrenamiento de modelos predictivos.
+4. Crear interfaces de visualización para monitorizar en tiempo real tanto señales EEG como eventos de entrada.
+5. Diseñar una arquitectura extensible que permita la integración con herramientas existentes de aprendizaje automático.
+
+## 14. Método de traballo
+La metodología se basa en un desarrollo iterativo e incremental. Inicialmente se realizará una fase de investigación documental sobre sistemas BCI, procesamiento de señales EEG y tecnologías relevantes. El desarrollo seguirá un enfoque modular con iteraciones de aproximadamente dos semanas, estableciendo reuniones semanales para supervisar el progreso y reorientar objetivos si fuera necesario.
+
+Cada módulo se desarrollará independientemente, comenzando por los sistemas de captura (inputs y EEG), para luego abordar la integración mediante el componente de sincronización. Se priorizará la creación temprana de prototipos funcionales que permitan validar conceptos y detectar problemas de diseño en fases iniciales.
+
+Para evaluar la efectividad del sistema, se realizarán pruebas de captura en tiempo real empleando el dispositivo g.tec Unicorn junto con diversos dispositivos de entrada, analizando la precisión de la sincronización y el rendimiento del sistema mediante visualizaciones en tiempo real.
+
+## 15. Fases principais
+1. **Documentación e investigación**: Estudio del estado del arte en sistemas BCI, procesamiento de señales EEG y análisis de bibliotecas disponibles, incluyendo formatos estándar de datasets.
+2. **Análisis y diseño del sistema**: Definición de la arquitectura, interfaces entre módulos y estructuras de datos.
+3. **Implementación del módulo de captura de inputs**: Desarrollo del sistema para registrar eventos de teclado, ratón y controladores.
+4. **Implementación del módulo de adquisición y procesado de EEG**: Integración con BrainFlow y configuración para diversos dispositivos.
+5. **Implementación del sistema de registro y sincronización**: Desarrollo del componente para capturar y alinear temporalmente las señales EEG con eventos de entrada.
+6. **Creación del sistema de generación de datasets**: Implementación del almacenamiento estructurado de datos sincronizados en múltiples formatos estándar.
+7. **Documentación y memoria**: Elaboración de la memoria del TFG y documentación técnica.
+
+## 16. Material e medios necesarios
+- Dispositivo de captura EEG g.tec Unicorn Hybrid Black
+- Ordenador con capacidades para procesamiento en tiempo real
+- Entorno de desarrollo Python con bibliotecas especializadas:
+  - BrainFlow para adquisición de señales EEG
+  - PyNput para captura de eventos de teclado y ratón
+  - SDL2 para soporte de controladores
+  - PyQt5 para interfaces gráficas
+  - Numpy, SciPy y Pandas para procesamiento de señales
+  - h5py, mne-python para manejo de formatos de datos
+- Periféricos de entrada: teclado, ratón y controlador PS4 (Dualshock 4)
+- Software de control de versiones (Git) para gestión del código
