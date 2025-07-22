@@ -1,7 +1,7 @@
 \chapter{Estado del arte}
 \label{chap:estado_arte}
 
-\lettrine{E}{l} desarrollo de sistemas \acrshort{bci} ha experimentado un crecimiento exponencial en las últimas décadas, impulsado por avances significativos en neurociencia computacional, procesamiento de señales digitales y algoritmos de \textit{machine learning}~\cite{eeg_bci_review,wolpaw2002brain,dornhege2007toward,chavarriaga2017heading}. Este crecimiento ha dado lugar a un ecosistema diverso de herramientas, dispositivos y metodologías que abordan diferentes aspectos del desarrollo \acrshort{bci}, desde la adquisición de \gls{biosenial}es hasta el análisis de datos y la implementación de aplicaciones prácticas.
+\lettrine{E}{l} desarrollo de sistemas \acrshort{bci} ha experimentado un crecimiento exponencial en las últimas décadas, impulsado por avances significativos en neurociencia computacional, procesamiento de señales digitales y algoritmos de \textit{machine learning}~\cite{eeg_bci_review,wolpaw2002brain,dornhege2007toward,chavarriaga2017heading}. Este crecimiento ha dado lugar a un ecosistema diverso de herramientas, dispositivos y metodologías que abordan diferentes aspectos del desarrollo \acrshort{bci}, desde la adquisición de \glspl{biosenial} hasta el análisis de datos y la implementación de aplicaciones prácticas.
 
 La diversidad del panorama actual refleja tanto la riqueza del campo como su fragmentación inherente. La evolución histórica del campo \acrshort{bci} ha estado marcada por hitos tecnológicos significativos que han ampliado progresivamente las posibilidades de aplicación. Desde los primeros experimentos de control de cursores mediante señales \acrshort{eeg} realizados por Jacques Vidal en la Universidad de California en 1973~\cite{vidal1973direct} hasta las modernas interfaces híbridas que combinan múltiples modalidades de señales cerebrales como los sistemas multimodales que integran \acrshort{eeg}, \acrshort{emg} y \textit{eye-tracking}~\cite{pfurtscheller2010hybrid,millán2010combining}, el campo ha demostrado una capacidad notable de innovación y adaptación a nuevos desafíos técnicos y aplicaciones prácticas como el control de robots móviles~\cite{millán2004noninvasive} y sistemas de comunicación asistida~\cite{sellers2006noninvasive}. Sin embargo, diferentes grupos de investigación y empresas han desarrollado soluciones especializadas que, aunque robustas en sus dominios específicos, presentan limitaciones cuando se requiere una integración completa para el desarrollo de aplicaciones \acrshort{bci} efectivas. Esta fragmentación constituye uno de los principales obstáculos para la democratización y adopción masiva de tecnologías \acrshort{bci}.
 
@@ -14,7 +14,7 @@ Los sistemas \acrshort{bci} contemporáneos representan la convergencia de múlt
 
 La maduración tecnológica del campo se refleja en la disponibilidad creciente de dispositivos comerciales accesibles como el g.tec Unicorn Hybrid Black~\cite{gtec_unicorn} y el Emotiv EPOC X~\cite{emotiv_epoc_x}, el desarrollo de estándares de interoperabilidad como \acrshort{bids}~\cite{bids} y la emergencia de comunidades de código abierto que facilitan la colaboración y el intercambio de conocimientos a través de plataformas como MNE-Python~\cite{gramfort2013meg} y BrainFlow~\cite{brainflow}. Sin embargo, esta maduración también ha revelado nuevos desafíos relacionados con la integración de herramientas, la estandarización de metodologías y la necesidad de soluciones más accesibles para investigadores con diferentes niveles de experiencia técnica~\cite{brunner2013bnci,tangermann2012review}.
 
-\subsection{Técnicas de adquisición de \gls{biosenial}es cerebrales}
+\subsection{Técnicas de adquisición de \glspl{biosenial} cerebrales}
 \label{subsec:tecnicas_adquisicion}
 
 La selección de la modalidad de adquisición de señales cerebrales constituye una de las decisiones más fundamentales en el diseño de sistemas \acrshort{bci}, ya que determina tanto las capacidades como las limitaciones del sistema resultante. Cada técnica presenta características distintivas en términos de resolución temporal y espacial, invasividad, coste, complejidad de implementación y tipos de señales cerebrales que puede capturar de forma efectiva.
@@ -27,7 +27,7 @@ La \acrfull{eeg} se ha establecido como la modalidad predominante para aplicacio
 \subsubsection{Magnetoencefalografía (\acrshort{meg})}
 \label{subsubsec:meg}
 
-La \acrfull{meg} representa una alternativa sofisticada que detecta los campos magnéticos sutiles producidos por la actividad neuronal, ofreciendo una resolución espacial superior a la \acrshort{eeg} mientras mantiene una excelente resolución temporal~\cite{gramfort2013meg,hämäläinen1993magnetoencephalography}. Los sistemas \acrshort{meg} utilizan detectores SQUID que operan a temperaturas criogénicas para detectar campos magnéticos extremadamente débiles, del orden de femtoTeslas. Sin embargo, los sistemas \acrshort{meg} requieren entornos de blindaje magnético especializados y equipamiento extremadamente costoso que puede superar los €2-3 millones~\cite{gramfort2013meg}, limitando su aplicabilidad principalmente a centros de investigación avanzados y aplicaciones médicas especializadas.
+La \acrfull{meg} representa una alternativa sofisticada que detecta los campos magnéticos sutiles producidos por la actividad neuronal, ofreciendo una resolución espacial superior a la \acrshort{eeg} mientras mantiene una excelente resolución temporal~\cite{gramfort2013meg,hämäläinen1993magnetoencephalography}. Los sistemas \acrshort{meg} utilizan detectores \gls{squid} que operan a temperaturas criogénicas para detectar campos magnéticos extremadamente débiles, del orden de femtoTeslas. Sin embargo, los sistemas \acrshort{meg} requieren entornos de blindaje magnético especializados y equipamiento extremadamente costoso que puede superar los €2-3 millones~\cite{gramfort2013meg}, limitando su aplicabilidad principalmente a centros de investigación avanzados y aplicaciones médicas especializadas.
 
 \subsubsection{Espectroscopía funcional de infrarrojo cercano (\acrshort{fnirs})}
 \label{subsubsec:fnirs}
@@ -75,13 +75,13 @@ Esta categoría representa un equilibrio cuidadosamente optimizado entre capacid
 \resizebox{\textwidth}{!}{
 \begin{tabular}{l|c|c|c|c|c}
 \rowcolor{udcpink!25}
-\textbf{Dispositivo} & \textbf{Canales} & \textbf{Frecuencia} & \textbf{Resolución} & \textbf{Precio} & \textbf{Consultado} \\
+\textbf{Dispositivo} & \textbf{Canales} & \textbf{Frecuencia} & \textbf{Resolución} & \textbf{Precio} \\
 \hline
-\textbf{g.tec Unicorn}~\cite{gtec_unicorn} & 8 & 250 Hz & 24 bits & €1,200 & Feb 2025 \\
-\textbf{Emotiv EPOC X}~\cite{emotiv_epoc_x} & 14 & 128/256 Hz & 14/16 bits & €999 & Feb 2025 \\
-\textbf{OpenBCI Cyton}~\cite{openbci_cyton} & 8 & 250 Hz & 24 bits & €947 & Feb 2025 \\
-\textbf{Neurosity Crown}~\cite{neurosity_crown} & 8 & 256 Hz & 16 bits & €899 & Feb 2025 \\
-\textbf{Neuroelectrics Enobio}~\cite{neuroelectrics_enobio} & 32 & 500 Hz & 24 bits & €5,000 & Feb 2025 \\
+\textbf{g.tec Unicorn}~\cite{gtec_unicorn} & 8 & 250 Hz & 24 bits & €1,200 \\
+\textbf{Emotiv EPOC X}~\cite{emotiv_epoc_x} & 14 & 128/256 Hz & 14/16 bits & €999 \\
+\textbf{OpenBCI Cyton}~\cite{openbci_cyton} & 8 & 250 Hz & 24 bits & €947 \\
+\textbf{Neurosity Crown}~\cite{neurosity_crown} & 8 & 256 Hz & 16 bits & €899 \\
+\textbf{Neuroelectrics Enobio}~\cite{neuroelectrics_enobio} & 32 & 500 Hz & 24 bits & €5,000 \\
 \end{tabular}
 }
 \caption{Comparativa de dispositivos \acrshort{eeg} de investigación de gama media}
@@ -136,7 +136,7 @@ La estandarización de formatos de datos constituye un aspecto fundamental para 
 \section{\textit{Software} de procesamiento de señales \acrshort{eeg}}
 \label{sec:software_procesamiento}
 
-El procesamiento de señales \acrshort{eeg} requiere herramientas especializadas capaces de manejar las características únicas de estos datos biomédicos, incluyendo la presencia inevitable de \glspl{artefacto}, la necesidad de análisis en múltiples dominios temporales y frecuenciales, y la importancia crítica de la preservación de información temporal precisa.
+El procesamiento de señales \acrshort{eeg} requiere programas especializados capaces de manejar las características únicas de estos datos biomédicos, incluyendo la presencia inevitable de \glspl{artefacto}, la necesidad de análisis en múltiples dominios temporales y frecuenciales, y la importancia crítica de la preservación de información temporal precisa.
 
 \subsection{Entornos de análisis científico}
 \label{subsec:entornos_analisis}

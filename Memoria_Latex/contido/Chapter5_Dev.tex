@@ -22,7 +22,7 @@ Los requisitos funcionales del sistema se clasificaron y documentaron de forma s
     \item \textbf{RF-04}: Adquisición de señales \acrshort{eeg} mediante BrainFlow
     \item \textbf{RF-05}: Soporte para múltiples dispositivos \acrshort{eeg} comerciales
     \item \textbf{RF-06}: Procesamiento de señales en tiempo real con algoritmos avanzados
-    \item \textbf{RF-07}: Visualización en tiempo real de \gls{biosenial}es y eventos
+    \item \textbf{RF-07}: Visualización en tiempo real de \glspl{biosenial} y eventos
     \item \textbf{RF-08}: Sincronización temporal precisa entre fuentes de datos
     \item \textbf{RF-09}: Exportación a formatos estándar (\acrshort{bids}, \acrshort{edf}+, \acrshort{hdf5}, \acrshort{csv})
     \item \textbf{RF-10}: Interfaces múltiples (\acrshort{gui}, \acrshort{cli}, \acrshort{api} web)
@@ -39,10 +39,10 @@ Los requisitos no funcionales establecieron las restricciones de calidad y rendi
     \item \textbf{RNF-01}: Latencia de captura de eventos inferior a 50ms
     \item \textbf{RNF-02}: Soporte para frecuencias de muestreo \acrshort{eeg} hasta 1000Hz
     \item \textbf{RNF-03}: Arquitectura extensible basada en principios \acrshort{solid}
-    \item \textbf{RNF-04}: Operaciones \textit{thread-safe} para procesamiento concurrente
+    \item \textbf{RNF-04}: Operaciones \textit{\gls{thread-safe}} para procesamiento concurrente
     \item \textbf{RNF-05}: Interfaces intuitivas para usuarios no técnicos
-    \item \textbf{RNF-06}: Compatibilidad multiplataforma (\textit{Windows}, \textit{Linux}, \textit{macOS})
-    \item \textbf{RNF-07}: Tipado estático completo con \textit{type hints}
+    \item \textbf{RNF-06}: Compatibilidad multiplataforma (Windows, Linux, macOS)
+    \item \textbf{RNF-07}: Tipado estático completo con \textit{\gls{type hints}}
     \item \textbf{RNF-08}: Manejo robusto de errores con recuperación automática
     \item \textbf{RNF-09}: Documentación técnica completa y actualizada
     \item \textbf{RNF-10}: Cumplimiento de estándares de codificación establecidos
@@ -160,7 +160,7 @@ La implementación inicial en \textit{tkinter} mostró limitaciones de rendimien
 \section{Segunda iteración: Módulo de procesamiento \acrshort{eeg}}
 \label{sec:iteracion_2}
 
-La segunda iteración desarrolló las capacidades de captura y procesamiento de señales \acrshort{eeg}, estableciendo la base para el análisis de \gls{biosenial}es en tiempo real.
+La segunda iteración desarrolló las capacidades de captura y procesamiento de señales \acrshort{eeg}, estableciendo la base para el análisis de \glspl{biosenial} en tiempo real.
 
 \subsection{Análisis de la iteración}
 \label{subsec:analisis_iteracion_2}
@@ -580,10 +580,10 @@ Se desarrolló soporte completo para el controlador utilizando \textit{PySDL2}. 
 Se creó la estructura inicial para el \acrshort{api} de control del módulo \acrshort{eeg} basándose en la arquitectura desarrollada para el módulo de entrada.
 
 \textbf{Unificación de servidores web}:
-Se integraron \acrshort{api} de acceso y control en un único servidor web, registrando todos los módulos mediante el sistema de registro dinámico en lugar de mantener servidores independientes.
+Se integraron \acrshortpl{api} de acceso y control en un único servidor web, registrando todos los módulos mediante el sistema de registro dinámico en lugar de mantener servidores independientes.
 
 \textbf{Implementación completa de tipado estático}:
-Se añadió tipado completo con \gls{type hints} en todo el código base y se configuraron \gls{pre-commit hooks} para verificación automática de calidad de código incluyendo \textit{black}, \textit{mypy} y \textit{pydocstyle}. Aunque ya existían componentes tipados previamente, se completó la cobertura de tipado en todo el sistema.
+Se añadió tipado completo con \textit{\gls{type hints}} en todo el código base y se configuraron \textit{\gls{pre-commit hooks}} para verificación automática de calidad de código incluyendo \textit{black}, \textit{mypy} y \textit{pydocstyle}. Aunque ya existían componentes tipados previamente, se completó la cobertura de tipado en todo el sistema.
 
 \subsection{Validación de la iteración}
 \label{subsec:validacion_iteracion_7}

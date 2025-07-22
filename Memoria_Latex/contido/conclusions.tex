@@ -36,22 +36,22 @@ El sistema desarrollado constituye una herramienta útil para el ecosistema \acr
 
 Las decisiones arquitectónicas que resultaron exitosas proporcionaron estabilidad y extensibilidad al sistema desarrollado:
 
-\subsection{Arquitectura \acrshort{api} como \textit{backbone}}
+\section{Arquitectura \acrshort{api} como \textit{backbone}}
 \label{subsec:arquitectura_api_backbone}
 
 La implementación de \acrshort{api} como \textit{backbone} de comunicación entre módulos demostró ser una solución robusta que superó las limitaciones de integración directa, facilitando tanto el desarrollo como futuras extensiones.
 
-\subsection{Centralización mediante \textit{DataAccessService}}
+\section{Centralización mediante \textit{DataAccessService}}
 \label{subsec:centralizacion_dataaccess}
 
 La centralización mediante \textit{DataAccessService} eliminó duplicaciones e inconsistencias que habían complicado el desarrollo inicial, proporcionando un punto único de control para acceso a datos que simplificó significativamente la arquitectura general.
 
-\subsection{Migración a \textit{callbacks}}
+\section{Migración a \textit{callbacks}}
 \label{subsec:migracion_callbacks}
 
 La migración a \gls{callback} tanto para visualizadores locales como para \acrshort{api} mejoró sustancialmente el rendimiento del sistema al eliminar \gls{polling} concurrente innecesario. Esta optimización fue particularmente notable en el módulo de grabación, donde la pérdida de muestras se redujo del 10-30\% previo a la migración a niveles negligibles (<1\%).
 
-\subsection{Arquitectura dirigida por eventos}
+\section{Arquitectura dirigida por eventos}
 \label{subsec:arquitectura_eventos}
 
 La implementación de arquitectura dirigida por eventos para el controlador \acrshort{ps4} resolvió problemas de rendimiento y compatibilidad que habían limitado su funcionalidad en interfaces \acrshort{cli}, demostrando la importancia de seleccionar patrones arquitectónicos específicos según el contexto de ejecución.
