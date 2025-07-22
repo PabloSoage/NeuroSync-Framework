@@ -12,7 +12,7 @@
 \def\nomedirectorA{Enrique Fernández Blanco}              % substitúe aquí o nome de quen dirixe
 \def\nomedirectorB{Daniel Rivero Cebrián}             % duplica esta liña máis veces se o precisas, cambiando
                                                      % a letra final (A, B, C, D...): úsanse na portada.tex
-\def\titulo{Framework de Captura e Sincronización de Datos para a Creación de Datasets Orientados a Interfaces Cerebro-Computador} % substitúe aquí o título do teu TFG
+\def\titulo{Framework de Captura y Sincronización de Datos para la Creación de Datasets Orientados a Interfaces Cerebro-Computadora} % substitúe aquí o título do teu TFG
 %\def\titulacion{gced}                               % descomenta esta liña e comenta a seguinte se es estudante do GCED
 \def\titulacion{gei}
 \def\mencion{COMPUTACIÓN}                           % descomenta a mención que che corresponda se es estudante do GEI
@@ -39,13 +39,16 @@
 % \usepackage{moreverb}    % permite personalizar o entorno verbatim
 % \usepackage{multirow}    % permite crear celdas que ocupan varias filas da mesma táboa
 % \usepackage{pdfpages}    % permite insertar ficheiros en PDF no documento
-% \usepackage{rotating}    % permite diferentes tipos de rotacións para figuras e táboas
+ \usepackage{rotating}    % permite diferentes tipos de rotacións para figuras e táboas
 \usepackage{subcaption}  % permite a inclusión de varias subfiguras nunha figura
 % \usepackage{tabu}        % permite táboas flexibles
 % \usepackage{tabularx}    % permite táboas con columnas de anchura determinada
 \usepackage{listings}    % permite incluir código fuente con resaltado de sintaxis
 \usepackage{amssymb}
 \usepackage{pifont}
+\usepackage{pgfgantt}
+%\usepackage{svg}
+\usepackage{pdfpages}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Corpo                                                                        %
@@ -79,7 +82,7 @@
  \listoffigures
  \listoftables
  \clearpage
-
+ 
  \pagenumbering{arabic}
  \setcounter{page}{1}
 
@@ -88,9 +91,11 @@
  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
  \include{contido/introducion}
- \include{contido/chapter2}
- \include{contido/chapter3}
- \include{contido/chapter4}
+ \include{contido/Chapter2_SoA}
+ \include{contido/Chapter3_Tec}
+ \include{contido/Chapter4_Met}
+ \include{contido/Chapter5_Dev}
+ \include{contido/Chapter6_Arch}
  %\include{contido/demo}
 %\include{contido/...}
  \include{contido/conclusions}
@@ -101,7 +106,11 @@
 
  \appendix
  \appendixpage
- \include{anexos/adicional}
+ \include{anexos/sistemas_electrodos}
+ \include{anexos/anexo_dependencias}
+ \include{anexos/input_collector}
+ \include{anexos/eeg_processor}
+ \include{anexos/api_explorer}
 %\include{anexos/...}
 
  \printglossary[type=\acronymtype,title=\nomeglosarioacronimos]
@@ -110,7 +119,7 @@
  \bibliographystyle{IEEEtranN}
  \bibliography{\bibconfig,bibliografia/bibliografia}
  \clearpage
-
+ 
 \end{document}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
