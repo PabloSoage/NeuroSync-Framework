@@ -135,6 +135,15 @@ orjson~\cite{orjson_docs} proporciona serialización \acrshort{json} optimizada 
 
 El mantenimiento de la calidad del código es fundamental para la sostenibilidad y confiabilidad del sistema desarrollado. Las herramientas seleccionadas proporcionan verificación automática de estándares de código y detección temprana de problemas potenciales.
 
+\subsection{Control de versiones con Git}
+\label{subsec:git_control_versiones}
+
+Git~\cite{git_docs} constituye el sistema de control de versiones distribuido empleado para el desarrollo del proyecto, proporcionando trazabilidad completa de cambios, gestión de ramas de desarrollo y capacidades de colaboración. La implementación sigue un flujo de trabajo basado en ramas que facilita el desarrollo experimental y la integración controlada de nuevas funcionalidades.
+
+La configuración incluye un sistema de \textit{\gls{pre-commit hooks}} que ejecuta automáticamente verificaciones de calidad de código antes de cada \textit{commit}, garantizando que únicamente código que cumple con los estándares establecidos se incorpore al repositorio. Esta aproximación preventiva reduce significativamente los errores y mantiene la consistencia del código base a lo largo del desarrollo.
+
+El historial de \textit{commits} documenta la evolución del proyecto, incluyendo los múltiples intentos de integración, refactorizaciones arquitectónicas y la progresión desde prototipos iniciales hasta la implementación final basada en \acrshortpl{api}. Esta trazabilidad resulta fundamental para entender las decisiones de diseño y facilitar el mantenimiento futuro del sistema.
+
 \subsection{Sistema de control de calidad integrado}
 \label{subsec:control_calidad_integrado}
 
