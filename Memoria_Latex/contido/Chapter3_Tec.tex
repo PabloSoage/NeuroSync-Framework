@@ -20,12 +20,25 @@ La selección de lenguajes de programación constituye una decisión fundamental
 
 Python se seleccionó como lenguaje principal del proyecto debido a su prevalencia en el ecosistema de computación científica~\cite{gramfort2013meg,delorme2004eeglab}. El ecosistema científico de Python proporciona bibliotecas fundamentales como NumPy para computación matricial, SciPy para algoritmos científicos, y matplotlib para visualización~\cite{van2011numpy,virtanen2020scipy}.
 
-La integración natural con bibliotecas especializadas en neurociencia como MNE-Python y BrainFlow constituye una ventaja decisiva~\cite{gramfort2013meg,brainflow}. El soporte moderno para tipado estático mediante \textit{\gls{type hints}} permite combinar flexibilidad con verificación de tipos. Como alternativa se consideró Julia por su rendimiento superior, pero la complejidad de compilación \textit{just-in-time} y las dificultades para desarrollo iterativo rápido llevaron a la selección de Python.
+La integración natural con bibliotecas especializadas en neurociencia como MNE-Python y BrainFlow constituye una ventaja decisiva~\cite{gramfort2013meg,brainflow}. El soporte moderno para tipado estático mediante \textit{\gls{type hints}} permite combinar flexibilidad con verificación de tipos.
+
+\subsection{Julia: consideración inicial de alto rendimiento}
+\label{subsec:julia_consideracion}
+
+Julia fue evaluada como alternativa de alto rendimiento durante las fases iniciales del proyecto debido a sus características técnicas prometedoras para computación científica. Julia combina la facilidad de desarrollo de lenguajes dinámicos con el rendimiento de lenguajes compilados mediante compilación \textit{just-in-time} (JIT), proporcionando velocidades de ejecución comparables a C mientras mantiene sintaxis accesible~\cite{bezanson2017julia}.
+
+La disponibilidad de \gls{bindings} para BrainFlow en Julia representaba una ventaja adicional, permitiendo acceso directo a dispositivos \acrshort{eeg} sin pérdida de rendimiento~\cite{brainflow}. El sistema de tipos múltiple de Julia y su capacidad para \gls{metaprogramacion} ofrecían flexibilidad arquitectónica para el desarrollo de sistemas modulares complejos.
+
+Sin embargo, varias limitaciones prácticas motivaron la decisión de utilizar Python como lenguaje principal. La compilación JIT de Julia introduce latencias significativas durante el desarrollo iterativo, ya que cada modificación del código requiere recompilación antes de la ejecución. Esta característica resultó incompatible con los ciclos de desarrollo rápido necesarios para la experimentación con diferentes algoritmos y enfoques arquitectónicos.
+
+La complejidad del sistema de debugging en Julia, especialmente para errores relacionados con tipos y optimizaciones del compilador, dificultaba la identificación y corrección de problemas durante el desarrollo experimental. Adicionalmente, el ecosistema de herramientas para desarrollo de interfaces gráficas en Julia es significativamente menos maduro que el disponible en Python, limitando las opciones para el desarrollo de las interfaces de usuario requeridas por el proyecto.
+
+La necesidad potencial de interoperabilidad con librerías Python especializadas en neurociencia habría introducido complejidad adicional mediante el uso de sistemas de interconexión entre lenguajes, incrementando la superficie de posibles fallos y complicando la distribución del software final.
 
 \subsection{JavaScript para interfaces web}
 \label{subsec:javascript_web}
 
-JavaScript ES6+ se emplea en el desarrollo del módulo web para la exploración y pruebas del API, proporcionando capacidades de visualización interactiva y comunicación en tiempo real con el \textit{backend}. La implementación utiliza una arquitectura modular basada en \gls{managers} especializados que encapsulan funcionalidades específicas como comunicación WebSocket y visualización de gráficos.
+JavaScript ES6+ se emplea en el desarrollo del módulo web para la exploración y pruebas del \acrshort{api}, proporcionando capacidades de visualización interactiva y comunicación en tiempo real con el \textit{backend}. La implementación utiliza una arquitectura modular basada en \gls{managers} especializados que encapsulan funcionalidades específicas como comunicación WebSocket y visualización de gráficos.
 
 \section{\textit{Frameworks} y bibliotecas principales}
 \label{sec:frameworks_principales}
