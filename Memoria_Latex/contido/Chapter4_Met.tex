@@ -14,7 +14,7 @@ La \textbf{incrementalidad} permite que el \textit{software} se construya por m�
 
 La \textbf{iteración} garantiza que cada módulo se somete a múltiples rondas de desarrollo, validación y refactorización dentro de cada iteración principal, permitiendo la detección rápida de errores y su corrección antes de que se propaguen a otros componentes del sistema. Esta característica resultó fundamental durante las fases de integración, donde se identificaron limitaciones arquitectónicas que requirieron refactorización significativa.
 
-Aunque la metodología base se mantuvo como incremental-iterativa a lo largo del proyecto, la estrategia de implementación se adaptó para responder a desafíos específicos como la decisión inicial de exploración con Julia motivada por su rendimiento superior seguida del desarrollo definitivo en Python por limitaciones en el desarrollo de interfaces gráficas, los múltiples intentos de integración directa entre módulos, y la eventual adopción de arquitecturas \acrshort{api} como solución robusta para la comunicación entre componentes.
+Aunque la metodología base se mantuvo como incremental-iterativa a lo largo del proyecto, la estrategia de implementación se adaptó para responder a desafíos específicos como la exploración inicial con Julia para aprovechar su rendimiento superior antes de migrar a Python por limitaciones en el desarrollo de interfaces gráficas, los múltiples intentos de integración directa entre módulos, y la eventual adopción de arquitecturas \acrshort{api} como solución robusta para la comunicación entre componentes.
 
 La validación experimental continua mediante pruebas manuales iterativas ha proporcionado retroalimentación constante sobre el funcionamiento del sistema. En cada iteración se realizaba validación manual de funcionalidades, verificando que el comportamiento correspondía con las expectativas antes de proceder con nuevas funcionalidades. Esta validación incluía pruebas con dispositivos sintéticos, controladores físicos y cascos \acrshort{eeg} reales para garantizar que las decisiones de diseño estuvieran fundamentadas en evidencia práctica.
 
@@ -44,11 +44,11 @@ La planificación inicial del proyecto contemplaba un desarrollo estructurado en
 El proyecto se planificó inicialmente en 3 iteraciones principales distribuidas a lo largo de 16 semanas, siguiendo la metodología incremental-iterativa establecida. Cada iteración incluía múltiples fases que abarcaban desde la investigación inicial hasta la integración final del sistema.
 
 \begin{enumerate}
-    \item \textbf{Iteración 1 - Fundamentos y módulos básicos}: Abarcaba la investigación inicial, análisis de requisitos, estado del arte, diseño arquitectónico, y desarrollo de los módulos de captura de \textit{inputs} y procesamiento \acrshort{eeg} de forma independiente.
+    \item \textbf{Iteración 1 - Fundamentos y módulos básicos}: La primera iteración abarcaba el establecimiento de bases técnicas mediante investigación inicial del estado del arte, análisis de requisitos del sistema, diseño arquitectónico, y desarrollo independiente de los módulos de captura de \textit{inputs} y procesamiento \acrshort{eeg} como componentes funcionales autónomos.
     
-    \item \textbf{Iteración 2 - Integración y exportación}: Incluía la integración de ambos módulos mediante \acrshort{lsl} para sincronización temporal automática, y desarrollo de capacidades de exportación a múltiples formatos estándar con datos sincronizados.
+    \item \textbf{Iteración 2 - Integración y exportación}: La segunda iteración se enfocaba en unificar los módulos desarrollados mediante \acrshort{lsl} para proporcionar sincronización temporal automática entre fuentes de datos, junto con el desarrollo de capacidades de exportación a múltiples formatos estándar que facilitaran la utilización posterior de los datos sincronizados.
     
-    \item \textbf{Iteración 3 - Finalización y documentación}: Comprendía el desarrollo de funcionalidades avanzadas, optimizaciones de rendimiento, interfaces de usuario mejoradas, y elaboración de la documentación técnica final.
+    \item \textbf{Iteración 3 - Finalización y documentación}: La tercera iteración completaba el sistema con funcionalidades avanzadas de procesamiento, optimizaciones de rendimiento para garantizar operación en tiempo real, mejoras en las interfaces de usuario, y elaboración de la documentación técnica final del proyecto.
 \end{enumerate}
 
 \subsection{Cronograma inicial planificado}
@@ -198,7 +198,7 @@ La Tabla~\ref{tab:costes_inicial} presenta la estimación económica inicial, in
 \subsection{Análisis de riesgos inicial}
 \label{subsec:riesgos_inicial}
 
-La identificación proactiva de riesgos permitió desarrollar estrategias de mitigación anticipadas, aunque algunos riesgos no anticipados emergieron durante el desarrollo.
+La identificación proactiva de riesgos permitió desarrollar estrategias de mitigación anticipadas, aunque algunos riesgos no anticipados emergieron durante el desarrollo. Esto permitió reducir el impacto de algunos problemas conocidos, particularmente mediante el uso exitoso de dispositivos sintéticos BrainFlow que mitigó completamente la falta de disponibilidad de hardware \acrshort{eeg} real, y la investigación exhaustiva previa que facilitó la adopción de tecnologías como PyQt5 y BrainFlow sin curvas de aprendizaje prolongadas~\cite{brainflow,pyqt5_docs}.
 
 \begin{table}[htbp!]
   \centering
@@ -220,7 +220,7 @@ La identificación proactiva de riesgos permitió desarrollar estrategias de mit
   \label{tab:riesgos_inicial}
 \end{table}
 
-La Tabla~\ref{tab:riesgos_inicial} documenta los principales riesgos identificados en la planificación inicial junto con las estrategias de mitigación previstas. El riesgo más importante identificado fue la complejidad de integración de módulos, con probabilidad media pero impacto alto, lo que motivó la estrategia de prototipado temprano. El análisis revela que se anticiparon correctamente varios de los principales desafíos técnicos, aunque se subestimó la complejidad real de la integración, que finalmente requirió múltiples intentos y cambios arquitectónicos fundamentales. Las estrategias de mitigación planificadas resultaron parcialmente efectivas, permitiendo reducir el impacto de los riesgos identificados.
+La Tabla~\ref{tab:riesgos_inicial} documenta los principales riesgos identificados en la planificación inicial junto con las estrategias de mitigación previstas. El riesgo más importante identificado fue la complejidad de integración de módulos, con probabilidad media pero impacto alto, lo que motivó la estrategia de prototipado temprano. El análisis revela que se anticiparon correctamente varios de los principales desafíos técnicos, aunque se subestimó significativamente la complejidad real de la integración, que finalmente requirió múltiples intentos fallidos y cambios arquitectónicos fundamentales hacia una solución completamente diferente basada en \acrshortpl{api}. Las estrategias de mitigación planificadas resultaron parcialmente efectivas para algunos riesgos específicos, pero el riesgo principal de integración demostró ser más complejo de lo anticipado.
 
 \section{Seguimiento y control del proyecto}
 \label{sec:seguimiento_control}
