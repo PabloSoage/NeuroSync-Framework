@@ -12,9 +12,9 @@ Este proyecto se ha desarrollado siguiendo un modelo \textbf{incremental-iterati
 
 La \textbf{incrementalidad} permite que el \textit{software} se construya por módulos funcionales independientes, cada uno de los cuales añade nuevas prestaciones al sistema global sin comprometer la estabilidad de componentes previamente desarrollados. Esta aproximación ha sido especialmente valiosa en un proyecto donde diferentes subsistemas pueden desarrollarse en paralelo y validarse de forma independiente.
 
-La \textbf{iteración} garantiza que cada módulo se somete a múltiples rondas de desarrollo, validación y refactorización, permitiendo la detección rápida de errores y su corrección antes de que se propaguen a otros componentes del sistema. Esta característica resultó fundamental durante las fases de integración, donde se identificaron limitaciones arquitectónicas que requirieron refactorización significativa.
+La \textbf{iteración} garantiza que cada módulo se somete a múltiples rondas de desarrollo, validación y refactorización dentro de cada iteración principal, permitiendo la detección rápida de errores y su corrección antes de que se propaguen a otros componentes del sistema. Esta característica resultó fundamental durante las fases de integración, donde se identificaron limitaciones arquitectónicas que requirieron refactorización significativa.
 
-Aunque la metodología base se mantuvo como incremental-iterativa a lo largo del proyecto, la estrategia de implementación se adaptó para responder a desafíos específicos como la migración temprana de Julia a Python, los múltiples intentos fallidos de integración directa entre módulos, y la eventual adopción de arquitecturas \acrshort{api} como solución robusta para la comunicación entre componentes.
+Aunque la metodología base se mantuvo como incremental-iterativa a lo largo del proyecto, la estrategia de implementación se adaptó para responder a desafíos específicos como la decisión inicial de exploración con Julia motivada por su rendimiento superior seguida del desarrollo definitivo en Python por limitaciones en el desarrollo de interfaces gráficas, los múltiples intentos de integración directa entre módulos, y la eventual adopción de arquitecturas \acrshort{api} como solución robusta para la comunicación entre componentes.
 
 La validación experimental continua mediante pruebas manuales iterativas ha proporcionado retroalimentación constante sobre el funcionamiento del sistema. En cada iteración se realizaba validación manual de funcionalidades, verificando que el comportamiento correspondía con las expectativas antes de proceder con nuevas funcionalidades. Esta validación incluía pruebas con dispositivos sintéticos, controladores físicos y cascos \acrshort{eeg} reales para garantizar que las decisiones de diseño estuvieran fundamentadas en evidencia práctica.
 
@@ -28,7 +28,7 @@ Cada iteración sigue un ciclo de desarrollo que incluye las siguientes fases:
     \item \textbf{Diseño}: Definición de la arquitectura de componentes y las interfaces necesarias para implementar las funcionalidades identificadas.
     \item \textbf{Implementación}: Desarrollo de código siguiendo principios \acrshort{solid}~\cite{martin2003agile}, con énfasis en la modularidad y extensibilidad.
     \item \textbf{Pruebas manuales}: Validación exhaustiva de funcionalidades mediante pruebas manuales con dispositivos reales y sintéticos, verificando tanto el funcionamiento técnico como la correspondencia con el comportamiento esperado.
-    \item \textbf{Evaluación y planificación}: Análisis de resultados obtenidos, identificación de problemas o limitaciones, y planificación de la siguiente iteración o módulo a desarrollar.
+    \item \textbf{Evaluación y planificación}: Análisis de resultados obtenidos, identificación de problemas o limitaciones, y planificación de la siguiente iteración o fase a desarrollar.
 \end{itemize}
 
 Este enfoque pragmático permitió una adaptación continua a los desafíos encontrados, priorizando la funcionalidad práctica sobre protocolos formales de \textit{testing} automatizado como \glspl{unit_test}, \glspl{integration_test} o metodologías como \gls{tdd}, lo cual resultó apropiado para la naturaleza experimental del proyecto.
@@ -36,25 +36,25 @@ Este enfoque pragmático permitió una adaptación continua a los desafíos enco
 \section{Planificación inicial del proyecto}
 \label{sec:planificacion_inicial}
 
-La planificación inicial del proyecto contemplaba un desarrollo más lineal y predecible, basado en la asunción de que la integración directa entre módulos desarrollados independientemente sería relativamente directa. Esta planificación inicial subestimó la complejidad de los desafíos de integración en sistemas \acrshort{bci}.
+La planificación inicial del proyecto contemplaba un desarrollo estructurado en tres iteraciones principales, cada una enfocada en incrementar progresivamente las capacidades del sistema. Esta planificación asumía que la integración entre módulos sería relativamente directa una vez desarrollados los componentes individuales.
 
-\subsection{Fases principales planificadas}
-\label{subsec:fases_planificadas}
+\subsection{Iteraciones principales planificadas}
+\label{subsec:iteraciones_planificadas}
 
-El proyecto se planificó inicialmente en 5 fases principales distribuidas a lo largo de 16 semanas, siguiendo la metodología incremental-iterativa establecida. Las fases principales incluían: documentación e investigación, análisis y diseño del sistema, implementación del módulo de captura de \textit{inputs}, implementación del módulo de adquisición \acrshort{eeg}, y desarrollo del sistema integrado de registro y sincronización.
+El proyecto se planificó inicialmente en 3 iteraciones principales distribuidas a lo largo de 16 semanas, siguiendo la metodología incremental-iterativa establecida. Cada iteración incluía múltiples fases que abarcaban desde la investigación inicial hasta la integración final del sistema.
 
 \begin{enumerate}
-    \item \textbf{Documentación e investigación}: Estudio del estado del arte en sistemas \acrshort{bci}, procesamiento de señales \acrshort{eeg} y análisis de bibliotecas disponibles.
-    \item \textbf{Análisis y diseño del sistema}: Definición de la arquitectura, interfaces entre módulos y estructuras de datos.
-    \item \textbf{Implementación del módulo de captura de \textit{inputs}}: Desarrollo del sistema para registrar eventos de teclado, ratón y controladores.
-    \item \textbf{Implementación del módulo de adquisición \acrshort{eeg}}: Integración con BrainFlow y configuración para diversos dispositivos.
-    \item \textbf{Desarrollo del sistema integrado}: Implementación del componente unificado para capturar y alinear temporalmente las señales \acrshort{eeg} con eventos de entrada, incluyendo almacenamiento estructurado de datos sincronizados en múltiples formatos estándar.
+    \item \textbf{Iteración 1 - Fundamentos y módulos básicos}: Abarcaba la investigación inicial, análisis de requisitos, estado del arte, diseño arquitectónico, y desarrollo de los módulos de captura de \textit{inputs} y procesamiento \acrshort{eeg} de forma independiente.
+    
+    \item \textbf{Iteración 2 - Integración y exportación}: Incluía la integración de ambos módulos mediante \acrshort{lsl} para sincronización temporal automática, y desarrollo de capacidades de exportación a múltiples formatos estándar con datos sincronizados.
+    
+    \item \textbf{Iteración 3 - Finalización y documentación}: Comprendía el desarrollo de funcionalidades avanzadas, optimizaciones de rendimiento, interfaces de usuario mejoradas, y elaboración de la documentación técnica final.
 \end{enumerate}
 
 \subsection{Cronograma inicial planificado}
 \label{subsec:cronograma_inicial}
 
-La planificación temporal inicial establecía objetivos específicos y entregables para cada iteración, organizados en un desarrollo incremental donde cada fase construye sobre las anteriores.
+La planificación temporal inicial establecía objetivos específicos y entregables para cada iteración, organizados en un desarrollo incremental donde cada iteración construye sobre las anteriores. La primera iteración se enfocaba en establecer las bases técnicas y desarrollar módulos funcionales independientes. La segunda iteración abordaba la integración y sincronización entre módulos. La tercera iteración completaba el sistema con funcionalidades avanzadas y documentación final.
 
 \begin{table}[htbp!]
   \centering
@@ -64,28 +64,25 @@ La planificación temporal inicial establecía objetivos específicos y entregab
     \rowcolor{udcpink!25}
     \textbf{Iteración} & \textbf{Objetivo principal} & \textbf{Entregables} & \textbf{Duración} \\
     \hline
-    Iter. 0 & Investigación y análisis & Estado del arte, especificación inicial & 4 semanas \\
-    Iter. 1 & Módulo captura \textit{inputs} & Prototipo funcional + \acrshort{gui} & 2 semanas \\
-    Iter. 2 & Módulo procesamiento \acrshort{eeg} & Captura básica + visualización & 3 semanas \\
-    Iter. 3 & Integración mediante \acrshort{lsl} & Sistema unificado funcional & 3 semanas \\
-    Iter. 4 & Funcionalidades avanzadas & Análisis avanzado + exportación & 3 semanas \\
-    Iter. 5 & Finalización del sistema & Sistema completo y memoria iniciada & 1 semana \\
+    Iter. 1 & Módulos básicos independientes & Módulos de \textit{inputs} y \acrshort{eeg} funcionales & 6 semanas \\
+    Iter. 2 & Integración y exportación & Sistema integrado con datos sincronizados & 6 semanas \\
+    Iter. 3 & Finalización y documentación & Sistema completo y memoria iniciada & 4 semanas \\
     \end{tabular}
   }
   \caption{Planificación inicial de iteraciones del proyecto}
   \label{tab:planificacion_iteraciones}
 \end{table}
 
-La Tabla~\ref{tab:planificacion_iteraciones} muestra la distribución temporal planificada, donde cada iteración incluía las fases típicas de análisis, diseño, implementación, pruebas y evaluación. La documentación se planificó como una actividad transversal a todo el proyecto, con una fase final para finalizar el sistema y comenzar la elaboración de la memoria del TFG.
+La Tabla~\ref{tab:planificacion_iteraciones} muestra la distribución temporal planificada, donde cada iteración incluía las fases típicas de análisis, diseño, implementación, pruebas y evaluación distribuidas internamente según las necesidades específicas de cada etapa del proyecto.
 
 \subsection{Diagrama de Gantt inicial}
 \label{subsec:gantt_inicial}
 
-La planificación inicial asumía que la fase de integración directa mediante \acrshort{lsl} sería relativamente breve y no problemática, asignando únicamente 3 semanas para esta actividad crítica. Esta subestimación refleja la dificultad inherente de predecir la complejidad de integración en sistemas experimentales.
+La planificación inicial asumía que la fase de integración directa mediante \acrshort{lsl} sería relativamente breve y no problemática, asignando únicamente 2 semanas para esta actividad crítica dentro de la segunda iteración. Esta subestimación refleja la dificultad inherente de predecir la complejidad de integración en sistemas experimentales.
 
 \begin{sidewaysfigure}[p]
 \centering
-\resizebox{0.9\textwidth}{0.7\textheight}{
+\resizebox{1.0\textwidth}{0.636\textheight}{
 \begin{ganttchart}[
     canvas/.append style={fill=none, draw=black!5, line width=.75pt},
     hgrid style/.style={draw=black!5, line width=.75pt},
@@ -111,50 +108,33 @@ La planificación inicial asumía que la fase de integración directa mediante \
   \gantttitle{Marzo 2025}{16} \gantttitle{Abril 2025}{16} \gantttitle{Mayo 2025}{16} \gantttitle{Junio 2025}{16} \\
   \gantttitlelist{1,8,15,22}{4} \gantttitlelist{29,5,12,19}{4} \gantttitlelist{26,3,10,17}{4} \gantttitlelist{24,31,7,14}{4} \\
   
-  \ganttgroup{Iter. 0: Investigación}{1}{16} \\
+  \ganttgroup{Iteración 1: Módulos básicos}{1}{32} \\
   \ganttbar{Análisis de requisitos}{1}{4} \\
   \ganttbar{Estado del arte}{5}{12} \\
   \ganttbar{Diseño arquitectónico}{13}{16} \\
-  \ganttmilestone{Especificación completa}{16} \\
+  \ganttbar{Implementación \textit{inputs}}{17}{24} \\
+  \ganttbar{Implementación \acrshort{eeg}}{25}{32} \\
+  \ganttmilestone{Módulos independientes}{32} \\
   
-  \ganttgroup{Iter. 1: Módulo \textit{inputs}}{17}{24} \\
-  \ganttbar{Análisis técnico}{17}{18} \\
-  \ganttbar{Implementación núcleo}{19}{22} \\
-  \ganttbar{Desarrollo \acrshort{gui}}{21}{24} \\
-  \ganttbar{Pruebas integración}{23}{24} \\
-  \ganttmilestone{Módulo \textit{inputs} completo}{24} \\
-  
-  \ganttgroup{Iter. 2: Módulo \acrshort{eeg}}{25}{36} \\
-  \ganttbar{Diseño arquitectura}{25}{26} \\
-  \ganttbar{Implementación captura}{27}{32} \\
-  \ganttbar{Visualización tiempo real}{31}{34} \\
-  \ganttbar{Pruebas con dispositivos}{35}{36} \\
-  \ganttmilestone{Módulo \acrshort{eeg} funcional}{36} \\
-  
-  \ganttgroup{Iter. 3: Integración \acrshort{lsl}}{37}{48} \\
-  \ganttbar{Análisis integración}{37}{38} \\
-  \ganttbar{Implementación sincronización}{39}{44} \\
-  \ganttbar{Pruebas sistema completo}{45}{47} \\
-  \ganttbar{Optimización rendimiento}{46}{48} \\
+  \ganttgroup{Iteración 2: Integración}{33}{48} \\
+  \ganttbar{Análisis de integración}{33}{36} \\
+  \ganttbar{Integración mediante \acrshort{lsl}}{37}{40} \\
+  \ganttbar{Exportación formatos}{41}{48} \\
   \ganttmilestone{Sistema integrado}{48} \\
   
-  \ganttgroup{Iter. 4: Funcionalidades avanzadas}{49}{60} \\
-  \ganttbar{Algoritmos procesamiento}{49}{54} \\
-  \ganttbar{Exportación \textit{datasets}}{53}{58} \\
-  \ganttbar{Validación final}{59}{60} \\
-  \ganttmilestone{Sistema completo}{60} \\
-  
-  \ganttgroup{Iter. 5: Documentación}{61}{64} \\
-  \ganttbar{Memoria TFG}{61}{64} \\
+  \ganttgroup{Iteración 3: Finalización}{49}{64} \\
+  \ganttbar{Funcionalidades avanzadas}{49}{56} \\
+  \ganttbar{Optimizaciones}{57}{62} \\
+  \ganttbar{Documentación}{63}{64} \\
   \ganttmilestone{Proyecto finalizado}{64} \\
   
 \end{ganttchart}
 }
-\caption{Diagrama de Gantt - Planificación inicial del proyecto}
+\caption{Diagrama de Gantt - Planificación inicial del proyecto con fases por iteración y relación de hitos}
 \label{fig:gantt_inicial}
 \end{sidewaysfigure}
 
-La Figura~\ref{fig:gantt_inicial} muestra la planificación inicial donde se desgrana cada fase en sus etapas típicas: análisis, diseño, implementación y pruebas, siguiendo las iteraciones de la metodología incremental-iterativa establecida.
+La Figura~\ref{fig:gantt_inicial} muestra la planificación inicial donde cada iteración se desgrana en sus fases constituyentes, estableciendo hitos claros que permitirían evaluar el progreso del proyecto: módulos independientes funcionales al final de la primera iteración, sistema integrado al completar la segunda iteración, y proyecto finalizado al término de la tercera iteración.
 
 \subsection{Planificación económica inicial}
 \label{subsec:planificacion_economica}
@@ -164,7 +144,7 @@ La evaluación económica inicial del proyecto reflejaba una estrategia de optim
 \subsubsection{Recursos humanos planificados}
 \label{subsubsec:recursos_humanos_planificados}
 
-Se presenta un supuesto de lo que costaría el desarrollo del sistema por un equipo profesional, basándose en salarios de mercado realistas para el contexto español. Esta estimación proporciona una valoración del esfuerzo y recursos necesarios para replicar el proyecto en un contexto comercial.
+Se presenta una estimación de lo que costaría el desarrollo del sistema por un equipo profesional, basándose en datos salariales del sector tecnológico español según informes especializados~\cite{tecnoempleo_empleo_it_2025,4geeks_salario_programador_espana_2025,adalab_salarios_programador_2024}. El perfil de desarrollador junior se valoró considerando salarios base para recién graduados en ingeniería informática (rango 18.000-35.000€ anuales, tomando €24.000 como valor medio). El analista de sistemas se evaluó considerando perfiles con 2-3 años de experiencia en análisis de sistemas complejos (rango 33.200-41.100€ anuales, tomando €36.000). El especialista \acrshort{bci} se valoró como consultor externo especializado según tarifas académicas de consultoría en neurociencia aplicada.
 
 \begin{table}[htbp!]
   \centering
@@ -185,7 +165,7 @@ Se presenta un supuesto de lo que costaría el desarrollo del sistema por un equ
   \label{tab:recursos_humanos_inicial}
 \end{table}
 
-La Tabla~\ref{tab:recursos_humanos_inicial} detalla los perfiles necesarios y sus costes asociados, calculados en base a salarios de mercado para el contexto español, asumiendo unas 40h de trabajo semanales.
+La Tabla~\ref{tab:recursos_humanos_inicial} detalla los perfiles necesarios para el desarrollo completo del sistema, calculados en base a salarios de mercado para el contexto español y asumiendo una dedicación de 40 horas semanales durante la duración estimada del proyecto.
 
 \subsubsection{Costes totales estimados inicialmente}
 \label{subsubsec:costes_totales_estimados}
@@ -201,19 +181,19 @@ El desglose completo de costes estimados para el proyecto incluye tanto los recu
     \textbf{Categoría} & \textbf{Coste estimado} & \textbf{Observaciones} \\
     \hline
     Recursos humanos & 4.480€ & Desarrollo completo del sistema \\
-    \textit{Hardware} (amortización) & 800€ & PC desarrollo y casco \acrshort{eeg} (4 meses uso) \\
+    \textit{Hardware} (amortización) & 700€ & PC desarrollo y casco \acrshort{eeg} (4 meses uso) \\
     \textit{Software} y herramientas & 0€ & Herramientas de código abierto \\
     Infraestructura & 0€ & Desarrollo local \\
-    Contingencias (10\%) & 528€ & Imprevistos y sobrecostes \\
+    Contingencias (10\%) & 518€ & Imprevistos y sobrecostes \\
     \hline
-    \textbf{Total proyecto} & \textbf{5.808€} & \\
+    \textbf{Total proyecto} & \textbf{5.698€} & \\
     \end{tabular}
   }
   \caption{Estimación inicial de costes del proyecto}
   \label{tab:costes_inicial}
 \end{table}
 
-La Tabla~\ref{tab:costes_inicial} presenta la estimación económica inicial, incluyendo la amortización proporcional del \textit{hardware} utilizado durante el período de desarrollo. La valoración del \textit{hardware} incluye un PC de desarrollo (€1.500) y casco \acrshort{eeg} g.tec Unicorn (€1.500), amortizados durante los 4 meses de duración del proyecto.
+La Tabla~\ref{tab:costes_inicial} presenta la estimación económica inicial, incluyendo la amortización proporcional del \textit{hardware} utilizado durante el período de desarrollo. La valoración del \textit{hardware} incluye un PC de desarrollo (€1.500) y casco \acrshort{eeg} g.tec Unicorn (€1.200), amortizados durante los 4 meses de duración del proyecto.
 
 \subsection{Análisis de riesgos inicial}
 \label{subsec:riesgos_inicial}
@@ -229,7 +209,7 @@ La identificación proactiva de riesgos permitió desarrollar estrategias de mit
     \textbf{Riesgo identificado} & \textbf{Prob.} & \textbf{Impacto} & \textbf{Estrategia de mitigación planificada} \\
     \hline
     Complejidad integración módulos & Media & Alta & Prototipado temprano con \acrshort{lsl} \\
-    Rendimiento tiempo real & Media & Alta & Optimización mediante \gls{callback} \\
+    Rendimiento tiempo real & Media & Alta & Optimización mediante \glspl{callback} \\
     Disponibilidad dispositivos \acrshort{eeg} & Baja & Alta & Dispositivos sintéticos BrainFlow \\
     Curva aprendizaje tecnologías & Media & Media & Investigación exhaustiva previa \\
     Dependencias bibliotecas externas & Baja & Media & Selección de bibliotecas estables \\
@@ -240,7 +220,7 @@ La identificación proactiva de riesgos permitió desarrollar estrategias de mit
   \label{tab:riesgos_inicial}
 \end{table}
 
-La Tabla~\ref{tab:riesgos_inicial} documenta los principales riesgos identificados en la planificación inicial junto con las estrategias de mitigación previstas.
+La Tabla~\ref{tab:riesgos_inicial} documenta los principales riesgos identificados en la planificación inicial junto con las estrategias de mitigación previstas. El riesgo más importante identificado fue la complejidad de integración de módulos, con probabilidad media pero impacto alto, lo que motivó la estrategia de prototipado temprano. El análisis revela que se anticiparon correctamente varios de los principales desafíos técnicos, aunque se subestimó la complejidad real de la integración, que finalmente requirió múltiples intentos y cambios arquitectónicos fundamentales. Las estrategias de mitigación planificadas resultaron parcialmente efectivas, permitiendo reducir el impacto de los riesgos identificados.
 
 \section{Seguimiento y control del proyecto}
 \label{sec:seguimiento_control}
@@ -263,7 +243,7 @@ Los hitos del proyecto reflejaron tanto los éxitos como los desafíos encontrad
 \subsection{Adaptaciones en el seguimiento}
 \label{subsec:adaptaciones_seguimiento}
 
-Los cambios más significativos en el seguimiento reflejaron las limitaciones descubiertas durante la implementación. La migración temprana de Julia a Python ilustró la importancia de priorizar la productividad de desarrollo sobre el rendimiento teórico. Los dos fallos consecutivos de integración directa entre módulos revelaron limitaciones fundamentales en la aproximación arquitectónica inicial, llevando a la progresión desde integración monolítica con \acrshort{lsl} hacia refactorización \acrshort{solid} y finalmente hacia arquitectura \acrshort{api}.
+Los cambios más significativos en el seguimiento reflejaron las limitaciones descubiertas durante la implementación. La decisión inicial de explorar Julia seguida del desarrollo definitivo en Python ilustró la importancia de priorizar la productividad de desarrollo sobre el rendimiento teórico. Los dos fallos consecutivos de integración directa entre módulos revelaron limitaciones fundamentales en la aproximación arquitectónica inicial, llevando a la progresión desde integración monolítica con \acrshort{lsl} hacia refactorización \acrshort{solid} y finalmente hacia arquitectura \acrshort{api}.
 
 \section{Análisis de desvíos y replanificación}
 \label{sec:desvios_replanificacion}
@@ -276,21 +256,22 @@ El desarrollo experimentó desvíos significativos que requirieron adaptaciones 
 Los desvíos más significativos reflejaron limitaciones en la estimación inicial de complejidad:
 
 \begin{itemize}
-    \item \textbf{Fallo de integración monolítica (17-19 abril)}: Reveló limitaciones arquitectónicas fundamentales no previstas en la planificación
-    \item \textbf{Segundo fallo post-\acrshort{solid} (22-30 abril)}: Confirmó necesidad de cambio estratégico hacia arquitecturas \acrshort{api}
-    \item \textbf{Pausa no planificada (1-13 mayo)}: Debida a compromisos académicos externos que afectaron la continuidad
-    \item \textbf{Desarrollo de arquitectura \acrshort{api} (14-22 mayo)}: Solución emergente que requirió tiempo no contemplado inicialmente
-    \item \textbf{Identificación problemas modo \textit{headless} (9-12 junio)}: Limitaciones detectadas tardíamente en el desarrollo
+    \item \textbf{Exploración inicial con Julia (+2-3 días)}: Desarrollo de versión inicial del script de captura de \textit{inputs} en Julia, abandonado por dificultades en implementación de \acrshort{gui} funcional y problemas de precompilación, motivando migración definitiva a Python.
+    \item \textbf{Fallo de integración monolítica (+3 días)}: Reveló limitaciones arquitectónicas fundamentales no previstas en la planificación
+    \item \textbf{Segundo fallo post-\acrshort{solid} (+5 días)}: Confirmó necesidad de cambio estratégico hacia arquitecturas \acrshort{api}
+    \item \textbf{Pausa no planificada (+13 días)}: Debida a compromisos académicos externos que afectaron la continuidad
+    \item \textbf{Desarrollo completo de arquitectura \acrshort{api} (+15 días)}: Solución emergente no contemplada inicialmente que requirió desarrollo de múltiples interfaces y corrección de problemas arquitectónicos internos
+    \item \textbf{Identificación problemas modo headless (+3 días)}: Limitaciones detectadas tardíamente en el desarrollo
 \end{itemize}
 
 \subsection{Cronograma real ejecutado}
 \label{subsec:cronograma_real}
 
-El cronograma real muestra una evolución más compleja que la planificación inicial, con múltiples replanificaciones y desarrollo de funcionalidades no anticipadas.
+El cronograma real muestra una evolución más compleja que la planificación inicial, con múltiples replanificaciones y desarrollo de funcionalidades no anticipadas, pero manteniendo la estructura de tres iteraciones principales con fases internas adaptadas a los descubrimientos del desarrollo.
 
 \begin{sidewaysfigure}[p]
 \centering
-\resizebox{0.95\textwidth}{0.8\textheight}{
+\resizebox{1.035\textwidth}{0.75\textheight}{
 \begin{ganttchart}[
     canvas/.append style={fill=none, draw=black!5, line width=.75pt},
     hgrid style/.style={draw=black!5, line width=.75pt},
@@ -317,50 +298,35 @@ El cronograma real muestra una evolución más compleja que la planificación in
   \gantttitle{Abril 2025}{21} \gantttitle{Mayo 2025}{21} \gantttitle{Junio 2025}{21} \gantttitle{Final}{21} \\
   \gantttitlelist{12,19,26}{7} \gantttitlelist{3,10,17}{7} \gantttitlelist{24,31,7}{7} \gantttitlelist{14,21,28}{7} \\
   
-  \ganttgroup[progress=100]{Desarrollo módulos básicos}{1}{12} \\
-  \ganttbar[progress=100]{Script \textit{inputs} + \acrshort{gui} PyQt5}{1}{7} \\
-  \ganttbar[progress=100]{Módulo \acrshort{eeg} + \textit{brain map}}{8}{12} \\
+  \ganttgroup{Iteración 1: Módulos básicos}{1}{19} \\
+  \ganttbar[bar/.append style={fill=orange!70}]{Exploración Julia (abandonada)}{1}{3} \\
+  \ganttbar{Desarrollo \textit{inputs} + \acrshort{gui} PyQt5}{4}{7} \\
+  \ganttbar{Módulo \acrshort{eeg} + \textit{brain map}}{8}{12} \\
+  \ganttbar[bar/.append style={fill=red!70}]{Primer intento integración (fallido)}{13}{19} \\
+  \ganttmilestone[milestone/.append style={fill=orange}]{Fin Iteración 1}{19} \\
   
-  \ganttgroup[progress=100]{Primer intento integración}{13}{16} \\
-  \ganttbar[progress=100, bar/.append style={fill=red!70}]{\acrshort{lsl} monolítico (fallido)}{13}{16} \\
-  \ganttmilestone[milestone/.append style={fill=red}]{Fallo integración 1}{16} \\
+  \ganttgroup{Iteración 2: Refactorización e integración}{20}{42} \\
+  \ganttbar[bar/.append style={fill=green!70}]{Refactorización \acrshort{solid}}{20}{22} \\
+  \ganttbar[bar/.append style={fill=red!70}]{Segundo intento integración (fallido)}{23}{30} \\
+  \ganttbar[bar/.append style={fill=gray!50}]{Pausa compromisos académicos}{31}{42} \\
+  \ganttmilestone[milestone/.append style={fill=orange}]{Fin Iteración 2}{42} \\
   
-  \ganttgroup[progress=100]{Refactorización \acrshort{solid}}{17}{19} \\
-  \ganttbar[progress=100]{Reestructuración módulos}{17}{19} \\
-  
-  \ganttgroup[progress=100]{Segundo intento integración}{20}{28} \\
-  \ganttbar[progress=100, bar/.append style={fill=red!70}]{Módulo integrador (fallido)}{20}{28} \\
-  \ganttmilestone[milestone/.append style={fill=red}]{Fallo integración 2}{28} \\
-  
-  \ganttgroup[progress=0]{Pausa no planificada}{29}{42} \\
-  \ganttbar[progress=0, bar/.append style={fill=gray!50}]{Compromisos académicos}{29}{42} \\
-  
-  \ganttgroup[progress=100]{Desarrollo \acrshort{api} y explorador web}{43}{56} \\
-  \ganttbar[progress=100, bar/.append style={fill=green!70}]{\acrshort{api} acceso datos}{43}{49} \\
-  \ganttbar[progress=100, bar/.append style={fill=green!70}]{Explorador web unificado}{50}{53} \\
-  \ganttbar[progress=100, bar/.append style={fill=green!70}]{\acrshort{api} control \textit{inputs}}{54}{56} \\
-  \ganttmilestone[milestone/.append style={fill=green}]{Arquitectura \acrshort{api} base exitosa}{56} \\
-  
-  \ganttgroup[progress=100]{\acrshort{cli} y optimizaciones}{57}{63} \\
-  \ganttbar[progress=100]{\acrshort{cli} \textit{inputs} + \acrshort{ps4} + eventos}{57}{63} \\
-  \ganttmilestone[milestone/.append style={fill=orange}]{Problemas \textit{headless} identificados}{61} \\
-  
-  \ganttgroup[progress=100]{Funcionalidades avanzadas \acrshort{eeg}}{64}{77} \\
-  \ganttbar[progress=100]{\acrshort{api} control \acrshort{eeg} + \textit{MNE}}{64}{70} \\
-  \ganttbar[progress=100]{\acrshort{ica} + \gls{wavelet} + filtros}{71}{77} \\
-  \ganttmilestone[milestone/.append style={fill=green}]{\acrshort{api} control completo}{77} \\
-  
-  \ganttgroup[progress=50]{Integración final}{78}{80} \\
-  \ganttbar[progress=50, bar/.append style={fill=orange!50}]{Módulo \acrshort{lsl} (pausado por \textit{bugs})}{78}{80} \\
-  \ganttmilestone[milestone/.append style={fill=orange}]{Integración pausada}{80} \\
+  \ganttgroup{Iteración 3: Arquitectura \acrshort{api} y finalización}{43}{83} \\
+  \ganttbar[bar/.append style={fill=green!70}]{\acrshort{api} acceso \textit{inputs}}{43}{47} \\
+  \ganttbar[bar/.append style={fill=green!70}]{\acrshort{api} acceso \acrshort{eeg} + explorador web}{48}{52} \\
+  \ganttbar[bar/.append style={fill=green!70}]{\acrshort{api} control \textit{inputs} + \acrshort{ps4}}{53}{60} \\
+  \ganttbar[bar/.append style={fill=green!70}]{\acrshort{cli} + optimizaciones}{61}{65} \\
+  \ganttbar[bar/.append style={fill=green!70}]{\acrshort{api} control \acrshort{eeg} + funcionalidades avanzadas}{66}{79} \\
+  \ganttbar[bar/.append style={fill=orange!50}]{Integración \acrshort{lsl} (pausada)}{80}{83} \\
+  \ganttmilestone[milestone/.append style={fill=orange}]{Fin Iteración 3 - Sistema funcional}{83} \\
   
 \end{ganttchart}
 }
-\caption{Diagrama de Gantt - Desarrollo real con desvíos}
+\caption{Diagrama de Gantt - Desarrollo real con desvíos por iteración}
 \label{fig:gantt_real}
 \end{sidewaysfigure}
 
-La Figura~\ref{fig:gantt_real} revela una evolución significativamente más compleja que la planificación inicial, con múltiples intentos fallidos, replanificaciones y desarrollo de funcionalidades no anticipadas que finalmente resultaron en un sistema más robusto.
+La Figura~\ref{fig:gantt_real} revela una evolución significativamente más compleja que la planificación inicial, con múltiples intentos fallidos, replanificaciones y desarrollo de funcionalidades no anticipadas que finalmente resultaron en un sistema más robusto. Los colores indican el estado de cada fase: verde para desarrollos exitosos, rojo para intentos fallidos, naranja para desarrollos parciales o con problemas, y gris para pausas no planificadas. El desarrollo de las \acrshort{api} se extendió considerablemente más de lo inicialmente previsto debido a la complejidad emergente de la solución y la necesidad de corregir problemas arquitectónicos identificados durante la implementación.
 
 \subsection{Impacto económico de los desvíos}
 \label{subsec:impacto_economico_desvios}
