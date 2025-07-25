@@ -1,114 +1,123 @@
-\chapter{Arquitectura del Sistema}
-\label{chap:arquitectura}
+\section{Arquitectura Final del Sistema}
+\label{sec:arquitectura_final_sistema}
 
-\lettrine{L}{a} arquitectura del sistema desarrollado implementa un ecosistema modular robusto capaz de manejar múltiples modalidades de datos biomédicos en tiempo real. Este capítulo presenta una visión general de la arquitectura del sistema, describiendo los patrones arquitectónicos fundamentales y las decisiones de diseño tomadas que facilitan la operación independiente de los tres módulos principales.
+La arquitectura del sistema desarrollado implementa un ecosistema modular capaz de manejar múltiples modalidades de datos biomédicos en tiempo real. Esta sección presenta la arquitectura final del sistema, describiendo los patrones arquitectónicos fundamentales y las decisiones de diseño que facilitan la operación independiente de los tres módulos principales.
 
-El sistema final está compuesto por tres módulos independientes pero interoperables: \textbf{\textit{Input Collector}} para captura de eventos de usuario, \textbf{\textit{EEG Processor}} para procesamiento de señales cerebrales, y \textbf{\textit{API Explorer}} como \gls{framework} web unificado para exploración y control remoto. Cada módulo implementa patrones arquitectónicos específicos optimizados para sus requisitos particulares, mientras mantiene la capacidad de exposición de funcionalidades mediante \acrshort{api} que facilitan la integración futura.
+El sistema final está compuesto por tres módulos independientes pero interoperables: \textbf{\textit{Input Collector}} para captura de eventos de usuario, \textbf{\textit{EEG Processor}} para procesamiento de señales cerebrales, y \textbf{\textit{API Explorer}} como \textit{\gls{framework}} web unificado para exploración y control remoto. Cada módulo implementa patrones arquitectónicos específicos optimizados para sus requisitos particulares, mientras mantiene la capacidad de exposición de funcionalidades mediante \acrshort{api} que facilitan la integración futura.
 
-\section{Visión General de la Arquitectura}
-\label{sec:vision_general_arquitectura}
+\subsection{Visión General de la Arquitectura}
+\label{subsec:vision_general_arquitectura}
 
-La arquitectura global del sistema se fundamenta en principios de diseño modular que permiten que cada módulo opere de forma completamente independiente. Esta independencia no impide la coordinación cuando es necesaria, sino que la facilita mediante mecanismos bien definidos de intercambio de datos y control remoto.
+La arquitectura global del sistema se fundamenta en principios de diseño modular que permiten que cada módulo opere de forma completamente independiente. Esta independencia no impide la coordinación cuando es necesaria, sino que la facilita mediante interfaces de acceso a datos y capacidades de control remoto.
 
-\subsection{Principios Arquitectónicos Fundamentales}
-\label{subsec:principios_fundamentales}
+\subsubsection{Principios Arquitectónicos Fundamentales}
+\label{subsubsec:principios_fundamentales}
 
 El desarrollo del sistema ha consolidado un conjunto de principios arquitectónicos que se aplican consistentemente a través de todos los módulos, proporcionando coherencia estructural y facilitando tanto el mantenimiento como la extensibilidad futura.
 
 \textbf{Arquitectura Dirigida por Eventos}: La comunicación interna de cada módulo utiliza un sistema de eventos centralizado que actúa como columna vertebral, eliminando dependencias directas entre componentes y facilitando la coordinación de operaciones complejas. Este patrón ha demostrado ser especialmente efectivo para el manejo de datos de alta frecuencia y operaciones asíncronas.
 
-\textbf{Patrón Singleton Thread-Safe}: Los servicios centrales de cada módulo implementan el patrón \textit{singleton} con \gls{double_checked_locking} para garantizar una instancia única con operaciones seguras en entornos multihilo. La \gls{inicializacion_perezosa} optimiza el uso de recursos retrasando la creación de objetos hasta que sean realmente necesarios.
+\textbf{Patrón Singleton Thread-Safe}: Los servicios centrales de cada módulo implementan el patrón \textit{singleton} con \textit{\gls{double_checked_locking}} para garantizar una instancia única con operaciones seguras en entornos multihilo. La \gls{inicializacion_perezosa} optimiza el uso de recursos retrasando la creación de objetos hasta que sean realmente necesarios.
 
-\textbf{Separación de Responsabilidades}: La arquitectura implementa clara separación entre capas de presentación, lógica de negocio, acceso a datos, y abstracción de \textit{hardware}. Esta separación facilita significativamente el mantenimiento y la extensibilidad, como se evidenció durante las múltiples refactorizaciones realizadas durante el desarrollo.
+\textbf{Separación de Responsabilidades}: La arquitectura implementa clara separación entre capas de presentación, lógica de negocio, acceso a datos, y abstracción de \textit{hardware}. Esta separación facilita significativamente el mantenimiento y la extensibilidad, como se evidenció durante la refactorización arquitectónica realizada en la segunda iteración del desarrollo.
 
-\subsection{Flujos de Datos del Sistema}
-\label{subsec:flujos_datos_sistema}
+\subsubsection{Flujos de Datos del Sistema}
+\label{subsubsec:flujos_datos_sistema}
 
 Cada módulo del sistema puede operar completamente independiente, generando y procesando sus propios flujos de datos. Esta aproximación permite que los investigadores utilicen los módulos según sus necesidades específicas sin requerir la activación completa del sistema.
 
-\textbf{Sincronización Basada en Archivos}: Cada módulo puede grabar independientemente en formatos \acrshort{csv} con \gls{timestamp} precisos, permitiendo análisis correlacional posterior que evita la sobrecarga de sincronización en tiempo real. Esta aproximación resultó especialmente valiosa durante las fases de validación del sistema.
+\textbf{Grabación Independiente con Marcado Temporal}: Cada módulo puede grabar independientemente en formatos \acrshort{csv} con \textit{\glspl{timestamp}} precisos, permitiendo análisis correlacional posterior sin la sobrecarga de sincronización en tiempo real. Esta aproximación simplifica la arquitectura del sistema mientras proporciona capacidades de sincronización \textit{offline}.
 
-\textbf{Control Remoto via \acrshort{api}}: Los módulos exponen \acrshort{api} \acrshort{rest} que permiten control externo y acceso a datos desde otras aplicaciones. \textit{API Explorer} puede actuar como agregador que facilita operaciones entre módulos de forma transparente.
+\textbf{Control Remoto via \acrshort{api}}: Los módulos exponen una \acrshort{api} \acrshort{rest} que permite control externo y acceso a datos desde otras aplicaciones. \textit{\textbf{API Explorer}} proporciona una interfaz unificada para estas capacidades.
 
-\textbf{Streaming de Eventos}: El sistema de eventos interno de cada módulo puede transmitir información hacia \textit{API Explorer} mediante \gls{websocket}, facilitando monitoreo remoto y visualización coordinada en tiempo real.
+\textbf{Streaming de Eventos}: El sistema de eventos interno de cada módulo puede transmitir información hacia \textit{\textbf{API Explorer}} mediante \textit{\glspl{websocket}}, facilitando monitoreo remoto y visualización coordinada en tiempo real.
 
-\section{Módulo \textit{Input Collector}}
-\label{sec:modulo_input_collector}
+\subsection{Componentes Principales del Sistema}
+\label{subsec:componentes_principales_sistema}
 
-\textit{Input Collector} constituye el componente del sistema especializado en captura, procesamiento y visualización de eventos de entrada desde múltiples dispositivos en tiempo real. Su desarrollo se centró en resolver los desafíos únicos asociados con la captura de eventos de usuario con latencia mínima y precisión temporal.
+\subsubsection{Módulo \textit{Input Collector}}
+\label{subsubsec:modulo_input_collector}
 
-\subsection{Enfoque Arquitectónico}
-\label{subsec:enfoque_arquitectonico_input}
+\textit{\textbf{Input Collector}} constituye el componente del sistema especializado en captura, procesamiento y visualización de eventos de entrada desde múltiples dispositivos en tiempo real. Su desarrollo se centró en resolver los desafíos únicos asociados con la captura de eventos de usuario con latencia mínima y precisión temporal.
 
-El módulo implementa una arquitectura hexagonal que separa efectivamente la lógica de dominio de las interfaces externas. Esta decisión arquitectónica permitió desarrollar soporte unificado para dispositivos tan diversos como teclado, ratón y controladores \acrshort{ps4}, mientras se mantenían múltiples interfaces de acceso sin duplicación de funcionalidad.
+\textbf{Enfoque Arquitectónico}: El módulo implementa una \gls{arquitectura_hexagonal} que separa efectivamente la lógica de dominio de las interfaces externas. Esta decisión arquitectónica permitió desarrollar soporte unificado para dispositivos como teclado, ratón y controladores \acrshort{ps4}, mientras se mantenían múltiples interfaces de acceso sin duplicación de funcionalidad.
 
-La arquitectura dirigida por eventos demostró ser particularmente efectiva para el controlador \acrshort{ps4}, donde se implementó un \textit{event loop} \acrshort{sdl} dedicado que resolvió completamente los problemas de rendimiento y compatibilidad que habían limitado la funcionalidad en interfaces \acrshort{cli}. Esta implementación elimina las dependencias de \gls{timers} \acrshort{qt} y proporciona captura con latencia mínima independiente del contexto de ejecución.
+La arquitectura dirigida por eventos demostró ser particularmente efectiva para el controlador \acrshort{ps4}, donde se implementó un \textit{event loop} \textbf{\acrshort{sdl}} dedicado que resolvió completamente los problemas de rendimiento y compatibilidad que habían limitado la funcionalidad en interfaces \acrshort{cli}. Esta implementación elimina las dependencias de \textit{\gls{timers}} \textbf{\acrshort{qt}} y proporciona captura con latencia mínima independiente del contexto de ejecución.
 
-\subsection{Capacidades y Aplicaciones}
-\label{subsec:capacidades_aplicaciones_input}
+\textbf{Capacidades y Aplicaciones}: El sistema de captura soporta múltiples modos de seguimiento que se adaptan a diferentes requisitos de aplicación. Los modos de \textit{tracking} de ratón incluyen \textit{delta} para movimiento en bruto, \textit{angle} para direcciones discretas, \textit{axis} para direcciones cardinales, y \textit{joystick} para representación analógica con velocidad por eje.
 
-El sistema de captura soporta múltiples modos de seguimiento que se adaptan a diferentes requisitos de aplicación. Los modos de \textit{tracking} de ratón incluyen \textit{delta} para movimiento en bruto, \textit{angle} para direcciones discretas, \textit{axis} para direcciones cardinales, y \textit{joystick} para representación analógica con velocidad por eje.
+El objetivo principal del módulo es la generación de \textit{datasets} de alta calidad con marcado temporal preciso que permita la sincronización posterior con señales cerebrales para el desarrollo de sistemas \acrshort{bci}. Los \textit{\glspl{timestamp}} con precisión de milisegundo facilitan el análisis correlacional entre patrones de entrada y actividad neuronal, habilitando estudios sobre \gls{imaginacion_motora}, análisis de comportamientos de usuario durante tareas específicas, y desarrollo de interfaces cerebro-computadora híbridas que combinen intenciones detectadas mediante \acrshort{eeg} con acciones explícitas del usuario.
 
-El objetivo principal del módulo es la generación de \textit{datasets} de alta calidad con marcado temporal preciso que permita la sincronización posterior con señales cerebrales para el desarrollo de sistemas \acrshort{bci}. Los \gls{timestamp} de microsegundo facilitan el análisis correlacional entre patrones de entrada y actividad neuronal, habilitando estudios sobre \gls{imaginacion_motora}, análisis de comportamientos de usuario durante tareas específicas, y desarrollo de interfaces cerebro-computadora híbridas que combinen intenciones detectadas mediante \acrshort{eeg} con acciones explícitas del usuario.
+\textbf{Características técnicas}:
+\begin{itemize}
+    \item Arquitectura modular con servicios especializados
+    \item Soporte múltiple: teclado, ratón, controladores \acrshort{ps4}
+    \item Sistema dirigido por eventos con optimizaciones de rendimiento
+    \item Interfaces: \acrshort{gui} \textbf{PyQt5}, \acrshort{cli}, \acrshort{api} web
+\end{itemize}
 
-\subsection{Documentación Técnica Detallada}
-\label{subsec:documentacion_input_collector}
+La documentación técnica detallada del módulo se encuentra en el \textbf{Anexo~\ref{chap:anexo_input_collector}}.
 
-La documentación técnica completa del módulo, incluyendo especificaciones arquitectónicas detalladas, diagramas \acrshort{uml} de todos los subsistemas, análisis de patrones de diseño implementados, y guías de integración, se encuentra disponible en el \textbf{Anexo~\ref{chap:anexo_input_collector}} de este documento.
+\subsubsection{Módulo \textit{EEG Processor}}
+\label{subsubsec:modulo_eeg_processor}
 
-Esta documentación proporciona los detalles técnicos necesarios para comprender completamente la implementación, realizar modificaciones, o extender las capacidades del módulo según requisitos específicos de aplicación.
+\textit{\textbf{EEG Processor}} constituye el núcleo especializado del sistema para procesamiento de \glspl{biosenial} cerebrales, implementando una \gls{arquitectura_orientada_servicios} que integra múltiples fabricantes de dispositivos comerciales con algoritmos de análisis neurofisiológico avanzados.
 
-\section{Módulo \textit{EEG Processor}}
-\label{sec:modulo_eeg_processor}
+\textbf{Arquitectura Orientada a Servicios}: El módulo adopta una arquitectura orientada a servicios que separa efectivamente las responsabilidades entre colección de datos, procesamiento de señales, análisis avanzado, y presentación de resultados. La integración con \textbf{BrainFlow} como capa de abstracción de \textit{hardware} proporciona soporte unificado para más de 20 fabricantes de dispositivos, facilitando significativamente el desarrollo de aplicaciones que necesiten funcionar con múltiples tipos de \textit{hardware} sin modificaciones específicas.
 
-\textit{EEG Processor} constituye el núcleo especializado del sistema para procesamiento de \glspl{biosenial} cerebrales, implementando una arquitectura orientada a servicios que integra múltiples fabricantes de dispositivos comerciales con algoritmos de análisis neurofisiológico avanzados.
+\textbf{Características técnicas}:
+\begin{itemize}
+    \item Arquitectura orientada a servicios con detección automática de canales
+    \item Integración \textbf{Brainflow} con soporte para múltiples fabricantes
+    \item Procesamiento avanzado: \gls{ica_analysis} (\acrshort{ica}), \gls{wavelet}, \textbf{MNE-Python}, \gls{filtros_digitales}, \gls{downsampling}
+    \item Visualización científica en tiempo real con múltiples modalidades
+\end{itemize}
 
-\subsection{Arquitectura Orientada a Servicios}
-\label{subsec:arquitectura_servicios_eeg}
+La documentación técnica detallada del módulo se encuentra en el \textbf{Anexo~\ref{chap:anexo_eeg_processor}}.
 
-El módulo adopta una arquitectura orientada a servicios que separa efectivamente las responsabilidades entre colección de datos, procesamiento de señales, análisis avanzado, y presentación de resultados. La integración con \textit{BrainFlow} como capa de abstracción de \textit{hardware} proporciona soporte unificado para más de 20 fabricantes de dispositivos, facilitando significativamente el desarrollo de aplicaciones que necesiten funcionar con múltiples tipos de \textit{hardware} sin modificaciones específicas.
+\subsubsection{Módulo \textit{API Explorer}}
+\label{subsubsec:modulo_api_explorer}
 
-\subsection{Documentación Técnica Detallada}
-\label{subsec:documentacion_eeg_processor}
+\textit{\textbf{API Explorer}} constituye el \textit{\gls{framework}} web unificado del sistema, proporcionando capacidades de exploración dinámica y control remoto de las funcionalidades de los demás módulos. Su desarrollo se centró en crear una plataforma web que facilite tanto la exploración interactiva como la integración con otros sistemas.
 
-La documentación técnica completa del módulo, incluyendo especificaciones de la arquitectura orientada a servicios, algoritmos de procesamiento de señales, integración con dispositivos comerciales, análisis de patrones \acrshort{mvc}, y capacidades de análisis avanzado, se encuentra disponible en el \textbf{Anexo~\ref{chap:anexo_eeg_processor}} de este documento.
+\textbf{Framework Web Modular}: El módulo implementa una arquitectura web completa basada en \textbf{FastAPI} con soporte \textit{\gls{websocket}} para comunicación en tiempo real. El sistema de registro dinámico permite que módulos externos expongan sus funcionalidades mediante interfaces web generadas automáticamente, mientras que la arquitectura de \textit{\gls{worker}} \textit{pools} gestiona eficientemente el streaming de datos de alta frecuencia con \textit{\gls{throttling}} adaptativo.
 
-Esta documentación proporciona los fundamentos técnicos necesarios para comprender la implementación de servicios especializados, realizar modificaciones en algoritmos de procesamiento, o integrar nuevas capacidades de análisis neurofisiológico.
+La arquitectura \textit{frontend} modular implementa \textit{\gls{managers}} especializados que coordinan visualización de datos mediante \textbf{Chart.js}, gestión de temas oscuro/claro, y formularios dinámicos que se adaptan automáticamente a los tipos de parámetros definidos por cada módulo.
 
-\section{Módulo \textit{API Explorer}}
-\label{sec:modulo_api_explorer}
+\textbf{Características técnicas}:
+\begin{itemize}
+    \item \textit{Framework} web modular con \textbf{FastAPI}
+    \item Sistema de registro dinámico de módulos
+    \item Visualización tiempo real con \textit{\gls{websocket}} y optimizaciones de rendimiento
+    \item Interfaz web inspirada en la documentación automática de \textbf{FastAPI} con múltiples mejoras: modo claro/oscuro, mejores explicaciones y facilidades para parámetros mediante \textit{sliders}, selectores \textit{combobox}, y plantillas \acrshort{json} con verificador de correctitud. Incluye visualizador de gráficos, disponible solo cuando el módulo lo solicita durante el registro, que proporciona una tabla actualizada dinámicamente o modo gráficas. En el modo gráficas se puede elegir entre mostrar todas las señales en un gráfico unificado, con escala logarítmica en el eje Y para evitar distorsión por valores atípicos, o utilizar gráficos independientes. Ambas opciones permiten filtrado por tipo de canal y capacidad de ocultar canales específicos
+\end{itemize}
 
-\textit{API Explorer} constituye el \gls{framework} web unificado del sistema, proporcionando capacidades de exploración dinámica y control remoto de las funcionalidades de los demás módulos. Su desarrollo se centró en crear una plataforma web que facilite tanto la exploración interactiva como la integración con otros sistemas.
+La documentación técnica detallada del módulo se encuentra en el \textbf{Anexo~\ref{chap:anexo_api_explorer}}.
 
-\subsection{Framework Web Modular}
-\label{subsec:framework_web_modular}
+\subsection{Integración y Extensibilidad del Sistema}
+\label{subsec:integracion_extensibilidad_sistema}
 
-El módulo implementa una arquitectura web completa basada en \textit{FastAPI} con soporte \gls{websocket} para comunicación en tiempo real. El sistema de registro dinámico permite que módulos externos expongan sus funcionalidades mediante interfaces web generadas automáticamente, mientras que la arquitectura de \gls{worker} \textit{pools} gestiona eficientemente el streaming de datos de alta frecuencia con \gls{throttling} adaptativo.
+La arquitectura modular facilita tanto la integración como la extensión futura del sistema. Para aplicaciones que requieren correlación entre eventos de entrada y señales cerebrales, los módulos pueden coordinarse temporalmente mediante la captura simultánea con \textit{\glspl{timestamp}} sincronizados que permitan análisis posterior.
 
-La arquitectura \textit{frontend} modular implementa \gls{managers} especializados que coordinan visualización de datos mediante \textit{Chart.js}, gestión de temas oscuro/claro, y formularios dinámicos que se adaptan automáticamente a los tipos de parámetros definidos por cada módulo.
+\textit{\textbf{API Explorer}} proporciona un punto de control unificado que permite la coordinación de operaciones entre módulos cuando es necesario, mientras que las capacidades de registro independientes facilitan análisis posterior con sincronización basada en \textit{\glspl{timestamp}} de alta precisión.
 
-\subsection{Documentación Técnica Detallada}
-\label{subsec:documentacion_api_explorer}
+\subsection{Consideraciones de Rendimiento}
+\label{subsec:rendimiento_sistema}
 
-La documentación técnica completa del módulo se encuentra disponible en el \textbf{Anexo~\ref{chap:anexo_api_explorer}} de este documento, incluyendo especificaciones de arquitectura, patrones de integración y casos de uso detallados.
+El sistema implementa múltiples optimizaciones para manejar datos de alta frecuencia en tiempo real. Estas incluyen \textit{\gls{batching}} de eventos para reducir el \textit{\gls{overhead}} de comunicación, \textit{\gls{worker}} \textit{pools} para distribución de procesamiento, \textit{\gls{buffer}} circular con \gls{descarte_adaptativo} para degradación elegante del rendimiento, y \gls{serializacion} optimizada con \textbf{orjson} que proporciona mejoras de rendimiento de 2-5x comparado con la biblioteca estándar.
 
-Esta documentación proporciona los fundamentos necesarios para comprender la implementación del \gls{framework} web, realizar extensiones de funcionalidad, o integrar nuevos módulos en la plataforma unificada.
+La gestión de memoria implementa límites de \textit{\gls{buffer}} configurables con limpieza automática, mientras que el diseño \textit{\gls{thread-safe}} utiliza \textit{\gls{locks}} granulares, señales \textbf{\acrshort{qt}} para comunicación segura entre hilos, y aislamiento de errores que previene la propagación de fallos entre componentes.
 
-\section{Integración y Extensibilidad del Sistema}
-\label{sec:integracion_extensibilidad_sistema}
+\subsection{Capacidades Actuales del Sistema}
+\label{subsec:capacidades_actuales_sistema}
 
-La arquitectura modular facilita tanto la integración como la extensión futura del sistema. Para aplicaciones que requieren correlación entre eventos de entrada y señales cerebrales, los módulos pueden coordinarse temporalmente mediante la captura simultánea con \gls{timestamp} sincronizados que permitan análisis posterior.
+El sistema desarrollado proporciona un módulo de captura de eventos de teclado, movimientos y clics de ratón, y controladores con \textit{\glspl{timestamp}} precisos y un módulo de conexión intuitiva a dispositivos \acrshort{bci} mediante \textbf{Brainflow} con capacidad de aplicar filtros en tiempo real y grabación en \acrshort{csv} con \textit{\glspl{timestamp}} y posibilidad de añadir \gls{marcadores}. Cada módulo graba independientemente en \acrshort{csv}, también \acrshort{json} para el módulo de entrada, permitiendo sincronización \textit{offline} posterior.
 
-\textit{API Explorer} proporciona un punto de control unificado que permite la coordinación de operaciones entre módulos cuando es necesario, mientras que las capacidades de registro independientes facilitan análisis posterior con sincronización basada en \gls{timestamp} de alta precisión.
+Esta aproximación presenta ventajas específicas: evita sobrecarga \acrshort{cpu} extra en tiempo real, previene fallos relacionados con sincronización entre módulos al mantener independencia de cada componente, y no representa pérdida significativa de valor ya que, aunque existiera sincronización en tiempo real, no estaría desarrollada la funcionalidad para servir ese \textit{\gls{stream}} sincronizado en tiempo real a aplicaciones externas.
 
-\section{Consideraciones de Rendimiento}
-\label{sec:rendimiento_sistema}
+El sistema constituye una herramienta útil que facilita la investigación y desarrollo en interfaces cerebro-computadora mediante herramientas especializadas e interfaces accesibles.
 
-El sistema implementa múltiples optimizaciones para manejar datos de alta frecuencia en tiempo real. Estas incluyen \gls{batching} de eventos para reducir \gls{overhead} de comunicación, \gls{worker} \textit{pools} para distribución de procesamiento, \gls{buffer} circular con \gls{descarte_adaptativo} para degradación elegante del rendimiento, y \gls{serializacion} optimizada con \textit{orjson} que proporciona mejoras de rendimiento de 2-5x comparado con la biblioteca estándar.
+\subsection{Extensibilidad y Mantenimiento}
+\label{subsec:extensibilidad_mantenimiento}
 
-La gestión de memoria implementa límites de \gls{buffer} configurables con limpieza automática, mientras que el diseño \gls{thread-safe} utiliza \textit{locks} granulares, señales \acrshort{qt} para comunicación segura entre hilos, y aislamiento de errores que previene la propagación de fallos entre componentes.
-
-\section{Extensibilidad y Mantenimiento}
-\label{sec:extensibilidad_mantenimiento}
-
-La arquitectura del sistema facilita extensiones futuras mediante la implementación de principios \acrshort{solid}, patrones de extensión bien definidos, y separación clara de responsabilidades. El sistema de registro dinámico en \textit{API Explorer} permite la adición de nuevos módulos sin modificación del código existente.
+La arquitectura del sistema facilita extensiones futuras mediante la implementación de principios \acrshort{solid}, patrones de extensión bien definidos, y separación clara de responsabilidades. El sistema de registro dinámico en \textit{\textbf{API Explorer}} permite la adición de nuevos módulos sin modificación del código existente.

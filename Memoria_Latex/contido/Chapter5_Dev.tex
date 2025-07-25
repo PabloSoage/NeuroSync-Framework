@@ -384,7 +384,7 @@ La tercera iteración implementó un cambio paradigmático hacia arquitecturas \
 El diseño de esta iteración se centró en crear una arquitectura \acrshort{api} extensible que proporcionara acceso completo a las capacidades internas del sistema.
 
 \textbf{Arquitectura \acrshort{api} multicapa}:
-Se diseñó una arquitectura en tres capas: \acrshortpl{api} de acceso a datos (solo lectura) para consultar estado y obtener datos históricos, \acrshortpl{api} de control para modificar configuración y controlar operaciones, y capa de \textit{\gls{streaming}} en tiempo real mediante \textit{WebSocket} para datos continuos. La arquitectura utilizó \textbf{FastAPI} como \textit{framework} base proporcionando documentación automática y validación de tipos.
+Se diseñó una arquitectura en tres capas: \acrshortpl{api} de acceso a datos (solo lectura) para consultar estado y obtener datos históricos, \acrshortpl{api} de control para modificar configuración y controlar operaciones, y capa de \textit{\gls{streaming}} en tiempo real mediante \textit{\gls{websocket}} para datos continuos. La arquitectura utilizó \textbf{FastAPI} como \textit{framework} base proporcionando documentación automática y validación de tipos.
 
 El diseño implementó un sistema de registro dinámico donde módulos independientes se registran exponiendo sus métodos disponibles. Esto permite que el sistema \acrshort{api} descubra automáticamente capacidades sin requerir configuración manual. Cada módulo define sus \textit{\glspl{endpoint}} mediante \glspl{decorador} estándar que especifican parámetros, tipos de retorno, y documentación.
 
@@ -415,7 +415,7 @@ Se implementaron \acrshortpl{api} de solo lectura independientes para cada módu
 \textbf{Fase 2: Desarrollo del explorador web}:
 Inicialmente se desarrollaron aplicaciones web independientes para cada módulo, pero la dificultad de mantenimiento motivó la unificación. Se implementó un módulo genérico donde módulos independientes se registran dinámicamente exponiendo sus métodos mediante un sistema de registro automatizado.
 
-Los visualizadores en tiempo real se implementaron mediante \textit{WebSocket} usando \textit{Chart.js} para gráficos \acrshort{eeg} que adaptan automáticamente el eje Y, con visualización separada/unificada y filtrado por tipo de canal. Para eventos de entrada se implementó visualización \acrshort{json} estructurada específica del controlador conectado.
+Los visualizadores en tiempo real se implementaron mediante \textit{\gls{websocket}} usando \textit{Chart.js} para gráficos \acrshort{eeg} que adaptan automáticamente el eje Y, con visualización separada/unificada y filtrado por tipo de canal. Para eventos de entrada se implementó visualización \acrshort{json} estructurada específica del controlador conectado.
 
 Se resolvió un problema crítico donde cerrar el visualizador \acrshort{gui} pausaba el \textit{\gls{stream}} porque el único punto de \textit{\gls{polling}} residía en el visualizador. Se implementó \textit{\gls{polling}} interno en el colector para mantener el \textit{\gls{stream}} activo independientemente del estado de la interfaz gráfica.
 
@@ -430,7 +430,7 @@ El problema específico donde el controlador no podía inicializarse desde \acrs
 \textbf{Fase 5: Optimizaciones masivas de rendimiento}:
 La migración a una arquitectura dirigida por eventos, en lugar de \textit{\gls{polling}}, generó un volumen significativamente mayor de eventos que requirió optimizaciones coordinadas: \gls{batching} de eventos para reducir \gls{overhead}, \textit{\gls{worker} pools} para distribuir procesamiento, \gls{buffer} circular con descarte en sobrecarga, minimización de información renderizada en \gls{dom}, medidor de latencia desde \textit{DataAccessService}, y migración a \textit{orjson} para serialización \acrshort{json} de alto rendimiento.
 
-Las optimizaciones se validaron independientemente soportando hasta 1000Hz en \textit{WebSocket} mediante eventos sintéticos del controlador \acrshort{ps4} con accionamiento continuo de \textit{triggers} y \textit{joysticks} analógicos.
+Las optimizaciones se validaron independientemente soportando hasta 1000Hz en \textit{\gls{websocket}} mediante eventos sintéticos del controlador \acrshort{ps4} con accionamiento continuo de \textit{triggers} y \textit{joysticks} analógicos.
 
 \textbf{Fase 6: Desarrollo de interfaces \acrshort{cli}}:
 Se implementaron interfaces completas utilizando las \acrshortpl{api} existentes como \textit{backend}. Las pruebas revelaron problemas \textit{headless} debido a dependencias ocultas de \textbf{Qt}. El \acrshort{cli} del módulo de entrada presenta problemas con servicios sin inicializar, mientras que el \acrshort{cli} \acrshort{eeg} funciona correctamente excepto para visualizadores inherentemente dependientes de la interfaz gráfica.
@@ -468,7 +468,7 @@ La validación se realizó mediante pruebas exhaustivas de cada componente desar
     \textbf{Prueba realizada} & \textbf{Resultado esperado} & \textbf{Resultado obtenido} & \textbf{Estado} \\
     \hline
     API acceso datos ambos módulos & Endpoints funcionales con documentación & APIs completas, documentación automática & Exitosa \\
-    Streaming WebSocket tiempo real & Datos fluidos sin pérdida & Streaming validado hasta 1000Hz & Exitosa \\
+    Streaming \gls{websocket} tiempo real & Datos fluidos sin pérdida & Streaming validado hasta 1000Hz & Exitosa \\
     Explorador web unificado & Interfaz única para ambos módulos & Sistema registro dinámico funcional & Exitosa \\
     API control remoto completo & Control total via programática & Sincronización GUI-API bidireccional & Exitosa \\
     Soporte controlador PS4 & Eventos completos cable/inalámbrico & Arquitectura eventos, latencia mínima & Exitosa \\
@@ -493,7 +493,7 @@ La Tabla~\ref{tab:validacion_iteracion_3} muestra que la mayoría de funcionalid
 \textbf{Métricas de rendimiento validadas}:
 \begin{itemize}
     \item Frecuencias \acrshort{eeg} validadas hasta 250Hz en operación normal
-    \item Soporte hasta 1000Hz en \textit{WebSocket} con eventos sintéticos
+    \item Soporte hasta 1000Hz en \textit{\gls{websocket}} con eventos sintéticos
     \item Latencia procesamiento < 100ms para algoritmos avanzados
     \item Tiempo respuesta \acrshort{api} < 50ms promedio
     \item Pérdida muestras reducida a < 1\% desde 30\% previo
@@ -502,48 +502,4 @@ La Tabla~\ref{tab:validacion_iteracion_3} muestra que la mayoría de funcionalid
 
 \textbf{Cumplimiento de requisitos}: RF-03, RF-06, RF-10, RNF-04, RNF-07, RNF-08 completados satisfactoriamente. RNF-06 (compatibilidad completa multiplataforma) limitado por dependencias \textbf{Qt} en modo \textit{headless}.
 
-\section{Arquitectura final del sistema}
-\label{sec:arquitectura_final}
-
-El sistema desarrollado implementa una arquitectura modular basada en servicios con múltiples interfaces de acceso.
-
-\subsection{Componentes principales}
-\label{subsec:componentes_principales}
-
-\textbf{Módulo de captura de entrada}:
-\begin{itemize}
-    \item Arquitectura modular con servicios especializados
-    \item Soporte múltiple: teclado, ratón, controladores \acrshort{ps4}
-    \item Sistema dirigido por eventos con optimizaciones de rendimiento
-    \item Interfaces: \acrshort{gui} \textit{PyQt5}, \acrshort{cli}, \acrshort{api} web
-\end{itemize}
-
-\textbf{Módulo de procesamiento \acrshort{eeg}}:
-\begin{itemize}
-    \item Arquitectura orientada a servicios con detección automática de canales
-    \item Integración \textbf{Brainflow} con soporte para múltiples fabricantes
-    \item Procesamiento avanzado: \gls{ica_analysis} (\acrshort{ica}), \gls{wavelet}, \textit{MNE-Python}, \gls{filtros_digitales}, \gls{downsampling}
-    \item Visualización científica en tiempo real con múltiples modalidades
-\end{itemize}
-
-\textbf{Explorador \acrshort{api}}:
-\begin{itemize}
-    \item \textit{Framework} web modular con \textit{FastAPI}
-    \item Sistema de registro dinámico de módulos
-    \item Visualización tiempo real con \textit{WebSocket} y optimizaciones de rendimiento
-    \item Interfaz web inspirada en la documentación automática de \textit{FastAPI} con múltiples mejoras: modo claro/oscuro, mejores explicaciones y facilidades para parámetros mediante \textit{sliders}, selectores \textit{combobox}, y plantillas \acrshort{json} con verificador de correctitud. Incluye visualizador de gráficos, disponible solo cuando el módulo lo solicita durante el registro, que proporciona tabla actualizada dinámicamente o modo gráficas. En el modo gráficas se puede elegir entre mostrar todas las señales en un gráfico unificado con escala logarítmica para evitar distorsión por valores atípicos, o utilizar gráficos independientes. Ambas opciones permiten filtrado por tipo de canal y capacidad de ocultar canales específicos
-\end{itemize}
-
-\subsection{Cumplimiento de requisitos}
-\label{subsec:cumplimiento_requisitos}
-
-\textbf{Requisitos funcionales}: RF-01 a RF-07 y RF-10 a RF-12 completados satisfactoriamente. RF-08 (sincronización en tiempo real) y RF-09 (exportación múltiples formatos) no completados debido a la pausa del módulo de integración final.
-
-\textbf{Requisitos no funcionales}: Cumplimiento de RNF-01 a RNF-10 con limitación parcial en RNF-06 debido a dependencias \textit{Qt} en modo \textit{headless}.
-
-\textbf{Casos de uso}: Soporte para CU-01 a CU-06, con CU-01 (generación de \textit{\glspl{dataset}}) requiriendo sincronización \textit{offline}.
-
-\textbf{Capacidades actuales del sistema}: 
-El sistema desarrollado proporciona un módulo de captura de teclas, botones y controladores con \textit{timestamps} precisos y un módulo de conexión intuitiva a dispositivos \acrshort{bci} mediante \textbf{Brainflow} con capacidad de aplicar filtros en tiempo real y grabación en \acrshort{csv} con \textit{timestamps} y posibilidad de añadir marcadores. Cada módulo graba independientemente en \acrshort{csv}, también \acrshort{json} para el módulo de entrada, permitiendo sincronización \textit{offline} posterior. Esta aproximación presenta ventajas específicas: evita sobrecarga \acrshort{cpu} extra en tiempo real, previene fallos relacionados con sincronización entre módulos al mantener independencia de cada componente, y no representa pérdida significativa de valor ya que aunque existiera sincronización en tiempo real, no habría función para servir ese \textit{\gls{stream}} sincronizado en tiempo real a aplicaciones externas.
-
-El sistema constituye una herramienta útil que facilita la investigación y desarrollo en interfaces cerebro-computadora mediante herramientas especializadas e interfaces accesibles.
+\input{contido/Chapter6_Arch}

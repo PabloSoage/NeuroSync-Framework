@@ -38,7 +38,7 @@ La necesidad potencial de interoperabilidad con librerías Python especializadas
 \subsection{JavaScript para interfaces web}
 \label{subsec:javascript_web}
 
-JavaScript ES6+ se emplea en el desarrollo del módulo web para la exploración y pruebas del \acrshort{api}, proporcionando capacidades de visualización interactiva y comunicación en tiempo real con el \textit{backend}. La implementación utiliza una arquitectura modular basada en \gls{managers} especializados que encapsulan funcionalidades específicas como comunicación WebSocket y visualización de gráficos.
+JavaScript ES6+ se emplea en el desarrollo del módulo web para la exploración y pruebas del \acrshort{api}, proporcionando capacidades de visualización interactiva y comunicación en tiempo real con el \textit{backend}. La implementación utiliza una arquitectura modular basada en \gls{managers} especializados que encapsulan funcionalidades específicas como comunicación \gls{websocket} y visualización de gráficos.
 
 \section{\textit{Frameworks} y bibliotecas principales}
 \label{sec:frameworks_principales}
@@ -120,10 +120,10 @@ La capacidad de exportar datos en formatos estándar reconocidos por la comunida
 
 La comunicación eficiente y la serialización optimizada de datos constituyen aspectos críticos del sistema, considerando los requisitos de tiempo real y los volúmenes significativos de datos que deben transmitirse entre componentes.
 
-\subsection{WebSocket para comunicación en tiempo real}
+\subsection{\gls{websocket} para comunicación en tiempo real}
 \label{subsec:websocket_tiempo_real}
 
-WebSocket~\cite{websocket_rfc} proporciona comunicación bidireccional de baja latencia entre el \textit{backend} del sistema y las interfaces web, permitiendo visualización y control en tiempo real a través de navegadores sin instalación de \textit{software} adicional.
+\gls{websocket}~\cite{websocket_rfc} proporciona comunicación bidireccional de baja latencia entre el \textit{backend} del sistema y las interfaces web, permitiendo visualización y control en tiempo real a través de navegadores sin instalación de \textit{software} adicional.
 
 \subsection{orjson para serialización optimizada}
 \label{subsec:orjson_serializacion}
