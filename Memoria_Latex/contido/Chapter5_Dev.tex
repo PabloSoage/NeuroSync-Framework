@@ -24,7 +24,7 @@ Los requisitos funcionales del sistema se clasificaron y documentaron de forma s
     \item \textbf{RF-06}: Procesamiento de señales en tiempo real con algoritmos avanzados
     \item \textbf{RF-07}: Visualización en tiempo real de \glspl{biosenial} y eventos
     \item \textbf{RF-08}: Sincronización temporal precisa entre fuentes de datos
-    \item \textbf{RF-09}: Exportación a formatos estándar (\acrshort{bids}, \acrshort{edf}+, \acrshort{hdf5}, \acrshort{csv})
+    \item \textbf{RF-09}: Exportación a formatos estándar (\acrshort{bids}, \acrshort{edf+}, \acrshort{hdf5}, \acrshort{csv})
     \item \textbf{RF-10}: Interfaces múltiples (\acrshort{gui}, \acrshort{cli}, \acrshort{api} web)
     \item \textbf{RF-11}: Sistema de ayuda contextual integrado
     \item \textbf{RF-12}: Monitoreo de calidad de señal en tiempo real
@@ -163,7 +163,7 @@ La implementación de múltiples modos de \textit{tracking} de ratón requirió 
 La interfaz gráfica inicial se implementó en \textit{tkinter}, pero mostró limitaciones de rendimiento para actualizaciones frecuentes y falta de \textit{\glspl{widgets}} especializados, motivando la experimentación con \textbf{PyQt5}, validando su uso mediante el desarrollo inicial del módulo de \acrshort{eeg}.
 
 \textbf{Fase 3: Desarrollo del módulo de procesamiento \acrshort{eeg}}:
-La implementación comenzó con experimentación usando la placa sintética de \textbf{Brainflow} para validar la \acrshort{api} y establecer patrones de adquisición. Se desarrolló un grabador básico que registraba datos en archivos \acrshort{csv} con metadatos completos: fecha/hora, identificación de placa, \textit{preset}, número de canales, duración, y columnas para \textit{timestamps}, marcadores y canal de control de \textbf{Brainflow}.
+La implementación comenzó con experimentación usando la placa sintética de \textbf{Brainflow} para validar la \acrshort{api} y establecer patrones de adquisición. Se desarrolló un grabador básico que registraba datos en archivos \acrshort{csv} con metadatos completos: fecha/hora, identificación de placa, \textit{preset}, número de canales, duración, y columnas para \textit{timestamps}, \glspl{marcadores} y canal de control de \textbf{Brainflow}.
 
 La migración a \textit{PyQt5} se validó mediante pruebas de rendimiento que confirmaron su capacidad para manejar visualización en tiempo real de múltiples canales \acrshort{eeg}. Se implementó un sistema de visualización que incluía señales \acrshort{eeg} básicas, análisis de \textit{\gls{power_spectrum}}, y representación de \textit{\gls{band_powers}} en tiempo real.
 
@@ -447,12 +447,12 @@ Las transformadas \gls{wavelet} se implementaron con múltiples \gls{familias_wa
 \textbf{Fase 8: Detección automática de canales y optimizaciones}:
 Se eliminó la restricción de asumir primeros 16 canales como \acrshort{eeg}. El sistema detecta automáticamente tipos de canales, incluyendo \acrshort{eeg}, \acrshort{emg}, \acrshort{ecg}, acelerómetro y giroscopio, entre otros. Se crea pestaña por tipo abarcando todos los canales correspondientes, con soporte para múltiples \textit{\gls{presets}}.
 
-Se implementó \textit{\gls{streaming}} a archivo (datos procesados y RAW) y vía \textit{TCP}/\textit{UDP} (limitado a RAW y \textit{\gls{presets}} 0). Se corrigieron problemas donde filtros se aplicaban incorrectamente a todos los canales incluyendo control, causando fallos en reproducción. La pérdida de muestras se solucionó principalmente al migrar de \textit{\gls{polling}} a \textit{\glspl{callback}}, reduciendo la pérdida del 10-30\% a menos del 1\%. Posteriormente, se centralizó el acceso a datos en \textit{DataAccessService} y finalmente se migró la lógica al \textit{RecordingService} utilizando \textit{\glspl{callback}} para facilitar múltiples pipelines de datos.
+Se implementó \textit{\gls{streaming}} a archivo (datos procesados y RAW) y vía \textit{\gls{tcp}}/\textit{\gls{udp}} (limitado a RAW y \textit{\gls{presets}} 0). Se corrigieron problemas donde filtros se aplicaban incorrectamente a todos los canales incluyendo control, causando fallos en reproducción. La pérdida de muestras se solucionó principalmente al migrar de \textit{\gls{polling}} a \textit{\glspl{callback}}, reduciendo la pérdida del 10-30\% a menos del 1\%. Posteriormente, se centralizó el acceso a datos en \textit{DataAccessService} y finalmente se migró la lógica al \textit{RecordingService} utilizando \textit{\glspl{callback}} para facilitar múltiples pipelines de datos.
 
 \textbf{Fase 9: Intento de integración final con \acrshort{lsl}}:
 Se desarrolló un módulo de sincronización que accedía a datos mediante \glspl{callback} locales para evitar \gls{overhead} de comunicación web. La implementación incluía integración visual de ambos módulos y coordinación de operaciones de sincronización.
 
-El desarrollo se pausó por problemas técnicos en exportación de formatos \acrshort{edf} y \acrshort{edf}+ y falta de tiempo para verificar precisión de sincronización temporal. Los \glspl{callback} locales funcionan correctamente y la integración conceptual está validada.
+El desarrollo se pausó por problemas técnicos en exportación de formatos \acrshort{edf} y \acrshort{edf+} y falta de tiempo para verificar precisión de sincronización temporal. Los \glspl{callback} locales funcionan correctamente y la integración conceptual está validada.
 
 \subsection{Validación de la iteración}
 \label{subsec:validacion_iteracion_3}
@@ -479,7 +479,7 @@ La validación se realizó mediante pruebas exhaustivas de cada componente desar
     Filtros digitales expandidos & Múltiples tipos, downsampling & Filtros avanzados, agregación múltiple & Exitosa \\
     Detección automática canales & Tipos automáticos: EEG, EMG, ECG, etc. & Detección correcta, pestañas por tipo & Exitosa \\
     Optimizaciones rendimiento & Soporte 1000Hz sin pérdida & Batching, workers, orjson validados & Exitosa \\
-    Streaming archivos/red & TCP/UDP/archivo con múltiples formatos & Archivo completo, red limitada preset 0 & Parcial \\
+    Streaming archivos/red & \gls{tcp}/\gls{udp}/archivo con múltiples formatos & Archivo completo, red limitada preset 0 & Parcial \\
     Corrección pérdida muestras & Reducción <1\% desde 10-30\% & Migración callbacks, pérdida <1\% & Exitosa \\
     Integración LSL final & Sincronización temporal precisa & Callbacks locales OK, exportación pausada & Pausada \\
     \end{tabular}

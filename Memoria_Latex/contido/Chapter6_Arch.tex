@@ -71,7 +71,7 @@ La arquitectura modular facilita tanto la integración como la extensión futura
 \subsection{Capacidades Actuales del Sistema}
 \label{subsec:capacidades_actuales_sistema}
 
-El sistema desarrollado proporciona un módulo de captura de eventos de teclado, movimientos y clics de ratón, y controladores con \textit{\glspl{timestamp}} precisos y un módulo de conexión intuitiva a dispositivos \acrshort{bci} mediante \textbf{Brainflow} con capacidad de aplicar filtros en tiempo real y grabación en \acrshort{csv} con \textit{\glspl{timestamp}} y posibilidad de añadir \gls{marcadores}. Cada módulo graba independientemente en \acrshort{csv}, también \acrshort{json} para el módulo de entrada, permitiendo sincronización \textit{offline} posterior.
+El sistema desarrollado proporciona un módulo de captura de eventos de teclado, movimientos y clics de ratón, y controladores con \textit{\glspl{timestamp}} precisos y un módulo de conexión intuitiva a dispositivos \acrshort{bci} mediante \textbf{Brainflow} con capacidad de aplicar filtros en tiempo real y grabación en \acrshort{csv} con \textit{\glspl{timestamp}} y posibilidad de añadir \glspl{marcadores}. Cada módulo graba independientemente en \acrshort{csv}, también \acrshort{json} para el módulo de entrada, permitiendo sincronización \textit{offline} posterior.
 
 Esta aproximación presenta ventajas específicas: evita sobrecarga \acrshort{cpu} extra en tiempo real, previene fallos relacionados con sincronización entre módulos al mantener independencia de cada componente, y no representa pérdida significativa de valor ya que, aunque existiera sincronización en tiempo real, no estaría desarrollada la funcionalidad para servir ese \textit{\gls{stream}} sincronizado en tiempo real a aplicaciones externas.
 
