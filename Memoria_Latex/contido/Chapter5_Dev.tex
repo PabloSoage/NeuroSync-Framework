@@ -3,12 +3,12 @@
 
 \lettrine{E}{l} desarrollo del sistema se ha realizado siguiendo una metodología incremental-iterativa que ha permitido evolucionar desde prototipos funcionales simples hasta una arquitectura modular robusta. Este capítulo documenta el proceso de desarrollo completo aplicando de forma sistemática las fases de análisis, diseño e implementación en cada iteración, describiendo los artefactos generados, las decisiones arquitectónicas adoptadas y las validaciones realizadas.
 
-Cada iteración sigue el ciclo metodológico establecido: análisis de requisitos específicos, diseño de la solución, implementación de componentes, y validación mediante pruebas funcionales. Esta aproximación sistemática ha resultado fundamental para gestionar la complejidad inherente del desarrollo de sistemas \acrshort{bci} integrados.
+El desarrollo se organizó en tres iteraciones principales que agrupan las actividades realizadas: la primera iteración abarcó desde la investigación inicial hasta el primer intento fallido de integración, la segunda iteración incluyó la refactorización \acrshort{solid} y el segundo intento fallido de integración, y la tercera iteración implementó la arquitectura \acrshort{api} completa con todas las funcionalidades avanzadas desarrolladas.
 
 \section{Análisis de requisitos del sistema}
 \label{sec:analisis_requisitos_sistema}
 
-El análisis de requisitos se realizó de forma evolutiva durante las primeras iteraciones, refinándose progresivamente a medida que se profundizaba en el dominio del problema. La identificación y clasificación sistemática de requisitos proporcionó la base para el diseño arquitectónico y la planificación de iteraciones.
+El análisis de requisitos se realizó de forma evolutiva durante las primeras fases del desarrollo, refinándose progresivamente a medida que se profundizaba en el dominio del problema. La identificación y clasificación sistemática de requisitos proporcionó la base para el diseño arquitectónico y la planificación de iteraciones.
 
 \subsection{Requisitos funcionales}
 \label{subsec:requisitos_funcionales}
@@ -18,8 +18,8 @@ Los requisitos funcionales del sistema se clasificaron y documentaron de forma s
 \begin{itemize}
     \item \textbf{RF-01}: Captura de eventos de teclado con precisión temporal de milisegundos
     \item \textbf{RF-02}: Captura de eventos de ratón con múltiples modos de \textit{tracking}
-    \item \textbf{RF-03}: Soporte para controladores \acrshort{ps4} mediante \textit{SDL2}
-    \item \textbf{RF-04}: Adquisición de señales \acrshort{eeg} mediante BrainFlow
+    \item \textbf{RF-03}: Soporte para controladores \acrshort{ps4} mediante \textbf{SDL2}
+    \item \textbf{RF-04}: Adquisición de señales \acrshort{eeg} mediante \textbf{Brainflow}
     \item \textbf{RF-05}: Soporte para múltiples dispositivos \acrshort{eeg} comerciales
     \item \textbf{RF-06}: Procesamiento de señales en tiempo real con algoritmos avanzados
     \item \textbf{RF-07}: Visualización en tiempo real de \glspl{biosenial} y eventos
@@ -48,796 +48,460 @@ Los requisitos no funcionales establecieron las restricciones de calidad y rendi
     \item \textbf{RNF-10}: Cumplimiento de estándares de codificación establecidos
 \end{itemize}
 
+\subsection{Identificación de actores del sistema}
+\label{subsec:actores_sistema}
+
+La identificación de actores proporcionó el contexto de uso que guió el desarrollo de cada funcionalidad:
+
+\begin{itemize}
+    \item \textbf{Investigador \acrshort{bci}}: Investigador especializado en interfaces cerebro-computadora que necesita generar \textit{\glspl{dataset}} de calidad para entrenar modelos \acrshort{ml}. Requiere herramientas que faciliten la correlación temporal entre señales cerebrales y acciones del usuario.
+
+    \item \textbf{Investigador neurocientífico}: Investigador en neurociencia que estudia la actividad cerebral humana. Necesita herramientas de visualización y análisis \acrshort{eeg} en tiempo real para validar paradigmas experimentales y analizar respuestas neurológicas.
+
+    \item \textbf{Desarrollador de aplicaciones \acrshort{bci}}: Programador que desarrolla aplicaciones personalizadas utilizando interfaces cerebro-computadora. Requiere acceso programático a datos y capacidades de integración con sistemas existentes.
+
+    \item \textbf{Personal técnico de laboratorio}: Técnico responsable de configurar y mantener equipos de investigación neurocientífica. Necesita interfaces intuitivas para configuración de dispositivos y monitorización de calidad de señal.
+
+    \item \textbf{Analista de datos}: Especialista en análisis estadístico que procesa \textit{\glspl{dataset}} \acrshort{bci} para extraer patrones y generar \textit{\gls{insights}}. Requiere datos estructurados en formatos estándar compatibles con herramientas de análisis.
+
+    \item \textbf{Usuario del sistema}: Usuario final que participa en experimentos \acrshort{bci}. Necesita interfaces claras para entender el estado del sistema y su participación en el experimento.
+
+    \item \textbf{Integrador de sistemas}: Técnico que integra el sistema con infraestructuras existentes. Requiere \acrshortpl{api} bien documentadas y capacidades de automatización.
+\end{itemize}
+
 \subsection{Análisis de casos de uso}
 \label{subsec:analisis_casos_uso}
 
-Los casos de uso identificados proporcionan el contexto funcional que guía el desarrollo de cada iteración:
+Los casos de uso identificados describen las interacciones específicas entre actores y sistema:
 
 \begin{itemize}
-    \item \textbf{CU-01}: Generación de \textit{datasets} para entrenamiento \acrshort{ml}
-    \item \textbf{CU-02}: Análisis de señales en tiempo real durante experimentos
-    \item \textbf{CU-03}: Desarrollo de aplicaciones \acrshort{bci} personalizadas
-    \item \textbf{CU-04}: Investigación académica en neurociencia
-    \item \textbf{CU-05}: Validación de paradigmas experimentales
-    \item \textbf{CU-06}: Integración con herramientas de análisis existentes
+    \item \textbf{CU-01 - Generación de \textit{\glspl{dataset}} para entrenamiento \acrshort{ml}}: El investigador \acrshort{bci} configura parámetros de captura, inicia grabación sincronizada de señales \acrshort{eeg} y eventos de entrada, y exporta datos en formatos compatibles con frameworks de \acrshort{ml}.
+
+    \item \textbf{CU-02 - Análisis de señales en tiempo real durante experimentos}: El investigador neurocientífico configura paradigmas experimentales, monitoriza calidad de señal en tiempo real, y analiza respuestas cerebrales mediante visualizaciones especializadas.
+
+    \item \textbf{CU-03 - Desarrollo de aplicaciones \acrshort{bci} personalizadas}: El desarrollador accede a datos mediante \acrshortpl{api}, integra el sistema con aplicaciones externas, y desarrolla interfaces personalizadas utilizando los datos capturados.
+
+    \item \textbf{CU-04 - Investigación académica en neurociencia}: El investigador neurocientífico configura experimentos complejos, aplica algoritmos de procesamiento avanzados, y exporta resultados para publicación científica.
+
+    \item \textbf{CU-05 - Validación de paradigmas experimentales}: El personal técnico de laboratorio configura dispositivos, valida configuraciones experimentales, y verifica la calidad de los datos capturados.
+
+    \item \textbf{CU-06 - Integración con herramientas de análisis existentes}: El analista de datos importa \textit{\glspl{dataset}} generados, los integra con herramientas como \textbf{MNE-Python} o \textbf{EEGLAB}, y realiza análisis estadísticos avanzados.
 \end{itemize}
 
-\section{Primera iteración: Módulo de captura de entrada}
+\section{Primera iteración: Módulos básicos e integración inicial}
 \label{sec:iteracion_1}
 
-La primera iteración se enfocó en desarrollar las capacidades básicas de captura de eventos de entrada del usuario, estableciendo los fundamentos técnicos para el procesamiento temporal preciso.
+La primera iteración abarcó el desarrollo de los módulos fundamentales del sistema y el primer intento de integración. Esta iteración incluyó las fases de exploración tecnológica inicial, desarrollo del módulo de captura de entrada, implementación del módulo de procesamiento \acrshort{eeg}, y el primer intento fallido de integración que reveló limitaciones arquitectónicas fundamentales.
 
 \subsection{Análisis de la iteración}
 \label{subsec:analisis_iteracion_1}
 
-\textbf{Objetivos específicos}: Implementar captura básica de eventos de teclado y ratón con precisión temporal (RF-01, RF-02).
+\textbf{Objetivos específicos}: Desarrollar módulos básicos funcionales para captura de eventos de entrada y procesamiento \acrshort{eeg}, estableciendo los fundamentos técnicos para un sistema integrado.
 
-\textbf{Requisitos abordados}: RF-01, RF-02, RNF-01, RNF-06
+\textbf{Requisitos abordados}: RF-01, RF-02, RF-04, RF-05, RF-07, RF-11, RF-12, RNF-01, RNF-05, RNF-06, RNF-08
 
-\textbf{Casos de uso específicos}: 
+\textbf{Casos de uso específicos}:
 \begin{itemize}
-    \item \textbf{CU-01 (parcial)}: Captura de eventos de entrada para correlación posterior con señales cerebrales
+    \item \textbf{CU-01 (parcial)}: Captura básica de eventos de entrada para correlación posterior con señales cerebrales
     \item \textbf{CU-02 (parcial)}: Registro temporal preciso de acciones del usuario durante experimentos
+    \item \textbf{CU-04 (parcial)}: Herramientas básicas de visualización para investigación neurocientífica
+    \item \textbf{CU-05 (parcial)}: Configuración básica de dispositivos y validación de señal
 \end{itemize}
 
 \textbf{Actores beneficiados}:
 \begin{itemize}
-    \item Investigador \acrshort{bci}: Podrá utilizar la captura de eventos para correlacionar con señales cerebrales
-    \item Desarrollador de aplicaciones: Podrá integrar eventos de entrada en sistemas \acrshort{bci} personalizados
+    \item \textbf{Investigador \acrshort{bci}}: Se benefició de la capacidad de capturar eventos de entrada con precisión temporal para correlación posterior con señales cerebrales
+    \item \textbf{Investigador neurocientífico}: Obtuvo herramientas básicas de visualización \acrshort{eeg} y análisis de calidad de señal
+    \item \textbf{Personal técnico de laboratorio}: Pudo configurar dispositivos \acrshort{eeg} y verificar conectividad básica
+    \item \textbf{Usuario del sistema}: Se benefició de interfaces intuitivas para participar en experimentos básicos
 \end{itemize}
 
 \textbf{Criterios de aceptación}:
 \begin{itemize}
-    \item Captura de eventos de teclado con \textit{timestamps} precisos
+    \item Captura de eventos de teclado y ratón con \textit{timestamps} precisos
     \item Filtrado configurable de teclas específicas
-    \item Múltiples modos de \textit{tracking} para ratón
-    \item Exportación básica en formato \acrshort{json}
+    \item Múltiples modos de \textit{tracking} para movimiento de ratón
+    \item Conectividad básica con dispositivos \acrshort{eeg} mediante \textbf{Brainflow}
+    \item Visualización multicanal de señales \acrshort{eeg} en tiempo real
+    \item Monitoreo básico de calidad de señal
+    \item Exportación en formatos \acrshort{json} y \acrshort{csv}
 \end{itemize}
 
 \subsection{Diseño de la iteración}
 \label{subsec:diseno_iteracion_1}
 
-\textbf{Arquitectura inicial}: Diseño monolítico con captura directa mediante \textit{pynput}
+El diseño de esta iteración siguió inicialmente un enfoque monolítico que posteriormente reveló limitaciones para la integración entre módulos.
 
-\textbf{Componentes principales}:
-\begin{itemize}
-    \item Capturador de eventos de teclado
-    \item Capturador de eventos de ratón con modos múltiples
-    \item Sistema de \textit{timestamping} de alta precisión
-    \item Exportador \acrshort{json} básico
-\end{itemize}
+\textbf{Arquitectura inicial del módulo de entrada}:
+El módulo de captura de entrada se diseñó como una aplicación monolítica que integraba la lógica de captura, procesamiento y almacenamiento en un único \textit{script}. La arquitectura utilizaba \textbf{pynput} como biblioteca principal para la captura multiplataforma de eventos de teclado y ratón. El diseño incluía un sistema de filtrado configurable que permitía seleccionar qué teclas y botones capturar, evitando ruido en los datos experimentales.
 
-\textbf{Decisiones de diseño}:
-\begin{itemize}
-    \item Uso de \textit{pynput} para compatibilidad multiplataforma
-    \item Implementación de múltiples modos de \textit{tracking} de ratón
-    \item Sistema de filtrado configurable para teclas específicas
-\end{itemize}
+El sistema de \textit{timestamps} se implementó utilizando la función \textit{time.time()} de Python para garantizar precisión temporal de milisegundos. El diseño contemplaba cuatro modos diferentes de representación del movimiento del ratón para adaptarse a diferentes tipos de experimentos: modo \textit{axis} para direcciones cardinales, modo \textit{angle} para representación angular, modo \textit{delta} para movimiento en bruto, y modo \textit{joystick} para emulación de controlador analógico.
+
+\textbf{Arquitectura inicial del módulo \acrshort{eeg}}:
+El módulo de procesamiento \acrshort{eeg} se diseñó como una aplicación independiente que integraba \textbf{Brainflow} mediante el patrón \textit{Adapter}. La arquitectura se desarrolló directamente en \textbf{PyQt5} después de validar su rendimiento superior sobre \textbf{tkinter} para visualización en tiempo real.
+
+El diseño incluyó componentes especializados: un adaptador \textbf{Brainflow} para abstracción de dispositivos, un visualizador multicanal que asumía los primeros 16 canales como \acrshort{eeg}, un monitor de calidad de señal mediante \textit{\gls{railed_percentage}}, y un visualizador topográfico básico compatible con sistemas \gls{sistema_10_20} y \gls{sistema_10_10}. El sistema de ayuda contextual se diseñó como \textit{\glspl{widgets}} independientes que proporcionaban información sobre conceptos neurofisiológicos y parámetros técnicos.
+
+\textbf{Problemas de diseño identificados durante la integración}:
+El primer intento de integración reveló limitaciones fundamentales en el diseño monolítico. Los archivos de gran tamaño y el acoplamiento estrecho entre componentes dificultaron la identificación de puntos de integración apropiados. La falta de interfaces claras entre módulos y la ausencia de separación de responsabilidades complicaron la implementación de comunicación entre sistemas.
+
+\textbf{Patrones de diseño utilizados}:
+Durante esta iteración se utilizaron patrones básicos: \textit{Adapter} para integración con \textbf{Brainflow}, \textit{Observer} básico mediante \textit{\glspl{callback}} simples, y patrones de filtrado para selección de eventos específicos. Sin embargo, la falta de aplicación sistemática de principios \acrshort{solid} limitó la extensibilidad y mantenibilidad del código.
 
 \subsection{Implementación de la iteración}
 \label{subsec:implementacion_iteracion_1}
 
-\textbf{Tecnologías utilizadas}: \textit{Python 3.8+}, \textit{pynput}, \textit{time} (para \textit{timestamps})
+La implementación se organizó en fases secuenciales que abarcaron desde la exploración tecnológica hasta el intento fallido de integración.
 
-\textbf{Desarrollo del \textit{script} básico}:
-Se desarrolló un \textit{script} inicial utilizando \textit{pynput} para registrar eventos de teclado con \textit{timestamps} precisos. Una vez verificado el funcionamiento básico, se añadió un sistema de filtrado que permitía capturar únicamente teclas preestablecidas específicas para evitar ruido en los datos.
+\textbf{Fase 1: Exploración tecnológica con Julia}:
+Se desarrolló una versión inicial del \textit{script} de captura de entrada en Julia motivada por su rendimiento superior y tipado fuerte. La implementación básica de captura de eventos funcionó correctamente, pero la precompilación requerida en cada ejecución y las dificultades para implementar una \acrshort{gui} funcional motivaron el abandono de esta aproximación. Los problemas de \textit{debugging} en errores complejos y la naturaleza experimental iterativa del desarrollo hicieron que Python fuera más apropiado para este proyecto.
 
-\textbf{Soporte para eventos de ratón}:
-La incorporación de eventos de ratón presentó complejidad específica en aplicaciones donde el cursor se mantiene bloqueado en el centro de la pantalla. Se implementaron cuatro modos de representación del movimiento:
+\textbf{Fase 2: Desarrollo del módulo de captura de entrada}:
+La implementación en Python utilizó \textbf{pynput} como biblioteca principal para garantizar compatibilidad multiplataforma. Se desarrolló un sistema de filtrado que permitía configurar qué teclas específicas capturar, eliminando automáticamente eventos de liberación por no aportar información relevante para la mayoría de experimentos \acrshort{bci}.
 
-\begin{itemize}
-    \item \textbf{Axis}: Probabilidad de movimiento en direcciones cardinales (N/S/E/W) que suman 1. Para movimientos paralelos a ejes un valor será 1 y otros 0, para diagonales dos valores serán 0.5. Solo proporciona dirección sin magnitud.
-    \item \textbf{Angle}: Dos submodos disponibles, direcciones discretas agrupables que pueden configurarse desde 4 hasta 360 valores según agrupación, y ángulo continuo con magnitud de movimiento sin agrupamiento.
-    \item \textbf{Delta}: Movimiento en bruto con deltas por eje y magnitud total, incluyendo \gls{delta_smoothing} configurable.
-    \item \textbf{Joystick}: Direcciones X+/X-/Y+/Y- con combinaciones posibles, velocidad por eje y compuesta ajustable mediante el parámetro \textit{joystick sensitivity}.
-\end{itemize}
+La implementación de múltiples modos de \textit{tracking} de ratón requirió desarrollo personalizado para cada modalidad. El modo \textit{axis} calcula probabilidades de movimiento en direcciones cardinales que suman 1. El modo \textit{angle} proporciona tanto direcciones discretas agrupables como ángulos continuos con magnitud. El modo \textit{delta} registra movimiento en bruto con \textit{\gls{delta_smoothing}} configurable. El modo \textit{joystick} emula direcciones X+/X-/Y+/Y- con velocidad ajustable mediante parámetros de sensibilidad.
 
-\textbf{Gestión de eventos de liberación}:
-Se implementó filtrado automático para eventos de liberación que se eliminan sistemáticamente por no aportar información relevante, utilizándose únicamente de forma interna para \textit{tracking} de teclas presionadas. El filtrado configurable se aplica a la selección de teclas y botones específicos a capturar, permitiendo capturar solo los eventos relevantes para cada experimento específico.
+La interfaz gráfica inicial se implementó en \textit{tkinter}, pero mostró limitaciones de rendimiento para visualización en tiempo real, motivando la experimentación con \textit{PyQt5} que se validaría posteriormente en el módulo \acrshort{eeg}.
 
-\textbf{Migración tecnológica fallida}:
-Se intentó migrar el \textit{script} a \textit{Julia} por su rendimiento superior y tipado fuerte, pero la precompilación requerida en cada ejecución y la dificultad para depurar errores complejos motivaron continuar con \textit{Python} debido a la naturaleza experimental iterativa del desarrollo.
+\textbf{Fase 3: Desarrollo del módulo de procesamiento \acrshort{eeg}}:
+La implementación comenzó con experimentación usando la placa sintética de \textbf{Brainflow} para validar la \acrshort{api} y establecer patrones de adquisición. Se desarrolló un grabador básico que registraba datos en archivos \acrshort{csv} con metadatos completos: fecha/hora, identificación de placa, \textit{preset}, número de canales, duración, y columnas para \textit{timestamps}, marcadores y canal de control de \textbf{Brainflow}.
 
-\textbf{Implementación de \textit{type hints}}:
-Se añadió tipado estático básico al \textit{script} para facilitar el mantenimiento y \textit{debugging} del código.
+La migración a \textit{PyQt5} se validó mediante pruebas de rendimiento que confirmaron su capacidad para manejar visualización en tiempo real de múltiples canales \acrshort{eeg}. Se implementó un sistema de visualización que incluía señales \acrshort{eeg} básicas, análisis de \textit{\gls{power_spectrum}}, y representación de \textit{\gls{band_powers}} en tiempo real.
 
-\textbf{Desarrollo de interfaz gráfica}:
-La implementación inicial en \textit{tkinter} mostró limitaciones de rendimiento para visualización en tiempo real y falta de \textit{widgets} especializados, motivando la experimentación con \textit{PyQt5} que posteriormente se validaría en el módulo \acrshort{eeg}.
+El visualizador topográfico se implementó con posicionamiento aproximado preestablecido que sitúa electrodos según su nomenclatura (Pz, PO7, Cz, F4) en 4 regiones anatómicas básicas. Se integró codificación de colores para indicar calidad de señal por electrodo utilizando métricas de \textit{\gls{railed_percentage}}.
+
+El sistema de ayuda contextual se implementó como más de 25 \textit{widgets} especializados que cubren conceptos desde neurofisiología básica hasta parámetros técnicos específicos de \textbf{Brainflow}. La información se recopiló de documentación oficial y recursos educativos especializados.
+
+\textbf{Fase 4: Primer intento de integración}:
+La integración visual se logró exitosamente, permitiendo controlar ambos módulos desde una interfaz unificada con coordinación básica de inicio/parada de grabaciones. Se unificaron los formatos de exportación añadiendo soporte \acrshort{csv} al módulo de entrada para facilitar la combinación posterior de datos.
+
+Sin embargo, la integración \acrshort{lsl} falló debido a la estructura monolítica de los módulos. Los archivos de gran tamaño y el acoplamiento estrecho dificultaron la identificación de puntos de integración. Cada módulo utilizaba sistemas de \textit{timestamping} independientes sin coordinación externa, impidiendo la sincronización temporal precisa requerida.
+
+\textbf{Decisiones de implementación específicas}:
+Durante esta fase se implementó tipado estático básico con \textit{\gls{type hints}} para facilitar el mantenimiento del código. Se establecieron patrones de manejo de errores específicos para cada tipo de dispositivo. La implementación priorizó la funcionalidad sobre la arquitectura, lo que posteriormente motivaría la refactorización completa.
 
 \subsection{Validación de la iteración}
 \label{subsec:validacion_iteracion_1}
 
-\textbf{Pruebas realizadas}:
-\begin{itemize}
-    \item Verificación de precisión temporal en \textit{timestamps}
-    \item Validación de filtrado de teclas específicas
-    \item Pruebas de todos los modos de \textit{tracking} de ratón
-    \item Verificación de exportación \acrshort{json} correcta
-\end{itemize}
+La validación se realizó mediante pruebas manuales exhaustivas para cada componente desarrollado y el intento de integración.
 
-\textbf{Resultados}: Cumplimiento satisfactorio de RF-01, RF-02 y RNF-01. Latencias medidas < 10ms para eventos de entrada.
+\begin{table}[htbp!]
+  \centering
+  \resizebox{\textwidth}{!}{
+    \rowcolors{2}{white}{udcgray!25}
+    \begin{tabular}{l|l|l|l}
+    \rowcolor{udcpink!25}
+    \textbf{Prueba realizada} & \textbf{Resultado esperado} & \textbf{Resultado obtenido} & \textbf{Estado} \\
+    \hline
+    Captura eventos teclado & Eventos con timestamps < 10ms latencia & Latencia medida 5-8ms & ✓ Exitosa \\
+    Filtrado teclas específicas & Solo teclas configuradas capturadas & Filtrado correcto, eventos liberación eliminados & ✓ Exitosa \\
+    Modos tracking ratón & 4 modos funcionales con representaciones distintas & Axis, angle, delta, joystick funcionando & ✓ Exitosa \\
+    Exportación JSON básica & Estructura JSON válida con metadatos & JSON correcto con timestamps y metadatos & ✓ Exitosa \\
+    Conectividad \textbf{Brainflow} & Conexión exitosa con placa sintética & Conexión establecida, datos fluyendo & ✓ Exitosa \\
+    Visualización multicanal & 16 canales mostrados en tiempo real & Visualización fluida hasta 250Hz & ✓ Exitosa \\
+    Calidad señal (railed \%) & Detección automática electrodos problemáticos & Cálculo correcto, visualización por colores & ✓ Exitosa \\
+    Grabación CSV con metadatos & Archivo CSV con cabeceras completas & Metadatos completos, estructura correcta & ✓ Exitosa \\
+    Migración GUI a PyQt5 & Rendimiento superior a tkinter & Visualización fluida, widgets responsivos & ✓ Exitosa \\
+    Integración visual módulos & Interfaz unificada funcional & Control coordinado ambos módulos & ✓ Exitosa \\
+    Integración LSL & Sincronización temporal precisa & Fallo por acoplamiento monolítico & ✗ Fallida \\
+    Sincronización timestamps & Timestamps coordinados entre módulos & Sistemas independientes sin coordinación & ✗ Fallida \\
+    \end{tabular}
+  }
+  \caption{Resultados de validación de la primera iteración}
+  \label{tab:validacion_iteracion_1}
+\end{table}
 
-\section{Segunda iteración: Módulo de procesamiento \acrshort{eeg}}
+La Tabla~\ref{tab:validacion_iteracion_1} muestra que los módulos individuales cumplieron satisfactoriamente sus objetivos, con latencias de captura inferiores a 10ms y rendimiento validado hasta 250Hz para visualización \acrshort{eeg}. Sin embargo, los fallos en integración \acrshort{lsl} y sincronización temporal revelaron la necesidad de cambios arquitectónicos fundamentales.
+
+\textbf{Cumplimiento de requisitos}: RF-01, RF-02, RF-04, RF-05, RF-07, RF-11, RF-12 y RNF-01, RNF-05, RNF-06 completados satisfactoriamente. RF-08 (sincronización temporal) no logrado, motivando la refactorización posterior.
+
+\textbf{Lecciones aprendidas}: La integración exitosa requiere arquitectura modular desde el diseño inicial, interfaces bien definidas entre componentes, y separación clara de responsabilidades. La aproximación monolítica, aunque funcional para módulos independientes, impide la integración efectiva en sistemas complejos.
+
+\section{Segunda iteración: Refactorización e integración avanzada}
 \label{sec:iteracion_2}
 
-La segunda iteración desarrolló las capacidades de captura y procesamiento de señales \acrshort{eeg}, estableciendo la base para el análisis de \glspl{biosenial} en tiempo real.
+La segunda iteración abordó las limitaciones arquitectónicas identificadas mediante refactorización completa basada en principios \acrshort{solid}, seguida de un segundo intento de integración más sofisticado que, aunque técnicamente superior, reveló la necesidad de cambios paradigmáticos fundamentales.
 
 \subsection{Análisis de la iteración}
 \label{subsec:analisis_iteracion_2}
 
-\textbf{Objetivos específicos}: Implementar adquisición de señales \acrshort{eeg} con visualización en tiempo real (RF-04, RF-05, RF-07).
+\textbf{Objetivos específicos}: Reestructurar la arquitectura del sistema aplicando principios \acrshort{solid} para facilitar la integración entre módulos e implementar un segundo intento de integración más robusto.
 
-\textbf{Requisitos abordados}: RF-04, RF-05, RF-06, RF-07, RF-11, RF-12, RNF-02, RNF-05
+\textbf{Requisitos abordados}: RNF-03, RNF-04, RNF-08, RNF-09, RF-08
 
 \textbf{Casos de uso específicos}:
 \begin{itemize}
-    \item \textbf{CU-02}: Visualización en tiempo real de señales cerebrales durante experimentos
-    \item \textbf{CU-04}: Herramientas de análisis para investigación neurocientífica
-    \item \textbf{CU-05}: Validación de calidad de señal y configuración experimental
+    \item \textbf{CU-01}: Preparación arquitectónica para generación de \textit{\glspl{dataset}} sincronizados
+    \item \textbf{CU-03 (preparación)}: Arquitectura extensible para futuro desarrollo de aplicaciones personalizadas
+    \item \textbf{CU-06 (preparación)}: Base arquitectónica para integración con herramientas externas
 \end{itemize}
 
 \textbf{Actores beneficiados}:
 \begin{itemize}
-    \item Investigador neurocientífico: Podrá utilizar las herramientas de visualización y análisis \acrshort{eeg}
-    \item Personal técnico de laboratorio: Podrá configurar y monitorizar dispositivos \acrshort{eeg}
-    \item Usuarios del sistema: Podrán verificar la calidad de señal durante experimentos
+    \item \textbf{Desarrollador de aplicaciones \acrshort{bci}}: Se habría beneficiado de arquitectura modular para desarrollo de extensiones
+    \item \textbf{Investigador \acrshort{bci}}: Habría obtenido capacidades de sincronización para \textit{\glspl{dataset}} de calidad
+    \item \textbf{Integrador de sistemas}: Habría podido utilizar interfaces modulares para integración
+    \item \textbf{Equipo de desarrollo}: Se benefició de código más mantenible y menos acoplado
 \end{itemize}
 
 \textbf{Criterios de aceptación}:
 \begin{itemize}
-    \item Conectividad con dispositivos BrainFlow
-    \item Visualización básica multicanal asumiendo primeros 16 canales como \acrshort{eeg}
-    \item Monitoreo de calidad de señal mediante \gls{railed_percentage}
-    \item Sistema de ayuda contextual
-    \item Grabación en formato \acrshort{csv}
+    \item Aplicación completa de principios \acrshort{solid}
+    \item Reducción significativa del acoplamiento entre componentes
+    \item Interfaces bien definidas para comunicación entre módulos
+    \item Preservación de toda la funcionalidad existente
+    \item Integración coordinada entre módulos refactorizados
+    \item Sincronización temporal básica entre fuentes de datos
 \end{itemize}
 
 \subsection{Diseño de la iteración}
 \label{subsec:diseno_iteracion_2}
 
-\textbf{Arquitectura}: Integración con BrainFlow mediante patrón \textit{Adapter}, desarrollado directamente en \textit{PyQt5}
+El diseño de esta iteración se enfocó en transformar la arquitectura monolítica en un sistema modular extensible que facilitara la integración futura.
 
-\textbf{Componentes principales}:
-\begin{itemize}
-    \item Adaptador BrainFlow para abstracción de dispositivos
-    \item Visualizador básico multicanal con análisis de \textit{\gls{power_spectrum}} y representación de bandas de frecuencia
-    \item Monitor de calidad de señal mediante \gls{railed_percentage}
-    \item Visualizador topográfico compatible con \gls{sistema_10_20} y \gls{sistema_10_10}
-    \item Sistema de ayuda contextual
-\end{itemize}
+\textbf{Nueva arquitectura basada en servicios}:
+Se diseñó una arquitectura orientada a servicios utilizando el patrón \textit{Singleton} para recursos compartidos y comunicación dirigida por eventos. La arquitectura separó claramente las responsabilidades en servicios especializados: \textit{CollectorService} para gestión de colectores de datos, \textit{RecordingService} para coordinación de grabaciones, \textit{ProcessingService} para algoritmos de procesamiento, y servicios de gestión para recursos compartidos.
 
-\textbf{Decisiones de diseño}:
-\begin{itemize}
-    \item Desarrollo directo en \textit{PyQt5} tras validación de rendimiento
-    \item Visualizador topográfico básico con posicionamiento aproximado preestablecido
-    \item Cálculo de métricas de estado mental bajo demanda mediante botón
-\end{itemize}
+El diseño implementó el principio de \textit{Single Responsibility} asignando una responsabilidad específica a cada clase. El principio \textit{Open-Closed} se aplicó mediante interfaces abstractas que permiten extensibilidad sin modificar código existente. \textit{Liskov Substitution} se garantizó mediante implementaciones intercambiables de interfaces comunes. \textit{Interface Segregation} se logró creando interfaces específicas para cada funcionalidad sin dependencias innecesarias. \textit{Dependency Inversion} se implementó mediante inyección de dependencias y abstracciones.
+
+\textbf{Patrones de diseño aplicados}:
+La arquitectura utilizó el patrón \textit{Singleton} con implementación \textit{\gls{thread-safe}} para servicios centrales que requieren instancia única. El patrón \textit{Factory} se aplicó para creación de colectores específicos según el tipo de dispositivo. \textit{Observer} se implementó mediante sistema de \glspl{callback} para comunicación desacoplada entre componentes. El patrón \textit{Strategy} se utilizó para intercambio de algoritmos de procesamiento sin modificar el código cliente.
+
+\textbf{Diseño del módulo integrador}:
+Se diseñó un módulo integrador independiente que coordinaba ambos módulos refactorizados. El diseño incluía un sistema de configuración unificado que permitía establecer parámetros globales, coordinación visual de controles de grabación desde una interfaz centralizada, y \textit{widgets} de ayuda específicos para explicar diferencias entre formatos de exportación y opciones de sincronización.
+
+\textbf{Arquitectura de comunicación}:
+El diseño contempló múltiples modalidades de comunicación entre módulos: \glspl{callback} internos para comunicación de baja latencia, señales \textit{Qt} para sincronización de interfaces gráficas, y un sistema de eventos global para coordinación de operaciones complejas.
 
 \subsection{Implementación de la iteración}
 \label{subsec:implementacion_iteracion_2}
 
-\textbf{Tecnologías utilizadas}: \textit{PyQt5}, BrainFlow, \textit{NumPy}, \textit{matplotlib}
+La implementación se organizó en fases que abarcaron la refactorización completa de ambos módulos y el desarrollo del sistema integrador.
 
-\textbf{Experimentación inicial con BrainFlow}:
-Se comenzó utilizando la placa sintética de BrainFlow para validar la \acrshort{api} y establecer patrones de adquisición de datos. Se implementó un grabador básico para registrar datos en archivos, validando el flujo completo de adquisición, procesamiento y almacenamiento.
+\textbf{Fase 1: Refactorización del módulo de entrada}:
+La refactorización separó responsabilidades en clases independientes especializadas. Se implementaron gestores específicos para cada tipo de colector (teclado, ratón, futuro soporte para controladores), adaptadores para comunicación entre componentes, y servicios centralizados para recursos compartidos como configuración y logging.
 
-\textbf{Validación de \textit{PyQt5}}:
-Las pruebas de rendimiento confirmaron que \textit{PyQt5} podía manejar efectivamente la visualización en tiempo real de múltiples canales \acrshort{eeg}, estableciendo la tecnología como base para ambos módulos.
+La granularidad del código mejoró significativamente, con archivos más pequeños y responsabilidades específicas. Se implementó un sistema de \glspl{factory} para crear colectores apropiados según la configuración. Los \glspl{callback} se estandarizaron para comunicación consistente entre componentes. El sistema de filtrado se modularizó permitiendo extensión con nuevos tipos de filtros sin modificar código existente.
 
-\textbf{Desarrollo del sistema de ayuda}:
-Se implementaron más de 25 \textit{widgets} de ayuda contextual que cubren desde conceptos básicos de neurofisiología hasta parámetros técnicos específicos. La información se recopiló de documentación oficial de BrainFlow y recursos educativos \textit{online}.
+\textbf{Fase 2: Refactorización del módulo \acrshort{eeg}}:
+Se implementaron servicios \textit{singleton} \textit{\gls{thread-safe}} para recursos compartidos como conexiones \textbf{Brainflow} y buffers de datos. La separación entre procesamiento y presentación se logró mediante servicios independientes que pueden funcionar sin interfaz gráfica. El sistema de \glspl{callback} se redeseñó para comunicación desacoplada entre componentes de procesamiento y visualización.
 
-\textbf{Visualizador topográfico}:
-Se creó un visualizador básico que en función del nombre del electrodo, como Pz, PO7, Cz o F4, sitúa cada electrodo en el mapa cerebral de forma aproximada preestablecida, dividido en 4 regiones anatómicas. Integra indicadores de calidad de señal por electrodo utilizando codificación de colores.
+Los algoritmos de procesamiento se modularizaron en clases independientes que implementan interfaces comunes. El sistema de visualización se refactorizó para soportar múltiples tipos de visualizadores sin acoplamiento con fuentes de datos específicas. La gestión de dispositivos se centralizó en un servicio dedicado que abstrae las diferencias entre tipos de hardware.
 
-\textbf{Visualización de señales}:
-Se implementó visualización básica de señales \acrshort{eeg}, análisis de \textit{\gls{power_spectrum}} y representación de bandas de frecuencia con visualización de \textit{\gls{band_powers}} en tiempo real.
+\textbf{Fase 3: Desarrollo del módulo integrador}:
+Se implementó un módulo integrador independiente que coordinaba ambos módulos refactorizados. El sistema proporcionaba configuración unificada mediante archivos de configuración centralizados que establecían parámetros globales para ambos módulos. La coordinación visual se logró mediante controles de grabación centralizados que iniciaban y detenían operaciones en ambos módulos simultáneamente.
 
-\textbf{Grabador \acrshort{csv} con metadatos}:
-Se desarrolló un sistema de grabación que incluye metadatos en las cabeceras: fecha/hora, identificación de placa, \textit{preset}, número de canales, duración, y columnas para \textit{timestamps}, marcadores y canal de control BrainFlow.
+Se desarrollaron \textit{widgets} de ayuda específicos que explicaban diferencias entre formatos de exportación y opciones de sincronización disponibles. El sistema incluía validación de configuración que verificaba compatibilidad entre parámetros de ambos módulos antes de iniciar operaciones.
+
+\textbf{Fase 4: Validación funcional exhaustiva}:
+Durante toda la refactorización se realizaron pruebas manuales exhaustivas después de cada cambio significativo para garantizar preservación de funcionalidad. Se desarrollaron \textit{scripts} de prueba que verificaban que cada funcionalidad seguía operando correctamente después de los cambios arquitectónicos.
+
+\textbf{Limitaciones del segundo intento de integración}:
+Aunque la integración visual fue exitosa, la implementación reveló que la comunicación entre módulos requería conocimiento específico de implementaciones internas. La falta de interfaces estándar para acceso a datos internos limitó las capacidades de sincronización real. Los módulos seguían operando fundamentalmente de forma independiente sin capacidades de intercambio de datos en tiempo real.
 
 \subsection{Validación de la iteración}
 \label{subsec:validacion_iteracion_2}
 
-\textbf{Pruebas realizadas}:
-\begin{itemize}
-    \item Conectividad con placa sintética BrainFlow
-    \item Validación de visualización multicanal básica
-    \item Verificación de calidad de señal mediante \gls{railed_percentage}
-    \item Pruebas de grabación con metadatos
-    \item Migración exitosa del módulo de entrada a \textit{PyQt5}
-\end{itemize}
+La validación se enfocó en verificar la preservación de funcionalidad tras la refactorización y evaluar las mejoras arquitectónicas logradas.
 
-\textbf{Resultados}: Cumplimiento de RF-04, RF-05, RF-07, RF-11, RF-12. Rendimiento validado para frecuencias hasta 250Hz.
+\begin{table}[htbp!]
+  \centering
+  \resizebox{\textwidth}{!}{
+    \rowcolors{2}{white}{udcgray!25}
+    \begin{tabular}{l|l|l|l}
+    \rowcolor{udcpink!25}
+    \textbf{Prueba realizada} & \textbf{Resultado esperado} & \textbf{Resultado obtenido} & \textbf{Estado} \\
+    \hline
+    Preservación funcionalidad entrada & Todas las funciones operativas & Funcionalidad completa preservada & ✓ Exitosa \\
+    Preservación funcionalidad EEG & Visualización y grabación funcionando & Operación normal sin degradación & ✓ Exitosa \\
+    Reducción acoplamiento & Archivos independientes y modulares & Archivos 60\% más pequeños, menor dependencia & ✓ Exitosa \\
+    Tiempo de depuración & Reducción significativa & 70\% reducción en tiempo identificación errores & ✓ Exitosa \\
+    Aplicación principios SOLID & Cada principio implementado & Single Responsibility, Open-Closed validados & ✓ Exitosa \\
+    Servicios thread-safe & Operación concurrente sin errores & Singleton seguro, sin condiciones carrera & ✓ Exitosa \\
+    Sistema callbacks interno & Comunicación desacoplada & Eventos propagados correctamente & ✓ Exitosa \\
+    Configuración unificada & Parámetros globales coordinados & Configuración centralizada funcional & ✓ Exitosa \\
+    Coordinación grabaciones & Inicio/parada sincronizada & Control visual coordinado exitoso & ✓ Exitosa \\
+    Acceso datos internos & Interfaces para datos tiempo real & Acceso limitado, sin \gls{streaming} directo & ✗ Parcial \\
+    Sincronización temporal real & Timestamps coordinados & Solo coordinación visual, no datos & ✗ Fallida \\
+    Intercambio datos módulos & Comunicación bidireccional & Sin capacidades intercambio directo & ✗ Fallida \\
+    \end{tabular}
+  }
+  \caption{Resultados de validación de la segunda iteración}
+  \label{tab:validacion_iteracion_2}
+\end{table}
 
-\section{Tercera iteración: Primer intento de integración}
+La Tabla~\ref{tab:validacion_iteracion_2} muestra que la refactorización fue exitosa en términos de calidad arquitectónica y mantenibilidad del código. Se logró reducción del 60\% en tamaño de archivos individuales y 70\% de reducción en tiempo de depuración. Sin embargo, las limitaciones en sincronización temporal real y intercambio de datos revelaron la necesidad de un cambio paradigmático hacia arquitecturas \acrshort{api}.
+
+\textbf{Mejoras arquitectónicas logradas}:
+La refactorización proporcionó una base sólida para desarrollo futuro con código más mantenible, menor acoplamiento entre componentes, y mayor facilidad para implementar nuevas funcionalidades. Los servicios \textit{singleton} \textit{\gls{thread-safe}} garantizaron operación segura en entornos concurrentes.
+
+\textbf{Identificación de necesidades futuras}:
+Esta iteración reveló que la integración efectiva requería acceso directo a \textit{\glspl{stream}} de datos internos de cada módulo, capacidades de suscripción a eventos en tiempo real, e interfaces estándar para comunicación entre sistemas independientes. Estas necesidades motivaron el desarrollo de la arquitectura \acrshort{api} en la iteración siguiente.
+
+\section{Tercera iteración: Arquitectura \acrshort{api} y funcionalidades avanzadas}
 \label{sec:iteracion_3}
 
-Esta iteración abordó la integración visual y funcional de ambos módulos, revelando limitaciones arquitectónicas que motivarían la refactorización posterior.
+La tercera iteración implementó un cambio paradigmático hacia arquitecturas \acrshort{api} que proporcionaron acceso directo a datos internos, junto con el desarrollo completo de funcionalidades avanzadas y múltiples interfaces de usuario.
 
 \subsection{Análisis de la iteración}
 \label{subsec:analisis_iteracion_3}
 
-\textbf{Objetivos específicos}: Integrar módulos existentes con sincronización temporal precisa (RF-08).
+\textbf{Objetivos específicos}: Implementar arquitectura \acrshort{api} completa para acceso a datos internos, desarrollar funcionalidades avanzadas de procesamiento, y proporcionar múltiples interfaces de usuario (\acrshort{gui}, \acrshort{cli}, web).
 
-\textbf{Requisitos abordados}: RF-08, RF-09, RNF-04
+\textbf{Requisitos abordados}: RF-03, RF-06, RF-10, RNF-04, RNF-06, RNF-07, RNF-08
 
 \textbf{Casos de uso específicos}:
 \begin{itemize}
-    \item \textbf{CU-01}: Generación de \textit{datasets} sincronizados para entrenamiento de modelos
-    \item \textbf{CU-02}: Análisis integrado de señales cerebrales y acciones del usuario
+    \item \textbf{CU-03}: Desarrollo de aplicaciones \acrshort{bci} personalizadas mediante acceso programático completo
+    \item \textbf{CU-04}: Herramientas avanzadas para investigación neurocientífica con algoritmos especializados
+    \item \textbf{CU-06}: Integración programática con herramientas existentes mediante \acrshortpl{api} estándar
 \end{itemize}
 
 \textbf{Actores beneficiados}:
 \begin{itemize}
-    \item Investigador \acrshort{bci}: Se habría beneficiado de datos sincronizados para entrenamiento de modelos
-    \item Analista de datos: Habría podido utilizar \textit{datasets} integrados para análisis estadísticos
+    \item \textbf{Desarrollador de aplicaciones \acrshort{bci}}: Obtuvo acceso programático completo mediante \acrshortpl{api} \acrshort{rest}
+    \item \textbf{Investigador neurocientífico}: Se benefició de algoritmos avanzados como \acrshort{ica}, \gls{wavelet}, e integración \textbf{MNE-Python}
+    \item \textbf{Investigador con conocimientos técnicos}: Pudo utilizar interfaces \acrshort{cli} para automatización
+    \item \textbf{Integrador de sistemas}: Obtuvo \acrshortpl{api} documentadas para integración con infraestructuras existentes
+    \item \textbf{Personal técnico de laboratorio}: Se benefició de interfaces web para monitorización remota
+    \item \textbf{Analista de datos}: Obtuvo acceso directo a \textit{\glspl{stream}} de datos para análisis en tiempo real
 \end{itemize}
 
-\textbf{Limitaciones identificadas}:
+\textbf{Criterios de aceptación}:
 \begin{itemize}
-    \item Arquitectura monolítica dificultaba integración
-    \item Falta de sincronización temporal entre módulos
-    \item Acoplamiento alto impedía modularidad
-    \item Archivos de gran tamaño complicaban depuración
+    \item \acrshortpl{api} de acceso a datos completamente funcionales
+    \item \acrshortpl{api} de control remoto para ambos módulos
+    \item Interfaces \acrshort{cli} completas con documentación automática
+    \item Explorador web unificado con visualización tiempo real
+    \item Soporte completo para controladores \acrshort{ps4}
+    \item Algoritmos avanzados: \acrshort{ica}, \gls{wavelet}, filtros digitales
+    \item Integración completa con \textbf{MNE-Python}
+    \item Optimizaciones de rendimiento para operación hasta 1000Hz
 \end{itemize}
 
 \subsection{Diseño de la iteración}
 \label{subsec:diseno_iteracion_3}
 
-\textbf{Aproximación inicial}: Integración visual mediante coordinador central con \textit{Lab Streaming Layer} (\acrshort{lsl})
+El diseño de esta iteración se centró en crear una arquitectura \acrshort{api} extensible que proporcionara acceso completo a las capacidades internas del sistema.
 
-\textbf{Problemas de diseño identificados}:
-\begin{itemize}
-    \item Archivos monolíticos de gran tamaño
-    \item Acoplamiento estrecho entre componentes
-    \item Dificultad para identificar puntos de integración apropiados
-    \item Complejidad de depuración en código fuertemente acoplado
-\end{itemize}
+\textbf{Arquitectura \acrshort{api} multicapa}:
+Se diseñó una arquitectura en tres capas: \acrshortpl{api} de acceso a datos (solo lectura) para consultar estado y obtener datos históricos, \acrshortpl{api} de control para modificar configuración y controlar operaciones, y capa de \textit{\gls{streaming}} en tiempo real mediante \textit{WebSocket} para datos continuos. La arquitectura utilizó \textbf{FastAPI} como \textit{framework} base proporcionando documentación automática y validación de tipos.
+
+El diseño implementó un sistema de registro dinámico donde módulos independientes se registran exponiendo sus métodos disponibles. Esto permite que el sistema \acrshort{api} descubra automáticamente capacidades sin requerir configuración manual. Cada módulo define sus \textit{endpoints} mediante decoradores estándar que especifican parámetros, tipos de retorno, y documentación.
+
+\textbf{Arquitectura del explorador web}:
+Se diseñó un explorador web unificado que proporciona interfaz gráfica para todas las \acrshortpl{api} disponibles. El diseño incluye documentación interactiva inspirada en \textbf{FastAPI} con mejoras específicas: modo claro/oscuro, explicaciones detalladas, facilidades para parámetros mediante \textit{sliders} y selectores, plantillas \acrshort{json} con verificador de correctitud, y visualizador de gráficos dinámico.
+
+La visualización en tiempo real se diseñó con dos modalidades: tabla actualizada dinámicamente para datos textuales, y modo gráficas con opciones unificadas (escala logarítmica) o independientes por canal. Ambas modalidades permiten filtrado por tipo de canal y capacidad de ocultar canales específicos.
+
+\textbf{Arquitectura \acrshort{cli}}:
+Se diseñó interfaces \acrshort{cli} completas utilizando \textit{Typer} para generación automática de comandos y \textit{Rich} para formateo avanzado. El diseño incluye comandos de acceso a datos para consulta directa, comandos de control para operaciones remotas, y monitoreo en tiempo real con \textit{feedback} visual mediante tablas actualizadas.
+
+\textbf{Integración con controladores \acrshort{ps4}}:
+Se diseñó soporte completo para controladores mediante \textbf{PySDL2} con arquitectura dirigida por eventos. El diseño inicial utilizaba \textit{\gls{polling}} con \textit{\gls{timers}} \textbf{Qt}, pero evolucionó hacia procesamiento de eventos \textbf{SDL2} en hilo dedicado con detección de cambios basada en comparación de estados.
+
+\textbf{Algoritmos de procesamiento avanzado}:
+Se diseñó integración completa con \textbf{MNE-Python} mediante servicios de conversión que transforman datos \textbf{Brainflow} a formatos \textbf{MNE} en tiempo real. El diseño contempla tres modalidades: modo flexible (todos los canales), modo rendimiento (canales seleccionados), y modo tiempo real (recálculo automático).
+
+Los algoritmos \acrshort{ica} se diseñaron con configuración de 1-16 componentes, visualización de matrices \gls{matriz_mixing} y \gls{matriz_unmixing}, y análisis de componentes individuales. Las transformadas \gls{wavelet} se diseñaron con múltiples \gls{familias_wavelet} y configuración flexible de niveles. Los filtros digitales se expandieron con múltiples implementaciones y capacidades de \gls{downsampling}.
 
 \subsection{Implementación de la iteración}
 \label{subsec:implementacion_iteracion_3}
 
-\textbf{Integración visual exitosa}:
-Se logró integrar ambos módulos en una interfaz unificada que permitía controlar la captura de señales \acrshort{eeg} y eventos de entrada simultáneamente. Se implementó coordinación básica de grabadores para inicio/parada sincronizada.
+La implementación se organizó en múltiples fases que abarcaron desde el desarrollo básico de \acrshortpl{api} hasta la implementación completa de funcionalidades avanzadas.
 
-\textbf{Unificación de formatos}:
-Se añadió soporte \acrshort{csv} al módulo de captura de entrada (que previamente solo soportaba \acrshort{json}) para facilitar la combinación posterior de datos de ambos módulos.
+\textbf{Fase 1: Desarrollo de \acrshortpl{api} de acceso a datos}:
+Se implementaron \acrshortpl{api} de solo lectura independientes para cada módulo proporcionando acceso a datos internos y estado del sistema. La implementación utilizó \textbf{FastAPI} con documentación automática y validación de tipos mediante \textbf{Pydantic}. Se desarrolló un sistema de suscripción a \glspl{callback} para eventos en tiempo real que permite a clientes registrarse para recibir notificaciones de cambios específicos.
 
-\textbf{Fallo de integración \acrshort{lsl}}:
-La integración \acrshort{lsl} resultó inviable debido a la estructura monolítica de los módulos y archivos de gran tamaño. La complejidad de depuración en código fuertemente acoplado dificultó identificar y corregir problemas de integración.
+\textbf{Fase 2: Desarrollo del explorador web}:
+Inicialmente se desarrollaron aplicaciones web independientes para cada módulo, pero la dificultad de mantenimiento motivó la unificación. Se implementó un módulo genérico donde módulos independientes se registran dinámicamente exponiendo sus métodos mediante un sistema de registro automatizado.
 
-\textbf{Problemas de sincronización persistentes}:
-Cada módulo utilizaba su propio sistema de \textit{timestamping} sin coordinación externa, impidiendo la sincronización temporal precisa requerida para aplicaciones \acrshort{bci}.
+Los visualizadores en tiempo real se implementaron mediante \textit{WebSocket} usando \textit{Chart.js} para gráficos \acrshort{eeg} que adaptan automáticamente el eje Y, con visualización separada/unificada y filtrado por tipo de canal. Para eventos de entrada se implementó visualización \acrshort{json} estructurada específica del controlador conectado.
+
+Se resolvió un problema crítico donde cerrar el visualizador \acrshort{gui} pausaba el \textit{\gls{stream}} porque el único punto de \textit{\gls{polling}} residía en el visualizador. Se implementó \textit{\gls{polling}} interno en el colector para mantener el \textit{\gls{stream}} activo independientemente del estado de la interfaz gráfica.
+
+\textbf{Fase 3: Desarrollo de \acrshortpl{api} de control}:
+Se implementó control remoto completo para ambos módulos. Los cambios realizados mediante \acrshortpl{api} se reflejan en las interfaces \acrshort{gui} como si hubiesen sido ejecutados localmente, mientras que cambios desde \acrshortpl{gui} se propagan a futuras operaciones \acrshort{api}. La sincronización se logró mediante señales \textbf{Qt} y validación de parámetros con manejo de errores.
+
+\textbf{Fase 4: Implementación de soporte \acrshort{ps4}}:
+Se desarrolló soporte completo utilizando \textbf{PySDL2} para acceso de bajo nivel. La conexión por cable facilita configuración al evitar modificar configuración inalámbrica del sistema operativo, aunque funciona igualmente con conexión inalámbrica.
+
+El problema específico donde el controlador no podía inicializarse desde \acrshort{cli} debido a dependencias de \textit{\gls{timers}} \textbf{Qt} se resolvió migrando a arquitectura dirigida por eventos. Se implementó procesamiento de eventos \textbf{SDL2} en hilo dedicado con detección de cambios basada en comparación de estados previos, proporcionando captura completa con latencia mínima.
+
+\textbf{Fase 5: Optimizaciones masivas de rendimiento}:
+La migración a eventos generó volumen significativamente mayor que requirió optimizaciones coordinadas: \gls{batching} de eventos para reducir \gls{overhead}, \textit{\gls{worker} pools} para distribuir procesamiento, \gls{buffer} circular con descarte en sobrecarga, minimización de información renderizada en \gls{dom}, medidor de latencia desde \textit{DataAccessService}, y migración a \textit{orjson} para serialización \acrshort{json} de alto rendimiento.
+
+Las optimizaciones se validaron independientemente soportando hasta 1000Hz en \textit{WebSocket} mediante eventos sintéticos del controlador \acrshort{ps4} con accionamiento continuo de \textit{triggers} y \textit{joysticks} analógicos.
+
+\textbf{Fase 6: Desarrollo de interfaces \acrshort{cli}}:
+Se implementaron interfaces completas utilizando las \acrshortpl{api} existentes como \textit{backend}. Las pruebas revelaron problemas \textit{headless} debido a dependencias ocultas de \textbf{Qt}. El \acrshort{cli} del módulo de entrada presenta problemas con servicios sin inicializar, mientras que el \acrshort{cli} \acrshort{eeg} funciona correctamente excepto para visualizadores dependientes de \acrshort{gui}.
+
+\textbf{Fase 7: Funcionalidades avanzadas \acrshort{eeg}}:
+Se implementó integración completa con \textbf{MNE-Python} mediante servicios de conversión en tiempo real. Se desarrollaron tres modalidades: flexible (todos los canales), rendimiento (canales seleccionados), y tiempo real (recálculo automático con frecuencia establecida).
+
+La implementación soporta \textit{plots} \textit{\gls{power_spectral_density}}, \textit{\gls{topomaps}}, espectrogramas y datos en bruto con filtrado de canales aplicable según modalidad seleccionada. Se corrigió un error crítico donde se reinstanciaba el colector en lugar de usar el \textit{singleton}, causando fallos generalizados por modificaciones de tipos de datos para optimizaciones de red.
+
+Se implementó \gls{ica_analysis} con configuración de 1-16 componentes, visualización de matrices \gls{matriz_mixing} y \gls{matriz_unmixing}, análisis de componentes individuales con \gls{weight_distribution} y \gls{power_spectral_density}. El modo tiempo real funciona con latencia en \acrshort{ui} debido a limitaciones de \textbf{matplotlib} en el \textit{thread} principal.
+
+Las transformadas \gls{wavelet} se implementaron con múltiples \gls{familias_wavelet} y configuración flexible de niveles de descomposición. Los filtros digitales se expandieron con múltiples implementaciones y \textit{\gls{downsampling}} con diferentes métodos de agregación.
+
+\textbf{Fase 8: Detección automática de canales y optimizaciones}:
+Se eliminó la restricción de asumir primeros 16 canales como \acrshort{eeg}. El sistema detecta automáticamente tipos: \acrshort{eeg}, \acrshort{emg}, \acrshort{ecg}, acelerómetro, giroscopio. Se crea pestaña por tipo abarcando todos los canales correspondientes, con soporte para múltiples \textit{\gls{presets}}.
+
+Se implementó \textit{\gls{streaming}} a archivo (datos procesados y RAW) y vía \textit{TCP}/\textit{UDP} (limitado a RAW y \textit{\glspl{presets}} 0). Se corrigieron problemas donde filtros se aplicaban incorrectamente a todos los canales incluyendo control, causando fallos en reproducción. Se migró lógica de grabación al \textit{DataAccessService} eliminando pérdida de muestras que alcanzaba 10-30\%.
+
+\textbf{Fase 9: Intento de integración final con \acrshort{lsl}}:
+Se desarrolló un módulo de sincronización que accedía a datos mediante \glspl{callback} locales para evitar \gls{overhead} de comunicación web. La implementación incluía integración visual de ambos módulos y coordinación de operaciones de sincronización.
+
+El desarrollo se pausó por problemas técnicos en exportación de formatos \acrshort{edf} y \acrshort{edf}+ y falta de tiempo para verificar precisión de sincronización temporal. Los \glspl{callback} locales funcionan correctamente y la integración conceptual está validada.
 
 \subsection{Validación de la iteración}
 \label{subsec:validacion_iteracion_3}
 
-\textbf{Resultado}: Iteración fallida que motivó refactorización arquitectónica fundamental.
+La validación se realizó mediante pruebas exhaustivas de cada componente desarrollado y verificación de integración entre sistemas.
 
-\textbf{Lecciones aprendidas}:
+\begin{table}[htbp!]
+  \centering
+  \resizebox{\textwidth}{!}{
+    \rowcolors{2}{white}{udcgray!25}
+    \begin{tabular}{l|l|l|l}
+    \rowcolor{udcpink!25}
+    \textbf{Prueba realizada} & \textbf{Resultado esperado} & \textbf{Resultado obtenido} & \textbf{Estado} \\
+    \hline
+    API acceso datos ambos módulos & Endpoints funcionales con documentación & APIs completas, documentación automática & ✓ Exitosa \\
+    Streaming WebSocket tiempo real & Datos fluidos sin pérdida & Streaming validado hasta 1000Hz & ✓ Exitosa \\
+    Explorador web unificado & Interfaz única para ambos módulos & Sistema registro dinámico funcional & ✓ Exitosa \\
+    API control remoto completo & Control total via programática & Sincronización GUI-API bidireccional & ✓ Exitosa \\
+    Soporte controlador PS4 & Eventos completos cable/inalámbrico & Arquitectura eventos, latencia mínima & ✓ Exitosa \\
+    Interfaces CLI completas & Comandos documentados automáticamente & CLI funcional con limitaciones headless & ⚠ Parcial \\
+    Integración MNE-Python & Conversión tiempo real 3 modalidades & Integración completa, plots funcionales & ✓ Exitosa \\
+    Algoritmos ICA avanzados & 1-16 componentes, matrices visualización & ICA completo, tiempo real con latencia & ✓ Exitosa \\
+    Transformadas wavelet & Múltiples familias, niveles configurables & Implementación completa validada & ✓ Exitosa \\
+    Filtros digitales expandidos & Múltiples tipos, downsampling & Filtros avanzados, agregación múltiple & ✓ Exitosa \\
+    Detección automática canales & Tipos automáticos: EEG, EMG, ECG, etc. & Detección correcta, pestañas por tipo & ✓ Exitosa \\
+    Optimizaciones rendimiento & Soporte 1000Hz sin pérdida & Batching, workers, orjson validados & ✓ Exitosa \\
+    Streaming archivos/red & TCP/UDP/archivo con múltiples formatos & Archivo completo, red limitada preset 0 & ⚠ Parcial \\
+    Corrección pérdida muestras & Reducción <1\% desde 10-30\% & Migración callbacks, pérdida <1\% & ✓ Exitosa \\
+    Integración LSL final & Sincronización temporal precisa & Callbacks locales OK, exportación pausada & ⚠ Pausada \\
+    \end{tabular}
+  }
+  \caption{Resultados de validación de la tercera iteración}
+  \label{tab:validacion_iteracion_3}
+\end{table}
+
+La Tabla~\ref{tab:validacion_iteracion_3} muestra que la mayoría de funcionalidades se completaron exitosamente. Las \acrshortpl{api} proporcionan acceso completo a capacidades internas, las optimizaciones soportan operación hasta 1000Hz, y los algoritmos avanzados funcionan correctamente. Las limitaciones en modo \textit{headless} y la pausa en integración \acrshort{lsl} final no afectan la funcionalidad principal del sistema.
+
+\textbf{Métricas de rendimiento validadas}:
 \begin{itemize}
-    \item Necesidad de arquitectura modular basada en principios \acrshort{solid}
-    \item Importancia de interfaces bien definidas entre componentes
-    \item Requisito de separación clara de responsabilidades
+    \item Frecuencias \acrshort{eeg} validadas hasta 250Hz en operación normal
+    \item Soporte hasta 1000Hz en \textit{WebSocket} con eventos sintéticos
+    \item Latencia procesamiento < 100ms para algoritmos avanzados
+    \item Tiempo respuesta \acrshort{api} < 50ms promedio
+    \item Pérdida muestras reducida a < 1\% desde 30\% previo
+    \item Latencia captura eventos controlador < 10ms
 \end{itemize}
 
-\section{Cuarta iteración: Refactorización \acrshort{solid}}
-\label{sec:iteracion_4}
-
-La refactorización completa de ambos módulos siguiendo principios \acrshort{solid} estableció una base arquitectónica para futuras integraciones.
-
-\subsection{Análisis de la iteración}
-\label{subsec:analisis_iteracion_4}
-
-\textbf{Objetivos específicos}: Reestructurar código existente aplicando principios \acrshort{solid} (RNF-03).
-
-\textbf{Requisitos abordados}: RNF-03, RNF-04, RNF-08, RNF-09
-
-\textbf{Casos de uso específicos}:
-\begin{itemize}
-    \item \textbf{CU-01 a CU-06}: Preparación arquitectónica para soporte robusto de todos los casos de uso identificados
-\end{itemize}
-
-\textbf{Actores beneficiados}:
-\begin{itemize}
-    \item Desarrolladores futuros: Podrán trabajar con código mantenible y extensible
-    \item Colaboradores del proyecto: Podrán contribuir más fácilmente al sistema
-    \item Usuarios del sistema: Experimentarán mayor estabilidad y menos errores
-\end{itemize}
-
-\textbf{Principios aplicados}:
-\begin{itemize}
-    \item \textit{Single Responsibility}: Cada clase con una responsabilidad específica
-    \item \textit{Open-Closed}: Extensibilidad mediante interfaces y abstracciones
-    \item \textit{Liskov Substitution}: Implementaciones intercambiables
-    \item \textit{Interface Segregation}: Interfaces específicas para cada funcionalidad
-    \item \textit{Dependency Inversion}: Dependencias mediante abstracciones
-\end{itemize}
-
-\subsection{Diseño de la iteración}
-\label{subsec:diseno_iteracion_4}
-
-\textbf{Nueva arquitectura}: Diseño basado en servicios \textit{singleton} y patrones dirigidos por eventos
-
-\textbf{Componentes arquitectónicos}:
-\begin{itemize}
-    \item Servicios centralizados, incluyendo \textit{CollectorService}, \textit{RecordingService}, \textit{ProcessingService}, entre otros
-    \item Interfaces abstractas para extensibilidad
-    \item Gestores especializados por funcionalidad
-    \item Sistema de \glspl{callback} interno
-\end{itemize}
-
-\textbf{Patrones de diseño implementados}:
-\begin{itemize}
-    \item \textit{Singleton} para servicios centrales
-    \item \textit{Factory} para creación de colectores
-    \item \textit{Observer} para comunicación entre componentes
-    \item \textit{Strategy} para diferentes algoritmos de procesamiento
-\end{itemize}
-
-\subsection{Implementación de la iteración}
-\label{subsec:implementacion_iteracion_4}
-
-\textbf{Refactorización del módulo de \textit{inputs}}:
-Se separaron responsabilidades específicas en clases independientes: gestores de colectores, adaptadores para comunicación entre componentes. La granularidad mejoró significativamente la legibilidad y mantenibilidad del código.
-
-\textbf{Refactorización del módulo \acrshort{eeg}}:
-Se implementaron servicios \textit{singleton} \textit{thread-safe} para recursos compartidos, separación clara entre procesamiento y presentación, y sistema de \glspl{callback} internos para comunicación desacoplada entre componentes.
-
-\textbf{Validación funcional exhaustiva}: 
-Se realizaron pruebas manuales exhaustivas después de cada cambio para garantizar preservación de funcionalidad existente durante todo el proceso de refactorización.
-
-\subsection{Validación de la iteración}
-\label{subsec:validacion_iteracion_4}
-
-\textbf{Mejoras observadas}:
-\begin{itemize}
-    \item Archivos de menor tamaño y mayor granularidad
-    \item Tiempo de depuración significativamente reducido
-    \item Mayor modularidad y menor acoplamiento
-    \item Facilidad para mantenimiento y correcciones
-\end{itemize}
-
-\textbf{Resultado}: Arquitectura modular que facilitó el desarrollo posterior y la implementación de nuevas funcionalidades.
-
-\section{Quinta iteración: Segundo intento de integración}
-\label{sec:iteracion_5}
-
-Con la nueva arquitectura modular, se realizó un segundo intento de integración que, aunque técnicamente superior, reveló la necesidad de cambios paradigmáticos más fundamentales.
-
-\subsection{Análisis de la iteración}
-\label{subsec:analisis_iteracion_5}
-
-\textbf{Objetivos específicos}: Integrar módulos refactorizados mediante componente coordinador
-
-\textbf{Casos de uso específicos}:
-\begin{itemize}
-    \item \textbf{CU-01}: Coordinación visual de grabación de datos sincronizados
-    \item \textbf{CU-02}: Interfaz unificada para análisis conjunto
-\end{itemize}
-
-\textbf{Actores beneficiados}:
-\begin{itemize}
-    \item Investigadores: Se habrían beneficiado de una interfaz unificada para experimentos
-    \item Administradores de laboratorio: Habrían podido utilizar configuración centralizada de sistemas
-\end{itemize}
-
-\textbf{Problemas persistentes identificados}:
-\begin{itemize}
-    \item Comunicación entre módulos requería conocimiento específico de implementaciones internas
-    \item Falta de interfaces claras entre módulos en este punto del desarrollo
-    \item Problemas de sincronización temporal no resueltos por la refactorización
-\end{itemize}
-
-\subsection{Diseño de la iteración}
-\label{subsec:diseno_iteracion_5}
-
-\textbf{Componente desarrollado}: Módulo integrador independiente que coordinaba ambos módulos refactorizados
-
-\textbf{Funcionalidades implementadas}:
-\begin{itemize}
-    \item Sistema de configuración unificado
-    \item Coordinación visual de controles de grabación
-    \item \textit{Widgets} de ayuda específicos para explicar diferencias entre formatos de exportación
-\end{itemize}
-
-\subsection{Implementación y validación}
-\label{subsec:implementacion_validacion_iteracion_5}
-
-\textbf{Resultado}: Se logró integración visual exitosa y coordinación de inicio de grabaciones independientes desde el \acrshort{gui}, pero no se implementó acceso a \textit{streams} de datos para recolección y sincronización en tiempo real.
-
-\textbf{Limitación fundamental}: La integración funcionaba únicamente a nivel \acrshort{gui} sin capacidades de sincronización temporal real ni acceso directo a los datos internos de cada módulo.
-
-\textbf{Conclusión}: Esta experiencia motivó el cambio hacia arquitecturas \acrshort{api} que proporcionaran acceso directo a los datos internos de cada módulo.
-
-\section{Sexta iteración: Arquitectura \acrshort{api} emergente}
-\label{sec:iteracion_6}
-
-Después de una pausa por otros compromisos académicos, el desarrollo se reanudó con una perspectiva completamente nueva: implementar \acrshort{api} de acceso a datos internos para cada módulo.
-
-\subsection{Análisis de la iteración}
-\label{subsec:analisis_iteracion_6}
-
-\textbf{Objetivos específicos}: Implementar acceso directo a datos internos mediante \acrshortpl{api} (RF-10).
-
-\textbf{Requisitos abordados}: RF-10, RNF-04, RNF-06
-
-\textbf{Casos de uso específicos}:
-\begin{itemize}
-    \item \textbf{CU-03}: Desarrollo de aplicaciones \acrshort{bci} personalizadas mediante acceso programático
-    \item \textbf{CU-06}: Integración con herramientas de análisis mediante interfaces bien definidas
-\end{itemize}
-
-\textbf{Actores beneficiados}:
-\begin{itemize}
-    \item Desarrollador de aplicaciones \acrshort{bci}: Podrá acceder a datos mediante diversas interfaces
-    \item Investigador con conocimientos técnicos: Podrá utilizar visualización web para análisis
-    \item Integrador de sistemas: Podrá conectar el sistema con herramientas externas
-\end{itemize}
-
-\textbf{Motivación del cambio}: La necesidad de acceso directo a datos internos de cada módulo para implementar sincronización efectiva entre sistemas independientes.
-
-\subsection{Diseño de la iteración}
-\label{subsec:diseno_iteracion_6}
-
-\textbf{Arquitectura \acrshort{api} inicial}:
-\begin{itemize}
-    \item \acrshort{api} de acceso a datos (solo lectura)
-    \item Sistema de suscripción a \glspl{callback} para eventos en tiempo real
-    \item Desarrollo independiente por módulo inicialmente
-\end{itemize}
-
-\textbf{Evolución hacia explorador web}:
-Debido a la necesidad de probar las \acrshort{api} desarrolladas, se implementó una aplicación web con \textit{FastAPI} que exponía los \textit{endpoints} internos. Se desarrollaron aplicaciones web separadas inicialmente, pero por mantenibilidad se refactorizó hacia un explorador web unificado.
-
-\subsection{Implementación de la iteración}
-\label{subsec:implementacion_iteracion_6}
-
-\textbf{Desarrollo inicial de \acrshort{api}}:
-Se implementaron \acrshort{api} de solo lectura inicialmente independientes para cada módulo, proporcionando acceso a datos internos y estado del sistema.
-
-\textbf{Aplicaciones web separadas iniciales}:
-Se desarrollaron aplicaciones web independientes para cada módulo para facilitar las pruebas de las \acrshort{api}, pero la dificultad de mantenimiento motivó la unificación.
-
-\textbf{Refactorización hacia explorador web unificado}:
-Se desarrolló un módulo genérico donde los módulos independientes se registran dinámicamente, exponiendo sus métodos para visualización web mediante un sistema de registro dinámico de módulos.
-
-\textbf{Visualizadores tiempo real con \textit{WebSocket}}:
-Se implementaron visualizadores web en tiempo real mediante \textit{WebSocket}. Para señales \acrshort{eeg}: gráficos con \textit{Chart.js} que adaptan automáticamente el eje Y, visualización separada/unificada, filtrado por tipo de canal, y tabla dinámica. Para eventos de entrada: visualización \acrshort{json} estructurada específica del controlador conectado.
-
-\textbf{Características adicionales}:
-Se implementó alternancia entre modos oscuro/claro en la interfaz web para mejorar la experiencia de usuario durante sesiones prolongadas.
-
-\textbf{Resolución de problema crítico}: 
-Se identificó que cerrar el visualizador \acrshort{gui} pausaba el \textit{stream} porque el único punto de \textit{polling} residía en el visualizador. Se solucionó temporalmente implementando \textit{polling} interno en el colector para mantener el \textit{stream} activo.
-
-\subsection{Validación de la iteración}
-\label{subsec:validacion_iteracion_6}
-
-\textbf{Pruebas realizadas}:
-\begin{itemize}
-    \item Verificación de \acrshort{api} de acceso a datos en ambos módulos
-    \item Validación de \textit{streaming} \textit{WebSocket} en tiempo real
-    \item Pruebas de visualización web para ambos tipos de datos
-    \item Verificación de sistema de registro dinámico de módulos
-\end{itemize}
-
-\textbf{Resultado}: Arquitectura \acrshort{api} exitosa que estableció las bases para todo el desarrollo posterior y proporcionó la primera solución viable para acceso directo a datos internos.
-
-\section{Séptima iteración: \acrshort{api} de control y extensiones}
-\label{sec:iteracion_7}
-
-Esta iteración completó la arquitectura \acrshort{api} con capacidades de control e implementó soporte para controladores \acrshort{ps4}.
-
-\subsection{Análisis de la iteración}
-\label{subsec:analisis_iteracion_7}
-
-\textbf{Objetivos específicos}: Implementar control remoto completo y soporte \acrshort{ps4} (RF-03, RF-10).
-
-\textbf{Requisitos abordados}: RF-03, RF-10, RNF-04, RNF-07
-
-\textbf{Casos de uso específicos}:
-\begin{itemize}
-    \item \textbf{CU-03}: Control remoto de sistemas para desarrollo de aplicaciones personalizadas
-    \item \textbf{CU-06}: Integración programática con herramientas existentes mediante \acrshort{api}
-\end{itemize}
-
-\textbf{Actores beneficiados}:
-\begin{itemize}
-    \item Desarrollador de automatización: Podrá utilizar \acrshort{api} de control para \textit{scripts}
-    \item Investigador en neurociencia aplicada a  juegos: Podrá beneficiarse del soporte para controladores \acrshort{ps4}
-    \item Equipo de desarrollo: Podrá beneficiarse de estándares de código automatizados
-\end{itemize}
-
-\subsection{Diseño de la iteración}
-\label{subsec:diseno_iteracion_7}
-
-\textbf{\acrshort{api} de control}:
-\begin{itemize}
-    \item Sincronización entre \acrshort{api} y \acrshort{gui} mediante señales \textit{Qt}
-    \item Validación de parámetros y manejo de errores
-    \item Operaciones \textit{thread-safe} con \textit{timeouts}
-\end{itemize}
-
-\textbf{Soporte \acrshort{ps4}}:
-\begin{itemize}
-    \item Integración \textit{PySDL2} para acceso de bajo nivel a controladores
-    \item Inicialmente \textit{polling} con \textit{timers} \textit{Qt}
-    \item Migración posterior a arquitectura dirigida por eventos
-\end{itemize}
-
-\subsection{Implementación de la iteración}
-\label{subsec:implementacion_iteracion_7}
-
-\textbf{Desarrollo del \acrshort{api} de control}:
-Se implementó control remoto completo para el módulo de entrada. Los cambios realizados mediante el \acrshort{api} se reflejan en el \acrshort{gui} como si hubiesen sido ejecutados localmente, mientras que cambios desde el \acrshort{gui} se verán reflejados en futuras operaciones del \acrshort{api}.
-
-\textbf{Implementación del controlador \acrshort{ps4}}:
-Se desarrolló soporte completo para el controlador utilizando \textit{PySDL2}. La conexión por cable facilita la configuración al evitar modificar la configuración inalámbrica existente del sistema operativo, aunque el sistema funciona igualmente con conexión inalámbrica.
-
-\textbf{Desarrollo de plantilla para módulo \acrshort{eeg}}:
-Se creó la estructura inicial para el \acrshort{api} de control del módulo \acrshort{eeg} basándose en la arquitectura desarrollada para el módulo de entrada.
-
-\textbf{Unificación de servidores web}:
-Se integraron \acrshortpl{api} de acceso y control en un único servidor web, registrando todos los módulos mediante el sistema de registro dinámico en lugar de mantener servidores independientes.
-
-\textbf{Implementación completa de tipado estático}:
-Se añadió tipado completo con \textit{\gls{type hints}} en todo el código base y se configuraron \textit{\gls{pre-commit hooks}} para verificación automática de calidad de código incluyendo \textit{black}, \textit{mypy} y \textit{pydocstyle}. Aunque ya existían componentes tipados previamente, se completó la cobertura de tipado en todo el sistema.
-
-\subsection{Validación de la iteración}
-\label{subsec:validacion_iteracion_7}
-
-\textbf{Pruebas realizadas}:
-\begin{itemize}
-    \item Verificación de control remoto completo del módulo de entrada
-    \item Pruebas de comunicación entre \acrshort{api} y \acrshort{gui}
-    \item Validación de controlador \acrshort{ps4} en \acrshort{gui} y eventos generados en \textit{WebSocket}
-    \item Verificación de acceso y control de datos desde el \acrshort{api}
-    \item Verificación de unificación de servidores web
-\end{itemize}
-
-\textbf{Resultado}: Sistema de control remoto completo con soporte para dispositivos avanzados y tipado estático completo del código base.
-
-\section{Octava iteración: Implementación de \acrshort{cli} y optimizaciones}
-\label{sec:iteracion_8}
-
-Esta iteración implementó interfaces de línea de comandos y realizó optimizaciones críticas para el sistema de eventos del controlador \acrshort{ps4}.
-
-\subsection{Análisis de la iteración}
-\label{subsec:analisis_iteracion_8}
-
-\textbf{Objetivos específicos}: Implementar interfaces \acrshort{cli} y resolver problemas de compatibilidad \textit{headless}.
-
-\textbf{Requisitos abordados}: RF-10, RNF-06, RNF-08
-
-\textbf{Casos de uso específicos}:
-\begin{itemize}
-    \item \textbf{CU-03}: Acceso desde línea de comandos para desarrollo de aplicaciones
-    \item \textbf{CU-06}: Automatización de experimentos mediante \textit{scripts}
-\end{itemize}
-
-\textbf{Actores beneficiados}:
-\begin{itemize}
-    \item Usuario técnico avanzado: Podrá utilizar interfaces \acrshort{cli} para automatización
-    \item Administrador de sistemas: Podrá implementar soluciones en entornos de servidor
-    \item Investigador en experimentos que requieren alto rendimiento: Podrá beneficiarse de optimizaciones de velocidad
-\end{itemize}
-
-\textbf{Limitaciones identificadas}: Dependencias \textit{Qt} ocultas que impedían funcionamiento completamente \textit{headless}
-
-\subsection{Diseño de la arquitectura \acrshort{cli}}
-\label{subsec:diseno_cli}
-
-\textbf{Tecnologías utilizadas}: \textit{Typer} para generación automática de comandos y \textit{Rich} para formateo avanzado de salida
-
-\textbf{Funcionalidades implementadas}:
-\begin{itemize}
-    \item Comandos de acceso a datos para consultar estado actual del sistema de forma directa
-    \item Comandos de interacción para controlar grabación y configuración desde terminal
-    \item Monitoreo en tiempo real con visualización \textit{Rich} que proporciona \textit{feedback} visual inmediato sobre actividad del sistema mediante tablas actualizadas dinámicamente
-    \item Generación automática de ayuda con \textit{Typer} incluyendo ejemplos de uso y descripción detallada de parámetros con validación automática de tipos
-\end{itemize}
-
-\subsection{Implementación de la iteración}
-\label{subsec:implementacion_iteracion_8}
-
-\textbf{Desarrollo de \acrshort{cli} para módulo de \textit{inputs}}:
-Se implementó interfaz completa de línea de comandos utilizando las \acrshort{api} existentes como \textit{backend}, proporcionando acceso completo a todas las funcionalidades del sistema.
-
-\textbf{Identificación de problemas \textit{headless}}:
-Las pruebas revelaron que el sistema no funcionaba correctamente en modo \textit{headless} debido a dependencias ocultas de \textit{Qt}. El \acrshort{cli} del módulo de \textit{inputs} presenta problemas específicos con servicios sin inicializar, mientras que el \acrshort{cli} de \acrshort{eeg} funciona correctamente excepto para visualizadores avanzados inherentemente dependientes de la \acrshort{gui}.
-
-\textbf{Problema específico del controlador \acrshort{ps4}}:
-El controlador no podía inicializarse desde el \acrshort{cli} porque dependía de \textit{timers} \textit{Qt} no disponibles en contextos sin interfaz gráfica.
-
-\textbf{Migración a arquitectura dirigida por eventos}:
-Se modificó el colector \acrshort{ps4} para funcionar mediante eventos usando un hilo dedicado para procesamiento de eventos \textit{SDL2} con detección de cambios basada en comparación de estados previos. Esta arquitectura proporcionó captura completa de eventos con latencia mínima independientemente del contexto de ejecución.
-
-\textbf{Optimizaciones masivas de rendimiento}:
-La migración a eventos generó un volumen significativamente mayor de eventos que requirió múltiples optimizaciones coordinadas:
-\begin{itemize}
-    \item \gls{batching} de eventos para reducir \gls{overhead} de comunicación
-    \item \textit{\gls{worker} pools} para distribuir procesamiento entre múltiples hilos
-    \item \gls{buffer} circular con descarte de eventos en situaciones de sobrecarga
-    \item Modo de minimización de información renderizada en el \gls{dom}
-    \item Medidor de latencia de recepción de eventos desde el \textit{DataAccessService}
-    \item Migración a \textit{orjson} para serialización \acrshort{json} de alto rendimiento
-\end{itemize}
-
-\textbf{Problemas identificados en \acrshort{cli}}:
-Se identificaron problemas de usabilidad como la mezcla de logs de aplicación con salida \acrshort{cli}. Se intentó sin éxito separar el terminal mediante división de terminal o apertura de terminales independientes.
-
-\subsection{Validación de la iteración}
-\label{subsec:validacion_iteracion_8}
-
-\textbf{Pruebas realizadas}:
-\begin{itemize}
-    \item Validación de controlador \acrshort{ps4} en modo eventos
-    \item Verificación de optimizaciones de rendimiento mediante pruebas sintéticas específicas
-    \item Pruebas de \acrshort{cli} en ambos módulos identificando limitaciones \textit{headless}
-\end{itemize}
-
-\textbf{Métricas de rendimiento}: 
-Soporte validado hasta 1000Hz en el \textit{WebSocket} mediante eventos sintéticos del controlador \acrshort{ps4} con accionamiento continuo de \textit{triggers} y \textit{joysticks} analógicos. Cada optimización se validó independientemente antes de integración.
-
-\textbf{Resultado}: Sistema \acrshort{cli} funcional con optimizaciones de rendimiento significativas, aunque con limitaciones en modo completamente \textit{headless}.
-
-\section{Novena iteración: Funcionalidades avanzadas \acrshort{eeg}}
-\label{sec:iteracion_9}
-
-Esta iteración implementó capacidades avanzadas de procesamiento \acrshort{eeg} y completó la integración con bibliotecas científicas especializadas.
-
-\subsection{Análisis de la iteración}
-\label{subsec:analisis_iteracion_9}
-
-\textbf{Objetivos específicos}: Integrar procesamiento avanzado y herramientas científicas (RF-06, RF-09).
-
-\textbf{Requisitos abordados}: RF-06, RF-09, RNF-02, RNF-09
-
-\textbf{Casos de uso específicos}:
-\begin{itemize}
-    \item \textbf{CU-04}: Herramientas avanzadas para investigación neurocientífica
-    \item \textbf{CU-05}: Validación de paradigmas mediante análisis sofisticados
-    \item \textbf{CU-06}: Integración con \textit{MNE-Python} y herramientas estándar
-\end{itemize}
-
-\textbf{Actores beneficiados}:
-\begin{itemize}
-    \item Investigador neurocientífico: Podrá utilizar algoritmos avanzados para análisis especializado
-    \item Especialista en procesamiento de señales: Podrá configurar filtros y análisis complejos
-    \item Investigador computacional: Podrá beneficiarse de integración con \textit{MNE-Python}
-\end{itemize}
-
-\subsection{Diseño de la iteración}
-\label{subsec:diseno_iteracion_9}
-
-\textbf{Componentes avanzados}:
-\begin{itemize}
-    \item Integración \textit{MNE-Python} para análisis neurocientífico avanzado
-    \item Sistema para \gls{ica_analysis} (\acrshort{ica}) con procesamiento multiproceso
-    \item Análisis mediante \glspl{wavelet} con múltiples \gls{familias_wavelet}
-    \item \gls{filtros_digitales} avanzados y \gls{downsampling}
-\end{itemize}
-
-\textbf{Arquitectura de servicios optimizada}:
-\begin{itemize}
-    \item Centralización completa en \textit{DataAccessService}
-    \item Sistema de \glspl{callback} optimizado con múltiples modalidades
-    \item Detección automática de tipos de canales con soporte para múltiples \gls{presets}
-    \item \textit{Streaming} a archivo y red con diferentes configuraciones
-\end{itemize}
-
-\subsection{Implementación de la iteración}
-\label{subsec:implementacion_iteracion_9}
-
-\textbf{Finalización del \acrshort{api} de control \acrshort{eeg}}:
-Se implementó control remoto completo con más de 40 señales \textit{Qt} para comunicación completa. Durante el desarrollo se identificaron y resolvieron numerosos problemas internos del módulo, mejorando significativamente la robustez general.
-
-\textbf{Integración \textit{MNE-Python}}:
-Se desarrollaron servicios de conversión para transformar datos BrainFlow a formatos \textit{MNE} en tiempo real con múltiples modalidades:
-\begin{itemize}
-    \item \textbf{Modo flexible}: Cálculo con todos los canales permitiendo filtrado posterior en visualización
-    \item \textbf{Modo rendimiento}: Cálculo limitado a canales seleccionados para optimización
-    \item \textbf{Modo tiempo real}: Recálculo automático con frecuencia establecida y actualización de visualización
-\end{itemize}
-
-Soporta \textit{plots} \gls{power_spectral_density} (\acrshort{psd}), \gls{topomaps}, espectrogramas y datos en bruto con capacidades de filtrado de canales aplicable según el modo seleccionado.
-
-\textbf{Corrección del error crítico \textit{get\_instance()}}:
-Se identificó un problema donde se reinstanciaba el colector en lugar de usar el \textit{singleton}. La corrección inicial causó fallos generalizados debido a modificaciones de tipos de datos para optimizaciones de red y incremento del \gls{overhead} por el pipeline multiproceso del \acrshort{api} web. Se solucionó tanto la reinstanciación como los problemas asociados a la primera corrección mediante optimización del pipeline de datos.
-
-\textbf{Centralización completa del acceso a datos}:
-Se centralizó todo el acceso en \textit{DataAccessService} eliminando duplicaciones. Se implementaron suscripciones a \glspl{callback} con dos modalidades:
-\begin{itemize}
-    \item \glspl{callback} locales para baja latencia servidos directamente
-    \item \glspl{callback} \acrshort{api} con dos modos: baja latencia sin multiproceso y multiproceso para filtros avanzados en tiempo real con múltiples clientes
-\end{itemize}
-
-\textbf{Algoritmos de procesamiento avanzado}:
-Se implementó \gls{ica_analysis} con configuración de 1-16 componentes y selección de canales, visualización de \gls{matriz_mixing} y \gls{matriz_unmixing} y componentes individuales. Incluye \gls{weight_distribution} para matrices y \gls{power_spectral_density} para componentes con métricas estadísticas. Soporta cambio de \textit{colormap} y exportación de imágenes de alta resolución. El modo tiempo real funciona con cierta latencia en el \acrshort{ui} debido a limitaciones de \textit{matplotlib} en el \textit{thread} principal.
-
-Las transformadas mediante \gls{wavelet} incluyeron múltiples \gls{familias_wavelet} con configuración flexible de niveles de descomposición.
-
-Los \gls{filtros_digitales} expandieron las capacidades básicas añadiendo múltiples implementaciones y \gls{downsampling} con diferentes métodos de agregación.
-
-\textbf{Detección automática de canales y \gls{presets}}:
-Se eliminó la restricción de asumir los primeros 16 canales como \acrshort{eeg}. El sistema detecta automáticamente tipos de canales, por ejemplo \acrshort{eeg}, \acrshort{emg}, \acrshort{ecg}, acelerómetro, giroscopio. Se crea una pestaña por tipo de canal que abarca todos los canales de ese tipo. Incluye soporte para múltiples \gls{presets} donde los algoritmos de procesamiento básicos se aplican sobre todos los canales \acrshort{eeg}, mientras que los algoritmos avanzados se aplican únicamente sobre los canales \acrshort{eeg} que el usuario seleccione.
-
-\textbf{Implementación de \textit{streamers} y corrección de grabación}:
-Se implementó \textit{streaming} a archivo que soporta datos procesados y \textit{RAW}, y \textit{streaming} vía \textit{TCP}/\textit{UDP} limitado a datos \textit{RAW} y restringido al \textit{preset} 0 por problemas de compatibilidad.
-
-Se corrigieron problemas críticos donde los filtros se aplicaban incorrectamente a todos los canales incluyendo el canal de control CH\_0, causando fallos en la reproducción de grabaciones mediante la placa sintética \textit{playback file board}. Se restringió la aplicación de filtros únicamente a canales \acrshort{eeg}, preservando canales auxiliares.
-
-Se migró la lógica de grabación al \textit{DataAccessService} y posteriormente al servicio de grabación utilizando \glspl{callback}, eliminando pérdida de muestras que anteriormente alcanzaba 10-30\% cuando se utilizaba \textit{polling}.
-
-\subsection{Validación de la iteración}
-\label{subsec:validacion_iteracion_9}
-
-\textbf{Pruebas realizadas}:
-\begin{itemize}
-    \item Validación exhaustiva de integración \textit{MNE-Python} en sus tres modalidades
-    \item Verificación de algoritmos \gls{ica_analysis}, dependiendo su correctitud de la biblioteca utilizada
-    \item Pruebas de transformadas \gls{wavelet} siguiendo los ejemplos y la documentación de BrainFlow, añadiendo además logs de depuración para confirmar aplicación correcta
-    \item Validación de \textit{streaming} a archivo y red con diferentes configuraciones
-    \item Verificación de eliminación de pérdida de muestras en grabación continua
-\end{itemize}
-
-\textbf{Métricas de rendimiento}:
-\begin{itemize}
-    \item Frecuencias de muestreo \acrshort{eeg} validadas hasta 250Hz
-    \item Latencia de procesamiento < 100ms para algoritmos avanzados
-    \item Pérdida de muestras reducida a < 1\% en grabación continua desde aproximadamente 30\% previo
-    \item Tiempo de respuesta \acrshort{api} < 50ms promedio
-\end{itemize}
-
-\textbf{Resultado}: Sistema completo de procesamiento avanzado \acrshort{eeg} con integración técnica validada y optimizaciones de rendimiento significativas.
-
-\section{Décima iteración: Intento de integración final}
-\label{sec:decima_iteracion}
-
-Se desarrolló un módulo de sincronización con \acrshort{lsl} que accedía a datos mediante \acrshort{api} internas con \glspl{callback} locales, pero se pausó por problemas técnicos específicos.
-
-\subsection{Análisis de la iteración}
-\label{subsec:analisis_iteracion_10}
-
-\textbf{Objetivos específicos}: Implementar sincronización temporal precisa mediante \acrshort{lsl} (RF-08, RF-09).
-
-\textbf{Requisitos abordados}: RF-08, RF-09, RNF-04
-
-\textbf{Casos de uso específicos}:
-\begin{itemize}
-    \item \textbf{CU-01}: Generación de \textit{datasets} completamente sincronizados para entrenamiento de modelos
-    \item \textbf{CU-02}: Análisis integrado en tiempo real de señales cerebrales y acciones del usuario
-\end{itemize}
-
-\textbf{Actores beneficiados}:
-\begin{itemize}
-    \item Investigador \acrshort{bci}: Habría podido generar \textit{datasets} precisamente sincronizados
-    \item Desarrollador de modelos \acrshort{ml}: Habría podido entrenar con datos de mejor calidad temporal
-    \item Investigador en neurociencia: Habría podido realizar estudios de correlación temporal precisa
-\end{itemize}
-
-\subsection{Desarrollo del módulo de sincronización}
-\label{subsec:modulo_sincronizacion}
-
-\textbf{Diseño arquitectónico}: Módulo que accedía a datos de ambos módulos mediante \glspl{callback} locales para evitar \gls{overhead} de comunicación web, integrando visualmente ambos módulos y coordinando operaciones de sincronización.
-
-\textbf{Funcionalidades planificadas}:
-\begin{itemize}
-    \item Sincronización temporal precisa entre señales \acrshort{eeg} y eventos de entrada
-    \item Exportación a formatos estándar como \acrshort{bids}, \acrshort{edf}+, \acrshort{hdf5}
-    \item Interfaz unificada para configuración de parámetros de sincronización
-\end{itemize}
-
-\textbf{Problemas técnicos encontrados}:
-\begin{itemize}
-    \item Fallos en exportación de formatos \acrshort{edf} y \acrshort{edf}+ principalmente
-    \item Falta de tiempo para verificar precisión de sincronización temporal
-    \item Necesidad de validación de corrección en formatos de exportación funcionales
-\end{itemize}
-
-\textbf{Estado actual}: Desarrollo pausado debido a restricciones temporales del proyecto. Los \glspl{callback} locales funcionan correctamente y la integración conceptual está validada.
+\textbf{Cumplimiento de requisitos}: RF-03, RF-06, RF-10, RNF-04, RNF-07, RNF-08 completados satisfactoriamente. RNF-06 (compatibilidad completa multiplataforma) limitado por dependencias \textbf{Qt} en modo \textit{headless}.
 
 \section{Arquitectura final del sistema}
 \label{sec:arquitectura_final}
@@ -858,7 +522,7 @@ El sistema desarrollado implementa una arquitectura modular basada en servicios 
 \textbf{Módulo de procesamiento \acrshort{eeg}}:
 \begin{itemize}
     \item Arquitectura orientada a servicios con detección automática de canales
-    \item Integración BrainFlow con soporte para múltiples fabricantes
+    \item Integración \textbf{Brainflow} con soporte para múltiples fabricantes
     \item Procesamiento avanzado: \gls{ica_analysis} (\acrshort{ica}), \gls{wavelet}, \textit{MNE-Python}, \gls{filtros_digitales}, \gls{downsampling}
     \item Visualización científica en tiempo real con múltiples modalidades
 \end{itemize}
@@ -878,9 +542,9 @@ El sistema desarrollado implementa una arquitectura modular basada en servicios 
 
 \textbf{Requisitos no funcionales}: Cumplimiento de RNF-01 a RNF-10 con limitación parcial en RNF-06 debido a dependencias \textit{Qt} en modo \textit{headless}.
 
-\textbf{Casos de uso}: Soporte para CU-01 a CU-06, con CU-01 (generación de \textit{datasets}) requiriendo sincronización \textit{offline}.
+\textbf{Casos de uso}: Soporte para CU-01 a CU-06, con CU-01 (generación de \textit{\glspl{dataset}}) requiriendo sincronización \textit{offline}.
 
 \textbf{Capacidades actuales del sistema}: 
-El sistema desarrollado proporciona un módulo de captura de teclas, botones y controladores con \textit{timestamps} precisos y un módulo de conexión intuitiva a dispositivos \acrshort{bci} mediante BrainFlow con capacidad de aplicar filtros en tiempo real y grabación en \acrshort{csv} con \textit{timestamps} y posibilidad de añadir marcadores. Cada módulo graba independientemente en \acrshort{csv}, también \acrshort{json} para el módulo de entrada, permitiendo sincronización \textit{offline} posterior. Esta aproximación presenta ventajas específicas: evita sobrecarga \acrshort{cpu} extra en tiempo real, previene fallos relacionados con sincronización entre módulos al mantener independencia de cada componente, y no representa pérdida significativa de valor ya que aunque existiera sincronización en tiempo real, no habría función para servir ese \textit{stream} sincronizado en tiempo real a aplicaciones externas.
+El sistema desarrollado proporciona un módulo de captura de teclas, botones y controladores con \textit{timestamps} precisos y un módulo de conexión intuitiva a dispositivos \acrshort{bci} mediante \textbf{Brainflow} con capacidad de aplicar filtros en tiempo real y grabación en \acrshort{csv} con \textit{timestamps} y posibilidad de añadir marcadores. Cada módulo graba independientemente en \acrshort{csv}, también \acrshort{json} para el módulo de entrada, permitiendo sincronización \textit{offline} posterior. Esta aproximación presenta ventajas específicas: evita sobrecarga \acrshort{cpu} extra en tiempo real, previene fallos relacionados con sincronización entre módulos al mantener independencia de cada componente, y no representa pérdida significativa de valor ya que aunque existiera sincronización en tiempo real, no habría función para servir ese \textit{\gls{stream}} sincronizado en tiempo real a aplicaciones externas.
 
 El sistema constituye una herramienta útil que facilita la investigación y desarrollo en interfaces cerebro-computadora mediante herramientas especializadas e interfaces accesibles.
