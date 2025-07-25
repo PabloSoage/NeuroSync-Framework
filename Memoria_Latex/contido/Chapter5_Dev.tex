@@ -136,11 +136,10 @@ El diseño de esta iteración siguió inicialmente un enfoque monolítico que po
 El módulo de captura de entrada se diseñó como una aplicación monolítica que integraba la lógica de captura, procesamiento y almacenamiento en un único \textit{script}. La arquitectura utilizaba \textbf{pynput} como biblioteca principal para la captura multiplataforma de eventos de teclado y ratón. El diseño incluía un sistema de filtrado configurable que permitía seleccionar qué teclas y botones capturar, evitando ruido en los datos experimentales.
 
 El sistema de \textit{timestamps} se implementó utilizando la función \textit{time.time()} de Python para garantizar precisión temporal de milisegundos. El diseño contemplaba cuatro modos diferentes de representación del movimiento del ratón para adaptarse a diferentes tipos de experimentos: modo \textit{axis} para direcciones cardinales, modo \textit{angle} para representación angular, modo \textit{delta} para movimiento en bruto, y modo \textit{joystick} para emulación de controlador analógico.
-
 \textbf{Arquitectura inicial del módulo \acrshort{eeg}}:
 El módulo de procesamiento \acrshort{eeg} se diseñó como una aplicación independiente que integraba \textbf{Brainflow} mediante el patrón \textit{Adapter}. La arquitectura se desarrolló directamente en \textbf{PyQt5} después de validar su rendimiento superior sobre \textbf{tkinter} para visualización en tiempo real.
 
-El diseño incluyó componentes especializados: un adaptador \textbf{Brainflow} para abstracción de dispositivos, un visualizador multicanal que asumía los primeros 16 canales como \acrshort{eeg}, un monitor de calidad de señal mediante \textit{\gls{railed_percentage}}, y un visualizador topográfico básico compatible con sistemas \gls{sistema_10_20} y \gls{sistema_10_10}. El sistema de ayuda contextual se diseñó como \textit{\glspl{widgets}} independientes que proporcionaban información sobre conceptos neurofisiológicos y parámetros técnicos.
+El diseño incluyó componentes especializados: un adaptador \textbf{Brainflow} para abstracción de dispositivos, un visualizador multicanal que asumía los primeros 16 canales como \acrshort{eeg}, un monitor de calidad de señal mediante \textit{\gls{railed_percentage}}, y un visualizador topográfico básico compatible con sistemas \gls{sistema_10_20} y \gls{sistema_10_10} que sitúa electrodos según su nomenclatura estándar en posiciones aproximadas preestablecidas. El sistema de ayuda contextual se diseñó como \textit{\glspl{widgets}} independientes disponibles en la interfaz gráfica que proporcionan información contextual para que el usuario comprenda la función de cada parámetro además de conceptos neurofisiológicos básicos.
 
 \textbf{Problemas de diseño identificados durante la integración}:
 El primer intento de integración reveló limitaciones fundamentales en el diseño monolítico. Los archivos de gran tamaño y el acoplamiento estrecho entre componentes dificultaron la identificación de puntos de integración apropiados. La falta de interfaces claras entre módulos y la ausencia de separación de responsabilidades complicaron la implementación de comunicación entre sistemas.
@@ -161,7 +160,7 @@ La implementación en Python utilizó \textbf{pynput} como biblioteca principal 
 
 La implementación de múltiples modos de \textit{tracking} de ratón requirió desarrollo personalizado para cada modalidad. El modo \textit{axis} calcula probabilidades de movimiento en direcciones cardinales que suman 1. El modo \textit{angle} proporciona tanto direcciones discretas agrupables como ángulos continuos con magnitud. El modo \textit{delta} registra movimiento en bruto con \textit{\gls{delta_smoothing}} configurable. El modo \textit{joystick} emula direcciones X+/X-/Y+/Y- con velocidad ajustable mediante parámetros de sensibilidad.
 
-La interfaz gráfica inicial se implementó en \textit{tkinter}, pero mostró limitaciones de rendimiento para visualización en tiempo real, motivando la experimentación con \textit{PyQt5} que se validaría posteriormente en el módulo \acrshort{eeg}.
+La interfaz gráfica inicial se implementó en \textit{tkinter}, pero mostró limitaciones de rendimiento para actualizaciones frecuentes y falta de \textit{\glspl{widgets}} especializados, motivando la experimentación con \textbf{PyQt5}, validando su uso mediante el desarrollo inicial del módulo de \acrshort{eeg}.
 
 \textbf{Fase 3: Desarrollo del módulo de procesamiento \acrshort{eeg}}:
 La implementación comenzó con experimentación usando la placa sintética de \textbf{Brainflow} para validar la \acrshort{api} y establecer patrones de adquisición. Se desarrolló un grabador básico que registraba datos en archivos \acrshort{csv} con metadatos completos: fecha/hora, identificación de placa, \textit{preset}, número de canales, duración, y columnas para \textit{timestamps}, marcadores y canal de control de \textbf{Brainflow}.
@@ -175,10 +174,10 @@ El sistema de ayuda contextual se implementó como más de 25 \textit{widgets} e
 \textbf{Fase 4: Primer intento de integración}:
 La integración visual se logró exitosamente, permitiendo controlar ambos módulos desde una interfaz unificada con coordinación básica de inicio/parada de grabaciones. Se unificaron los formatos de exportación añadiendo soporte \acrshort{csv} al módulo de entrada para facilitar la combinación posterior de datos.
 
-Sin embargo, la integración \acrshort{lsl} falló debido a la estructura monolítica de los módulos. Los archivos de gran tamaño y el acoplamiento estrecho dificultaron la identificación de puntos de integración. Cada módulo utilizaba sistemas de \textit{timestamping} independientes sin coordinación externa, impidiendo la sincronización temporal precisa requerida.
+Sin embargo, la integración \acrshort{lsl} falló debido a la estructura monolítica de los módulos. Los archivos de gran tamaño y el acoplamiento estrecho dificultaron la identificación de puntos de integración y complicaron la depuración de problemas. La arquitectura monolítica impedía el acceso directo a los \textit{\glspl{stream}} de datos internos de cada módulo, limitando las capacidades de sincronización efectiva.
 
 \textbf{Decisiones de implementación específicas}:
-Durante esta fase se implementó tipado estático básico con \textit{\gls{type hints}} para facilitar el mantenimiento del código. Se establecieron patrones de manejo de errores específicos para cada tipo de dispositivo. La implementación priorizó la funcionalidad sobre la arquitectura, lo que posteriormente motivaría la refactorización completa.
+Durante esta fase se implementó tipado estático básico con \textit{\gls{type hints}} para facilitar el mantenimiento del código. La implementación priorizó la funcionalidad sobre la arquitectura, lo que posteriormente motivaría la refactorización completa.
 
 \subsection{Validación de la iteración}
 \label{subsec:validacion_iteracion_1}
@@ -193,18 +192,18 @@ La validación se realizó mediante pruebas manuales exhaustivas para cada compo
     \rowcolor{udcpink!25}
     \textbf{Prueba realizada} & \textbf{Resultado esperado} & \textbf{Resultado obtenido} & \textbf{Estado} \\
     \hline
-    Captura eventos teclado & Eventos con timestamps < 10ms latencia & Latencia medida 5-8ms & ✓ Exitosa \\
-    Filtrado teclas específicas & Solo teclas configuradas capturadas & Filtrado correcto, eventos liberación eliminados & ✓ Exitosa \\
-    Modos tracking ratón & 4 modos funcionales con representaciones distintas & Axis, angle, delta, joystick funcionando & ✓ Exitosa \\
-    Exportación JSON básica & Estructura JSON válida con metadatos & JSON correcto con timestamps y metadatos & ✓ Exitosa \\
-    Conectividad \textbf{Brainflow} & Conexión exitosa con placa sintética & Conexión establecida, datos fluyendo & ✓ Exitosa \\
-    Visualización multicanal & 16 canales mostrados en tiempo real & Visualización fluida hasta 250Hz & ✓ Exitosa \\
-    Calidad señal (railed \%) & Detección automática electrodos problemáticos & Cálculo correcto, visualización por colores & ✓ Exitosa \\
-    Grabación CSV con metadatos & Archivo CSV con cabeceras completas & Metadatos completos, estructura correcta & ✓ Exitosa \\
-    Migración GUI a PyQt5 & Rendimiento superior a tkinter & Visualización fluida, widgets responsivos & ✓ Exitosa \\
-    Integración visual módulos & Interfaz unificada funcional & Control coordinado ambos módulos & ✓ Exitosa \\
-    Integración LSL & Sincronización temporal precisa & Fallo por acoplamiento monolítico & ✗ Fallida \\
-    Sincronización timestamps & Timestamps coordinados entre módulos & Sistemas independientes sin coordinación & ✗ Fallida \\
+    Captura eventos teclado & Eventos con timestamps < 10ms latencia & Latencia medida 5-8ms & Exitosa \\
+    Filtrado teclas específicas & Solo teclas configuradas capturadas & Filtrado correcto, eventos liberación eliminados & Exitosa \\
+    Modos tracking ratón & 4 modos funcionales con representaciones distintas & Axis, angle, delta, joystick funcionando & Exitosa \\
+    Exportación JSON básica & Estructura JSON válida con metadatos & JSON correcto con timestamps y metadatos & Exitosa \\
+    Conectividad \textbf{Brainflow} & Conexión exitosa con placa sintética & Conexión establecida, datos fluyendo & Exitosa \\
+    Visualización multicanal & 16 canales mostrados en tiempo real & Visualización fluida hasta 250Hz & Exitosa \\
+    Calidad señal (railed \%) & Detección automática electrodos problemáticos & Cálculo correcto, visualización por colores & Exitosa \\
+    Grabación CSV con metadatos & Archivo CSV con cabeceras completas & Metadatos completos, estructura correcta & Exitosa \\
+    Migración GUI a PyQt5 & Rendimiento superior a tkinter & Visualización fluida, widgets responsivos & Exitosa \\
+    Integración visual módulos & Interfaz unificada funcional & Control coordinado ambos módulos & Exitosa \\
+    Integración LSL & Sincronización temporal precisa & Fallo por acoplamiento monolítico & Fallida \\
+    Sincronización timestamps & Timestamps coordinados entre módulos & Sistemas independientes sin coordinación & Fallida \\
     \end{tabular}
   }
   \caption{Resultados de validación de la primera iteración}
@@ -231,9 +230,9 @@ La segunda iteración abordó las limitaciones arquitectónicas identificadas me
 
 \textbf{Casos de uso específicos}:
 \begin{itemize}
-    \item \textbf{CU-01}: Preparación arquitectónica para generación de \textit{\glspl{dataset}} sincronizados
-    \item \textbf{CU-03 (preparación)}: Arquitectura extensible para futuro desarrollo de aplicaciones personalizadas
-    \item \textbf{CU-06 (preparación)}: Base arquitectónica para integración con herramientas externas
+    \item \textbf{CU-01}: Base arquitectónica para generación de \textit{\glspl{dataset}} sincronizados
+    \item \textbf{CU-03 (fundamentos)}: Arquitectura extensible para futuro desarrollo de aplicaciones personalizadas
+    \item \textbf{CU-06 (fundamentos)}: Base arquitectónica para integración con herramientas externas
 \end{itemize}
 
 \textbf{Actores beneficiados}:
@@ -260,15 +259,15 @@ La segunda iteración abordó las limitaciones arquitectónicas identificadas me
 El diseño de esta iteración se enfocó en transformar la arquitectura monolítica en un sistema modular extensible que facilitara la integración futura.
 
 \textbf{Nueva arquitectura basada en servicios}:
-Se diseñó una arquitectura orientada a servicios utilizando el patrón \textit{Singleton} para recursos compartidos y comunicación dirigida por eventos. La arquitectura separó claramente las responsabilidades en servicios especializados: \textit{CollectorService} para gestión de colectores de datos, \textit{RecordingService} para coordinación de grabaciones, \textit{ProcessingService} para algoritmos de procesamiento, y servicios de gestión para recursos compartidos.
+Se diseñó una arquitectura orientada a servicios utilizando el patrón \textit{Singleton} para recursos compartidos y comunicación dirigida por eventos. La arquitectura separó claramente las responsabilidades en servicios especializados: \textit{CollectorService} para gestión de colectores de datos, \textit{RecordingService} para coordinación de grabaciones, \textit{ProcessingService} para algoritmos de procesamiento, entre otros servicios de gestión para recursos compartidos.
 
-El diseño implementó el principio de \textit{Single Responsibility} asignando una responsabilidad específica a cada clase. El principio \textit{Open-Closed} se aplicó mediante interfaces abstractas que permiten extensibilidad sin modificar código existente. \textit{Liskov Substitution} se garantizó mediante implementaciones intercambiables de interfaces comunes. \textit{Interface Segregation} se logró creando interfaces específicas para cada funcionalidad sin dependencias innecesarias. \textit{Dependency Inversion} se implementó mediante inyección de dependencias y abstracciones.
+El diseño implementó el principio de \textit{Single Responsibility} asignando una responsabilidad específica a cada clase. El principio \textit{Open-Closed} se aplicó mediante interfaces abstractas que permiten extensibilidad sin modificar código existente. Los principios de \textit{Liskov Substitution}, \textit{Interface Segregation} y \textit{Dependency Inversion} se aplicaron mediante el diseño de \gls{interface} especializadas y sistemas de inyección de dependencias.
 
 \textbf{Patrones de diseño aplicados}:
 La arquitectura utilizó el patrón \textit{Singleton} con implementación \textit{\gls{thread-safe}} para servicios centrales que requieren instancia única. El patrón \textit{Factory} se aplicó para creación de colectores específicos según el tipo de dispositivo. \textit{Observer} se implementó mediante sistema de \glspl{callback} para comunicación desacoplada entre componentes. El patrón \textit{Strategy} se utilizó para intercambio de algoritmos de procesamiento sin modificar el código cliente.
 
 \textbf{Diseño del módulo integrador}:
-Se diseñó un módulo integrador independiente que coordinaba ambos módulos refactorizados. El diseño incluía un sistema de configuración unificado que permitía establecer parámetros globales, coordinación visual de controles de grabación desde una interfaz centralizada, y \textit{widgets} de ayuda específicos para explicar diferencias entre formatos de exportación y opciones de sincronización.
+Se diseñó un módulo integrador independiente que coordinaba ambos módulos refactorizados. El diseño incluía coordinación visual de controles de grabación desde una interfaz centralizada, y \textit{widgets} de ayuda específicos para explicar diferencias entre formatos de exportación y opciones de sincronización.
 
 \textbf{Arquitectura de comunicación}:
 El diseño contempló múltiples modalidades de comunicación entre módulos: \glspl{callback} internos para comunicación de baja latencia, señales \textit{Qt} para sincronización de interfaces gráficas, y un sistema de eventos global para coordinación de operaciones complejas.
@@ -281,19 +280,19 @@ La implementación se organizó en fases que abarcaron la refactorización compl
 \textbf{Fase 1: Refactorización del módulo de entrada}:
 La refactorización separó responsabilidades en clases independientes especializadas. Se implementaron gestores específicos para cada tipo de colector (teclado, ratón, futuro soporte para controladores), adaptadores para comunicación entre componentes, y servicios centralizados para recursos compartidos como configuración y logging.
 
-La granularidad del código mejoró significativamente, con archivos más pequeños y responsabilidades específicas. Se implementó un sistema de \glspl{factory} para crear colectores apropiados según la configuración. Los \glspl{callback} se estandarizaron para comunicación consistente entre componentes. El sistema de filtrado se modularizó permitiendo extensión con nuevos tipos de filtros sin modificar código existente.
+La granularidad del código mejoró significativamente, con archivos más pequeños y responsabilidades específicas. Se implementó un sistema de \textit{\glspl{factory}} para crear colectores apropiados según la configuración. Los \glspl{callback} se estandarizaron para comunicación consistente entre componentes. El sistema de filtrado se modularizó permitiendo extensión con nuevos tipos de filtros sin modificar código existente.
 
 \textbf{Fase 2: Refactorización del módulo \acrshort{eeg}}:
 Se implementaron servicios \textit{singleton} \textit{\gls{thread-safe}} para recursos compartidos como conexiones \textbf{Brainflow} y buffers de datos. La separación entre procesamiento y presentación se logró mediante servicios independientes que pueden funcionar sin interfaz gráfica. El sistema de \glspl{callback} se redeseñó para comunicación desacoplada entre componentes de procesamiento y visualización.
 
-Los algoritmos de procesamiento se modularizaron en clases independientes que implementan interfaces comunes. El sistema de visualización se refactorizó para soportar múltiples tipos de visualizadores sin acoplamiento con fuentes de datos específicas. La gestión de dispositivos se centralizó en un servicio dedicado que abstrae las diferencias entre tipos de hardware.
+Los algoritmos de procesamiento se modularizaron en clases independientes especializadas. El sistema de visualización se refactorizó para soportar múltiples tipos de visualizadores sin acoplamiento con fuentes de datos específicas. La gestión de dispositivos se centralizó en un servicio dedicado que abstrae las diferencias entre tipos de hardware.
 
 \textbf{Fase 3: Desarrollo del módulo integrador}:
-Se implementó un módulo integrador independiente que coordinaba ambos módulos refactorizados. El sistema proporcionaba configuración unificada mediante archivos de configuración centralizados que establecían parámetros globales para ambos módulos. La coordinación visual se logró mediante controles de grabación centralizados que iniciaban y detenían operaciones en ambos módulos simultáneamente.
+Se implementó un módulo integrador independiente que coordinaba ambos módulos refactorizados siguiendo la nueva estructura modular. La coordinación visual se logró mediante controles de grabación centralizados que iniciaban y detenían operaciones en ambos módulos simultáneamente, aunque el sistema solo podía detectar el estado activo de los \textit{\glspl{stream}} sin acceso directo a datos o metadatos internos.
 
-Se desarrollaron \textit{widgets} de ayuda específicos que explicaban diferencias entre formatos de exportación y opciones de sincronización disponibles. El sistema incluía validación de configuración que verificaba compatibilidad entre parámetros de ambos módulos antes de iniciar operaciones.
+Se desarrollaron \textit{widgets} de ayuda específicos que explicaban diferencias entre formatos de exportación y opciones de sincronización disponibles. El sistema incluía validación básica de configuración que verificaba compatibilidad entre parámetros de ambos módulos antes de iniciar operaciones.
 
-\textbf{Fase 4: Validación funcional exhaustiva}:
+\textbf{Validación y preservación de funcionalidad}:
 Durante toda la refactorización se realizaron pruebas manuales exhaustivas después de cada cambio significativo para garantizar preservación de funcionalidad. Se desarrollaron \textit{scripts} de prueba que verificaban que cada funcionalidad seguía operando correctamente después de los cambios arquitectónicos.
 
 \textbf{Limitaciones del segundo intento de integración}:
@@ -312,18 +311,18 @@ La validación se enfocó en verificar la preservación de funcionalidad tras la
     \rowcolor{udcpink!25}
     \textbf{Prueba realizada} & \textbf{Resultado esperado} & \textbf{Resultado obtenido} & \textbf{Estado} \\
     \hline
-    Preservación funcionalidad entrada & Todas las funciones operativas & Funcionalidad completa preservada & ✓ Exitosa \\
-    Preservación funcionalidad EEG & Visualización y grabación funcionando & Operación normal sin degradación & ✓ Exitosa \\
-    Reducción acoplamiento & Archivos independientes y modulares & Archivos 60\% más pequeños, menor dependencia & ✓ Exitosa \\
-    Tiempo de depuración & Reducción significativa & 70\% reducción en tiempo identificación errores & ✓ Exitosa \\
-    Aplicación principios SOLID & Cada principio implementado & Single Responsibility, Open-Closed validados & ✓ Exitosa \\
-    Servicios thread-safe & Operación concurrente sin errores & Singleton seguro, sin condiciones carrera & ✓ Exitosa \\
-    Sistema callbacks interno & Comunicación desacoplada & Eventos propagados correctamente & ✓ Exitosa \\
-    Configuración unificada & Parámetros globales coordinados & Configuración centralizada funcional & ✓ Exitosa \\
-    Coordinación grabaciones & Inicio/parada sincronizada & Control visual coordinado exitoso & ✓ Exitosa \\
-    Acceso datos internos & Interfaces para datos tiempo real & Acceso limitado, sin \gls{streaming} directo & ✗ Parcial \\
-    Sincronización temporal real & Timestamps coordinados & Solo coordinación visual, no datos & ✗ Fallida \\
-    Intercambio datos módulos & Comunicación bidireccional & Sin capacidades intercambio directo & ✗ Fallida \\
+    Preservación funcionalidad entrada & Todas las funciones operativas & Funcionalidad completa preservada & Exitosa \\
+    Preservación funcionalidad EEG & Visualización y grabación funcionando & Operación normal sin degradación & Exitosa \\
+    Reducción acoplamiento & Archivos independientes y modulares & Archivos 60\% más pequeños, menor dependencia & Exitosa \\
+    Tiempo de depuración & Reducción significativa & 70\% reducción en tiempo identificación errores & Exitosa \\
+    Aplicación principios SOLID & Principios implementados correctamente & Single Responsibility, Open-Closed aplicados & Exitosa \\
+    Servicios thread-safe & Operación concurrente sin errores & Singleton seguro, operación estable & Exitosa \\
+    Sistema callbacks interno & Comunicación desacoplada & Eventos propagados correctamente & Exitosa \\
+    Configuración coordinada & Coordinación visual de parámetros & Configuración centralizada funcional & Exitosa \\
+    Coordinación grabaciones & Inicio/parada sincronizada & Control visual coordinado exitoso & Exitosa \\
+    Acceso datos internos & Interfaces para datos tiempo real & Acceso limitado, sin \gls{streaming} directo & Parcial \\
+    Sincronización temporal real & Timestamps coordinados & Solo coordinación visual, no datos & Fallida \\
+    Intercambio datos módulos & Comunicación bidireccional & Sin capacidades intercambio directo & Fallida \\
     \end{tabular}
   }
   \caption{Resultados de validación de la segunda iteración}
@@ -333,7 +332,7 @@ La validación se enfocó en verificar la preservación de funcionalidad tras la
 La Tabla~\ref{tab:validacion_iteracion_2} muestra que la refactorización fue exitosa en términos de calidad arquitectónica y mantenibilidad del código. Se logró reducción del 60\% en tamaño de archivos individuales y 70\% de reducción en tiempo de depuración. Sin embargo, las limitaciones en sincronización temporal real y intercambio de datos revelaron la necesidad de un cambio paradigmático hacia arquitecturas \acrshort{api}.
 
 \textbf{Mejoras arquitectónicas logradas}:
-La refactorización proporcionó una base sólida para desarrollo futuro con código más mantenible, menor acoplamiento entre componentes, y mayor facilidad para implementar nuevas funcionalidades. Los servicios \textit{singleton} \textit{\gls{thread-safe}} garantizaron operación segura en entornos concurrentes.
+La refactorización proporcionó una base para el desarrollo futuro con código más mantenible, menor acoplamiento entre componentes, y mayor facilidad para implementar nuevas funcionalidades. Los servicios \textit{singleton} \textit{\gls{thread-safe}} garantizaron operación segura en entornos concurrentes.
 
 \textbf{Identificación de necesidades futuras}:
 Esta iteración reveló que la integración efectiva requería acceso directo a \textit{\glspl{stream}} de datos internos de cada módulo, capacidades de suscripción a eventos en tiempo real, e interfaces estándar para comunicación entre sistemas independientes. Estas necesidades motivaron el desarrollo de la arquitectura \acrshort{api} en la iteración siguiente.
@@ -387,7 +386,7 @@ El diseño de esta iteración se centró en crear una arquitectura \acrshort{api
 \textbf{Arquitectura \acrshort{api} multicapa}:
 Se diseñó una arquitectura en tres capas: \acrshortpl{api} de acceso a datos (solo lectura) para consultar estado y obtener datos históricos, \acrshortpl{api} de control para modificar configuración y controlar operaciones, y capa de \textit{\gls{streaming}} en tiempo real mediante \textit{WebSocket} para datos continuos. La arquitectura utilizó \textbf{FastAPI} como \textit{framework} base proporcionando documentación automática y validación de tipos.
 
-El diseño implementó un sistema de registro dinámico donde módulos independientes se registran exponiendo sus métodos disponibles. Esto permite que el sistema \acrshort{api} descubra automáticamente capacidades sin requerir configuración manual. Cada módulo define sus \textit{endpoints} mediante decoradores estándar que especifican parámetros, tipos de retorno, y documentación.
+El diseño implementó un sistema de registro dinámico donde módulos independientes se registran exponiendo sus métodos disponibles. Esto permite que el sistema \acrshort{api} descubra automáticamente capacidades sin requerir configuración manual. Cada módulo define sus \textit{\glspl{endpoint}} mediante \glspl{decorador} estándar que especifican parámetros, tipos de retorno, y documentación.
 
 \textbf{Arquitectura del explorador web}:
 Se diseñó un explorador web unificado que proporciona interfaz gráfica para todas las \acrshortpl{api} disponibles. El diseño incluye documentación interactiva inspirada en \textbf{FastAPI} con mejoras específicas: modo claro/oscuro, explicaciones detalladas, facilidades para parámetros mediante \textit{sliders} y selectores, plantillas \acrshort{json} con verificador de correctitud, y visualizador de gráficos dinámico.
@@ -429,26 +428,26 @@ Se desarrolló soporte completo utilizando \textbf{PySDL2} para acceso de bajo n
 El problema específico donde el controlador no podía inicializarse desde \acrshort{cli} debido a dependencias de \textit{\gls{timers}} \textbf{Qt} se resolvió migrando a arquitectura dirigida por eventos. Se implementó procesamiento de eventos \textbf{SDL2} en hilo dedicado con detección de cambios basada en comparación de estados previos, proporcionando captura completa con latencia mínima.
 
 \textbf{Fase 5: Optimizaciones masivas de rendimiento}:
-La migración a eventos generó volumen significativamente mayor que requirió optimizaciones coordinadas: \gls{batching} de eventos para reducir \gls{overhead}, \textit{\gls{worker} pools} para distribuir procesamiento, \gls{buffer} circular con descarte en sobrecarga, minimización de información renderizada en \gls{dom}, medidor de latencia desde \textit{DataAccessService}, y migración a \textit{orjson} para serialización \acrshort{json} de alto rendimiento.
+La migración a una arquitectura dirigida por eventos, en lugar de \textit{\gls{polling}}, generó un volumen significativamente mayor de eventos que requirió optimizaciones coordinadas: \gls{batching} de eventos para reducir \gls{overhead}, \textit{\gls{worker} pools} para distribuir procesamiento, \gls{buffer} circular con descarte en sobrecarga, minimización de información renderizada en \gls{dom}, medidor de latencia desde \textit{DataAccessService}, y migración a \textit{orjson} para serialización \acrshort{json} de alto rendimiento.
 
 Las optimizaciones se validaron independientemente soportando hasta 1000Hz en \textit{WebSocket} mediante eventos sintéticos del controlador \acrshort{ps4} con accionamiento continuo de \textit{triggers} y \textit{joysticks} analógicos.
 
 \textbf{Fase 6: Desarrollo de interfaces \acrshort{cli}}:
-Se implementaron interfaces completas utilizando las \acrshortpl{api} existentes como \textit{backend}. Las pruebas revelaron problemas \textit{headless} debido a dependencias ocultas de \textbf{Qt}. El \acrshort{cli} del módulo de entrada presenta problemas con servicios sin inicializar, mientras que el \acrshort{cli} \acrshort{eeg} funciona correctamente excepto para visualizadores dependientes de \acrshort{gui}.
+Se implementaron interfaces completas utilizando las \acrshortpl{api} existentes como \textit{backend}. Las pruebas revelaron problemas \textit{headless} debido a dependencias ocultas de \textbf{Qt}. El \acrshort{cli} del módulo de entrada presenta problemas con servicios sin inicializar, mientras que el \acrshort{cli} \acrshort{eeg} funciona correctamente excepto para visualizadores inherentemente dependientes de la interfaz gráfica.
 
 \textbf{Fase 7: Funcionalidades avanzadas \acrshort{eeg}}:
-Se implementó integración completa con \textbf{MNE-Python} mediante servicios de conversión en tiempo real. Se desarrollaron tres modalidades: flexible (todos los canales), rendimiento (canales seleccionados), y tiempo real (recálculo automático con frecuencia establecida).
+Se implementó integración completa con \textbf{MNE-Python} mediante servicios de conversión en tiempo real con tres modalidades de operación.
 
-La implementación soporta \textit{plots} \textit{\gls{power_spectral_density}}, \textit{\gls{topomaps}}, espectrogramas y datos en bruto con filtrado de canales aplicable según modalidad seleccionada. Se corrigió un error crítico donde se reinstanciaba el colector en lugar de usar el \textit{singleton}, causando fallos generalizados por modificaciones de tipos de datos para optimizaciones de red.
+La implementación soporta visualizaciones de \textit{\gls{power_spectral_density}}, \textit{\gls{topomaps}}, espectrogramas y datos en bruto, con filtrado de canales aplicable según modalidad seleccionada. Se corrigió un error crítico donde se reinstanciaba el colector en lugar de usar el \textit{singleton}, causando fallos generalizados por modificaciones de tipos de datos para optimizaciones de red.
 
 Se implementó \gls{ica_analysis} con configuración de 1-16 componentes, visualización de matrices \gls{matriz_mixing} y \gls{matriz_unmixing}, análisis de componentes individuales con \gls{weight_distribution} y \gls{power_spectral_density}. El modo tiempo real funciona con latencia en \acrshort{ui} debido a limitaciones de \textbf{matplotlib} en el \textit{thread} principal.
 
 Las transformadas \gls{wavelet} se implementaron con múltiples \gls{familias_wavelet} y configuración flexible de niveles de descomposición. Los filtros digitales se expandieron con múltiples implementaciones y \textit{\gls{downsampling}} con diferentes métodos de agregación.
 
 \textbf{Fase 8: Detección automática de canales y optimizaciones}:
-Se eliminó la restricción de asumir primeros 16 canales como \acrshort{eeg}. El sistema detecta automáticamente tipos: \acrshort{eeg}, \acrshort{emg}, \acrshort{ecg}, acelerómetro, giroscopio. Se crea pestaña por tipo abarcando todos los canales correspondientes, con soporte para múltiples \textit{\gls{presets}}.
+Se eliminó la restricción de asumir primeros 16 canales como \acrshort{eeg}. El sistema detecta automáticamente tipos de canales, incluyendo \acrshort{eeg}, \acrshort{emg}, \acrshort{ecg}, acelerómetro y giroscopio, entre otros. Se crea pestaña por tipo abarcando todos los canales correspondientes, con soporte para múltiples \textit{\gls{presets}}.
 
-Se implementó \textit{\gls{streaming}} a archivo (datos procesados y RAW) y vía \textit{TCP}/\textit{UDP} (limitado a RAW y \textit{\glspl{presets}} 0). Se corrigieron problemas donde filtros se aplicaban incorrectamente a todos los canales incluyendo control, causando fallos en reproducción. Se migró lógica de grabación al \textit{DataAccessService} eliminando pérdida de muestras que alcanzaba 10-30\%.
+Se implementó \textit{\gls{streaming}} a archivo (datos procesados y RAW) y vía \textit{TCP}/\textit{UDP} (limitado a RAW y \textit{\gls{presets}} 0). Se corrigieron problemas donde filtros se aplicaban incorrectamente a todos los canales incluyendo control, causando fallos en reproducción. La pérdida de muestras se solucionó principalmente al migrar de \textit{\gls{polling}} a \textit{\glspl{callback}}, reduciendo la pérdida del 10-30\% a menos del 1\%. Posteriormente, se centralizó el acceso a datos en \textit{DataAccessService} y finalmente se migró la lógica al \textit{RecordingService} utilizando \textit{\glspl{callback}} para facilitar múltiples pipelines de datos.
 
 \textbf{Fase 9: Intento de integración final con \acrshort{lsl}}:
 Se desarrolló un módulo de sincronización que accedía a datos mediante \glspl{callback} locales para evitar \gls{overhead} de comunicación web. La implementación incluía integración visual de ambos módulos y coordinación de operaciones de sincronización.
@@ -468,21 +467,21 @@ La validación se realizó mediante pruebas exhaustivas de cada componente desar
     \rowcolor{udcpink!25}
     \textbf{Prueba realizada} & \textbf{Resultado esperado} & \textbf{Resultado obtenido} & \textbf{Estado} \\
     \hline
-    API acceso datos ambos módulos & Endpoints funcionales con documentación & APIs completas, documentación automática & ✓ Exitosa \\
-    Streaming WebSocket tiempo real & Datos fluidos sin pérdida & Streaming validado hasta 1000Hz & ✓ Exitosa \\
-    Explorador web unificado & Interfaz única para ambos módulos & Sistema registro dinámico funcional & ✓ Exitosa \\
-    API control remoto completo & Control total via programática & Sincronización GUI-API bidireccional & ✓ Exitosa \\
-    Soporte controlador PS4 & Eventos completos cable/inalámbrico & Arquitectura eventos, latencia mínima & ✓ Exitosa \\
-    Interfaces CLI completas & Comandos documentados automáticamente & CLI funcional con limitaciones headless & ⚠ Parcial \\
-    Integración MNE-Python & Conversión tiempo real 3 modalidades & Integración completa, plots funcionales & ✓ Exitosa \\
-    Algoritmos ICA avanzados & 1-16 componentes, matrices visualización & ICA completo, tiempo real con latencia & ✓ Exitosa \\
-    Transformadas wavelet & Múltiples familias, niveles configurables & Implementación completa validada & ✓ Exitosa \\
-    Filtros digitales expandidos & Múltiples tipos, downsampling & Filtros avanzados, agregación múltiple & ✓ Exitosa \\
-    Detección automática canales & Tipos automáticos: EEG, EMG, ECG, etc. & Detección correcta, pestañas por tipo & ✓ Exitosa \\
-    Optimizaciones rendimiento & Soporte 1000Hz sin pérdida & Batching, workers, orjson validados & ✓ Exitosa \\
-    Streaming archivos/red & TCP/UDP/archivo con múltiples formatos & Archivo completo, red limitada preset 0 & ⚠ Parcial \\
-    Corrección pérdida muestras & Reducción <1\% desde 10-30\% & Migración callbacks, pérdida <1\% & ✓ Exitosa \\
-    Integración LSL final & Sincronización temporal precisa & Callbacks locales OK, exportación pausada & ⚠ Pausada \\
+    API acceso datos ambos módulos & Endpoints funcionales con documentación & APIs completas, documentación automática & Exitosa \\
+    Streaming WebSocket tiempo real & Datos fluidos sin pérdida & Streaming validado hasta 1000Hz & Exitosa \\
+    Explorador web unificado & Interfaz única para ambos módulos & Sistema registro dinámico funcional & Exitosa \\
+    API control remoto completo & Control total via programática & Sincronización GUI-API bidireccional & Exitosa \\
+    Soporte controlador PS4 & Eventos completos cable/inalámbrico & Arquitectura eventos, latencia mínima & Exitosa \\
+    Interfaces CLI completas & Comandos documentados automáticamente & CLI funcional con limitaciones headless & Parcial \\
+    Integración MNE-Python & Conversión tiempo real 3 modalidades & Integración completa, plots funcionales & Exitosa \\
+    Algoritmos ICA avanzados & 1-16 componentes, matrices visualización & ICA completo, tiempo real con latencia & Exitosa \\
+    Transformadas wavelet & Múltiples familias, niveles configurables & Implementación completa validada & Exitosa \\
+    Filtros digitales expandidos & Múltiples tipos, downsampling & Filtros avanzados, agregación múltiple & Exitosa \\
+    Detección automática canales & Tipos automáticos: EEG, EMG, ECG, etc. & Detección correcta, pestañas por tipo & Exitosa \\
+    Optimizaciones rendimiento & Soporte 1000Hz sin pérdida & Batching, workers, orjson validados & Exitosa \\
+    Streaming archivos/red & TCP/UDP/archivo con múltiples formatos & Archivo completo, red limitada preset 0 & Parcial \\
+    Corrección pérdida muestras & Reducción <1\% desde 10-30\% & Migración callbacks, pérdida <1\% & Exitosa \\
+    Integración LSL final & Sincronización temporal precisa & Callbacks locales OK, exportación pausada & Pausada \\
     \end{tabular}
   }
   \caption{Resultados de validación de la tercera iteración}
