@@ -98,30 +98,31 @@ classDiagram
     }
     
     %% Backend Reference Classes
-    class ApiExplorerBackend {
+    class ApiExplorer {
         <<backend reference>>
     }
     
-    class WebSocketBackend {
+    class WebSocket {
         <<backend reference>>
     }
     
-    class EventDataBackend {
+    class EventData {
         <<backend reference>>
     }
     
     %% Relationships
-    APIExplorer "1" --> "1" DarkModeManager : manages theme
     APIExplorer "1" --> "1" WebSocketManagerJS : manages client connections
+    APIExplorer "1" --> "1" EventDisplayManager : manages event display
     APIExplorer "1" --> "1" ChartManager : manages visualizations
+    APIExplorer "1" --> "1" DarkModeManager : manages theme
     APIExplorer "1" --> "1" APIMethodsManager : manages method execution
     APIExplorer "1" --> "1" FileBrowserManager : manages file operations
-    APIExplorer "1" --> "1" EventDisplayManager : manages event display
     
-    DarkModeManager --> ChartManager : notifies theme changes
+    WebSocketManagerJS ..> ApiExplorer : communicates with
     WebSocketManagerJS --> ChartManager : provides data updates
     WebSocketManagerJS --> EventDisplayManager : provides events
     EventDisplayManager --> ChartManager : controls graph display
+    DarkModeManager --> ChartManager : notifies theme changes
     
     ChartManager "1" --> "*" Chart : manages chart instances
     Chart "1" --> "1" ChartData : contains data
@@ -130,7 +131,6 @@ classDiagram
     HTMLTemplate --> CSSStyles : includes styling
     HTMLTemplate --> APIExplorer : includes JavaScript
     
-    WebSocketManagerJS ..> ApiExplorerBackend : communicates with
-    WebSocketBackend ..> WebSocketManagerJS : sends events
-    EventDataBackend ..> EventDisplayManager : updates displays
+    WebSocket ..> WebSocketManagerJS : receives client events
+    EventData ..> WebSocketManagerJS : updates frontend
 ```

@@ -31,10 +31,29 @@ classDiagram
         +distribute_message(message)
     }
     
+    class WebSocket {
+        <<framework>>
+        +accept()
+        +send_json()
+        +close()
+    }
+
+    class WorkerStats {
+        <<dataclass>>
+        +messages_processed: int
+        +total_processing_time: float
+        +last_activity: float
+        +avg_processing_time() float
+    }
+    
     class FastJSONSerializer {
         -_template_cache: Dict
         +serialize_event(event_data, compact)
         +precompile_template(template_name, structure)
+    }
+
+    class APIExplorerFrontend {
+        <<frontend reference>>
     }
     
     %% Data Structures
@@ -89,19 +108,8 @@ classDiagram
         +post()
     }
     
-    class WebSocket {
-        <<framework>>
-        +accept()
-        +send_json()
-        +close()
-    }
-    
     %% Frontend Reference Classes
     class WebSocketManagerJS {
-        <<frontend reference>>
-    }
-    
-    class APIExplorerJS {
         <<frontend reference>>
     }
     
@@ -115,6 +123,8 @@ classDiagram
     WebSocketManager --> FastJSONSerializer : uses for serialization
     WebSocketManager --> WebSocket : handles connections
     
+    WebSocketWorkerPool "1" --> "*" WorkerStats : tracks worker performance
+
     ModuleInfo "1" --> "*" MethodGroup : contains groups
     MethodGroup "1" --> "*" MethodInfo : contains methods
     MethodInfo "1" --> "*" ParameterInfo : defines parameters
@@ -124,5 +134,5 @@ classDiagram
     
     ApiExplorer --> EventData : broadcasts events
     EventData ..> WebSocketManagerJS : updates frontend
-    WebSocket ..> APIExplorerJS : communicates with
+    WebSocket ..> APIExplorerFrontend : communicates with
 ```
