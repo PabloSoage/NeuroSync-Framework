@@ -39,7 +39,7 @@ flowchart TD
     
     %% API Branch
     L --> T{API Callback Type}
-    T -->|Direct - Low Latency| U[Direct API Callback - 0ms latency]
+    T -->|Direct - Low Latency| U[Direct API Callback - 15-30ms latency]
     T -->|Multiprocess - High Throughput| V[Multiprocess API Callback - 50-100ms latency - Advanced Filtering Support]
     
     %% API Backend
