@@ -23,26 +23,25 @@ flowchart TD
     J --> L[API Callbacks - Lower Priority]
     
     %% Local Consumers
-    
     K --> M[Signal Visualizer - Real-time Display]
     K --> N[Brain Map Visualizer - Topographic Display]
     K --> P[MNE Processing - Analysis & Visualization]
-    K --> R[Streaming Service - Dual Mode Streaming]
-    K --> O[Recording Service - Data Storage]
     K --> Q[ICA Processing - Component Analysis]
+    K --> O[Recording Service - Data Storage]
     
-    %% Streaming Service Branching
-    R --> R2[Socket Streaming TCP - Raw Data Only via BrainFlow API]
-    R --> R1[File Streaming - Filtered & Unfiltered Support]
-    R1 -.->|Access| F
-    R1 -.->|Access| E
-    R2 -.->|Access| E
+    %% Socket Streaming (Direct from Collector)
+    C --> R1[Socket Streaming TCP - Raw Data Only via BrainFlow API]
+    
+    %% File Streaming (From Recording Service)
+    O --> R2[File Streaming - Filtered & Unfiltered Support]
+    R2 -.->|Can access| E
+    R2 -.->|Can access| F
     
     %% Filter Configuration
-    S[Processing Panel - Filter Configuration] -.->|Apply to Viz| M
+    S[Processing Panel - Filter Configuration] -.->|Configure| G
+    S -.->|Apply to Viz| M
     S -.->|Apply to Viz| N
     S -.->|Apply to Processing| P
-    S -.->|Configure| G
     S -.->|Apply to Processing| Q
     
     %% API Branch
@@ -72,7 +71,7 @@ flowchart TD
     classDef consumers fill:#ffcc99,color:#222;
     classDef api fill:#cc99ff,color:#fff;
     classDef config fill:#ffff99,color:#222;
-    classDef streaming fill:#ffd699,color:#222;
+    classDef streaming fill:#ff99cc,color:#222;
     
     class A hardware
     class B,C collection
@@ -80,5 +79,5 @@ flowchart TD
     class M,N,O,P,Q,AA,BB consumers
     class L,T,U,V,W,X,Y,Z api
     class S config
-    class R,R1,R2 streaming
+    class R1,R2 streaming
 ```
