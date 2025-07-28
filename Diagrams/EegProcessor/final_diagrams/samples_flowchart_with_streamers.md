@@ -69,7 +69,7 @@ flowchart TD
     classDef collection fill:#99ccff,color:#222;
     classDef processing fill:#99ff99,color:#222;
     classDef consumers fill:#ffcc99,color:#222;
-    classDef api fill:#cc99ff,color:#fff;
+    classDef api fill:#cc99ff,color:#222;
     classDef config fill:#ffff99,color:#222;
     classDef streaming fill:#ff99cc,color:#222;
     

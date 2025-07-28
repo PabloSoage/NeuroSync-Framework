@@ -47,7 +47,7 @@ flowchart TD
     classDef services fill:#99ccff,color:#222
     classDef processing fill:#99ff99,color:#222
     classDef visualization fill:#ffcc99,color:#222
-    classDef control fill:#cc99ff,color:#fff
+    classDef control fill:#cc99ff,color:#222
     
     class A hardware
     class B,C,D services

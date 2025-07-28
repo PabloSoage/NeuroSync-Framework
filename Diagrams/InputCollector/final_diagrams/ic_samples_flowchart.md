@@ -50,7 +50,7 @@ flowchart TD
     classDef collection fill:#99ccff,color:#222
     classDef processing fill:#99ff99,color:#222
     classDef distribution fill:#ffcc99,color:#222
-    classDef output fill:#cc99ff,color:#fff
+    classDef output fill:#cc99ff,color:#222
     classDef control fill:#ffff99,color:#222
     
     class A,A2 hardware

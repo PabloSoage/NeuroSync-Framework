@@ -67,8 +67,8 @@ flowchart TD
     classDef ui fill:#99ccff,color:#222
     classDef execution fill:#99ff99,color:#222
     classDef realtime fill:#ffcc99,color:#222
-    classDef api fill:#cc99ff,color:#fff
-    classDef error fill:#ff6666,color:#fff
+    classDef api fill:#cc99ff,color:#222
+    classDef error fill:#ff6666,color:#222
     
     class A,B,C,D,E registration
     class F,G,H,N,O,P,Q,R ui
