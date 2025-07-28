@@ -4,12 +4,12 @@ flowchart TD
     A[EEG Headset] -->|Real-time samples| B[EEGCollector - BrainFlow Integration]
     
     %% Service Layer
-    B -->|get_board_data| C[CollectorService - Hardware Interface]
-    C -->|Raw data buffer| D[Raw Data Buffer]
+    B -->|provides data to| C[CollectorService - Hardware Interface]
+    C -->|Raw data buffer| D[Data Buffer]
     
     %% Visualization Branch - Direct Access
-    D -->|get_data polling| E[EEGVisualizer - Real-time Display]
-    D -->|get_data polling| F[BrainMapVisualizer - Quality Map]
+    D -->|polled by - raw| E[EEGVisualizer - Real-time Display]
+    D -->|polled by - raw| F[BrainMapVisualizer - Quality Map]
     
     %% Local Processing in Visualizers
     E -->|Apply local filters| G[Local Signal Processing - Bandpass/Notch/Detrend]
@@ -19,7 +19,7 @@ flowchart TD
     I -->|Raw/Processed data| J[CSV File Storage]
     
     %% Processing Service - Metrics Calculation
-    K[ProcessorService - Basic Processing] -->|calculate metrics from| D
+    K[ProcessorService - Basic Processing] -->|apply filters to| D
     
     %% UI Control Layer
     M[EEGProcessorApp - Main Coordinator] -->|manages| C
@@ -33,7 +33,7 @@ flowchart TD
     O[ProcessingPanel] -->|configure filters| E
     O -->|configure filters| F
     N -->|creates| F
-    O -->|calculate metrics| K
+    O -->|configure filters| K
     P[RecordingPanel] -->|start/stop recording| I
 
     D -->|start_continuous_recording| I
