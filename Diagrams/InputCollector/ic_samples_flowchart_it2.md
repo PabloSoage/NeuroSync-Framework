@@ -5,9 +5,8 @@ flowchart TD
     A2[PS4 Controller Hardware] -->|PySDL2 Events| B2[PS4ControllerCollector]
     
     %% Collection Management Layer
-    B --> C[CollectorManager - Central Coordinator]
-    B2 --> C
-    B2 -.->|Scan/Connection Only| B
+    B -->|Input Events| C[CollectorManager - Central Coordinator]
+    B2 -.->|Scan/Connection Only - No Events| C
     
     %% Event Processing and Coordination
     C -->|Raw Events| D[AppCoordinator - Central Event Handler]
@@ -32,17 +31,11 @@ flowchart TD
     
     %% UI Display Branch
     F -->|Status Messages| L[UIManager - Status Display]
-    D -->|Active Keys Updates| L
+    
     
     %% User Controls
-    M1[Recording Controls] -->|Toggle Recording| D
-    M2[Edit Mode Controls] -->|Key/Button Editing| D
-    M3[Collector Switching] -->|Switch Input Source| C
-    M4[Tracking Configuration] -->|Update Tracked Keys| C
-    
-    %% Special Event Handling
-    E -->|F9 Key Detection| N[Recording Toggle Handler]
-    N -->|Auto Toggle| D
+    M1[Collector Switching] -->|Switch Input Source| C
+    M2[Tracking Configuration] -->|Update Tracked Keys| C
     
     %% Key Filtering
     C -->|Tracked Keys Filter| O[Key State Tracking]
@@ -50,8 +43,11 @@ flowchart TD
     
     %% Recording State Control
     D -.->|Recording Active| G
-    D -.->|Recording Active| H
+
+    D -->|Active Keys Updates| L
+
     D -.->|Not Recording| P[Events Ignored]
+    D -.->|Recording Active| H
     
     %% Styling
     classDef hardware fill:#ff9999,color:#222
@@ -63,8 +59,8 @@ flowchart TD
     
     class A,A2 hardware
     class B,B2,C collection
-    class D,E,F,N,O processing
+    class D,E,F,O processing
     class H,I1,I2,I3,I4,L visualization
     class G,J1,J2,K1,K2 output
-    class M1,M2,M3,M4,P control
+    class M1,M2,P control
 ```
