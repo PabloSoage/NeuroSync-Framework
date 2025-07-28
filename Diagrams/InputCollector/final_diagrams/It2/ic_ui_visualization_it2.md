@@ -1,3 +1,4 @@
+```mermaid
 classDiagram
     direction TB
     
@@ -123,3 +124,4 @@ classDiagram
     AbstractVisualizer <|-- BaseVisualizer : implements
 
     QWidget <|-- BaseVisualizer : extends
+```

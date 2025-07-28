@@ -1,3 +1,4 @@
+```mermaid
 flowchart TD
     %% Hardware Input Sources
     A[Keyboard/Mouse Hardware] -->|Pynput Events| B[KeyboardMouseCollector]
@@ -40,3 +41,4 @@ flowchart TD
     class C,D processing
     class E,F,G,H,I,J,K output
     class L,M,O control
+```

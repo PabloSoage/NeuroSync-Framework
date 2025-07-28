@@ -1,3 +1,4 @@
+```mermaid
 classDiagram
     direction TB
     
@@ -125,3 +126,4 @@ classDiagram
     %% Collector Selection
     InputCollectorApp ..> KeyboardMouseCollector : switches to
     InputCollectorApp ..> PS4ControllerCollector : scans with
+```

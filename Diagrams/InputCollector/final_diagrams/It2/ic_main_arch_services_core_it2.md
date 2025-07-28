@@ -1,3 +1,4 @@
+```mermaid
 classDiagram
     direction TB
     
@@ -121,3 +122,4 @@ classDiagram
     %% Framework Dependencies
     KeyboardMouseCollector ..> pynput : uses
     PS4ControllerCollector ..> SDL2 : uses
+```
