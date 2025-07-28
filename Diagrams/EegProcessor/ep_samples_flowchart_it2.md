@@ -5,7 +5,7 @@ flowchart TD
     
     %% Service Layer
     B -->|get_board_data| C[CollectorService - Hardware Interface]
-    C -->|Raw data buffer| D[Raw Data Available]
+    C -->|Raw data buffer| D[Raw Data Buffer]
     
     %% Visualization Branch - Direct Access
     D -->|get_data polling| E[EEGVisualizer - Real-time Display]
@@ -18,8 +18,8 @@ flowchart TD
     %% Recording Branch - Direct Access
     I -->|Raw/Processed data| J[CSV File Storage]
     
-    %% Processing Service - Independent Operations
-    K[ProcessorService - Advanced Processing] -->|get_eeg_metrics| D
+    %% Processing Service - Metrics Calculation
+    K[ProcessorService - Basic Processing] -->|calculate metrics from| D
     
     %% UI Control Layer
     M[EEGProcessorApp - Main Coordinator] -->|manages| C
@@ -51,7 +51,7 @@ flowchart TD
     
     class A hardware
     class B,C,D services
-    class G,H,K,L processing
+    class G,H,K processing
     class E,F,I,J,N visualization
     class M,O,P control
 ```
