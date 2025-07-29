@@ -58,7 +58,7 @@ La visualización en tiempo real se diseñó con dos modalidades: tabla actualiz
 Se diseñó interfaces \acrshort{cli} completas utilizando \textit{Typer} para generación automática de comandos y \textit{Rich} para formateo avanzado. El diseño incluye comandos de acceso a datos para consulta directa, comandos de control para operaciones remotas, y monitoreo en tiempo real con \textit{feedback} visual mediante tablas actualizadas.
 
 \textbf{Integración con controladores \acrshort{ps4}}:
-Se diseñó soporte completo para controladores mediante \textbf{PySDL2} con \gls{arquitectura_dirigida_eventos}. El diseño inicial utilizaba \textit{\gls{polling}} con \textit{\gls{timers}} \textbf{Qt}, pero evolucionó hacia procesamiento de eventos \textbf{SDL2} en hilo dedicado con detección de cambios basada en comparación de estados.
+Se diseñó soporte completo para controladores mediante \textbf{PySDL2} con \gls{arquitectura_dirigida_eventos}. El diseño inicial utilizaba \textit{\gls{polling}} con \textit{\gls{timers}} \textbf{Qt}, pero evolucionó hacia procesamiento de eventos \textbf{\acrshort{sdl}2} en hilo dedicado con detección de cambios basada en comparación de estados.
 
 \textbf{Algoritmos de procesamiento avanzado}:
 Se diseñó integración completa con \textbf{MNE-Python} mediante servicios de conversión que transforman datos \textbf{Brainflow} a formatos \textbf{MNE} en tiempo real. El diseño contempla tres modalidades: modo flexible (todos los canales), modo rendimiento (canales seleccionados), y modo tiempo real (recálculo automático).
@@ -86,7 +86,7 @@ Se implementó control remoto completo para ambos módulos. Los cambios realizad
 \textbf{Fase 4: Implementación de soporte \acrshort{ps4}}:
 Se desarrolló soporte completo utilizando \textbf{PySDL2} para acceso de bajo nivel. La conexión por cable facilita configuración al evitar modificar configuración inalámbrica del sistema operativo, aunque funciona igualmente con conexión inalámbrica.
 
-El problema específico donde el controlador no podía inicializarse desde \acrshort{cli} debido a dependencias de \textit{\gls{timers}} \textbf{Qt} se resolvió migrando a \gls{arquitectura_dirigida_eventos}. Se implementó procesamiento de eventos \textbf{SDL2} en hilo dedicado con detección de cambios basada en comparación de estados previos, proporcionando captura completa con latencia mínima.
+El problema específico donde el controlador no podía inicializarse desde \acrshort{cli} debido a dependencias de \textit{\gls{timers}} \textbf{Qt} se resolvió migrando a \gls{arquitectura_dirigida_eventos}. Se implementó procesamiento de eventos \textbf{\acrshort{sdl}2} en hilo dedicado con detección de cambios basada en comparación de estados previos, proporcionando captura completa con latencia mínima.
 
 \textbf{Fase 5: Optimizaciones masivas de rendimiento}:
 La migración a una \gls{arquitectura_dirigida_eventos}, en lugar de \textit{\gls{polling}}, generó un volumen significativamente mayor de eventos que requirió optimizaciones coordinadas: \gls{batching} de eventos para reducir \gls{overhead}, \textit{\gls{worker} pools} para distribuir procesamiento, \gls{buffer} circular con descarte en sobrecarga, minimización de información renderizada en \gls{dom}, medidor de latencia desde \textit{DataAccessService}, y migración a \textit{orjson} para serialización \acrshort{json} de alto rendimiento.
