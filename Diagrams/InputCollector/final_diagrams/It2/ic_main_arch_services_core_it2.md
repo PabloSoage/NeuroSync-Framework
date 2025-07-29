@@ -1,6 +1,6 @@
 ```mermaid
 classDiagram
-    direction TB
+    direction LR
     
     %% Main Application Entry Point
     class run {
