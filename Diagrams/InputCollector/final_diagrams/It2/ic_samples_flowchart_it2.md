@@ -8,16 +8,20 @@ flowchart TD
     B -->|Input Events| C[CollectorManager - Central Coordinator]
     B2 -.->|Scan/Connection Only - No Events| C
     
+    %% Key Filtering Layer
+    C -->|Apply Tracked Keys Filter| O[Key State Tracking - Filter All Events]
+    
     %% Event Processing and Coordination
-    C -->|Raw Events| D[AppCoordinator - Central Event Handler]
-    D -->|Event Processing| E[EventProcessor - Format & Special Events]
+    O -->|Filtered Events| D[AppCoordinator - Central Event Handler]
+    D -->|Event Processing| E[EventProcessor - Event Formatting & Processing]
     
-    %% Event Distribution Branches
+    %% AppCoordinator Distribution
     E -->|Formatted Events| F[Display Text Generation]
-    E -->|Should Log Flag| G[LoggingManager]
+    E -->|Logging Events| G[LoggingManager]
     
-    %% Visualization Branch
-    C -->|Direct Updates| H[Registered Visualizers]
+    %% Visualization Branch - Direct from CollectorManager
+    D -.->|Recording Active| H[Registered Visualizers]
+    O -->|Direct Updates - Filtered| H
     H --> I1[KeyboardVisualizer]
     H --> I2[MouseVisualizer] 
     H --> I3[MouseButtonsSelector]
@@ -31,23 +35,16 @@ flowchart TD
     
     %% UI Display Branch
     F -->|Status Messages| L[UIManager - Status Display]
-    
+    D -.->|Recording Active| L
     
     %% User Controls
     M1[Collector Switching] -->|Switch Input Source| C
     M2[Tracking Configuration] -->|Update Tracked Keys| C
     
-    %% Key Filtering
-    C -->|Tracked Keys Filter| O[Key State Tracking]
-    O -->|Active Keys Only| H
-    
     %% Recording State Control
     D -.->|Recording Active| G
-
-    D -->|Active Keys Updates| L
-
+    
     D -.->|Not Recording| P[Events Ignored]
-    D -.->|Recording Active| H
     
     %% Styling
     classDef hardware fill:#ff9999,color:#222

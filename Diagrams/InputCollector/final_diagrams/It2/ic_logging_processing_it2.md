@@ -1,63 +1,87 @@
 ```mermaid
-flowchart TD
-    %% Hardware Input Sources
-    A[Keyboard/Mouse Hardware] -->|Pynput Events| B[KeyboardMouseCollector]
-    A2[PS4 Controller Hardware] -->|PySDL2 Events| B2[PS4ControllerCollector]
+classDiagram
+    direction TB
     
-    %% Collection Management Layer
-    B -->|Input Events| C[CollectorManager - Central Coordinator]
-    B2 -.->|Scan/Connection Only - No Events| C
+    %% Processing Layer
+    class EventProcessor {
+        <<event processing>>
+        +process_event()
+        +_is_special_event()
+        +_should_log_event()
+        +_format_display_text()
+        +_format_keyboard_mouse_event_text()
+        +_format_ps4_event_text()
+    }
     
-    %% Key Filtering Layer
-    C -->|Apply Tracked Keys Filter| O[Key State Tracking - Filter All Events]
+    %% Logging Management Layer
+    class LoggingManager {
+        <<logging management>>
+        +set_json_logging()
+        +set_csv_logging()
+        +initialize_csv_file()
+        +log_event()
+        +start_recording()
+        +stop_recording()
+        +close_all()
+    }
     
-    %% Event Processing and Coordination
-    O -->|Filtered Events| D[AppCoordinator - Central Event Handler]
-    D -->|Event Processing| E[EventProcessor - Event Formatting & Processing]
+    %% Concrete Loggers
+    class JSONLogger {
+        <<json logging>>
+        +open_log()
+        +close_log()
+        +log_event()
+        +log_recording_start()
+        +log_recording_stop()
+        +_log_keyboard_mouse_event()
+        +_log_ps4_event()
+    }
     
-    %% AppCoordinator Distribution
-    E -->|Formatted Events| F[Display Text Generation]
-    E -->|Logging Events| G[LoggingManager]
+    class CSVLogger {
+        <<csv logging>>
+        +set_filepath()
+        +initialize()
+        +close_log()
+        +log_event()
+        +_log_keyboard_mouse_event()
+        +_log_ps4_controller_event()
+    }
     
-    %% Visualization Branch - Direct from CollectorManager
-    D -.->|Recording Active| H[Registered Visualizers]
-    O -->|Direct Updates - Filtered| H
-    H --> I1[KeyboardVisualizer]
-    H --> I2[MouseVisualizer] 
-    H --> I3[MouseButtonsSelector]
-    H --> I4[PS4ControllerVisualizer]
+    %% Data Structure (reference from main diagram)
+    class InputData {
+        <<data structure reference>>
+        +timestamp: float
+        +event_type: str
+        +active_keys: List[str]
+    }
     
-    %% Logging Branch
-    G -->|JSON Enabled| J1[JSONLogger]
-    G -->|CSV Enabled| J2[CSVLogger]
-    J1 --> K1[JSON Files]
-    J2 --> K2[CSV Files]
+    %% Main App Components (references)
+    class AppCoordinator {
+        <<coordinator reference>>
+    }
     
-    %% UI Display Branch
-    F -->|Status Messages| L[UIManager - Status Display]
-    D -.->|Recording Active| L
+    class CollectorManager {
+        <<collector reference>>
+    }
     
-    %% User Controls
-    M1[Collector Switching] -->|Switch Input Source| C
-    M2[Tracking Configuration] -->|Update Tracked Keys| C
+    %% Logging Architecture
+    LoggingManager "1" *-- "1" JSONLogger : manages
+    LoggingManager "1" *-- "1" CSVLogger : manages
     
-    %% Recording State Control
-    D -.->|Recording Active| G
+    %% Processing Integration
+
+    CollectorManager ..> EventProcessor : sends events to
+
+    AppCoordinator "1" *-- "1" EventProcessor : processes with
+    AppCoordinator "1" *-- "1" LoggingManager : logs with
     
-    D -.->|Not Recording| P[Events Ignored]
+    %% Event Flow
+    EventProcessor ..> InputData : processes
+    LoggingManager ..> InputData : logs
+    JSONLogger ..> InputData : serializes
+    CSVLogger ..> InputData : serializes
     
-    %% Styling
-    classDef hardware fill:#ff9999,color:#222
-    classDef collection fill:#99ccff,color:#222
-    classDef processing fill:#99ff99,color:#222
-    classDef visualization fill:#ffcc99,color:#222
-    classDef output fill:#cc99ff,color:#fff
-    classDef control fill:#ffff99,color:#222
+    %% Cross-component Dependencies
     
-    class A,A2 hardware
-    class B,B2,C collection
-    class D,E,F,O processing
-    class H,I1,I2,I3,I4,L visualization
-    class G,J1,J2,K1,K2 output
-    class M1,M2,P control
+    EventProcessor ..> LoggingManager : triggers logging in
 ```

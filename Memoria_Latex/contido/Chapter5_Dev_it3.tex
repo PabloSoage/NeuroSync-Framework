@@ -1,0 +1,164 @@
+\section{Tercera iteración: Arquitectura \acrshort{api} y funcionalidades avanzadas}
+\label{sec:iteracion_3}
+
+La tercera iteración implementó un cambio paradigmático hacia arquitecturas \acrshort{api} que proporcionaron acceso directo a datos internos, junto con el desarrollo completo de funcionalidades avanzadas y múltiples interfaces de usuario.
+
+\subsection{Análisis de la iteración}
+\label{subsec:analisis_iteracion_3}
+
+\textbf{Objetivos específicos}: Implementar arquitectura \acrshort{api} completa para acceso a datos internos, desarrollar funcionalidades avanzadas de procesamiento, y proporcionar múltiples interfaces de usuario (\acrshort{gui}, \acrshort{cli}, web).
+
+\textbf{Requisitos abordados}: RF-03, RF-06, RF-10, RNF-04, RNF-06, RNF-07, RNF-08
+
+\textbf{Casos de uso específicos}:
+\begin{itemize}
+    \item \textbf{CU-03}: Desarrollo de aplicaciones \acrshort{bci} personalizadas mediante acceso programático completo
+    \item \textbf{CU-04}: Herramientas avanzadas para investigación neurocientífica con algoritmos especializados
+    \item \textbf{CU-06}: Integración programática con herramientas existentes mediante \acrshortpl{api} estándar
+\end{itemize}
+
+\textbf{Actores beneficiados}:
+\begin{itemize}
+    \item \textbf{Desarrollador de aplicaciones \acrshort{bci}}: Obtuvo acceso programático completo mediante \acrshortpl{api} \acrshort{rest}
+    \item \textbf{Investigador neurocientífico}: Se benefició de algoritmos avanzados como \acrshort{ica}, \gls{wavelet}, e integración \textbf{MNE-Python}
+    \item \textbf{Investigador con conocimientos técnicos}: Pudo utilizar interfaces \acrshort{cli} para automatización
+    \item \textbf{Integrador de sistemas}: Obtuvo \acrshortpl{api} documentadas para integración con infraestructuras existentes
+    \item \textbf{Personal técnico de laboratorio}: Se benefició de interfaces web para monitorización remota
+    \item \textbf{Analista de datos}: Obtuvo acceso directo a \textit{\glspl{stream}} de datos para análisis en tiempo real
+\end{itemize}
+
+\textbf{Criterios de aceptación}:
+\begin{itemize}
+    \item \acrshortpl{api} de acceso a datos completamente funcionales
+    \item \acrshortpl{api} de control remoto para ambos módulos
+    \item Interfaces \acrshort{cli} completas con documentación automática
+    \item Explorador web unificado con visualización tiempo real
+    \item Soporte completo para controladores \acrshort{ps4}
+    \item Algoritmos avanzados: \acrshort{ica}, \gls{wavelet}, filtros digitales
+    \item Integración completa con \textbf{MNE-Python}
+    \item Optimizaciones de rendimiento para operación hasta 1000Hz
+\end{itemize}
+
+\subsection{Diseño de la iteración}
+\label{subsec:diseno_iteracion_3}
+
+El diseño de esta iteración se centró en crear una arquitectura \acrshort{api} extensible que proporcionara acceso completo a las capacidades internas del sistema.
+
+\textbf{Arquitectura \acrshort{api} multicapa}:
+Se diseñó una arquitectura en tres capas: \acrshortpl{api} de acceso a datos (solo lectura) para consultar estado y obtener datos históricos, \acrshortpl{api} de control para modificar configuración y controlar operaciones, y capa de \textit{\gls{streaming}} en tiempo real mediante \textit{\gls{websocket}} para datos continuos. La arquitectura utilizó \textbf{FastAPI} como \textit{framework} base proporcionando documentación automática y validación de tipos.
+
+El diseño implementó un sistema de registro dinámico donde módulos independientes se registran exponiendo sus métodos disponibles. Esto permite que el sistema \acrshort{api} descubra automáticamente capacidades sin requerir configuración manual. Cada módulo define sus \textit{\glspl{endpoint}} mediante \glspl{decorador} estándar que especifican parámetros, tipos de retorno, y documentación.
+
+\textbf{Arquitectura del explorador web}:
+Se diseñó un explorador web unificado que proporciona interfaz gráfica para todas las \acrshortpl{api} disponibles. El diseño incluye documentación interactiva inspirada en \textbf{FastAPI} con mejoras específicas: modo claro/oscuro, explicaciones detalladas, facilidades para parámetros mediante \textit{sliders} y selectores, plantillas \acrshort{json} con verificador de correctitud, y visualizador de gráficos dinámico.
+
+La visualización en tiempo real se diseñó con dos modalidades: tabla actualizada dinámicamente para datos textuales, y modo gráficas con opciones unificadas (escala logarítmica) o independientes por canal. Ambas modalidades permiten filtrado por tipo de canal y capacidad de ocultar canales específicos.
+
+\textbf{Arquitectura \acrshort{cli}}:
+Se diseñó interfaces \acrshort{cli} completas utilizando \textit{Typer} para generación automática de comandos y \textit{Rich} para formateo avanzado. El diseño incluye comandos de acceso a datos para consulta directa, comandos de control para operaciones remotas, y monitoreo en tiempo real con \textit{feedback} visual mediante tablas actualizadas.
+
+\textbf{Integración con controladores \acrshort{ps4}}:
+Se diseñó soporte completo para controladores mediante \textbf{PySDL2} con \gls{arquitectura_dirigida_eventos}. El diseño inicial utilizaba \textit{\gls{polling}} con \textit{\gls{timers}} \textbf{Qt}, pero evolucionó hacia procesamiento de eventos \textbf{SDL2} en hilo dedicado con detección de cambios basada en comparación de estados.
+
+\textbf{Algoritmos de procesamiento avanzado}:
+Se diseñó integración completa con \textbf{MNE-Python} mediante servicios de conversión que transforman datos \textbf{Brainflow} a formatos \textbf{MNE} en tiempo real. El diseño contempla tres modalidades: modo flexible (todos los canales), modo rendimiento (canales seleccionados), y modo tiempo real (recálculo automático).
+
+Los algoritmos \acrshort{ica} se diseñaron con configuración de 1-16 componentes, visualización de matrices \gls{matriz_mixing} y \gls{matriz_unmixing}, y análisis de componentes individuales. Las transformadas \gls{wavelet} se diseñaron con múltiples \gls{familias_wavelet} y configuración flexible de niveles. Los filtros digitales se expandieron con múltiples implementaciones y capacidades de \gls{downsampling}.
+
+\subsection{Implementación de la iteración}
+\label{subsec:implementacion_iteracion_3}
+
+La implementación se organizó en múltiples fases que abarcaron desde el desarrollo básico de \acrshortpl{api} hasta la implementación completa de funcionalidades avanzadas.
+
+\textbf{Fase 1: Desarrollo de \acrshortpl{api} de acceso a datos}:
+Se implementaron \acrshortpl{api} de solo lectura independientes para cada módulo proporcionando acceso a datos internos y estado del sistema. La implementación utilizó \textbf{FastAPI} con documentación automática y validación de tipos mediante \textbf{Pydantic}. Se desarrolló un sistema de suscripción a \glspl{callback} para eventos en tiempo real que permite a clientes registrarse para recibir notificaciones de cambios específicos.
+
+\textbf{Fase 2: Desarrollo del explorador web}:
+Inicialmente se desarrollaron aplicaciones web independientes para cada módulo, pero la dificultad de mantenimiento motivó la unificación. Se implementó un módulo genérico donde módulos independientes se registran dinámicamente exponiendo sus métodos mediante un sistema de registro automatizado.
+
+Los visualizadores en tiempo real se implementaron mediante \textit{\gls{websocket}} usando \textit{Chart.js} para gráficos \acrshort{eeg} que adaptan automáticamente el eje Y, con visualización separada/unificada y filtrado por tipo de canal. Para eventos de entrada se implementó visualización \acrshort{json} estructurada específica del controlador conectado.
+
+Se resolvió un problema crítico donde cerrar el visualizador \acrshort{gui} pausaba el \textit{\gls{stream}} porque el único punto de \textit{\gls{polling}} residía en el visualizador. Se implementó \textit{\gls{polling}} interno en el colector para mantener el \textit{\gls{stream}} activo independientemente del estado de la interfaz gráfica.
+
+\textbf{Fase 3: Desarrollo de \acrshortpl{api} de control}:
+Se implementó control remoto completo para ambos módulos. Los cambios realizados mediante \acrshortpl{api} se reflejan en las interfaces \acrshort{gui} como si hubiesen sido ejecutados localmente, mientras que cambios desde \acrshortpl{gui} se propagan a futuras operaciones \acrshort{api}. La sincronización se logró mediante señales \textbf{Qt} y validación de parámetros con manejo de errores.
+
+\textbf{Fase 4: Implementación de soporte \acrshort{ps4}}:
+Se desarrolló soporte completo utilizando \textbf{PySDL2} para acceso de bajo nivel. La conexión por cable facilita configuración al evitar modificar configuración inalámbrica del sistema operativo, aunque funciona igualmente con conexión inalámbrica.
+
+El problema específico donde el controlador no podía inicializarse desde \acrshort{cli} debido a dependencias de \textit{\gls{timers}} \textbf{Qt} se resolvió migrando a \gls{arquitectura_dirigida_eventos}. Se implementó procesamiento de eventos \textbf{SDL2} en hilo dedicado con detección de cambios basada en comparación de estados previos, proporcionando captura completa con latencia mínima.
+
+\textbf{Fase 5: Optimizaciones masivas de rendimiento}:
+La migración a una \gls{arquitectura_dirigida_eventos}, en lugar de \textit{\gls{polling}}, generó un volumen significativamente mayor de eventos que requirió optimizaciones coordinadas: \gls{batching} de eventos para reducir \gls{overhead}, \textit{\gls{worker} pools} para distribuir procesamiento, \gls{buffer} circular con descarte en sobrecarga, minimización de información renderizada en \gls{dom}, medidor de latencia desde \textit{DataAccessService}, y migración a \textit{orjson} para serialización \acrshort{json} de alto rendimiento.
+
+Las optimizaciones se validaron independientemente soportando hasta 1000Hz en \textit{\gls{websocket}} mediante eventos sintéticos del controlador \acrshort{ps4} con accionamiento continuo de \textit{triggers} y \textit{joysticks} analógicos.
+
+\textbf{Fase 6: Desarrollo de interfaces \acrshort{cli}}:
+Se implementaron interfaces completas utilizando las \acrshortpl{api} existentes como \textit{backend}. Las pruebas revelaron problemas \textit{headless} debido a dependencias ocultas de \textbf{Qt}. El \acrshort{cli} del módulo de entrada presenta problemas con servicios sin inicializar, mientras que el \acrshort{cli} \acrshort{eeg} funciona correctamente excepto para visualizadores inherentemente dependientes de la interfaz gráfica.
+
+\textbf{Fase 7: Funcionalidades avanzadas \acrshort{eeg}}:
+Se implementó integración completa con \textbf{MNE-Python} mediante servicios de conversión en tiempo real con tres modalidades de operación.
+
+La implementación soporta visualizaciones de \textit{\gls{power_spectral_density}}, \textit{\gls{topomaps}}, espectrogramas y datos en bruto, con filtrado de canales aplicable según modalidad seleccionada. Se corrigió un error crítico donde se reinstanciaba el colector en lugar de usar el \textit{singleton}, causando fallos generalizados por modificaciones de tipos de datos para optimizaciones de red.
+
+Se implementó \gls{ica_analysis} con configuración de 1-16 componentes, visualización de matrices \gls{matriz_mixing} y \gls{matriz_unmixing}, análisis de componentes individuales con \gls{weight_distribution} y \gls{power_spectral_density}. El modo tiempo real funciona con latencia en \acrshort{ui} debido a limitaciones de \textbf{matplotlib} en el \textit{thread} principal.
+
+Las transformadas \gls{wavelet} se implementaron con múltiples \gls{familias_wavelet} y configuración flexible de niveles de descomposición. Los filtros digitales se expandieron con múltiples implementaciones y \textit{\gls{downsampling}} con diferentes métodos de agregación.
+
+\textbf{Fase 8: Detección automática de canales y optimizaciones}:
+Se eliminó la restricción de asumir primeros 16 canales como \acrshort{eeg}. El sistema detecta automáticamente tipos de canales, incluyendo \acrshort{eeg}, \acrshort{emg}, \acrshort{ecg}, acelerómetro y giroscopio, entre otros. Se crea pestaña por tipo abarcando todos los canales correspondientes, con soporte para múltiples \textit{\gls{presets}}.
+
+Se implementó \textit{\gls{streaming}} a archivo (datos procesados y RAW) y vía \textit{\gls{tcp}}/\textit{\gls{udp}} (limitado a RAW y \textit{\gls{presets}} 0). Se corrigieron problemas donde filtros se aplicaban incorrectamente a todos los canales incluyendo control, causando fallos en reproducción. La pérdida de muestras se solucionó principalmente al migrar de \textit{\gls{polling}} a \textit{\glspl{callback}}, reduciendo la pérdida del 10-30\% a menos del 1\%. Posteriormente, se centralizó el acceso a datos en \textit{DataAccessService} y finalmente se migró la lógica al \textit{RecordingService} utilizando \textit{\glspl{callback}} para facilitar múltiples pipelines de datos.
+
+\textbf{Fase 9: Intento de integración final con \acrshort{lsl}}:
+Se desarrolló un módulo de sincronización que accedía a datos mediante \glspl{callback} locales para evitar \gls{overhead} de comunicación web. La implementación incluía integración visual de ambos módulos y coordinación de operaciones de sincronización.
+
+El desarrollo se pausó por problemas técnicos en exportación de formatos \acrshort{edf} y \acrshort{edf+} y falta de tiempo para verificar precisión de sincronización temporal. Los \glspl{callback} locales funcionan correctamente y la integración conceptual está validada.
+
+\subsection{Validación de la iteración}
+\label{subsec:validacion_iteracion_3}
+
+La validación se realizó mediante pruebas exhaustivas de cada componente desarrollado y verificación de integración entre sistemas.
+
+\begin{table}[htbp!]
+  \centering
+  \resizebox{\textwidth}{!}{
+    \rowcolors{2}{white}{udcgray!25}
+    \begin{tabular}{l|l|l|l}
+    \rowcolor{udcpink!25}
+    \textbf{Prueba realizada} & \textbf{Resultado esperado} & \textbf{Resultado obtenido} & \textbf{Estado} \\
+    \hline
+    API acceso datos ambos módulos & Endpoints funcionales con documentación & APIs completas, documentación automática & Exitosa \\
+    Streaming \gls{websocket} tiempo real & Datos fluidos sin pérdida & Streaming validado hasta 1000Hz & Exitosa \\
+    Explorador web unificado & Interfaz única para ambos módulos & Sistema registro dinámico funcional & Exitosa \\
+    API control remoto completo & Control total via programática & Sincronización GUI-API bidireccional & Exitosa \\
+    Soporte controlador PS4 & Eventos completos cable/inalámbrico & Arquitectura eventos, latencia mínima & Exitosa \\
+    Interfaces CLI completas & Comandos documentados automáticamente & CLI funcional con limitaciones headless & Parcial \\
+    Integración MNE-Python & Conversión tiempo real 3 modalidades & Integración completa, plots funcionales & Exitosa \\
+    Algoritmos ICA avanzados & 1-16 componentes, matrices visualización & ICA completo, tiempo real con latencia & Exitosa \\
+    Transformadas wavelet & Múltiples familias, niveles configurables & Implementación completa validada & Exitosa \\
+    Filtros digitales expandidos & Múltiples tipos, downsampling & Filtros avanzados, agregación múltiple & Exitosa \\
+    Detección automática canales & Tipos automáticos: EEG, EMG, ECG, etc. & Detección correcta, pestañas por tipo & Exitosa \\
+    Optimizaciones rendimiento & Soporte 1000Hz sin pérdida & Batching, workers, orjson validados & Exitosa \\
+    Streaming archivos/red & \gls{tcp}/\gls{udp}/archivo con múltiples formatos & Archivo completo, red limitada preset 0 & Parcial \\
+    Corrección pérdida muestras & Reducción <1\% desde 10-30\% & Migración callbacks, pérdida <1\% & Exitosa \\
+    Integración LSL final & Sincronización temporal precisa & Callbacks locales OK, exportación pausada & Pausada \\
+    \end{tabular}
+  }
+  \caption{Resultados de validación de la tercera iteración}
+  \label{tab:validacion_iteracion_3}
+\end{table}
+
+La Tabla~\ref{tab:validacion_iteracion_3} muestra que la mayoría de funcionalidades se completaron exitosamente. Las \acrshortpl{api} proporcionan acceso completo a capacidades internas, las optimizaciones soportan operación hasta 1000Hz, y los algoritmos avanzados funcionan correctamente. Las limitaciones en modo \textit{headless} y la pausa en integración \acrshort{lsl} final no afectan la funcionalidad principal del sistema.
+
+\textbf{Métricas de rendimiento validadas}:
+\begin{itemize}
+    \item Frecuencias \acrshort{eeg} validadas hasta 250Hz en operación normal
+    \item Soporte hasta 1000Hz en \textit{\gls{websocket}} con eventos sintéticos
+    \item Latencia procesamiento < 100ms para algoritmos avanzados
+    \item Tiempo respuesta \acrshort{api} < 50ms promedio
+    \item Pérdida muestras reducida a < 1\% desde 30\% previo
+    \item Latencia captura eventos controlador < 10ms
+\end{itemize}
+
+\textbf{Cumplimiento de requisitos}: RF-03, RF-06, RF-10, RNF-04, RNF-07, RNF-08 completados satisfactoriamente. RNF-06 (compatibilidad completa multiplataforma) limitado por dependencias \textbf{Qt} en modo \textit{headless}.

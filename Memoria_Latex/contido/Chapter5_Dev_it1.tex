@@ -1,0 +1,128 @@
+\section{Primera iteración: Módulos básicos e integración inicial}
+\label{sec:iteracion_1}
+
+La primera iteración abarcó el desarrollo de los módulos fundamentales del sistema y el primer intento de integración. Esta iteración incluyó las fases de exploración tecnológica inicial, desarrollo del módulo de captura de entrada, implementación del módulo de procesamiento \acrshort{eeg}, y el primer intento fallido de integración que reveló limitaciones arquitectónicas fundamentales.
+
+\subsection{Análisis de la iteración}
+\label{subsec:analisis_iteracion_1}
+
+\textbf{Objetivos específicos}: Desarrollar módulos básicos funcionales para captura de eventos de entrada y procesamiento \acrshort{eeg}, estableciendo los fundamentos técnicos para un sistema integrado.
+
+\textbf{Requisitos abordados}: RF-01, RF-02, RF-04, RF-05, RF-07, RF-11, RF-12, RNF-01, RNF-05, RNF-06, RNF-08
+
+\textbf{Casos de uso específicos}:
+\begin{itemize}
+    \item \textbf{CU-01 (parcial)}: Captura básica de eventos de entrada para correlación posterior con señales cerebrales
+    \item \textbf{CU-02 (parcial)}: Registro temporal preciso de acciones del usuario durante experimentos
+    \item \textbf{CU-04 (parcial)}: Herramientas básicas de visualización para investigación neurocientífica
+    \item \textbf{CU-05 (parcial)}: Configuración básica de dispositivos y validación de señal
+\end{itemize}
+
+\textbf{Actores beneficiados}:
+\begin{itemize}
+    \item \textbf{Investigador \acrshort{bci}}: Se benefició de la capacidad de capturar eventos de entrada con precisión temporal para correlación posterior con señales cerebrales
+    \item \textbf{Investigador neurocientífico}: Obtuvo herramientas básicas de visualización \acrshort{eeg} y análisis de calidad de señal
+    \item \textbf{Personal técnico de laboratorio}: Pudo configurar dispositivos \acrshort{eeg} y verificar conectividad básica
+    \item \textbf{Usuario del sistema}: Se benefició de interfaces intuitivas para participar en experimentos básicos
+\end{itemize}
+
+\textbf{Criterios de aceptación}:
+\begin{itemize}
+    \item Captura de eventos de teclado y ratón con \textit{timestamps} precisos
+    \item Filtrado configurable de teclas específicas
+    \item Múltiples modos de \textit{tracking} para movimiento de ratón
+    \item Conectividad básica con dispositivos \acrshort{eeg} mediante \textbf{Brainflow}
+    \item Visualización multicanal de señales \acrshort{eeg} en tiempo real
+    \item Monitoreo básico de calidad de señal
+    \item Exportación en formatos \acrshort{json} y \acrshort{csv}
+\end{itemize}
+
+\subsection{Diseño de la iteración}
+\label{subsec:diseno_iteracion_1}
+
+El diseño de esta iteración siguió inicialmente un enfoque monolítico que posteriormente reveló limitaciones para la integración entre módulos.
+
+\textbf{Arquitectura inicial del módulo de entrada}:
+El módulo de captura de entrada se diseñó como una aplicación monolítica que integraba la lógica de captura, procesamiento y almacenamiento en un único \textit{script}. La arquitectura utilizaba \textbf{pynput} como biblioteca principal para la captura multiplataforma de eventos de teclado y ratón. El diseño incluía un sistema de filtrado configurable que permitía seleccionar qué teclas y botones capturar, evitando ruido en los datos experimentales.
+
+El sistema de \textit{timestamps} se implementó utilizando la función \textit{time.time()} de Python para garantizar precisión temporal de milisegundos. El diseño contemplaba cuatro modos diferentes de representación del movimiento del ratón para adaptarse a diferentes tipos de experimentos: modo \textit{axis} para direcciones cardinales, modo \textit{angle} para representación angular, modo \textit{delta} para movimiento en bruto, y modo \textit{joystick} para emulación de controlador analógico.
+\textbf{Arquitectura inicial del módulo \acrshort{eeg}}:
+El módulo de procesamiento \acrshort{eeg} se diseñó como una aplicación independiente que integraba \textbf{Brainflow} mediante el patrón \textit{Adapter}. La arquitectura se desarrolló directamente en \textbf{PyQt5} después de validar su rendimiento superior sobre \textbf{tkinter} para visualización en tiempo real.
+
+El diseño incluyó componentes especializados: un adaptador \textbf{Brainflow} para abstracción de dispositivos, un visualizador multicanal que asumía los primeros 16 canales como \acrshort{eeg}, un monitor de calidad de señal mediante \textit{\gls{railed_percentage}}, y un visualizador topográfico básico compatible con sistemas \gls{sistema_10_20} y \gls{sistema_10_10} que sitúa electrodos según su nomenclatura estándar en posiciones aproximadas preestablecidas. El sistema de ayuda contextual se diseñó como \textit{\glspl{widgets}} independientes disponibles en la interfaz gráfica que proporcionan información contextual para que el usuario comprenda la función de cada parámetro además de conceptos neurofisiológicos básicos.
+
+\textbf{Problemas de diseño identificados durante la integración}:
+El primer intento de integración reveló limitaciones fundamentales en el diseño monolítico. Los archivos de gran tamaño y el acoplamiento estrecho entre componentes dificultaron la identificación de puntos de integración apropiados. La falta de interfaces claras entre módulos y la ausencia de separación de responsabilidades complicaron la implementación de comunicación entre sistemas.
+
+\textbf{Patrones de diseño utilizados}:
+Durante esta iteración se utilizaron patrones básicos: \textit{Adapter} para integración con \textbf{Brainflow}, \textit{Observer} básico mediante \textit{\glspl{callback}} simples, y patrones de filtrado para selección de eventos específicos. Sin embargo, la falta de aplicación sistemática de principios \acrshort{solid} limitó la extensibilidad y mantenibilidad del código.
+
+\subsection{Implementación de la iteración}
+\label{subsec:implementacion_iteracion_1}
+
+La implementación se organizó en fases secuenciales que abarcaron desde la exploración tecnológica hasta el intento fallido de integración.
+
+\textbf{Fase 1: Exploración tecnológica con Julia}:
+Se desarrolló una versión inicial del \textit{script} de captura de entrada en Julia motivada por su rendimiento superior y tipado fuerte. La implementación básica de captura de eventos funcionó correctamente, pero la precompilación requerida en cada ejecución y las dificultades para implementar una \acrshort{gui} funcional motivaron el abandono de esta aproximación. Los problemas de \textit{debugging} en errores complejos y la naturaleza experimental iterativa del desarrollo hicieron que Python fuera más apropiado para este proyecto.
+
+\textbf{Fase 2: Desarrollo del módulo de captura de entrada}:
+La implementación en Python utilizó \textbf{pynput} como biblioteca principal para garantizar compatibilidad multiplataforma. Se desarrolló un sistema de filtrado que permitía configurar qué teclas específicas capturar, eliminando automáticamente eventos de liberación por no aportar información relevante para la mayoría de experimentos \acrshort{bci}.
+
+La implementación de múltiples modos de \textit{tracking} de ratón requirió desarrollo personalizado para cada modalidad. El modo \textit{axis} calcula probabilidades de movimiento en direcciones cardinales que suman 1. El modo \textit{angle} proporciona tanto direcciones discretas agrupables como ángulos continuos con magnitud. El modo \textit{delta} registra movimiento en bruto con \textit{\gls{delta_smoothing}} configurable. El modo \textit{joystick} emula direcciones X+/X-/Y+/Y- con velocidad ajustable mediante parámetros de sensibilidad.
+
+La interfaz gráfica inicial se implementó en \textit{tkinter}, pero mostró limitaciones de rendimiento para actualizaciones frecuentes y falta de \textit{\glspl{widgets}} especializados, motivando la experimentación con \textbf{PyQt5}, validando su uso mediante el desarrollo inicial del módulo de \acrshort{eeg}.
+
+\textbf{Fase 3: Desarrollo del módulo de procesamiento \acrshort{eeg}}:
+La implementación comenzó con experimentación usando la placa sintética de \textbf{Brainflow} para validar la \acrshort{api} y establecer patrones de adquisición. Se desarrolló un grabador básico que registraba datos en archivos \acrshort{csv} con metadatos completos: fecha/hora, identificación de placa, \textit{preset}, número de canales, duración, y columnas para \textit{timestamps}, \glspl{marcadores} y canal de control de \textbf{Brainflow}.
+
+La migración a \textit{PyQt5} se validó mediante pruebas de rendimiento que confirmaron su capacidad para manejar visualización en tiempo real de múltiples canales \acrshort{eeg}. Se implementó un sistema de visualización que incluía señales \acrshort{eeg} básicas, análisis de \textit{\gls{power_spectrum}}, y representación de \textit{\gls{band_powers}} en tiempo real.
+
+El visualizador topográfico se implementó con posicionamiento aproximado preestablecido que sitúa electrodos según su nomenclatura (Pz, PO7, Cz, F4) en 4 regiones anatómicas básicas. Se integró codificación de colores para indicar calidad de señal por electrodo utilizando métricas de \textit{\gls{railed_percentage}}.
+
+El sistema de ayuda contextual se implementó como más de 25 \textit{widgets} especializados que cubren conceptos desde neurofisiología básica hasta parámetros técnicos específicos de \textbf{Brainflow}. La información se recopiló de documentación oficial y recursos educativos especializados.
+
+\textbf{Fase 4: Primer intento de integración}:
+La integración visual se logró exitosamente, permitiendo controlar ambos módulos desde una interfaz unificada con coordinación básica de inicio/parada de grabaciones. Se unificaron los formatos de exportación añadiendo soporte \acrshort{csv} al módulo de entrada para facilitar la combinación posterior de datos.
+
+Sin embargo, la integración \acrshort{lsl} falló debido a la estructura monolítica de los módulos. Los archivos de gran tamaño y el acoplamiento estrecho dificultaron la identificación de puntos de integración y complicaron la depuración de problemas. La arquitectura monolítica impedía el acceso directo a los \textit{\glspl{stream}} de datos internos de cada módulo, limitando las capacidades de sincronización efectiva.
+
+\textbf{Decisiones de implementación específicas}:
+Durante esta fase se implementó tipado estático básico con \textit{\gls{type hints}} para facilitar el mantenimiento del código. La implementación priorizó la funcionalidad sobre la arquitectura, lo que posteriormente motivaría la refactorización completa.
+
+\subsection{Validación de la iteración}
+\label{subsec:validacion_iteracion_1}
+
+La validación se realizó mediante pruebas manuales exhaustivas para cada componente desarrollado y el intento de integración.
+
+\begin{table}[htbp!]
+  \centering
+  \resizebox{\textwidth}{!}{
+    \rowcolors{2}{white}{udcgray!25}
+    \begin{tabular}{l|l|l|l}
+    \rowcolor{udcpink!25}
+    \textbf{Prueba realizada} & \textbf{Resultado esperado} & \textbf{Resultado obtenido} & \textbf{Estado} \\
+    \hline
+    Captura eventos teclado & Eventos con timestamps < 10ms latencia & Latencia medida 5-8ms & Exitosa \\
+    Filtrado teclas específicas & Solo teclas configuradas capturadas & Filtrado correcto, eventos liberación eliminados & Exitosa \\
+    Modos tracking ratón & 4 modos funcionales con representaciones distintas & Axis, angle, delta, joystick funcionando & Exitosa \\
+    Exportación JSON básica & Estructura JSON válida con metadatos & JSON correcto con timestamps y metadatos & Exitosa \\
+    Conectividad \textbf{Brainflow} & Conexión exitosa con placa sintética & Conexión establecida, datos fluyendo & Exitosa \\
+    Visualización multicanal & 16 canales mostrados en tiempo real & Visualización fluida hasta 250Hz & Exitosa \\
+    Calidad señal (railed \%) & Detección automática electrodos problemáticos & Cálculo correcto, visualización por colores & Exitosa \\
+    Grabación CSV con metadatos & Archivo CSV con cabeceras completas & Metadatos completos, estructura correcta & Exitosa \\
+    Migración GUI a PyQt5 & Rendimiento superior a tkinter & Visualización fluida, widgets responsivos & Exitosa \\
+    Integración visual módulos & Interfaz unificada funcional & Control coordinado ambos módulos & Exitosa \\
+    Integración LSL & Sincronización temporal precisa & Fallo por acoplamiento monolítico & Fallida \\
+    Sincronización timestamps & Timestamps coordinados entre módulos & Sistemas independientes sin coordinación & Fallida \\
+    \end{tabular}
+  }
+  \caption{Resultados de validación de la primera iteración}
+  \label{tab:validacion_iteracion_1}
+\end{table}
+
+La Tabla~\ref{tab:validacion_iteracion_1} muestra que los módulos individuales cumplieron satisfactoriamente sus objetivos, con latencias de captura inferiores a 10ms y rendimiento validado hasta 250Hz para visualización \acrshort{eeg}. Sin embargo, los fallos en integración \acrshort{lsl} y sincronización temporal revelaron la necesidad de cambios arquitectónicos fundamentales.
+
+\textbf{Cumplimiento de requisitos}: RF-01, RF-02, RF-04, RF-05, RF-07, RF-11, RF-12 y RNF-01, RNF-05, RNF-06 completados satisfactoriamente. RF-08 (sincronización temporal) no logrado, motivando la refactorización posterior.
+
+\textbf{Lecciones aprendidas}: La integración exitosa requiere arquitectura modular desde el diseño inicial, interfaces bien definidas entre componentes, y separación clara de responsabilidades. La aproximación monolítica, aunque funcional para módulos independientes, impide la integración efectiva en sistemas complejos.
+

@@ -1,0 +1,120 @@
+\section{Segunda iteración: Refactorización e integración avanzada}
+\label{sec:iteracion_2}
+
+La segunda iteración abordó las limitaciones arquitectónicas identificadas mediante refactorización completa basada en principios \acrshort{solid}, seguida de un segundo intento de integración más sofisticado que, aunque técnicamente superior, reveló la necesidad de cambios paradigmáticos fundamentales.
+
+\subsection{Análisis de la iteración}
+\label{subsec:analisis_iteracion_2}
+
+\textbf{Objetivos específicos}: Reestructurar la arquitectura del sistema aplicando principios \acrshort{solid} para facilitar la integración entre módulos e implementar un segundo intento de integración más robusto.
+
+\textbf{Requisitos abordados}: RNF-03, RNF-04, RNF-08, RNF-09, RF-08
+
+\textbf{Casos de uso específicos}:
+\begin{itemize}
+    \item \textbf{CU-01}: Base arquitectónica para generación de \textit{\glspl{dataset}} sincronizados
+    \item \textbf{CU-03 (fundamentos)}: Arquitectura extensible para futuro desarrollo de aplicaciones personalizadas
+    \item \textbf{CU-06 (fundamentos)}: Base arquitectónica para integración con herramientas externas
+\end{itemize}
+
+\textbf{Actores beneficiados}:
+\begin{itemize}
+    \item \textbf{Desarrollador de aplicaciones \acrshort{bci}}: Se habría beneficiado de arquitectura modular para desarrollo de extensiones
+    \item \textbf{Investigador \acrshort{bci}}: Habría obtenido capacidades de sincronización para \textit{\glspl{dataset}} de calidad
+    \item \textbf{Integrador de sistemas}: Habría podido utilizar interfaces modulares para integración
+    \item \textbf{Equipo de desarrollo}: Se benefició de código más mantenible y menos acoplado
+\end{itemize}
+
+\textbf{Criterios de aceptación}:
+\begin{itemize}
+    \item Aplicación completa de principios \acrshort{solid}
+    \item Reducción significativa del acoplamiento entre componentes
+    \item Interfaces bien definidas para comunicación entre módulos
+    \item Preservación de toda la funcionalidad existente
+    \item Integración coordinada entre módulos refactorizados
+    \item Sincronización temporal básica entre fuentes de datos
+\end{itemize}
+
+\subsection{Diseño de la iteración}
+\label{subsec:diseno_iteracion_2}
+
+El diseño de esta iteración se enfocó en transformar la arquitectura monolítica en un sistema modular extensible que facilitara la integración futura.
+
+\textbf{Nueva arquitectura basada en servicios}:
+Se diseñó una \gls{arquitectura_orientada_servicios} utilizando el patrón \textit{Singleton} para recursos compartidos y comunicación dirigida por eventos. La arquitectura separó claramente las responsabilidades en servicios especializados: \textit{CollectorService} para gestión de colectores de datos, \textit{RecordingService} para coordinación de grabaciones, \textit{ProcessingService} para algoritmos de procesamiento, entre otros servicios de gestión para recursos compartidos.
+
+El diseño implementó el principio de \textit{Single Responsibility} asignando una responsabilidad específica a cada clase. El principio \textit{Open-Closed} se aplicó mediante interfaces abstractas que permiten extensibilidad sin modificar código existente. Los principios de \textit{Liskov Substitution}, \textit{Interface Segregation} y \textit{Dependency Inversion} se aplicaron mediante el diseño de \gls{interface} especializadas y sistemas de inyección de dependencias.
+
+\textbf{Patrones de diseño aplicados}:
+La arquitectura utilizó el patrón \textit{Singleton} con implementación \textit{\gls{thread-safe}} para servicios centrales que requieren instancia única. El patrón \textit{Factory} se aplicó para creación de colectores específicos según el tipo de dispositivo. \textit{Observer} se implementó mediante sistema de \glspl{callback} para comunicación desacoplada entre componentes. El patrón \textit{Strategy} se utilizó para intercambio de algoritmos de procesamiento sin modificar el código cliente.
+
+\textbf{Diseño del módulo integrador}:
+Se diseñó un módulo integrador independiente que coordinaba ambos módulos refactorizados. El diseño incluía coordinación visual de controles de grabación desde una interfaz centralizada, y \textit{widgets} de ayuda específicos para explicar diferencias entre formatos de exportación y opciones de sincronización.
+
+\textbf{Arquitectura de comunicación}:
+El diseño contempló múltiples modalidades de comunicación entre módulos: \glspl{callback} internos para comunicación de baja latencia, señales \textit{Qt} para sincronización de interfaces gráficas, y un sistema de eventos global para coordinación de operaciones complejas.
+
+\subsection{Implementación de la iteración}
+\label{subsec:implementacion_iteracion_2}
+
+La implementación se organizó en fases que abarcaron la refactorización completa de ambos módulos y el desarrollo del sistema integrador.
+
+\textbf{Fase 1: Refactorización del módulo de entrada}:
+La refactorización separó responsabilidades en clases independientes especializadas. Se implementaron gestores específicos para cada tipo de colector (teclado, ratón, futuro soporte para controladores), adaptadores para comunicación entre componentes, y servicios centralizados para recursos compartidos como configuración y logging.
+
+La granularidad del código mejoró significativamente, con archivos más pequeños y responsabilidades específicas. Se implementó un sistema de \textit{\glspl{factory}} para crear colectores apropiados según la configuración. Los \glspl{callback} se estandarizaron para comunicación consistente entre componentes. El sistema de filtrado se modularizó permitiendo extensión con nuevos tipos de filtros sin modificar código existente.
+
+\textbf{Fase 2: Refactorización del módulo \acrshort{eeg}}:
+Se implementaron servicios \textit{singleton} \textit{\gls{thread-safe}} para recursos compartidos como conexiones \textbf{Brainflow} y buffers de datos. La separación entre procesamiento y presentación se logró mediante servicios independientes que pueden funcionar sin interfaz gráfica. El sistema de \glspl{callback} se redeseñó para comunicación desacoplada entre componentes de procesamiento y visualización.
+
+Los algoritmos de procesamiento se modularizaron en clases independientes especializadas. El sistema de visualización se refactorizó para soportar múltiples tipos de visualizadores sin acoplamiento con fuentes de datos específicas. La gestión de dispositivos se centralizó en un servicio dedicado que abstrae las diferencias entre tipos de hardware.
+
+\textbf{Fase 3: Desarrollo del módulo integrador}:
+Se implementó un módulo integrador independiente que coordinaba ambos módulos refactorizados siguiendo la nueva estructura modular. La coordinación visual se logró mediante controles de grabación centralizados que iniciaban y detenían operaciones en ambos módulos simultáneamente, aunque el sistema solo podía detectar el estado activo de los \textit{\glspl{stream}} sin acceso directo a datos o metadatos internos.
+
+Se desarrollaron \textit{widgets} de ayuda específicos que explicaban diferencias entre formatos de exportación y opciones de sincronización disponibles. El sistema incluía validación básica de configuración que verificaba compatibilidad entre parámetros de ambos módulos antes de iniciar operaciones.
+
+\textbf{Validación y preservación de funcionalidad}:
+Durante toda la refactorización se realizaron pruebas manuales exhaustivas después de cada cambio significativo para garantizar preservación de funcionalidad. Se desarrollaron \textit{scripts} de prueba que verificaban que cada funcionalidad seguía operando correctamente después de los cambios arquitectónicos.
+
+\textbf{Limitaciones del segundo intento de integración}:
+Aunque la integración visual fue exitosa, la implementación reveló que la comunicación entre módulos requería conocimiento específico de implementaciones internas. La falta de interfaces estándar para acceso a datos internos limitó las capacidades de sincronización real. Los módulos seguían operando fundamentalmente de forma independiente sin capacidades de intercambio de datos en tiempo real.
+
+\subsection{Validación de la iteración}
+\label{subsec:validacion_iteracion_2}
+
+La validación se enfocó en verificar la preservación de funcionalidad tras la refactorización y evaluar las mejoras arquitectónicas logradas.
+
+\begin{table}[htbp!]
+  \centering
+  \resizebox{\textwidth}{!}{
+    \rowcolors{2}{white}{udcgray!25}
+    \begin{tabular}{l|l|l|l}
+    \rowcolor{udcpink!25}
+    \textbf{Prueba realizada} & \textbf{Resultado esperado} & \textbf{Resultado obtenido} & \textbf{Estado} \\
+    \hline
+    Preservación funcionalidad entrada & Todas las funciones operativas & Funcionalidad completa preservada & Exitosa \\
+    Preservación funcionalidad EEG & Visualización y grabación funcionando & Operación normal sin degradación & Exitosa \\
+    Reducción acoplamiento & Archivos independientes y modulares & Archivos 60\% más pequeños, menor dependencia & Exitosa \\
+    Tiempo de depuración & Reducción significativa & 70\% reducción en tiempo identificación errores & Exitosa \\
+    Aplicación principios SOLID & Principios implementados correctamente & Single Responsibility, Open-Closed aplicados & Exitosa \\
+    Servicios thread-safe & Operación concurrente sin errores & Singleton seguro, operación estable & Exitosa \\
+    Sistema callbacks interno & Comunicación desacoplada & Eventos propagados correctamente & Exitosa \\
+    Configuración coordinada & Coordinación visual de parámetros & Configuración centralizada funcional & Exitosa \\
+    Coordinación grabaciones & Inicio/parada sincronizada & Control visual coordinado exitoso & Exitosa \\
+    Acceso datos internos & Interfaces para datos tiempo real & Acceso limitado, sin \gls{streaming} directo & Parcial \\
+    Sincronización temporal real & Timestamps coordinados & Solo coordinación visual, no datos & Fallida \\
+    Intercambio datos módulos & Comunicación bidireccional & Sin capacidades intercambio directo & Fallida \\
+    \end{tabular}
+  }
+  \caption{Resultados de validación de la segunda iteración}
+  \label{tab:validacion_iteracion_2}
+\end{table}
+
+La Tabla~\ref{tab:validacion_iteracion_2} muestra que la refactorización fue exitosa en términos de calidad arquitectónica y mantenibilidad del código. Se logró reducción del 60\% en tamaño de archivos individuales y 70\% de reducción en tiempo de depuración. Sin embargo, las limitaciones en sincronización temporal real y intercambio de datos revelaron la necesidad de un cambio paradigmático hacia arquitecturas \acrshort{api}.
+
+\textbf{Mejoras arquitectónicas logradas}:
+La refactorización proporcionó una base para el desarrollo futuro con código más mantenible, menor acoplamiento entre componentes, y mayor facilidad para implementar nuevas funcionalidades. Los servicios \textit{singleton} \textit{\gls{thread-safe}} garantizaron operación segura en entornos concurrentes.
+
+\textbf{Identificación de necesidades futuras}:
+Esta iteración reveló que la integración efectiva requería acceso directo a \textit{\glspl{stream}} de datos internos de cada módulo, capacidades de suscripción a eventos en tiempo real, e interfaces estándar para comunicación entre sistemas independientes. Estas necesidades motivaron el desarrollo de la arquitectura \acrshort{api} en la iteración siguiente.
