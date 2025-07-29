@@ -55,14 +55,7 @@ classDiagram
         <<enumeration>>
     }
 
-    %% Qt Base Class (reference only)
-    class QObject {
-        <<Qt>>
-    }
-
     %% Relationships
-    QObject <|-- AppCoordinator : inherits
-
     AppCoordinator --> CollectorManager : coordinates
     AppCoordinator --> UIManager : coordinates
     AppCoordinator --> LoggingManager : coordinates
