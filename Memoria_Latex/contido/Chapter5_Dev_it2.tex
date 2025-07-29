@@ -95,7 +95,8 @@ La refactorización del módulo \acrshort{eeg} implementó una separación arqui
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{anexos/diagramas/it2/ep_main_arch_services_core_it2.pdf}
+    \hspace*{-0.05\textwidth}
+    \includegraphics[width=1.1\textwidth]{anexos/diagramas/it2/ep_main_arch_services_core_it2.pdf}
     \caption{Arquitectura de servicios centrales del módulo EEG - Segunda iteración}
     \label{fig:ep_main_arch_services_core_it2}
 \end{figure}
@@ -115,13 +116,14 @@ La capa de interfaz de usuario se refactorizó mediante paneles especializados q
 
 El diseño implementa especialización funcional: \textit{ConnectionPanel} maneja la conexión con dispositivos, \textit{ProcessingPanel} gestiona filtros y procesamiento básico, \textit{MNEPanel} integra capacidades de \textbf{MNE-Python}, \textit{StreamingPanel} configura \textit{\glspl{stream}} de datos, \textit{AdvancedProcessingPanel} proporciona algoritmos avanzados como \acrshort{ica} y \textit{\glspl{wavelet}}, y \textit{RecordingPanel} controla la grabación de datos.
 
-Cada panel interactúa con servicios específicos según su funcionalidad, implementando el principio de \textit{Interface Segregation} donde los clientes solo dependen de las interfaces que realmente utilizan. El sistema de ayuda contextual se centraliza en \textit{HelpSystem}, proporcionando soporte consistente a través de todos los paneles.
+Cada panel interactúa con servicios específicos según su funcionalidad, implementando el principio de \textit{Interface Segregation} donde los clientes solo dependen de las interfaces que realmente utilizan. El sistema de ayuda contextual se centraliza en \textit{HelpSystem}, proporcionando soporte a través de todos los paneles.
 
 El flujo de datos refactorizado del módulo \acrshort{eeg}, ilustrado en la Figura~\ref{fig:ep_samples_flowchart_it2}, muestra la comunicación entre servicios y el acceso coordinado a datos. Los datos fluyen desde el hardware \acrshort{eeg} hacia \textit{EEGCollector}, que utiliza \textbf{BrainFlow} para abstracción de dispositivos.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{anexos/diagramas/it2/ep_samples_flowchart_it2.pdf}
+    \hspace*{-0.05\textwidth}
+    \includegraphics[width=1.1\textwidth]{anexos/diagramas/it2/ep_samples_flowchart_it2.pdf}
     \caption{Flujo de datos refactorizado del módulo EEG - Segunda iteración}
     \label{fig:ep_samples_flowchart_it2}
 \end{figure}
