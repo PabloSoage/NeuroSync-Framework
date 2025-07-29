@@ -1,0 +1,349 @@
+\chapter{Anexo: Diagramas técnicos detallados - Tercera iteración}
+\label{chap:anexo_diagramas_it3}
+
+Este anexo proporciona documentación técnica exhaustiva de los subcomponentes específicos desarrollados durante la tercera iteración. Los diagramas están organizados por módulo y presentan el nivel de detalle arquitectónico necesario para comprender la implementación interna de cada componente.
+
+\section{Módulo API Explorer}
+\label{sec:anexo_api_explorer}
+
+El módulo \textit{\textbf{API Explorer}} constituye el \textit{framework} web unificado que proporciona exploración dinámica y control remoto de las funcionalidades de ambos módulos del sistema. Su arquitectura se basa en un \textit{backend} \textbf{FastAPI} con \textit{frontend} web interactivo.
+
+\subsection{Arquitectura del \textit{backend}}
+\label{subsec:anexo_api_explorer_backend}
+
+La Figura~\ref{fig:api_explorer_backend_anexo} presenta la arquitectura completa del \textit{backend} del \textit{\textbf{API Explorer}}, mostrando el sistema de registro dinámico de módulos y la gestión de conexiones \textit{\gls{websocket}}.
+
+\begin{figure}[H]
+    \centering
+    \hspace*{-0.2\textwidth}
+    \includegraphics[width=1.3\textwidth]{anexos/diagramas/it3/api_explorer_backend.pdf}
+    \caption{Arquitectura del \textit{backend} del \textit{\textbf{API Explorer}}}
+    \label{fig:api_explorer_backend_anexo}
+\end{figure}
+
+\textbf{Componentes principales del \textit{backend}}:
+
+\begin{itemize}
+    \item \textbf{\textit{ApiExplorer (Singleton)}}: Coordinador central que gestiona el registro dinámico de módulos y la aplicación \textbf{FastAPI}. Implementa el patrón \textit{Singleton} para garantizar una instancia única que coordine todas las operaciones del sistema.
+
+    \item \textbf{\textit{WebSocketManager}}: Gestiona conexiones \textit{WebSocket} para comunicación en tiempo real, implementando \textit{pools} de trabajadores especializados para distribuir la carga de procesamiento de mensajes.
+
+    \item \textbf{\textit{WebSocketWorkerPool}}: Implementa distribución de trabajo mediante múltiples hilos especializados que procesan mensajes de forma concurrente, optimizando el rendimiento para aplicaciones de alta frecuencia.
+
+    \item \textbf{\textit{FastJSONSerializer}}: Proporciona serialización \acrshort{json} optimizada mediante \textbf{orjson} con \textit{cache} de plantillas pre-compiladas para reducir la latencia de serialización.
+
+    \item \textbf{\textit{ModuleInfo}, \textit{MethodGroup}, \textit{MethodInfo}}: Estructuras de datos que organizan jerárquicamente los métodos disponibles de cada módulo registrado, facilitando la generación automática de documentación e interfaces.
+\end{itemize}
+
+\textbf{Patrón de registro dinámico}: Los módulos se registran automáticamente exponiendo sus métodos mediante metadatos estructurados que incluyen parámetros, tipos de retorno y documentación. Este sistema permite que \textit{\textit{API Explorer}} descubra y exponga nuevas funcionalidades sin modificación del código principal.
+
+\subsection{Arquitectura del \textit{frontend}}
+\label{subsec:anexo_api_explorer_frontend}
+
+La Figura~\ref{fig:api_explorer_frontend_anexo} ilustra la arquitectura del \textit{frontend} web, mostrando la organización modular de componentes \textit{JavaScript} y la integración con visualizaciones \textbf{Chart.js}.
+
+\begin{figure}[H]
+    \centering
+    \hspace*{-0.2\textwidth}
+    \includegraphics[width=1.3\textwidth]{anexos/diagramas/it3/api_explorer_frontend.pdf}
+    \caption{Arquitectura del \textit{frontend} del \textit{\textbf{API Explorer}}}
+    \label{fig:api_explorer_frontend_anexo}
+\end{figure}
+
+\textbf{Gestores especializados del \textit{frontend}}:
+
+\begin{itemize}
+    \item \textbf{\textit{WebSocketManagerJS}}: Gestiona conexiones \textit{\gls{websocket}} del lado cliente, implementando \textit{buffering} de eventos y reconexión automática para garantizar robustez en la comunicación.
+
+    \item \textbf{\textit{ChartManager}}: Coordina visualizaciones \textbf{Chart.js} con soporte para múltiples tipos de datos, filtrado por canal y actualización en tiempo real con optimizaciones de rendimiento.
+
+    \item \textbf{\textit{APIMethodsManager}}: Gestiona la ejecución de métodos \acrshort{api}, incluyendo validación de parámetros del lado cliente y formateo de respuestas.
+
+    \item \textbf{\textit{DarkModeManager}}: Implementa cambio dinámico entre temas claro y oscuro con sincronización automática de todos los componentes visuales.
+
+    \item \textbf{\textit{EventDisplayManager}}: Coordina la presentación de eventos en tiempo real mediante tablas dinámicas y controles de visualización.
+
+    \item \textbf{\textit{FileBrowserManager}}: Proporciona exploración de archivos mediante cuadros de diálogo interactivos para parámetros que requieren selección de rutas.
+\end{itemize}
+
+\textbf{Integración con Chart.js}: El sistema soporta visualización en tiempo real de datos numéricos mediante gráficos optimizados que se adaptan automáticamente al tema activo y permiten filtrado interactivo por tipo de canal.
+
+\subsection{Flujo de métodos y comunicación}
+\label{subsec:anexo_api_explorer_flujo}
+
+La Figura~\ref{fig:methods_flowchart_anexo} presenta el flujo completo desde el registro de módulos hasta la ejecución de métodos y actualización de interfaces, ilustrando tanto operaciones síncronas como comunicación en tiempo real.
+
+\begin{figure}[H]
+    \centering
+    \hspace*{-0.21\textwidth}
+    \includegraphics[width=1.3\textwidth]{anexos/diagramas/it3/methods_flowchart.pdf}
+    \caption{Flujo de métodos y comunicación del API Explorer}
+    \label{fig:methods_flowchart_anexo}
+\end{figure}
+
+\textbf{Fases del flujo de comunicación}:
+
+\begin{enumerate}
+    \item \textbf{Registro de módulos}: Los módulos (\textit{\textbf{InputCollector}}/\textit{\textbf{EEGProcessor}}) se registran automáticamente al inicializar, exponiendo sus \acrshortpl{api} de datos y control.
+
+    \item \textbf{Generación automática}: \textbf{FastAPI} genera rutas automáticamente y el \textit{frontend} renderiza tarjetas de métodos con documentación interactiva.
+
+    \item \textbf{Interacción de usuario}: Soporte para métodos simples (un clic) y complejos (formularios con parámetros, selectores de archivos, plantillas \acrshort{json}).
+
+    \item \textbf{Ejecución distribuida}: Las peticiones se enrutan automáticamente a servicios especializados (\textit{\textbf{DataAccessService}} para consultas, \textit{\textbf{InteractionService}} para control).
+
+    \item \textbf{Comunicación en tiempo real}: Los eventos generados se distribuyen via \textit{\gls{websocket}} a todas las interfaces conectadas, actualizando tablas de datos y gráficos dinámicamente.
+\end{enumerate}
+
+\textbf{Soporte para clientes externos}: El sistema proporciona tanto \acrshortpl{api} \acrshort{rest} estándar para clientes \acrshort{cli} y aplicaciones de terceros, como \textit{\gls{websocket}} para \textit{dashboards} web en tiempo real.
+
+\section{Módulo Input Collector - Diagramas detallados}
+\label{sec:anexo_input_collector}
+
+El módulo \textit{\textbf{Input Collector}} implementa una arquitectura modular dirigida por eventos que facilita la captura sincronizada de eventos de entrada de usuario desde múltiples dispositivos. Los siguientes diagramas presentan el diseño interno de cada subcomponente del módulo.
+
+\subsection{Adaptadores y puentes arquitectónicos}
+\label{subsec:anexo_ic_adapters}
+
+La Figura~\ref{fig:ic_adapters_anexo} presenta el sistema de adaptadores que proporciona una interfaz unificada entre las \acrshortpl{api} públicas del módulo y los componentes internos del sistema.
+
+\begin{figure}[H]
+    \centering
+    \hspace*{-0.15\textwidth}
+    \includegraphics[width=1.2\textwidth]{anexos/diagramas/it3/ic_adapters.pdf}
+    \caption{Arquitectura de adaptadores del módulo Input Collector}
+    \label{fig:ic_adapters_anexo}
+\end{figure}
+
+\textbf{\textit{QtInteractionAdapter}} actúa como el punto central de coordinación que implementa el patrón \textit{Adapter} para proporcionar una interfaz \textit{\gls{thread-safe}} entre las operaciones \acrshort{api} y los componentes internos \textbf{Qt}. Esta clase encapsula la complejidad de coordinar múltiples gestores especializados (\textit{\textbf{AppCoordinator}}, \textit{\textbf{UIManager}}, \textit{\textbf{LoggingManager}}, \textit{\textbf{CollectorManager}}, \textit{\textbf{EventProcessor}}) mientras mantiene la consistencia del estado mediante un sistema de bloqueos (\textit{threading.Lock}).
+
+El adaptador gestiona operaciones complejas como la configuración del ratón con múltiples modos de seguimiento, el escaneo y conexión de controladores \acrshort{ps4}, y la sincronización bidireccional entre cambios realizados via \acrshort{api} y actualizaciones de interfaz gráfica. Las estructuras de datos auxiliares (\textit{\textbf{MouseSettings}}, \textit{\textbf{ControllerInfo}}) proporcionan configuración tipada e información de dispositivos que facilita la validación y el intercambio de datos.
+
+\subsection{Interfaces de programación}
+\label{subsec:anexo_ic_apis}
+
+La Figura~\ref{fig:ic_apis_anexo} ilustra la arquitectura completa de las \acrshortpl{api} públicas del módulo, mostrando la separación entre funcionalidades de acceso a datos y control de operaciones.
+
+\begin{figure}[H]
+    \centering
+    \hspace*{-0.21\textwidth}
+    \includegraphics[width=1.3\textwidth]{anexos/diagramas/it3/ic_apis.pdf}
+    \caption{Arquitectura de \acrshortpl{api} del módulo \textit{\textbf{Input Collector}}}
+    \label{fig:ic_apis_anexo}
+\end{figure}
+
+\textbf{\textit{InputDataAPI}} e \textbf{\textit{InputCollectorAPI}} implementan la separación conceptual entre operaciones de solo lectura y control, siguiendo el principio de \textit{Interface Segregation}. \textit{\textbf{InputDataAPI}} proporciona acceso granular a diferentes tipos de eventos (teclado, ratón, controlador) y estado del sistema, mientras que \textit{\textbf{InputCollectorAPI}} maneja operaciones que modifican el estado del sistema como grabaciones, cambio de colectores y configuración de dispositivos.
+
+Las clases de integración (\textit{\textbf{InputCollectorApiIntegration}}, \textit{\textbf{InteractionApiIntegration}}) actúan como puentes hacia el \textit{framework} externo \textit{\textbf{ApiExplorer}}, implementando el patrón \textit{Adapter} para exponer las funcionalidades internas mediante interfaces web estándar. \textit{\textbf{APIFunctions}} proporciona funciones para la inicialización y gestión de estas integraciones, facilitando el registro dinámico de capacidades.
+
+\subsection{Coordinación de aplicación}
+\label{subsec:anexo_ic_coordinator}
+
+La Figura~\ref{fig:ic_app_coordinator_anexo} presenta el componente central de coordinación que actúa como mediador entre todos los subsistemas del módulo.
+
+\begin{figure}[H]
+    \centering
+    \hspace*{-0.15\textwidth}
+    \includegraphics[width=1.2\textwidth]{anexos/diagramas/it3/ic_app_coordinator.pdf}
+    \caption{Coordinador principal del módulo \textit{\textbf{Input Collector}}}
+    \label{fig:ic_app_coordinator_anexo}
+\end{figure}
+
+\textbf{\textit{AppCoordinator}} implementa el patrón \textit{Mediator} proporcionando un punto central de coordinación que elimina las dependencias directas entre componentes especializados. El coordinador gestiona el flujo de eventos desde \textit{\textbf{CollectorManager}}, coordina las operaciones de grabación con \textit{\textbf{LoggingManager}}, sincroniza la interfaz de usuario via \textit{\textbf{UIManager}}, y procesa eventos especiales mediante \textit{\textbf{EventProcessor}}.
+
+El sistema de señales \textbf{PyQt5} (\textit{pyqtSignal}) facilita la comunicación asíncrona entre componentes, permitiendo que cambios de estado se propaguen automáticamente a todos los componentes interesados sin acoplamiento directo. Esta arquitectura facilita la extensibilidad al permitir que nuevos componentes se integren simplemente suscribiéndose a las señales relevantes.
+
+\subsection{Interfaces de línea de comandos}
+\label{subsec:anexo_ic_cli}
+
+La Figura~\ref{fig:ic_cli_anexo} muestra la arquitectura de las interfaces \acrshort{cli} que proporcionan acceso programático a las funcionalidades del módulo.
+
+\begin{figure}[H]
+    \centering
+    \hspace*{-0.15\textwidth}
+    \includegraphics[width=1.2\textwidth]{anexos/diagramas/it3/ic_cli.pdf}
+    \caption{Arquitectura \acrshort{cli} del módulo \textbf{\textit{Input Collector}}}
+    \label{fig:ic_cli_anexo}
+\end{figure}
+
+\textbf{\textit{CLIApp}} proporciona la interfaz principal de línea de comandos utilizando \textbf{Typer} para generación automática de comandos y documentación. \textbf{\textit{CLIShell}} implementa un modo interactivo que permite exploración dinámica de funcionalidades sin necesidad de recordar sintaxis específica de comandos.
+
+\textbf{\textit{CLIConfig}} gestiona la configuración de diferentes modos de operación, incluyendo modo \textit{\gls{headless}} para operación sin interfaz gráfica. \textbf{\textit{HeadlessInputCollector}} encapsula todos los componentes necesarios para operación autónoma, aunque actualmente presenta limitaciones debido a dependencias \textbf{Qt} no resueltas completamente.
+
+La integración con \acrshortpl{api} permite que los comandos \acrshort{cli} utilicen la misma lógica de negocio que las interfaces web y gráficas, garantizando consistencia en el comportamiento independientemente de la interfaz utilizada.
+
+\subsection{Comandos especializados}
+\label{subsec:anexo_ic_commands}
+
+La Figura~\ref{fig:ic_cli_commands_anexo} presenta los módulos de comandos especializados que proporcionan funcionalidades específicas via \acrshort{cli}.
+
+\begin{figure}[H]
+    \centering
+    \hspace*{-0.15\textwidth}
+    \includegraphics[width=1.2\textwidth]{anexos/diagramas/it3/ic_cli_commands.pdf}
+    \caption{Comandos especializados \acrshort{cli} del módulo \textbf{\textit{Input Collector}}}
+    \label{fig:ic_cli_commands_anexo}
+\end{figure}
+
+\textbf{\textit{DataCommands}} proporciona consultas de solo lectura que utilizan \textit{\textbf{InputDataAPI}} para acceder a eventos actuales, estados de dispositivos y metadatos del sistema. \textbf{\textit{InteractionCommands}} implementa operaciones de control mediante \textit{\textbf{InputCollectorAPI}}, incluyendo gestión de grabaciones, configuración de dispositivos y cambio de modos de operación.
+
+\textbf{\textit{MonitorCommands}} proporciona capacidades de monitorización en tiempo real que se suscriben al sistema de eventos central para mostrar actividad continua del sistema. \textbf{\textit{PS4ControllerMonitor}} implementa una interfaz especializada para visualizar el estado detallado de controladores \acrshort{ps4} en tiempo real, incluyendo estados de botones, posiciones de \textit{joysticks} y valores de \textit{triggers}.
+
+El sistema de monitorización utiliza el sistema de eventos central (\textit{\textbf{CoreEventSystem}}) para recibir actualizaciones en tiempo real, proporcionando \textit{feedback} visual mediante tablas dinámicas que se actualizan según los eventos del sistema.
+
+\subsection{Sistema de colectores de datos}
+\label{subsec:anexo_ic_collectors}
+
+La Figura~\ref{fig:ic_collectors_anexo} ilustra la jerarquía de colectores que implementan la captura de eventos desde diferentes tipos de dispositivos.
+
+\begin{figure}[H]
+    \centering
+    \vspace*{-0.04\textheight}
+    \includegraphics[width=0.7\textwidth]{anexos/diagramas/it3/ic_collectors.pdf}
+    \caption{Sistema de colectores del módulo \textbf{\textit{Input Collector}}}
+    \label{fig:ic_collectors_anexo}
+\end{figure}
+
+\textbf{\textit{AbstractInputCollector}} define la interfaz común que deben implementar todos los colectores, proporcionando operaciones estándar para captura, gestión de eventos y configuración de dispositivos. \textbf{\textit{KeyboardMouseCollector}} utiliza la biblioteca \textbf{Pynput} para captura de eventos de teclado y ratón, implementando múltiples modos de seguimiento del ratón (\textit{delta}, ángulo, eje, \textit{joystick}) que se adaptan a diferentes necesidades experimentales.
+
+\textbf{\textit{PS4ControllerCollector}} implementa captura de controladores mediante \textbf{PySDL2}, proporcionando acceso completo a botones, \textit{joysticks} analógicos y \textit{triggers} con detección de cambios basada en comparación de estados para minimizar la latencia. El colector incluye capacidades de escaneo automático y conexión a controladores disponibles.
+
+\textbf{\textit{CollectorManager}} coordina múltiples colectores mediante el patrón \textit{Strategy}, permitiendo cambio dinámico entre diferentes tipos de dispositivos sin interrumpir la operación del sistema. El gestor mantiene un registro de visualizadores asociados y proporciona distribución de eventos mediante \textit{\glspl{callback}} registrados.
+
+\subsection{Sistema de eventos}
+\label{subsec:anexo_ic_events}
+
+La Figura~\ref{fig:ic_event_system_anexo} presenta el sistema de eventos central que facilita la comunicación desacoplada entre componentes.
+
+\begin{figure}[H]
+    \centering
+    \hspace*{-0.15\textwidth}
+    \includegraphics[width=1.2\textwidth]{anexos/diagramas/it3/ic_event_system.pdf}
+    \caption{Sistema de eventos del módulo \textit{\textbf{Input Collector}}}
+    \label{fig:ic_event_system_anexo}
+\end{figure}
+
+\textbf{\textit{EventDispatcher}} implementa el patrón \textit{Observer} mediante un sistema \textit{singleton} \textit{\gls{thread-safe}} que gestiona suscripciones por tipo de evento. \textbf{\textit{EventType}} enumera los diferentes tipos de eventos del sistema, categorizados en eventos de entrada (\textit{INPUT}), cambios de estado (\textit{STATE\_CHANGE}), y eventos de grabación (\textit{RECORDING\_STARTED}, \textit{RECORDING\_STOPPED}) entre otros.
+
+El sistema mantiene registros \textit{\gls{thread-safe}} de suscriptores y eventos recientes, proporcionando distribución eficiente de notificaciones a múltiples componentes interesados. \textbf{\textit{EventSystemUtilities}} proporciona funciones que simplifican el uso del sistema de eventos desde diferentes partes del código.
+
+La implementación garantiza que los eventos se distribuyan de forma asíncrona sin bloquear a los emisores, utilizando mecanismos de bloqueo granular para mantener la consistencia sin impactar el rendimiento del sistema de captura de eventos de alta frecuencia.
+
+\subsection{Contratos e interfaces}
+\label{subsec:anexo_ic_interfaces}
+
+La Figura~\ref{fig:ic_interfaces_anexo} muestra las interfaces y contratos que definen la comunicación entre componentes del módulo.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{anexos/diagramas/it3/ic_interfaces.pdf}
+    \caption{Interfaces y contratos del módulo \textit{\textbf{Input Collector}}}
+    \label{fig:ic_interfaces_anexo}
+\end{figure}
+
+\textbf{\textit{InputData}} define la estructura de datos unificada que encapsula todos los tipos de eventos de entrada, incluyendo eventos de teclado, movimiento y clics de ratón, y eventos de controlador. La estructura incluye metadatos como \textit{\glspl{timestamp}}, información de seguimiento del ratón con múltiples modos, y capacidades específicas de cada tipo de dispositivo.
+
+\textbf{\textit{AbstractInputCollector}} y \textbf{\textit{AbstractVisualizer}} definen los contratos principales que deben cumplir los componentes de captura y visualización. Los protocolos \textbf{\textit{AbstractVisualizerProvider}} e \textbf{\textit{AbstractVisualizerController}} especifican las interfaces que deben implementar los gestores de visualización para proporcionar y controlar diferentes tipos de visualizadores.
+
+Estas interfaces facilitan la extensibilidad del sistema al proporcionar contratos que permiten la adición de nuevos tipos de colectores y visualizadores sin modificar el código existente, siguiendo el principio \textit{Open-Closed} de \acrshort{solid}.
+
+\subsection{Sistema de registro}
+\label{subsec:anexo_ic_logging}
+
+La Figura~\ref{fig:ic_logging_anexo} presenta el sistema de registro que maneja la persistencia de eventos capturados en múltiples formatos.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{anexos/diagramas/it3/ic_logging.pdf}
+    \caption{Sistema de registro del módulo \textit{\textbf{Input Collector}}}
+    \label{fig:ic_logging_anexo}
+\end{figure}
+
+\textbf{\textit{LoggingManager}} coordina múltiples sistemas de registro independientes (\textit{\textbf{JSONLogger}}, \textit{\textbf{CSVLogger}}) permitiendo registro simultáneo en diferentes formatos según las necesidades del usuario. \textbf{\textit{JSONLogger}} proporciona registro estructurado en formato \acrshort{json} que facilita el procesamiento posterior mediante herramientas de análisis de datos.
+
+\textbf{\textit{CSVLogger}} implementa registro en formato \acrshort{csv} con cabeceras que facilitan la importación posterior en herramientas de análisis estadístico y hojas de cálculo. El sistema incluye gestión automática de archivos, control de rutas de destino, y señalización de estado para proporcionar \textit{feedback} visual del estado de registro.
+
+El diseño modular permite la adición futura de nuevos formatos de registro (como \acrshort{hdf5} o \acrshort{bids}) sin modificar el código existente, simplemente implementando nuevos registradores que sigan la interfaz establecida por \textit{\textbf{LoggingManager}}.
+
+\subsection{Procesamiento de eventos}
+\label{subsec:anexo_ic_processing}
+
+La Figura~\ref{fig:ic_processing_anexo} ilustra el motor de procesamiento que transforma eventos en bruto en datos estructurados para registro y visualización.
+
+\begin{figure}[H]
+    \centering
+    \hspace*{-0.15\textwidth}
+    \includegraphics[width=1.2\textwidth]{anexos/diagramas/it3/ic_processing.pdf}
+    \caption{Motor de procesamiento de eventos del módulo \textit{\textbf{Input Collector}}}
+    \label{fig:ic_processing_anexo}
+\end{figure}
+
+\textbf{\textit{EventProcessor}} implementa el procesamiento central de eventos mediante múltiples estrategias especializadas para diferentes tipos de datos. El procesador maneja eventos especiales como el \textit{toggle} de grabación (tecla F9), aplica formatos específicos según el tipo de dispositivo activo, y determina qué eventos deben registrarse basándose en criterios configurables.
+
+El sistema soporta múltiples modos de seguimiento del ratón (\textit{\textbf{TrackingMode}}) que proporcionan diferentes representaciones del movimiento: modo \textit{delta} para movimientos relativos, modo ángulo para direcciones discretizadas, modo eje para componentes separadas, y modo \textit{joystick} para representación polar. Cada modo está optimizado para diferentes tipos de análisis posterior.
+
+\textbf{\textit{ProcessingResult}} encapsula el resultado del procesamiento, incluyendo el evento procesado, decisiones de registro, y texto formateado para visualización. Esta estructura permite que diferentes componentes del sistema accedan a la información que necesitan sin requerir procesamientos adicionales.
+
+\subsection{Servicios centralizados}
+\label{subsec:anexo_ic_services}
+
+La Figura~\ref{fig:ic_services_anexo} presenta los servicios centralizados que proporcionan acceso unificado a datos y coordinación de operaciones.
+
+\begin{figure}[H]
+    \centering
+    \vspace*{-0.04\textheight}
+    \includegraphics[width=0.6\textwidth]{anexos/diagramas/it3/ic_services.pdf}
+    \caption{Servicios centralizados del módulo \textit{\textbf{Input Collector}}}
+    \label{fig:ic_services_anexo}
+\end{figure}
+
+\textbf{\textit{InteractionService}} actúa como el servicio de coordinación principal que gestiona todas las operaciones de control del módulo, proporcionando una interfaz unificada para iniciar/detener grabaciones, cambiar colectores, y configurar dispositivos. El servicio implementa el patrón \textit{Singleton} con protección \textit{\gls{thread-safe}} para garantizar acceso coordinado desde múltiples interfaces (\acrshort{gui}, \acrshort{cli}, \acrshort{api}).
+
+\textbf{\textit{DataAccessService}} centraliza el acceso a todos los datos del sistema, manteniendo historiales categorizados de eventos por tipo (teclado, ratón, controlador) y proporcionando acceso \textit{\gls{thread-safe}} mediante múltiples niveles de bloqueo granular. El servicio implementa un sistema de \textit{\glspl{callback}} que permite a componentes externos suscribirse a actualizaciones de datos en tiempo real.
+
+Ambos servicios utilizan estructuras de datos especializadas (\textit{\textbf{ServiceStatus}}, \textit{\textbf{LoggingState}}, \textit{\textbf{CollectorInfo}}, etc.) que proporcionan información tipada y validan consistentemente el estado del sistema. Esta arquitectura centralizada facilita la coordinación entre las múltiples interfaces del módulo mientras mantiene la coherencia de datos.
+
+\subsection{Gestión de interfaz de usuario}
+\label{subsec:anexo_ic_ui}
+
+La Figura~\ref{fig:ic_ui_anexo} muestra los componentes de gestión de interfaz de usuario que coordinan la presentación visual del sistema.
+
+\begin{figure}[H]
+    \centering
+    \hspace*{-0.15\textwidth}
+    \includegraphics[width=1.2\textwidth]{anexos/diagramas/it3/ic_ui.pdf}
+    \caption{Gestión de interfaz de usuario del módulo \textbf{\textit{Input Collector}}}
+    \label{fig:ic_ui_anexo}
+\end{figure}
+
+\textbf{\textit{UIManager}} coordina la interfaz principal del módulo, gestionando ventanas \textbf{Qt}, actualizando estados de grabación, y proporcionando \textit{feedback} visual de operaciones del sistema. \textbf{\textit{VisualizerManager}} implementa los protocolos \textit{\textbf{AbstractVisualizerProvider}} y \textbf{\textit{AbstractVisualizerController}} para proporcionar gestión centralizada de todos los visualizadores del sistema.
+
+\textbf{\textit{KeyboardEventFilter}} implementa filtrado de eventos de teclado a nivel de sistema para capturar las teclas de interés independientemente del foco de la aplicación. Este componente es crucial para funcionalidades como el toggle de grabación mediante F9, que debe funcionar incluso cuando la aplicación no tiene el foco del sistema.
+
+El diseño modular permite que diferentes tipos de visualizadores se integren dinámicamente según el tipo de colector activo, proporcionando interfaces especializadas para teclado/ratón y controladores \acrshort{ps4} sin requerir cambios en el código de coordinación principal.
+
+\subsection{Visualizadores especializados}
+\label{subsec:anexo_ic_visualizers}
+
+La Figura~\ref{fig:ic_visualizers_anexo} presenta la jerarquía de visualizadores que proporcionan \textit{feedback} visual en tiempo real de la actividad del sistema.
+
+\begin{figure}[H]
+    \centering
+    \hspace*{-0.15\textwidth}
+    \includegraphics[width=1.2\textwidth]{anexos/diagramas/it3/ic_visualizers.pdf}
+    \caption{Visualizadores del módulo \textit{\textbf{Input Collector}}}
+    \label{fig:ic_visualizers_anexo}
+\end{figure}
+
+\textbf{\textit{BaseVisualizer}} define la interfaz común para todos los visualizadores, implementando funcionalidades básicas como actualización de datos, gestión de modo de edición, y verificación de compatibilidad con diferentes tipos de colectores.
+
+\textbf{\textit{KeyboardVisualizer}} proporciona representación visual del estado de teclas de interés, utilizando un "dibujo" personalizado (\textit{\textbf{paintEvent}}) para mostrar teclas activas e inactivas. \textbf{\textit{MouseVisualizer}} incluye un \textit{Canvas} especializado que visualiza movimiento del ratón, posición actual, y diferentes modos de seguimiento mediante representaciones gráficas dinámicas.
+
+\textbf{\textit{MouseButtonsSelector}} implementa controles interactivos que permiten seleccionar qué botones del ratón son de interés, proporcionando \textit{feedback} visual del estado de cada botón. \textbf{\textit{PS4ControllerVisualizer}} proporciona una representación visual completa del controlador incluyendo botones, \textit{joysticks}, \textit{triggers}, y capacidades de configuración en modo de edición.
+
+El diseño modular permite que cada visualizador se especialice en un tipo específico de entrada mientras mantiene una interfaz para integración con el resto del sistema. Los visualizadores incluyen capacidades de edición que permiten configurar qué elementos (teclas, botones) son de interés sin requerir reinicio del sistema.
+
+\section{Módulo EEG Processor - Diagramas detallados}
+\label{sec:anexo_eeg_processor}
+
+[Esta sección contendrá los 18 diagramas adicionales del módulo EEG Processor cuando los proporciones]
