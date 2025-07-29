@@ -1,0 +1,586 @@
+\chapter{Casos de uso - Tercera iteración}
+\label{chap:anexo_casos_uso_it3}
+
+Este anexo presenta la especificación detallada de los casos de uso desarrollados durante la tercera iteración del sistema, enfocados en la arquitectura API completa y funcionalidades avanzadas.
+
+\section{CU-03 - Desarrollo de aplicaciones BCI personalizadas}
+\label{sec:cu03_it3_desarrollo_bci}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{12cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Campo} & \textbf{Descripción} \\
+\hline
+\textbf{Identificador} & CU-03 \\
+\hline
+\textbf{Nombre} & Desarrollo de aplicaciones BCI personalizadas mediante acceso programático completo \\
+\hline
+\textbf{Actores} & Desarrollador de aplicaciones BCI (principal), Investigador con conocimientos técnicos (secundario) \\
+\hline
+\textbf{Descripción} & El sistema debe proporcionar APIs completas que permitan desarrollo de aplicaciones BCI personalizadas con acceso programático a todas las capacidades del sistema \\
+\hline
+\textbf{Precondiciones} & 
+\begin{minipage}[t]{11cm}
+\begin{itemize}
+    \item Las APIs de acceso a datos están completamente funcionales
+    \item Las APIs de control están documentadas y testadas
+    \item El explorador web proporciona documentación interactiva
+    \item Los endpoints de streaming en tiempo real están operativos
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{Postcondiciones} & 
+\begin{minipage}[t]{11cm}
+\begin{itemize}
+    \item La aplicación personalizada accede a datos en tiempo real
+    \item El control remoto de dispositivos funciona correctamente
+    \item La integración preserva funcionalidad del sistema base
+    \item Los datos son compatibles con frameworks ML existentes
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Especificación del caso de uso CU-03 - Tercera iteración}
+\label{tab:cu03_it3_especificacion}
+\end{table}
+
+\subsection{Flujo principal}
+\label{subsec:cu03_it3_flujo_principal}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|c|p{13cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Paso} & \textbf{Acción} \\
+\hline
+1 & El desarrollador accede al explorador web para documentación API \\
+\hline
+2 & Explora endpoints disponibles mediante interfaz interactiva \\
+\hline
+3 & Testa funcionalidades específicas usando plantillas JSON proporcionadas \\
+\hline
+4 & Diseña aplicación personalizada utilizando APIs REST y WebSocket \\
+\hline
+5 & Implementa cliente que consume endpoints de acceso a datos \\
+\hline
+6 & Integra control remoto mediante APIs de interacción \\
+\hline
+7 & Establece streaming de datos en tiempo real via WebSocket \\
+\hline
+8 & Configura callbacks para eventos del sistema (conexión, errores, datos) \\
+\hline
+9 & Implementa lógica de procesamiento específica de la aplicación \\
+\hline
+10 & Valida funcionamiento con datos sintéticos y reales \\
+\hline
+11 & Integra con frameworks ML (TensorFlow, PyTorch) según necesidades \\
+\hline
+12 & Despliega aplicación con capacidades BCI completas \\
+\hline
+\end{tabular}
+}
+\caption{Flujo principal del caso de uso CU-03 - Tercera iteración}
+\label{tab:cu03_it3_flujo_principal}
+\end{table}
+
+\subsection{Flujos alternativos}
+\label{subsec:cu03_it3_flujos_alternativos}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{11cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Flujo} & \textbf{Descripción} \\
+\hline
+\textbf{FA-01: Desarrollo CLI personalizado} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item En paso 4, desarrollador crea herramientas CLI usando Typer
+    \item Utiliza APIs internas para funcionalidades específicas
+    \item Implementa comandos especializados para flujo de trabajo único
+    \item Integra con pipelines de automatización existentes
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FA-02: Aplicación web personalizada} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Desarrolla frontend web que consume APIs directamente
+    \item Implementa visualizaciones específicas usando Chart.js/D3.js
+    \item Crea dashboards personalizados para experimentos específicos
+    \item Integra autenticación y gestión de usuarios si necesario
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FA-03: Integración framework específico} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Desarrolla adaptadores para frameworks específicos (Unity, ROS)
+    \item Implementa protocolos de comunicación nativos del framework
+    \item Mantiene sincronización temporal específica del dominio
+    \item Proporciona APIs nivel superior adaptadas al framework
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Flujos alternativos del caso de uso CU-03 - Tercera iteración}
+\label{tab:cu03_it3_flujos_alternativos}
+\end{table}
+
+\subsection{Flujos de excepción}
+\label{subsec:cu03_it3_flujos_excepcion}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{11cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Excepción} & \textbf{Manejo} \\
+\hline
+\textbf{FE-01: Fallo WebSocket streaming} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Interrupción en streaming de datos en tiempo real
+    \item Sistema detecta desconexión y intenta reconexión automática
+    \item Mantiene buffer de datos durante interrupción temporal
+    \item Proporciona callback de error con detalles específicos
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-02: API endpoint no disponible} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Servicio específico no responde o está temporalmente inactivo
+    \item Sistema proporciona mensaje de error HTTP descriptivo
+    \item Sugiere endpoints alternativos para funcionalidad similar
+    \item Implementa retry automático con backoff exponencial
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-03: Datos malformados en API} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Respuesta de API no cumple formato JSON esperado
+    \item Sistema valida estructura antes de procesar datos
+    \item Proporciona esquema esperado en mensaje de error
+    \item Permite modo degradado con datos parciales válidos
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-04: Exceso límites rate limiting} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Aplicación supera límites de frecuencia de peticiones
+    \item Sistema implementa throttling automático inteligente
+    \item Proporciona headers con información de límites restantes
+    \item Sugiere optimizaciones para reducir frecuencia de peticiones
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Flujos de excepción del caso de uso CU-03 - Tercera iteración}
+\label{tab:cu03_it3_flujos_excepcion}
+\end{table}
+
+\section{CU-04 - Herramientas avanzadas para investigación neurocientífica}
+\label{sec:cu04_it3_investigacion_avanzada}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{12cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Campo} & \textbf{Descripción} \\
+\hline
+\textbf{Identificador} & CU-04 \\
+\hline
+\textbf{Nombre} & Herramientas avanzadas para investigación neurocientífica con algoritmos especializados \\
+\hline
+\textbf{Actores} & Investigador neurocientífico (principal), Personal técnico de laboratorio (secundario) \\
+\hline
+\textbf{Descripción} & El sistema debe proporcionar algoritmos avanzados de procesamiento EEG como ICA, wavelets, e integración MNE-Python para análisis neurofisiológico completo \\
+\hline
+\textbf{Precondiciones} & 
+\begin{minipage}[t]{11cm}
+\begin{itemize}
+    \item Los servicios avanzados están completamente implementados
+    \item La integración MNE-Python está funcional
+    \item Los algoritmos ICA y wavelet están optimizados
+    \item Los visualizadores especializados están operativos
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{Postcondiciones} & 
+\begin{minipage}[t]{11cm}
+\begin{itemize}
+    \item Los análisis avanzados proporcionan resultados interpretables
+    \item Las visualizaciones facilitan interpretación neurofisiológica
+    \item Los resultados son exportables en formatos científicos
+    \item La documentación facilita reproducibilidad de análisis
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Especificación del caso de uso CU-04 - Tercera iteración}
+\label{tab:cu04_it3_especificacion}
+\end{table}
+
+\subsection{Flujo principal}
+\label{subsec:cu04_it3_flujo_principal}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|c|p{13cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Paso} & \textbf{Acción} \\
+\hline
+1 & El investigador configura dispositivo EEG y verifica calidad de señal \\
+\hline
+2 & Accede a panel de procesamiento avanzado desde interfaz principal \\
+\hline
+3 & Configura filtros digitales especializados según protocolo experimental \\
+\hline
+4 & Selecciona canales específicos para análisis ICA (1-16 componentes) \\
+\hline
+5 & Ejecuta análisis ICA y visualiza matrices mixing/unmixing resultantes \\
+\hline
+6 & Analiza componentes individuales mediante weight distribution y PSD \\
+\hline
+7 & Configura transformadas wavelet (familia, niveles) según necesidades \\
+\hline
+8 & Aplica análisis tiempo-frecuencia mediante wavelets \\
+\hline
+9 & Configura conversión MNE-Python (modalidad: flexible/rendimiento/tiempo real) \\
+\hline
+10 & Genera visualizaciones científicas (topomaps, espectrogramas, PSD) \\
+\hline
+11 & Exporta resultados en formatos compatibles con publicación científica \\
+\hline
+12 & Documenta pipeline de análisis para reproducibilidad \\
+\hline
+\end{tabular}
+}
+\caption{Flujo principal del caso de uso CU-04 - Tercera iteración}
+\label{tab:cu04_it3_flujo_principal}
+\end{table}
+
+\subsection{Flujos alternativos}
+\label{subsec:cu04_it3_flujos_alternativos}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{11cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Flujo} & \textbf{Descripción} \\
+\hline
+\textbf{FA-01: Análisis ICA tiempo real} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item En paso 5, investigador activa modo tiempo real para ICA
+    \item Sistema recalcula componentes automáticamente con nuevos datos
+    \item Visualizaciones se actualizan dinámicamente con latencia aceptable
+    \item Permite identificación inmediata de artefactos durante captura
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FA-02: Análisis multi-banda wavelet} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item En paso 8, se configura análisis simultáneo múltiples familias
+    \item Sistema compara resultados Daubechies, Haar, Biorthogonal
+    \item Genera visualización comparativa de descomposiciones
+    \item Facilita selección óptima de wavelet para datos específicos
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FA-03: Pipeline automatizado MNE} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item En paso 9, se configura pipeline automatizado de análisis
+    \item Sistema ejecuta secuencia predefinida: filtrado → ICA → análisis
+    \item Genera reporte automático con todas las visualizaciones
+    \item Exporta resultados en formato publication-ready
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Flujos alternativos del caso de uso CU-04 - Tercera iteración}
+\label{tab:cu04_it3_flujos_alternativos}
+\end{table}
+
+\subsection{Flujos de excepción}
+\label{subsec:cu04_it3_flujos_excepcion}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{11cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Excepción} & \textbf{Manejo} \\
+\hline
+\textbf{FE-01: Fallo convergencia ICA} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Algoritmo ICA no converge con parámetros especificados
+    \item Sistema sugiere reducir número de componentes automáticamente
+    \item Ofrece probar con datos pre-filtrados o mayor ventana temporal
+    \item Proporciona diagnóstico específico sobre calidad de datos
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-02: Datos insuficientes análisis} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Ventana temporal muy pequeña para análisis robusto
+    \item Sistema calcula mínimo requerido según algoritmo específico
+    \item Sugiere extender captura o usar datos históricos disponibles
+    \item Permite análisis con advertencia sobre limitaciones estadísticas
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-03: Error integración MNE} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Fallo en conversión o procesamiento MNE-Python
+    \item Sistema identifica paso específico que causa error
+    \item Proporciona información detallada sobre incompatibilidad
+    \item Ofrece conversión alternativa o modo degradado sin MNE
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-04: Sobrecarga computacional} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Análisis requiere más recursos que disponibles en sistema
+    \item Sistema ofrece procesamiento batch en lugar de tiempo real
+    \item Sugiere reducir complejidad o usar submuestreo de datos
+    \item Proporciona estimación de tiempo requerido para análisis
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Flujos de excepción del caso de uso CU-04 - Tercera iteración}
+\label{tab:cu04_it3_flujos_excepcion}
+\end{table}
+
+\section{CU-06 - Integración programática con herramientas existentes}
+\label{sec:cu06_it3_integracion_programatica}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{12cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Campo} & \textbf{Descripción} \\
+\hline
+\textbf{Identificador} & CU-06 \\
+\hline
+\textbf{Nombre} & Integración programática con herramientas de análisis existentes mediante APIs estándar \\
+\hline
+\textbf{Actores} & Integrador de sistemas (principal), Analista de datos (secundario) \\
+\hline
+\textbf{Descripción} & El sistema debe facilitar la integración programática con herramientas existentes mediante APIs documentadas y formatos de datos estándar \\
+\hline
+\textbf{Precondiciones} & 
+\begin{minipage}[t]{11cm}
+\begin{itemize}
+    \item Las APIs están completamente documentadas
+    \item Los formatos de exportación están estandarizados
+    \item Los endpoints de streaming están estables
+    \item La documentación OpenAPI está actualizada
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{Postcondiciones} & 
+\begin{minipage}[t]{11cm}
+\begin{itemize}
+    \item La integración funciona de forma transparente
+    \item Los datos mantienen integridad durante transferencia
+    \item Los pipelines automatizados operan sin intervención
+    \item La documentación facilita mantenimiento futuro
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Especificación del caso de uso CU-06 - Tercera iteración}
+\label{tab:cu06_it3_especificacion}
+\end{table}
+
+\subsection{Flujo principal}
+\label{subsec:cu06_it3_flujo_principal}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|c|p{13cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Paso} & \textbf{Acción} \\
+\hline
+1 & El integrador analiza documentación API mediante explorador web \\
+\hline
+2 & Identifica endpoints relevantes para herramienta específica \\
+\hline
+3 & Configura autenticación y permisos según requerimientos de seguridad \\
+\hline
+4 & Implementa cliente que consume endpoints de acceso a datos \\
+\hline
+5 & Establece streaming en tiempo real via WebSocket según necesidades \\
+\hline
+6 & Configura formato de datos compatible con herramienta de destino \\
+\hline
+7 & Implementa pipeline de transformación de datos si necesario \\
+\hline
+8 & Configura manejo de errores y reconexión automática \\
+\hline
+9 & Establece monitorización de calidad de datos transferidos \\
+\hline
+10 & Valida integridad de integración con datos de prueba \\
+\hline
+11 & Implementa logging y métricas para monitorización operacional \\
+\hline
+12 & Despliega integración con documentación de mantenimiento \\
+\hline
+\end{tabular}
+}
+\caption{Flujo principal del caso de uso CU-06 - Tercera iteración}
+\label{tab:cu06_it3_flujo_principal}
+\end{table}
+
+\subsection{Flujos alternativos}
+\label{subsec:cu06_it3_flujos_alternativos}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{11cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Flujo} & \textbf{Descripción} \\
+\hline
+\textbf{FA-01: Integración MNE-Python} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item En paso 6, configura conversión directa a formatos MNE
+    \item Utiliza servicios MNE del sistema para conversión en tiempo real
+    \item Mantiene metadatos de electrodos y frecuencia de muestreo
+    \item Facilita análisis inmediato en pipeline MNE existente
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FA-02: Integración EEGLAB} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Configura exportación en formato .set compatible con EEGLAB
+    \item Incluye metadatos de canales en estructura apropiada
+    \item Mantiene información de eventos como estructura EEGLAB
+    \item Proporciona scripts MATLAB para importación automatizada
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FA-03: Integración LabStreamingLayer} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Implementa outlets LSL desde streams internos del sistema
+    \item Configura metadatos XML según especificaciones LSL
+    \item Mantiene sincronización temporal precisa con reloj LSL
+    \item Facilita integración con ecosistema LSL existente
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Flujos alternativos del caso de uso CU-06 - Tercera iteración}
+\label{tab:cu06_it3_flujos_alternativos}
+\end{table}
+
+\subsection{Flujos de excepción}
+\label{subsec:cu06_it3_flujos_excepcion}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{11cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Excepción} & \textbf{Manejo} \\
+\hline
+\textbf{FE-01: API rate limiting} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Cliente supera límites de frecuencia de peticiones
+    \item Sistema implementa backoff exponencial automático
+    \item Proporciona información sobre límites y tiempo de espera
+    \item Permite configurar prioridad de endpoints según criticidad
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-02: Transformación datos fallida} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Error en pipeline de transformación de formato
+    \item Sistema identifica paso específico que causa fallo
+    \item Preserva datos originales antes de transformación
+    \item Ofrece transformación alternativa o formato raw como fallback
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-03: Pérdida sincronización temporal} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Deriva temporal detectada entre sistema y herramienta externa
+    \item Sistema recalibra sincronización automáticamente
+    \item Documenta deriva y correcciones aplicadas
+    \item Alerta sobre período de datos potencialmente afectados
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-04: Incompatibilidad versión herramienta} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Herramienta externa actualizada a versión incompatible
+    \item Sistema detecta cambios en formato o protocolo esperado
+    \item Proporciona adaptador legacy para versiones anteriores
+    \item Sugiere actualización de integración a nueva versión
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Flujos de excepción del caso de uso CU-06 - Tercera iteración}
+\label{tab:cu06_it3_flujos_excepcion}
+\end{table}

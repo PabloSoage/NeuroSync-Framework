@@ -1,0 +1,778 @@
+\chapter{Casos de uso - Primera iteración}
+\label{chap:anexo_casos_uso_it1}
+
+Este anexo presenta la especificación detallada de los casos de uso desarrollados durante la primera iteración del sistema, incluyendo flujos principales, alternativos y de excepción, junto con precondiciones y postcondiciones específicas.
+
+\section{CU-01 - Captura básica de eventos de entrada}
+\label{sec:cu01_captura_eventos}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{12cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Campo} & \textbf{Descripción} \\
+\hline
+\textbf{Identificador} & CU-01 \\
+\hline
+\textbf{Nombre} & Captura básica de eventos de entrada para correlación posterior \\
+\hline
+\textbf{Actores} & Investigador BCI (principal), Usuario del sistema (secundario) \\
+\hline
+\textbf{Descripción} & El sistema debe capturar eventos de teclado y ratón con precisión temporal para facilitar correlación posterior con señales cerebrales \\
+\hline
+\textbf{Precondiciones} & 
+\begin{minipage}[t]{11cm}
+\begin{itemize}
+    \item El sistema está iniciado correctamente
+    \item Los dispositivos de entrada están conectados y funcionando
+    \item Se ha configurado el filtro de teclas deseado
+    \item El modo de tracking de ratón está seleccionado
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{Postcondiciones} & 
+\begin{minipage}[t]{11cm}
+\begin{itemize}
+    \item Los eventos están registrados con timestamps precisos
+    \item Los datos están disponibles para exportación
+    \item Las visualizaciones muestran actividad en tiempo real
+    \item El sistema mantiene un histórico de eventos capturados
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Especificación del caso de uso CU-01}
+\label{tab:cu01_especificacion}
+\end{table}
+
+\subsection{Flujo principal}
+\label{subsec:cu01_flujo_principal}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|c|p{13cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Paso} & \textbf{Acción} \\
+\hline
+1 & El investigador BCI inicia la aplicación de captura de entrada \\
+\hline
+2 & El sistema inicializa los listeners de teclado y ratón mediante pynput \\
+\hline
+3 & El investigador configura el filtro de teclas específicas a capturar \\
+\hline
+4 & El investigador selecciona el modo de tracking de ratón (axis/angle/delta/joystick) \\
+\hline
+5 & El investigador inicia la captura de eventos \\
+\hline
+6 & El sistema comienza a capturar eventos con timestamps de alta precisión \\
+\hline
+7 & Los eventos se procesan y distribuyen a visualizadores en tiempo real \\
+\hline
+8 & El usuario del sistema realiza acciones que generan eventos \\
+\hline
+9 & El sistema registra cada evento con timestamp y metadatos asociados \\
+\hline
+10 & Los visualizadores actualizan la interfaz mostrando actividad \\
+\hline
+11 & El investigador detiene la captura cuando considera apropiado \\
+\hline
+12 & El sistema finaliza la captura y prepara datos para exportación \\
+\hline
+\end{tabular}
+}
+\caption{Flujo principal del caso de uso CU-01}
+\label{tab:cu01_flujo_principal}
+\end{table}
+
+\subsection{Flujos alternativos}
+\label{subsec:cu01_flujos_alternativos}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{11cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Flujo} & \textbf{Descripción} \\
+\hline
+\textbf{FA-01: Cambio configuración durante captura} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item En el paso 6, el investigador modifica filtros de teclas
+    \item El sistema aplica cambios sin interrumpir la captura
+    \item Se registra el cambio con timestamp para trazabilidad
+    \item Continúa en paso 7
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FA-02: Cambio modo tracking} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item En el paso 6, el investigador cambia modo de tracking de ratón
+    \item El sistema actualiza el procesamiento de movimiento
+    \item Los visualizadores adaptan representación al nuevo modo
+    \item Continúa en paso 7
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FA-03: Pausa temporal} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item En cualquier momento durante captura, investigador pausa
+    \item El sistema suspende captura manteniendo configuración
+    \item Al reanudar, continúa con timestamp actualizado
+    \item Mantiene coherencia en secuencia de eventos
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Flujos alternativos del caso de uso CU-01}
+\label{tab:cu01_flujos_alternativos}
+\end{table}
+
+\subsection{Flujos de excepción}
+\label{subsec:cu01_flujos_excepcion}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{11cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Excepción} & \textbf{Manejo} \\
+\hline
+\textbf{FE-01: Fallo dispositivo entrada} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item El sistema detecta desconexión de dispositivo
+    \item Muestra alerta al investigador indicando dispositivo afectado
+    \item Continúa captura con dispositivos disponibles
+    \item Registra evento de fallo para análisis posterior
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-02: Error permisos sistema} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item pynput no puede acceder a eventos del sistema
+    \item El sistema muestra mensaje explicativo sobre permisos
+    \item Proporciona instrucciones específicas del sistema operativo
+    \item Termina ejecución de forma controlada
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-03: Saturación buffer} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Eventos llegan más rápido que procesamiento
+    \item Sistema activa descarte selectivo de eventos duplicados
+    \item Mantiene eventos únicos y registra pérdidas
+    \item Ajusta automáticamente frecuencia de procesamiento
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-04: Cierre inesperado} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Cierre forzado durante captura activa
+    \item Sistema intenta guardar datos parciales automáticamente
+    \item Registra estado de captura para recuperación
+    \item En siguiente inicio, ofrece recuperar sesión interrumpida
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Flujos de excepción del caso de uso CU-01}
+\label{tab:cu01_flujos_excepcion}
+\end{table}
+
+\section{CU-02 - Registro temporal preciso durante experimentos}
+\label{sec:cu02_registro_temporal}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{12cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Campo} & \textbf{Descripción} \\
+\hline
+\textbf{Identificador} & CU-02 \\
+\hline
+\textbf{Nombre} & Registro temporal preciso de acciones del usuario durante experimentos \\
+\hline
+\textbf{Actores} & Investigador neurocientífico (principal), Usuario del sistema (secundario) \\
+\hline
+\textbf{Descripción} & El sistema debe mantener precisión temporal de milisegundos en el registro de eventos para facilitar sincronización posterior con señales cerebrales \\
+\hline
+\textbf{Precondiciones} & 
+\begin{minipage}[t]{11cm}
+\begin{itemize}
+    \item El sistema de captura está configurado y funcionando
+    \item Se ha sincronizado el reloj del sistema
+    \item El protocolo experimental está definido
+    \item Los parámetros de precisión temporal están configurados
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{Postcondiciones} & 
+\begin{minipage}[t]{11cm}
+\begin{itemize}
+    \item Todos los eventos tienen timestamps de alta precisión
+    \item Los datos están estructurados para análisis temporal
+    \item Se mantiene trazabilidad de la secuencia temporal
+    \item Los datos son exportables en formatos estándar
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Especificación del caso de uso CU-02}
+\label{tab:cu02_especificacion}
+\end{table}
+
+\subsection{Flujo principal}
+\label{subsec:cu02_flujo_principal}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|c|p{13cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Paso} & \textbf{Acción} \\
+\hline
+1 & El investigador neurocientífico configura parámetros de precisión temporal \\
+\hline
+2 & El sistema inicializa el reloj de alta precisión usando time.time() \\
+\hline
+3 & Se establecen marcadores temporales de inicio de experimento \\
+\hline
+4 & El investigador inicia el protocolo experimental \\
+\hline
+5 & El usuario del sistema comienza a interactuar según protocolo \\
+\hline
+6 & Cada evento se registra con timestamp preciso al momento de captura \\
+\hline
+7 & El sistema calcula y almacena intervalos entre eventos \\
+\hline
+8 & Se mantiene buffer circular para eventos de alta frecuencia \\
+\hline
+9 & Los timestamps se validan para detectar inconsistencias temporales \\
+\hline
+10 & El sistema genera metadatos de calidad temporal \\
+\hline
+11 & Al finalizar, se produce informe de precisión temporal \\
+\hline
+12 & Los datos se estructuran con timestamps como índice principal \\
+\hline
+\end{tabular}
+}
+\caption{Flujo principal del caso de uso CU-02}
+\label{tab:cu02_flujo_principal}
+\end{table}
+
+\subsection{Flujos alternativos}
+\label{subsec:cu02_flujos_alternativos}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{11cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Flujo} & \textbf{Descripción} \\
+\hline
+\textbf{FA-01: Calibración temporal} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Antes del paso 4, se ejecuta calibración de latencia
+    \item Sistema mide latencia propia mediante eventos sintéticos
+    \item Se establece corrección temporal base
+    \item Continúa con protocolo experimental ajustado
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FA-02: Marcadores experimentales} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Durante el experimento, investigador inserta marcadores
+    \item Marcadores incluyen timestamps de alta precisión
+    \item Se etiquetan fases específicas del protocolo
+    \item Facilita segmentación posterior de datos
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FA-03: Verificación tiempo real} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Sistema monitoriza deriva temporal durante captura
+    \item Detecta anomalías en secuencia temporal
+    \item Alerta al investigador sobre problemas potenciales
+    \item Mantiene log de calidad temporal
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Flujos alternativos del caso de uso CU-02}
+\label{tab:cu02_flujos_alternativos}
+\end{table}
+
+\subsection{Flujos de excepción}
+\label{subsec:cu02_flujos_excepcion}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{11cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Excepción} & \textbf{Manejo} \\
+\hline
+\textbf{FE-01: Deriva temporal detectada} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Sistema detecta inconsistencias en timestamps
+    \item Registra evento de deriva con magnitud estimada
+    \item Continúa captura aplicando corrección automática
+    \item Marca datos afectados para revisión posterior
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-02: Sobrecarga temporal} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Eventos llegan con frecuencia superior a capacidad procesamiento
+    \item Sistema activa modo de preservación temporal
+    \item Prioriza precisión sobre completitud de datos
+    \item Documenta eventos descartados con timestamps
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-03: Fallo sincronización} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Pérdida de referencia temporal del sistema
+    \item Sistema continúa con timestamps relativos
+    \item Registra punto de fallo para corrección posterior
+    \item Mantiene coherencia interna de secuencia
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-04: Precisión degradada} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Latencia del sistema supera umbrales aceptables
+    \item Sistema alerta sobre degradación de precisión
+    \item Ofrece opciones de optimización automática
+    \item Documenta periodos de precisión reducida
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Flujos de excepción del caso de uso CU-02}
+\label{tab:cu02_flujos_excepcion}
+\end{table}
+
+\section{CU-04 - Herramientas básicas de visualización}
+\label{sec:cu04_visualizacion_basica}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{12cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Campo} & \textbf{Descripción} \\
+\hline
+\textbf{Identificador} & CU-04 \\
+\hline
+\textbf{Nombre} & Herramientas básicas de visualización para investigación neurocientífica \\
+\hline
+\textbf{Actores} & Investigador neurocientífico (principal), Personal técnico de laboratorio (secundario) \\
+\hline
+\textbf{Descripción} & El sistema debe proporcionar visualizaciones en tiempo real que faciliten el monitoreo de actividad cerebral y eventos de entrada durante experimentos \\
+\hline
+\textbf{Precondiciones} & 
+\begin{minipage}[t]{11cm}
+\begin{itemize}
+    \item El sistema está capturando datos de entrada o EEG
+    \item La interfaz gráfica está inicializada correctamente
+    \item Los visualizadores están configurados apropiadamente
+    \item Hay datos disponibles para mostrar
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{Postcondiciones} & 
+\begin{minipage}[t]{11cm}
+\begin{itemize}
+    \item Las visualizaciones muestran datos actualizados en tiempo real
+    \item Los investigadores pueden interpretar el estado del sistema
+    \item Se mantiene historial visual configurable
+    \item Las visualizaciones son exportables si es necesario
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Especificación del caso de uso CU-04}
+\label{tab:cu04_especificacion}
+\end{table}
+
+\subsection{Flujo principal}
+\label{subsec:cu04_flujo_principal}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|c|p{13cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Paso} & \textbf{Acción} \\
+\hline
+1 & El investigador inicia el sistema con módulos de visualización \\
+\hline
+2 & El sistema inicializa visualizadores según tipo de datos disponibles \\
+\hline
+3 & Se cargan configuraciones de visualización guardadas o por defecto \\
+\hline
+4 & Los visualizadores se conectan a flujos de datos correspondientes \\
+\hline
+5 & Comienza la actualización visual en tiempo real \\
+\hline
+6 & El investigador puede ajustar parámetros de visualización dinámicamente \\
+\hline
+7 & Los visualizadores adaptan su presentación según configuración \\
+\hline
+8 & Se mantiene historial visual según ventana temporal configurada \\
+\hline
+9 & El investigador monitoriza actividad y calidad de datos \\
+\hline
+10 & Sistema permite pausar/reanudar visualizaciones según necesidad \\
+\hline
+11 & Al finalizar, las configuraciones se guardan para sesiones futuras \\
+\hline
+\end{tabular}
+}
+\caption{Flujo principal del caso de uso CU-04}
+\label{tab:cu04_flujo_principal}
+\end{table}
+
+\subsection{Flujos alternativos}
+\label{subsec:cu04_flujos_alternativos}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{11cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Flujo} & \textbf{Descripción} \\
+\hline
+\textbf{FA-01: Visualización EEG multicanal} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Sistema detecta datos EEG disponibles
+    \item Inicializa visualizador multicanal con escala automática
+    \item Muestra señales de hasta 16 canales simultáneamente
+    \item Incluye métricas de calidad por canal
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FA-02: Visualización topográfica} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Se activa mapa cerebral para distribución espacial
+    \item Posiciona electrodos según sistema 10-20/10-10
+    \item Codifica calidad de señal por colores
+    \item Actualiza mapa según actividad en tiempo real
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FA-03: Visualización eventos entrada} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Muestra teclas activas en representación visual
+    \item Visualiza movimiento de ratón según modo configurado
+    \item Actualiza estado de botones y dispositivos
+    \item Mantiene historial de actividad reciente
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Flujos alternativos del caso de uso CU-04}
+\label{tab:cu04_flujos_alternativos}
+\end{table}
+
+\subsection{Flujos de excepción}
+\label{subsec:cu04_flujos_excepcion}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{11cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Excepción} & \textbf{Manejo} \\
+\hline
+\textbf{FE-01: Sobrecarga visual} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Datos llegan más rápido que capacidad de renderizado
+    \item Sistema reduce frecuencia de actualización automáticamente
+    \item Mantiene datos recientes priorizando fluidez visual
+    \item Alerta sobre reducción de frecuencia visual
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-02: Fallo visualizador} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Error en componente específico de visualización
+    \item Sistema aísla visualizador problemático
+    \item Continúa con visualizadores restantes funcionando
+    \item Ofrece reinicialización del componente afectado
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-03: Pérdida datos visualización} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Interrupción en flujo de datos hacia visualizadores
+    \item Sistema muestra último estado conocido
+    \item Indica visualmente pérdida de conectividad
+    \item Restablece automáticamente al recuperar datos
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-04: Recursos insuficientes} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Memoria o CPU insuficiente para visualización completa
+    \item Sistema ofrece modos de visualización simplificados
+    \item Permite desactivar visualizadores no críticos
+    \item Monitoriza recursos y adapta automáticamente
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Flujos de excepción del caso de uso CU-04}
+\label{tab:cu04_flujos_excepcion}
+\end{table}
+
+\section{CU-05 - Configuración básica de dispositivos}
+\label{sec:cu05_configuracion_dispositivos}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{12cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Campo} & \textbf{Descripción} \\
+\hline
+\textbf{Identificador} & CU-05 \\
+\hline
+\textbf{Nombre} & Configuración básica de dispositivos y validación de señal \\
+\hline
+\textbf{Actores} & Personal técnico de laboratorio (principal), Investigador neurocientífico (secundario) \\
+\hline
+\textbf{Descripción} & El sistema debe facilitar la configuración de dispositivos EEG y entrada, proporcionando validación de conectividad y calidad de señal \\
+\hline
+\textbf{Precondiciones} & 
+\begin{minipage}[t]{11cm}
+\begin{itemize}
+    \item Los dispositivos están físicamente conectados
+    \item Los drivers necesarios están instalados
+    \item El personal técnico tiene conocimientos básicos del sistema
+    \item BrainFlow está correctamente instalado para dispositivos EEG
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{Postcondiciones} & 
+\begin{minipage}[t]{11cm}
+\begin{itemize}
+    \item Los dispositivos están configurados correctamente
+    \item La calidad de señal está validada
+    \item Las configuraciones están guardadas para uso futuro
+    \item El sistema está listo para experimentos
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Especificación del caso de uso CU-05}
+\label{tab:cu05_especificacion}
+\end{table}
+
+\subsection{Flujo principal}
+\label{subsec:cu05_flujo_principal}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|c|p{13cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Paso} & \textbf{Acción} \\
+\hline
+1 & El personal técnico accede al módulo de configuración \\
+\hline
+2 & El sistema escanea dispositivos disponibles automáticamente \\
+\hline
+3 & Se presenta lista de dispositivos detectados y compatibles \\
+\hline
+4 & El técnico selecciona dispositivo EEG específico a configurar \\
+\hline
+5 & Sistema inicializa conexión con parámetros predeterminados \\
+\hline
+6 & Se ejecuta test básico de conectividad \\
+\hline
+7 & El técnico configura parámetros específicos (frecuencia muestreo, canales) \\
+\hline
+8 & Sistema valida configuración y establece conexión estable \\
+\hline
+9 & Se ejecuta validación de calidad de señal por canal \\
+\hline
+10 & El técnico revisa métricas de calidad y ajusta si necesario \\
+\hline
+11 & Configuración validada se guarda como perfil de dispositivo \\
+\hline
+12 & Sistema confirma configuración exitosa y dispositivo listo \\
+\hline
+\end{tabular}
+}
+\caption{Flujo principal del caso de uso CU-05}
+\label{tab:cu05_flujo_principal}
+\end{table}
+
+\subsection{Flujos alternativos}
+\label{subsec:cu05_flujos_alternativos}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{11cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Flujo} & \textbf{Descripción} \\
+\hline
+\textbf{FA-01: Configuración placa sintética} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item En paso 4, técnico selecciona placa sintética BrainFlow
+    \item Sistema configura generación de datos sintéticos
+    \item Permite configurar patrones de señal para pruebas
+    \item Útil para validación sin hardware real
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FA-02: Configuración dispositivos entrada} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Configuración paralela de teclado y ratón
+    \item Validación de permisos de acceso del sistema
+    \item Configuración de filtros de teclas relevantes
+    \item Test de responsividad de dispositivos
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FA-03: Múltiples perfiles} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Creación de múltiples perfiles para mismo dispositivo
+    \item Perfiles específicos para diferentes protocolos experimentales
+    \item Cambio rápido entre configuraciones guardadas
+    \item Exportación/importación de perfiles entre sistemas
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Flujos alternativos del caso de uso CU-05}
+\label{tab:cu05_flujos_alternativos}
+\end{table}
+
+\subsection{Flujos de excepción}
+\label{subsec:cu05_flujos_excepcion}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{11cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Excepción} & \textbf{Manejo} \\
+\hline
+\textbf{FE-01: Dispositivo no detectado} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Sistema no encuentra dispositivos compatibles
+    \item Muestra guía de resolución de problemas específica
+    \item Verifica drivers y configuración de puertos
+    \item Ofrece modo manual de configuración
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-02: Fallo conectividad} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Error al establecer conexión con dispositivo
+    \item Sistema intenta reconexión automática con parámetros alternativos
+    \item Proporciona diagnóstico detallado del fallo
+    \item Sugiere verificaciones físicas de conexión
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-03: Calidad señal deficiente} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Métricas de calidad por debajo de umbrales aceptables
+    \item Sistema identifica canales específicos problemáticos
+    \item Proporciona guía de mejora de impedancia/conectividad
+    \item Permite ajuste de umbrales según contexto experimental
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-04: Conflicto configuración} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Parámetros configurados no compatibles con dispositivo
+    \item Sistema sugiere configuraciones alternativas válidas
+    \item Permite configuración asistida basada en capacidades detectadas
+    \item Valida configuración antes de aplicar cambios
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Flujos de excepción del caso de uso CU-05}
+\label{tab:cu05_flujos_excepcion}
+\end{table}

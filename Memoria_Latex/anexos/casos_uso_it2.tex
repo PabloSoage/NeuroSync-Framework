@@ -1,0 +1,586 @@
+\chapter{Casos de uso - Segunda iteración}
+\label{chap:anexo_casos_uso_it2}
+
+Este anexo presenta la especificación detallada de los casos de uso desarrollados durante la segunda iteración del sistema, enfocados en la refactorización arquitectónica y la preparación para integración avanzada.
+
+\section{CU-01 - Generación de datasets para entrenamiento ML}
+\label{sec:cu01_it2_datasets_ml}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{12cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Campo} & \textbf{Descripción} \\
+\hline
+\textbf{Identificador} & CU-01 \\
+\hline
+\textbf{Nombre} & Generación de datasets para entrenamiento ML con arquitectura modular \\
+\hline
+\textbf{Actores} & Investigador BCI (principal), Analista de datos (secundario) \\
+\hline
+\textbf{Descripción} & El sistema debe facilitar la generación de datasets sincronizados mediante arquitectura modular que permita captura coordinada entre módulos independientes \\
+\hline
+\textbf{Precondiciones} & 
+\begin{minipage}[t]{11cm}
+\begin{itemize}
+    \item Ambos módulos están refactorizados según principios SOLID
+    \item Los servicios centralizados están funcionando correctamente
+    \item El módulo integrador está configurado apropiadamente
+    \item Los formatos de exportación están estandarizados
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{Postcondiciones} & 
+\begin{minipage}[t]{11cm}
+\begin{itemize}
+    \item Los datos están sincronizados temporalmente
+    \item Los archivos están en formatos compatibles ML
+    \item Los metadatos facilitan el procesamiento posterior
+    \item La coordinación entre módulos es transparente al usuario
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Especificación del caso de uso CU-01 - Segunda iteración}
+\label{tab:cu01_it2_especificacion}
+\end{table}
+
+\subsection{Flujo principal}
+\label{subsec:cu01_it2_flujo_principal}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|c|p{13cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Paso} & \textbf{Acción} \\
+\hline
+1 & El investigador BCI inicia el módulo integrador con ambos submódulos \\
+\hline
+2 & El sistema inicializa servicios centralizados de forma coordinada \\
+\hline
+3 & Se configura sincronización temporal entre CollectorServices \\
+\hline
+4 & El investigador configura parámetros de captura desde interfaz unificada \\
+\hline
+5 & Se valida compatibilidad de configuración entre módulos \\
+\hline
+6 & Se inicia captura coordinada mediante AppCoordinators respectivos \\
+\hline
+7 & Los EventProcessors de ambos módulos sincronizan timestamps \\
+\hline
+8 & Los datos fluyen hacia DataAccessServices centralizados \\
+\hline
+9 & Los LoggingManagers coordinan registro en formatos estandarizados \\
+\hline
+10 & El usuario del sistema realiza acciones experimentales \\
+\hline
+11 & El sistema registra eventos sincronizados con metadatos coordinados \\
+\hline
+12 & Se detiene captura de forma coordinada desde interfaz central \\
+\hline
+13 & El sistema genera datasets con estructura temporal coherente \\
+\hline
+\end{tabular}
+}
+\caption{Flujo principal del caso de uso CU-01 - Segunda iteración}
+\label{tab:cu01_it2_flujo_principal}
+\end{table}
+
+\subsection{Flujos alternativos}
+\label{subsec:cu01_it2_flujos_alternativos}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{11cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Flujo} & \textbf{Descripción} \\
+\hline
+\textbf{FA-01: Configuración asimétrica} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item En paso 4, se configura solo uno de los módulos activo
+    \item El sistema adapta coordinación para operación unidireccional
+    \item Mantiene estructura de datos compatible para análisis posterior
+    \item Documenta asimetría en metadatos del dataset
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FA-02: Formato especializado} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item En paso 9, investigador selecciona formato ML específico
+    \item LoggingManagers adaptan estructura según requerimientos
+    \item Sistema incluye metadatos específicos del formato elegido
+    \item Valida integridad según estándares del formato
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FA-03: Calibración temporal} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Antes del paso 6, se ejecuta calibración de latencia inter-módulos
+    \item Sistema mide diferencias temporales entre servicios
+    \item Aplica correcciones automáticas para sincronización precisa
+    \item Documenta correcciones aplicadas para trazabilidad
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Flujos alternativos del caso de uso CU-01 - Segunda iteración}
+\label{tab:cu01_it2_flujos_alternativos}
+\end{table}
+
+\subsection{Flujos de excepción}
+\label{subsec:cu01_it2_flujos_excepcion}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{11cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Excepción} & \textbf{Manejo} \\
+\hline
+\textbf{FE-01: Fallo sincronización} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Sistema detecta deriva temporal entre módulos
+    \item Alerta al investigador sobre problema de sincronización
+    \item Ofrece re-calibración automática o manual
+    \item Marca datos afectados para procesamiento posterior
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-02: Fallo servicio centralizado} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item CollectorService o DataAccessService fallan
+    \item Sistema activa modo degradado manteniendo operación parcial
+    \item Registra eventos de fallo con timestamps precisos
+    \item Facilita recuperación posterior de datos parciales
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-03: Incompatibilidad configuración} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Parámetros de un módulo incompatibles con el otro
+    \item Sistema sugiere configuraciones compatibles automáticamente
+    \item Permite override manual con advertencias de impacto
+    \item Documenta decisiones para reproducibilidad
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-04: Sobrecarga processing} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item EventProcessors no pueden mantener ritmo de datos
+    \item Sistema activa buffers de emergencia en DataAccessServices
+    \item Reduce frecuencia de procesamiento secundario temporalmente
+    \item Mantiene datos críticos y registra pérdidas menores
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Flujos de excepción del caso de uso CU-01 - Segunda iteración}
+\label{tab:cu01_it2_flujos_excepcion}
+\end{table}
+
+\section{CU-03 - Desarrollo de aplicaciones BCI personalizadas (fundamentos)}
+\label{sec:cu03_it2_desarrollo_bci}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{12cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Campo} & \textbf{Descripción} \\
+\hline
+\textbf{Identificador} & CU-03 \\
+\hline
+\textbf{Nombre} & Fundamentos para desarrollo de aplicaciones BCI personalizadas \\
+\hline
+\textbf{Actores} & Desarrollador de aplicaciones BCI (principal), Integrador de sistemas (secundario) \\
+\hline
+\textbf{Descripción} & El sistema debe proporcionar arquitectura extensible basada en principios SOLID que facilite el desarrollo de extensiones y aplicaciones personalizadas \\
+\hline
+\textbf{Precondiciones} & 
+\begin{minipage}[t]{11cm}
+\begin{itemize}
+    \item La refactorización SOLID está completada
+    \item Las interfaces están bien definidas y documentadas
+    \item Los servicios centralizados proporcionan acceso programático
+    \item La documentación técnica está actualizada
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{Postcondiciones} & 
+\begin{minipage}[t]{11cm}
+\begin{itemize}
+    \item Las extensiones se integran sin modificar código base
+    \item Las interfaces proporcionan acceso completo a funcionalidades
+    \item El código personalizado sigue principios arquitectónicos
+    \item La documentación facilita desarrollo de terceros
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Especificación del caso de uso CU-03 - Segunda iteración}
+\label{tab:cu03_it2_especificacion}
+\end{table}
+
+\subsection{Flujo principal}
+\label{subsec:cu03_it2_flujo_principal}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|c|p{13cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Paso} & \textbf{Acción} \\
+\hline
+1 & El desarrollador analiza interfaces disponibles y documentación técnica \\
+\hline
+2 & Identifica servicios relevantes (CollectorService, ProcessorService, etc.) \\
+\hline
+3 & Diseña extensión siguiendo principios SOLID establecidos \\
+\hline
+4 & Implementa interfaces requeridas (CollectorInterface, ProcessorInterface) \\
+\hline
+5 & Desarrolla lógica personalizada utilizando servicios centralizados \\
+\hline
+6 & Integra extensión mediante patrón Factory o registro dinámico \\
+\hline
+7 & Configura callbacks para comunicación con EventProcessors \\
+\hline
+8 & Prueba integración sin afectar funcionalidad base del sistema \\
+\hline
+9 & Valida que extensión sigue arquitectura modular establecida \\
+\hline
+10 & Documenta extensión siguiendo estándares del proyecto \\
+\hline
+11 & Registra extensión en sistema de gestión de componentes \\
+\hline
+12 & El sistema valida y activa extensión automáticamente \\
+\hline
+\end{tabular}
+}
+\caption{Flujo principal del caso de uso CU-03 - Segunda iteración}
+\label{tab:cu03_it2_flujo_principal}
+\end{table}
+
+\subsection{Flujos alternativos}
+\label{subsec:cu03_it2_flujos_alternativos}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{11cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Flujo} & \textbf{Descripción} \\
+\hline
+\textbf{FA-01: Extensión colector personalizado} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item En paso 4, desarrollador implementa AbstractInputCollector
+    \item Desarrolla lógica específica para nuevo tipo de dispositivo
+    \item Integra con CollectorManager mediante patrón Factory
+    \item Sistema detecta y registra nuevo colector automáticamente
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FA-02: Procesador señales personalizado} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Desarrollador extiende ProcessorInterface para algoritmo específico
+    \item Implementa métodos requeridos manteniendo compatibilidad
+    \item Registra procesador en ProcessorService mediante configuración
+    \item Sistema incluye nuevo algoritmo en interfaces disponibles
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FA-03: Visualizador especializado} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Desarrollador extiende BaseVisualizer para representación específica
+    \item Configura callbacks personalizados para datos requeridos
+    \item Registra visualizador en VisualizerManager
+    \item Sistema integra nueva visualización en interfaz principal
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Flujos alternativos del caso de uso CU-03 - Segunda iteración}
+\label{tab:cu03_it2_flujos_alternativos}
+\end{table}
+
+\subsection{Flujos de excepción}
+\label{subsec:cu03_it2_flujos_excepcion}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{11cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Excepción} & \textbf{Manejo} \\
+\hline
+\textbf{FE-01: Interfaz no implementada correctamente} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Sistema detecta métodos faltantes o incompatibles
+    \item Proporciona mensaje de error específico sobre método faltante
+    \item Sugiere correcciones basadas en interfaz esperada
+    \item Previene carga de extensión hasta corrección
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-02: Conflicto con código base} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Extensión modifica comportamiento base del sistema
+    \item Sistema aísla extensión problemática automáticamente
+    \item Registra conflicto con detalles técnicos específicos
+    \item Permite reversión a estado anterior sin extensión
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-03: Dependencias no satisfechas} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Extensión requiere servicios no disponibles en sistema
+    \item Sistema identifica dependencias faltantes específicas
+    \item Proporciona lista de servicios requeridos para funcionamiento
+    \item Sugiere instalación o configuración de dependencias
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-04: Error durante ejecución extensión} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Excepción no controlada en código de extensión
+    \item Sistema captura error y deshabilita extensión temporalmente
+    \item Mantiene funcionamiento del sistema base sin interrupciones
+    \item Proporciona logs detallados para depuración por desarrollador
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Flujos de excepción del caso de uso CU-03 - Segunda iteración}
+\label{tab:cu03_it2_flujos_excepcion}
+\end{table}
+
+\section{CU-06 - Integración con herramientas externas (fundamentos)}
+\label{sec:cu06_it2_integracion_externas}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{12cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Campo} & \textbf{Descripción} \\
+\hline
+\textbf{Identificador} & CU-06 \\
+\hline
+\textbf{Nombre} & Fundamentos para integración con herramientas de análisis existentes \\
+\hline
+\textbf{Actores} & Analista de datos (principal), Integrador de sistemas (secundario) \\
+\hline
+\textbf{Descripción} & El sistema debe facilitar la integración con herramientas externas mediante interfaces modulares y formatos de datos estandarizados \\
+\hline
+\textbf{Precondiciones} & 
+\begin{minipage}[t]{11cm}
+\begin{itemize}
+    \item Los servicios de acceso a datos están centralizados
+    \item Los formatos de exportación están estandarizados
+    \item Las interfaces de comunicación están bien definidas
+    \item Los LoggingManagers soportan múltiples formatos
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{Postcondiciones} & 
+\begin{minipage}[t]{11cm}
+\begin{itemize}
+    \item Los datos son compatibles con herramientas externas
+    \item La integración preserva integridad de datos
+    \item Los metadatos facilitan procesamiento externo
+    \item La comunicación es bidireccional cuando sea posible
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Especificación del caso de uso CU-06 - Segunda iteración}
+\label{tab:cu06_it2_especificacion}
+\end{table}
+
+\subsection{Flujo principal}
+\label{subsec:cu06_it2_flujo_principal}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|c|p{13cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Paso} & \textbf{Acción} \\
+\hline
+1 & El analista identifica herramienta externa a integrar (MNE-Python, EEGLAB) \\
+\hline
+2 & Configura LoggingManager para formato requerido por herramienta \\
+\hline
+3 & Establece interfaz de comunicación con DataAccessService \\
+\hline
+4 & Configura metadatos específicos según requerimientos externos \\
+\hline
+5 & Inicia captura de datos con formato dirigido a herramienta específica \\
+\hline
+6 & El sistema exporta datos en tiempo real o batch según necesidades \\
+\hline
+7 & Valida integridad de datos durante transferencia \\
+\hline
+8 & La herramienta externa procesa datos con metadatos preservados \\
+\hline
+9 & El analista verifica correctitud de importación en herramienta externa \\
+\hline
+10 & Se establecen pipelines automatizados para análisis recurrente \\
+\hline
+11 & El sistema mantiene historial de integraciones exitosas \\
+\hline
+\end{tabular}
+}
+\caption{Flujo principal del caso de uso CU-06 - Segunda iteración}
+\label{tab:cu06_it2_flujo_principal}
+\end{table}
+
+\subsection{Flujos alternativos}
+\label{subsec:cu06_it2_flujos_alternativos}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{11cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Flujo} & \textbf{Descripción} \\
+\hline
+\textbf{FA-01: Exportación formato MNE} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item En paso 2, se configura exportación compatible con MNE-Python
+    \item LoggingManager estructura datos según formato Raw de MNE
+    \item Incluye metadatos de canales y frecuencia de muestreo
+    \item Facilita análisis inmediato en pipeline MNE existente
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FA-02: Exportación formato EEGLAB} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Sistema genera archivos .set compatibles con EEGLAB
+    \item Incluye estructura de eventos según formato EEGLAB
+    \item Mantiene información de electrodos en formato apropiado
+    \item Proporciona scripts MATLAB para importación automatizada
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FA-03: Streaming datos tiempo real} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item En paso 6, se establece comunicación streaming con herramienta
+    \item DataAccessService proporciona interfaz streaming continuo
+    \item Mantiene sincronización temporal mediante timestamps coordinados
+    \item Permite análisis en vivo por herramienta externa
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Flujos alternativos del caso de uso CU-06 - Segunda iteración}
+\label{tab:cu06_it2_flujos_alternativos}
+\end{table}
+
+\subsection{Flujos de excepción}
+\label{subsec:cu06_it2_flujos_excepcion}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{11cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Excepción} & \textbf{Manejo} \\
+\hline
+\textbf{FE-01: Formato no soportado} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Herramienta externa requiere formato no implementado
+    \item Sistema sugiere formatos alternativos compatibles disponibles
+    \item Proporciona especificación técnica para implementar formato
+    \item Permite exportación en formato genérico como alternativa
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-02: Error exportación datos} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Fallo durante proceso de exportación de datos
+    \item Sistema preserva datos originales antes del fallo
+    \item Proporciona diagnóstico específico del error de exportación
+    \item Ofrece reintentar exportación con configuración alternativa
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-03: Pérdida conectividad streaming} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Interrupción en conexión streaming con herramienta externa
+    \item Sistema buffer datos durante interrupción temporal
+    \item Intenta restablecer conexión automáticamente
+    \item Proporciona resumen de datos perdidos si reconexión falla
+\end{itemize}
+\end{minipage} \\
+\hline
+\textbf{FE-04: Incompatibilidad metadatos} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Metadatos del sistema incompatibles con herramienta externa
+    \item Sistema identifica campos problemáticos específicos
+    \item Proporciona mapeo automático a estructura compatible
+    \item Documenta transformaciones aplicadas para trazabilidad
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Flujos de excepción del caso de uso CU-06 - Segunda iteración}
+\label{tab:cu06_it2_flujos_excepcion}
+\end{table}
