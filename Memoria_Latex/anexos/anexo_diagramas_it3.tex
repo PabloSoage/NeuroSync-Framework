@@ -280,7 +280,7 @@ La Figura~\ref{fig:ic_processing_anexo} ilustra el motor de procesamiento que tr
 
 \textbf{\textit{EventProcessor}} implementa el procesamiento central de eventos mediante múltiples estrategias especializadas para diferentes tipos de datos. El procesador maneja eventos especiales como el \textit{toggle} de grabación (tecla F9), aplica formatos específicos según el tipo de dispositivo activo, y determina qué eventos deben registrarse basándose en criterios configurables.
 
-El sistema soporta múltiples modos de seguimiento del ratón (\textit{\textbf{TrackingMode}}) que proporcionan diferentes representaciones del movimiento: modo \textit{delta} para movimientos relativos, modo ángulo para direcciones discretizadas, modo eje para componentes separadas, y modo \textit{joystick} para representación polar. Cada modo está optimizado para diferentes tipos de análisis posterior.
+El sistema soporta múltiples modos de seguimiento del ratón (\textit{\textbf{TrackingMode}}) que proporcionan diferentes representaciones del movimiento: modo \textit{delta} para movimiento en bruto con deltas por eje y magnitud total incluyendo \textit{\gls{delta_smoothing}} configurable, modo ángulo con dos submodos (direcciones discretas agrupables de 4 a 360 valores y ángulo continuo con magnitud), modo eje para probabilidades de movimiento en direcciones cardinales (N/S/E/W) que proporcionan dirección sin magnitud, y modo \textit{joystick} para direcciones X+/X-/Y+/Y- con velocidad por eje y compuesta ajustable. Cada modo está optimizado para diferentes tipos de análisis posterior.
 
 \textbf{\textit{ProcessingResult}} encapsula el resultado del procesamiento, incluyendo el evento procesado, decisiones de registro, y texto formateado para visualización. Esta estructura permite que diferentes componentes del sistema accedan a la información que necesitan sin requerir procesamientos adicionales.
 
@@ -318,7 +318,7 @@ La Figura~\ref{fig:ic_ui_anexo} muestra los componentes de gestión de interfaz 
 
 \textbf{\textit{UIManager}} coordina la interfaz principal del módulo, gestionando ventanas \textbf{Qt}, actualizando estados de grabación, y proporcionando \textit{feedback} visual de operaciones del sistema. \textbf{\textit{VisualizerManager}} implementa los protocolos \textit{\textbf{AbstractVisualizerProvider}} y \textbf{\textit{AbstractVisualizerController}} para proporcionar gestión centralizada de todos los visualizadores del sistema.
 
-\textbf{\textit{KeyboardEventFilter}} implementa filtrado de eventos de teclado a nivel de sistema para capturar las teclas de interés independientemente del foco de la aplicación. Este componente es crucial para funcionalidades como el toggle de grabación mediante F9, que debe funcionar incluso cuando la aplicación no tiene el foco del sistema.
+\textbf{\textit{KeyboardEventFilter}} implementa filtrado de eventos de teclado a nivel de sistema para capturar las teclas de interés independientemente del foco de la aplicación. Este componente es crucial para capturar teclas de interés cuando el usuario está utilizando otras aplicaciones (como juegos), permitiendo estudios de patrones de comportamiento sin interrumpir la actividad principal del usuario.
 
 El diseño modular permite que diferentes tipos de visualizadores se integren dinámicamente según el tipo de colector activo, proporcionando interfaces especializadas para teclado/ratón y controladores \acrshort{ps4} sin requerir cambios en el código de coordinación principal.
 
