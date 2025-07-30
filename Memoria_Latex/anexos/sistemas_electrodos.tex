@@ -1,4 +1,4 @@
-\chapter{Sistemas de Posicionamiento de Electrodos EEG}
+\chapter{Sistemas de Posicionamiento de Electrodos \acrshort{eeg}}
 \label{chap:anexo_sistemas_electrodos}
 
 \section{Introducción a los Sistemas de Posicionamiento}
@@ -11,7 +11,7 @@ La estandarización del posicionamiento de electrodos es crucial porque la activ
 \section{Sistema Internacional 10-20}
 \label{sec:sistema_10_20}
 
-El sistema internacional 10-20, establecido por la Federación Internacional de Neurofisiología Clínica~\cite{jasper1958report,klem1999ten}, constituye el estándar fundamental para el posicionamiento de electrodos \acrshort{eeg}. Como se muestra en la Figura~\ref{fig:10_20_system}, este sistema utiliza puntos anatómicos de referencia específicos del cráneo para establecer ubicaciones precisas y reproducibles de los electrodos.
+El \gls{sistema_10_20}, establecido por la Federación Internacional de Neurofisiología Clínica~\cite{jasper1958report,klem1999ten}, constituye el estándar fundamental para el posicionamiento de electrodos \acrshort{eeg}. Como se muestra en la Figura~\ref{fig:10_20_system}, este sistema utiliza puntos anatómicos de referencia específicos del cráneo para establecer ubicaciones precisas y reproducibles de los electrodos.
 
 \begin{figure}[hp!]
 \centering
@@ -20,25 +20,25 @@ El sistema internacional 10-20, establecido por la Federación Internacional de 
 \label{fig:10_20_system}
 \end{figure}
 
-El sistema se denomina "10-20" porque utiliza distancias del 10\% y 20\% entre puntos anatómicos específicos del cráneo, incluyendo el nasion (punto entre la frente y la nariz), el inion (protuberancia occipital externa), y los puntos preauriculares (delante de cada oreja). Esta metodología garantiza que las posiciones de los electrodos se adapten proporcionalmente al tamaño del cráneo de cada individuo, manteniendo la consistencia relativa entre diferentes sujetos.
+El sistema se denomina "10-20" porque utiliza distancias del 10\% y 20\% entre puntos anatómicos específicos del cráneo, incluyendo el \textit{nasion} (punto entre la frente y la nariz), el \textit{inion} (protuberancia occipital externa), y los puntos preauriculares (delante de cada oreja). Esta metodología garantiza que las posiciones de los electrodos se adapten proporcionalmente al tamaño del cráneo de cada individuo, manteniendo la consistencia relativa entre diferentes sujetos.
 
 \section{Sistema 10-10 con Nomenclatura Combinatorial Modificada}
 \label{sec:sistema_10_10_mcn}
 
-La extensión moderna del sistema 10-20 incluye el sistema 10-10, que proporciona mayor resolución espacial mediante la subdivisión de las distancias anatómicas originales. La Figura~\ref{fig:mcn_system} ilustra este sistema extendido utilizando la nomenclatura combinatorial modificada (\acrshort{mcn}), que permite identificar de forma unívoca cada posición de electrodo mediante una codificación determinada.
+La extensión moderna del \gls{sistema_10_20} incluye el \gls{sistema_10_10}, que proporciona mayor resolución espacial mediante la subdivisión de las distancias anatómicas originales. La Figura~\ref{fig:mcn_system} ilustra este sistema extendido utilizando la nomenclatura combinatorial modificada (\acrshort{mcn}), que permite identificar de forma unívoca cada posición de electrodo mediante una codificación determinada.
 
 \begin{figure}[hp!]
 \centering
 \includegraphics[width=0.9\textwidth,height=15cm,keepaspectratio]{imaxes/mcn_system.png}
-\caption{Posiciones de electrodos \acrshort{eeg} en el sistema 10-10 utilizando nomenclatura combinatorial modificada, junto con los puntos fiduciales y lóbulos cerebrales asociados~\cite{krol2020eeg}}
+\caption{Posiciones de electrodos \acrshort{eeg} en el \gls{sistema_10_10} utilizando nomenclatura combinatorial modificada, junto con los puntos fiduciales y lóbulos cerebrales asociados~\cite{krol2020eeg}}
 \label{fig:mcn_system}
 \end{figure}
 
-El sistema 10-10 con \acrshort{mcn} presenta ventajas significativas para aplicaciones modernas de \acrshort{eeg}, incluyendo mayor densidad de electrodos para mejor resolución espacial, nomenclatura que facilita la identificación automática de posiciones, y compatibilidad con sistemas de localización de fuentes que requieren información espacial precisa. Esta extensión es especialmente relevante para aplicaciones \acrshort{bci} avanzadas que requieren captura de alta resolución espacial.
+El \gls{sistema_10_10} con \acrshort{mcn} presenta ventajas significativas para aplicaciones modernas de \acrshort{eeg}, incluyendo mayor densidad de electrodos para mejor resolución espacial, nomenclatura que facilita la identificación automática de posiciones, y compatibilidad con sistemas de localización de fuentes que requieren información espacial precisa. Esta extensión es especialmente relevante para aplicaciones \acrshort{bci} avanzadas que requieren captura de alta resolución espacial.
 
-\section{Aplicación en Sistemas BCI}
+\section{Aplicación en Sistemas \acrshort{bci}}
 \label{sec:aplicacion_sistemas_bci}
 
-Los sistemas de posicionamiento estandarizados son fundamentales para el desarrollo de aplicaciones \acrshort{bci} reproducibles y comparables. La selección de posiciones específicas de electrodos debe basarse en el conocimiento neurofisiológico de las regiones cerebrales relevantes para cada aplicación. Por ejemplo, las aplicaciones basadas en \gls{imaginacion_motora} típicamente utilizan electrodos sobre las áreas sensoriomotoras (C3, C4, Cz), mientras que los paradigmas de potenciales evocados pueden requerir configuraciones más extensas.
+Los sistemas de posicionamiento estandarizados son fundamentales para el desarrollo de aplicaciones \acrshort{bci} reproducibles y comparables. La selección de posiciones específicas de electrodos debe basarse en el conocimiento neurofisiológico de las regiones cerebrales relevantes para cada aplicación. Por ejemplo, las aplicaciones basadas en \gls{imaginacion_motora} típicamente utilizan electrodos sobre las áreas sensoriomotoras (C3, C4, Cz), mientras que los \gls{paradigmas_potenciales_evocados} pueden requerir configuraciones más extensas.
 
-La implementación correcta de estos sistemas de posicionamiento en herramientas de desarrollo \acrshort{bci} facilita la integración con bibliotecas de análisis estándar como \textit{MNE-Python}~\cite{gramfort2013meg} y \textit{EEGLAB}~\cite{delorme2004eeglab}, que incorporan estas convenciones de nomenclatura y posicionamiento en sus funcionalidades de procesamiento y visualización.
+La implementación correcta de estos sistemas de posicionamiento en herramientas de desarrollo \acrshort{bci} facilita la integración con bibliotecas de análisis estándar como \textbf{MNE-Python}~\cite{gramfort2013meg} y \textbf{EEGLAB}~\cite{delorme2004eeglab}, que incorporan estas convenciones de nomenclatura y posicionamiento en sus funcionalidades de procesamiento y visualización.

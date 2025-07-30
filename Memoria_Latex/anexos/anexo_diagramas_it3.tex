@@ -3,10 +3,10 @@
 
 Este anexo proporciona documentación técnica exhaustiva de los subcomponentes específicos desarrollados durante la tercera iteración. Los diagramas están organizados por módulo y presentan el nivel de detalle arquitectónico necesario para comprender la implementación interna de cada componente.
 
-\section{Módulo API Explorer}
+\section{Módulo \textit{API Explorer}}
 \label{sec:anexo_api_explorer}
 
-El módulo \textit{\textbf{API Explorer}} constituye el \textit{framework} web unificado que proporciona exploración dinámica y control remoto de las funcionalidades de ambos módulos del sistema. Su arquitectura se basa en un \textit{backend} \textbf{FastAPI} con \textit{frontend} web interactivo.
+El módulo \textit{\textbf{API Explorer}} constituye el \textit{\gls{framework}} web unificado que proporciona exploración dinámica y control remoto de las funcionalidades de ambos módulos del sistema. Su arquitectura se basa en un \textit{backend} \textbf{FastAPI} con \textit{frontend} web interactivo.
 
 \subsection{Arquitectura del \textit{backend}}
 \label{subsec:anexo_api_explorer_backend}
@@ -77,7 +77,7 @@ La Figura~\ref{fig:methods_flowchart_anexo} presenta el flujo completo desde el 
     \centering
     \hspace*{-0.21\textwidth}
     \includegraphics[width=1.3\textwidth]{anexos/diagramas/it3/methods_flowchart.pdf}
-    \caption{Flujo de métodos y comunicación del API Explorer}
+    \caption{Flujo de métodos y comunicación del \textit{\textbf{API Explorer}}}
     \label{fig:methods_flowchart_anexo}
 \end{figure}
 
@@ -97,7 +97,7 @@ La Figura~\ref{fig:methods_flowchart_anexo} presenta el flujo completo desde el 
 
 \textbf{Soporte para clientes externos}: El sistema proporciona tanto \acrshortpl{api} \acrshort{rest} estándar para clientes \acrshort{cli} y aplicaciones de terceros, como \textit{\gls{websocket}} para \textit{dashboards} web en tiempo real.
 
-\section{Módulo Input Collector - Diagramas detallados}
+\section{Módulo \textit{Input Collector} - Diagramas detallados}
 \label{sec:anexo_input_collector}
 
 El módulo \textit{\textbf{Input Collector}} implementa una arquitectura modular dirigida por eventos que facilita la captura sincronizada de eventos de entrada de usuario desde múltiples dispositivos. Los siguientes diagramas presentan el diseño interno de cada subcomponente del módulo.
@@ -111,7 +111,7 @@ La Figura~\ref{fig:ic_adapters_anexo} presenta el sistema de adaptadores que pro
     \centering
     \hspace*{-0.15\textwidth}
     \includegraphics[width=1.2\textwidth]{anexos/diagramas/it3/ic_adapters.pdf}
-    \caption{Arquitectura de adaptadores del módulo Input Collector}
+    \caption{Arquitectura de adaptadores del módulo \textit{\textbf{Input Collector}}}
     \label{fig:ic_adapters_anexo}
 \end{figure}
 
@@ -134,7 +134,7 @@ La Figura~\ref{fig:ic_apis_anexo} ilustra la arquitectura completa de las \acrsh
 
 \textbf{\textit{InputDataAPI}} e \textbf{\textit{InputCollectorAPI}} implementan la separación conceptual entre operaciones de solo lectura y control, siguiendo el principio de \textit{Interface Segregation}. \textit{\textbf{InputDataAPI}} proporciona acceso granular a diferentes tipos de eventos (teclado, ratón, controlador) y estado del sistema, mientras que \textit{\textbf{InputCollectorAPI}} maneja operaciones que modifican el estado del sistema como grabaciones, cambio de colectores y configuración de dispositivos.
 
-Las clases de integración (\textit{\textbf{InputCollectorApiIntegration}}, \textit{\textbf{InteractionApiIntegration}}) actúan como puentes hacia el \textit{framework} externo \textit{\textbf{ApiExplorer}}, implementando el patrón \textit{Adapter} para exponer las funcionalidades internas mediante interfaces web estándar. \textit{\textbf{APIFunctions}} proporciona funciones para la inicialización y gestión de estas integraciones, facilitando el registro dinámico de capacidades.
+Las clases de integración (\textit{\textbf{InputCollectorApiIntegration}}, \textit{\textbf{InteractionApiIntegration}}) actúan como puentes hacia el \textit{\gls{framework}} externo \textit{\textbf{ApiExplorer}}, implementando el patrón \textit{Adapter} para exponer las funcionalidades internas mediante interfaces web estándar. \textit{\textbf{APIFunctions}} proporciona funciones para la inicialización y gestión de estas integraciones, facilitando el registro dinámico de capacidades.
 
 \subsection{Coordinación de aplicación}
 \label{subsec:anexo_ic_coordinator}
@@ -343,12 +343,12 @@ La Figura~\ref{fig:ic_visualizers_anexo} presenta la jerarquía de visualizadore
 
 El diseño modular permite que cada visualizador se especialice en un tipo específico de entrada mientras mantiene una interfaz para integración con el resto del sistema. Los visualizadores incluyen capacidades de edición que permiten configurar qué elementos (teclas, botones) son de interés sin requerir reinicio del sistema.
 
-\section{Módulo EEG Processor - Diagramas detallados}
+\section{Módulo \textit{EEG Processor} - Diagramas detallados}
 \label{sec:anexo_eeg_processor}
 
 El módulo \textit{\textbf{EEG Processor}} implementa una arquitectura orientada a servicios especializados que facilita el procesamiento completo de señales cerebrales desde la adquisición hasta el análisis avanzado. Los siguientes diagramas presentan el diseño interno de cada subcomponente del módulo.
 
-\subsection{Adaptadores para integración GUI-API}
+\subsection{Adaptadores para integración \acrshort{gui}-\acrshort{api}}
 \label{subsec:anexo_ep_adapters}
 
 La Figura~\ref{fig:ep_adapters_anexo} presenta el sistema de adaptadores que proporciona una interfaz unificada entre las operaciones \acrshort{api} remotas y los componentes de interfaz gráfica del sistema.
@@ -380,7 +380,7 @@ La Figura~\ref{fig:ep_apis_anexo} ilustra la arquitectura completa de las \acrsh
 
 \textbf{\textit{EEGDataAPI}} e \textbf{\textit{EEGProcessorInteractionAPI}} implementan la separación conceptual entre operaciones de solo lectura y control, siguiendo el principio de \textit{Interface Segregation}. \textit{\textbf{EEGDataAPI}} proporciona acceso granular a datos \acrshort{eeg} en tiempo real, metadatos del sistema, información de canales y calidad de señal, mientras que \textit{\textbf{EEGProcessorInteractionAPI}} maneja operaciones que modifican el estado del sistema como conexión de dispositivos, configuración de filtros, inicio de grabaciones y ejecución de algoritmos avanzados.
 
-Las clases de integración (\textit{\textbf{EEGProcessorApiIntegration}}, \textit{\textbf{EEGProcessorInteractionApiIntegration}}) actúan como puentes hacia el \textit{framework} externo \textit{\textbf{ApiExplorer}}, implementando el patrón \textit{Adapter} para exponer las funcionalidades internas mediante interfaces web estándar. \textit{\textbf{ModuleAPIFunctions}} proporciona funciones para la inicialización y gestión de estas integraciones, facilitando el registro dinámico de capacidades especializadas del módulo.
+Las clases de integración (\textit{\textbf{EEGProcessorApiIntegration}}, \textit{\textbf{EEGProcessorInteractionApiIntegration}}) actúan como puentes hacia el \textit{\gls{framework}} externo \textit{\textbf{ApiExplorer}}, implementando el patrón \textit{Adapter} para exponer las funcionalidades internas mediante interfaces web estándar. \textit{\textbf{ModuleAPIFunctions}} proporciona funciones para la inicialización y gestión de estas integraciones, facilitando el registro dinámico de capacidades especializadas del módulo.
 
 \subsection{Interfaces de línea de comandos avanzadas}
 \label{subsec:anexo_ep_cli}
@@ -401,7 +401,7 @@ La Figura~\ref{fig:ep_cli_anexo} muestra la arquitectura de las interfaces \acrs
 
 La integración con \acrshortpl{api} permite que los comandos \acrshort{cli} utilicen la misma lógica de negocio que las interfaces web y gráficas, garantizando consistencia en el comportamiento independientemente de la interfaz utilizada para operaciones de procesamiento \acrshort{eeg}.
 
-\subsection{Comandos especializados para EEG}
+\subsection{Comandos especializados para \acrshort{eeg}}
 \label{subsec:anexo_ep_commands}
 
 La Figura~\ref{fig:ep_cli_commands_anexo} presenta los módulos de comandos especializados que proporcionan funcionalidades específicas de procesamiento \acrshort{eeg} via \acrshort{cli}.
@@ -435,7 +435,7 @@ La Figura~\ref{fig:ep_collectors_anexo} ilustra la arquitectura del sistema de c
 
 \textbf{\textit{EEGCollector}} implementa las interfaces \textit{\textbf{CollectorInterface}}, \textit{\textbf{MarkerInterface}} y \textit{\textbf{ConfigurableCollectorInterface}} proporcionando una abstracción unificada para dispositivos \acrshort{eeg} comerciales. La implementación utiliza \textbf{BrainFlow} como capa de abstracción (\textit{\textbf{BoardShim}}, \textit{\textbf{BrainFlowInputParams}}) que soporta más de 20 fabricantes diferentes incluyendo, entre otros, \textit{g.tec}, \textit{OpenBCI}, \textit{Emotiv} y \textit{Neurosity}.
 
-\textbf{\textit{BoardConfiguration}} y \textbf{\textit{BrainFlowBoardConfiguration}} implementan el patrón \textit{Strategy} para gestión de configuraciones específicas de dispositivos, permitiendo parametrización flexible según el tipo de dispositivo conectado. El sistema soporta múltiples \textit{\gls{presets}} (\textit{\textbf{BrainFlowPresets}}) que definen qué tipos de canales están disponibles: predeterminado (todos los canales), datos auxiliares (acelerómetro, giroscopio...) y datos complementarios (PPG, temperatura...).
+\textbf{\textit{BoardConfiguration}} y \textbf{\textit{BrainFlowBoardConfiguration}} implementan el patrón \textit{Strategy} para gestión de configuraciones específicas de dispositivos, permitiendo parametrización flexible según el tipo de dispositivo conectado. El sistema soporta múltiples \textit{\gls{presets}} (\textit{\textbf{BrainFlowPresets}}) que definen qué tipos de canales están disponibles: predeterminado (todos los canales), datos auxiliares (acelerómetro, giroscopio...) y datos complementarios (\acrshort{ppg}, temperatura...).
 
 La implementación incluye manejo de errores mediante \textit{\textbf{BrainFlowError}} y capacidades de inserción de \glspl{marcadores} temporales que facilitan la sincronización posterior con eventos externos. El colector proporciona acceso a información detallada del dispositivo incluyendo frecuencia de muestreo, canales disponibles y especificaciones técnicas.
 
@@ -456,7 +456,7 @@ La Figura~\ref{fig:ep_event_system_anexo} presenta el sistema de eventos central
 
 El sistema mantiene registros \textit{\gls{thread-safe}} de suscriptores y histórico de eventos, proporcionando distribución eficiente de notificaciones a múltiples componentes interesados en operaciones \acrshort{eeg}. \textbf{\textit{Event}} encapsula información detallada incluyendo \textit{\glspl{timestamp}}, datos asociados y origen del evento, facilitando la depuración y monitorización de operaciones complejas.
 
-\textbf{\textit{GlobalEventFunctions}} proporciona funciones de conveniencia que simplifican el uso del sistema de eventos desde diferentes partes del código, mientras que \textit{\textbf{EventSystem}} proporciona compatibilidad con código legacy. La implementación garantiza que los eventos se distribuyan de forma asíncrona sin impactar el rendimiento del sistema de captura \acrshort{eeg}.
+\textbf{\textit{GlobalEventFunctions}} proporciona funciones de conveniencia que simplifican el uso del sistema de eventos desde diferentes partes del código, mientras que \textit{\textbf{EventSystem}} proporciona compatibilidad con código \textit{legacy}. La implementación garantiza que los eventos se distribuyan de forma asíncrona sin impactar el rendimiento del sistema de captura \acrshort{eeg}.
 
 \subsection{Contratos e interfaces especializadas}
 \label{subsec:anexo_ep_interfaces}
@@ -490,9 +490,9 @@ La Figura~\ref{fig:ep_processors_anexo} ilustra el motor de procesamiento que tr
     \label{fig:ep_processors_anexo}
 \end{figure}
 
-\textbf{\textit{SignalProcessor}} implementa el procesamiento central de señales \acrshort{eeg} mediante algoritmos especializados que incluyen filtros pasa-banda, reducción de ruido mediante \textit{\glspl{wavelet}}, \gls{ica_analysis} (\acrshort{ica}) y cálculo de densidad espectral de potencia (\gls{psd}). La implementación utiliza \textbf{BrainFlow} como \textit{framework} de procesamiento (\textit{\textbf{DataFilter}}, \textit{\textbf{MLModel}}) que proporciona algoritmos optimizados para procesamiento en tiempo real.
+\textbf{\textit{SignalProcessor}} implementa el procesamiento central de señales \acrshort{eeg} mediante algoritmos especializados que incluyen filtros pasa-banda, reducción de ruido mediante \textit{\glspl{wavelet}}, \gls{ica_analysis} (\acrshort{ica}) y cálculo de densidad espectral de potencia (\gls{psd}). La implementación utiliza \textbf{BrainFlow} como \textit{\gls{framework}} de procesamiento (\textit{\textbf{DataFilter}}, \textit{\textbf{MLModel}}) que proporciona algoritmos optimizados para procesamiento en tiempo real.
 
-El sistema soporta múltiples tipos de filtros (\textit{\textbf{FilterTypes}}: Butterworth, Chebyshev...) y familias de \textit{\glspl{wavelet}} (\textit{\textbf{WaveletTypes}}: Daubechies, Haar...) que se adaptan a diferentes requisitos de procesamiento y características de señal. La integración con \textbf{NumPy} facilita operaciones vectorizadas eficientes para procesamiento de grandes volúmenes de datos \acrshort{eeg}.
+El sistema soporta múltiples tipos de filtros (\textit{\textbf{FilterTypes}}: \textit{Butterworth}, \textit{Chebyshev}...) y familias de \textit{\glspl{wavelet}} (\textit{\textbf{WaveletTypes}}: \textit{Daubechies}, \textit{Haar}...) que se adaptan a diferentes requisitos de procesamiento y características de señal. La integración con \textbf{NumPy} facilita operaciones vectorizadas eficientes para procesamiento de grandes volúmenes de datos \acrshort{eeg}.
 
 El procesador mantiene configuración de frecuencia de muestreo específica del dispositivo conectado y proporciona métodos especializados para análisis neurofisiológico que incluyen detección de artefactos, análisis de bandas de frecuencia y extracción de características para aplicaciones \acrshort{bci}.
 
@@ -517,7 +517,7 @@ La Figura~\ref{fig:ep_services_core_anexo} presenta los servicios centralizados 
 
 Todos los servicios implementan el patrón \textit{Singleton} con protección \textit{\gls{thread-safe}} para garantizar acceso coordinado desde múltiples interfaces (\acrshort{gui}, \acrshort{cli}, \acrshort{api}) mientras mantienen la coherencia de datos \acrshort{eeg}.
 
-\subsection{Servicios especializados ICA}
+\subsection{Servicios especializados \acrshort{ica}}
 \label{subsec:anexo_ep_services_ica}
 
 La Figura~\ref{fig:ep_services_ica_anexo} presenta los servicios especializados que implementan \gls{ica_analysis} (\acrshort{ica}) para separación de artefactos y análisis de señales \acrshort{eeg}.
@@ -530,7 +530,7 @@ La Figura~\ref{fig:ep_services_ica_anexo} presenta los servicios especializados 
     \label{fig:ep_services_ica_anexo}
 \end{figure}
 
-\textbf{\textit{ICAProcessService}} implementa procesamiento \acrshort{ica} multiproceso mediante \textit{\textbf{Process}} y \textit{\textbf{Queue}} para evitar bloqueo de la interfaz durante cálculos intensivos. El servicio soporta cómputo de 1-16 componentes independientes, visualización de matrices \gls{matriz_mixing} y \gls{matriz_unmixing}, y exportación de resultados. La comunicación con procesos trabajadores se gestiona mediante \textit{\textbf{QTimer}} para actualizaciones periódicas sin bloquear la interfaz.
+\textbf{\textit{ICAProcessService}} implementa procesamiento \acrshort{ica} multiproceso mediante \textit{\textbf{Process}} y \textit{\textbf{Queue}} para evitar bloqueo de la interfaz durante cálculos intensivos. El servicio soporta cómputo de 1-16 componentes independientes, visualización de matrices \textit{\gls{matriz_mixing}} y \textit{\gls{matriz_unmixing}}, y exportación de resultados. La comunicación con procesos trabajadores se gestiona mediante \textit{\textbf{QTimer}} para actualizaciones periódicas sin bloquear la interfaz.
 
 \textbf{\textit{ICARealtimeService}} proporciona análisis \acrshort{ica} en tiempo real mediante actualización periódica de componentes basada en ventanas deslizantes de datos \acrshort{eeg}. La implementación utiliza \textit{\textbf{DataAccessService}} y \textit{\textbf{SignalProcessor}} para acceso a datos y cálculos, con \textit{\textbf{QTimer}} configurable para controlar la frecuencia de actualización.
 
@@ -538,7 +538,7 @@ La Figura~\ref{fig:ep_services_ica_anexo} presenta los servicios especializados 
 
 El sistema emite señales \textbf{PyQt5} (\textit{pyqtSignal}) para comunicar progreso, resultados y errores, facilitando la integración con interfaces de usuario mientras mantiene separación entre lógica de procesamiento y presentación.
 
-\subsection{Servicios especializados MNE}
+\subsection{Servicios especializados \textbf{MNE}}
 \label{subsec:anexo_ep_services_mne}
 
 La Figura~\ref{fig:ep_services_mne_anexo} presenta los servicios especializados que implementan integración con \textbf{MNE-Python} para análisis neurofisiológico avanzado.
@@ -574,7 +574,7 @@ La Figura~\ref{fig:ep_ui_core_anexo} muestra los componentes principales de gest
 
 \textbf{\textit{ConnectionPanel}} gestiona conexión a dispositivos \acrshort{eeg} mediante \textit{\textbf{CollectorService}}, proporcionando interfaces para selección de dispositivos, configuración de parámetros de conexión, inicio de \textit{streaming} y monitorización de estado de conexión. \textbf{\textit{ProcessingPanel}} coordina operaciones de procesamiento de señales mediante \textit{\textbf{ProcessorService}} y \textit{\textbf{DataAccessService}}, incluyendo configuración de filtros, cálculo de métricas y aplicación de algoritmos básicos.
 
-\textbf{\textit{RecordingPanel}} maneja grabaciones continuas mediante \textit{\textbf{RecordingService}}, proporcionando controles para inicio/parada de grabaciones, selección de formatos de salida e inserción de \glspl{marcadores} temporales. \textbf{\textit{StreamingPanel}} gestiona configuración de \textit{streamers} para distribución de datos en tiempo real mediante \textit{\textbf{CollectorService}} o \textit{\textbf{RecordingService}}, dependiendo del tipo de streamer.
+\textbf{\textit{RecordingPanel}} maneja grabaciones continuas mediante \textit{\textbf{RecordingService}}, proporcionando controles para inicio/parada de grabaciones, selección de formatos de salida e inserción de \glspl{marcadores} temporales. \textbf{\textit{StreamingPanel}} gestiona configuración de \textit{streamers} para distribución de datos en tiempo real mediante \textit{\textbf{CollectorService}} o \textit{\textbf{RecordingService}}, dependiendo del tipo de \textit{streamer}.
 
 \textbf{\textit{MNEPanel}} y \textbf{\textit{AdvancedProcessingPanel}} proporcionan interfaces especializadas para funcionalidades avanzadas mediante controladores dedicados (\textit{\textbf{MNEPanelController}}, \textit{\textbf{AdvancedPanelController}}) que encapsulan la complejidad de coordinar múltiples servicios especializados. Estos paneles utilizan paquetes de \acrshort{ui} especializados (\textit{\textbf{MNEUIPackage}}, \textit{\textbf{AdvancedUIPackage}}) que proporcionan componentes visuales específicos para cada dominio de funcionalidad.
 
@@ -591,36 +591,36 @@ La Figura~\ref{fig:ep_ui_advanced_anexo} presenta la arquitectura de la interfaz
     \label{fig:ep_ui_advanced_anexo}
 \end{figure}
 
-\textbf{\textit{AdvancedPanelController}} actúa como coordinador central que gestiona múltiples \textit{widgets} especializados y servicios de procesamiento avanzado. El controlador coordina \textit{\textbf{AdvancedFilterWidget}} para filtros digitales sofisticados (Butterworth, Chebyshev, Bessel...), \textit{\textbf{ICAWidget}} para análisis de componentes independientes, \textit{\textbf{WaveletWidget}} para transformadas \gls{wavelet} y \textit{\textbf{DownsamplingWidget}} para reducción de frecuencia de muestreo.
+\textbf{\textit{AdvancedPanelController}} actúa como coordinador central que gestiona múltiples \textit{\glspl{widget}} especializados y servicios de procesamiento avanzado. El controlador coordina \textit{\textbf{AdvancedFilterWidget}} para filtros digitales sofisticados (\textit{Butterworth}, \textit{Chebyshev}, \textit{Bessel}...), \textit{\textbf{ICAWidget}} para análisis de componentes independientes, \textit{\textbf{WaveletWidget}} para transformadas \textit{\gls{wavelet}} y \textit{\textbf{DownsamplingWidget}} para reducción de frecuencia de muestreo.
 
-Los \textit{widgets} especializados proporcionan interfaces dedicadas que incluyen selección de canales, configuración de parámetros específicos de cada algoritmo y visualización de resultados. \textit{\textbf{ICAWidget}} soporta configuración de 1-16 componentes, visualización en tiempo real y exportación de resultados, mientras que \textit{\textbf{WaveletWidget}} proporciona selección de familias \gls{wavelet} (Haar, Daubechies, Biorthogonal...) y configuración de niveles de descomposición.
+Los \textit{\glspl{widget}} especializados proporcionan interfaces dedicadas que incluyen selección de canales, configuración de parámetros específicos de cada algoritmo y visualización de resultados. \textit{\textbf{ICAWidget}} soporta configuración de 1-16 componentes, visualización en tiempo real y exportación de resultados, mientras que \textit{\textbf{WaveletWidget}} proporciona selección de familias \textit{\gls{wavelet}} (\textit{Haar}, \textit{Daubechies}, \textit{Biorthogonal}...) y configuración de niveles de descomposición.
 
 \textbf{\textit{ICAVisualizationDialog}} proporciona visualización especializada de resultados \acrshort{ica} mediante \textbf{matplotlib} (\textit{\textbf{Figure}}, \textit{\textbf{FigureCanvas}}) con capacidades de exportación de alta calidad. Los servicios de procesamiento (\textit{\textbf{AdvancedProcessingService}}, \textit{\textbf{ICAProcessService}}, \textit{\textbf{ICARealtimeService}}, \textit{\textbf{ExportService}}) proporcionan la lógica de negocio especializada mientras emiten señales \textbf{PyQt5} para comunicar progreso y resultados.
 
-El diseño modular facilita la adición de nuevos algoritmos mediante la implementación de \textit{widgets} especializados que siguen los patrones establecidos para integración con el controlador central.
+El diseño modular facilita la adición de nuevos algoritmos mediante la implementación de \textit{\glspl{widget}} especializados que siguen los patrones establecidos para integración con el controlador central.
 
-\subsection{Widgets especializados de procesamiento avanzado}
+\subsection{\textit{Widgets} especializados de procesamiento avanzado}
 \label{subsec:anexo_ep_ui_advanced_widgets}
 
-La Figura~\ref{fig:ep_ui_advanced_widgets_anexo} presenta los \textit{widgets} especializados que proporcionan interfaces dedicadas para configuración de algoritmos avanzados.
+La Figura~\ref{fig:ep_ui_advanced_widgets_anexo} presenta los \textit{\glspl{widget}} especializados que proporcionan interfaces dedicadas para configuración de algoritmos avanzados.
 
 \begin{figure}[H]
     \centering
     \hspace*{-0.15\textwidth}
     \includegraphics[width=1.2\textwidth]{anexos/diagramas/it3/ep_ui_advanced_widgets.pdf}
-    \caption{Widgets especializados de procesamiento avanzado del módulo \textit{\textbf{EEG Processor}}}
+    \caption{\textit{Widgets} especializados de procesamiento avanzado del módulo \textit{\textbf{EEG Processor}}}
     \label{fig:ep_ui_advanced_widgets_anexo}
 \end{figure}
 
-\textbf{\textit{AdvancedFilterWidget}} proporciona configuración de filtros digitales avanzados con soporte para múltiples implementaciones (\textit{\textbf{FilterTypes}}: Butterworth, Chebyshev, Bessel...) y operaciones de ventana (\textit{\textbf{WindowOperations}}: Hanning, Hamming, Blackman-Harris...). El widget incluye selección de canales mediante \textit{\textbf{ChannelSelectionDialog}} y integración de ayuda contextual mediante \textit{\textbf{HelpButton}}.
+\textbf{\textit{AdvancedFilterWidget}} proporciona configuración de filtros digitales avanzados con soporte para múltiples implementaciones (\textit{\textbf{FilterTypes}}: \textit{Butterworth}, \textit{Chebyshev}, \textit{Bessel}...) y operaciones de ventana (\textit{\textbf{WindowOperations}}: \textit{Hanning}, \textit{Hamming}, \textit{Blackman-Harris}...). El \textit{\gls{widget}} incluye selección de canales mediante \textit{\textbf{ChannelSelectionDialog}} y integración de ayuda contextual mediante \textit{\textbf{HelpButton}}.
 
-\textbf{\textit{ICAWidget}} proporciona configuración completa para \gls{ica_analysis} incluyendo selección de número de componentes (1-16), selección de canales específicos y configuración de modos de operación (tiempo real, bajo demanda). El widget mantiene estado de resultados \acrshort{ica} y proporciona acceso a funcionalidades de visualización y exportación.
+\textbf{\textit{ICAWidget}} proporciona configuración completa para \gls{ica_analysis} incluyendo selección de número de componentes (1-16), selección de canales específicos y configuración de modos de operación (tiempo real, bajo demanda). El \textit{\gls{widget}} mantiene estado de resultados \acrshort{ica} y proporciona acceso a funcionalidades de visualización y exportación.
 
-\textbf{\textit{WaveletWidget}} soporta configuración de transformadas \gls{wavelet} con múltiples familias (\textit{\textbf{WaveletTypes}}: Haar, Daubechies, Biorthogonal...) y modos de extensión (\textit{\textbf{WaveletExtensionTypes}}: simétrico, periódico). El widget proporciona configuración de niveles de descomposición y visualización de resultados de análisis tiempo-frecuencia.
+\textbf{\textit{WaveletWidget}} soporta configuración de transformadas \gls{wavelet} con múltiples familias (\textit{\textbf{WaveletTypes}}: \textit{Haar}, \textit{Daubechies}, \textit{Biorthogonal}...) y modos de extensión (\textit{\textbf{WaveletExtensionTypes}}: simétrico, periódico). El \textit{\gls{widget}} proporciona configuración de niveles de descomposición y visualización de resultados de análisis tiempo-frecuencia.
 
 \textbf{\textit{DownsamplingWidget}} implementa reducción de frecuencia de muestreo con múltiples métodos de agregación (\textit{\textbf{AggOperations}}: media, mediana, individual) que permiten optimizar el volumen de datos manteniendo información relevante según los requisitos específicos del análisis.
 
-Todos los \textit{widgets} siguen patrones consistentes de diseño incluyendo emisión de señales especializadas, integración con sistemas de ayuda y validación de parámetros que facilitan la integración con el controlador principal y garantizan coherencia en la experiencia de usuario.
+Todos los \textit{\glspl{widget}} siguen patrones consistentes de diseño incluyendo emisión de señales especializadas, integración con sistemas de ayuda y validación de parámetros que facilitan la integración con el controlador principal y garantizan coherencia en la experiencia de usuario.
 
 \subsection{Interfaz de integración \textbf{MNE}}
 \label{subsec:anexo_ep_ui_mne}
@@ -635,38 +635,38 @@ La Figura~\ref{fig:ep_ui_mne_anexo} muestra la arquitectura de la interfaz que c
     \label{fig:ep_ui_mne_anexo}
 \end{figure}
 
-\textbf{\textit{MNEPanelController}} actúa como coordinador central que gestiona la integración con \textbf{MNE-Python} mediante \textit{\textbf{MNEService}} y \textit{\textbf{DataAccessService}}. El controlador coordina múltiples \textit{widgets} especializados que proporcionan funcionalidades específicas para conversión, visualización y monitorización de operaciones \textbf{MNE}.
+\textbf{\textit{MNEPanelController}} actúa como coordinador central que gestiona la integración con \textbf{MNE-Python} mediante \textit{\textbf{MNEService}} y \textit{\textbf{DataAccessService}}. El controlador coordina múltiples \textit{\glspl{widget}} especializados que proporcionan funcionalidades específicas para conversión, visualización y monitorización de operaciones \textbf{MNE}.
 
 El controlador gestiona \textit{\textbf{QTimer}} dedicados para monitorización de estado y actualizaciones en tiempo real, mantiene configuración de canales seleccionados para conversión y coordina la creación dinámica de diálogos de selección de canales (\textit{\textbf{ChannelSelectionDialog}}) según las necesidades específicas de cada operación.
 
-\textbf{\textit{MNEWidgetsPackage}} encapsula \textit{widgets} especializados: \textit{\textbf{MNEConversionWidget}} para configuración de conversiones asíncronas con múltiples modalidades, \textit{\textbf{MNEVisualizationWidget}} para generación de visualizaciones científicas especializadas, \textit{\textbf{MNEStatusWidget}} para monitorización de progreso de operaciones asíncronas y advertencias de rendimiento.
+\textbf{\textit{MNEWidgetsPackage}} encapsula \textit{\glspl{widget}} especializados: \textit{\textbf{MNEConversionWidget}} para configuración de conversiones asíncronas con múltiples modalidades, \textit{\textbf{MNEVisualizationWidget}} para generación de visualizaciones científicas especializadas, \textit{\textbf{MNEStatusWidget}} para monitorización de progreso de operaciones asíncronas y advertencias de rendimiento.
 
 El diseño facilita operaciones \textbf{MNE-Python} complejas manteniendo la responsividad de la interfaz mediante procesamiento asíncrono, mientras proporciona \textit{feedback} visual detallado del progreso y estado de operaciones que pueden ser computacionalmente intensivas.
 
-\subsection{Widgets especializados \textbf{MNE}}
+\subsection{\textit{Widgets} especializados \textbf{MNE}}
 \label{subsec:anexo_ep_ui_mne_widgets}
 
-La Figura~\ref{fig:ep_ui_mne_widgets_anexo} presenta los \textit{widgets} especializados que proporcionan interfaces dedicadas para operaciones \textbf{MNE-Python}.
+La Figura~\ref{fig:ep_ui_mne_widgets_anexo} presenta los \textit{\glspl{widget}} especializados que proporcionan interfaces dedicadas para operaciones \textbf{MNE-Python}.
 
 \begin{figure}[H]
     \centering
     \hspace*{-0.15\textwidth}
     \includegraphics[width=1.2\textwidth]{anexos/diagramas/it3/ep_ui_mne_widgets.pdf}
-    \caption{Widgets especializados \textbf{MNE} del módulo \textit{\textbf{EEG Processor}}}
+    \caption{\textit{Widgets} especializados \textbf{MNE} del módulo \textit{\textbf{EEG Processor}}}
     \label{fig:ep_ui_mne_widgets_anexo}
 \end{figure}
 
-\textbf{\textit{MNEConversionWidget}} proporciona configuración completa para conversiones \textbf{BrainFlow} a \textbf{MNE-Python} incluyendo selección de modalidades (flexible, rendimiento, tiempo real), configuración de parámetros específicos y gestión de estado de conversiones asíncronas. El widget emite señales especializadas para solicitud de conversiones, activación de modo tiempo real y cancelación de operaciones.
+\textbf{\textit{MNEConversionWidget}} proporciona configuración completa para conversiones \textbf{BrainFlow} a \textbf{MNE-Python} incluyendo selección de modalidades (flexible, rendimiento, tiempo real), configuración de parámetros específicos y gestión de estado de conversiones asíncronas. El \textit{\gls{widget}} emite señales especializadas para solicitud de conversiones, activación de modo tiempo real y cancelación de operaciones.
 
-\textbf{\textit{MNEVisualizationWidget}} soporta generación de visualizaciones científicas especializadas incluyendo \gls{power_spectral_density}, \gls{topomaps}, espectrogramas y visualización de datos en bruto. El widget proporciona configuración de parámetros de visualización, gestión de estado de generación asíncrona y capacidades de presentación de gráficos resultantes.
+\textbf{\textit{MNEVisualizationWidget}} soporta generación de visualizaciones científicas especializadas incluyendo \textit{\gls{power_spectral_density}}, \textit{\gls{topomaps}}, espectrogramas y visualización de datos en bruto. El \textit{\gls{widget}} proporciona configuración de parámetros de visualización, gestión de estado de generación asíncrona y capacidades de presentación de gráficos resultantes.
 
-\textbf{\textit{MNEStatusWidget}} implementa monitorización especializada para operaciones \textbf{MNE-Python} proporcionando mensajes de estado detallados, seguimiento de progreso de operaciones asíncronas, advertencias de rendimiento específicas y estado de procesamiento en tiempo real. El \textit{widget} facilita la depuración y monitorización de operaciones complejas.
+\textbf{\textit{MNEStatusWidget}} implementa monitorización especializada para operaciones \textbf{MNE-Python} proporcionando mensajes de estado detallados, seguimiento de progreso de operaciones asíncronas, advertencias de rendimiento específicas y estado de procesamiento en tiempo real. El \textit{\gls{widget}} facilita la depuración y monitorización de operaciones complejas.
 
 \textbf{\textit{ChannelSelectionDialog}} proporciona selección flexible de canales \acrshort{eeg} con funcionalidades de selección masiva (todos/ninguno) y filtrado por tipo de canal, optimizando el flujo de trabajo para análisis que requieren subconjuntos específicos de canales.
 
 La integración con \textit{\textbf{HelpButton}} proporciona ayuda contextual específica para operaciones \textbf{MNE-Python}, facilitando la adopción de funcionalidades avanzadas por usuarios con diferentes niveles de experiencia en análisis neurofisiológico.
 
-\subsection{Diálogo de visualización ICA}
+\subsection{Diálogo de visualización \acrshort{ica}}
 \label{subsec:anexo_ep_ica_dialog}
 
 La Figura~\ref{fig:ep_ica_dialog_anexo} presenta el diálogo especializado que proporciona visualización interactiva de resultados de análisis de componentes independientes.
@@ -679,7 +679,7 @@ La Figura~\ref{fig:ep_ica_dialog_anexo} presenta el diálogo especializado que p
     \label{fig:ep_ica_dialog_anexo}
 \end{figure}
 
-\textbf{\textit{ICAVisualizationDialog}} proporciona visualización interactiva completa de resultados \acrshort{ica} incluyendo matrices \gls{matriz_mixing} y \gls{matriz_unmixing}, \gls{weight_distribution} espacial de componentes y \gls{power_spectral_density} de componentes individuales. El diálogo mantiene estado de componentes \acrshort{ica}, frecuencia de muestreo y modo de operación (tiempo real vs. bajo demanda).
+\textbf{\textit{ICAVisualizationDialog}} proporciona visualización interactiva completa de resultados \acrshort{ica} incluyendo matrices \textit{\gls{matriz_mixing}} y \textit{\gls{matriz_unmixing}}, \textit{\gls{weight_distribution}} espacial de componentes y \textit{\gls{power_spectral_density}} de componentes individuales. El diálogo mantiene estado de componentes \acrshort{ica}, frecuencia de muestreo y modo de operación (tiempo real vs. bajo demanda).
 
 El diálogo crea dinámicamente diálogos de detalle especializados: \textit{\textbf{ComponentDetailDialog}} para análisis detallado de componentes individuales y \textit{\textbf{MatrixDetailDialog}} para visualización expandida de matrices \acrshort{ica}. Estos diálogos proporcionan visualizaciones de alta resolución y capacidades de exportación a imágenes.
 
@@ -704,11 +704,11 @@ La Figura~\ref{fig:ep_utils_anexo} presenta las utilidades especializadas y el s
 
 \textbf{\textit{HelpButton}} y \textbf{\textit{HelpDialog}} implementan un sistema de ayuda contextual especializado que proporciona información específica para operaciones \acrshort{eeg}. \textbf{\textit{EEGConceptsHelpDialog}} proporciona explicaciones detalladas de conceptos neurofisiológicos fundamentales que facilitan la comprensión de resultados y parámetros de configuración.
 
-\textbf{\textit{HELP\_CONTENT}} organiza contenido de ayuda en categorías especializadas: temas de hardware para configuración de dispositivos \acrshort{eeg}, temas de procesamiento de señales para algoritmos y filtros, temas de visualización para interpretación de gráficos, temas de grabación para gestión de datos, temas de análisis avanzado para algoritmos especializados, temas de integración \textbf{MNE} para funcionalidades avanzadas, y conceptos básicos para fundamentos neurofisiológicos.
+\textbf{\textit{HELP\_CONTENT}} organiza contenido de ayuda en categorías especializadas: temas de \textit{hardware} para configuración de dispositivos \acrshort{eeg}, temas de procesamiento de señales para algoritmos y filtros, temas de visualización para interpretación de gráficos, temas de grabación para gestión de datos, temas de análisis avanzado para algoritmos especializados, temas de integración \textbf{MNE} para funcionalidades avanzadas, y conceptos básicos para fundamentos neurofisiológicos.
 
 \textbf{\textit{HelpSystemFunctions}} proporciona funciones que facilitan la presentación de ayuda contextual desde diferentes partes del sistema, mientras que la creación dinámica de diálogos permite personalización del contenido según el contexto específico de uso. El sistema de ayuda facilita la adopción del sistema por usuarios con diferentes niveles de experiencia en procesamiento \acrshort{eeg}.
 
-\subsection{Visualizadores especializados EEG}
+\subsection{Visualizadores especializados \acrshort{eeg}}
 \label{subsec:anexo_ep_visualizers}
 
 La Figura~\ref{fig:ep_visualizers_anexo} presenta los visualizadores especializados que proporcionan representación visual en tiempo real de señales \acrshort{eeg} y análisis topográfico.

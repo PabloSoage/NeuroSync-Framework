@@ -4,7 +4,7 @@
 \section{Introducción al Módulo}
 \label{sec:intro_eeg_processor}
 
-El módulo \textit{EEG Processor} constituye el núcleo especializado del sistema para captura, procesamiento y análisis de \glspl{biosenial} \acrshort{eeg} en tiempo real. Su desarrollo integra una arquitectura orientada a servicios que soporta múltiples fabricantes de dispositivos comerciales, algoritmos de análisis neurofisiológico avanzados, y capacidades de visualización científica de calidad profesional.
+El módulo \textit{\textbf{EEG Processor}} constituye el núcleo especializado del sistema para captura, procesamiento y análisis de \glspl{biosenial} \acrshort{eeg} en tiempo real. Su desarrollo integra una arquitectura orientada a servicios que soporta múltiples fabricantes de dispositivos comerciales, algoritmos de análisis neurofisiológico avanzados, y capacidades de visualización científica de calidad profesional.
 
 \subsection{Objetivos Técnicos}
 \label{subsec:objetivos_eeg_processor}
@@ -12,9 +12,9 @@ El módulo \textit{EEG Processor} constituye el núcleo especializado del sistem
 El desarrollo del módulo se orientó hacia objetivos técnicos específicos para el procesamiento de neuroseñales:
 
 \begin{itemize}
-    \item \textbf{Abstracción Multi-Hardware}: Soporte unificado para más de 20 fabricantes mediante \textit{BrainFlow}
+    \item \textbf{Abstracción \textit{Multi-Hardware}}: Soporte unificado para más de 20 fabricantes mediante \textbf{BrainFlow}
     \item \textbf{Procesamiento Tiempo Real}: Algoritmos optimizados para análisis con latencia mínima
-    \item \textbf{Análisis Avanzado}: Integración de \acrshort{ica}, transformadas \gls{wavelet} y \textit{MNE-Python}
+    \item \textbf{Análisis Avanzado}: Integración de \acrshort{ica}, transformadas \textit{\gls{wavelet}} y \textbf{MNE-Python}
     \item \textbf{Calidad Científica}: Visualización y exportación orientadas a investigación
     \item \textbf{Arquitectura Extensible}: Servicios modulares para integración con sistemas externos
 \end{itemize}
@@ -39,31 +39,31 @@ El \textit{MultiSignalVisualizer} constituye el componente principal de visualiz
 \begin{figure}[hp!]
 \centering
 \includegraphics[width=\textwidth,height=7cm,keepaspectratio]{imaxes/multi_signal_viz.png}
-\caption{Visualizador multi-señal mostrando canales EEG en tiempo real con detección automática de tipos de canal y organización por pestañas especializadas}
+\caption{Visualizador multi-señal mostrando canales \acrshort{eeg} en tiempo real con detección automática de tipos de canal y organización por pestañas especializadas}
 \label{fig:multi_signal_viz}
 \end{figure}
 
 \subsection{Mapa Topográfico Cerebral}
 \label{subsec:mapa_topografico}
 
-El \textit{Brain Map Visualizer} proporciona representación topográfica de la actividad cerebral distribuida sobre el cuero cabelludo, implementando el sistema de posicionamiento estándar 10-20/10-10 para ubicación de electrodos. La Figura~\ref{fig:brain_map_viz} ilustra las capacidades de mapeo en tiempo real con indicadores de calidad de señal codificados por color, permitiendo monitoreo inmediato del estado de conexión de electrodos y distribución espacial de la actividad neuronal.
+El \textit{\textbf{Brain Map Visualizer}} proporciona representación topográfica de la actividad cerebral distribuida sobre el cuero cabelludo, implementando el sistema de posicionamiento estándar 10-20/10-10 para ubicación de electrodos. La Figura~\ref{fig:brain_map_viz} ilustra las capacidades de mapeo en tiempo real con indicadores de calidad de señal codificados por color, permitiendo monitoreo inmediato del estado de conexión de electrodos y distribución espacial de la actividad neuronal.
 
 \begin{figure}[hp!]
 \centering
 \includegraphics[width=\textwidth,height=7cm,keepaspectratio]{imaxes/brain_map_viz.png}
-\caption{Brain Map Visualizer con representación topográfica en tiempo real, mostrando posicionamiento estándar de electrodos y indicadores de calidad de señal por código de colores}
+\caption{\textit{\textbf{Brain Map Visualizer}} con representación topográfica en tiempo real, mostrando posicionamiento estándar de electrodos y indicadores de calidad de señal por código de colores}
 \label{fig:brain_map_viz}
 \end{figure}
 
-\subsection{Validación con Hardware Comercial}
+\subsection{Validación con \textit{Hardware} Comercial}
 \label{subsec:validacion_hardware}
 
-La validación del módulo con dispositivos comerciales demuestra la efectividad de la arquitectura desarrollada. La Figura~\ref{fig:g_tec_suite} presenta la interfaz del \textit{software} propietario \textit{Unicorn Suite} de \textit{g.tec} utilizado con el dispositivo \textit{g.tec Unicorn Hybrid Black}. Esta comparación con las capacidades mostradas en las figuras anteriores evidencia que el módulo desarrollado proporciona funcionalidades de visualización equivalentes a las herramientas comerciales especializadas, manteniendo la flexibilidad de un sistema de código abierto.
+La validación del módulo con dispositivos comerciales demuestra la efectividad de la arquitectura desarrollada. La Figura~\ref{fig:g_tec_suite} presenta la interfaz del \textit{software} propietario \textbf{Unicorn Suite} de \textbf{g.tec} utilizado con el dispositivo \textbf{g.tec Unicorn Hybrid Black}. Esta comparación con las capacidades mostradas en las figuras anteriores evidencia que el módulo desarrollado proporciona funcionalidades de visualización equivalentes a las herramientas comerciales especializadas, manteniendo la flexibilidad de un sistema de código abierto.
 
 \begin{figure}[hp!]
 \centering
 \includegraphics[width=\textwidth,height=5cm,keepaspectratio]{imaxes/g_tec_suite.png}
-\caption{Interfaz de la suite propietaria Unicorn de g.tec utilizada con el dispositivo g.tec Unicorn Hybrid Black, mostrando las capacidades de referencia del software comercial}
+\caption{Interfaz de la \textit{suite} propietaria \textbf{Unicorn} de \textbf{g.tec} utilizada con el dispositivo \textbf{g.tec Unicorn Hybrid Black}, mostrando las capacidades de referencia del \textit{software} comercial}
 \label{fig:g_tec_suite}
 \end{figure}
 
@@ -73,12 +73,12 @@ La validación del módulo con dispositivos comerciales demuestra la efectividad
 \subsection{Investigación Neurocientífica Avanzada}
 \label{subsec:investigacion_neurocientifica}
 
-El módulo proporciona herramientas especializadas para investigación con soporte para más de 20 fabricantes de dispositivos comerciales, algoritmos de análisis avanzados incluyendo \acrshort{ica} con 1-16 componentes configurables, integración completa con \textit{MNE-Python} para análisis neurofisiológico, y visualización de calidad científica con exportación de alta resolución para los \gls{ica_analysis}.
+El módulo proporciona herramientas especializadas para investigación con soporte para más de 20 fabricantes de dispositivos comerciales, algoritmos de análisis avanzados incluyendo \acrshort{ica} con 1-16 componentes configurables, integración completa con \textbf{MNE-Python} para análisis neurofisiológico, y visualización de calidad científica con exportación de alta resolución para los \gls{ica_analysis}.
 
 \subsection{Desarrollo de Interfaces Cerebro-Computadora}
 \label{subsec:desarrollo_bci}
 
-Las capacidades de procesamiento en tiempo real facilitan extracción de características con latencia mínima, cálculo de métricas cognitivas basadas en \gls{machine_learning}, análisis de \gls{band_powers} en tiempo real (Delta, Theta, Alpha, Beta, Gamma), y evaluación continua de calidad de señal.
+Las capacidades de procesamiento en tiempo real facilitan extracción de características con latencia mínima, cálculo de métricas cognitivas basadas en \textit{\gls{machine_learning}}, análisis de \textit{\gls{band_powers}} en tiempo real (\textit{Delta, Theta, Alpha, Beta, Gamma}), y evaluación continua de calidad de señal.
 
 \subsection{Aplicaciones Clínicas y Diagnósticas}
 \label{subsec:aplicaciones_clinicas}
@@ -88,4 +88,4 @@ El sistema de monitoreo de calidad de señal en tiempo real, detección automát
 \subsection{Análisis de Neuroseñales Multi-Modal}
 \label{subsec:analisis_multimodal}
 
-La detección inteligente de tipos de canal (\acrshort{eeg}, \acrshort{emg}, \acrshort{ecg}, EOG, EDA, PPG, acelerómetro, giroscopio), visualización especializada por modalidad de señal, procesamiento coordinado de múltiples fuentes de datos, y análisis correlacional entre diferentes tipos de \glspl{biosenial} amplían las capacidades hacia estudios integrales.
+La detección inteligente de tipos de canal (\acrshort{eeg}, \acrshort{emg}, \acrshort{ecg}, \acrshort{eog}, \acrshort{eda}, \acrshort{ppg}, acelerómetro, giroscopio), visualización especializada por modalidad de señal, procesamiento coordinado de múltiples fuentes de datos, y análisis correlacional entre diferentes tipos de \glspl{biosenial} amplían las capacidades hacia estudios integrales.
