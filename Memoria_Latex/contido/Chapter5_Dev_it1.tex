@@ -28,7 +28,7 @@ La primera iteración abarcó el desarrollo de los módulos fundamentales del si
 
 \textbf{Criterios de aceptación}:
 \begin{itemize}
-    \item Captura de eventos de teclado y ratón con \textit{timestamps} precisos
+    \item Captura de eventos de teclado y ratón con \textit{\glspl{timestamp}} precisos
     \item Filtrado configurable de teclas específicas
     \item Múltiples modos de \textit{tracking} para movimiento de ratón
     \item Conectividad básica con dispositivos \acrshort{eeg} mediante \textbf{Brainflow}
@@ -45,7 +45,7 @@ El diseño de esta iteración siguió inicialmente un enfoque monolítico que po
 \textbf{Arquitectura inicial del módulo de entrada}:
 El módulo de captura de entrada se diseñó como una aplicación monolítica que integraba la lógica de captura, procesamiento y almacenamiento en un único \textit{script}. La arquitectura utilizaba \textbf{pynput} como biblioteca principal para la captura multiplataforma de eventos de teclado y ratón. El diseño incluía un sistema de filtrado configurable que permitía seleccionar qué teclas y botones capturar, evitando ruido en los datos experimentales.
 
-La Figura~\ref{fig:ic_general_it1} presenta la arquitectura de clases del módulo de captura de entrada desarrollado en esta iteración. El diagrama muestra la estructura monolítica centrada en \textit{InputCollectorApp} como aplicación principal \textbf{Qt}, que gestiona directamente todos los componentes del sistema. La arquitectura implementa el patrón de herencia con \textit{AbstractInputCollector} como interfaz base, aunque en esta iteración solo se desarrolló completamente \textit{KeyboardMouseCollector}, mientras que \textit{PS4ControllerCollector} se implementó con funcionalidad parcial para escaneo básico de periféricos compatibles con \textbf{\acrshort{sdl}2}.
+La Figura~\ref{fig:ic_general_it1} presenta la arquitectura de clases del módulo de captura de entrada desarrollado en esta iteración. El diagrama muestra la estructura monolítica centrada en \textit{\textbf{InputCollectorApp}} como aplicación principal \textbf{Qt}, que gestiona directamente todos los componentes del sistema. La arquitectura implementa el patrón de herencia con \textit{\textbf{AbstractInputCollector}} como interfaz base, aunque en esta iteración solo se desarrolló completamente \textit{\textbf{KeyboardMouseCollector}}, mientras que \textit{\textbf{PS4ControllerCollector}} se implementó con funcionalidad parcial para escaneo básico de periféricos compatibles con \textbf{\acrshort{sdl}2}.
 
 \begin{figure}[H]
     \centering
@@ -54,9 +54,9 @@ La Figura~\ref{fig:ic_general_it1} presenta la arquitectura de clases del módul
     \label{fig:ic_general_it1}
 \end{figure}
 
-El diseño integra múltiples visualizadores (\textit{KeyboardVisualizer}, \textit{MouseVisualizer}, \textit{MouseButtonsSelector}) directamente en la aplicación principal, creando un acoplamiento estrecho que posteriormente dificultaría la modularización. La estructura de datos \textit{InputData} encapsula toda la información de eventos, incluyendo \textit{\glspl{timestamp}}, coordenadas de ratón, teclas activas y parámetros de movimiento para los diferentes modos de \textit{tracking}.
+El diseño integra múltiples visualizadores (\textit{\textbf{KeyboardVisualizer}}, \textit{\textbf{MouseVisualizer}}, \textit{\textbf{MouseButtonsSelector}}) directamente en la aplicación principal, creando un acoplamiento estrecho que posteriormente dificultaría la modularización. La estructura de datos \textit{\textbf{InputData}} encapsula toda la información de eventos, incluyendo \textit{\glspl{timestamp}}, coordenadas de ratón, teclas activas y parámetros de movimiento para los diferentes modos de \textit{tracking}.
 
-El flujo de datos del módulo, ilustrado en la Figura~\ref{fig:ic_samples_flowchart_it1}, muestra el procesamiento desde la captura de hardware hasta la exportación final. Los eventos del hardware de teclado y ratón se capturan mediante \textbf{pynput} y se procesan a través de \textit{KeyboardMouseCollector}, que aplica filtrado de teclas antes de distribuir los eventos a los visualizadores y servicios de registro.
+El flujo de datos del módulo, ilustrado en la Figura~\ref{fig:ic_samples_flowchart_it1}, muestra el procesamiento desde la captura de \textit{hardware} hasta la exportación final. Los eventos del \textit{hardware} de teclado y ratón se capturan mediante \textbf{pynput} y se procesan a través de \textit{\textbf{KeyboardMouseCollector}}, que aplica filtrado de teclas antes de distribuir los eventos a los visualizadores y servicios de registro.
 
 \begin{figure}[H]
     \centering
@@ -65,12 +65,12 @@ El flujo de datos del módulo, ilustrado en la Figura~\ref{fig:ic_samples_flowch
     \label{fig:ic_samples_flowchart_it1}
 \end{figure}
 
-El sistema de \textit{timestamps} se implementó utilizando la función \textit{time.time()} de Python para garantizar precisión temporal de milisegundos. El diseño contemplaba cuatro modos diferentes de representación del movimiento del ratón para adaptarse a diferentes tipos de experimentos: modo \textit{axis} para direcciones cardinales, modo \textit{angle} para representación angular, modo \textit{delta} para movimiento en bruto, y modo \textit{joystick} para emulación de controlador analógico.
+El sistema de \textit{\glspl{timestamp}} se implementó utilizando la función \textit{time.time()} de Python para garantizar precisión temporal de milisegundos. El diseño contemplaba cuatro modos diferentes de representación del movimiento del ratón para adaptarse a diferentes tipos de experimentos: modo \textit{axis} para direcciones cardinales, modo \textit{angle} para representación angular, modo \textit{delta} para movimiento en bruto, y modo \textit{joystick} para emulación de controlador analógico.
 
 \textbf{Arquitectura inicial del módulo \acrshort{eeg}}:
 El módulo de procesamiento \acrshort{eeg} se diseñó como una aplicación independiente que integraba \textbf{Brainflow} mediante el patrón \textit{Adapter}. La arquitectura se desarrolló directamente en \textbf{PyQt5} después de validar su rendimiento superior sobre \textbf{tkinter} para visualización en tiempo real.
 
-La Figura~\ref{fig:ep_general_it1_part1} muestra la arquitectura de clases del módulo de procesamiento \acrshort{eeg}. El diseño centraliza la funcionalidad en \textit{EEGProcessorApp} como aplicación principal, que coordina los componentes especializados: \textit{EEGCollector} para adquisición de datos, \textit{SignalProcessor} para procesamiento de señales, y múltiples visualizadores para presentación de información.
+La Figura~\ref{fig:ep_general_it1_part1} muestra la arquitectura de clases del módulo de procesamiento \acrshort{eeg}. El diseño centraliza la funcionalidad en \textit{\textbf{EEGProcessorApp}} como aplicación principal, que coordina los componentes especializados: \textit{\textbf{EEGCollector}} para adquisición de datos, \textit{\textbf{SignalProcessor}} para procesamiento de señales, y múltiples visualizadores para presentación de información.
 
 \begin{figure}[H]
     \centering
@@ -81,7 +81,7 @@ La Figura~\ref{fig:ep_general_it1_part1} muestra la arquitectura de clases del m
 
 El diseño incluyó componentes especializados: un adaptador \textbf{Brainflow} para abstracción de dispositivos, un visualizador multicanal que asumía los primeros 16 canales como \acrshort{eeg}, un monitor de calidad de señal mediante \textit{\gls{railed_percentage}}, y un visualizador topográfico básico compatible con sistemas \gls{sistema_10_20} y \gls{sistema_10_10} que sitúa electrodos según su nomenclatura estándar en posiciones aproximadas preestablecidas. El sistema de ayuda contextual se diseñó como \textit{\glspl{widget}} independientes disponibles en la interfaz gráfica que proporcionan información contextual para que el usuario comprenda la función de cada parámetro además de conceptos neurofisiológicos básicos.
 
-La Figura~\ref{fig:ep_samples_flowchart} ilustra el flujo de datos del módulo de procesamiento \acrshort{eeg}. El diseño implementa un patrón de \textit{polling} donde los visualizadores consultan directamente el buffer de \textit{EEGCollector} para obtener datos, aplicando procesamiento local según sus necesidades específicas.
+La Figura~\ref{fig:ep_samples_flowchart} ilustra el flujo de datos del módulo de procesamiento \acrshort{eeg}. El diseño implementa un patrón de \textit{polling} donde los visualizadores consultan directamente el \textit{buffer} de \textit{\textbf{EEGCollector}} para obtener datos, aplicando procesamiento local según sus necesidades específicas.
 
 \begin{figure}[H]
     \centering
@@ -90,7 +90,7 @@ La Figura~\ref{fig:ep_samples_flowchart} ilustra el flujo de datos del módulo d
     \label{fig:ep_samples_flowchart}
 \end{figure}
 
-Este diseño monolítico facilitó el desarrollo rápido pero creó dependencias directas entre componentes que posteriormente complicarían la integración. Cada visualizador accede independientemente al \textit{SignalProcessor} para aplicar filtros específicos, creando múltiples instancias de procesamiento que impactan el rendimiento del sistema.
+Este diseño monolítico facilitó el desarrollo rápido pero creó dependencias directas entre componentes que posteriormente complicarían la integración. Cada visualizador accede independientemente al \textit{\textbf{SignalProcessor}} para aplicar filtros específicos, creando múltiples instancias de procesamiento que impactan el rendimiento del sistema.
 
 \textbf{Problemas de diseño identificados durante la integración}:
 El primer intento de integración reveló limitaciones fundamentales en el diseño monolítico. Los archivos de gran tamaño y el acoplamiento estrecho entre componentes dificultaron la identificación de puntos de integración apropiados. La falta de interfaces claras entre módulos y la ausencia de separación de responsabilidades complicaron la implementación de comunicación entre sistemas.
@@ -114,9 +114,9 @@ La implementación de múltiples modos de \textit{tracking} de ratón requirió 
 La interfaz gráfica inicial se implementó en \textit{tkinter}, pero mostró limitaciones de rendimiento para actualizaciones frecuentes y falta de \textit{\glspl{widget}} especializados, motivando la experimentación con \textbf{PyQt5}, validando su uso mediante el desarrollo inicial del módulo de \acrshort{eeg}.
 
 \textbf{Fase 3: Desarrollo del módulo de procesamiento \acrshort{eeg}}:
-La implementación comenzó con experimentación usando la placa sintética de \textbf{Brainflow} para validar la \acrshort{api} y establecer patrones de adquisición. Se desarrolló un grabador básico que registraba datos en archivos \acrshort{csv} con metadatos completos: fecha/hora, identificación de placa, \textit{preset}, número de canales, duración, y columnas para \textit{timestamps}, \glspl{marcadores} y canal de control de \textbf{Brainflow}.
+La implementación comenzó con experimentación usando la placa sintética de \textbf{Brainflow} para validar la \acrshort{api} y establecer patrones de adquisición. Se desarrolló un grabador básico que registraba datos en archivos \acrshort{csv} con metadatos completos: fecha/hora, identificación de placa, \textit{\glspl{preset}}, número de canales, duración, y columnas para \textit{\glspl{timestamp}}, \glspl{marcadores} y canal de control de \textbf{Brainflow}.
 
-La migración a \textit{PyQt5} se validó mediante pruebas de rendimiento que confirmaron su capacidad para manejar visualización en tiempo real de múltiples canales \acrshort{eeg}. Se implementó un sistema de visualización que incluía señales \acrshort{eeg} básicas, análisis de \textit{\gls{power_spectrum}}, y representación de \textit{\gls{band_powers}} en tiempo real.
+La migración a \textbf{PyQt5} se validó mediante pruebas de rendimiento que confirmaron su capacidad para manejar visualización en tiempo real de múltiples canales \acrshort{eeg}. Se implementó un sistema de visualización que incluía señales \acrshort{eeg} básicas, análisis de \textit{\gls{power_spectrum}}, y representación de \textit{\gls{band_powers}} en tiempo real.
 
 El visualizador topográfico se implementó con posicionamiento aproximado preestablecido que sitúa electrodos según su nomenclatura (Pz, PO7, Cz, F4) en 4 regiones anatómicas básicas. Se integró codificación de colores para indicar calidad de señal por electrodo utilizando métricas de \textit{\gls{railed_percentage}}.
 
@@ -125,7 +125,7 @@ El sistema de ayuda contextual se implementó como más de 25 \textit{\glspl{wid
 \textbf{Fase 4: Primer intento de integración}:
 La integración visual se logró exitosamente, permitiendo controlar ambos módulos desde una interfaz unificada con coordinación básica de inicio/parada de grabaciones. Se unificaron los formatos de exportación añadiendo soporte \acrshort{csv} al módulo de entrada para facilitar la combinación posterior de datos.
 
-Sin embargo, la integración \acrshort{lsl} falló debido a la estructura monolítica de los módulos. Los archivos de gran tamaño y el acoplamiento estrecho dificultaron la identificación de puntos de integración y complicaron la depuración de problemas. La arquitectura monolítica impedía el acceso directo a los \textit{\glspl{stream}} de datos internos de cada módulo, limitando las capacidades de sincronización efectiva.
+Sin embargo, la integración \textbf{\acrshort{lsl}} falló debido a la estructura monolítica de los módulos. Los archivos de gran tamaño y el acoplamiento estrecho dificultaron la identificación de puntos de integración y complicaron la depuración de problemas. La arquitectura monolítica impedía el acceso directo a los \textit{\glspl{stream}} de datos internos de cada módulo, limitando las capacidades de sincronización efectiva.
 
 \textbf{Decisiones de implementación específicas}:
 Durante esta fase se implementó tipado estático básico con \textit{\gls{type hints}} para facilitar el mantenimiento del código. La implementación priorizó la funcionalidad sobre la arquitectura, lo que posteriormente motivaría la refactorización completa.
@@ -143,18 +143,18 @@ La validación se realizó mediante pruebas manuales exhaustivas para cada compo
     \rowcolor{udcpink!25}
     \textbf{Prueba realizada} & \textbf{Resultado esperado} & \textbf{Resultado obtenido} & \textbf{Estado} \\
     \hline
-    Captura eventos teclado & Eventos con timestamps < 10ms latencia & Latencia medida 5-8ms & Exitosa \\
+    Captura eventos teclado & Eventos con \textit{\glspl{timestamp}} < 10ms latencia & Latencia medida 5-8ms & Exitosa \\
     Filtrado teclas específicas & Solo teclas configuradas capturadas & Filtrado correcto, eventos liberación eliminados & Exitosa \\
     Modos tracking ratón & 4 modos funcionales con representaciones distintas & Axis, angle, delta, joystick funcionando & Exitosa \\
-    Exportación JSON básica & Estructura JSON válida con metadatos & JSON correcto con timestamps y metadatos & Exitosa \\
+    Exportación \acrshort{json} básica & Estructura \acrshort{json} válida con metadatos & \acrshort{json} correcto con timestamps y metadatos & Exitosa \\
     Conectividad \textbf{Brainflow} & Conexión exitosa con placa sintética & Conexión establecida, datos fluyendo & Exitosa \\
     Visualización multicanal & 16 canales mostrados en tiempo real & Visualización fluida hasta 250Hz & Exitosa \\
-    Calidad señal (railed \%) & Detección automática electrodos problemáticos & Cálculo correcto, visualización por colores & Exitosa \\
-    Grabación CSV con metadatos & Archivo CSV con cabeceras completas & Metadatos completos, estructura correcta & Exitosa \\
-    Migración GUI a PyQt5 & Rendimiento superior a tkinter & Visualización fluida, \textit{\glspl{widget}} responsivos & Exitosa \\
+    Calidad señal (\textit{railed \%}) & Detección automática electrodos problemáticos & Cálculo correcto, visualización por colores & Exitosa \\
+    Grabación \acrshort{csv} con metadatos & Archivo \acrshort{csv} con cabeceras completas & Metadatos completos, estructura correcta & Exitosa \\
+    Migración \acrshort{gui} a \textbf{PyQt5} & Rendimiento superior a \textbf{tkinter} & Visualización fluida, \textit{\glspl{widget}} responsivos & Exitosa \\
     Integración visual módulos & Interfaz unificada funcional & Control coordinado ambos módulos & Exitosa \\
-    Integración LSL & Sincronización temporal precisa & Fallo por acoplamiento monolítico & Fallida \\
-    Sincronización timestamps & Timestamps coordinados entre módulos & Sistemas independientes sin coordinación & Fallida \\
+    Integración \textbf{\acrshort{lsl}} & Sincronización temporal precisa & Fallo por acoplamiento monolítico & Fallida \\
+    Sincronización \textit{\glspl{timestamp}} & \textit{Timestamps} coordinados entre módulos & Sistemas independientes sin coordinación & Fallida \\
     \end{tabular}
   }
   \caption{Resultados de validación de la primera iteración}

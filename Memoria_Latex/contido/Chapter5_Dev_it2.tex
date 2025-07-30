@@ -41,12 +41,12 @@ La segunda iteración abordó las limitaciones arquitectónicas identificadas me
 El diseño de esta iteración se enfocó en transformar la arquitectura monolítica en un sistema modular extensible que facilitara la integración futura.
 
 \textbf{Nueva arquitectura basada en servicios}:
-Se diseñó una \gls{arquitectura_orientada_servicios} utilizando el patrón \textit{Singleton} para recursos compartidos y comunicación dirigida por eventos. La arquitectura separó claramente las responsabilidades en servicios especializados: \textit{CollectorService} para gestión de colectores de datos, \textit{RecordingService} para coordinación de grabaciones, \textit{ProcessingService} para algoritmos de procesamiento, entre otros servicios de gestión para recursos compartidos.
+Se diseñó una \gls{arquitectura_orientada_servicios} utilizando el patrón \textit{Singleton} para recursos compartidos y comunicación dirigida por eventos. La arquitectura separó claramente las responsabilidades en servicios especializados: \textit{\textbf{CollectorService}} para gestión de colectores de datos, \textit{\textbf{RecordingService}} para coordinación de grabaciones, \textit{\textbf{ProcessingService}} para algoritmos de procesamiento, entre otros servicios de gestión para recursos compartidos.
 
-El diseño implementó el principio de \textit{Single Responsibility} asignando una responsabilidad específica a cada clase. El principio \textit{Open-Closed} se aplicó mediante interfaces abstractas que permiten extensibilidad sin modificar código existente. Los principios de \textit{Liskov Substitution}, \textit{Interface Segregation} y \textit{Dependency Inversion} se aplicaron mediante el diseño de \gls{interface} especializadas y sistemas de inyección de dependencias.
+El diseño implementó el principio de \textit{Single Responsibility} asignando una responsabilidad específica a cada clase. El principio \textit{Open-Closed} se aplicó mediante interfaces abstractas que permiten extensibilidad sin modificar código existente. Los principios de \textit{Liskov Substitution}, \textit{Interface Segregation} y \textit{Dependency Inversion} se aplicaron mediante el diseño de \glspl{interface} especializadas y sistemas de inyección de dependencias.
 
 \textbf{Arquitectura refactorizada del módulo de entrada}:
-La refactorización del módulo de entrada implementó una separación clara de responsabilidades mediante múltiples capas especializadas. La Figura~\ref{fig:ic_main_arch_services_core_it2} presenta la nueva arquitectura de servicios centrales, donde \textit{AppCoordinator} actúa como coordinador central que gestiona el \textit{CollectorManager}, eliminando las dependencias directas de la aplicación principal hacia los colectores específicos.
+La refactorización del módulo de entrada implementó una separación clara de responsabilidades mediante múltiples capas especializadas. La Figura~\ref{fig:ic_main_arch_services_core_it2} presenta la nueva arquitectura de servicios centrales, donde \textit{\textbf{AppCoordinator}} actúa como coordinador central que gestiona el \textit{\textbf{CollectorManager}}, eliminando las dependencias directas de la aplicación principal hacia los colectores específicos.
 
 \begin{figure}[H]
     \centering
@@ -56,9 +56,9 @@ La refactorización del módulo de entrada implementó una separación clara de 
     \label{fig:ic_main_arch_services_core_it2}
 \end{figure}
 
-El diseño modular permite que \textit{CollectorManager} gestione múltiples tipos de colectores (teclado/ratón y controladores \acrshort{ps4}) de forma unificada mediante la interfaz \textit{AbstractInputCollector}. Esta arquitectura implementa el principio de \textit{Single Responsibility} asignando responsabilidades específicas: \textit{AppCoordinator} para coordinación general, \textit{CollectorManager} para gestión de dispositivos, y colectores específicos para captura de eventos de cada tipo de hardware.
+El diseño modular permite que \textit{\textbf{CollectorManager}} gestione múltiples tipos de colectores (teclado/ratón y controladores \acrshort{ps4}) de forma unificada mediante la interfaz \textit{\textbf{AbstractInputCollector}}. Esta arquitectura implementa el principio de \textit{Single Responsibility} asignando responsabilidades específicas: \textit{\textbf{AppCoordinator}} para coordinación general, \textit{\textbf{CollectorManager}} para gestión de dispositivos, y colectores específicos para captura de eventos de cada tipo de \textit{hardware}.
 
-La separación de responsabilidades se extiende a las capas de procesamiento y registro de eventos, como muestra la Figura~\ref{fig:ic_logging_processing_it2}. El \textit{EventProcessor} maneja el formateo y procesamiento de eventos, mientras que \textit{LoggingManager} coordina múltiples sistemas de registro independientes (\textit{JSONLogger} y \textit{CSVLogger}).
+La separación de responsabilidades se extiende a las capas de procesamiento y registro de eventos, como muestra la Figura~\ref{fig:ic_logging_processing_it2}. El \textit{\textbf{EventProcessor}} maneja el formateo y procesamiento de eventos, mientras que \textit{\textbf{LoggingManager}} coordina múltiples sistemas de registro independientes (\textit{\textbf{JSONLogger}} y \textit{\textbf{CSVLogger}}).
 
 \begin{figure}[H]
     \centering
@@ -67,9 +67,9 @@ La separación de responsabilidades se extiende a las capas de procesamiento y r
     \label{fig:ic_logging_processing_it2}
 \end{figure}
 
-Esta separación elimina el acoplamiento estrecho de la iteración anterior, donde cada componente accedía directamente a sistemas de registro. El \textit{EventProcessor} actúa como \textit{middleware} que procesa eventos antes de distribuirlos a sistemas de registro y visualización, implementando el principio \textit{Open-Closed} mediante métodos de procesamiento extensibles sin modificar el código existente.
+Esta separación elimina el acoplamiento estrecho de la iteración anterior, donde cada componente accedía directamente a sistemas de registro. El \textit{\textbf{EventProcessor}} actúa como \textit{middleware} que procesa eventos antes de distribuirlos a sistemas de registro y visualización, implementando el principio \textit{Open-Closed} mediante métodos de procesamiento extensibles sin modificar el código existente.
 
-La capa de visualización se refactorizó completamente para eliminar dependencias directas entre visualizadores y fuentes de datos. La Figura~\ref{fig:ic_ui_visualization_it2} muestra la nueva arquitectura de visualización, donde \textit{VisualizerManager} coordina múltiples visualizadores especializados mediante una jerarquía basada en \textit{BaseVisualizer}.
+La capa de visualización se refactorizó completamente para eliminar dependencias directas entre visualizadores y fuentes de datos. La Figura~\ref{fig:ic_ui_visualization_it2} muestra la nueva arquitectura de visualización, donde \textit{\textbf{VisualizerManager}} coordina múltiples visualizadores especializados mediante una jerarquía basada en \textit{\textbf{BaseVisualizer}}.
 
 \begin{figure}[H]
     \centering
@@ -78,9 +78,9 @@ La capa de visualización se refactorizó completamente para eliminar dependenci
     \label{fig:ic_ui_visualization_it2}
 \end{figure}
 
-El diseño implementa el principio de \textit{Liskov Substitution} mediante \textit{BaseVisualizer}, que define la interfaz común para todos los visualizadores específicos. \textit{UIManager} gestiona la interfaz principal y coordina con \textit{VisualizerManager} para actualizar visualizaciones según el estado del sistema, eliminando las dependencias circulares de la iteración anterior.
+El diseño implementa el principio de \textit{Liskov Substitution} mediante \textit{\textbf{BaseVisualizer}}, que define la interfaz común para todos los visualizadores específicos. \textit{\textbf{UIManager}} gestiona la interfaz principal y coordina con \textit{\textbf{VisualizerManager}} para actualizar visualizaciones según el estado del sistema, eliminando las dependencias circulares de la iteración anterior.
 
-El flujo de datos refactorizado, ilustrado en la Figura~\ref{fig:ic_samples_flowchart_it2}, muestra la separación clara entre capas de captura, procesamiento, visualización y registro. Los eventos fluyen desde los colectores hacia \textit{CollectorManager}, que aplica filtrado antes de distribuir a \textit{AppCoordinator} para procesamiento central.
+El flujo de datos refactorizado, ilustrado en la Figura~\ref{fig:ic_samples_flowchart_it2}, muestra la separación clara entre capas de captura, procesamiento, visualización y registro. Los eventos fluyen desde los colectores hacia \textit{\textbf{CollectorManager}}, que aplica filtrado antes de distribuir a \textit{\textbf{AppCoordinator}} para procesamiento central.
 
 \begin{figure}[H]
     \centering
@@ -89,58 +89,58 @@ El flujo de datos refactorizado, ilustrado en la Figura~\ref{fig:ic_samples_flow
     \label{fig:ic_samples_flowchart_it2}
 \end{figure}
 
-El flujo implementa múltiples canales de distribución: eventos procesados van hacia sistemas de registro a través de \textit{LoggingManager}, mientras que eventos filtrados se distribuyen directamente a visualizadores registrados. Esta arquitectura elimina el \textit{\gls{polling}} directo de visualizadores, implementando un sistema de notificaciones basado en el patrón \textit{Observer}.
+El flujo implementa múltiples canales de distribución: eventos procesados van hacia sistemas de registro a través de \textit{\textbf{LoggingManager}}, mientras que eventos filtrados se distribuyen directamente a visualizadores registrados. Esta arquitectura elimina el \textit{\gls{polling}} directo de visualizadores, implementando un sistema de notificaciones basado en el patrón \textit{Observer}.
 
 \textbf{Arquitectura refactorizada del módulo \acrshort{eeg}}:
-La refactorización del módulo \acrshort{eeg} implementó una separación arquitectónica similar basada en servicios especializados. La Figura~\ref{fig:ep_main_arch_services_core_it2} presenta la nueva arquitectura de servicios centrales donde \textit{EEGProcessorApp} coordina múltiples servicios independientes: \textit{CollectorService}, \textit{ProcessorService}, \textit{VisualizationService} y \textit{RecordingService}.
+La refactorización del módulo \acrshort{eeg} implementó una separación arquitectónica similar basada en servicios especializados. La Figura~\ref{fig:ep_main_arch_services_core_it2} presenta la nueva arquitectura de servicios centrales donde \textit{\textbf{EEGProcessorApp}} coordina múltiples servicios independientes: \textit{\textbf{CollectorService}}, \textit{\textbf{ProcessorService}}, \textit{\textbf{VisualizationService}} y \textit{\textbf{RecordingService}}.
 
 \begin{figure}[H]
     \centering
     \hspace*{-0.05\textwidth}
     \includegraphics[width=1.1\textwidth]{anexos/diagramas/it2/ep_main_arch_services_core_it2.pdf}
-    \caption{Arquitectura de servicios centrales del módulo EEG - Segunda iteración}
+    \caption{Arquitectura de servicios centrales del módulo \acrshort{eeg} - Segunda iteración}
     \label{fig:ep_main_arch_services_core_it2}
 \end{figure}
 
-El diseño modular permite que cada servicio maneje una responsabilidad específica: \textit{CollectorService} gestiona la conexión y adquisición de datos de dispositivos \acrshort{eeg}, \textit{ProcessorService} maneja algoritmos de procesamiento de señales, \textit{VisualizationService} coordina la creación y gestión de visualizadores, y \textit{RecordingService} controla la grabación de datos. Esta separación facilita la extensibilidad y mantenimiento al aislar cambios en funcionalidades específicas sin afectar otros componentes del sistema.
+El diseño modular permite que cada servicio maneje una responsabilidad específica: \textit{\textbf{CollectorService}} gestiona la conexión y adquisición de datos de dispositivos \acrshort{eeg}, \textit{\textbf{ProcessorService}} maneja algoritmos de procesamiento de señales, \textit{\textbf{VisualizationService}} coordina la creación y gestión de visualizadores, y \textit{\textbf{RecordingService}} controla la grabación de datos. Esta separación facilita la extensibilidad y mantenimiento al aislar cambios en funcionalidades específicas sin afectar otros componentes del sistema.
 
-La interfaz \textit{CollectorInterface} define el contrato para diferentes tipos de colectores de datos, mientras que \textit{BoardInterface} abstrae la configuración de diferentes placas \acrshort{eeg}. Esta implementación del principio de \textit{Dependency Inversion} permite que los servicios dependan de abstracciones en lugar de implementaciones específicas.
+La interfaz \textit{\textbf{CollectorInterface}} define el contrato para diferentes tipos de colectores de datos, mientras que \textit{\textbf{BoardInterface}} abstrae la configuración de diferentes placas \acrshort{eeg}. Esta implementación del principio de \textit{Dependency Inversion} permite que los servicios dependan de abstracciones en lugar de implementaciones específicas.
 
-La capa de interfaz de usuario se refactorizó mediante paneles especializados que implementan el principio de \textit{Single Responsibility}. La Figura~\ref{fig:ep_ui_components_it2} muestra la nueva arquitectura de componentes de interfaz, donde \textit{BasePanel} proporciona funcionalidad común mientras que paneles específicos manejan diferentes aspectos del sistema.
+La capa de interfaz de usuario se refactorizó mediante paneles especializados que implementan el principio de \textit{Single Responsibility}. La Figura~\ref{fig:ep_ui_components_it2} muestra la nueva arquitectura de componentes de interfaz, donde \textit{\textbf{BasePanel}} proporciona funcionalidad común mientras que paneles específicos manejan diferentes aspectos del sistema.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{anexos/diagramas/it2/ep_ui_components_it2.pdf}
-    \caption{Arquitectura de componentes de interfaz de usuario del módulo EEG - Segunda iteración}
+    \caption{Arquitectura de componentes de interfaz de usuario del módulo \acrshort{eeg} - Segunda iteración}
     \label{fig:ep_ui_components_it2}
 \end{figure}
 
-El diseño implementa especialización funcional: \textit{ConnectionPanel} maneja la conexión con dispositivos, \textit{ProcessingPanel} gestiona filtros y procesamiento básico, \textit{MNEPanel} integra capacidades de \textbf{MNE-Python}, \textit{StreamingPanel} configura \textit{\glspl{stream}} de datos, \textit{AdvancedProcessingPanel} proporciona algoritmos avanzados como \acrshort{ica} y \textit{\glspl{wavelet}}, y \textit{RecordingPanel} controla la grabación de datos.
+El diseño implementa especialización funcional: \textit{\textbf{ConnectionPanel}} maneja la conexión con dispositivos, \textit{\textbf{ProcessingPanel}} gestiona filtros y procesamiento básico, \textit{\textbf{MNEPanel}} integra capacidades de \textbf{MNE-Python}, \textit{\textbf{StreamingPanel}} configura \textit{\glspl{stream}} de datos, \textit{\textbf{AdvancedProcessingPanel}} proporciona algoritmos avanzados como \acrshort{ica} y \textit{\glspl{wavelet}}, y \textit{\textbf{RecordingPanel}} controla la grabación de datos.
 
-Cada panel interactúa con servicios específicos según su funcionalidad, implementando el principio de \textit{Interface Segregation} donde los clientes solo dependen de las interfaces que realmente utilizan. El sistema de ayuda contextual se centraliza en \textit{HelpSystem}, proporcionando soporte a través de todos los paneles.
+Cada panel interactúa con servicios específicos según su funcionalidad, implementando el principio de \textit{Interface Segregation} donde los clientes solo dependen de las interfaces que realmente utilizan. El sistema de ayuda contextual se centraliza en \textit{\textbf{HelpSystem}}, proporcionando soporte a través de todos los paneles.
 
-El flujo de datos refactorizado del módulo \acrshort{eeg}, ilustrado en la Figura~\ref{fig:ep_samples_flowchart_it2}, muestra la comunicación entre servicios y el acceso coordinado a datos. Los datos fluyen desde el hardware \acrshort{eeg} hacia \textit{EEGCollector}, que utiliza \textbf{BrainFlow} para abstracción de dispositivos.
+El flujo de datos refactorizado del módulo \acrshort{eeg}, ilustrado en la Figura~\ref{fig:ep_samples_flowchart_it2}, muestra la comunicación entre servicios y el acceso coordinado a datos. Los datos fluyen desde el \textit{hardware} \acrshort{eeg} hacia \textit{\textbf{EEGCollector}}, que utiliza \textbf{BrainFlow} para abstracción de dispositivos.
 
 \begin{figure}[H]
     \centering
     \hspace*{-0.05\textwidth}
     \includegraphics[width=1.1\textwidth]{anexos/diagramas/it2/ep_samples_flowchart_it2.pdf}
-    \caption{Flujo de datos refactorizado del módulo EEG - Segunda iteración}
+    \caption{Flujo de datos refactorizado del módulo \acrshort{eeg} - Segunda iteración}
     \label{fig:ep_samples_flowchart_it2}
 \end{figure}
 
-\textit{CollectorService} actúa como interfaz unificada para acceso a datos, proporcionando un \textit{\gls{buffer}} central que es accedido por visualizadores y servicios de grabación mediante \textit{\gls{polling}}. Los visualizadores (\textit{EEGVisualizer} y \textit{BrainMapVisualizer}) aplican procesamiento local según sus necesidades específicas, mientras que \textit{RecordingService} maneja el almacenamiento de datos en archivos \acrshort{csv}.
+\textit{\textbf{CollectorService}} actúa como interfaz unificada para acceso a datos, proporcionando un \textit{\gls{buffer}} central que es accedido por visualizadores y servicios de grabación mediante \textit{\gls{polling}}. Los visualizadores (\textit{\textbf{EEGVisualizer}} y \textit{\textbf{BrainMapVisualizer}}) aplican procesamiento local según sus necesidades específicas, mientras que \textit{\textbf{RecordingService}} maneja el almacenamiento de datos en archivos \acrshort{csv}.
 
-La coordinación se realiza a través de \textit{EEGProcessorApp} que gestiona el ciclo de vida de todos los servicios, mientras que los paneles de interfaz proporcionan control granular sobre configuraciones específicas. Esta arquitectura elimina las dependencias circulares de la iteración anterior y facilita la integración con sistemas externos.
+La coordinación se realiza a través de \textit{\textbf{EEGProcessorApp}} que gestiona el ciclo de vida de todos los servicios, mientras que los paneles de interfaz proporcionan control granular sobre configuraciones específicas. Esta arquitectura elimina las dependencias circulares de la iteración anterior y facilita la integración con sistemas externos.
 
 \textbf{Patrones de diseño aplicados}:
-La arquitectura utilizó el patrón \textit{Singleton} con implementación \textit{\gls{thread-safe}} para servicios centrales que requieren instancia única. El patrón \textit{Factory} se aplicó para creación de colectores específicos según el tipo de dispositivo. \textit{Observer} se implementó mediante sistema de \glspl{callback} para comunicación desacoplada entre componentes. El patrón \textit{Strategy} se utilizó para intercambio de algoritmos de procesamiento sin modificar el código cliente.
+La arquitectura utilizó el patrón \textit{Singleton} con implementación \textit{\gls{thread-safe}} para servicios centrales que requieren instancia única. El patrón \textit{Factory} se aplicó para creación de colectores específicos según el tipo de dispositivo. \textit{Observer} se implementó mediante sistema de \textit{\glspl{callback}} para comunicación desacoplada entre componentes. El patrón \textit{Strategy} se utilizó para intercambio de algoritmos de procesamiento sin modificar el código cliente.
 
 \textbf{Diseño del módulo integrador}:
-Se diseñó un módulo integrador independiente que coordinaba ambos módulos refactorizados. El diseño incluía coordinación visual de controles de grabación desde una interfaz centralizada, y \textit{widgets} de ayuda específicos para explicar diferencias entre formatos de exportación y opciones de sincronización.
+Se diseñó un módulo integrador independiente que coordinaba ambos módulos refactorizados. El diseño incluía coordinación visual de controles de grabación desde una interfaz centralizada, y \textit{\glspl{widget}} de ayuda específicos para explicar diferencias entre formatos de exportación y opciones de sincronización.
 
 \textbf{Arquitectura de comunicación}:
-El diseño contempló múltiples modalidades de comunicación entre módulos: \glspl{callback} internos para comunicación de baja latencia, señales \textit{Qt} para sincronización de interfaces gráficas, y un sistema de eventos global para coordinación de operaciones complejas.
+El diseño contempló múltiples modalidades de comunicación entre módulos: \textit{\glspl{callback}} internos para comunicación de baja latencia, señales \textbf{Qt} para sincronización de interfaces gráficas, y un sistema de eventos global para coordinación de operaciones complejas.
 
 \subsection{Implementación de la iteración}
 \label{subsec:implementacion_iteracion_2}
@@ -148,19 +148,19 @@ El diseño contempló múltiples modalidades de comunicación entre módulos: \g
 La implementación se organizó en fases que abarcaron la refactorización completa de ambos módulos y el desarrollo del sistema integrador.
 
 \textbf{Fase 1: Refactorización del módulo de entrada}:
-La refactorización separó responsabilidades en clases independientes especializadas. Se implementaron gestores específicos para cada tipo de colector (teclado, ratón, futuro soporte para controladores), adaptadores para comunicación entre componentes, y servicios centralizados para recursos compartidos como configuración y logging.
+La refactorización separó responsabilidades en clases independientes especializadas. Se implementaron gestores específicos para cada tipo de colector (teclado, ratón, futuro soporte para controladores), adaptadores para comunicación entre componentes, y servicios centralizados para recursos compartidos como configuración y \textit{logging}.
 
-La granularidad del código mejoró significativamente, con archivos más pequeños y responsabilidades específicas. Se implementó un sistema de \textit{\glspl{factory}} para crear colectores apropiados según la configuración. Los \glspl{callback} se estandarizaron para comunicación consistente entre componentes. El sistema de filtrado se modularizó permitiendo extensión con nuevos tipos de filtros sin modificar código existente.
+La granularidad del código mejoró significativamente, con archivos más pequeños y responsabilidades específicas. Se implementó un sistema de \textit{\glspl{factory}} para crear colectores apropiados según la configuración. Los \textit{\glspl{callback}} se estandarizaron para comunicación consistente entre componentes. El sistema de filtrado se modularizó permitiendo extensión con nuevos tipos de filtros sin modificar código existente.
 
 \textbf{Fase 2: Refactorización del módulo \acrshort{eeg}}:
-Se implementaron servicios \textit{singleton} \textit{\gls{thread-safe}} para recursos compartidos como conexiones \textbf{Brainflow} y \textit{\glspl{buffer}} de datos. La separación entre procesamiento y presentación se logró mediante servicios independientes que pueden funcionar sin interfaz gráfica. El sistema de \textit{\glspl{callback}} se redeseñó para comunicación desacoplada entre componentes de procesamiento y visualización.
+Se implementaron servicios \textit{singleton} \textit{\gls{thread-safe}} para recursos compartidos como conexiones \textbf{Brainflow} y \textit{\glspl{buffer}} de datos. La separación entre procesamiento y presentación se logró mediante servicios independientes que pueden funcionar sin interfaz gráfica. El sistema de \textit{\glspl{callback}} se rediseñó para comunicación desacoplada entre componentes de procesamiento y visualización.
 
-Los algoritmos de procesamiento se modularizaron en clases independientes especializadas. El sistema de visualización se refactorizó para soportar múltiples tipos de visualizadores sin acoplamiento con fuentes de datos específicas. La gestión de dispositivos se centralizó en un servicio dedicado que abstrae las diferencias entre tipos de hardware.
+Los algoritmos de procesamiento se modularizaron en clases independientes especializadas. El sistema de visualización se refactorizó para soportar múltiples tipos de visualizadores sin acoplamiento con fuentes de datos específicas. La gestión de dispositivos se centralizó en un servicio dedicado que abstrae las diferencias entre tipos de \textit{hardware}.
 
 \textbf{Fase 3: Desarrollo del módulo integrador}:
 Se implementó un módulo integrador independiente que coordinaba ambos módulos refactorizados siguiendo la nueva estructura modular. La coordinación visual se logró mediante controles de grabación centralizados que iniciaban y detenían operaciones en ambos módulos simultáneamente, aunque el sistema solo podía detectar el estado activo de los \textit{\glspl{stream}} sin acceso directo a datos o metadatos internos.
 
-Se desarrollaron \textit{widgets} de ayuda específicos que explicaban diferencias entre formatos de exportación y opciones de sincronización disponibles. El sistema incluía validación básica de configuración que verificaba compatibilidad entre parámetros de ambos módulos antes de iniciar operaciones.
+Se desarrollaron \textit{\glspl{widget}} de ayuda específicos que explicaban diferencias entre formatos de exportación y opciones de sincronización disponibles. El sistema incluía validación básica de configuración que verificaba compatibilidad entre parámetros de ambos módulos antes de iniciar operaciones.
 
 \textbf{Validación y preservación de funcionalidad}:
 Durante toda la refactorización se realizaron pruebas manuales exhaustivas después de cada cambio significativo para garantizar preservación de funcionalidad. Se desarrollaron \textit{scripts} de prueba que verificaban que cada funcionalidad seguía operando correctamente después de los cambios arquitectónicos.
@@ -182,16 +182,16 @@ La validación se enfocó en verificar la preservación de funcionalidad tras la
     \textbf{Prueba realizada} & \textbf{Resultado esperado} & \textbf{Resultado obtenido} & \textbf{Estado} \\
     \hline
     Preservación funcionalidad entrada & Todas las funciones operativas & Funcionalidad completa preservada & Exitosa \\
-    Preservación funcionalidad EEG & Visualización y grabación funcionando & Operación normal sin degradación & Exitosa \\
+    Preservación funcionalidad \acrshort{eeg} & Visualización y grabación funcionando & Operación normal sin degradación & Exitosa \\
     Reducción acoplamiento & Archivos independientes y modulares & Archivos 60\% más pequeños, menor dependencia & Exitosa \\
     Tiempo de depuración & Reducción significativa & 70\% reducción en tiempo identificación errores & Exitosa \\
-    Aplicación principios SOLID & Principios implementados correctamente & Single Responsibility, Open-Closed aplicados & Exitosa \\
-    Servicios thread-safe & Operación concurrente sin errores & Singleton seguro, operación estable & Exitosa \\
-    Sistema callbacks interno & Comunicación desacoplada & Eventos propagados correctamente & Exitosa \\
+    Aplicación principios \acrshort{solid} & Principios implementados correctamente & \textit{Single Responsibility}, \textit{Open-Closed} aplicados & Exitosa \\
+    Servicios \textit{thread-safe} & Operación concurrente sin errores & \textit{Singleton} seguro, operación estable & Exitosa \\
+    Sistema \textit{\glspl{callback}} interno & Comunicación desacoplada & Eventos propagados correctamente & Exitosa \\
     Configuración coordinada & Coordinación visual de parámetros & Configuración centralizada funcional & Exitosa \\
     Coordinación grabaciones & Inicio/parada sincronizada & Control visual coordinado exitoso & Exitosa \\
-    Acceso datos internos & Interfaces para datos tiempo real & Acceso limitado, sin \gls{streaming} directo & Parcial \\
-    Sincronización temporal real & Timestamps coordinados & Solo coordinación visual, no datos & Fallida \\
+    Acceso datos internos & Interfaces para datos tiempo real & Acceso limitado, sin \textit{\gls{streaming}} directo & Parcial \\
+    Sincronización temporal real & \textit{Timestamps} coordinados & Solo coordinación visual, no datos & Fallida \\
     Intercambio datos módulos & Comunicación bidireccional & Sin capacidades intercambio directo & Fallida \\
     \end{tabular}
   }

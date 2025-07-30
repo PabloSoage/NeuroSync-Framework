@@ -18,77 +18,77 @@ La selección de lenguajes de programación constituye una decisión fundamental
 \subsection{Python como lenguaje principal}
 \label{subsec:python_principal}
 
-Python se seleccionó como lenguaje principal del proyecto debido a su prevalencia en el ecosistema de computación científica~\cite{gramfort2013meg,delorme2004eeglab}. El ecosistema científico de Python proporciona bibliotecas fundamentales como NumPy para computación matricial, SciPy para algoritmos científicos, y matplotlib para visualización~\cite{van2011numpy,virtanen2020scipy}.
+Python se seleccionó como lenguaje principal del proyecto debido a su prevalencia en el ecosistema de computación científica~\cite{gramfort2013meg,delorme2004eeglab}. El ecosistema científico de Python proporciona bibliotecas fundamentales como \textbf{NumPy} para computación matricial, \textbf{SciPy} para algoritmos científicos, y \textbf{matplotlib} para visualización~\cite{van2011numpy,virtanen2020scipy}.
 
-La integración natural con bibliotecas especializadas en neurociencia como MNE-Python y BrainFlow constituye una ventaja decisiva~\cite{gramfort2013meg,brainflow}. El soporte moderno para tipado estático mediante \textit{\gls{type hints}} permite combinar flexibilidad con verificación de tipos.
+La integración natural con bibliotecas especializadas en neurociencia como \textbf{MNE-Python} y \textbf{BrainFlow} constituye una ventaja decisiva~\cite{gramfort2013meg,brainflow}. El soporte moderno para tipado estático mediante \textit{\gls{type hints}} permite combinar flexibilidad con verificación de tipos.
 
 \subsection{Julia: consideración inicial de alto rendimiento}
 \label{subsec:julia_consideracion}
 
-Julia fue evaluada como alternativa de alto rendimiento durante las fases iniciales del proyecto debido a sus características técnicas prometedoras para computación científica. Julia combina la facilidad de desarrollo de lenguajes dinámicos con el rendimiento de lenguajes compilados mediante compilación \textit{just-in-time} (JIT), proporcionando velocidades de ejecución comparables a C mientras mantiene sintaxis accesible~\cite{bezanson2017julia}.
+Julia fue evaluada como alternativa de alto rendimiento durante las fases iniciales del proyecto debido a sus características técnicas prometedoras para computación científica. Julia combina la facilidad de desarrollo de lenguajes dinámicos con el rendimiento de lenguajes compilados mediante compilación \textit{\acrfull{jit}}, proporcionando velocidades de ejecución comparables a C mientras mantiene sintaxis accesible~\cite{bezanson2017julia}.
 
-La disponibilidad de \gls{bindings} para BrainFlow en Julia representaba una ventaja adicional, permitiendo acceso directo a dispositivos \acrshort{eeg} sin pérdida de rendimiento~\cite{brainflow}. El sistema de tipos múltiple de Julia y su capacidad para \gls{metaprogramacion} ofrecían flexibilidad arquitectónica para el desarrollo de sistemas modulares complejos.
+La disponibilidad de \textit{\gls{bindings}} para \textbf{BrainFlow} en Julia representaba una ventaja adicional, permitiendo acceso directo a dispositivos \acrshort{eeg} sin pérdida de rendimiento~\cite{brainflow}. El sistema de tipos múltiple de Julia y su capacidad para \gls{metaprogramacion} ofrecían flexibilidad arquitectónica para el desarrollo de sistemas modulares complejos.
 
-Sin embargo, varias limitaciones prácticas motivaron la decisión de utilizar Python como lenguaje principal. La compilación JIT de Julia introduce latencias significativas durante el desarrollo iterativo, ya que cada modificación del código requiere recompilación antes de la ejecución. Esta característica resultó incompatible con los ciclos de desarrollo rápido necesarios para la experimentación con diferentes algoritmos y enfoques arquitectónicos.
+Sin embargo, varias limitaciones prácticas motivaron la decisión de utilizar Python como lenguaje principal. La compilación \acrshort{jit} de Julia introduce latencias significativas durante el desarrollo iterativo, ya que cada modificación del código requiere recompilación antes de la ejecución. Esta característica resultó incompatible con los ciclos de desarrollo rápido necesarios para la experimentación con diferentes algoritmos y enfoques arquitectónicos.
 
-La complejidad del sistema de debugging en Julia, especialmente para errores relacionados con tipos y optimizaciones del compilador, dificultaba la identificación y corrección de problemas durante el desarrollo experimental. Adicionalmente, el ecosistema de herramientas para desarrollo de interfaces gráficas en Julia es significativamente menos maduro que el disponible en Python, limitando las opciones para el desarrollo de las interfaces de usuario requeridas por el proyecto.
+La complejidad del sistema de \textit{debugging} en Julia, especialmente para errores relacionados con tipos y optimizaciones del compilador, dificultaba la identificación y corrección de problemas durante el desarrollo experimental. Adicionalmente, el ecosistema de herramientas para desarrollo de interfaces gráficas en Julia es significativamente menos maduro que el disponible en Python, limitando las opciones para el desarrollo de las interfaces de usuario requeridas por el proyecto.
 
 La necesidad potencial de interoperabilidad con librerías Python especializadas en neurociencia habría introducido complejidad adicional mediante el uso de sistemas de interconexión entre lenguajes, incrementando la superficie de posibles fallos y complicando la distribución del software final.
 
 \subsection{JavaScript para interfaces web}
 \label{subsec:javascript_web}
 
-JavaScript ES6+ se emplea en el desarrollo del módulo web para la exploración y pruebas del \acrshort{api}, proporcionando capacidades de visualización interactiva y comunicación en tiempo real con el \textit{backend}. La implementación utiliza una arquitectura modular basada en \gls{managers} especializados que encapsulan funcionalidades específicas como comunicación \gls{websocket} y visualización de gráficos.
+JavaScript ES6+ se emplea en el desarrollo del módulo web para la exploración y pruebas del \acrshort{api}, proporcionando capacidades de visualización interactiva y comunicación en tiempo real con el \textit{backend}. La implementación utiliza una arquitectura modular basada en \textit{\gls{managers}} especializados que encapsulan funcionalidades específicas como comunicación \textit{\gls{websocket}} y visualización de gráficos.
 
 \section{\textit{Frameworks} y bibliotecas principales}
 \label{sec:frameworks_principales}
 
-La selección de \textit{frameworks} y bibliotecas principales se basa en criterios de rendimiento, facilidad de desarrollo y compatibilidad con el ecosistema científico existente. Cada herramienta seleccionada aporta capacidades específicas que contribuyen al cumplimiento de los objetivos del proyecto.
+La selección de \textit{\glspl{framework}} y bibliotecas principales se basa en criterios de rendimiento, facilidad de desarrollo y compatibilidad con el ecosistema científico existente. Cada herramienta seleccionada aporta capacidades específicas que contribuyen al cumplimiento de los objetivos del proyecto.
 
-\subsection{PyQt5 para interfaces gráficas}
+\subsection{\textbf{PyQt5} para interfaces gráficas}
 \label{subsec:pyqt5_interfaces}
 
-PyQt5~\cite{pyqt5_docs} constituye la base tecnológica para la interfaz gráfica del sistema, proporcionando \gls{widget} nativos del sistema operativo con rendimiento superior y capacidades avanzadas de visualización. PyQt5 ofrece mejor rendimiento que alternativas como Tkinter para aplicaciones que requieren actualización frecuente de elementos gráficos~\cite{gui_performance_python}.
+\textbf{PyQt5}~\cite{pyqt5_docs} constituye la base tecnológica para la interfaz gráfica del sistema, proporcionando \textit{\glspl{widget}} nativos del sistema operativo con rendimiento superior y capacidades avanzadas de visualización. \textbf{PyQt5} ofrece mejor rendimiento que alternativas como \textbf{Tkinter} para aplicaciones que requieren actualización frecuente de elementos gráficos~\cite{gui_performance_python}.
 
-La arquitectura de señales y \gls{slots} de Qt proporciona un mecanismo robusto para la comunicación entre componentes de la interfaz de usuario. Las capacidades se complementan con PyQtGraph para visualizaciones científicas de alto rendimiento. Como alternativa se evaluó Tkinter por su simplicidad, pero las limitaciones de rendimiento para visualizaciones en tiempo real hicieron inviable su uso, derivando en la adopción de PyQt5. No se utilizó PyQt6 debido a que no estaba tan asentado como PyQt5 en el momento del desarrollo.
+La arquitectura de señales y \textit{\gls{slots}} de \textbf{Qt} proporciona un mecanismo robusto para la comunicación entre componentes de la interfaz de usuario. Las capacidades se complementan con \textbf{PyQtGraph} para visualizaciones científicas de alto rendimiento. Como alternativa se evaluó \textbf{Tkinter} por su simplicidad, pero las limitaciones de rendimiento para visualizaciones en tiempo real hicieron inviable su uso, derivando en la adopción de \textbf{PyQt5}. No se utilizó \textbf{PyQt6} debido a que no estaba tan asentado como \textbf{PyQt5} en el momento del desarrollo.
 
 \subsection{FastAPI para servicios web}
 \label{subsec:fastapi_servicios}
 
-FastAPI~\cite{fastapi_benchmark} se seleccionó como base tecnológica para el desarrollo de las \acrshortpl{api} \acrshort{rest} y servicios web del sistema debido a su combinación única de alto rendimiento y facilidad de desarrollo. La generación automática de documentación OpenAPI/Swagger elimina la necesidad de mantener documentación separada del código. La validación automática de datos mediante Pydantic proporciona garantías de tipo sin código adicional.
+FastAPI~\cite{fastapi_benchmark} se seleccionó como base tecnológica para el desarrollo de las \acrshortpl{api} \acrshort{rest} y servicios web del sistema debido a su combinación única de alto rendimiento y facilidad de desarrollo. La generación automática de documentación \textbf{OpenAPI}/\textbf{Swagger} elimina la necesidad de mantener documentación separada del código. La validación automática de datos mediante \textbf{Pydantic} proporciona garantías de tipo sin código adicional.
 
-\subsection{Typer y Rich para interfaces de línea de comandos}
+\subsection{\textbf{Typer} y \textbf{Rich} para interfaces de línea de comandos}
 \label{subsec:typer_rich_cli}
 
-Typer~\cite{typer_docs} y Rich~\cite{rich_docs} proporcionan la base tecnológica para las interfaces de línea de comandos del sistema. Typer aprovecha las anotaciones de tipo de Python para generar automáticamente parsers de argumentos, mientras que Rich proporciona capacidades avanzadas de formateo de salida incluyendo tablas, barras de progreso y coloreado sintáctico.
+\textbf{Typer}~\cite{typer_docs} y \textbf{Rich}~\cite{rich_docs} proporcionan la base tecnológica para las interfaces de línea de comandos del sistema. \textbf{Typer} aprovecha las anotaciones de tipo de Python para generar automáticamente \textit{parsers} de argumentos, mientras que \textbf{Rich} proporciona capacidades avanzadas de formateo de salida incluyendo tablas, barras de progreso y coloreado sintáctico.
 
 \section{Bibliotecas de procesamiento científico}
 \label{sec:bibliotecas_cientifico}
 
-\subsection{NumPy y SciPy: fundamentos del procesamiento numérico}
+\subsection{\textbf{NumPy} y \textbf{SciPy}: fundamentos del procesamiento numérico}
 \label{subsec:numpy_scipy}
 
-NumPy y SciPy constituyen los cimientos del procesamiento numérico en el sistema~\cite{van2011numpy,virtanen2020scipy}. NumPy proporciona arrays multidimensionales con operaciones vectorizadas implementadas en C, mientras que SciPy extiende las capacidades con algoritmos científicos especializados para filtros digitales, transformadas tiempo-frecuencia y análisis estadístico.
+\textbf{NumPy} y \textbf{SciPy} constituyen los cimientos del procesamiento numérico en el sistema~\cite{van2011numpy,virtanen2020scipy}. \textbf{NumPy} proporciona arrays multidimensionales con operaciones vectorizadas implementadas en C, mientras que \textbf{SciPy} extiende las capacidades con algoritmos científicos especializados para filtros digitales, transformadas tiempo-frecuencia y análisis estadístico.
 
-\subsection{MNE-Python para análisis neurocientífico avanzado}
+\subsection{\textbf{MNE-Python} para análisis neurocientífico avanzado}
 \label{subsec:mne_python}
 
-MNE-Python~\cite{gramfort2013meg} se integra como biblioteca especializada para análisis neurocientífico avanzado, proporcionando algoritmos específicamente diseñados para el procesamiento de señales \acrshort{eeg}. La biblioteca incluye implementaciones de \acrshort{ica} para separación de fuentes, análisis tiempo-frecuencia mediante transformadas \gls{wavelet}, y soporte nativo para formatos estándar como \acrshort{bids} y \acrshort{edf+}.
+\textbf{MNE-Python}~\cite{gramfort2013meg} se integra como biblioteca especializada para análisis neurocientífico avanzado, proporcionando algoritmos específicamente diseñados para el procesamiento de señales \acrshort{eeg}. La biblioteca incluye implementaciones de \acrshort{ica} para separación de fuentes, análisis tiempo-frecuencia mediante transformadas \textit{\gls{wavelet}}, y soporte nativo para formatos estándar como \acrshort{bids} y \acrshort{edf+}.
 
 \section{Tecnologías de captura de entrada}
 \label{sec:tecnologias_captura}
 
 La captura precisa de eventos de entrada del usuario constituye uno de los pilares fundamentales del sistema, ya que la sincronización temporal entre señales cerebrales y acciones del usuario es crítica para aplicaciones \acrshort{bci} efectivas.
 
-\subsection{pynput para captura de teclado y ratón}
+\subsection{\textbf{pynput} para captura de teclado y ratón}
 \label{subsec:pynput_captura}
 
-pynput~\cite{pynput_docs} constituye la tecnología fundamental para la captura de eventos de teclado y ratón, proporcionando una interfaz unificada y multiplataforma para el acceso a eventos de entrada de bajo nivel. La capacidad multiplataforma garantiza funcionamiento consistente en Windows, macOS y Linux, utilizando las \acrshort{api} nativas de cada sistema operativo para acceder a eventos con mínima latencia.
+\textbf{pynput}~\cite{pynput_docs} constituye la tecnología fundamental para la captura de eventos de teclado y ratón, proporcionando una interfaz unificada y multiplataforma para el acceso a eventos de entrada de bajo nivel. La capacidad multiplataforma garantiza funcionamiento consistente en Windows, macOS y Linux, utilizando las \acrshort{api} nativas de cada sistema operativo para acceder a eventos con mínima latencia.
 
-\subsection{PySDL2 para controladores de juego}
+\subsection{\textbf{PySDL2} para controladores de juego}
 \label{subsec:pysdl2_controladores}
 
-PySDL2~\cite{pysdl2_docs} proporciona soporte avanzado para controladores de juego, específicamente implementado para el controlador PlayStation 4 DualShock. La implementación utiliza la biblioteca \acrshort{sdl}2 subyacente, ampliamente utilizada en la industria de videojuegos, que proporciona soporte robusto para una gran variedad de dispositivos de entrada.
+\textbf{PySDL2}~\cite{pysdl2_docs} proporciona soporte avanzado para controladores de juego, específicamente implementado para el controlador PlayStation 4 DualShock. La implementación utiliza la biblioteca \textbf{\acrshort{sdl}2} subyacente, ampliamente utilizada en la industria de videojuegos, que proporciona soporte robusto para una gran variedad de dispositivos de entrada.
 
 \section{Formatos de exportación de datos}
 \label{sec:formatos_exportacion}
@@ -98,37 +98,37 @@ La capacidad de exportar datos en formatos estándar reconocidos por la comunida
 \subsection{BIDS: \textit{Brain Imaging Data Structure}}
 \label{subsec:bids_formato}
 
-\acrfull{bids}~\cite{bids} representa el estándar de facto para la organización de datos neurocientíficos, proporcionando una estructura jerárquica que facilita el intercambio y análisis reproducible de datos cerebrales. Los metadatos \acrshort{json} integrados permiten documentar exhaustivamente las condiciones de adquisición y metodología experimental.
+\textit{\acrfull{bids}~\cite{bids}} representa el estándar de facto para la organización de datos neurocientíficos, proporcionando una estructura jerárquica que facilita el intercambio y análisis reproducible de datos cerebrales. Los metadatos \acrshort{json} integrados permiten documentar exhaustivamente las condiciones de adquisición y metodología experimental.
 
 \subsection{EDF+: \textit{European Data Format Plus}}
 \label{subsec:edf_formato}
 
-\acrfull{edf+}~\cite{kemp2003european} constituye un estándar ampliamente adoptado en entornos clínicos para el almacenamiento de señales biomédicas. La especificación incluye capacidades nativas para anotaciones temporales, permitiendo documentar eventos directamente en el archivo de datos.
+\textit{\acrfull{edf+}}~\cite{kemp2003european} constituye un estándar ampliamente adoptado en entornos clínicos para el almacenamiento de señales biomédicas. La especificación incluye capacidades nativas para anotaciones temporales, permitiendo documentar eventos directamente en el archivo de datos.
 
 \subsection{HDF5: \textit{Hierarchical Data Format}}
 \label{subsec:hdf5_formato}
 
-\acrfull{hdf5}~\cite{folk2011overview} proporciona capacidades avanzadas de almacenamiento para datos científicos de gran volumen, ofreciendo compresión integrada y estructura jerárquica flexible. La estructura permite organizar datos de múltiples modalidades en un único archivo con relaciones claramente definidas.
+\textit{\acrfull{hdf5}}~\cite{folk2011overview} proporciona capacidades avanzadas de almacenamiento para datos científicos de gran volumen, ofreciendo compresión integrada y estructura jerárquica flexible. La estructura permite organizar datos de múltiples modalidades en un único archivo con relaciones claramente definidas.
 
 \subsection{CSV: máxima compatibilidad}
 \label{subsec:csv_formato}
 
-\acrfull{csv} proporciona compatibilidad universal para intercambio de datos, garantizando que los datos generados puedan ser procesados por prácticamente cualquier herramienta de análisis. La simplicidad del formato facilita la inspección manual de datos y el desarrollo de scripts de procesamiento personalizados.
+\textit{\acrfull{csv}} proporciona compatibilidad universal para intercambio de datos, garantizando que los datos generados puedan ser procesados por prácticamente cualquier herramienta de análisis. La simplicidad del formato facilita la inspección manual de datos y el desarrollo de scripts de procesamiento personalizados.
 
 \section{Tecnologías de comunicación y serialización}
 \label{sec:comunicacion_serializacion}
 
 La comunicación eficiente y la serialización optimizada de datos constituyen aspectos críticos del sistema, considerando los requisitos de tiempo real y los volúmenes significativos de datos que deben transmitirse entre componentes.
 
-\subsection{\gls{websocket} para comunicación en tiempo real}
+\subsection{\textit{\gls{websocket}} para comunicación en tiempo real}
 \label{subsec:websocket_tiempo_real}
 
-\gls{websocket}~\cite{websocket_rfc} proporciona comunicación bidireccional de baja latencia entre el \textit{backend} del sistema y las interfaces web, permitiendo visualización y control en tiempo real a través de navegadores sin instalación de \textit{software} adicional.
+\textit{\gls{websocket}}~\cite{websocket_rfc} proporciona comunicación bidireccional de baja latencia entre el \textit{backend} del sistema y las interfaces web, permitiendo visualización y control en tiempo real a través de navegadores sin instalación de \textit{software} adicional.
 
 \subsection{orjson para serialización optimizada}
 \label{subsec:orjson_serializacion}
 
-orjson~\cite{orjson_docs} proporciona serialización \acrshort{json} optimizada con rendimiento superior al módulo \textit{json} estándar de Python, característica crítica para la transmisión eficiente de grandes volúmenes de datos de señales \acrshort{eeg}. El soporte nativo para tipos de datos adicionales incluyendo \textit{datetime} y arrays NumPy elimina la necesidad de conversiones manuales.
+orjson~\cite{orjson_docs} proporciona \gls{serializacion} \acrshort{json} optimizada con rendimiento superior al módulo \acrshort{json} estándar de Python, característica crítica para la transmisión eficiente de grandes volúmenes de datos de señales \acrshort{eeg}. El soporte nativo para tipos de datos adicionales incluyendo \textit{datetime} y arrays \textbf{NumPy} elimina la necesidad de conversiones manuales.
 
 \section{Herramientas de desarrollo y calidad de código}
 \label{sec:herramientas_calidad}
@@ -147,7 +147,7 @@ El historial de \textit{commits} documenta la evolución del proyecto, incluyend
 \subsection{Sistema de control de calidad integrado}
 \label{subsec:control_calidad_integrado}
 
-El sistema implementa un control de calidad de código integrado basado en \textit{\gls{pre-commit hooks}} que ejecuta automáticamente verificaciones antes de cada \textit{commit}. Black~\cite{black_docs} proporciona formateo automático de código Python, mypy~\cite{mypy_docs} realiza verificación de tipos estáticos, y pydocstyle~\cite{pydocstyle_docs} verifica la conformidad de \textit{docstrings} con estándares establecidos.
+El sistema implementa un control de calidad de código integrado basado en \textit{\gls{pre-commit hooks}} que ejecuta automáticamente verificaciones antes de cada \textit{commit}. \textbf{Black}~\cite{black_docs} proporciona formateo automático de código Python, \textbf{mypy}~\cite{mypy_docs} realiza verificación de tipos estáticos, y \textbf{pydocstyle}~\cite{pydocstyle_docs} verifica la conformidad de \textit{docstrings} con estándares establecidos.
 
 \subsection{Tipado estático avanzado}
 \label{subsec:tipado_estatico}
@@ -157,9 +157,9 @@ La implementación extensiva de \textit{\gls{type hints}} en Python facilita el 
 \subsection{Dispositivos de validación}
 \label{subsec:dispositivos_validacion}
 
-El casco \acrshort{eeg} g.tec Unicorn, con sus 8 \glspl{canal} y frecuencia de muestreo de 250Hz, proporciona validación con datos reales de señales cerebrales~\cite{gtec_unicorn}. Este dispositivo permite verificar que el sistema desarrollado funciona correctamente con \textit{hardware} comercial adecuado para fines de investigación.
+El casco \acrshort{eeg} \textbf{g.tec Unicorn}, con sus 8 \glspl{canal} y frecuencia de muestreo de 250Hz, proporciona validación con datos reales de señales cerebrales~\cite{gtec_unicorn}. Este dispositivo permite verificar que el sistema desarrollado funciona correctamente con \textit{hardware} comercial adecuado para fines de investigación.
 
-Los dispositivos \acrshort{eeg} sintéticos de BrainFlow facilitan el desarrollo y las pruebas durante todo el proyecto, permitiendo la validación de algoritmos y procedimientos sin depender constantemente de \textit{hardware} físico especializado~\cite{brainflow}.
+Los dispositivos \acrshort{eeg} sintéticos de \textbf{BrainFlow} facilitan el desarrollo y las pruebas durante todo el proyecto, permitiendo la validación de algoritmos y procedimientos sin depender constantemente de \textit{hardware} físico especializado~\cite{brainflow}.
 
 \section{Resumen de tecnologías seleccionadas}
 \label{sec:resumen_tecnologias}

@@ -1,6 +1,8 @@
+{
+\titlespacing*{\chapter}{0pt}{-0.1\textheight}{20pt}
 \chapter{Estado del arte}
 \label{chap:estado_arte}
-
+}
 \lettrine{E}{l} desarrollo de sistemas \acrshort{bci} ha experimentado un crecimiento exponencial en las últimas décadas, impulsado por avances significativos en neurociencia computacional, procesamiento de señales digitales y algoritmos de \textit{machine learning} (\acrshort{ml})~\cite{eeg_bci_review,wolpaw2002brain,dornhege2007toward,chavarriaga2017heading}. Este crecimiento ha dado lugar a un ecosistema diverso de herramientas, dispositivos y metodologías que abordan diferentes aspectos del desarrollo \acrshort{bci}, desde la adquisición de \glspl{biosenial} hasta el análisis de datos y la implementación de aplicaciones prácticas.
 
 La diversidad del panorama actual refleja tanto la riqueza del campo como su fragmentación inherente. La evolución histórica del campo \acrshort{bci} ha estado marcada por hitos tecnológicos significativos que han ampliado progresivamente las posibilidades de aplicación. Desde los primeros experimentos de control de cursores mediante señales \acrshort{eeg} realizados por Jacques Vidal en la Universidad de California en 1973~\cite{vidal1973direct} hasta las modernas interfaces híbridas que combinan múltiples modalidades de señales cerebrales como los sistemas multimodales que integran \acrshort{eeg}, \acrshort{emg} y \textit{\gls{eye-tracking}}~\cite{pfurtscheller2010hybrid,millán2010combining}, el campo ha demostrado una capacidad notable de innovación y adaptación a nuevos desafíos técnicos y aplicaciones prácticas como el control de robots móviles~\cite{millán2004noninvasive} y sistemas de comunicación asistida~\cite{sellers2006noninvasive}. Sin embargo, diferentes grupos de investigación y empresas han desarrollado soluciones especializadas que, aunque robustas en sus dominios específicos, presentan limitaciones cuando se requiere una integración completa para el desarrollo de aplicaciones \acrshort{bci} efectivas. Esta fragmentación constituye uno de los principales obstáculos para la democratización y adopción masiva de tecnologías \acrshort{bci}.
@@ -47,7 +49,7 @@ Los registros intracraneales mediante microelectrodos representan el nivel más 
 \subsubsection{Justificación de la selección de \acrshort{eeg}}
 \label{subsubsec:justificacion_eeg}
 
-Para facilitar la comparación sistemática entre las diferentes modalidades de adquisición, la Tabla~\ref{tab:comparativa_tecnicas} presenta las características principales de cada técnica evaluadas según criterios relevantes para el desarrollo del \textit{framework} propuesto.
+Para facilitar la comparación sistemática entre las diferentes modalidades de adquisición, la Tabla~\ref{tab:comparativa_tecnicas} presenta las características principales de cada técnica evaluadas según criterios relevantes para el desarrollo del \textit{\gls{framework}} propuesto.
 
 \begin{table}[h!]
 \centering
@@ -67,12 +69,12 @@ Para facilitar la comparación sistemática entre las diferentes modalidades de 
 \label{tab:comparativa_tecnicas}
 \end{table}
 
-Considerando las características mostradas en la Tabla~\ref{tab:comparativa_tecnicas}, la \acrshort{eeg} emerge como la técnica más apropiada para el desarrollo del \textit{framework} propuesto por varias razones fundamentales. Su resolución temporal excepcional es crucial para la sincronización precisa con eventos de entrada del usuario, mientras que su naturaleza no invasiva elimina consideraciones éticas y médicas complejas. La disponibilidad comercial de dispositivos \acrshort{eeg} accesibles facilita la adopción del sistema por parte de una amplia gama de usuarios, desde investigadores académicos hasta desarrolladores independientes. Adicionalmente, el extenso cuerpo de literatura científica sobre procesamiento de señales \acrshort{eeg} y su aplicación en sistemas \acrshort{bci} proporciona una base sólida de conocimiento para el desarrollo de algoritmos robustos y validados~\cite{lotte2007review,blankertz2010neurophysiological}. Estas ventajas estratégicas posicionan a la \acrshort{eeg} como la modalidad óptima para la construcción de una plataforma integrada de desarrollo \acrshort{bci}.
+Considerando las características mostradas en la Tabla~\ref{tab:comparativa_tecnicas}, la \acrshort{eeg} emerge como la técnica más apropiada para el desarrollo del \textit{\gls{framework}} propuesto por varias razones fundamentales. Su resolución temporal excepcional es crucial para la sincronización precisa con eventos de entrada del usuario, mientras que su naturaleza no invasiva elimina consideraciones éticas y médicas complejas. La disponibilidad comercial de dispositivos \acrshort{eeg} accesibles facilita la adopción del sistema por parte de una amplia gama de usuarios, desde investigadores académicos hasta desarrolladores independientes. Adicionalmente, el extenso cuerpo de literatura científica sobre procesamiento de señales \acrshort{eeg} y su aplicación en sistemas \acrshort{bci} proporciona una base sólida de conocimiento para el desarrollo de algoritmos robustos y validados~\cite{lotte2007review,blankertz2010neurophysiological}. Estas ventajas estratégicas posicionan a la \acrshort{eeg} como la modalidad óptima para la construcción de una plataforma integrada de desarrollo \acrshort{bci}.
 
 \section{Dispositivos y \textit{software} de adquisición \acrshort{eeg}}
 \label{sec:dispositivos_software_eeg}
 
-Una vez establecido el enfoque en la \acrshort{eeg} como modalidad óptima para el desarrollo del \textit{framework}, resulta esencial analizar el ecosistema de herramientas disponibles para su implementación práctica. El panorama de dispositivos \acrshort{eeg} ha experimentado una diversificación notable en la última década, con productos que abarcan desde sistemas clínicos de precisión extrema hasta dispositivos de consumo orientados a aplicaciones de bienestar y entretenimiento. Esta diversificación refleja tanto la maduración tecnológica del campo como la emergencia de nuevos mercados y aplicaciones que demandan diferentes combinaciones de precisión, portabilidad, facilidad de uso y coste. Paralelamente, el \textit{software} de control y adquisición ha evolucionado desde soluciones propietarias hacia \textit{frameworks} abiertos y librerías de abstracción que facilitan la integración de múltiples dispositivos.
+Una vez establecido el enfoque en la \acrshort{eeg} como modalidad óptima para el desarrollo del \textit{\gls{framework}}, resulta esencial analizar el ecosistema de herramientas disponibles para su implementación práctica. El panorama de dispositivos \acrshort{eeg} ha experimentado una diversificación notable en la última década, con productos que abarcan desde sistemas clínicos de precisión extrema hasta dispositivos de consumo orientados a aplicaciones de bienestar y entretenimiento. Esta diversificación refleja tanto la maduración tecnológica del campo como la emergencia de nuevos mercados y aplicaciones que demandan diferentes combinaciones de precisión, portabilidad, facilidad de uso y coste. Paralelamente, el \textit{software} de control y adquisición ha evolucionado desde soluciones propietarias hacia \textit{\glspl{framework}} abiertos y librerías de abstracción que facilitan la integración de múltiples dispositivos.
 
 \subsection{\textit{Hardware}: dispositivos de adquisición}
 \label{subsec:hardware_dispositivos}
@@ -88,14 +90,14 @@ Los dispositivos de esta categoría se caracterizan por ofrecer la máxima preci
 
 Los sistemas de \textbf{Neuroscan} representan el estándar de oro en muchos laboratorios de neurociencia, ofreciendo configuraciones modulares que pueden adaptarse a necesidades específicas de investigación~\cite{neuroscan_systems}. Los productos de \textbf{Brain Products}, incluyendo la línea \textbf{actiCAP}, han ganado reconocimiento por su excelente calidad de señal y facilidad de uso en entornos de investigación~\cite{brainproducts_analyzer}. \textbf{ANT Neuro} se ha especializado en sistemas de alta densidad que permiten estudios detallados de localización de fuentes y conectividad cerebral~\cite{ant_neuro_systems}.
 
-Sin embargo, su coste elevado, que típicamente oscila entre €50,000 y €200,000~\cite{brainproducts_analyzer,curry_neuroscan}, y la complejidad de su operación los limita a instituciones con recursos significativos y personal técnico especializado.
+Sin embargo, su coste elevado, que típicamente oscila entre 50,000€ y 200,000€~\cite{brainproducts_analyzer,curry_neuroscan}, y la complejidad de su operación los limita a instituciones con recursos significativos y personal técnico especializado.
 
 \subsubsection{Sistemas de investigación de gama media}
 \label{subsubsec:sistemas_investigacion}
 
 Esta categoría representa un equilibrio cuidadosamente optimizado entre capacidades técnicas, facilidad de uso y coste, dirigiéndose específicamente a laboratorios de investigación, instituciones educativas y desarrolladores de aplicaciones \acrshort{bci} que requieren calidad profesional sin el coste prohibitivo de los sistemas clínicos de alta gama.
 
-Como se observa en la Tabla~\ref{tab:dispositivos_gama_media}, estos dispositivos ofrecen un rango diverso de especificaciones que se adaptan a diferentes necesidades de investigación, desde sistemas compactos de 8 canales hasta configuraciones más extensas de 32 canales para estudios de alta resolución espacial.
+Como se observa en la Tabla~\ref{tab:dispositivos_gama_media}, estos dispositivos ofrecen un rango diverso de especificaciones que se adaptan a diferentes necesidades de investigación, desde sistemas compactos de 8 \glspl{canal} hasta configuraciones más extensas de 32 \glspl{canal} para estudios de alta resolución espacial.
 
 \begin{table}[h!]
 \centering
@@ -147,7 +149,7 @@ El \textbf{InteraXon Muse 2}~\cite{muse_2} se ha posicionado como líder en apli
 
 Considerando las características presentadas en las tablas anteriores y los objetivos del proyecto propuesto, la selección se orientó hacia dispositivos de la categoría de investigación de gama media que ofrecen el equilibrio óptimo entre capacidades técnicas, accesibilidad y compatibilidad con librerías de desarrollo como \textbf{BrainFlow}.
 
-El \textbf{g.tec Unicorn Hybrid Black} fue seleccionado como dispositivo principal debido a su excelente soporte en \textbf{BrainFlow}, resolución de 24 bits que garantiza fidelidad de señal apropiada para aplicaciones \acrshort{bci}, conectividad inalámbrica que facilita estudios en entornos naturales, y precio accesible que no limita la adopción por parte de instituciones educativas. Esta selección proporciona capacidades técnicas suficientes para validar el \textit{framework} desarrollado mientras mantiene la accesibilidad necesaria para facilitar su adopción por la comunidad de investigación.
+El \textbf{g.tec Unicorn Hybrid Black} fue seleccionado como dispositivo principal debido a su excelente soporte en \textbf{BrainFlow}, resolución de 24 bits que garantiza fidelidad de señal apropiada para aplicaciones \acrshort{bci}, conectividad inalámbrica que facilita estudios en entornos naturales, y precio accesible que no limita la adopción por parte de instituciones educativas. Esta selección proporciona capacidades técnicas suficientes para validar el \textit{\gls{framework}} desarrollado mientras mantiene la accesibilidad necesaria para facilitar su adopción por la comunidad de investigación.
 
 \subsection{\textit{Software}: librerías de abstracción y control}
 \label{subsec:software_librerias}
@@ -174,7 +176,7 @@ El ecosistema actual incluye numerosas alternativas distribuidas entre diferente
 \textbf{NeuroKit2}~\cite{neurokit2} & Python & Señales fisiológicas \\
 \end{tabular}
 }
-\caption{Panorama de librerías y frameworks para EEG por lenguaje}
+\caption{Panorama de librerías y \textit{\glspl{framework}} para EEG por lenguaje}
 \label{tab:librerias_abstraccion}
 \end{table}
 
@@ -185,7 +187,7 @@ Para el desarrollo del proyecto, el análisis se centró en las dos librerías m
 
 \textbf{BrainFlow}~\cite{brainflow,Rakhmatulin2021} ha emergido como la librería de abstracción más completa y ampliamente adoptada en el ecosistema \acrshort{bci} actual. Su desarrollo ha estado guiado por el objetivo de proporcionar una \acrshort{api} consistente que abstraiga las complejidades específicas de más de 20 fabricantes diferentes de dispositivos \acrshort{eeg}, desde sistemas clínicos de alta gama hasta dispositivos de consumo.
 
-Sus características principales incluyen soporte multiplataforma que abarca Windows, macOS, Linux y Android, facilitando el desarrollo de aplicaciones que puedan ejecutarse en diferentes entornos. La disponibilidad de \gls{bindings} para múltiples lenguajes de programación, incluyendo Python, C++, C\#, Java, R y MATLAB, amplía significativamente su accesibilidad para desarrolladores con diferentes antecedentes técnicos.
+Sus características principales incluyen soporte multiplataforma que abarca Windows, macOS, Linux y Android, facilitando el desarrollo de aplicaciones que puedan ejecutarse en diferentes entornos. La disponibilidad de \textit{\gls{bindings}} para múltiples lenguajes de programación, incluyendo Python, C++, C\#, Java, R y MATLAB, amplía significativamente su accesibilidad para desarrolladores con diferentes antecedentes técnicos.
 
 Sin embargo, \textbf{BrainFlow} presenta limitaciones significativas que limitan su aplicabilidad como solución completa. La ausencia de interfaces gráficas de usuario requiere que los usuarios desarrollen sus propias herramientas de visualización y control. Las funcionalidades de procesamiento se limitan a operaciones básicas, requiriendo librerías adicionales para análisis avanzados.
 
@@ -196,7 +198,7 @@ Sin embargo, \textbf{BrainFlow} presenta limitaciones significativas que limitan
 
 Sus características principales incluyen un protocolo de red que permite el descubrimiento automático de \textit{\glspl{streaming}} de datos en la red local, facilitando la configuración de sistemas distribuidos. El sistema de sincronización temporal incorpora corrección automática de \gls{deriva_reloj} entre diferentes dispositivos, crucial para mantener la precisión temporal en grabaciones largas.
 
-Por otra parte, las limitaciones de \acrshort{lsl} incluyen la necesidad de programación personalizada sustancial para implementar aplicaciones completas, ya que \acrshort{lsl} proporciona únicamente la infraestructura de \textit{\gls{streaming}} sin interfaces de usuario o herramientas de análisis.
+Por otra parte, las limitaciones de \textbf{\acrshort{lsl}} incluyen la necesidad de programación personalizada sustancial para implementar aplicaciones completas, ya que \textbf{\acrshort{lsl}} proporciona únicamente la infraestructura de \textit{\gls{streaming}} sin interfaces de usuario o herramientas de análisis.
 
 \subsubsection{Selección de librerías para el proyecto}
 \label{subsubsec:seleccion_librerias}
@@ -210,11 +212,11 @@ Esta aproximación híbrida permite aprovechar la amplia compatibilidad de dispo
 
 La estandarización de formatos de datos constituye un aspecto fundamental para la interoperabilidad y reproducibilidad en investigación \acrshort{bci}. Los formatos de almacenamiento han evolucionado desde soluciones propietarias hacia estándares abiertos que facilitan el intercambio de datos entre diferentes herramientas y laboratorios.
 
-\acrfull{edf} y su extensión \acrshort{edf+} representan estándares ampliamente adoptados para almacenamiento de señales biomédicas~\cite{kemp2003european}, proporcionando compatibilidad con la mayoría de \textit{software} de análisis \acrshort{eeg}. Este formato se caracteriza por su simplicidad y robustez, permitiendo almacenar señales continuas junto con anotaciones temporales que facilitan la identificación de eventos específicos durante el análisis posterior.
+\textit{\acrfull{edf}} y su extensión \acrshort{edf+} representan estándares ampliamente adoptados para almacenamiento de señales biomédicas~\cite{kemp2003european}, proporcionando compatibilidad con la mayoría de \textit{software} de análisis \acrshort{eeg}. Este formato se caracteriza por su simplicidad y robustez, permitiendo almacenar señales continuas junto con anotaciones temporales que facilitan la identificación de eventos específicos durante el análisis posterior.
 
-\acrfull{bids} ha emergido como el estándar de facto para organización de datos de neuroimagen~\cite{bids}, facilitando la reproducibilidad y metaanálisis. Su estructura jerárquica y nomenclatura estandarizada permite la organización sistemática de \textit{datasets} complejos que incluyen múltiples sesiones, sujetos y modalidades de adquisición, mejorando significativamente la gestión de proyectos de investigación a gran escala.
+\textit{\acrfull{bids}} ha emergido como el estándar de facto para organización de datos de neuroimagen~\cite{bids}, facilitando la reproducibilidad y metaanálisis. Su estructura jerárquica y nomenclatura estandarizada permite la organización sistemática de \textit{\glspl{dataset}} complejos que incluyen múltiples sesiones, sujetos y modalidades de adquisición, mejorando significativamente la gestión de proyectos de investigación a gran escala.
 
-\acrfull{hdf5} proporciona capacidades avanzadas para almacenamiento de grandes volúmenes de datos con compresión y organización jerárquica~\cite{folk2011overview}. Su flexibilidad permite almacenar tanto datos numéricos como metadatos descriptivos en estructuras complejas, siendo especialmente útil para aplicaciones que requieren acceso eficiente a subconjuntos específicos de datos masivos.
+\textit{\acrfull{hdf5}} proporciona capacidades avanzadas para almacenamiento de grandes volúmenes de datos con compresión y organización jerárquica~\cite{folk2011overview}. Su flexibilidad permite almacenar tanto datos numéricos como metadatos descriptivos en estructuras complejas, siendo especialmente útil para aplicaciones que requieren acceso eficiente a subconjuntos específicos de datos masivos.
 
 \section{\textit{Software} de procesamiento de señales \acrshort{eeg}}
 \label{sec:software_procesamiento}
@@ -226,7 +228,7 @@ El procesamiento de señales \acrshort{eeg} requiere programas especializados ca
 
 Los entornos de análisis científico representan plataformas completas diseñadas para cubrir todo el flujo de trabajo de análisis de datos \acrshort{eeg}, desde el preprocesamiento básico hasta análisis estadísticos sofisticados y visualización de resultados.
 
-\textbf{EEGLAB}~\cite{delorme2004eeglab} ha establecido durante más de dos décadas el estándar de facto para análisis de datos \acrshort{eeg} en muchos laboratorios de neurociencia mundial. Su desarrollo ha estado guiado por la necesidad de proporcionar herramientas accesibles pero potentes para investigadores sin formación especializada en procesamiento de señales. Su interfaz gráfica intuitiva y su extenso ecosistema de \gls{plugins} lo han convertido en la herramienta de elección para muchos investigadores~\cite{tangermann2012review}.
+\textbf{EEGLAB}~\cite{delorme2004eeglab} ha establecido durante más de dos décadas el estándar de facto para análisis de datos \acrshort{eeg} en muchos laboratorios de neurociencia mundial. Su desarrollo ha estado guiado por la necesidad de proporcionar herramientas accesibles pero potentes para investigadores sin formación especializada en procesamiento de señales. Su interfaz gráfica intuitiva y su extenso ecosistema de \textit{\gls{plugins}} lo han convertido en la herramienta de elección para muchos investigadores~\cite{tangermann2012review}.
 
 \textbf{MNE-Python}~\cite{gramfort2013meg} representa la evolución natural de las herramientas de análisis \acrshort{eeg} hacia el ecosistema Python, combinando las lecciones aprendidas de plataformas establecidas con el diseño moderno orientado a objetos y las ventajas del desarrollo de código abierto. Su integración nativa con el ecosistema científico de Python, incluyendo \textbf{NumPy}, \textbf{SciPy} y \textbf{scikit-learn}, facilita el desarrollo de \textit{\glspl{pipeline}} de análisis personalizados.
 
@@ -289,9 +291,9 @@ El ecosistema de herramientas \acrshort{eeg} incluye numerosas librerías especi
 \label{tab:librerias_especializadas}
 \end{table}
 
-\textbf{NeuroKit2}~\cite{neurokit2} se ha posicionado como un \textit{framework} Python integral para análisis de señales fisiológicas, destacando por su enfoque en la simplicidad de uso y documentación exhaustiva. Esta librería resulta especialmente valiosa para investigadores que trabajan con múltiples modalidades de señales biomédicas más allá del \acrshort{eeg}, incluyendo \acrshort{ecg}, \acrshort{emg} y señales de conductancia de la piel.
+\textbf{NeuroKit2}~\cite{neurokit2} se ha posicionado como un \textit{\gls{framework}} Python integral para análisis de señales fisiológicas, destacando por su enfoque en la simplicidad de uso y documentación exhaustiva. Esta librería resulta especialmente valiosa para investigadores que trabajan con múltiples modalidades de señales biomédicas más allá del \acrshort{eeg}, incluyendo \acrshort{ecg}, \acrshort{emg} y señales de conductancia de la piel.
 
-\textbf{pyEEG} proporciona funcionalidades especializadas para procesamiento continuo de datos \acrshort{eeg}, con excelente integración con MNE-Python y capacidades optimizadas para análisis en tiempo real. Su mantenimiento moderado requiere atención cuidadosa a la compatibilidad con versiones actuales de dependencias.
+\textbf{pyEEG} proporciona funcionalidades especializadas para procesamiento continuo de datos \acrshort{eeg}, con excelente integración con \textbf{MNE-Python} y capacidades optimizadas para análisis en tiempo real. Su mantenimiento moderado requiere atención cuidadosa a la compatibilidad con versiones actuales de dependencias.
 
 \textbf{EEG-ExPy} se enfoca en el desarrollo de experimentos \acrshort{bci}, proporcionando herramientas para creación de paradigmas experimentales y gestión de sesiones de adquisición. Aunque su documentación es básica, su desarrollo activo y soporte para múltiples dispositivos lo convierten en una opción valiosa para laboratorios de investigación.
 
@@ -317,9 +319,9 @@ Para evaluar adecuadamente la viabilidad y posicionamiento estratégico de la so
 \subsubsection{Fortalezas del sistema propuesto}
 \label{subsubsec:fortalezas}
 
-El \textit{framework} a desarrollar presenta ventajas competitivas potenciales que lo posicionarían favorablemente en el ecosistema \acrshort{bci}. La integración multidispositivo constituiría una fortaleza fundamental, proporcionando una solución unificada que integre fuentes de entrada como \acrshort{eeg}, teclado, ratón y controladores en un sistema sincronizado, eliminando la necesidad de combinar herramientas fragmentadas que tradicionalmente han dificultado el desarrollo de aplicaciones \acrshort{bci}.
+El \textit{\gls{framework}} a desarrollar presenta ventajas competitivas potenciales que lo posicionarían favorablemente en el ecosistema \acrshort{bci}. La integración multidispositivo constituiría una fortaleza fundamental, proporcionando una solución unificada que integre fuentes de entrada como \acrshort{eeg}, teclado, ratón y controladores en un sistema sincronizado, eliminando la necesidad de combinar herramientas fragmentadas que tradicionalmente han dificultado el desarrollo de aplicaciones \acrshort{bci}.
 
-La propuesta de una arquitectura extensible y modular facilitaría la incorporación de nuevos dispositivos y técnicas de análisis. Esta flexibilidad arquitectónica garantizaría que el \textit{framework} pueda evolucionar con los avances tecnológicos del campo \acrshort{bci}.
+La propuesta de una arquitectura extensible y modular facilitaría la incorporación de nuevos dispositivos y técnicas de análisis. Esta flexibilidad arquitectónica garantizaría que el \textit{\gls{framework}} pueda evolucionar con los avances tecnológicos del campo \acrshort{bci}.
 
 El desarrollo de interfaces de usuario accesibles permitiría que usuarios con diferentes niveles técnicos puedan aprovechar las capacidades del sistema. Esta accesibilidad eliminaría las barreras de adopción que tradicionalmente han limitado el acceso a herramientas \acrshort{bci} avanzadas~\cite{brunner2013bnci}.
 
@@ -328,9 +330,9 @@ El soporte planificado para formatos estándar ampliamente utilizados en neuroci
 \subsubsection{Debilidades a considerar}
 \label{subsubsec:debilidades}
 
-El sistema presenta ciertas limitaciones técnicas y operativas que deben considerarse cuidadosamente. La dependencia crítica de bibliotecas como BrainFlow para la adquisición de señales \acrshort{eeg} podría limitar las funcionalidades del sistema si estas bibliotecas presentan limitaciones o discontinúan su desarrollo, requiriendo estrategias de mitigación y alternativas de contingencia.
+El sistema presenta ciertas limitaciones técnicas y operativas que deben considerarse cuidadosamente. La dependencia crítica de bibliotecas como \textbf{BrainFlow} para la adquisición de señales \acrshort{eeg} podría limitar las funcionalidades del sistema si estas bibliotecas presentan limitaciones o discontinúan su desarrollo, requiriendo estrategias de mitigación y alternativas de contingencia.
 
-La sincronización precisa entre diferentes fuentes de datos presenta complejidades técnicas debido a latencias variables en diferentes sistemas operativos y configuraciones de \textit{hardware}, lo que podría afectar la calidad de los \textit{datasets} generados. Esta variabilidad requiere calibración cuidadosa y validación continua para garantizar la precisión temporal necesaria en aplicaciones \acrshort{bci}.
+La sincronización precisa entre diferentes fuentes de datos presenta complejidades técnicas debido a latencias variables en diferentes sistemas operativos y configuraciones de \textit{hardware}, lo que podría afectar la calidad de los \textit{\glspl{dataset}} generados. Esta variabilidad requiere calibración cuidadosa y validación continua para garantizar la precisión temporal necesaria en aplicaciones \acrshort{bci}.
 
 El procesamiento de dispositivos \acrshort{eeg}, especialmente de alta resolución o alto número de canales, podría requerir recursos computacionales significativos que limiten su aplicabilidad en sistemas con recursos limitados, especialmente en entornos educativos o de investigación con presupuestos restringidos.
 
@@ -339,27 +341,27 @@ A pesar de las interfaces simplificadas, el dominio \acrshort{bci} requiere cono
 \subsubsection{Oportunidades en el entorno}
 \label{subsubsec:oportunidades}
 
-El contexto actual presenta oportunidades significativas para la adopción y expansión del \textit{framework}. El crecimiento exponencial del campo \acrshort{bci}, impulsado por aplicaciones en medicina rehabilitadora, accesibilidad tecnológica y nuevas interfaces de usuario, crea un mercado en expansión que demanda herramientas más accesibles y potentes para investigadores y desarrolladores~\cite{eeg_bci_review,millán2004noninvasive}.
+El contexto actual presenta oportunidades significativas para la adopción y expansión del \textit{\gls{framework}}. El crecimiento exponencial del campo \acrshort{bci}, impulsado por aplicaciones en medicina rehabilitadora, accesibilidad tecnológica y nuevas interfaces de usuario, crea un mercado en expansión que demanda herramientas más accesibles y potentes para investigadores y desarrolladores~\cite{eeg_bci_review,millán2004noninvasive}.
 
 La fragmentación actual del ecosistema de herramientas \acrshort{bci}, como se evidencia en el análisis de las secciones anteriores, representa una oportunidad estratégica para una solución que integre captura sincronizada de señales \acrshort{eeg} y eventos de usuario. Esta integración puede contribuir al avance del campo como una herramienta útil en la comunidad científica.
 
 La democratización de la investigación \acrshort{bci} a través de la reducción de barreras técnicas puede facilitar el acceso para grupos con menos recursos técnicos, ampliando potencialmente la base de usuarios y contribuyendo al avance del campo. Esta democratización es especialmente relevante en contextos educativos y de investigación emergente~\cite{sellers2006noninvasive}.
 
-La tendencia creciente hacia soluciones de código abierto en investigación científica posiciona favorablemente al \textit{framework} frente a alternativas comerciales cerradas, especialmente cuando se considera la transparencia y reproducibilidad que demanda la comunidad científica.
+La tendencia creciente hacia soluciones de código abierto en investigación científica posiciona favorablemente al \textit{\gls{framework}} frente a alternativas comerciales cerradas, especialmente cuando se considera la transparencia y reproducibilidad que demanda la comunidad científica.
 
 \subsubsection{Amenazas externas}
 \label{subsubsec:amenazas}
 
-El entorno competitivo presenta desafíos que requieren atención estratégica. La potencial aparición de soluciones comerciales similares, especialmente de empresas con mayores recursos de desarrollo y \textit{marketing}, podría limitar la adopción del \textit{framework} de código abierto si no se mantiene una ventaja competitiva clara en funcionalidad y soporte comunitario.
+El entorno competitivo presenta desafíos que requieren atención estratégica. La potencial aparición de soluciones comerciales similares, especialmente de empresas con mayores recursos de desarrollo y \textit{marketing}, podría limitar la adopción del \textit{\gls{framework}} de código abierto si no se mantiene una ventaja competitiva clara en funcionalidad y soporte comunitario.
 
 Los avances acelerados en tecnología de dispositivos \acrshort{eeg} podrían requerir actualizaciones frecuentes y significativas del sistema para mantener la compatibilidad y relevancia. Esta evolución tecnológica demanda una arquitectura flexible y recursos de desarrollo continuos.
 
-Los cambios en estándares de la industria y la evolución de formatos de datos y protocolos de comunicación en el campo \acrshort{bci} podrían requerir adaptaciones importantes del \textit{framework}, especialmente si estos cambios no son anticipados en el diseño arquitectónico.
+Los cambios en estándares de la industria y la evolución de formatos de datos y protocolos de comunicación en el campo \acrshort{bci} podrían requerir adaptaciones importantes del \textit{\gls{framework}}, especialmente si estos cambios no son anticipados en el diseño arquitectónico.
 
 \subsubsection{Conclusiones del análisis \acrshort{dafo} y diferenciación estratégica}
 \label{subsubsec:conclusiones_dafo}
 
-El análisis \acrshort{dafo} revela un posicionamiento estratégico favorable para el desarrollo del \textit{framework} propuesto. Las fortalezas identificadas, particularmente la integración multidispositivo y la propuesta de arquitectura extensible, abordan directamente las principales debilidades del ecosistema actual identificadas en la sección~\ref{sec:analisis_limitaciones}. Las oportunidades del entorno, especialmente el crecimiento del campo \acrshort{bci} y la demanda de herramientas más accesibles, proporcionan un contexto propicio para la adopción de la solución.
+El análisis \acrshort{dafo} revela un posicionamiento estratégico favorable para el desarrollo del \textit{\gls{framework}} propuesto. Las fortalezas identificadas, particularmente la integración multidispositivo y la propuesta de arquitectura extensible, abordan directamente las principales debilidades del ecosistema actual identificadas en la sección~\ref{sec:analisis_limitaciones}. Las oportunidades del entorno, especialmente el crecimiento del campo \acrshort{bci} y la demanda de herramientas más accesibles, proporcionan un contexto propicio para la adopción de la solución.
 
 Las debilidades identificadas son principalmente técnicas y manejables mediante un diseño arquitectónico cuidadoso y estrategias de mitigación apropiadas. Las amenazas externas, aunque presentes, pueden ser contrarrestadas mediante el desarrollo de ventajas competitivas sostenibles y la construcción de una comunidad de usuarios comprometida.
 
@@ -370,7 +372,7 @@ En conjunto, el análisis sugiere que el proyecto tiene potencial para realizar 
 \section{Resumen del análisis del estado del arte}
 \label{sec:resumen_estado_arte}
 
-El ecosistema actual de herramientas para desarrollo de sistemas \acrshort{bci} presenta una diversidad rica que refleja tanto la maduración del campo como su fragmentación inherente. Mientras que existen soluciones robustas para aspectos específicos del desarrollo \acrshort{bci}, incluyendo adquisición de datos como \textbf{BrainFlow}, análisis avanzado como \textbf{MNE-Python} y sincronización de datos como \textbf{\acrshort{lsl}}, ninguna proporciona una solución integrada que combine estas capacidades con interfaces accesibles y herramientas específicas para generación de \textit{datasets} de calidad.
+El ecosistema actual de herramientas para desarrollo de sistemas \acrshort{bci} presenta una diversidad rica que refleja tanto la maduración del campo como su fragmentación inherente. Mientras que existen soluciones robustas para aspectos específicos del desarrollo \acrshort{bci}, incluyendo adquisición de datos como \textbf{BrainFlow}, análisis avanzado como \textbf{MNE-Python} y sincronización de datos como \textbf{\acrshort{lsl}}, ninguna proporciona una solución integrada que combine estas capacidades con interfaces accesibles y herramientas específicas para generación de \textit{\glspl{dataset}} de calidad.
 
 Esta fragmentación, aunque comprensible dada la evolución histórica del campo, crea barreras significativas para la adopción práctica de tecnologías \acrshort{bci} y limita las oportunidades de innovación interdisciplinaria~\cite{chavarriaga2017heading,brunner2013bnci}. Las limitaciones identificadas incluyen la ausencia de herramientas para captura sincronizada, barreras de entrada técnicas elevadas, carencia de interfaces intuitivas y falta de estandarización en formatos de datos.
 

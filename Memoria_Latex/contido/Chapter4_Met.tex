@@ -31,7 +31,7 @@ Cada iteración sigue un ciclo de desarrollo que incluye las siguientes fases:
     \item \textbf{Evaluación y planificación}: Análisis de resultados obtenidos, identificación de problemas o limitaciones, y planificación de la siguiente iteración o fase a desarrollar.
 \end{itemize}
 
-Este enfoque pragmático permitió una adaptación continua a los desafíos encontrados, priorizando la funcionalidad práctica sobre protocolos formales de \textit{testing} automatizado como \glspl{unit_test}, \glspl{integration_test} o metodologías como \gls{tdd}, lo cual resultó apropiado para la naturaleza experimental del proyecto.
+Este enfoque pragmático permitió una adaptación continua a los desafíos encontrados, priorizando la funcionalidad práctica sobre protocolos formales de \textit{testing} automatizado como \textit{\glspl{unit_test}}, \textit{\glspl{integration_test}} o metodologías como \textit{\gls{tdd}}, lo cual resultó apropiado para la naturaleza experimental del proyecto.
 
 \section{Planificación inicial del proyecto}
 \label{sec:planificacion_inicial}
@@ -46,7 +46,7 @@ El proyecto se planificó inicialmente en 3 iteraciones principales distribuidas
 \begin{enumerate}
     \item \textbf{Iteración 1 - Fundamentos y módulos básicos}: La primera iteración abarcaba el establecimiento de bases técnicas mediante investigación inicial del estado del arte, análisis de requisitos del sistema, diseño arquitectónico, y desarrollo independiente de los módulos de captura de \textit{inputs} y procesamiento \acrshort{eeg} como componentes funcionales autónomos.
     
-    \item \textbf{Iteración 2 - Integración y exportación}: La segunda iteración se enfocaba en unificar los módulos desarrollados mediante \acrshort{lsl} para proporcionar sincronización temporal automática entre fuentes de datos, junto con el desarrollo de capacidades de exportación a múltiples formatos estándar que facilitaran la utilización posterior de los datos sincronizados.
+    \item \textbf{Iteración 2 - Integración y exportación}: La segunda iteración se enfocaba en unificar los módulos desarrollados mediante \textbf{\acrshort{lsl}} para proporcionar sincronización temporal automática entre fuentes de datos, junto con el desarrollo de capacidades de exportación a múltiples formatos estándar que facilitaran la utilización posterior de los datos sincronizados.
     
     \item \textbf{Iteración 3 - Finalización y documentación}: La tercera iteración completaba el sistema con funcionalidades avanzadas de procesamiento, optimizaciones de rendimiento para garantizar operación en tiempo real, mejoras en las interfaces de usuario, y elaboración de la documentación técnica final del proyecto.
 \end{enumerate}
@@ -78,7 +78,7 @@ La Tabla~\ref{tab:planificacion_iteraciones} muestra la distribución temporal p
 \subsection{Diagrama de Gantt inicial}
 \label{subsec:gantt_inicial}
 
-La planificación inicial asumía que la fase de integración directa mediante \acrshort{lsl} sería relativamente breve y no problemática, asignando únicamente 2 semanas para esta actividad crítica dentro de la segunda iteración. Esta subestimación refleja la dificultad inherente de predecir la complejidad de integración en sistemas experimentales.
+La planificación inicial asumía que la fase de integración directa mediante \textbf{\acrshort{lsl}} sería relativamente breve y no problemática, asignando únicamente 2 semanas para esta actividad crítica dentro de la segunda iteración. Esta subestimación refleja la dificultad inherente de predecir la complejidad de integración en sistemas experimentales.
 
 \begin{sidewaysfigure}[p]
 \centering
@@ -144,7 +144,7 @@ La evaluación económica inicial del proyecto reflejaba una estrategia de optim
 \subsubsection{Recursos humanos planificados}
 \label{subsubsec:recursos_humanos_planificados}
 
-Se presenta una estimación de lo que costaría el desarrollo del sistema por un equipo profesional, basándose en datos salariales del sector tecnológico español según informes especializados~\cite{tecnoempleo_empleo_it_2025,4geeks_salario_programador_espana_2025,adalab_salarios_programador_2024}. El perfil de desarrollador junior se valoró considerando salarios base para recién graduados en ingeniería informática (rango 18.000-35.000€ anuales, tomando €24.000 como valor medio). El analista de sistemas se evaluó considerando perfiles con 2-3 años de experiencia en análisis de sistemas complejos (rango 33.200-41.100€ anuales, tomando €36.000). El especialista \acrshort{bci} se valoró como consultor externo especializado según tarifas académicas de consultoría en neurociencia aplicada.
+Se presenta una estimación de lo que costaría el desarrollo del sistema por un equipo profesional, basándose en datos salariales del sector tecnológico español según informes especializados~\cite{tecnoempleo_empleo_it_2025,4geeks_salario_programador_espana_2025,adalab_salarios_programador_2024}. El perfil de desarrollador junior se valoró considerando salarios base para recién graduados en ingeniería informática (rango 18.000-35.000€ anuales, tomando 24.000€ como valor medio). El analista de sistemas se evaluó considerando perfiles con 2-3 años de experiencia en análisis de sistemas complejos (rango 33.200-41.100€ anuales, tomando 36.000€). El especialista \acrshort{bci} se valoró como consultor externo especializado según tarifas académicas de consultoría en neurociencia aplicada.
 
 \begin{table}[htbp!]
   \centering
@@ -193,12 +193,12 @@ El desglose completo de costes estimados para el proyecto incluye tanto los recu
   \label{tab:costes_inicial}
 \end{table}
 
-La Tabla~\ref{tab:costes_inicial} presenta la estimación económica inicial, incluyendo la amortización proporcional del \textit{hardware} utilizado durante el período de desarrollo. La valoración del \textit{hardware} incluye un PC de desarrollo (€1.500) y casco \acrshort{eeg} g.tec Unicorn (€1.200), amortizados durante los 4 meses de duración del proyecto.
+La Tabla~\ref{tab:costes_inicial} presenta la estimación económica inicial, incluyendo la amortización proporcional del \textit{hardware} utilizado durante el período de desarrollo. La valoración del \textit{hardware} incluye un PC de desarrollo (1.500€) y casco \acrshort{eeg} g.tec Unicorn (1.200€), amortizados durante los 4 meses de duración del proyecto.
 
 \subsection{Análisis de riesgos inicial}
 \label{subsec:riesgos_inicial}
 
-La identificación proactiva de riesgos permitió desarrollar estrategias de mitigación anticipadas, aunque algunos riesgos no anticipados emergieron durante el desarrollo. Esto permitió reducir el impacto de algunos problemas conocidos, particularmente mediante el uso exitoso de dispositivos sintéticos BrainFlow que mitigó completamente la falta de disponibilidad de hardware \acrshort{eeg} real, y la investigación exhaustiva previa que facilitó la adopción de tecnologías como PyQt5 y BrainFlow sin curvas de aprendizaje prolongadas~\cite{brainflow,pyqt5_docs}.
+La identificación proactiva de riesgos permitió desarrollar estrategias de mitigación anticipadas, aunque algunos riesgos no anticipados emergieron durante el desarrollo. Esto permitió reducir el impacto de algunos problemas conocidos, particularmente mediante el uso exitoso de dispositivos sintéticos \textbf{BrainFlow} que mitigó completamente la falta de disponibilidad de \textit{hardware} \acrshort{eeg} real, y la investigación exhaustiva previa que facilitó la adopción de tecnologías como \textbf{PyQt5} y \textbf{BrainFlow} sin curvas de aprendizaje prolongadas~\cite{brainflow,pyqt5_docs}.
 
 \begin{table}[htbp!]
   \centering
@@ -209,8 +209,8 @@ La identificación proactiva de riesgos permitió desarrollar estrategias de mit
     \textbf{Riesgo identificado} & \textbf{Prob.} & \textbf{Impacto} & \textbf{Estrategia de mitigación planificada} \\
     \hline
     Complejidad integración módulos & Media & Alta & Prototipado temprano con \acrshort{lsl} \\
-    Rendimiento tiempo real & Media & Alta & Optimización mediante \glspl{callback} \\
-    Disponibilidad dispositivos \acrshort{eeg} & Baja & Alta & Dispositivos sintéticos BrainFlow \\
+    Rendimiento tiempo real & Media & Alta & Optimización mediante \textit{\glspl{callback}} \\
+    Disponibilidad dispositivos \acrshort{eeg} & Baja & Alta & Dispositivos sintéticos \textbf{BrainFlow} \\
     Curva aprendizaje tecnologías & Media & Media & Investigación exhaustiva previa \\
     Dependencias bibliotecas externas & Baja & Media & Selección de bibliotecas estables \\
     \hline
@@ -243,7 +243,7 @@ Los hitos del proyecto reflejaron tanto los éxitos como los desafíos encontrad
 \subsection{Adaptaciones en el seguimiento}
 \label{subsec:adaptaciones_seguimiento}
 
-Los cambios más significativos en el seguimiento reflejaron las limitaciones descubiertas durante la implementación. La decisión inicial de explorar Julia seguida del desarrollo definitivo en Python ilustró la importancia de priorizar la productividad de desarrollo sobre el rendimiento teórico. Los dos fallos consecutivos de integración directa entre módulos revelaron limitaciones fundamentales en la aproximación arquitectónica inicial, llevando a la progresión desde integración monolítica con \acrshort{lsl} hacia refactorización \acrshort{solid} y finalmente hacia arquitectura \acrshort{api}.
+Los cambios más significativos en el seguimiento reflejaron las limitaciones descubiertas durante la implementación. La decisión inicial de explorar Julia seguida del desarrollo definitivo en Python ilustró la importancia de priorizar la productividad de desarrollo sobre el rendimiento teórico. Los dos fallos consecutivos de integración directa entre módulos revelaron limitaciones fundamentales en la aproximación arquitectónica inicial, llevando a la progresión desde integración monolítica con \textbf{\acrshort{lsl}} hacia refactorización \acrshort{solid} y finalmente hacia arquitectura \acrshort{api}.
 
 \section{Análisis de desvíos y replanificación}
 \label{sec:desvios_replanificacion}
@@ -256,12 +256,12 @@ El desarrollo experimentó desvíos significativos que requirieron adaptaciones 
 Los desvíos más significativos reflejaron limitaciones en la estimación inicial de complejidad:
 
 \begin{itemize}
-    \item \textbf{Exploración inicial con Julia (+2-3 días)}: Desarrollo de versión inicial del script de captura de \textit{inputs} en Julia, abandonado por dificultades en implementación de \acrshort{gui} funcional y problemas de precompilación, motivando migración definitiva a Python.
+    \item \textbf{Exploración inicial con Julia (+2-3 días)}: Desarrollo de versión inicial del \textit{script} de captura de \textit{inputs} en Julia, abandonado por dificultades en implementación de \acrshort{gui} funcional y problemas de precompilación, motivando migración definitiva a Python.
     \item \textbf{Fallo de integración monolítica (+3 días)}: Reveló limitaciones arquitectónicas fundamentales no previstas en la planificación
     \item \textbf{Segundo fallo post-\acrshort{solid} (+5 días)}: Confirmó necesidad de cambio estratégico hacia arquitecturas \acrshort{api}
     \item \textbf{Pausa no planificada (+13 días)}: Debida a compromisos académicos externos que afectaron la continuidad
     \item \textbf{Desarrollo completo de arquitectura \acrshort{api} (+15 días)}: Solución emergente no contemplada inicialmente que requirió desarrollo de múltiples interfaces y corrección de problemas arquitectónicos internos
-    \item \textbf{Identificación problemas modo headless (+3 días)}: Limitaciones detectadas tardíamente en el desarrollo
+    \item \textbf{Identificación problemas modo \textit{\gls{headless}} (+3 días)}: Limitaciones detectadas tardíamente en el desarrollo
 \end{itemize}
 
 \subsection{Cronograma real ejecutado}
