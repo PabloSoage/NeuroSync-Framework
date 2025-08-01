@@ -106,20 +106,20 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \textbf{FA-01: Cambio configuración durante captura} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item En el paso 6, el investigador modifica filtros de teclas
-    \item El sistema aplica cambios sin interrumpir la captura
-    \item Se registra el cambio con timestamp para trazabilidad
-    \item Continúa en paso 7
+    \item En el paso 6, el investigador pausa la captura
+    \item Modifica filtros de teclas según necesidades
+    \item El sistema aplica cambios y reinicia captura
+    \item Continúa registro en el mismo archivo si exportación está activa
 \end{itemize}
 \end{minipage} \\
 \hline
 \textbf{FA-02: Cambio modo tracking} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item En el paso 6, el investigador cambia modo de tracking de ratón
+    \item En el paso 6, el investigador pausa la captura
+    \item Cambia modo de tracking de ratón según requerimientos
     \item El sistema actualiza el procesamiento de movimiento
     \item Los visualizadores adaptan representación al nuevo modo
-    \item Continúa en paso 7
 \end{itemize}
 \end{minipage} \\
 \hline
@@ -151,43 +151,23 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \rowcolor{udcpink!25}
 \textbf{Excepción} & \textbf{Manejo} \\
 \hline
-\textbf{FE-01: Fallo dispositivo entrada} & 
+\textbf{FE-01: Fallo controlador PS4} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item El sistema detecta desconexión de dispositivo
-    \item Muestra alerta al investigador indicando dispositivo afectado
+    \item El sistema detecta desconexión del controlador PS4
+    \item Intenta reconexión automática del dispositivo
+    \item Si falla la reconexión, hace fallback a teclado y ratón
     \item Continúa captura con dispositivos disponibles
-    \item Registra evento de fallo para análisis posterior
 \end{itemize}
 \end{minipage} \\
 \hline
-\textbf{FE-02: Error permisos sistema} & 
-\begin{minipage}[t]{10.5cm}
-\begin{itemize}
-    \item pynput no puede acceder a eventos del sistema
-    \item El sistema muestra mensaje explicativo sobre permisos
-    \item Proporciona instrucciones específicas del sistema operativo
-    \item Termina ejecución de forma controlada
-\end{itemize}
-\end{minipage} \\
-\hline
-\textbf{FE-03: Saturación buffer} & 
-\begin{minipage}[t]{10.5cm}
-\begin{itemize}
-    \item Eventos llegan más rápido que procesamiento
-    \item Sistema activa descarte selectivo de eventos duplicados
-    \item Mantiene eventos únicos y registra pérdidas
-    \item Ajusta automáticamente frecuencia de procesamiento
-\end{itemize}
-\end{minipage} \\
-\hline
-\textbf{FE-04: Cierre inesperado} & 
+\textbf{FE-02: Cierre inesperado durante captura} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
     \item Cierre forzado durante captura activa
-    \item Sistema intenta guardar datos parciales automáticamente
-    \item Registra estado de captura para recuperación
-    \item En siguiente inicio, ofrece recuperar sesión interrumpida
+    \item Las muestras registradas hasta el momento se preservan
+    \item Los metadatos de finalización (número total, duración) no se generan
+    \item No hay recuperación automática de sesión al reiniciar
 \end{itemize}
 \end{minipage} \\
 \hline
@@ -211,29 +191,28 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \hline
 \textbf{Identificador} & CU-02 \\
 \hline
-\textbf{Nombre} & Registro temporal preciso de acciones del usuario durante experimentos \\
+\textbf{Nombre} & Registro temporal preciso de eventos durante experimentos \\
 \hline
 \textbf{Actores} & Investigador neurocientífico (principal), Usuario del sistema (secundario) \\
 \hline
-\textbf{Descripción} & El sistema debe mantener precisión temporal de milisegundos en el registro de eventos para facilitar sincronización posterior con señales cerebrales \\
+\textbf{Descripción} & El sistema debe mantener precisión temporal en el registro de eventos para facilitar sincronización posterior con señales cerebrales \\
 \hline
 \textbf{Precondiciones} & 
 \begin{minipage}[t]{11cm}
 \begin{itemize}
     \item El sistema de captura está configurado y funcionando
-    \item Se ha sincronizado el reloj del sistema
     \item El protocolo experimental está definido
-    \item Los parámetros de precisión temporal están configurados
+    \item Los parámetros de captura están configurados
 \end{itemize}
 \end{minipage} \\
 \hline
 \textbf{Postcondiciones} & 
 \begin{minipage}[t]{11cm}
 \begin{itemize}
-    \item Todos los eventos tienen timestamps de alta precisión
+    \item Todos los eventos tienen timestamps precisos
     \item Los datos están estructurados para análisis temporal
     \item Se mantiene trazabilidad de la secuencia temporal
-    \item Los datos son exportables en formatos estándar
+    \item Los datos son exportables en formato CSV
 \end{itemize}
 \end{minipage} \\
 \hline
@@ -255,11 +234,11 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \rowcolor{udcpink!25}
 \textbf{Paso} & \textbf{Acción} \\
 \hline
-1 & El investigador neurocientífico configura parámetros de precisión temporal \\
+1 & El investigador neurocientífico configura parámetros de captura \\
 \hline
-2 & El sistema inicializa el reloj de alta precisión usando time.time() \\
+2 & El sistema inicializa los mecanismos de registro temporal \\
 \hline
-3 & Se establecen marcadores temporales de inicio de experimento \\
+3 & Se indica visualmente el inicio del experimento \\
 \hline
 4 & El investigador inicia el protocolo experimental \\
 \hline
@@ -267,17 +246,13 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \hline
 6 & Cada evento se registra con timestamp preciso al momento de captura \\
 \hline
-7 & El sistema calcula y almacena intervalos entre eventos \\
+7 & Se mantiene buffer circular para gestión de eventos \\
 \hline
-8 & Se mantiene buffer circular para eventos de alta frecuencia \\
+8 & Los datos se vuelcan al archivo sobre la marcha \\
 \hline
-9 & Los timestamps se validan para detectar inconsistencias temporales \\
+9 & El sistema mantiene orden de recogida de muestras \\
 \hline
-10 & El sistema genera metadatos de calidad temporal \\
-\hline
-11 & Al finalizar, se produce informe de precisión temporal \\
-\hline
-12 & Los datos se estructuran con timestamps como índice principal \\
+10 & Al finalizar, se completa el archivo con datos capturados \\
 \hline
 \end{tabular}
 }
@@ -297,33 +272,13 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \rowcolor{udcpink!25}
 \textbf{Flujo} & \textbf{Descripción} \\
 \hline
-\textbf{FA-01: Calibración temporal} & 
+\textbf{FA-01: Marcadores experimentales} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item Antes del paso 4, se ejecuta calibración de latencia
-    \item Sistema mide latencia propia mediante eventos sintéticos
-    \item Se establece corrección temporal base
-    \item Continúa con protocolo experimental ajustado
-\end{itemize}
-\end{minipage} \\
-\hline
-\textbf{FA-02: Marcadores experimentales} & 
-\begin{minipage}[t]{10.5cm}
-\begin{itemize}
-    \item Durante el experimento, investigador inserta marcadores
+    \item Durante el experimento, se pueden generar marcadores
     \item Marcadores incluyen timestamps de alta precisión
-    \item Se etiquetan fases específicas del protocolo
+    \item Se etiquetan eventos específicos del protocolo
     \item Facilita segmentación posterior de datos
-\end{itemize}
-\end{minipage} \\
-\hline
-\textbf{FA-03: Verificación tiempo real} & 
-\begin{minipage}[t]{10.5cm}
-\begin{itemize}
-    \item Sistema monitoriza deriva temporal durante captura
-    \item Detecta anomalías en secuencia temporal
-    \item Alerta al investigador sobre problemas potenciales
-    \item Mantiene log de calidad temporal
 \end{itemize}
 \end{minipage} \\
 \hline
@@ -331,64 +286,6 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 }
 \caption{Flujos alternativos del caso de uso CU-02}
 \label{tab:cu02_flujos_alternativos}
-\end{table}
-
-\subsection{Flujos de excepción}
-\label{subsec:cu02_flujos_excepcion}
-
-\begin{table}[H]
-\centering
-\resizebox{\textwidth}{!}{
-\rowcolors{2}{white}{udcgray!25}
-\begin{tabular}{|p{3cm}|p{11cm}|}
-\hline
-\rowcolor{udcpink!25}
-\textbf{Excepción} & \textbf{Manejo} \\
-\hline
-\textbf{FE-01: Deriva temporal detectada} & 
-\begin{minipage}[t]{10.5cm}
-\begin{itemize}
-    \item Sistema detecta inconsistencias en timestamps
-    \item Registra evento de deriva con magnitud estimada
-    \item Continúa captura aplicando corrección automática
-    \item Marca datos afectados para revisión posterior
-\end{itemize}
-\end{minipage} \\
-\hline
-\textbf{FE-02: Sobrecarga temporal} & 
-\begin{minipage}[t]{10.5cm}
-\begin{itemize}
-    \item Eventos llegan con frecuencia superior a capacidad procesamiento
-    \item Sistema activa modo de preservación temporal
-    \item Prioriza precisión sobre completitud de datos
-    \item Documenta eventos descartados con timestamps
-\end{itemize}
-\end{minipage} \\
-\hline
-\textbf{FE-03: Fallo sincronización} & 
-\begin{minipage}[t]{10.5cm}
-\begin{itemize}
-    \item Pérdida de referencia temporal del sistema
-    \item Sistema continúa con timestamps relativos
-    \item Registra punto de fallo para corrección posterior
-    \item Mantiene coherencia interna de secuencia
-\end{itemize}
-\end{minipage} \\
-\hline
-\textbf{FE-04: Precisión degradada} & 
-\begin{minipage}[t]{10.5cm}
-\begin{itemize}
-    \item Latencia del sistema supera umbrales aceptables
-    \item Sistema alerta sobre degradación de precisión
-    \item Ofrece opciones de optimización automática
-    \item Documenta periodos de precisión reducida
-\end{itemize}
-\end{minipage} \\
-\hline
-\end{tabular}
-}
-\caption{Flujos de excepción del caso de uso CU-02}
-\label{tab:cu02_flujos_excepcion}
 \end{table}
 
 \section{CU-04 - Herramientas básicas de visualización}
@@ -426,7 +323,7 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \begin{itemize}
     \item Las visualizaciones muestran datos actualizados en tiempo real
     \item Los investigadores pueden interpretar el estado del sistema
-    \item Se mantiene historial visual configurable
+    \item Se mantiene historial visual temporal durante ejecución
     \item Las visualizaciones son exportables si es necesario
 \end{itemize}
 \end{minipage} \\
@@ -453,7 +350,7 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \hline
 2 & El sistema inicializa visualizadores según tipo de datos disponibles \\
 \hline
-3 & Se cargan configuraciones de visualización guardadas o por defecto \\
+3 & Se cargan configuraciones de visualización por defecto \\
 \hline
 4 & Los visualizadores se conectan a flujos de datos correspondientes \\
 \hline
@@ -468,8 +365,6 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 9 & El investigador monitoriza actividad y calidad de datos \\
 \hline
 10 & Sistema permite pausar/reanudar visualizaciones según necesidad \\
-\hline
-11 & Al finalizar, las configuraciones se guardan para sesiones futuras \\
 \hline
 \end{tabular}
 }
@@ -495,7 +390,7 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
     \item Sistema detecta datos EEG disponibles
     \item Inicializa visualizador multicanal con escala automática
     \item Muestra señales de hasta 16 canales simultáneamente
-    \item Incluye métricas de calidad por canal
+    \item Incluye métricas de calidad por canal mediante colores
 \end{itemize}
 \end{minipage} \\
 \hline
@@ -537,43 +432,22 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \rowcolor{udcpink!25}
 \textbf{Excepción} & \textbf{Manejo} \\
 \hline
-\textbf{FE-01: Sobrecarga visual} & 
-\begin{minipage}[t]{10.5cm}
-\begin{itemize}
-    \item Datos llegan más rápido que capacidad de renderizado
-    \item Sistema reduce frecuencia de actualización automáticamente
-    \item Mantiene datos recientes priorizando fluidez visual
-    \item Alerta sobre reducción de frecuencia visual
-\end{itemize}
-\end{minipage} \\
-\hline
-\textbf{FE-02: Fallo visualizador} & 
+\textbf{FE-01: Fallo visualizador} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
     \item Error en componente específico de visualización
     \item Sistema aísla visualizador problemático
     \item Continúa con visualizadores restantes funcionando
-    \item Ofrece reinicialización del componente afectado
+    \item Requiere reinicio de aplicación si fallo es irreversible
 \end{itemize}
 \end{minipage} \\
 \hline
-\textbf{FE-03: Pérdida datos visualización} & 
+\textbf{FE-02: Pérdida datos visualización} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
     \item Interrupción en flujo de datos hacia visualizadores
     \item Sistema muestra último estado conocido
-    \item Indica visualmente pérdida de conectividad
     \item Restablece automáticamente al recuperar datos
-\end{itemize}
-\end{minipage} \\
-\hline
-\textbf{FE-04: Recursos insuficientes} & 
-\begin{minipage}[t]{10.5cm}
-\begin{itemize}
-    \item Memoria o CPU insuficiente para visualización completa
-    \item Sistema ofrece modos de visualización simplificados
-    \item Permite desactivar visualizadores no críticos
-    \item Monitoriza recursos y adapta automáticamente
 \end{itemize}
 \end{minipage} \\
 \hline
@@ -617,8 +491,7 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \begin{minipage}[t]{11cm}
 \begin{itemize}
     \item Los dispositivos están configurados correctamente
-    \item La calidad de señal está validada
-    \item Las configuraciones están guardadas para uso futuro
+    \item La calidad de señal está validada visualmente
     \item El sistema está listo para experimentos
 \end{itemize}
 \end{minipage} \\
@@ -641,29 +514,27 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \rowcolor{udcpink!25}
 \textbf{Paso} & \textbf{Acción} \\
 \hline
-1 & El personal técnico accede al módulo de configuración \\
+1 & El personal técnico accede al módulo correspondiente \\
 \hline
-2 & El sistema escanea dispositivos disponibles automáticamente \\
+2 & Para entrada: SDL2 escanea controladores disponibles, fallback a teclado/ratón \\
 \hline
-3 & Se presenta lista de dispositivos detectados y compatibles \\
+3 & Para EEG: se presenta lista de dispositivos soportados por BrainFlow \\
 \hline
-4 & El técnico selecciona dispositivo EEG específico a configurar \\
+4 & El técnico selecciona dispositivo específico a configurar \\
 \hline
-5 & Sistema inicializa conexión con parámetros predeterminados \\
+5 & Sistema requiere configuración correcta para el dispositivo seleccionado \\
 \hline
-6 & Se ejecuta test básico de conectividad \\
+6 & El técnico proporciona parámetros necesarios y conecta \\
 \hline
-7 & El técnico configura parámetros específicos (frecuencia muestreo, canales) \\
+7 & Sistema valida conexión e indica éxito o fallo \\
 \hline
-8 & Sistema valida configuración y establece conexión estable \\
+8 & Solo permite iniciar stream si conexión fue exitosa \\
 \hline
-9 & Se ejecuta validación de calidad de señal por canal \\
+9 & Se muestra calidad de señal en tiempo real mediante visualizadores \\
 \hline
-10 & El técnico revisa métricas de calidad y ajusta si necesario \\
+10 & El técnico verifica calidad mediante indicadores visuales \\
 \hline
-11 & Configuración validada se guarda como perfil de dispositivo \\
-\hline
-12 & Sistema confirma configuración exitosa y dispositivo listo \\
+11 & Sistema está listo para operación experimental \\
 \hline
 \end{tabular}
 }
@@ -687,29 +558,17 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
     \item En paso 4, técnico selecciona placa sintética BrainFlow
-    \item Sistema configura generación de datos sintéticos
-    \item Permite configurar patrones de señal para pruebas
+    \item Sistema genera datos sintéticos predefinidos
     \item Útil para validación sin hardware real
 \end{itemize}
 \end{minipage} \\
 \hline
-\textbf{FA-02: Configuración dispositivos entrada} & 
+\textbf{FA-02: Fallback controlador PS4} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item Configuración paralela de teclado y ratón
-    \item Validación de permisos de acceso del sistema
-    \item Configuración de filtros de teclas relevantes
-    \item Test de responsividad de dispositivos
-\end{itemize}
-\end{minipage} \\
-\hline
-\textbf{FA-03: Múltiples perfiles} & 
-\begin{minipage}[t]{10.5cm}
-\begin{itemize}
-    \item Creación de múltiples perfiles para mismo dispositivo
-    \item Perfiles específicos para diferentes protocolos experimentales
-    \item Cambio rápido entre configuraciones guardadas
-    \item Exportación/importación de perfiles entre sistemas
+    \item Si no se detecta controlador PS4, sistema usa teclado/ratón
+    \item Operación transparente para el usuario
+    \item Funcionalidad completa con dispositivos alternativos
 \end{itemize}
 \end{minipage} \\
 \hline
@@ -731,43 +590,40 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \rowcolor{udcpink!25}
 \textbf{Excepción} & \textbf{Manejo} \\
 \hline
-\textbf{FE-01: Dispositivo no detectado} & 
+\textbf{FE-01: Fallo conectividad EEG} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item Sistema no encuentra dispositivos compatibles
-    \item Muestra guía de resolución de problemas específica
-    \item Verifica drivers y configuración de puertos
-    \item Ofrece modo manual de configuración
+    \item Error al establecer conexión con dispositivo EEG
+    \item Sistema indica error específico reportado por BrainFlow
+    \item Requiere verificación de configuración y reintento manual
 \end{itemize}
 \end{minipage} \\
 \hline
-\textbf{FE-02: Fallo conectividad} & 
+\textbf{FE-02: Desconexión durante operación} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item Error al establecer conexión con dispositivo
-    \item Sistema intenta reconexión automática con parámetros alternativos
-    \item Proporciona diagnóstico detallado del fallo
-    \item Sugiere verificaciones físicas de conexión
+    \item Dispositivo se desconecta durante captura
+    \item Para controlador PS4: fallback automático a teclado/ratón
+    \item Para EEG: stream se interrumpe, requiere reconexión manual
 \end{itemize}
 \end{minipage} \\
 \hline
 \textbf{FE-03: Calidad señal deficiente} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item Métricas de calidad por debajo de umbrales aceptables
-    \item Sistema identifica canales específicos problemáticos
-    \item Proporciona guía de mejora de impedancia/conectividad
-    \item Permite ajuste de umbrales según contexto experimental
+    \item Métricas de calidad indican problemas por canal
+    \item Sistema muestra indicadores visuales por color en brain map
+    \item Visualizador de señales indica calidad por canal
+    \item Requiere intervención manual para mejora de conexiones
 \end{itemize}
 \end{minipage} \\
 \hline
-\textbf{FE-04: Conflicto configuración} & 
+\textbf{FE-04: Configuración incompatible} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item Parámetros configurados no compatibles con dispositivo
-    \item Sistema sugiere configuraciones alternativas válidas
-    \item Permite configuración asistida basada en capacidades detectadas
-    \item Valida configuración antes de aplicar cambios
+    \item GUI previene configuraciones incompatibles con dispositivo
+    \item Indica parámetros obligatorios vs opcionales
+    \item Parámetros no utilizados se ignoran sin causar fallos
 \end{itemize}
 \end{minipage} \\
 \hline
