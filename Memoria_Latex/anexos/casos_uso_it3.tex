@@ -1,7 +1,7 @@
 \chapter{Casos de uso - Tercera iteración}
 \label{chap:anexo_casos_uso_it3}
 
-Este anexo presenta la especificación detallada de los casos de uso desarrollados durante la tercera iteración del sistema, enfocados en la arquitectura API completa y funcionalidades avanzadas.
+Este anexo presenta la especificación detallada de los casos de uso desarrollados durante la tercera iteración del sistema, enfocados en la arquitectura API completa y funcionalidades avanzadas de procesamiento.
 
 \section{CU-03 - Desarrollo de aplicaciones BCI personalizadas}
 \label{sec:cu03_it3_desarrollo_bci}
@@ -17,29 +17,29 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \hline
 \textbf{Identificador} & CU-03 \\
 \hline
-\textbf{Nombre} & Desarrollo de aplicaciones BCI personalizadas mediante acceso programático completo \\
+\textbf{Nombre} & Desarrollo de aplicaciones personalizadas mediante acceso programático completo \\
 \hline
-\textbf{Actores} & Desarrollador de aplicaciones BCI (principal), Investigador con conocimientos técnicos (secundario) \\
+\textbf{Actores} & Desarrollador de aplicaciones BCI (principal), Integrador de sistemas (secundario) \\
 \hline
-\textbf{Descripción} & El sistema debe proporcionar APIs completas que permitan desarrollo de aplicaciones BCI personalizadas con acceso programático a todas las capacidades del sistema \\
+\textbf{Descripción} & El sistema proporciona APIs REST completas que permiten el desarrollo de aplicaciones personalizadas con acceso tanto a datos en tiempo real como a control remoto de las funcionalidades del sistema \\
 \hline
 \textbf{Precondiciones} & 
 \begin{minipage}[t]{11cm}
 \begin{itemize}
-    \item Las APIs de acceso a datos están completamente funcionales
-    \item Las APIs de control están documentadas y testadas
-    \item El explorador web proporciona documentación interactiva
-    \item Los endpoints de streaming en tiempo real están operativos
+    \item Los módulos están funcionando con arquitectura API implementada
+    \item El API Explorer está disponible y documentado
+    \item Las APIs de datos y control están operativas
+    \item El sistema de WebSocket para tiempo real está activo
 \end{itemize}
 \end{minipage} \\
 \hline
 \textbf{Postcondiciones} & 
 \begin{minipage}[t]{11cm}
 \begin{itemize}
-    \item La aplicación personalizada accede a datos en tiempo real
-    \item El control remoto de dispositivos funciona correctamente
-    \item La integración preserva funcionalidad del sistema base
-    \item Los datos son compatibles con frameworks ML existentes
+    \item La aplicación personalizada puede acceder a datos en tiempo real
+    \item Las operaciones de control remoto funcionan correctamente
+    \item La integración mantiene la funcionalidad del sistema base
+    \item La documentación automática facilita el desarrollo
 \end{itemize}
 \end{minipage} \\
 \hline
@@ -61,29 +61,23 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \rowcolor{udcpink!25}
 \textbf{Paso} & \textbf{Acción} \\
 \hline
-1 & El desarrollador accede al explorador web para documentación API \\
+1 & El desarrollador accede al API Explorer para consultar documentación automática \\
 \hline
-2 & Explora endpoints disponibles mediante interfaz interactiva \\
+2 & Identifica las APIs de datos y control disponibles para cada módulo \\
 \hline
-3 & Testa funcionalidades específicas usando plantillas JSON proporcionadas \\
+3 & Utiliza plantillas JSON disponibles para configuraciones específicas de dispositivos \\
 \hline
-4 & Diseña aplicación personalizada utilizando APIs REST y WebSocket \\
+4 & Desarrolla aplicación personalizada utilizando APIs REST documentadas \\
 \hline
-5 & Implementa cliente que consume endpoints de acceso a datos \\
+5 & Implementa suscripción a WebSocket para datos en tiempo real si es necesario \\
 \hline
-6 & Integra control remoto mediante APIs de interacción \\
+6 & Realiza operaciones de control remoto mediante endpoints específicos \\
 \hline
-7 & Establece streaming de datos en tiempo real via WebSocket \\
+7 & Integra visualizaciones personalizadas según los datos recibidos \\
 \hline
-8 & Configura callbacks para eventos del sistema (conexión, errores, datos) \\
+8 & Valida que las operaciones remotas se reflejan en las interfaces GUI del sistema \\
 \hline
-9 & Implementa lógica de procesamiento específica de la aplicación \\
-\hline
-10 & Valida funcionamiento con datos sintéticos y reales \\
-\hline
-11 & Integra con frameworks ML (TensorFlow, PyTorch) según necesidades \\
-\hline
-12 & Despliega aplicación con capacidades BCI completas \\
+9 & Documenta la aplicación desarrollada según estándares del proyecto \\
 \hline
 \end{tabular}
 }
@@ -103,33 +97,23 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \rowcolor{udcpink!25}
 \textbf{Flujo} & \textbf{Descripción} \\
 \hline
-\textbf{FA-01: Desarrollo CLI personalizado} & 
+\textbf{FA-01: Aplicación solo datos} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item En paso 4, desarrollador crea herramientas CLI usando Typer
-    \item Utiliza APIs internas para funcionalidades específicas
-    \item Implementa comandos especializados para flujo de trabajo único
-    \item Integra con pipelines de automatización existentes
+    \item Desarrollador se enfoca únicamente en APIs de datos
+    \item Utiliza WebSocket para streaming en tiempo real
+    \item No requiere capacidades de control remoto
+    \item Ideal para aplicaciones de monitorización o análisis
 \end{itemize}
 \end{minipage} \\
 \hline
-\textbf{FA-02: Aplicación web personalizada} & 
+\textbf{FA-02: Aplicación de control} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item Desarrolla frontend web que consume APIs directamente
-    \item Implementa visualizaciones específicas usando Chart.js/D3.js
-    \item Crea dashboards personalizados para experimentos específicos
-    \item Integra autenticación y gestión de usuarios si necesario
-\end{itemize}
-\end{minipage} \\
-\hline
-\textbf{FA-03: Integración framework específico} & 
-\begin{minipage}[t]{10.5cm}
-\begin{itemize}
-    \item Desarrolla adaptadores para frameworks específicos (Unity, ROS)
-    \item Implementa protocolos de comunicación nativos del framework
-    \item Mantiene sincronización temporal específica del dominio
-    \item Proporciona APIs nivel superior adaptadas al framework
+    \item Desarrollador se enfoca en APIs de control e interacción
+    \item Desarrolla interfaces alternativas para operaciones del sistema
+    \item Sincroniza cambios con interfaces GUI existentes
+    \item Útil para automatización o interfaces especializadas
 \end{itemize}
 \end{minipage} \\
 \hline
@@ -151,43 +135,43 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \rowcolor{udcpink!25}
 \textbf{Excepción} & \textbf{Manejo} \\
 \hline
-\textbf{FE-01: Fallo WebSocket streaming} & 
+\textbf{FE-01: Interrupción conexión WebSocket} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item Interrupción en streaming de datos en tiempo real
-    \item Sistema detecta desconexión y intenta reconexión automática
-    \item Mantiene buffer de datos durante interrupción temporal
-    \item Proporciona callback de error con detalles específicos
+    \item La aplicación web mantiene buffer con últimos eventos recibidos
+    \item Sistema intenta reconexión automática del WebSocket
+    \item Los datos no se almacenan localmente durante desconexión
+    \item Aplicación debe manejar pérdida temporal de datos en tiempo real
 \end{itemize}
 \end{minipage} \\
 \hline
-\textbf{FE-02: API endpoint no disponible} & 
+\textbf{FE-02: Error en operación de control} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item Servicio específico no responde o está temporalmente inactivo
-    \item Sistema proporciona mensaje de error HTTP descriptivo
-    \item Sugiere endpoints alternativos para funcionalidad similar
-    \item Implementa retry automático con backoff exponencial
+    \item API devuelve mensaje de error específico
+    \item No se implementa retry automático de operaciones
+    \item Aplicación debe manejar errores según su lógica
+    \item Los mensajes de error pueden ser más o menos descriptivos
 \end{itemize}
 \end{minipage} \\
 \hline
-\textbf{FE-03: Datos malformados en API} & 
+\textbf{FE-03: Parámetros incorrectos} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item Respuesta de API no cumple formato JSON esperado
-    \item Sistema valida estructura antes de procesar datos
-    \item Proporciona esquema esperado en mensaje de error
-    \item Permite modo degradado con datos parciales válidos
+    \item Sistema valida parámetros según especificación API
+    \item Plantillas JSON están disponibles para configuraciones válidas
+    \item No se proporciona esquema esperado dinámicamente
+    \item Desarrollador debe usar documentación y plantillas disponibles
 \end{itemize}
 \end{minipage} \\
 \hline
-\textbf{FE-04: Exceso límites rate limiting} & 
+\textbf{FE-04: Sobrecarga de eventos} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item Aplicación supera límites de frecuencia de peticiones
-    \item Sistema implementa throttling automático inteligente
-    \item Proporciona headers con información de límites restantes
-    \item Sugiere optimizaciones para reducir frecuencia de peticiones
+    \item Sistema acumula eventos en buffer interno
+    \item Al llenarse buffer, inicia descarte circular de eventos antiguos
+    \item Opción de reducir detalle mostrado en DOM para evitar sobrecarga
+    \item Funcionalidad de descarte puede desactivarse si es necesario
 \end{itemize}
 \end{minipage} \\
 \hline
@@ -211,29 +195,29 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \hline
 \textbf{Identificador} & CU-04 \\
 \hline
-\textbf{Nombre} & Herramientas avanzadas para investigación neurocientífica con algoritmos especializados \\
+\textbf{Nombre} & Investigación neurocientífica con algoritmos avanzados y herramientas especializadas \\
 \hline
-\textbf{Actores} & Investigador neurocientífico (principal), Personal técnico de laboratorio (secundario) \\
+\textbf{Actores} & Investigador neurocientífico (principal), Analista de datos (secundario) \\
 \hline
-\textbf{Descripción} & El sistema debe proporcionar algoritmos avanzados de procesamiento EEG como ICA, wavelets, e integración MNE-Python para análisis neurofisiológico completo \\
+\textbf{Descripción} & El sistema proporciona algoritmos avanzados de procesamiento EEG incluyendo ICA, transformadas wavelet, integración MNE-Python y herramientas de análisis en tiempo real para investigación neurocientífica \\
 \hline
 \textbf{Precondiciones} & 
 \begin{minipage}[t]{11cm}
 \begin{itemize}
-    \item Los servicios avanzados están completamente implementados
-    \item La integración MNE-Python está funcional
-    \item Los algoritmos ICA y wavelet están optimizados
-    \item Los visualizadores especializados están operativos
+    \item El módulo EEG está operativo con arquitectura API
+    \item Los servicios avanzados están inicializados correctamente
+    \item MNE-Python está instalado y configurado
+    \item Los algoritmos de procesamiento están disponibles
 \end{itemize}
 \end{minipage} \\
 \hline
 \textbf{Postcondiciones} & 
 \begin{minipage}[t]{11cm}
 \begin{itemize}
-    \item Los análisis avanzados proporcionan resultados interpretables
-    \item Las visualizaciones facilitan interpretación neurofisiológica
-    \item Los resultados son exportables en formatos científicos
-    \item La documentación facilita reproducibilidad de análisis
+    \item Los análisis se han ejecutado sobre los datos capturados
+    \item Los resultados están disponibles para visualización
+    \item Los datos procesados pueden exportarse si es necesario
+    \item El sistema mantiene disponibles los datos originales
 \end{itemize}
 \end{minipage} \\
 \hline
@@ -255,29 +239,21 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \rowcolor{udcpink!25}
 \textbf{Paso} & \textbf{Acción} \\
 \hline
-1 & El investigador configura dispositivo EEG y verifica calidad de señal \\
+1 & El investigador configura dispositivo EEG y establece conexión \\
 \hline
-2 & Accede a panel de procesamiento avanzado desde interfaz principal \\
+2 & Inicia captura de señales con calidad apropiada para análisis \\
 \hline
-3 & Configura filtros digitales especializados según protocolo experimental \\
+3 & Selecciona algoritmo de procesamiento según necesidades del estudio \\
 \hline
-4 & Selecciona canales específicos para análisis ICA (1-16 componentes) \\
+4 & Configura parámetros del algoritmo seleccionado \\
 \hline
-5 & Ejecuta análisis ICA y visualiza matrices mixing/unmixing resultantes \\
+5 & Ejecuta análisis sobre los datos disponibles \\
 \hline
-6 & Analiza componentes individuales mediante weight distribution y PSD \\
+6 & Visualiza resultados mediante herramientas integradas \\
 \hline
-7 & Configura transformadas wavelet (familia, niveles) según necesidades \\
+7 & Evalúa resultados y ajusta parámetros si es necesario \\
 \hline
-8 & Aplica análisis tiempo-frecuencia mediante wavelets \\
-\hline
-9 & Configura conversión MNE-Python (modalidad: flexible/rendimiento/tiempo real) \\
-\hline
-10 & Genera visualizaciones científicas (topomaps, espectrogramas, PSD) \\
-\hline
-11 & Exporta resultados en formatos compatibles con publicación científica \\
-\hline
-12 & Documenta pipeline de análisis para reproducibilidad \\
+8 & Exporta resultados para análisis posterior o documentación \\
 \hline
 \end{tabular}
 }
@@ -297,33 +273,23 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \rowcolor{udcpink!25}
 \textbf{Flujo} & \textbf{Descripción} \\
 \hline
-\textbf{FA-01: Análisis ICA tiempo real} & 
+\textbf{FA-01: Análisis ICA especializado} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item En paso 5, investigador activa modo tiempo real para ICA
-    \item Sistema recalcula componentes automáticamente con nuevos datos
-    \item Visualizaciones se actualizan dinámicamente con latencia aceptable
-    \item Permite identificación inmediata de artefactos durante captura
+    \item En paso 3, investigador selecciona análisis de componentes independientes
+    \item Configura número de componentes a extraer según estudio
+    \item Sistema procesa señales y genera componentes separados
+    \item Visualiza componentes individuales para interpretación
 \end{itemize}
 \end{minipage} \\
 \hline
-\textbf{FA-02: Análisis multi-banda wavelet} & 
+\textbf{FA-02: Integración MNE-Python} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item En paso 8, se configura análisis simultáneo múltiples familias
-    \item Sistema compara resultados Daubechies, Haar, Biorthogonal
-    \item Genera visualización comparativa de descomposiciones
-    \item Facilita selección óptima de wavelet para datos específicos
-\end{itemize}
-\end{minipage} \\
-\hline
-\textbf{FA-03: Pipeline automatizado MNE} & 
-\begin{minipage}[t]{10.5cm}
-\begin{itemize}
-    \item En paso 9, se configura pipeline automatizado de análisis
-    \item Sistema ejecuta secuencia predefinida: filtrado → ICA → análisis
-    \item Genera reporte automático con todas las visualizaciones
-    \item Exporta resultados en formato publication-ready
+    \item En paso 3, investigador selecciona análisis mediante MNE-Python
+    \item Sistema convierte datos a formato compatible
+    \item Ejecuta análisis especializado mediante biblioteca externa
+    \item Presenta resultados integrados en la interfaz del sistema
 \end{itemize}
 \end{minipage} \\
 \hline
@@ -331,64 +297,6 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 }
 \caption{Flujos alternativos del caso de uso CU-04 - Tercera iteración}
 \label{tab:cu04_it3_flujos_alternativos}
-\end{table}
-
-\subsection{Flujos de excepción}
-\label{subsec:cu04_it3_flujos_excepcion}
-
-\begin{table}[H]
-\centering
-\resizebox{\textwidth}{!}{
-\rowcolors{2}{white}{udcgray!25}
-\begin{tabular}{|p{3cm}|p{11cm}|}
-\hline
-\rowcolor{udcpink!25}
-\textbf{Excepción} & \textbf{Manejo} \\
-\hline
-\textbf{FE-01: Fallo convergencia ICA} & 
-\begin{minipage}[t]{10.5cm}
-\begin{itemize}
-    \item Algoritmo ICA no converge con parámetros especificados
-    \item Sistema sugiere reducir número de componentes automáticamente
-    \item Ofrece probar con datos pre-filtrados o mayor ventana temporal
-    \item Proporciona diagnóstico específico sobre calidad de datos
-\end{itemize}
-\end{minipage} \\
-\hline
-\textbf{FE-02: Datos insuficientes análisis} & 
-\begin{minipage}[t]{10.5cm}
-\begin{itemize}
-    \item Ventana temporal muy pequeña para análisis robusto
-    \item Sistema calcula mínimo requerido según algoritmo específico
-    \item Sugiere extender captura o usar datos históricos disponibles
-    \item Permite análisis con advertencia sobre limitaciones estadísticas
-\end{itemize}
-\end{minipage} \\
-\hline
-\textbf{FE-03: Error integración MNE} & 
-\begin{minipage}[t]{10.5cm}
-\begin{itemize}
-    \item Fallo en conversión o procesamiento MNE-Python
-    \item Sistema identifica paso específico que causa error
-    \item Proporciona información detallada sobre incompatibilidad
-    \item Ofrece conversión alternativa o modo degradado sin MNE
-\end{itemize}
-\end{minipage} \\
-\hline
-\textbf{FE-04: Sobrecarga computacional} & 
-\begin{minipage}[t]{10.5cm}
-\begin{itemize}
-    \item Análisis requiere más recursos que disponibles en sistema
-    \item Sistema ofrece procesamiento batch en lugar de tiempo real
-    \item Sugiere reducir complejidad o usar submuestreo de datos
-    \item Proporciona estimación de tiempo requerido para análisis
-\end{itemize}
-\end{minipage} \\
-\hline
-\end{tabular}
-}
-\caption{Flujos de excepción del caso de uso CU-04 - Tercera iteración}
-\label{tab:cu04_it3_flujos_excepcion}
 \end{table}
 
 \section{CU-06 - Integración programática con herramientas existentes}
@@ -405,29 +313,29 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \hline
 \textbf{Identificador} & CU-06 \\
 \hline
-\textbf{Nombre} & Integración programática con herramientas de análisis existentes mediante APIs estándar \\
+\textbf{Nombre} & Integración programática en tiempo real con herramientas de análisis mediante APIs \\
 \hline
-\textbf{Actores} & Integrador de sistemas (principal), Analista de datos (secundario) \\
+\textbf{Actores} & Integrador de sistemas (principal), Desarrollador de aplicaciones BCI (secundario) \\
 \hline
-\textbf{Descripción} & El sistema debe facilitar la integración programática con herramientas existentes mediante APIs documentadas y formatos de datos estándar \\
+\textbf{Descripción} & Las APIs REST y WebSocket permiten integración programática en tiempo real con herramientas externas, facilitando el desarrollo de pipelines de análisis automatizados y aplicaciones especializadas \\
 \hline
 \textbf{Precondiciones} & 
 \begin{minipage}[t]{11cm}
 \begin{itemize}
-    \item Las APIs están completamente documentadas
-    \item Los formatos de exportación están estandarizados
-    \item Los endpoints de streaming están estables
-    \item La documentación OpenAPI está actualizada
+    \item Las APIs REST están documentadas y operativas
+    \item El sistema WebSocket para tiempo real está disponible  
+    \item Las herramientas externas soportan integración programática
+    \item El formato de exportación CSV está implementado
 \end{itemize}
 \end{minipage} \\
 \hline
 \textbf{Postcondiciones} & 
 \begin{minipage}[t]{11cm}
 \begin{itemize}
-    \item La integración funciona de forma transparente
-    \item Los datos mantienen integridad durante transferencia
-    \item Los pipelines automatizados operan sin intervención
-    \item La documentación facilita mantenimiento futuro
+    \item Los datos fluyen hacia herramientas externas según configuración
+    \item Las operaciones de control remoto están disponibles
+    \item La documentación facilita el mantenimiento de la integración  
+    \item Los archivos generados son compatibles con herramientas externas
 \end{itemize}
 \end{minipage} \\
 \hline
@@ -449,29 +357,25 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \rowcolor{udcpink!25}
 \textbf{Paso} & \textbf{Acción} \\
 \hline
-1 & El integrador analiza documentación API mediante explorador web \\
+1 & El integrador analiza APIs disponibles mediante documentación disponible \\
 \hline
-2 & Identifica endpoints relevantes para herramienta específica \\
+2 & Identifica endpoints REST para datos y control según necesidades \\
 \hline
-3 & Configura autenticación y permisos según requerimientos de seguridad \\
+3 & Configura herramienta externa para recibir datos del sistema \\
 \hline
-4 & Implementa cliente que consume endpoints de acceso a datos \\
+4 & Establece comunicación entre sistema y herramienta externa \\
 \hline
-5 & Establece streaming en tiempo real via WebSocket según necesidades \\
+5 & Implementa suscripción a streams de datos en tiempo real si es necesario \\
 \hline
-6 & Configura formato de datos compatible con herramienta de destino \\
+6 & Configura operaciones de control remoto según protocolo requerido \\
 \hline
-7 & Implementa pipeline de transformación de datos si necesario \\
+7 & Prueba la integración verificando flujo de datos \\
 \hline
-8 & Configura manejo de errores y reconexión automática \\
+8 & Implementa manejo básico de errores de comunicación \\
 \hline
-9 & Establece monitorización de calidad de datos transferidos \\
+9 & Documenta configuración para mantenimiento futuro \\
 \hline
-10 & Valida integridad de integración con datos de prueba \\
-\hline
-11 & Implementa logging y métricas para monitorización operacional \\
-\hline
-12 & Despliega integración con documentación de mantenimiento \\
+10 & Valida funcionamiento de la integración desarrollada \\
 \hline
 \end{tabular}
 }
@@ -491,33 +395,33 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \rowcolor{udcpink!25}
 \textbf{Flujo} & \textbf{Descripción} \\
 \hline
-\textbf{FA-01: Integración MNE-Python} & 
+\textbf{FA-01: Integración solo datos} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item En paso 6, configura conversión directa a formatos MNE
-    \item Utiliza servicios MNE del sistema para conversión en tiempo real
-    \item Mantiene metadatos de electrodos y frecuencia de muestreo
-    \item Facilita análisis inmediato en pipeline MNE existente
+    \item Herramienta externa se conecta únicamente para recibir datos
+    \item Utiliza WebSocket para streaming continuo de alta frecuencia
+    \item No requiere capacidades de control del sistema fuente
+    \item Ideal para análisis en tiempo real o dashboards especializados
 \end{itemize}
 \end{minipage} \\
 \hline
-\textbf{FA-02: Integración EEGLAB} & 
+\textbf{FA-02: Control automatizado completo} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item Configura exportación en formato .set compatible con EEGLAB
-    \item Incluye metadatos de canales en estructura apropiada
-    \item Mantiene información de eventos como estructura EEGLAB
-    \item Proporciona scripts MATLAB para importación automatizada
+    \item Sistema externo controla completamente la operación via APIs
+    \item Automatiza inicio y parada de capturas según protocolos
+    \item Integra control de dispositivos con análisis automático
+    \item Facilita experimentos automatizados de larga duración
 \end{itemize}
 \end{minipage} \\
 \hline
-\textbf{FA-03: Integración LabStreamingLayer} & 
+\textbf{FA-03: Integración con \textit{\gls{streaming}} TCP/UDP} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item Implementa outlets LSL desde streams internos del sistema
-    \item Configura metadatos XML según especificaciones LSL
-    \item Mantiene sincronización temporal precisa con reloj LSL
-    \item Facilita integración con ecosistema LSL existente
+    \item Utiliza streamers TCP/UDP para datos en bruto de alta velocidad
+    \item Limitado a configuración específica para compatibilidad
+    \item Evita procesamiento web para máximo rendimiento
+    \item Útil para herramientas que requieren protocolos específicos
 \end{itemize}
 \end{minipage} \\
 \hline
@@ -539,43 +443,23 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \rowcolor{udcpink!25}
 \textbf{Excepción} & \textbf{Manejo} \\
 \hline
-\textbf{FE-01: API rate limiting} & 
+\textbf{FE-01: Pérdida conectividad herramienta externa} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item Cliente supera límites de frecuencia de peticiones
-    \item Sistema implementa backoff exponencial automático
-    \item Proporciona información sobre límites y tiempo de espera
-    \item Permite configurar prioridad de endpoints según criticidad
+    \item WebSocket intenta reconexión automática desde cliente
+    \item Sistema fuente continúa operación sin interrupción
+    \item Pérdida de datos durante desconexión es responsabilidad del cliente
+    \item Sistema mantiene buffer según configuración interna
 \end{itemize}
 \end{minipage} \\
 \hline
-\textbf{FE-02: Transformación datos fallida} & 
+\textbf{FE-02: Sobrecarga en pipeline de datos} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item Error en pipeline de transformación de formato
-    \item Sistema identifica paso específico que causa fallo
-    \item Preserva datos originales antes de transformación
-    \item Ofrece transformación alternativa o formato raw como fallback
-\end{itemize}
-\end{minipage} \\
-\hline
-\textbf{FE-03: Pérdida sincronización temporal} & 
-\begin{minipage}[t]{10.5cm}
-\begin{itemize}
-    \item Deriva temporal detectada entre sistema y herramienta externa
-    \item Sistema recalibra sincronización automáticamente
-    \item Documenta deriva y correcciones aplicadas
-    \item Alerta sobre período de datos potencialmente afectados
-\end{itemize}
-\end{minipage} \\
-\hline
-\textbf{FE-04: Incompatibilidad versión herramienta} & 
-\begin{minipage}[t]{10.5cm}
-\begin{itemize}
-    \item Herramienta externa actualizada a versión incompatible
-    \item Sistema detecta cambios en formato o protocolo esperado
-    \item Proporciona adaptador legacy para versiones anteriores
-    \item Sugiere actualización de integración a nueva versión
+    \item Sistema activa mecanismos de control de flujo
+    \item Buffer circular descarta eventos antiguos cuando se satura
+    \item Herramientas externas deben gestionar su capacidad de procesamiento
+    \item Sistema continúa operando con degradación controlada
 \end{itemize}
 \end{minipage} \\
 \hline
