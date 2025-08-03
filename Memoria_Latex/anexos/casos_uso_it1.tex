@@ -3,6 +3,101 @@
 
 Este anexo presenta la especificación detallada de los casos de uso desarrollados durante la primera iteración del sistema, incluyendo flujos principales, alternativos y de excepción, junto con precondiciones y postcondiciones específicas.
 
+\section{Análisis detallado de casos de uso}
+\label{sec:analisis_detallado_casos_uso_it1}
+
+Los casos de uso desarrollados en esta primera iteración establecen los fundamentos funcionales del sistema, enfocándose en las capacidades básicas de captura y visualización necesarias para futuras integraciones más complejas.
+
+\textbf{CU-01 - Captura básica de eventos de entrada}: Este caso de uso representa el núcleo de la funcionalidad de entrada del sistema. Permite capturar eventos de teclado y ratón con precisión temporal, estableciendo la base para correlaciones temporales con señales cerebrales. Incluye capacidades de filtrado configurable y múltiples modalidades de seguimiento que proporcionan flexibilidad para diferentes paradigmas experimentales.
+
+\textbf{CU-02 - Registro temporal preciso}: La precisión temporal constituye el requisito más crítico para aplicaciones \acrshort{bci}. Este caso de uso garantiza que todos los eventos se registren con timestamps de alta precisión, manteniendo la trazabilidad de la secuencia temporal necesaria para análisis posterior.
+
+\textbf{CU-04 - Herramientas básicas de visualización}: Las visualizaciones en tiempo real proporcionan retroalimentación inmediata sobre la calidad de datos y el estado del sistema. Este caso de uso incluye visualización de señales \acrshort{eeg}, representación topográfica básica y visualización de eventos de entrada, facilitando la supervisión del estado del sistema.
+
+\textbf{CU-05 - Configuración básica de dispositivos}: La configuración apropiada de dispositivos es esencial para la calidad de datos. Este caso de uso proporciona interfaces para configurar dispositivos \acrshort{eeg} y dispositivos de entrada, incluyendo validación de conectividad y verificación de calidad de señal.
+
+\subsection{Relaciones entre casos de uso}
+\label{subsec:relaciones_casos_uso_it1}
+
+Los casos de uso de esta iteración establecen relaciones de dependencia que reflejan el flujo de trabajo experimental típico:
+
+\begin{itemize}
+    \item \textbf{CU-05 precede a CU-01 y CU-04}: La configuración de dispositivos debe completarse antes de iniciar captura o visualización
+    \item \textbf{CU-02 se extiende desde CU-01}: El registro temporal preciso es una especialización de la captura básica de eventos
+    \item \textbf{CU-04 incluye funcionalidades de CU-01}: Las visualizaciones de eventos requieren datos de captura de entrada
+    \item \textbf{CU-04 monitoriza CU-02}: Las visualizaciones proporcionan retroalimentación sobre la precisión temporal
+\end{itemize}
+
+\subsection{Identificación de actores y sus necesidades}
+\label{subsec:actores_necesidades_it1}
+
+\textbf{Investigador BCI}: Actor principal que requiere datos sincronizados de alta calidad para desarrollo de modelos predictivos. Sus necesidades incluyen flexibilidad en configuración de captura, precisión temporal garantizada, y formatos de exportación compatibles con herramientas de análisis. Los casos de uso CU-01 y CU-02 abordan directamente estas necesidades proporcionando captura configurable con timestamps precisos.
+
+\textbf{Investigador neurocientífico}: Necesita herramientas de visualización que faciliten la interpretación de actividad cerebral durante experimentos. El CU-04 proporciona visualizaciones que permiten monitorizar la calidad de señal y detectar patrones de actividad en tiempo real. La integración con el sistema de ayuda contextual facilita la interpretación de métricas técnicas.
+
+\textbf{Personal técnico de laboratorio}: Responsable de la configuración y mantenimiento de equipos, requiere interfaces intuitivas para validar conectividad y diagnosticar problemas. El CU-05 proporciona herramientas de configuración con validación visual de calidad de señal, mientras que los flujos de excepción contemplan escenarios comunes como fallos de conectividad y degradación de señal.
+
+\textbf{Usuario del sistema}: Participante en experimentos que necesita interfaces claras para entender su papel y el estado del sistema. Las visualizaciones de CU-04 incluyen representaciones intuitivas de eventos de entrada que proporcionan retroalimentación sobre su participación en el experimento.
+
+\subsection{Diagrama de casos de uso}
+\label{subsec:diagrama_casos_uso_it1}
+
+La Figura~\ref{fig:casos_uso_it1} presenta las relaciones entre actores y casos de uso de la primera iteración, mostrando las dependencias y extensiones identificadas.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{anexos/diagramas/casos_uso_it1.pdf}
+    \caption{Diagrama de casos de uso - Primera iteración}
+    \label{fig:casos_uso_it1}
+\end{figure}
+
+\subsection{Trazabilidad requisitos-casos de uso}
+\label{subsec:trazabilidad_it1}
+
+La siguiente tabla establece la trazabilidad entre requisitos funcionales y no funcionales con los casos de uso que los implementan:
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|l|l|l|p{6cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Código} & \textbf{Tipo} & \textbf{Casos de Uso} & \textbf{Descripción de implementación} \\
+\hline
+RF-01 & Funcional & CU-01, CU-02 & Captura de eventos de teclado con timestamps de alta precisión \\
+\hline
+RF-02 & Funcional & CU-01 & Captura de eventos de ratón con múltiples modos de seguimiento \\
+\hline
+RF-04 & Funcional & CU-05 & Adquisición de señales EEG mediante biblioteca de abstracción \\
+\hline
+RF-05 & Funcional & CU-05 & Soporte para múltiples dispositivos EEG comerciales \\
+\hline
+RF-07 & Funcional & CU-04 & Visualización en tiempo real de señales y eventos \\
+\hline
+RF-11 & Funcional & CU-04, CU-05 & Sistema de ayuda contextual integrado \\
+\hline
+RF-12 & Funcional & CU-04, CU-05 & Monitoreo de calidad de señal en tiempo real \\
+\hline
+RNF-01 & No Funcional & CU-01, CU-02 & Latencia de captura inferior a 50ms \\
+\hline
+RNF-05 & No Funcional & CU-04, CU-05 & Interfaces intuitivas para usuarios no técnicos \\
+\hline
+RNF-06 & No Funcional & CU-01, CU-04, CU-05 & Compatibilidad multiplataforma \\
+\hline
+RNF-08 & No Funcional & CU-01, CU-04, CU-05 & Manejo robusto de errores con recuperación \\
+\hline
+\end{tabular}
+}
+\caption{Trazabilidad requisitos-casos de uso - Primera iteración}
+\label{tab:trazabilidad_it1}
+\end{table}
+
+\subsection{Lecciones aprendidas del análisis de casos de uso}
+\label{subsec:lecciones_aprendidas_it1}
+
+La especificación de casos de uso reveló la importancia de considerar la integración desde las fases iniciales del diseño. Los flujos de excepción identificados (fallos de conectividad, desconexiones durante operación) proporcionaron información valiosa para el diseño de arquitectura robusta en iteraciones posteriores. La identificación de múltiples actores con necesidades diferentes motivó el desarrollo de interfaces especializadas según el nivel técnico del usuario.
+
 \section{CU-01 - Captura básica de eventos de entrada}
 \label{sec:cu01_captura_eventos}
 
@@ -63,11 +158,11 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \hline
 1 & El investigador BCI inicia la aplicación de captura de entrada \\
 \hline
-2 & El sistema inicializa los listeners de teclado y ratón mediante pynput \\
+2 & El sistema inicializa los listeners de teclado y ratón \\
 \hline
 3 & El investigador configura el filtro de teclas específicas a capturar \\
 \hline
-4 & El investigador selecciona el modo de tracking de ratón (axis/angle/delta/joystick) \\
+4 & El investigador selecciona el modo de tracking de ratón \\
 \hline
 5 & El investigador inicia la captura de eventos \\
 \hline
@@ -151,10 +246,10 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \rowcolor{udcpink!25}
 \textbf{Excepción} & \textbf{Manejo} \\
 \hline
-\textbf{FE-01: Fallo controlador PS4} & 
+\textbf{FE-01: Fallo controlador} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item El sistema detecta desconexión del controlador PS4
+    \item El sistema detecta desconexión del controlador
     \item Intenta reconexión automática del dispositivo
     \item Si falla la reconexión, hace fallback a teclado y ratón
     \item Continúa captura con dispositivos disponibles
@@ -166,7 +261,7 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \begin{itemize}
     \item Cierre forzado durante captura activa
     \item Las muestras registradas hasta el momento se preservan
-    \item Los metadatos de finalización (número total, duración) no se generan
+    \item Los metadatos de finalización no se generan
     \item No hay recuperación automática de sesión al reiniciar
 \end{itemize}
 \end{minipage} \\
@@ -389,7 +484,7 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \begin{itemize}
     \item Sistema detecta datos EEG disponibles
     \item Inicializa visualizador multicanal con escala automática
-    \item Muestra señales de hasta 16 canales simultáneamente
+    \item Muestra señales de múltiples canales simultáneamente
     \item Incluye métricas de calidad por canal mediante colores
 \end{itemize}
 \end{minipage} \\
@@ -398,7 +493,7 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
     \item Se activa mapa cerebral para distribución espacial
-    \item Posiciona electrodos según sistema 10-20/10-10
+    \item Posiciona electrodos según sistema estándar
     \item Codifica calidad de señal por colores
     \item Actualiza mapa según actividad en tiempo real
 \end{itemize}
@@ -483,7 +578,7 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
     \item Los dispositivos están físicamente conectados
     \item Los drivers necesarios están instalados
     \item El personal técnico tiene conocimientos básicos del sistema
-    \item BrainFlow está correctamente instalado para dispositivos EEG
+    \item La biblioteca de abstracción está correctamente instalada
 \end{itemize}
 \end{minipage} \\
 \hline
@@ -516,9 +611,9 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \hline
 1 & El personal técnico accede al módulo correspondiente \\
 \hline
-2 & Para entrada: SDL2 escanea controladores disponibles, fallback a teclado/ratón \\
+2 & Para entrada: sistema escanea controladores disponibles, fallback a teclado/ratón \\
 \hline
-3 & Para EEG: se presenta lista de dispositivos soportados por BrainFlow \\
+3 & Para EEG: se presenta lista de dispositivos soportados \\
 \hline
 4 & El técnico selecciona dispositivo específico a configurar \\
 \hline
@@ -557,16 +652,16 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \textbf{FA-01: Configuración placa sintética} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item En paso 4, técnico selecciona placa sintética BrainFlow
+    \item En paso 4, técnico selecciona placa sintética
     \item Sistema genera datos sintéticos predefinidos
     \item Útil para validación sin hardware real
 \end{itemize}
 \end{minipage} \\
 \hline
-\textbf{FA-02: Fallback controlador PS4} & 
+\textbf{FA-02: Fallback controlador} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
-    \item Si no se detecta controlador PS4, sistema usa teclado/ratón
+    \item Si no se detecta controlador específico, sistema usa alternativo
     \item Operación transparente para el usuario
     \item Funcionalidad completa con dispositivos alternativos
 \end{itemize}
@@ -587,14 +682,14 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \rowcolors{2}{white}{udcgray!25}
 \begin{tabular}{|p{3cm}|p{11cm}|}
 \hline
-\rowcolor{udcpink!25}
+\rowcolors{udcpink!25}
 \textbf{Excepción} & \textbf{Manejo} \\
 \hline
 \textbf{FE-01: Fallo conectividad EEG} & 
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
     \item Error al establecer conexión con dispositivo EEG
-    \item Sistema indica error específico reportado por BrainFlow
+    \item Sistema indica error específico reportado
     \item Requiere verificación de configuración y reintento manual
 \end{itemize}
 \end{minipage} \\
@@ -603,7 +698,7 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
     \item Dispositivo se desconecta durante captura
-    \item Para controlador PS4: fallback automático a teclado/ratón
+    \item Para controlador: fallback automático a alternativo
     \item Para EEG: stream se interrumpe, requiere reconexión manual
 \end{itemize}
 \end{minipage} \\
@@ -612,7 +707,7 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \begin{minipage}[t]{10.5cm}
 \begin{itemize}
     \item Métricas de calidad indican problemas por canal
-    \item Sistema muestra indicadores visuales por color en brain map
+    \item Sistema muestra indicadores visuales por color
     \item Visualizador de señales indica calidad por canal
     \item Requiere intervención manual para mejora de conexiones
 \end{itemize}
