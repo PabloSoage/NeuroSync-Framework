@@ -3,6 +3,86 @@
 
 Este anexo presenta la especificación detallada de los casos de uso desarrollados durante la segunda iteración del sistema, enfocados en la refactorización arquitectónica de los módulos independientes para facilitar futuras integraciones.
 
+\section{Análisis detallado de casos de uso}
+\label{sec:analisis_detallado_casos_uso_it2}
+
+Los casos de uso desarrollados en esta segunda iteración reflejan la naturaleza arquitectónica de la refactorización \acrshort{solid}, estableciendo fundamentos modulares que facilitan futuras extensiones y mejoran significativamente la mantenibilidad del sistema.
+
+\textbf{CU-01 - Generación de datasets mediante módulos independientes}: Este caso de uso representa la capacidad del sistema refactorizado para generar datos sincronizables de forma offline mediante módulos que operan independientemente. La arquitectura mejorada permite que cada módulo mantenga timestamps precisos que facilitan la correlación posterior, proporcionando una base para la generación de datasets de calidad incluso sin integración directa en tiempo real.
+
+\textbf{CU-03 - Fundamentos para desarrollo de extensiones modulares}: La refactorización \acrshort{solid} establece una base arquitectónica que facilita el desarrollo futuro de aplicaciones personalizadas. Los principios de responsabilidad única, extensibilidad mediante interfaces, y separación de dependencias proporcionan puntos de extensión claros que permiten integrar nuevas funcionalidades con mínimo impacto en el código base existente.
+
+\textbf{CU-06 - Preparación de datos para análisis posterior}: Los módulos refactorizados generan archivos estructurados que facilitan la integración con herramientas de análisis externas. La mejora en la organización del código y la exportación de datos establece fundamentos para futuras capacidades de integración más sofisticadas.
+
+\subsection{Relaciones entre casos de uso}
+\label{subsec:relaciones_casos_uso_it2}
+
+Los casos de uso de esta iteración establecen relaciones arquitectónicas que reflejan la preparación del sistema para futuras integraciones:
+
+\begin{itemize}
+    \item \textbf{CU-03 habilita CU-01}: La arquitectura modular facilita la operación independiente coordinada de múltiples módulos
+    \item \textbf{CU-01 genera CU-06}: Los datasets generados por módulos independientes alimentan las capacidades de análisis posterior
+    \item \textbf{CU-03 facilita CU-06}: La estructura modular simplifica la exportación y formateo de datos para herramientas externas
+\end{itemize}
+
+\subsection{Identificación de actores y sus necesidades}
+\label{subsec:actores_necesidades_it2}
+
+\textbf{Investigador BCI}: Requiere datasets de calidad para el desarrollo de modelos predictivos, beneficiándose de la capacidad de los módulos refactorizados para generar datos sincronizables offline. La mejora arquitectónica proporciona mayor estabilidad y confiabilidad en la generación de datos experimentales.
+
+\textbf{Desarrollador de aplicaciones BCI}: Necesita una base arquitectónica extensible que facilite el desarrollo de aplicaciones personalizadas. La refactorización \acrshort{solid} proporciona interfaces claras y separación de responsabilidades que simplifican significativamente el desarrollo de extensiones especializadas.
+
+\textbf{Integrador de sistemas}: Requiere arquitecturas modulares que faciliten la integración con sistemas existentes. Los principios \acrshort{solid} aplicados proporcionan puntos de integración bien definidos y interfaces estables que reducen la complejidad de integración.
+
+\textbf{Analista de datos}: Necesita datos estructurados en formatos compatibles con herramientas de análisis. Los módulos refactorizados proporcionan mejor organización de datos y exportación más confiable, facilitando el análisis posterior con herramientas especializadas.
+
+\subsection{Diagrama de casos de uso}
+\label{subsec:diagrama_casos_uso_it2}
+
+La Figura~\ref{fig:casos_uso_it2} presenta las relaciones entre actores y casos de uso de la segunda iteración, mostrando el enfoque arquitectónico preparatorio de esta fase.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{anexos/diagramas/casos_uso_it2.pdf}
+    \caption{Diagrama de casos de uso - Segunda iteración}
+    \label{fig:casos_uso_it2}
+\end{figure}
+
+\subsection{Trazabilidad requisitos-casos de uso}
+\label{subsec:trazabilidad_it2}
+
+La siguiente tabla establece la trazabilidad entre requisitos no funcionales arquitectónicos con los casos de uso que sientan sus bases:
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|l|l|l|p{6cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Código} & \textbf{Tipo} & \textbf{Casos de Uso} & \textbf{Descripción de implementación} \\
+\hline
+RNF-03 & No Funcional & CU-03 & Arquitectura extensible basada en principios \acrshort{solid} \\
+\hline
+RNF-04 & No Funcional & CU-01, CU-03 & Operaciones thread-safe mediante servicios singleton \\
+\hline
+RNF-08 & No Funcional & CU-01, CU-06 & Manejo robusto de errores con degradación elegante \\
+\hline
+RNF-09 & No Funcional & CU-03 & Documentación técnica actualizada de arquitectura modular \\
+\hline
+RF-08 & Funcional & CU-01 & Fundamentos para sincronización temporal entre fuentes \\
+\hline
+\end{tabular}
+}
+\caption{Trazabilidad requisitos-casos de uso - Segunda iteración}
+\label{tab:trazabilidad_it2}
+\end{table}
+
+\subsection{Lecciones aprendidas del análisis de casos de uso}
+\label{subsec:lecciones_aprendidas_it2}
+
+La especificación de casos de uso de esta iteración reveló que las mejoras arquitectónicas, aunque no proporcionan funcionalidades directamente visibles al usuario final, establecen fundamentos críticos para el desarrollo futuro. La refactorización \acrshort{solid} demostró que la inversión en calidad arquitectónica durante fases preparatorias proporciona beneficios considerables para la implementación de funcionalidades complejas en iteraciones posteriores. La separación de responsabilidades y la mejora en la mantenibilidad del código facilitaron significativamente la identificación de puntos de extensión para futuras integraciones.
+
 \section{CU-01 - Generación de datasets para entrenamiento ML}
 \label{sec:cu01_it2_datasets_ml}
 
