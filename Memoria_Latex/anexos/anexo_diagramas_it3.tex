@@ -71,7 +71,7 @@ La Figura~\ref{fig:api_explorer_frontend_anexo} ilustra la arquitectura del \tex
 \subsection{Flujo de métodos y comunicación}
 \label{subsec:anexo_api_explorer_flujo}
 
-La Figura~\ref{fig:methods_flowchart_anexo} presenta el flujo completo desde el registro de módulos hasta la ejecución de métodos y actualización de interfaces, ilustrando tanto operaciones síncronas como comunicación en tiempo real.
+La Figura~\ref{fig:methods_flowchart_anexo} presenta el flujo completo desde el registro de módulos hasta la ejecución de métodos y actualización de interfaces, ilustrando tanto operaciones síncronas como comunicación en tiempo real. El flujo inicia cuando los módulos \textit{\textbf{InputCollector}}/\textit{\textbf{EEGProcessor}} (\textbf{puntos de entrada}) se registran exponiendo sus \acrshortpl{api}, y culmina en múltiples \textbf{puntos de salida}: interfaces web interactivas, clientes \acrshort{cli} externos, \textit{dashboards} en tiempo real, y aplicaciones de terceros via \acrshortpl{api} \acrshort{rest}.
 
 \begin{figure}[H]
     \centering
@@ -94,6 +94,8 @@ La Figura~\ref{fig:methods_flowchart_anexo} presenta el flujo completo desde el 
 
     \item \textbf{Comunicación en tiempo real}: Los eventos generados se distribuyen via \textit{\gls{websocket}} a todas las interfaces conectadas, actualizando tablas de datos y gráficos dinámicamente.
 \end{enumerate}
+
+\textbf{Distribución de resultados}: Los resultados se distribuyen mediante múltiples canales según el tipo de cliente: interfaces web reciben respuestas \acrshort{json} enriquecidas con actualizaciones \textit{\gls{websocket}} en tiempo real, clientes \acrshort{cli} obtienen respuestas estructuradas via \acrshortpl{api} \acrshort{rest}, y \textit{dashboards} especializados se suscriben a \textit{streams} de datos específicos para monitorización continua.
 
 \textbf{Soporte para clientes externos}: El sistema proporciona tanto \acrshortpl{api} \acrshort{rest} estándar para clientes \acrshort{cli} y aplicaciones de terceros, como \textit{\gls{websocket}} para \textit{dashboards} web en tiempo real.
 

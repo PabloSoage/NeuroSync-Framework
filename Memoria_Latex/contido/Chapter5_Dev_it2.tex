@@ -80,7 +80,7 @@ La capa de visualización se refactorizó completamente para eliminar dependenci
 
 El diseño implementa el principio de \textit{Liskov Substitution} mediante \textit{\textbf{BaseVisualizer}}, que define la interfaz común para todos los visualizadores específicos. \textit{\textbf{UIManager}} gestiona la interfaz principal y coordina con \textit{\textbf{VisualizerManager}} para actualizar visualizaciones según el estado del sistema, eliminando las dependencias circulares de la iteración anterior.
 
-El flujo de datos refactorizado, ilustrado en la Figura~\ref{fig:ic_samples_flowchart_it2}, muestra la separación clara entre capas de captura, procesamiento, visualización y registro. Los eventos fluyen desde los colectores hacia \textit{\textbf{CollectorManager}}, que aplica filtrado antes de distribuir a \textit{\textbf{AppCoordinator}} para procesamiento central.
+El flujo de datos refactorizado, ilustrado en la Figura~\ref{fig:ic_samples_flowchart_it2}, muestra la separación clara entre capas de captura, procesamiento, visualización y registro. Los eventos producidos por el \textit{hardware}, es decir, teclado/ratón y controlador \acrshort{ps4} (\textbf{puntos de entrada}), se capturan mediante colectores específicos (\textit{\textbf{KeyboardMouseCollector}} y \textit{\textbf{PS4ControllerCollector}}) que alimentan a \textit{\textbf{CollectorManager}} como coordinador central. Los eventos se procesan a través de filtrado de teclas y \textit{\textbf{AppCoordinator}} antes de distribuirse hacia múltiples \textbf{puntos de salida}: visualizadores en tiempo real, archivos \acrshort{json}/\acrshort{csv} mediante \textit{\textbf{LoggingManager}}, y actualizaciones de estado en \textit{\textbf{UIManager}}.
 
 \begin{figure}[H]
     \centering
@@ -89,7 +89,7 @@ El flujo de datos refactorizado, ilustrado en la Figura~\ref{fig:ic_samples_flow
     \label{fig:ic_samples_flowchart_it2}
 \end{figure}
 
-El flujo implementa múltiples canales de distribución: eventos procesados van hacia sistemas de registro a través de \textit{\textbf{LoggingManager}}, mientras que eventos filtrados se distribuyen directamente a visualizadores registrados. Esta arquitectura elimina el \textit{\gls{polling}} directo de visualizadores, implementando un sistema de notificaciones basado en el patrón \textit{Observer}.
+El flujo implementa múltiples canales de distribución: eventos procesados van hacia sistemas de registro a través de \textit{\textbf{LoggingManager}}, mientras que eventos filtrados se distribuyen directamente a visualizadores registrados. Esta arquitectura elimina el \textit{\gls{polling}} directo de visualizadores, implementando un sistema de notificaciones basado en el patrón \textit{Observer}. El controlador \acrshort{ps4} se registra para escaneado básico sin generar eventos de captura en esta iteración.
 
 \textbf{Arquitectura refactorizada del módulo \acrshort{eeg}}:
 La refactorización del módulo \acrshort{eeg} implementó una separación arquitectónica similar basada en servicios especializados. La Figura~\ref{fig:ep_main_arch_services_core_it2} presenta la nueva arquitectura de servicios centrales donde \textit{\textbf{EEGProcessorApp}} coordina múltiples servicios independientes: \textit{\textbf{CollectorService}}, \textit{\textbf{ProcessorService}}, \textit{\textbf{VisualizationService}} y \textit{\textbf{RecordingService}}.
@@ -119,7 +119,7 @@ El diseño implementa especialización funcional: \textit{\textbf{ConnectionPane
 
 Cada panel interactúa con servicios específicos según su funcionalidad, implementando el principio de \textit{Interface Segregation} donde los clientes solo dependen de las interfaces que realmente utilizan. El sistema de ayuda contextual se centraliza en \textit{\textbf{HelpSystem}}, proporcionando soporte a través de todos los paneles.
 
-El flujo de datos refactorizado del módulo \acrshort{eeg}, ilustrado en la Figura~\ref{fig:ep_samples_flowchart_it2}, muestra la comunicación entre servicios y el acceso coordinado a datos. Los datos fluyen desde el \textit{hardware} \acrshort{eeg} hacia \textit{\textbf{EEGCollector}}, que utiliza \textbf{BrainFlow} para abstracción de dispositivos.
+El flujo de datos refactorizado del módulo \acrshort{eeg}, ilustrado en la Figura~\ref{fig:ep_samples_flowchart_it2}, muestra la comunicación entre servicios y el acceso coordinado a datos. Los datos fluyen desde el \textit{hardware} \acrshort{eeg} (\textbf{punto de entrada único}) hacia \textit{\textbf{EEGCollector}}, que utiliza \textbf{BrainFlow} para abstracción de dispositivos y alimenta el \textit{buffer} central a través de \textit{\textbf{CollectorService}}.
 
 \begin{figure}[H]
     \centering
@@ -129,7 +129,7 @@ El flujo de datos refactorizado del módulo \acrshort{eeg}, ilustrado en la Figu
     \label{fig:ep_samples_flowchart_it2}
 \end{figure}
 
-\textit{\textbf{CollectorService}} actúa como interfaz unificada para acceso a datos, proporcionando un \textit{\gls{buffer}} central que es accedido por visualizadores y servicios de grabación mediante \textit{\gls{polling}}. Los visualizadores (\textit{\textbf{EEGVisualizer}} y \textit{\textbf{BrainMapVisualizer}}) aplican procesamiento local según sus necesidades específicas, mientras que \textit{\textbf{RecordingService}} maneja el almacenamiento de datos en archivos \acrshort{csv}.
+\textit{\textbf{CollectorService}} actúa como interfaz unificada para acceso a datos, proporcionando un \textit{\gls{buffer}} central que es accedido por visualizadores y servicios de grabación mediante \textit{\gls{polling}}. Los datos se distribuyen hacia múltiples \textbf{puntos de salida}: visualizadores locales (\textit{\textbf{EEGVisualizer}} y \textit{\textbf{BrainMapVisualizer}}) que aplican procesamiento local según sus necesidades específicas, y \textit{\textbf{RecordingService}} que maneja el almacenamiento en archivos \acrshort{csv}. El \textit{\textbf{ProcessorService}} proporciona capacidades de filtrado básico coordinadas desde paneles de control especializados.
 
 La coordinación se realiza a través de \textit{\textbf{EEGProcessorApp}} que gestiona el ciclo de vida de todos los servicios, mientras que los paneles de interfaz proporcionan control granular sobre configuraciones específicas. Esta arquitectura elimina las dependencias circulares de la iteración anterior y facilita la integración con sistemas externos.
 
