@@ -12,9 +12,7 @@ La creación de interfaces de visualización ha resultado en un ecosistema compl
 
 La arquitectura extensible basada en principios \acrshort{solid} ha demostrado su valor durante todo el proceso de desarrollo, facilitando la depuración, la integración de nuevas características, mejorando la robustez del código y facilitando los primeros pasos hacia la integración entre módulos~\cite{martin2003agile}. El diseño modular ha permitido que cada componente evolucione independientemente mediante interfaces bien definidas, una característica que resultó crucial para gestionar la complejidad del sistema a medida que crecía en funcionalidad.
 
-Sin embargo, una limitación temporal significativa ha impedido la finalización completa de uno de los objetivos principales del proyecto: la creación del módulo de sincronización integrado de eventos con señales. Aunque se ha validado que la aproximación arquitectónica basada en \acrshort{api} es correcta y viable para este objetivo, ya que los datos llegan correctamente al módulo de sincronización y se logra agregar eventos como \glspl{marcadores} a las señales \acrshort{eeg} en archivos \acrshort{csv}, la precisión y correctitud de esta primera versión no ha sido completamente validada. Los problemas técnicos en la exportación a formatos \acrshort{edf}/\acrshort{edf+} y la falta de tiempo para verificar rigurosamente la exportación en \acrshort{hdf5}, \acrshort{bids} y \acrshort{csv} han pausado temporalmente el desarrollo de este componente. Adicionalmente, en el módulo de sincronización la integración con información detallada sobre canales requiere refinamiento, ya que actualmente los archivos \acrshort{csv} utilizan nombres genéricos que dificultan el trabajo con los datos para usuarios no familiarizados con la indexación específica de \textbf{BrainFlow}~\cite{brainflow}.
-
-A pesar de esta limitación, el sistema proporciona una solución práctica y valiosa para la generación de \textit{\gls{dataset}} \acrshort{bci}. Los dos módulos independientes desarrollados pueden iniciarse simultáneamente para capturar \textit{inputs} de usuario y señales cerebrales en archivos separados, manteniendo \textit{\glspl{timestamp}} precisos que permiten \gls{sincronizacion} \textit{offline} posterior. Esta aproximación, aunque no ideal para aplicaciones en tiempo real, cumple efectivamente el objetivo de facilitar la generación de \textit{\glspl{dataset}} de calidad para el desarrollo de sistemas \acrshort{bci}, que constituía el propósito central del proyecto.
+El sistema ha logrado establecer la arquitectura técnica necesaria para la sincronización entre señales \acrshort{eeg} y eventos de entrada mediante una infraestructura \acrshort{api} robusta que valida la viabilidad del enfoque propuesto. La arquitectura desarrollada permite la operación coordinada de módulos independientes con \textit{\glspl{timestamp}} precisos para sincronización \textit{offline}, cumpliendo el objetivo principal del proyecto. El desarrollo de un módulo de sincronización integrado se inició y alcanzó fases preliminares donde se validó el acceso correcto a datos de ambos módulos mediante \textit{\glspl{callback}} locales, pero su implementación completa queda como trabajo futuro para completar aspectos como la exportación a formatos estándar (\acrshort{edf+}, \acrshort{hdf5}, \acrshort{bids}) y la validación exhaustiva de precisión temporal.
 
 Los desafíos técnicos más significativos han emergido de la complejidad inherente de los sistemas \acrshort{bci} y la naturaleza experimental del desarrollo en este dominio. Los múltiples fallos de integración en las iteraciones tempranas revelaron que la integración entre módulos complejos no puede ser considerada como una fase separada del desarrollo, sino que debe estar integrada en las decisiones arquitectónicas desde el inicio. Esta experiencia condujo al desarrollo de la arquitectura \acrshort{api} que finalmente resolvió estos problemas de forma elegante y sostenible.
 
@@ -24,7 +22,7 @@ La experiencia con el controlador \acrshort{ps4} ilustró particularmente bien l
 
 El proceso de desarrollo incremental-iterativo ha demostrado ser excepcionalmente adecuado para proyectos de investigación experimental donde los requisitos no pueden ser completamente especificados al inicio. El desarrollo iterativo documentado refleja la naturaleza experimental del proceso y la importancia de mantener flexibilidad para adaptar la metodología basándose en aprendizajes obtenidos durante la implementación. Los fallos de integración, aunque frustrantes, proporcionaron información fundamental que guió el desarrollo hacia soluciones más robustas.
 
-La refactorización \acrshort{solid} realizada temprano en el proyecto demostró que la inversión en calidad arquitectónica durante las fases iniciales del desarrollo proporciona beneficios exponenciales a medida que el sistema crece en complejidad~\cite{martin2003agile}. Esta experiencia validó la importancia de considerar la mantenibilidad y extensibilidad como requisitos de primera clase, no como consideraciones posteriores.
+La refactorización \acrshort{solid} realizada temprano en el proyecto demostró que la inversión en calidad arquitectónica durante las fases iniciales del desarrollo proporciona beneficios considerables a medida que el sistema crece en complejidad~\cite{martin2003agile}. Esta experiencia validó la importancia de considerar la mantenibilidad y extensibilidad como requisitos de primera clase, no como consideraciones posteriores.
 
 El proyecto ha integrado exitosamente conocimientos fundamentales del grado en múltiples dimensiones. Los conceptos de \textbf{diseño de \textit{software}} se aplicaron extensivamente a través de la implementación de principios \acrshort{solid} y patrones de diseño especializados. Las competencias en \textbf{concurrencia y paralelismo}, así como de \textbf{sistemas operativos}, resultaron cruciales para el desarrollo de sistemas \textit{multihilo} con requisitos de sincronización estrictos. La optimización aprendida en \textbf{algoritmos} o los fundamentos de procesamiento de señales aprendidos en \textbf{gestión de interfaces} fueron esenciales para implementar capacidades de análisis avanzado con responsividad adecuada.
 
@@ -34,30 +32,62 @@ A nivel de competencias transversales, el proyecto ha desarrollado significativa
 
 El sistema desarrollado constituye una herramienta útil para el ecosistema \acrshort{bci} al proporcionar herramientas que facilitan la combinación de capacidades tradicionalmente fragmentadas. La arquitectura modular y las múltiples interfaces proporcionan una base técnica para evolucionar con los avances del campo \acrshort{bci}, mientras que el enfoque en accesibilidad establece fundamentos para la democratización futura de estas tecnologías para investigadores con diferentes niveles de experiencia técnica.
 
-\section{Decisiones arquitectónicas exitosas}
-\label{sec:decisiones_exitosas}
+El sistema desarrollado constituye una herramienta funcional para la generación de \textit{\glspl{dataset}} \acrshort{bci} que aborda aspectos importantes de la fragmentación existente en el ecosistema actual. La arquitectura implementada permite la operación coordinada de módulos independientes con \textit{\glspl{timestamp}} precisos para sincronización \textit{offline}, cumpliendo el objetivo principal del proyecto. La infraestructura técnica desarrollada establece las bases para un futuro módulo de sincronización integrado, aunque su implementación completa requiere trabajo adicional. Esta implementación facilita la investigación en interfaces cerebro-computadora al proporcionar herramientas que integran capacidades tradicionalmente fragmentadas, estableciendo fundamentos sólidos para futuras extensiones del sistema.
+
+\section{Lecciones aprendidas}
+\label{sec:lecciones_aprendidas}
+
+El desarrollo del sistema ha proporcionado valiosas lecciones tanto de decisiones arquitectónicas exitosas como de desafíos que orientaron el proyecto hacia soluciones más robustas:
+
+\subsection{Decisiones arquitectónicas exitosas}
+\label{subsec:decisiones_exitosas}
 
 Durante el desarrollo del sistema, varias decisiones arquitectónicas demostraron ser particularmente exitosas, proporcionando estabilidad y extensibilidad al sistema desarrollado:
 
-\subsection{Arquitectura \acrshort{api} como \textit{\gls{backbone}}}
-\label{subsec:arquitectura_api_backbone}
+\subsubsection{Arquitectura \acrshort{api} como \textit{\gls{backbone}}}
+\label{subsubsec:arquitectura_api_backbone}
 
 La implementación de \acrshort{api} como \textit{\gls{backbone}} de comunicación entre módulos demostró ser una solución robusta que superó las limitaciones de integración directa, facilitando tanto el desarrollo como futuras extensiones.
 
-\subsection{Centralización mediante \textit{\textbf{DataAccessService}}}
-\label{subsec:centralizacion_dataaccess}
+\subsubsection{Centralización mediante \textit{\textbf{DataAccessService}}}
+\label{subsubsec:centralizacion_dataaccess}
 
 La centralización mediante \textit{\textbf{DataAccessService}} eliminó duplicaciones e inconsistencias que habían complicado el desarrollo inicial, proporcionando un punto único de control para acceso a datos que simplificó significativamente la arquitectura general.
 
-\subsection{Migración a \textit{\glspl{callback}}}
-\label{subsec:migracion_callbacks}
+\subsubsection{Migración a \textit{\glspl{callback}}}
+\label{subsubsec:migracion_callbacks}
 
 La migración a \textit{\glspl{callback}} tanto para visualizadores locales como para \acrshort{api} mejoró sustancialmente el rendimiento del sistema al eliminar \textit{\gls{polling}} concurrente innecesario. Esta optimización fue particularmente notable en el módulo de grabación, donde la pérdida de muestras se redujo del 10-30\% previo a la migración a niveles negligibles (<1\%).
 
-\subsection{Arquitectura dirigida por eventos}
-\label{subsec:arquitectura_eventos}
+\subsubsection{Arquitectura dirigida por eventos}
+\label{subsubsec:arquitectura_eventos}
 
 La implementación de \gls{arquitectura_dirigida_eventos} para el controlador \acrshort{ps4} resolvió problemas de rendimiento y compatibilidad que habían limitado su funcionalidad en interfaces \acrshort{cli}, demostrando la importancia de seleccionar patrones arquitectónicos específicos según el contexto de ejecución.
+
+\subsection{Lecciones aprendidas de desafíos experimentados}
+\label{subsec:lecciones_desafios}
+
+El proceso de desarrollo también reveló importantes lecciones a través de desafíos que inicialmente retrasaron el progreso pero que finalmente condujeron a soluciones más robustas:
+
+\subsubsection{Fallos de integración en iteraciones tempranas}
+\label{subsubsec:fallos_integracion}
+
+Los múltiples fallos de integración \textbf{\acrshort{lsl}} en las primeras dos iteraciones revelaron que la integración entre módulos complejos no puede ser tratada como una fase separada del desarrollo. Esta experiencia enseñó la importancia de diseñar con la integración en mente desde las fases iniciales, motivando el desarrollo de la arquitectura \acrshort{api} que finalmente resolvió estos problemas de forma elegante.
+
+\subsubsection{Arquitectura monolítica inicial}
+\label{subsubsec:arquitectura_monolitica}
+
+El enfoque monolítico inicial, aunque permitió desarrollo rápido de prototipos funcionales, creó barreras significativas para la modularización y extensibilidad. La refactorización \acrshort{solid} posterior demostró que la inversión temprana en arquitectura modular habría evitado estos obstáculos, validando la importancia de considerar principios de diseño desde las fases iniciales.
+
+\subsubsection{Problemas de rendimiento con \textit{\gls{polling}}}
+\label{subsubsec:problemas_polling}
+
+Las limitaciones de rendimiento del \textit{\gls{polling}} inicial (pérdida de muestras del 10-30\%) enseñaron la importancia de seleccionar paradigmas arquitectónicos apropiados según los requisitos de rendimiento. La migración posterior a arquitecturas dirigidas por eventos no solo resolvió estos problemas sino que proporcionó una base más sólida para el crecimiento futuro del sistema.
+
+\subsubsection{Dependencias ocultas en modo \textit{\gls{headless}}}
+\label{subsubsec:dependencias_headless}
+
+Los problemas tardíos con dependencias \textbf{Qt} en modo \textit{\gls{headless}} revelaron la importancia de considerar múltiples contextos de ejecución desde las fases de diseño inicial. Aunque se resolvieron parcialmente mediante arquitecturas dirigidas por eventos, esta experiencia destacó la necesidad de validar requisitos no funcionales en diferentes entornos de ejecución durante el desarrollo.
 
 \chapter{Líneas de trabajo futuro}
 \label{chap:lineas_futuro}
