@@ -177,22 +177,22 @@ La validación se enfocó en verificar la preservación de funcionalidad tras la
   \centering
   \resizebox{\textwidth}{!}{
     \rowcolors{2}{white}{udcgray!25}
-    \begin{tabular}{l|l|l|l}
+    \begin{tabular}{l|l|l}
     \rowcolor{udcpink!25}
-    \textbf{Prueba realizada} & \textbf{Resultado esperado} & \textbf{Resultado obtenido} & \textbf{Estado} \\
+    \textbf{Prueba realizada} & \textbf{Resultado esperado} & \textbf{Resultado obtenido} \\
     \hline
-    Preservación funcionalidad entrada & Todas las funciones operativas & Funcionalidad completa preservada & Exitosa \\
-    Preservación funcionalidad \acrshort{eeg} & Visualización y grabación funcionando & Operación normal sin degradación & Exitosa \\
-    Reducción acoplamiento & Archivos independientes y modulares & Archivos 60\% más pequeños, menor dependencia & Exitosa \\
-    Tiempo de depuración & Reducción significativa & 70\% reducción en tiempo identificación errores & Exitosa \\
-    Aplicación principios \acrshort{solid} & Principios implementados correctamente & \textit{Single Responsibility}, \textit{Open-Closed} aplicados & Exitosa \\
-    Servicios \textit{thread-safe} & Operación concurrente sin errores & \textit{Singleton} seguro, operación estable & Exitosa \\
-    Sistema \textit{\glspl{callback}} interno & Comunicación desacoplada & Eventos propagados correctamente & Exitosa \\
-    Configuración coordinada & Coordinación visual de parámetros & Configuración centralizada funcional & Exitosa \\
-    Coordinación grabaciones & Inicio/parada sincronizada & Control visual coordinado exitoso & Exitosa \\
-    Acceso datos internos & Interfaces para datos tiempo real & Acceso limitado, sin \textit{\gls{streaming}} directo & Parcial \\
-    Sincronización temporal real & \textit{Timestamps} coordinados & Solo coordinación visual, no datos & Fallida \\
-    Intercambio datos módulos & Comunicación bidireccional & Sin capacidades intercambio directo & Fallida \\
+    Preservación funcionalidad entrada & Todas las funciones operativas & Funcionalidad completa preservada \\
+    Preservación funcionalidad \acrshort{eeg} & Visualización y grabación funcionando & Operación normal sin degradación \\
+    Reducción acoplamiento & Archivos independientes y modulares & Archivos 60\% más pequeños, menor dependencia \\
+    Tiempo de depuración & Reducción significativa & 70\% reducción en tiempo identificación errores \\
+    Aplicación principios \acrshort{solid} & Principios implementados correctamente & \textit{Single Responsibility}, \textit{Open-Closed} aplicados \\
+    Servicios \textit{thread-safe} & Operación concurrente sin errores & \textit{Singleton} seguro, operación estable \\
+    Sistema \textit{\glspl{callback}} interno & Comunicación desacoplada & Eventos propagados correctamente \\
+    Configuración coordinada & Coordinación visual de parámetros & Configuración centralizada funcional \\
+    Coordinación grabaciones & Inicio/parada sincronizada & Control visual coordinado exitoso \\
+    Acceso datos internos & Interfaces para datos tiempo real & Acceso limitado, sin \textit{\gls{streaming}} directo \\
+    Sincronización temporal real & \textit{Timestamps} coordinados & Solo coordinación visual, no datos \\
+    Intercambio datos módulos & Comunicación bidireccional & Sin capacidades intercambio directo \\
     \end{tabular}
   }
   \caption{Resultados de validación de la segunda iteración}

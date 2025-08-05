@@ -65,7 +65,7 @@ El flujo de datos del módulo, ilustrado en la Figura~\ref{fig:ic_samples_flowch
     \label{fig:ic_samples_flowchart_it1}
 \end{figure}
 
-El sistema de \textit{\glspl{timestamp}} se implementó utilizando la función \textit{time.time()} de Python para garantizar precisión temporal de milisegundos. El diseño contemplaba cuatro modos diferentes de representación del movimiento del ratón para adaptarse a diferentes tipos de experimentos: modo \textit{axis} para direcciones cardinales, modo \textit{angle} para representación angular, modo \textit{delta} para movimiento en bruto, y modo \textit{joystick} para emulación de controlador analógico.
+El sistema de \textit{\glspl{timestamp}} se diseñó para garantizar precisión temporal de milisegundos mediante marcado temporal de alta resolución. El diseño contemplaba cuatro modos diferentes de representación del movimiento del ratón para adaptarse a diferentes tipos de experimentos: modo \textit{axis} para direcciones cardinales, modo \textit{angle} para representación angular, modo \textit{delta} para movimiento en bruto, y modo \textit{joystick} para emulación de controlador analógico.
 
 \textbf{Arquitectura inicial del módulo \acrshort{eeg}}:
 El módulo de procesamiento \acrshort{eeg} se diseñó como una aplicación independiente que integraba \textbf{Brainflow} mediante el patrón \textit{Adapter}. La arquitectura se desarrolló directamente en \textbf{PyQt5} después de validar su rendimiento superior sobre \textbf{tkinter} para visualización en tiempo real.
@@ -111,6 +111,8 @@ La implementación en Python utilizó \textbf{pynput} como biblioteca principal 
 
 La implementación de múltiples modos de \textit{tracking} de ratón requirió desarrollo personalizado para cada modalidad. El modo \textit{axis} calcula probabilidades de movimiento en direcciones cardinales que suman 1. El modo \textit{angle} proporciona tanto direcciones discretas agrupables como ángulos continuos con magnitud. El modo \textit{delta} registra movimiento en bruto con \textit{\gls{delta_smoothing}} configurable. El modo \textit{joystick} emula direcciones X+/X-/Y+/Y- con velocidad ajustable mediante parámetros de sensibilidad.
 
+El sistema de \textit{\glspl{timestamp}} se implementó utilizando la función \textit{time.time()} de Python, que proporciona precisión de microsegundos en la mayoría de sistemas operativos, garantizando la precisión temporal de milisegundos requerida para correlación con señales cerebrales.
+
 La interfaz gráfica inicial se implementó en \textit{tkinter}, pero mostró limitaciones de rendimiento para actualizaciones frecuentes y falta de \textit{\glspl{widget}} especializados, motivando la experimentación con \textbf{PyQt5}, validando su uso mediante el desarrollo inicial del módulo de \acrshort{eeg}.
 
 \textbf{Fase 3: Desarrollo del módulo de procesamiento \acrshort{eeg}}:
@@ -139,22 +141,22 @@ La validación se realizó mediante pruebas manuales exhaustivas para cada compo
   \centering
   \resizebox{\textwidth}{!}{
     \rowcolors{2}{white}{udcgray!25}
-    \begin{tabular}{l|l|l|l}
+    \begin{tabular}{l|l|l}
     \rowcolor{udcpink!25}
-    \textbf{Prueba realizada} & \textbf{Resultado esperado} & \textbf{Resultado obtenido} & \textbf{Estado} \\
+    \textbf{Prueba realizada} & \textbf{Resultado esperado} & \textbf{Resultado obtenido} \\
     \hline
-    Captura eventos teclado & Eventos con \textit{\glspl{timestamp}} < 10ms latencia & Latencia medida 5-8ms & Exitosa \\
-    Filtrado teclas específicas & Solo teclas configuradas capturadas & Filtrado correcto, eventos liberación eliminados & Exitosa \\
-    Modos tracking ratón & 4 modos funcionales con representaciones distintas & Axis, angle, delta, joystick funcionando & Exitosa \\
-    Exportación \acrshort{json} básica & Estructura \acrshort{json} válida con metadatos & \acrshort{json} correcto con timestamps y metadatos & Exitosa \\
-    Conectividad \textbf{Brainflow} & Conexión exitosa con placa sintética & Conexión establecida, datos fluyendo & Exitosa \\
-    Visualización multicanal & 16 canales mostrados en tiempo real & Visualización fluida hasta 250Hz & Exitosa \\
-    Calidad señal (\textit{railed \%}) & Detección automática electrodos problemáticos & Cálculo correcto, visualización por colores & Exitosa \\
-    Grabación \acrshort{csv} con metadatos & Archivo \acrshort{csv} con cabeceras completas & Metadatos completos, estructura correcta & Exitosa \\
-    Migración \acrshort{gui} a \textbf{PyQt5} & Rendimiento superior a \textbf{tkinter} & Visualización fluida, \textit{\glspl{widget}} responsivos & Exitosa \\
-    Integración visual módulos & Interfaz unificada funcional & Control coordinado ambos módulos & Exitosa \\
-    Integración \textbf{\acrshort{lsl}} & Sincronización temporal precisa & Fallo por acoplamiento monolítico & Fallida \\
-    Sincronización \textit{\glspl{timestamp}} & \textit{Timestamps} coordinados entre módulos & Sistemas independientes sin coordinación & Fallida \\
+    Captura eventos teclado & Eventos con \textit{\glspl{timestamp}} < 10ms latencia & Latencia medida 5-8ms \\
+    Filtrado teclas específicas & Solo teclas configuradas capturadas & Filtrado correcto, eventos liberación eliminados \\
+    Modos tracking ratón & 4 modos funcionales con representaciones distintas & Axis, angle, delta, joystick funcionando \\
+    Exportación \acrshort{json} básica & Estructura \acrshort{json} válida con metadatos & \acrshort{json} correcto con timestamps y metadatos \\
+    Conectividad \textbf{Brainflow} & Conexión exitosa con placa sintética & Conexión establecida, datos fluyendo \\
+    Visualización multicanal & 16 canales mostrados en tiempo real & Visualización fluida hasta 250Hz \\
+    Calidad señal (\textit{railed \%}) & Detección automática electrodos problemáticos & Cálculo correcto, visualización por colores \\
+    Grabación \acrshort{csv} con metadatos & Archivo \acrshort{csv} con cabeceras completas & Metadatos completos, estructura correcta \\
+    Migración \acrshort{gui} a \textbf{PyQt5} & Rendimiento superior a \textbf{tkinter} & Visualización fluida, \textit{\glspl{widget}} responsivos \\
+    Integración visual módulos & Interfaz unificada funcional & Control coordinado ambos módulos \\
+    Integración \textbf{\acrshort{lsl}} & Sincronización temporal precisa & Fallo por acoplamiento monolítico \\
+    Sincronización \textit{\glspl{timestamp}} & \textit{Timestamps} coordinados entre módulos & Sistemas independientes sin coordinación \\
     \end{tabular}
   }
   \caption{Resultados de validación de la primera iteración}

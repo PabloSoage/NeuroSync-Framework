@@ -191,25 +191,25 @@ La validación se realizó mediante pruebas exhaustivas de cada componente desar
   \centering
   \resizebox{\textwidth}{!}{
     \rowcolors{2}{white}{udcgray!25}
-    \begin{tabular}{l|l|l|l}
+    \begin{tabular}{l|l|l}
     \rowcolor{udcpink!25}
-    \textbf{Prueba realizada} & \textbf{Resultado esperado} & \textbf{Resultado obtenido} & \textbf{Estado} \\
+    \textbf{Prueba realizada} & \textbf{Resultado esperado} & \textbf{Resultado obtenido} \\
     \hline
-    \acrshort{api} acceso datos ambos módulos & \textit{Endpoints} funcionales con documentación & \acrshortpl{api} completas, documentación automática & Exitosa \\
-    \textit{Streaming \gls{websocket}} tiempo real & Datos fluidos sin pérdida & \textit{Streaming} validado hasta 1000Hz & Exitosa \\
-    Explorador web unificado & Interfaz única para ambos módulos & Sistema registro dinámico funcional & Exitosa \\
-    \acrshort{api} control remoto completo & Control total via programática & Sincronización \acrshort{gui}-\acrshort{api} bidireccional & Exitosa \\
-    Soporte controlador \acrshort{ps4} & Eventos completos cable/inalámbrico & Arquitectura eventos, latencia mínima & Exitosa \\
-    Interfaces \acrshort{cli} completas & Comandos documentados automáticamente & \acrshort{cli} funcional con limitaciones \textit{\gls{headless}} & Parcial \\
-    Integración \textbf{MNE-Python} & Conversión tiempo real 3 modalidades & Integración completa, \textit{plots} funcionales & Exitosa \\
-    Algoritmos \acrshort{ica} avanzados & 1-16 componentes, matrices visualización & \acrshort{ica} completo, tiempo real con latencia & Exitosa \\
-    Transformadas \textit{\gls{wavelet}} & Múltiples familias, niveles configurables & Implementación completa validada & Exitosa \\
-    Filtros digitales expandidos & Múltiples tipos, \textit{\gls{downsampling}} & Filtros avanzados, agregación múltiple & Exitosa \\
-    Detección automática canales & Tipos automáticos: \acrshort{eeg}, \acrshort{emg}, \acrshort{ecg}, etc. & Detección correcta, pestañas por tipo & Exitosa \\
-    Optimizaciones rendimiento & Soporte 1000Hz sin pérdida & \textit{Batching}, \textit{\glspl{worker}}, \textbf{orjson} validados & Exitosa \\
-    \textit{Streaming} archivos/red & \gls{tcp}/\gls{udp}/archivo con múltiples formatos & Archivo completo, red limitada \textit{\glspl{presets}} 0 & Parcial \\
-    Corrección pérdida muestras & Reducción <1\% desde 10-30\% & Migración \textit{\glspl{callback}}, pérdida <1\% & Exitosa \\
-    Integración \textbf{\acrshort{lsl}} final & Sincronización temporal precisa & \textit{Callbacks} locales OK, exportación pausada & Pausada \\
+    \acrshort{api} acceso datos ambos módulos & \textit{Endpoints} funcionales con documentación & \acrshortpl{api} completas, documentación automática \\
+    \textit{Streaming \gls{websocket}} tiempo real & Datos fluidos sin pérdida & \textit{Streaming} validado hasta 1000Hz \\
+    Explorador web unificado & Interfaz única para ambos módulos & Sistema registro dinámico funcional \\
+    \acrshort{api} control remoto completo & Control total via programática & Sincronización \acrshort{gui}-\acrshort{api} bidireccional \\
+    Soporte controlador \acrshort{ps4} & Eventos completos cable/inalámbrico & Arquitectura eventos, latencia mínima \\
+    Interfaces \acrshort{cli} completas & Comandos documentados automáticamente & \acrshort{cli} funcional con limitaciones \textit{\gls{headless}} \\
+    Integración \textbf{MNE-Python} & Conversión tiempo real 3 modalidades & Integración completa, \textit{plots} funcionales \\
+    Algoritmos \acrshort{ica} avanzados & 1-16 componentes, matrices visualización & \acrshort{ica} completo, tiempo real con latencia \\
+    Transformadas \textit{\gls{wavelet}} & Múltiples familias, niveles configurables & Implementación completa validada \\
+    Filtros digitales expandidos & Múltiples tipos, \textit{\gls{downsampling}} & Filtros avanzados, agregación múltiple \\
+    Detección automática canales & Tipos automáticos: \acrshort{eeg}, \acrshort{emg}, \acrshort{ecg}, etc. & Detección correcta, pestañas por tipo \\
+    Optimizaciones rendimiento & Soporte 1000Hz sin pérdida & \textit{Batching}, \textit{\glspl{worker}}, \textbf{orjson} validados \\
+    \textit{Streaming} archivos/red & \gls{tcp}/\gls{udp}/archivo con múltiples formatos & Archivo completo, red limitada \textit{\glspl{presets}} 0 \\
+    Corrección pérdida muestras & Reducción <1\% desde 10-30\% & Migración \textit{\glspl{callback}}, pérdida <1\% \\
+    Integración \textbf{\acrshort{lsl}} final & Sincronización temporal precisa & \textit{Callbacks} locales OK, exportación pausada \\
     \end{tabular}
   }
   \caption{Resultados de validación de la tercera iteración}
