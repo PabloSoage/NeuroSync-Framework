@@ -1,4 +1,4 @@
-\chapter{Anexo: Diagramas técnicos detallados - Tercera iteración}
+\chapter[Diagramas tercera iteración]{Diagramas técnicos detallados - Tercera iteración}
 \label{chap:anexo_diagramas_it3}
 
 Este anexo proporciona documentación técnica exhaustiva de los subcomponentes específicos desarrollados durante la tercera iteración. Los diagramas están organizados por módulo y presentan el nivel de detalle arquitectónico necesario para comprender la implementación interna de cada componente.
@@ -99,7 +99,7 @@ La Figura~\ref{fig:methods_flowchart_anexo} presenta el flujo completo desde el 
 
 \textbf{Soporte para clientes externos}: El sistema proporciona tanto \acrshortpl{api} \acrshort{rest} estándar para clientes \acrshort{cli} y aplicaciones de terceros, como \textit{\gls{websocket}} para \textit{dashboards} web en tiempo real.
 
-\section{Módulo \textit{Input Collector} - Diagramas detallados}
+\section[Módulo \textit{Input Collector}]{Módulo \textit{Input Collector} - Diagramas detallados}
 \label{sec:anexo_input_collector}
 
 El módulo \textit{\textbf{Input Collector}} implementa una arquitectura modular dirigida por eventos que facilita la captura sincronizada de eventos de entrada de usuario desde múltiples dispositivos. Los siguientes diagramas presentan el diseño interno de cada subcomponente del módulo.
@@ -345,7 +345,7 @@ La Figura~\ref{fig:ic_visualizers_anexo} presenta la jerarquía de visualizadore
 
 El diseño modular permite que cada visualizador se especialice en un tipo específico de entrada mientras mantiene una interfaz para integración con el resto del sistema. Los visualizadores incluyen capacidades de edición que permiten configurar qué elementos (teclas, botones) son de interés sin requerir reinicio del sistema.
 
-\section{Módulo \textit{EEG Processor} - Diagramas detallados}
+\section[Módulo \textit{EEG Processor}]{Módulo \textit{EEG Processor} - Diagramas detallados}
 \label{sec:anexo_eeg_processor}
 
 El módulo \textit{\textbf{EEG Processor}} implementa una arquitectura orientada a servicios especializados que facilita el procesamiento completo de señales cerebrales desde la adquisición hasta el análisis avanzado. Los siguientes diagramas presentan el diseño interno de cada subcomponente del módulo.
