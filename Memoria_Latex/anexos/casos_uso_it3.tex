@@ -3,6 +3,90 @@
 
 Este anexo presenta la especificación detallada de los casos de uso desarrollados durante la tercera iteración del sistema, enfocados en la arquitectura API completa y funcionalidades avanzadas de procesamiento.
 
+\section{Análisis detallado de casos de uso}
+\label{sec:analisis_detallado_casos_uso_it3}
+
+Los casos de uso desarrollados en esta tercera iteración representan la culminación del sistema, proporcionando acceso programático completo a todas las capacidades desarrolladas y algoritmos avanzados de procesamiento que transforman el sistema en una plataforma completa para desarrollo \acrshort{bci}.
+
+\textbf{CU-03 - Desarrollo de aplicaciones personalizadas mediante acceso programático completo}: Este caso de uso representa el objetivo principal del desarrollo arquitectónico, proporcionando \acrshortpl{api} \acrshort{rest} completas que permiten acceso tanto a datos en tiempo real como control remoto total del sistema. La implementación incluye documentación automática, plantillas \acrshort{json} y sincronización bidireccional entre operaciones remotas e interfaces locales, facilitando el desarrollo de aplicaciones especializadas sin limitaciones técnicas.
+
+\textbf{CU-04 - Investigación neurocientífica con algoritmos avanzados}: Los algoritmos avanzados implementados transforman el sistema de una herramienta básica de captura a una plataforma completa de análisis neurocientífico. La integración con \textbf{MNE-Python}, análisis de componentes independientes, transformadas \textit{\gls{wavelet}} y filtros digitales avanzados proporcionan capacidades tradicionalmente disponibles solo en entornos de procesamiento \textit{offline}, ahora accesibles en tiempo real.
+
+\textbf{CU-06 - Integración programática en tiempo real}: Las capacidades de integración programática mediante \textit{\gls{websocket}} y \acrshortpl{api} \acrshort{rest} eliminan las barreras tradicionales entre sistemas \acrshort{bci} y herramientas de análisis externas. La implementación permite flujos de trabajo completamente automatizados donde herramientas externas pueden controlar experimentos, recibir datos y aplicar análisis sin intervención manual.
+
+\subsection{Relaciones entre casos de uso}
+\label{subsec:relaciones_casos_uso_it3}
+
+Los casos de uso de esta iteración establecen relaciones de capacitación que reflejan un ecosistema completo de desarrollo \acrshort{bci}:
+
+\begin{itemize}
+    \item \textbf{CU-03 habilita CU-06}: Las \acrshortpl{api} de acceso programático proporcionan la base técnica para integración con herramientas externas
+    \item \textbf{CU-04 proporciona datos para CU-06}: Los algoritmos avanzados generan datos procesados que pueden ser consumidos por sistemas externos en tiempo real
+    \item \textbf{CU-03 soporta CU-04}: El acceso programático permite la configuración y control remoto de algoritmos avanzados para automatización de análisis
+\end{itemize}
+
+\subsection{Identificación de actores y sus necesidades}
+\label{subsec:actores_necesidades_it3}
+
+\textbf{Desarrollador de aplicaciones BCI}: Requiere acceso programático completo para crear aplicaciones especializadas que aprovechen las capacidades del sistema. Las \acrshortpl{api} \acrshort{rest} con documentación automática y plantillas \acrshort{json} eliminan las barreras técnicas tradicionales, mientras que la sincronización bidireccional garantiza consistencia entre operaciones remotas y locales.
+
+\textbf{Investigador neurocientífico}: Necesita algoritmos avanzados de procesamiento tradicionalmente disponibles solo en entornos especializados como \textbf{MATLAB} o \textbf{MNE-Python}. La implementación de análisis \acrshort{ica}, transformadas \textit{\gls{wavelet}} y integración completa con \textbf{MNE-Python} en tiempo real proporciona capacidades de investigación avanzada sin requerir procesamiento \textit{offline}.
+
+\textbf{Integrador de sistemas}: Requiere interfaces estándar para integrar el sistema con infraestructuras existentes. Las \acrshortpl{api} \acrshort{rest} documentadas, \textit{\gls{streaming}} \textit{\gls{websocket}} y capacidades de control remoto facilitan la integración con sistemas de laboratorio, plataformas de análisis en la nube y \textit{pipelines} automatizados.
+
+\textbf{Analista de datos}: Necesita acceso directo a \textit{\glspl{stream}} de datos para análisis en tiempo real y capacidades de integración con herramientas especializadas. El \textit{\gls{streaming}} \textit{\gls{websocket}} de alta frecuencia y las \acrshortpl{api} de control permiten automatizar completamente la recolección y análisis de datos experimentales.
+
+\subsection{Diagrama de casos de uso}
+\label{subsec:diagrama_casos_uso_it3}
+
+La Figura~\ref{fig:casos_uso_it3} presenta las relaciones entre actores y casos de uso de la tercera iteración, mostrando el ecosistema completo de capacidades avanzadas.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{anexos/diagramas/casos_uso_it3.pdf}
+    \caption{Diagrama de casos de uso - Tercera iteración}
+    \label{fig:casos_uso_it3}
+\end{figure}
+
+\subsection{Trazabilidad requisitos-casos de uso}
+\label{subsec:trazabilidad_it3}
+
+La siguiente tabla establece la trazabilidad entre requisitos funcionales y no funcionales con los casos de uso que los implementan completamente:
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|l|l|l|p{6cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Código} & \textbf{Tipo} & \textbf{Casos de Uso} & \textbf{Descripción de implementación} \\
+\hline
+RF-03 & Funcional & CU-03, CU-06 & Soporte completo controladores PS4 mediante arquitectura dirigida por eventos \\
+\hline
+RF-06 & Funcional & CU-04 & Algoritmos avanzados: ICA, wavelets, filtros digitales, MNE-Python \\
+\hline
+RF-10 & Funcional & CU-03, CU-06 & Interfaces múltiples: GUI, CLI, API web con documentación automática \\
+\hline
+RNF-04 & No Funcional & CU-03, CU-04, CU-06 & Operaciones thread-safe con optimizaciones para alta frecuencia (1000Hz) \\
+\hline
+RNF-06 & No Funcional & CU-03, CU-04 & Compatibilidad multiplataforma con limitaciones headless parciales \\
+\hline
+RNF-07 & No Funcional & CU-03, CU-04, CU-06 & Tipado estático completo con validación automática de parámetros \\
+\hline
+RNF-08 & No Funcional & CU-03, CU-04, CU-06 & Manejo robusto con degradación elegante y recuperación automática \\
+\hline
+\end{tabular}
+}
+\caption{Trazabilidad requisitos-casos de uso - Tercera iteración}
+\label{tab:trazabilidad_it3}
+\end{table}
+
+\subsection{Lecciones aprendidas del análisis de casos de uso}
+\label{subsec:lecciones_aprendidas_it3}
+
+La especificación de casos de uso de esta iteración reveló que la arquitectura \acrshort{api} proporciona un paradigma superior para sistemas complejos multimodales. La inversión en \acrshortpl{api} bien documentadas y acceso programático completo multiplicó exponencialmente las posibilidades de uso del sistema, transformándolo de una herramienta específica a una plataforma extensible. La implementación de algoritmos avanzados en tiempo real demostró que Python puede proporcionar rendimiento adecuado para aplicaciones \acrshort{bci} cuando se implementan las optimizaciones apropiadas. La integración con herramientas establecidas como \textbf{MNE-Python} validó la importancia de construir sobre ecosistemas existentes en lugar de reinventar funcionalidades especializadas.
+
 \section{CU-03 - Desarrollo de aplicaciones BCI personalizadas}
 \label{sec:cu03_it3_desarrollo_bci}
 
@@ -293,10 +377,48 @@ Este anexo presenta la especificación detallada de los casos de uso desarrollad
 \end{itemize}
 \end{minipage} \\
 \hline
+\textbf{FA-03: Filtros digitales y wavelets} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item En paso 3, investigador selecciona filtrado digital o denoising wavelet
+    \item Configura tipo de filtro y parámetros de frecuencia o familia wavelet
+    \item Sistema aplica procesamiento con downsampling si es necesario
+    \item Las señales se visualizan ya procesadas según filtros activos
+\end{itemize}
+\end{minipage} \\
+\hline
 \end{tabular}
 }
 \caption{Flujos alternativos del caso de uso CU-04 - Tercera iteración}
 \label{tab:cu04_it3_flujos_alternativos}
+\end{table}
+
+\subsection{Flujos de excepción}
+\label{subsec:cu04_it3_flujos_excepcion}
+
+\begin{table}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\rowcolors{2}{white}{udcgray!25}
+\begin{tabular}{|p{3cm}|p{11cm}|}
+\hline
+\rowcolor{udcpink!25}
+\textbf{Excepción} & \textbf{Manejo} \\
+\hline
+\textbf{FE-01: Datos insuficientes para análisis} & 
+\begin{minipage}[t]{10.5cm}
+\begin{itemize}
+    \item Algoritmo requiere más datos de los disponibles en el buffer
+    \item Sistema muestra error específico o diálogo popup
+    \item Investigador debe esperar a que se acumulen suficientes muestras
+    \item Es necesario reintentar manualmente el análisis cuando haya datos suficientes
+\end{itemize}
+\end{minipage} \\
+\hline
+\end{tabular}
+}
+\caption{Flujos de excepción del caso de uso CU-04 - Tercera iteración}
+\label{tab:cu04_it3_flujos_excepcion}
 \end{table}
 
 \section{CU-06 - Integración programática con herramientas existentes}
