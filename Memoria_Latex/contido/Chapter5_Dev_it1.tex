@@ -70,7 +70,7 @@ El sistema de \textit{\glspl{timestamp}} se diseñó para garantizar precisión 
 \textbf{Arquitectura inicial del módulo \acrshort{eeg}}:
 El módulo de procesamiento \acrshort{eeg} se diseñó como una aplicación independiente que integraba \textbf{Brainflow} mediante el patrón \textit{Adapter}. La arquitectura se desarrolló directamente en \textbf{PyQt5} después de validar su rendimiento superior sobre \textbf{tkinter} para visualización en tiempo real.
 
-La Figura~\ref{fig:ep_general_it1_part1} muestra la arquitectura de clases del módulo de procesamiento \acrshort{eeg}. El diseño centraliza la funcionalidad en \textit{\textbf{EEGProcessorApp}} como aplicación principal, que coordina los componentes especializados: \textit{\textbf{EEGCollector}} para adquisición de datos, \textit{\textbf{SignalProcessor}} para procesamiento de señales, y múltiples visualizadores para presentación de información.
+La Figura~\ref{fig:ep_general_it1_part1} muestra la arquitectura de clases del módulo de procesamiento \acrshort{eeg}. El diseño centraliza la funcionalidad en \textit{\textbf{EEGProcessorApp}} como aplicación principal, que coordina los componentes especializados: \textit{\textbf{EEGCollector}} para adquisición de datos, actuando como \textit{Adapter} para integrar el \textit{framework} externo \textbf{BrainFlow}, \textit{\textbf{SignalProcessor}} para procesamiento de señales, y múltiples visualizadores para presentación de información.
 
 \begin{figure}[H]
     \centering
