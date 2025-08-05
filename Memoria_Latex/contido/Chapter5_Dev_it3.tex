@@ -70,6 +70,7 @@ El flujo de datos refactorizado, ilustrado en la Figura~\ref{fig:ic_samples_flow
 
 \begin{figure}[H]
     \centering
+    \vspace*{-0.04\textheight}
     \includegraphics[width=\textwidth]{anexos/diagramas/it3/ic_samples_flowchart.pdf}
     \caption{Flujo de datos del módulo de captura de entrada - Tercera iteración}
     \label{fig:ic_samples_flowchart_it3}
@@ -84,30 +85,33 @@ La tercera iteración transformó completamente el módulo \acrshort{eeg} hacia 
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{anexos/diagramas/it3/ep_general_api_services.pdf}
+    \vspace*{-0.04\textheight}
+    \includegraphics[width=0.92\textwidth]{anexos/diagramas/it3/ep_general_api_services.pdf}
     \caption{Arquitectura general del \acrshortpl{api} y servicios del módulo \acrshort{eeg} - Tercera iteración}
     \label{fig:ep_general_api_services_it3}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.7\textwidth]{anexos/diagramas/it3/ep_general_packages.pdf}
-    \caption{Arquitectura general de dependencia de subcomponentes del módulo \acrshort{eeg} - Tercera iteración}
-    \label{fig:ep_general_packages_it3}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{anexos/diagramas/it3/ep_general_ui_panels_adapters.pdf}
+    \vspace*{-0.04\textheight}
+    \includegraphics[width=0.9\textwidth]{anexos/diagramas/it3/ep_general_ui_panels_adapters.pdf}
     \caption{Arquitectura general de paneles de interfaz y adaptadores del módulo \acrshort{eeg} - Tercera iteración}
     \label{fig:ep_general_ui_panels_it3}
 \end{figure}
 
+\begin{figure}[H]
+    \centering
+    \hspace*{-0.15\textwidth}
+    \includegraphics[width=1.2\textwidth]{anexos/diagramas/it3/ep_general_packages.pdf}
+    \caption{Arquitectura general de dependencia de subcomponentes del módulo \acrshort{eeg} - Tercera iteración}
+    \label{fig:ep_general_packages_it3}
+\end{figure}
+
 El diseño modular implementa una separación clara entre \acrshortpl{api} de acceso y control: \textit{\textbf{EEGDataAPI}} proporciona acceso de solo lectura a datos y metadatos del sistema, mientras que \textit{\textbf{EEGProcessorInteractionAPI}} maneja operaciones de control como conexión de dispositivos, configuración de filtros, inicio de grabaciones y ejecución de algoritmos avanzados (Figura~\ref{fig:ep_general_api_services_it3}). Esta arquitectura sigue el principio de \textit{Single Responsibility} donde cada \acrshort{api} tiene un propósito específico y bien definido.
 
-La arquitectura modular se organiza en subcomponentes especializados (Figura~\ref{fig:ep_general_packages_it3}) que encapsulan funcionalidades específicas: \textit{\textbf{AdaptersPackage}} para integración entre \acrshortpl{api} públicas y componentes internos, \textit{\textbf{CollectorsPackage}} para captura desde diferentes dispositivos \acrshort{eeg} comerciales, \textit{\textbf{CorePackage}} para el sistema de eventos central que facilita comunicación desacoplada, \textit{\textbf{InterfacesPackage}} para contratos que definen comunicación entre componentes, \textit{\textbf{ProcessorsPackage}} para transformación de señales \acrshort{eeg} mediante algoritmos especializados, \textit{\textbf{UIPackage}} para gestión de interfaz de usuario especializada, \textit{\textbf{UtilsPackage}} para utilidades y sistema de ayuda contextual, \textit{\textbf{VisualizersPackage}} para representación visual en tiempo real de señales \acrshort{eeg}, y \textit{\textbf{CLIPackage}} para acceso programático completo via línea de comandos.
-
 Los paneles especializados y adaptadores (Figura~\ref{fig:ep_general_ui_panels_it3}) proporcionan interfaces gráficas específicas coordinadas por \textit{\textbf{QtInteractionAdapter}}, que proporciona sincronización bidireccional entre operaciones \acrshort{api} y la interfaz gráfica. El sistema incluye paneles especializados (\textit{\textbf{ConnectionPanel}}, \textit{\textbf{ProcessingPanel}}, \textit{\textbf{RecordingPanel}}, etc.) que proporcionan interfaces gráficas específicas para diferentes aspectos del sistema.
+
+La arquitectura modular se organiza en subcomponentes especializados (Figura~\ref{fig:ep_general_packages_it3}) que encapsulan funcionalidades específicas: \textit{\textbf{AdaptersPackage}} para integración entre \acrshortpl{api} públicas y componentes internos, \textit{\textbf{CollectorsPackage}} para captura desde diferentes dispositivos \acrshort{eeg} comerciales, \textit{\textbf{CorePackage}} para el sistema de eventos central que facilita comunicación desacoplada, \textit{\textbf{InterfacesPackage}} para contratos que definen comunicación entre componentes, \textit{\textbf{ProcessorsPackage}} para transformación de señales \acrshort{eeg} mediante algoritmos especializados, \textit{\textbf{UIPackage}} para gestión de interfaz de usuario especializada, \textit{\textbf{UtilsPackage}} para utilidades y sistema de ayuda contextual, \textit{\textbf{VisualizersPackage}} para representación visual en tiempo real de señales \acrshort{eeg}, y \textit{\textbf{CLIPackage}} para acceso programático completo via línea de comandos.
 
 La arquitectura incluye servicios especializados que encapsulan funcionalidades específicas: \textit{\textbf{CollectorService}} para gestión de dispositivos \acrshort{eeg}, \textit{\textbf{DataAccessService}} como \textit{hub} central de datos, \textit{\textbf{ProcessorService}} para algoritmos de procesamiento básico, \textit{\textbf{RecordingService}} para gestión de grabaciones, \textit{\textbf{VisualizationService}} para coordinación de visualizadores, \textit{\textbf{InteractionService}} para coordinación de la \acrshort{api} de control/interacción que maneja operaciones como conexión de dispositivos, configuración de filtros, inicio de grabaciones y ejecución de algoritmos avanzados, \textit{\textbf{MNEService}} para integración con \textbf{MNE-Python}, y \textit{\textbf{AdvancedProcessingService}} para algoritmos especializados como \acrshort{ica} y \textit{\glspl{wavelet}}.
 
