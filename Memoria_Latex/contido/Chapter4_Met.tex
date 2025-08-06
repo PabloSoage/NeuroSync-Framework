@@ -116,19 +116,19 @@ Es importante señalar que las fases representadas en el diagrama de Gantt no re
   \ganttbar{Diseño arquitectónico}{13}{16} \\
   \ganttbar{Implementación \textit{inputs}}{17}{24} \\
   \ganttbar{Implementación \acrshort{eeg}}{25}{32} \\
-  \ganttmilestone{Módulos independientes}{32} \\
+  \ganttmilestone{Fin Iteración 1}{32} \\
   
   \ganttgroup{Iteración 2: Integración}{33}{48} \\
   \ganttbar{Análisis de integración}{33}{36} \\
   \ganttbar{Integración mediante \acrshort{lsl}}{37}{40} \\
   \ganttbar{Exportación formatos}{41}{48} \\
-  \ganttmilestone{Sistema integrado}{48} \\
+  \ganttmilestone{Fin Iteración 2}{48} \\
   
   \ganttgroup{Iteración 3: Finalización}{49}{64} \\
   \ganttbar{Funcionalidades avanzadas}{49}{56} \\
   \ganttbar{Optimizaciones}{57}{62} \\
   \ganttbar{Documentación}{63}{64} \\
-  \ganttmilestone{Proyecto finalizado}{64} \\
+  \ganttmilestone{Fin Iteración 3}{64} \\
   
 \end{ganttchart}
 }
@@ -232,14 +232,14 @@ Durante el desarrollo se implementaron mecanismos de seguimiento que permitieron
 \subsection{Hitos principales alcanzados}
 \label{subsec:hitos_principales}
 
-Los hitos del proyecto reflejaron tanto los éxitos como los desafíos encontrados durante el desarrollo:
+Los múltiples imprevistos y reorientaciones del proyecto motivaron inicialmente la identificación de cinco hitos específicos que marcaron puntos críticos de desarrollo. Sin embargo, para mantener coherencia con la estructura de tres iteraciones planificadas y la representación en el diagrama de Gantt real, estos hitos se han consolidado en tres hitos principales que integran los logros y desafíos de cada fase del desarrollo:
 
 \begin{itemize}
-    \item \textbf{Hito 1 (19/04)}: Módulos básicos desarrollados, primeras limitaciones de integración identificadas
-    \item \textbf{Hito 2 (30/04)}: Refactorización \acrshort{solid} completada, persistencia de problemas de integración
-    \item \textbf{Hito 3 (22/05)}: \acrshort{api} de acceso a datos y explorador web implementados exitosamente, punto de inflexión del proyecto
-    \item \textbf{Hito 4 (22/06)}: \acrshort{api} de control completado y funcionalidades avanzadas finalizadas
-    \item \textbf{Hito 5 (23/06)}: Documentación técnica y tipado de código finalizados
+    \item \textbf{Hito 1 - Fin Iteración 1 (19/04)}: Módulos básicos desarrollados con primeras limitaciones de integración identificadas. Este hito integra el desarrollo inicial exitoso de ambos módulos independientes, pero también la identificación crítica de problemas arquitectónicos que motivarían la refactorización posterior.
+    
+    \item \textbf{Hito 2 - Fin Iteración 2 (30/04)}: Refactorización \acrshort{solid} completada con persistencia de problemas de integración. Este hito marca la finalización de la reestructuración arquitectónica que, aunque mejoró significativamente la calidad del código, reveló la necesidad de un cambio paradigmático hacia arquitecturas \acrshort{api}.
+    
+    \item \textbf{Hito 3 - Fin Iteración 3 (22/06)}: Sistema funcional con arquitectura \acrshort{api} completa. Este hito consolidó múltiples logros: \acrshort{api} de acceso a datos y explorador web (22/05) que marcaron el punto de inflexión del proyecto, \acrshort{api} de control y funcionalidades avanzadas (22/06), y documentación técnica finalizada (23/06). La arquitectura \acrshort{api} resolvió definitivamente los problemas de integración identificados en iteraciones anteriores.
 \end{itemize}
 
 \subsection{Adaptaciones en el seguimiento}
@@ -269,7 +269,7 @@ Los desvíos más significativos reflejaron limitaciones en la estimación inici
 \subsection{Cronograma real ejecutado}
 \label{subsec:cronograma_real}
 
-El cronograma real muestra una evolución más compleja que la planificación inicial, con múltiples replanificaciones y desarrollo de funcionalidades no anticipadas, pero manteniendo la estructura de tres iteraciones principales. Las fases representadas en el diagrama corresponden a las actividades que efectivamente consumieron la mayor parte del tiempo de desarrollo, por lo que actividades como pruebas manuales continuas, validación iterativa y evaluación, aunque realizadas sistemáticamente según la metodología incremental-iterativa, aparecen integradas en las fases principales mostradas.
+El cronograma real muestra una evolución significativamente diferente a la planificación inicial, donde los fallos de integración motivaron el desarrollo de soluciones arquitectónicas no anticipadas. La refactorización \acrshort{solid} y las arquitecturas \acrshort{api} surgieron como respuestas adaptativas a los problemas encontrados, no como elementos planificados originalmente. Las fases representadas en el diagrama corresponden a las actividades que efectivamente consumieron la mayor parte del tiempo de desarrollo, por lo que actividades como pruebas manuales continuas, validación iterativa y evaluación, aunque realizadas sistemáticamente según la metodología incremental-iterativa, aparecen integradas en las fases principales mostradas.
 
 \begin{sidewaysfigure}[p]
 \centering
