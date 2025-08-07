@@ -228,11 +228,7 @@ El procesamiento de señales \acrshort{eeg} requiere programas especializados ca
 
 Los entornos de análisis científico representan plataformas completas diseñadas para cubrir todo el flujo de trabajo de análisis de datos \acrshort{eeg}, desde el preprocesamiento básico hasta análisis estadísticos sofisticados y visualización de resultados.
 
-\textbf{EEGLAB}~\cite{delorme2004eeglab} ha establecido durante más de dos décadas el estándar de facto para análisis de datos \acrshort{eeg} en muchos laboratorios de neurociencia mundial. Su desarrollo ha estado guiado por la necesidad de proporcionar herramientas accesibles pero potentes para investigadores sin formación especializada en procesamiento de señales. Su interfaz gráfica intuitiva y su extenso ecosistema de \textit{\gls{plugins}} lo han convertido en la herramienta de elección para muchos investigadores~\cite{tangermann2012review}.
-
-\textbf{MNE-Python}~\cite{gramfort2013meg} representa la evolución natural de las herramientas de análisis \acrshort{eeg} hacia el ecosistema Python, combinando las lecciones aprendidas de plataformas establecidas con el diseño moderno orientado a objetos y las ventajas del desarrollo de código abierto. Su integración nativa con el ecosistema científico de Python, incluyendo \textbf{NumPy}, \textbf{SciPy} y \textbf{scikit-learn}, facilita el desarrollo de \textit{\glspl{pipeline}} de análisis personalizados.
-
-Como se muestra en la Tabla~\ref{tab:entornos_analisis}, estos entornos presentan características distintivas que los hacen más apropiados para diferentes tipos de usuarios y aplicaciones. La tabla ilustra las diferencias en términos de lenguaje de implementación, modelo de licencia, capacidades de procesamiento en tiempo real, soporte de formatos y madurez de la comunidad de desarrollo.
+La Tabla~\ref{tab:entornos_analisis} presenta una comparativa de los principales entornos disponibles, mostrando sus características distintivas que los hacen más apropiados para diferentes tipos de usuarios y aplicaciones.
 
 \begin{table}[h!]
 \centering
@@ -251,7 +247,13 @@ Como se muestra en la Tabla~\ref{tab:entornos_analisis}, estos entornos presenta
 \label{tab:entornos_analisis}
 \end{table}
 
-\textbf{EEGLAB} destaca por su comunidad madura y amplio soporte de formatos, siendo especialmente atractivo para investigadores ya familiarizados con MATLAB. \textbf{MNE-Python} ofrece una aproximación más moderna con capacidades limitadas de tiempo real y excelente integración con el ecosistema científico de Python, resultando ideal para investigadores que prefieren herramientas de código abierto. \textbf{FieldTrip} se especializa en análisis avanzados de conectividad y sincronización, mientras que \textbf{BrainStorm} se orienta hacia aplicaciones clínicas y de neuroimagen.
+\textbf{EEGLAB}~\cite{delorme2004eeglab} ha establecido durante más de dos décadas el estándar de facto para análisis de datos \acrshort{eeg} en muchos laboratorios de neurociencia mundial. Su desarrollo ha estado guiado por la necesidad de proporcionar herramientas accesibles pero potentes para investigadores sin formación especializada en procesamiento de señales. Su interfaz gráfica intuitiva y su extenso ecosistema de \textit{\gls{plugins}} lo han convertido en la herramienta de elección para muchos investigadores~\cite{tangermann2012review}.
+
+\textbf{MNE-Python}~\cite{gramfort2013meg} representa la evolución natural de las herramientas de análisis \acrshort{eeg} hacia el ecosistema Python, combinando las lecciones aprendidas de plataformas establecidas con el diseño moderno orientado a objetos y las ventajas del desarrollo de código abierto. Su integración nativa con el ecosistema científico de Python, incluyendo \textbf{NumPy}, \textbf{SciPy} y \textbf{scikit-learn}, facilita el desarrollo de \textit{\glspl{pipeline}} de análisis personalizados.
+
+\textbf{FieldTrip} se especializa en análisis avanzados de conectividad y sincronización, proporcionando herramientas sofisticadas para estudios de redes cerebrales. Su enfoque en análisis estadísticos avanzados lo ha posicionado como una herramienta valiosa para investigación de vanguardia en neurociencia cognitiva.
+
+\textbf{BrainStorm} se orienta hacia aplicaciones clínicas y de neuroimagen, ofreciendo capacidades especializadas para localización de fuentes y análisis de datos clínicos. Su interfaz gráfica sofisticada facilita la visualización e interpretación de resultados complejos en contextos médicos.
 
 \subsection{Herramientas de desarrollo específicas}
 \label{subsec:herramientas_desarrollo}
@@ -267,6 +269,9 @@ Las herramientas de desarrollo específicas se distinguen de los entornos de an�
 \label{subsubsec:bci2000}
 
 \textbf{BCI2000}~\cite{schalk2004bci2000} representa un \textit{framework} más técnico desarrollado en C++ que proporciona una arquitectura modular robusta para adquisición, procesamiento y aplicación de señales \acrshort{bci}. Su diseño modular permite la combinación flexible de diferentes algoritmos de procesamiento, paradigmas experimentales y dispositivos de salida, siendo especialmente valorado en entornos de investigación que requieren control preciso sobre todos los aspectos del sistema.
+
+\subsubsection{Evaluación comparativa de herramientas de desarrollo}
+\label{subsubsec:evaluacion_herramientas}
 
 Ambas herramientas presentan fortalezas complementarias: \textbf{OpenViBE} facilita el desarrollo rápido de prototipos y la experimentación visual, mientras que \textbf{BCI2000} proporciona mayor control técnico y flexibilidad para implementaciones especializadas.
 
@@ -308,16 +313,13 @@ La ausencia de herramientas para captura sincronizada representa una limitación
 
 Sin embargo, estas limitaciones revelan oportunidades significativas para el desarrollo de soluciones más integradas que combinen adquisición, procesamiento y sincronización en una plataforma unificada.
 
-\section{Posicionamiento estratégico de la solución propuesta}
-\label{sec:posicionamiento_estrategico}
-
-\subsection{Análisis \acrfull{dafo}}
-\label{subsec:analisis_dafo}
+\section{Análisis \acrfull{dafo}}
+\label{sec:analisis_dafo}
 
 Para evaluar adecuadamente la viabilidad y posicionamiento estratégico de la solución propuesta, se presenta un análisis \acrshort{dafo} que examina las fortalezas internas del sistema, sus debilidades, las oportunidades del entorno y las amenazas externas que podrían afectar su desarrollo y adopción.
 
-\subsubsection{Fortalezas del sistema propuesto}
-\label{subsubsec:fortalezas}
+\subsection{Fortalezas del sistema propuesto}
+\label{subsec:fortalezas}
 
 El \textit{\gls{framework}} a desarrollar presenta ventajas competitivas potenciales que lo posicionarían favorablemente en el ecosistema \acrshort{bci}. La integración multidispositivo constituiría una fortaleza fundamental, proporcionando una solución unificada que integre fuentes de entrada como \acrshort{eeg}, teclado, ratón y controladores en un sistema sincronizado, eliminando la necesidad de combinar herramientas fragmentadas que tradicionalmente han dificultado el desarrollo de aplicaciones \acrshort{bci}.
 
@@ -327,8 +329,8 @@ El desarrollo de interfaces de usuario accesibles permitiría que usuarios con d
 
 El soporte planificado para formatos estándar ampliamente utilizados en neurociencia como \acrshort{bids}, \acrshort{edf+} y \acrshort{hdf5} aumentaría significativamente la usabilidad para investigadores y facilitaría la interoperabilidad con herramientas existentes, promoviendo la colaboración científica y la reproducibilidad de experimentos~\cite{bids}.
 
-\subsubsection{Debilidades a considerar}
-\label{subsubsec:debilidades}
+\subsection{Debilidades a considerar}
+\label{subsec:debilidades}
 
 El sistema presenta ciertas limitaciones técnicas y operativas que deben considerarse cuidadosamente. La dependencia crítica de bibliotecas como \textbf{BrainFlow} para la adquisición de señales \acrshort{eeg} podría limitar las funcionalidades del sistema si estas bibliotecas presentan limitaciones o discontinúan su desarrollo, requiriendo estrategias de mitigación y alternativas de contingencia.
 
@@ -338,8 +340,8 @@ El procesamiento de dispositivos \acrshort{eeg}, especialmente de alta resoluci�
 
 A pesar de las interfaces simplificadas, el dominio \acrshort{bci} requiere conocimientos especializados en procesamiento de señales y neurociencia que podrían representar una barrera inicial para algunos usuarios, requiriendo documentación extensiva y materiales educativos de soporte~\cite{lotte2013flaws}.
 
-\subsubsection{Oportunidades en el entorno}
-\label{subsubsec:oportunidades}
+\subsection{Oportunidades en el entorno}
+\label{subsec:oportunidades}
 
 El contexto actual presenta oportunidades significativas para la adopción y expansión del \textit{\gls{framework}}. El crecimiento exponencial del campo \acrshort{bci}, impulsado por aplicaciones en medicina rehabilitadora, accesibilidad tecnológica y nuevas interfaces de usuario, crea un mercado en expansión que demanda herramientas más accesibles y potentes para investigadores y desarrolladores~\cite{eeg_bci_review,millán2004noninvasive}.
 
@@ -349,8 +351,8 @@ La democratización de la investigación \acrshort{bci} a través de la reducci�
 
 La tendencia creciente hacia soluciones de código abierto en investigación científica posiciona favorablemente al \textit{\gls{framework}} frente a alternativas comerciales cerradas, especialmente cuando se considera la transparencia y reproducibilidad que demanda la comunidad científica.
 
-\subsubsection{Amenazas externas}
-\label{subsubsec:amenazas}
+\subsection{Amenazas externas}
+\label{subsec:amenazas}
 
 El entorno competitivo presenta desafíos que requieren atención estratégica. La potencial aparición de soluciones comerciales similares, especialmente de empresas con mayores recursos de desarrollo y \textit{marketing}, podría limitar la adopción del \textit{\gls{framework}} de código abierto si no se mantiene una ventaja competitiva clara en funcionalidad y soporte comunitario.
 
@@ -358,8 +360,8 @@ Los avances acelerados en tecnología de dispositivos \acrshort{eeg} podrían re
 
 Los cambios en estándares de la industria y la evolución de formatos de datos y protocolos de comunicación en el campo \acrshort{bci} podrían requerir adaptaciones importantes del \textit{\gls{framework}}, especialmente si estos cambios no son anticipados en el diseño arquitectónico.
 
-\subsubsection{Conclusiones del análisis \acrshort{dafo} y diferenciación estratégica}
-\label{subsubsec:conclusiones_dafo}
+\subsection{Conclusiones del análisis \acrshort{dafo} y diferenciación estratégica}
+\label{subsec:conclusiones_dafo}
 
 El análisis \acrshort{dafo} revela un posicionamiento estratégico favorable para el desarrollo del \textit{\gls{framework}} propuesto. Las fortalezas identificadas, particularmente la integración multidispositivo y la propuesta de arquitectura extensible, abordan directamente las principales debilidades del ecosistema actual identificadas en la sección~\ref{sec:analisis_limitaciones}. Las oportunidades del entorno, especialmente el crecimiento del campo \acrshort{bci} y la demanda de herramientas más accesibles, proporcionan un contexto propicio para la adopción de la solución.
 
