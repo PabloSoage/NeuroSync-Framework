@@ -163,7 +163,7 @@ Se presenta una estimación de lo que costaría el desarrollo del sistema por un
     \textbf{Total recursos humanos} & \textbf{340 horas} & & \textbf{4.480€} & \\
     \end{tabular}
   }
-  \caption{Estimación de costes de recursos humanos}
+  \caption{Estimación de costes de recursos humanos basada en datos salariales del sector tecnológico español~\cite{tecnoempleo_empleo_it_2025,4geeks_salario_programador_espana_2025,adalab_salarios_programador_2024}}
   \label{tab:recursos_humanos_inicial}
 \end{table}
 
@@ -183,19 +183,20 @@ El desglose completo de costes estimados para el proyecto incluye tanto los recu
     \textbf{Categoría} & \textbf{Coste estimado} & \textbf{Observaciones} \\
     \hline
     Recursos humanos & 4.480€ & Desarrollo completo del sistema \\
-    \textit{Hardware} (amortización) & 700€ & PC desarrollo y casco \acrshort{eeg} (4 meses uso) \\
+    \textit{Hardware} (amortización) & 700€ & PC desarrollo y casco \acrshort{eeg} (4 meses de 5 años vida útil) \\
     \textit{Software} y herramientas & 0€ & Herramientas de código abierto \\
+    Consumibles & 0€ & No se utilizaron consumibles específicos \\
     Infraestructura & 0€ & Desarrollo local \\
     Contingencias (10\%) & 518€ & Imprevistos y sobrecostes \\
     \hline
     \textbf{Total proyecto} & \textbf{5.698€} & \\
     \end{tabular}
   }
-  \caption{Estimación inicial de costes del proyecto}
+  \caption{Estimación inicial de costes del proyecto con amortización de \textit{hardware} a 5 años}
   \label{tab:costes_inicial}
 \end{table}
 
-La Tabla~\ref{tab:costes_inicial} presenta la estimación económica inicial, incluyendo la amortización proporcional del \textit{hardware} utilizado durante el período de desarrollo. La valoración del \textit{hardware} incluye un PC de desarrollo (1.500€) y casco \acrshort{eeg} g.tec Unicorn (1.200€), amortizados durante los 4 meses de duración del proyecto.
+La Tabla~\ref{tab:costes_inicial} presenta la estimación económica inicial, incluyendo la amortización proporcional del \textit{hardware} utilizado durante el período de desarrollo. La valoración del \textit{hardware} incluye un PC de desarrollo (1.500€) y casco \acrshort{eeg} g.tec Unicorn (1.200€), amortizados a 5 años de vida útil durante los 4 meses de duración del proyecto. No se utilizaron consumibles específicos como gel de transmisión durante el desarrollo del sistema.
 
 \subsection{Análisis de riesgos inicial}
 \label{subsec:riesgos_inicial}
@@ -258,13 +259,15 @@ El desarrollo experimentó desvíos significativos que requirieron adaptaciones 
 Los desvíos más significativos reflejaron limitaciones en la estimación inicial de complejidad:
 
 \begin{itemize}
-    \item \textbf{Exploración inicial con Julia (+2-3 días)}: Desarrollo de versión inicial del \textit{script} de captura de \textit{inputs} en Julia, abandonado por dificultades en implementación de \acrshort{gui} funcional y problemas de precompilación, motivando migración definitiva a Python.
-    \item \textbf{Fallo de integración monolítica (+3 días)}: Reveló limitaciones arquitectónicas fundamentales no previstas en la planificación
-    \item \textbf{Segundo fallo post-\acrshort{solid} (+5 días)}: Confirmó necesidad de cambio estratégico hacia arquitecturas \acrshort{api}
-    \item \textbf{Pausa no planificada (+13 días)}: Debida a compromisos académicos externos que afectaron la continuidad
-    \item \textbf{Desarrollo completo de arquitectura \acrshort{api} (+15 días)}: Solución emergente no contemplada inicialmente que requirió desarrollo de múltiples interfaces y corrección de problemas arquitectónicos internos
-    \item \textbf{Identificación problemas modo \textit{\gls{headless}} (+3 días)}: Limitaciones detectadas tardíamente en el desarrollo
+    \item \textbf{Exploración inicial con Julia (+3 días)}: Desarrollo de versión inicial del \textit{script} de captura de \textit{inputs} en Julia, abandonado por dificultades en implementación de \acrshort{gui} funcional y problemas de precompilación, motivando migración definitiva a Python.
+    \item \textbf{Fallo de integración monolítica (+3 días)}: Reveló limitaciones arquitectónicas fundamentales no previstas en la planificación.
+    \item \textbf{Segundo fallo post-\acrshort{solid} (+5 días)}: Confirmó necesidad de cambio estratégico hacia arquitecturas \acrshort{api}.
+    \item \textbf{Pausa no planificada (+13 días)}: Debida a compromisos académicos externos que afectaron la continuidad.
+    \item \textbf{Desarrollo completo de arquitectura \acrshort{api} (+15 días)}: Solución emergente no contemplada inicialmente que requirió desarrollo de múltiples interfaces y corrección de problemas arquitectónicos internos.
+    \item \textbf{Identificación problemas modo \textit{\gls{headless}} (+3 días)}: Limitaciones detectadas tardíamente en el desarrollo.
 \end{itemize}
+
+El desvío total acumulado fue de +42 días (6 semanas) respecto a la planificación inicial de 16 semanas, resultando en una duración real de 22 semanas de desarrollo activo.
 
 \subsection{Cronograma real ejecutado}
 \label{subsec:cronograma_real}
@@ -343,9 +346,9 @@ Los desvíos incrementaron el tiempo de desarrollo pero permitieron alcanzar un 
     \rowcolor{udcpink!25}
     \textbf{Concepto} & \textbf{Planificado} & \textbf{Real} & \textbf{Desviación} \\
     \hline
-    Duración del proyecto & 16 semanas & 18.5 semanas & +2.5 semanas \\
-    Horas de desarrollo & 280 horas & 350 horas & +70 horas (+25\%) \\
-    Coste de desarrollo & 3.360€ & 4.200€ & +840€ \\
+    Duración del proyecto & 16 semanas & 22 semanas & +6 semanas (+37.5\%) \\
+    Horas de desarrollo & 280 horas & 385 horas & +105 horas (+37.5\%) \\
+    Coste de desarrollo & 3.360€ & 4.620€ & +1.260€ (+37.5\%) \\
     Alcance funcional & Básico planificado & Ampliado significativamente & +40\% funcionalidades \\
     \hline
     \end{tabular}
@@ -354,4 +357,35 @@ Los desvíos incrementaron el tiempo de desarrollo pero permitieron alcanzar un 
   \label{tab:comparacion_planificado_real}
 \end{table}
 
-La Tabla~\ref{tab:comparacion_planificado_real} presenta el análisis comparativo entre la planificación inicial y el desarrollo real, mostrando que aunque el proyecto requirió 25\% más tiempo del planificado, el alcance final superó significativamente los objetivos originales con un incremento del 40\% en funcionalidades.
+La Tabla~\ref{tab:comparacion_planificado_real} presenta el análisis comparativo entre la planificación inicial y el desarrollo real, mostrando que el proyecto requirió 37.5\% más tiempo del planificado, pero el alcance final superó significativamente los objetivos originales con un incremento del 40\% en funcionalidades.
+
+\subsubsection{Desglose de costes finales del proyecto}
+\label{subsubsec:costes_finales_proyecto}
+
+El impacto económico real del proyecto incorpora tanto los desvíos temporales como el incremento en funcionalidades desarrolladas.
+
+\begin{table}[htbp!]
+  \centering
+  \resizebox{\textwidth}{!}{
+    \rowcolors{2}{white}{udcgray!25}
+    \begin{tabular}{l|c|c|c}
+    \rowcolor{udcpink!25}
+    \textbf{Categoría} & \textbf{Coste inicial} & \textbf{Coste final} & \textbf{Incremento} \\
+    \hline
+    Recursos humanos & 4.480€ & 6.160€ & +1.680€ (+37.5\%) \\
+    \textit{Hardware} (amortización) & 700€ & 962€ & +262€ (+37.5\%) \\
+    \textit{Software} y herramientas & 0€ & 0€ & 0€ \\
+    Consumibles & 0€ & 0€ & 0€ \\
+    Infraestructura & 0€ & 0€ & 0€ \\
+    Contingencias (10\%) & 518€ & 712€ & +194€ (+37.5\%) \\
+    \hline
+    \textbf{Total proyecto} & \textbf{5.698€} & \textbf{7.834€} & \textbf{+2.136€ (+37.5\%)} \\
+    \end{tabular}
+  }
+  \caption{Evolución de costes del proyecto: planificado vs. real}
+  \label{tab:costes_finales}
+\end{table}
+
+La Tabla~\ref{tab:costes_finales} muestra que el incremento de costes fue proporcional al incremento de tiempo de desarrollo (37.5\%), resultando en un sobrecoste total de 2.136€. Sin embargo, este incremento debe evaluarse considerando que el alcance funcional final superó en un 40\% lo planificado inicialmente, incluyendo funcionalidades no contempladas como las múltiples interfaces de usuario (\acrshort{cli}, web, \acrshort{api}), algoritmos avanzados de procesamiento, y una arquitectura significativamente más robusta y extensible.
+
+El análisis coste-beneficio indica que el incremento económico fue justificado por el valor añadido del sistema final, que proporciona capacidades significativamente superiores a las planificadas inicialmente, estableciendo una base técnica sólida para futuras extensiones y aplicaciones en el dominio \acrshort{bci}.
