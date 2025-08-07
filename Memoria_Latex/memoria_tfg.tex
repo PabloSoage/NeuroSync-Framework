@@ -92,14 +92,19 @@
  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
  \include{contido/introducion}
+ \newgeometry{left=3.5cm,right=2.1875cm,top=3.5cm,bottom=3.5cm}
  \include{contido/Chapter2_SoA}
  \include{contido/Chapter3_Tec}
+ \restoregeometry
+ \newgeometry{left=4cm,right=2.5cm,top=3.8cm,bottom=3.8cm}
  \include{contido/Chapter4_Met}
+ \restoregeometry
+ \newgeometry{left=4cm,right=2.5cm,top=3cm,bottom=3cm}
  \include{contido/Chapter5_Dev}
- %\include{contido/Chapter6_Arch}
- %\include{contido/demo}
-%\include{contido/...}
+ \restoregeometry
+ \newgeometry{left=3cm,right=1.875cm,top=3.5cm,bottom=2.7cm}
  \include{contido/conclusions}
+ \restoregeometry
 
  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  % Apéndices, glosarios e bibliografía  %
@@ -116,7 +121,6 @@
  \include{anexos/casos_uso_it1}
  \include{anexos/casos_uso_it2}
  \include{anexos/casos_uso_it3}
-%\include{anexos/...}
 
  \printglossary[type=\acronymtype,title=\nomeglosarioacronimos]
  \printglossary[title=\nomeglosariotermos]
