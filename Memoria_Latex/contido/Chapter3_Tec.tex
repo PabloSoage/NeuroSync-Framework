@@ -93,27 +93,31 @@ La captura precisa de eventos de entrada del usuario constituye uno de los pilar
 \section{Formatos de exportación de datos}
 \label{sec:formatos_exportacion}
 
-La capacidad de exportar datos en formatos estándar reconocidos por la comunidad científica es fundamental para garantizar la interoperabilidad del sistema con herramientas existentes y facilitar la reproducibilidad de experimentos.
+La capacidad de exportar datos en formatos estándar reconocidos por la comunidad científica es fundamental para garantizar la interoperabilidad del sistema con herramientas existentes y facilitar la reproducibilidad de experimentos. Como se analizó en la sección~\ref{sec:formatos_captura} del capítulo anterior, existen múltiples formatos estándar para almacenamiento de datos neurocientíficos, cada uno con características específicas que los hacen apropiados para diferentes contextos de uso.
+
+Para el sistema desarrollado se consideraron los siguientes formatos basándose en criterios de compatibilidad, adopción en la comunidad y capacidades técnicas para la futura exportación de \textit{\glspl{dataset}} sincronizados:
 
 \subsection{BIDS: \textit{Brain Imaging Data Structure}}
 \label{subsec:bids_formato}
 
-\textit{\acrfull{bids}~\cite{bids}} representa el estándar de facto para la organización de datos neurocientíficos, proporcionando una estructura jerárquica que facilita el intercambio y análisis reproducible de datos cerebrales. Los metadatos \acrshort{json} integrados permiten documentar exhaustivamente las condiciones de adquisición y metodología experimental.
+\textit{\acrfull{bids}} se consideró como formato de organización de datos debido a su adopción como estándar de facto en la comunidad neurocientífica, como se describió en la sección~\ref{sec:formatos_captura}. Su estructura jerárquica facilita la organización sistemática de experimentos con múltiples sesiones y modalidades de datos, mientras que los metadatos \acrshort{json} integrados permiten documentar exhaustivamente las condiciones experimentales específicas del proyecto, incluyendo configuraciones de dispositivos \acrshort{eeg} y eventos de entrada sincronizados.
 
 \subsection{EDF+: \textit{European Data Format Plus}}
 \label{subsec:edf_formato}
 
-\textit{\acrfull{edf+}}~\cite{kemp2003european} constituye un estándar ampliamente adoptado en entornos clínicos para el almacenamiento de señales biomédicas. La especificación incluye capacidades nativas para anotaciones temporales, permitiendo documentar eventos directamente en el archivo de datos.
+\textit{\acrfull{edf+}} se incluyó por su amplia adopción en entornos clínicos y de investigación \acrshort{eeg}, proporcionando compatibilidad directa con herramientas establecidas como \textbf{EEGLAB}~\cite{delorme2004eeglab} y \textbf{MNE-Python}~\cite{gramfort2013meg}. Su capacidad nativa para anotaciones temporales resulta especialmente valiosa para marcar eventos de entrada del usuario sincronizados con las señales \acrshort{eeg}, facilitando el análisis posterior de correlaciones entre actividad cerebral y acciones del usuario.
 
 \subsection{HDF5: \textit{Hierarchical Data Format}}
 \label{subsec:hdf5_formato}
 
-\textit{\acrfull{hdf5}}~\cite{folk2011overview} proporciona capacidades avanzadas de almacenamiento para datos científicos de gran volumen, ofreciendo compresión integrada y estructura jerárquica flexible. La estructura permite organizar datos de múltiples modalidades en un único archivo con relaciones claramente definidas.
+\textit{\acrfull{hdf5}} se incorporó para casos de uso que requieren almacenamiento eficiente de grandes volúmenes de datos, especialmente en experimentos de larga duración o alta frecuencia de muestreo. Su estructura jerárquica permite organizar señales \acrshort{eeg} y eventos de entrada en grupos claramente diferenciados, mientras que la compresión integrada optimiza el uso de almacenamiento sin pérdida de precisión en los datos temporales críticos para la sincronización.
 
 \subsection{CSV: máxima compatibilidad}
 \label{subsec:csv_formato}
 
-\textit{\acrfull{csv}} proporciona compatibilidad universal para intercambio de datos, garantizando que los datos generados puedan ser procesados por prácticamente cualquier herramienta de análisis. La simplicidad del formato facilita la inspección manual de datos y el desarrollo de scripts de procesamiento personalizados.
+\textit{\acrfull{csv}} se implementó como formato de exportación disponible que garantiza compatibilidad universal, permitiendo que los datos generados puedan ser procesados por cualquier herramienta de análisis, desde hojas de cálculo hasta \textit{scripts} personalizados. Este formato resulta especialmente útil para validación manual de sincronización temporal y desarrollo de algoritmos de procesamiento personalizados que requieren acceso directo a los datos sin dependencias de bibliotecas especializadas.
+
+La consideración de estos cuatro formatos proporciona un balance entre estándares modernos de neurociencia (\acrshort{bids}), compatibilidad con herramientas establecidas (\acrshort{edf+}), eficiencia para grandes volúmenes (\acrshort{hdf5}) y accesibilidad universal (\acrshort{csv}), cubriendo las necesidades de diferentes usuarios y contextos de aplicación.
 
 \section{Tecnologías de comunicación y serialización}
 \label{sec:comunicacion_serializacion}
