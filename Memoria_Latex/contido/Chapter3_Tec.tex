@@ -97,27 +97,17 @@ La capacidad de exportar datos en formatos estándar reconocidos por la comunida
 
 Para el sistema desarrollado se consideraron los siguientes formatos basándose en criterios de compatibilidad, adopción en la comunidad y capacidades técnicas para la futura exportación de \textit{\glspl{dataset}} sincronizados:
 
-\subsection{BIDS: \textit{Brain Imaging Data Structure}}
-\label{subsec:bids_formato}
+\begin{itemize}
+    \item \textbf{\textit{\acrfull{bids}}}: Seleccionado por su adopción como estándar de facto en la comunidad neurocientífica y su estructura jerárquica que facilita la organización sistemática de experimentos complejos.
+    
+    \item \textbf{\textit{\acrfull{edf+}}}: Incluido por su amplia adopción en entornos clínicos y de investigación \acrshort{eeg}, proporcionando compatibilidad directa con herramientas establecidas como \textbf{EEGLAB}~\cite{delorme2004eeglab} y \textbf{MNE-Python}~\cite{gramfort2013meg}.
+    
+    \item \textbf{\textit{\acrfull{hdf5}}}: Considerado para casos de uso que requieren almacenamiento eficiente de grandes volúmenes de datos con organización jerárquica y compresión integrada.
+    
+    \item \textbf{\textit{\acrfull{csv}}}: Implementado como formato de exportación disponible que garantiza compatibilidad universal con cualquier herramienta de análisis.
+\end{itemize}
 
-\textit{\acrfull{bids}} se consideró como formato de organización de datos debido a su adopción como estándar de facto en la comunidad neurocientífica, como se describió en la sección~\ref{sec:formatos_captura}. Su estructura jerárquica facilita la organización sistemática de experimentos con múltiples sesiones y modalidades de datos, mientras que los metadatos \acrshort{json} integrados permiten documentar exhaustivamente las condiciones experimentales específicas del proyecto, incluyendo configuraciones de dispositivos \acrshort{eeg} y eventos de entrada sincronizados.
-
-\subsection{EDF+: \textit{European Data Format Plus}}
-\label{subsec:edf_formato}
-
-\textit{\acrfull{edf+}} se incluyó por su amplia adopción en entornos clínicos y de investigación \acrshort{eeg}, proporcionando compatibilidad directa con herramientas establecidas como \textbf{EEGLAB}~\cite{delorme2004eeglab} y \textbf{MNE-Python}~\cite{gramfort2013meg}. Su capacidad nativa para anotaciones temporales resulta especialmente valiosa para marcar eventos de entrada del usuario sincronizados con las señales \acrshort{eeg}, facilitando el análisis posterior de correlaciones entre actividad cerebral y acciones del usuario.
-
-\subsection{HDF5: \textit{Hierarchical Data Format}}
-\label{subsec:hdf5_formato}
-
-\textit{\acrfull{hdf5}} se incorporó para casos de uso que requieren almacenamiento eficiente de grandes volúmenes de datos, especialmente en experimentos de larga duración o alta frecuencia de muestreo. Su estructura jerárquica permite organizar señales \acrshort{eeg} y eventos de entrada en grupos claramente diferenciados, mientras que la compresión integrada optimiza el uso de almacenamiento sin pérdida de precisión en los datos temporales críticos para la sincronización.
-
-\subsection{CSV: máxima compatibilidad}
-\label{subsec:csv_formato}
-
-\textit{\acrfull{csv}} se implementó como formato de exportación disponible que garantiza compatibilidad universal, permitiendo que los datos generados puedan ser procesados por cualquier herramienta de análisis, desde hojas de cálculo hasta \textit{scripts} personalizados. Este formato resulta especialmente útil para validación manual de sincronización temporal y desarrollo de algoritmos de procesamiento personalizados que requieren acceso directo a los datos sin dependencias de bibliotecas especializadas.
-
-La consideración de estos cuatro formatos proporciona un balance entre estándares modernos de neurociencia (\acrshort{bids}), compatibilidad con herramientas establecidas (\acrshort{edf+}), eficiencia para grandes volúmenes (\acrshort{hdf5}) y accesibilidad universal (\acrshort{csv}), cubriendo las necesidades de diferentes usuarios y contextos de aplicación.
+Esta selección proporciona un balance entre estándares modernos de neurociencia, compatibilidad con herramientas establecidas, eficiencia para grandes volúmenes y accesibilidad universal, cubriendo las necesidades de diferentes usuarios y contextos de aplicación del sistema desarrollado.
 
 \section{Tecnologías de comunicación y serialización}
 \label{sec:comunicacion_serializacion}
