@@ -1,10 +1,15 @@
-\chapter[Casos de uso 1ª iter.]{Casos de uso - Primera iteración}
-\label{chap:anexo_casos_uso_it1}
+\chapter[Casos de uso]{Casos de uso de las tres iteraciones}
+\label{chap:anexo_casos_uso}
 
-Este anexo presenta la especificación detallada de los casos de uso desarrollados durante la primera iteración del sistema, incluyendo flujos principales, alternativos y de excepción, junto con precondiciones y postcondiciones específicas.
+Este anexo presenta la especificación detallada de los casos de uso desarrollados durante las tres iteraciones del sistema, proporcionando una vista completa de la evolución funcional desde las capacidades básicas de captura hasta la arquitectura API completa con algoritmos avanzados de procesamiento.
 
-\section{Análisis detallado de casos de uso}
-\label{sec:analisis_detallado_casos_uso_it1}
+\section{Casos de uso - Primera iteración}
+\label{sec:casos_uso_it1}
+
+Esta sección presenta los casos de uso desarrollados durante la primera iteración del sistema, incluyendo flujos principales, alternativos y de excepción, junto con precondiciones y postcondiciones específicas.
+
+\subsection{Análisis detallado de casos de uso}
+\label{subsec:analisis_detallado_casos_uso_it1}
 
 Los casos de uso desarrollados en esta primera iteración establecen los fundamentos funcionales del sistema, enfocándose en las capacidades básicas de captura y visualización necesarias para futuras integraciones más complejas.
 
@@ -98,8 +103,8 @@ RNF-08 & No Funcional & CU-01, CU-04, CU-05 & Manejo robusto de errores con recu
 
 La especificación de casos de uso reveló la importancia de considerar la integración desde las fases iniciales del diseño. Los flujos de excepción identificados (fallos de conectividad, desconexiones durante operación) proporcionaron información valiosa para el diseño de arquitectura robusta en iteraciones posteriores. La identificación de múltiples actores con necesidades diferentes motivó el desarrollo de interfaces especializadas según el nivel técnico del usuario.
 
-\section{CU-01 - Captura básica de eventos de entrada}
-\label{sec:cu01_captura_eventos}
+\subsection{CU-01 - Captura básica de eventos de entrada}
+\label{subsec:cu01_captura_eventos}
 
 \begin{table}[H]
 \centering
@@ -144,8 +149,8 @@ La especificación de casos de uso reveló la importancia de considerar la integ
 \label{tab:cu01_especificacion}
 \end{table}
 
-\subsection{Flujo principal}
-\label{subsec:cu01_flujo_principal}
+\subsubsection{Flujo principal}
+\label{subsubsec:cu01_flujo_principal}
 
 \begin{table}[H]
 \centering
@@ -186,8 +191,8 @@ La especificación de casos de uso reveló la importancia de considerar la integ
 \label{tab:cu01_flujo_principal}
 \end{table}
 
-\subsection{Flujos alternativos}
-\label{subsec:cu01_flujos_alternativos}
+\subsubsection{Flujos alternativos}
+\label{subsubsec:cu01_flujos_alternativos}
 
 \begin{table}[H]
 \centering
@@ -234,8 +239,8 @@ La especificación de casos de uso reveló la importancia de considerar la integ
 \label{tab:cu01_flujos_alternativos}
 \end{table}
 
-\subsection{Flujos de excepción}
-\label{subsec:cu01_flujos_excepcion}
+\subsubsection{Flujos de excepción}
+\label{subsubsec:cu01_flujos_excepcion}
 
 \begin{table}[H]
 \centering
@@ -272,8 +277,8 @@ La especificación de casos de uso reveló la importancia de considerar la integ
 \label{tab:cu01_flujos_excepcion}
 \end{table}
 
-\section{CU-02 - Registro temporal preciso durante experimentos}
-\label{sec:cu02_registro_temporal}
+\subsection{CU-02 - Registro temporal preciso durante experimentos}
+\label{subsec:cu02_registro_temporal}
 
 \begin{table}[H]
 \centering
@@ -317,8 +322,8 @@ La especificación de casos de uso reveló la importancia de considerar la integ
 \label{tab:cu02_especificacion}
 \end{table}
 
-\subsection{Flujo principal}
-\label{subsec:cu02_flujo_principal}
+\subsubsection{Flujo principal}
+\label{subsubsec:cu02_flujo_principal}
 
 \begin{table}[H]
 \centering
@@ -355,8 +360,8 @@ La especificación de casos de uso reveló la importancia de considerar la integ
 \label{tab:cu02_flujo_principal}
 \end{table}
 
-\subsection{Flujos alternativos}
-\label{subsec:cu02_flujos_alternativos}
+\subsubsection{Flujos alternativos}
+\label{subsubsec:cu02_flujos_alternativos}
 
 \begin{table}[H]
 \centering
@@ -429,8 +434,8 @@ La especificación de casos de uso reveló la importancia de considerar la integ
 \label{tab:cu04_especificacion}
 \end{table}
 
-\subsection{Flujo principal}
-\label{subsec:cu04_flujo_principal}
+\subsubsection{Flujo principal}
+\label{subsubsec:cu04_flujo_principal}
 
 \begin{table}[H]
 \centering
@@ -467,8 +472,8 @@ La especificación de casos de uso reveló la importancia de considerar la integ
 \label{tab:cu04_flujo_principal}
 \end{table}
 
-\subsection{Flujos alternativos}
-\label{subsec:cu04_flujos_alternativos}
+\subsubsection{Flujos alternativos}
+\label{subsubsec:cu04_flujos_alternativos}
 
 \begin{table}[H]
 \centering
@@ -515,8 +520,8 @@ La especificación de casos de uso reveló la importancia de considerar la integ
 \label{tab:cu04_flujos_alternativos}
 \end{table}
 
-\subsection{Flujos de excepción}
-\label{subsec:cu04_flujos_excepcion}
+\subsubsection{Flujos de excepción}
+\label{subsubsec:cu04_flujos_excepcion}
 
 \begin{table}[H]
 \centering
@@ -597,8 +602,8 @@ La especificación de casos de uso reveló la importancia de considerar la integ
 \label{tab:cu05_especificacion}
 \end{table}
 
-\subsection{Flujo principal}
-\label{subsec:cu05_flujo_principal}
+\subsubsection{Flujo principal}
+\label{subsubsec:cu05_flujo_principal}
 
 \begin{table}[H]
 \centering
@@ -637,8 +642,8 @@ La especificación de casos de uso reveló la importancia de considerar la integ
 \label{tab:cu05_flujo_principal}
 \end{table}
 
-\subsection{Flujos alternativos}
-\label{subsec:cu05_flujos_alternativos}
+\subsubsection{Flujos alternativos}
+\label{subsubsec:cu05_flujos_alternativos}
 
 \begin{table}[H]
 \centering
@@ -673,8 +678,8 @@ La especificación de casos de uso reveló la importancia de considerar la integ
 \label{tab:cu05_flujos_alternativos}
 \end{table}
 
-\subsection{Flujos de excepción}
-\label{subsec:cu05_flujos_excepcion}
+\subsubsection{Flujos de excepción}
+\label{subsubsec:cu05_flujos_excepcion}
 
 \begin{table}[H]
 \centering
@@ -727,3 +732,6 @@ La especificación de casos de uso reveló la importancia de considerar la integ
 \caption{Flujos de excepción del caso de uso CU-05}
 \label{tab:cu05_flujos_excepcion}
 \end{table}
+
+\input{anexos/casos_uso_it2}
+\input{anexos/casos_uso_it3}
