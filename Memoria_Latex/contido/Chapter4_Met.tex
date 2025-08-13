@@ -114,14 +114,14 @@ Es importante señalar que las fases representadas en el diagrama de Gantt no re
   \ganttbar{Análisis de requisitos}{1}{4} \\
   \ganttbar{Estado del arte}{5}{12} \\
   \ganttbar{Diseño arquitectónico}{13}{16} \\
-  \ganttbar{Implementación \textit{inputs}}{17}{24} \\
-  \ganttbar{Implementación \acrshort{eeg}}{25}{32} \\
+  \ganttbar{Desarrollo módulo \textit{inputs}}{17}{24} \\
+  \ganttbar{Desarrollo módulo \acrshort{eeg}}{25}{32} \\
   \ganttmilestone{Fin Iteración 1}{32} \\
   
   \ganttgroup{Iteración 2: Integración}{33}{48} \\
   \ganttbar{Análisis de integración}{33}{36} \\
-  \ganttbar{Integración mediante \acrshort{lsl}}{37}{40} \\
-  \ganttbar{Exportación formatos}{41}{48} \\
+  \ganttbar{Desarrollo integración}{37}{44} \\
+  \ganttbar{Implementación exportación}{45}{48} \\
   \ganttmilestone{Fin Iteración 2}{48} \\
   
   \ganttgroup{Iteración 3: Finalización}{49}{64} \\
@@ -336,7 +336,7 @@ La Figura~\ref{fig:gantt_real} revela una evolución significativamente más com
 \subsection{Impacto económico de los desvíos}
 \label{subsec:impacto_economico_desvios}
 
-Los desvíos incrementaron el tiempo de desarrollo pero permitieron alcanzar un sistema más robusto y con mayor funcionalidad que la planificada inicialmente.
+Los desvíos incrementaron el tiempo de desarrollo debido principalmente a la complejidad arquitectónica no anticipada y múltiples intentos fallidos de integración, resultando en un sistema que aborda los objetivos principales del proyecto aunque con algunas funcionalidades pendientes de completar.
 
 \begin{table}[htbp!]
   \centering
@@ -349,7 +349,7 @@ Los desvíos incrementaron el tiempo de desarrollo pero permitieron alcanzar un 
     Duración del proyecto & 16 semanas & 22 semanas & +6 semanas (+37.5\%) \\
     Horas de desarrollo & 280 horas & 385 horas & +105 horas (+37.5\%) \\
     Coste de desarrollo & 3.360€ & 4.620€ & +1.260€ (+37.5\%) \\
-    Alcance funcional & Básico planificado & Ampliado significativamente & +40\% funcionalidades \\
+    Cumplimiento objetivos & Objetivos básicos & Sistema funcional con arquitectura robusta & Objetivos principales logrados \\
     \hline
     \end{tabular}
   }
@@ -357,12 +357,12 @@ Los desvíos incrementaron el tiempo de desarrollo pero permitieron alcanzar un 
   \label{tab:comparacion_planificado_real}
 \end{table}
 
-La Tabla~\ref{tab:comparacion_planificado_real} presenta el análisis comparativo entre la planificación inicial y el desarrollo real, mostrando que el proyecto requirió 37.5\% más tiempo del planificado, pero el alcance final superó significativamente los objetivos originales con un incremento del 40\% en funcionalidades.
+La Tabla~\ref{tab:comparacion_planificado_real} presenta el análisis comparativo entre la planificación inicial y el desarrollo real, mostrando que el proyecto requirió 37.5\% más tiempo del planificado debido a la complejidad arquitectónica no anticipada y los múltiples intentos fallidos de integración que motivaron el desarrollo de la arquitectura \acrshort{api}.
 
 \subsubsection{Desglose de costes finales del proyecto}
 \label{subsubsec:costes_finales_proyecto}
 
-El impacto económico real del proyecto incorpora tanto los desvíos temporales como el incremento en funcionalidades desarrolladas.
+El impacto económico real del proyecto incorpora los desvíos temporales resultantes de la complejidad técnica encontrada durante la implementación.
 
 \begin{table}[htbp!]
   \centering
@@ -386,6 +386,8 @@ El impacto económico real del proyecto incorpora tanto los desvíos temporales 
   \label{tab:costes_finales}
 \end{table}
 
-La Tabla~\ref{tab:costes_finales} muestra que el incremento de costes fue proporcional al incremento de tiempo de desarrollo (37.5\%), resultando en un sobrecoste total de 2.136€. Sin embargo, este incremento debe evaluarse considerando que el alcance funcional final superó en un 40\% lo planificado inicialmente, incluyendo funcionalidades no contempladas como las múltiples interfaces de usuario (\acrshort{cli}, web, \acrshort{api}), algoritmos avanzados de procesamiento, y una arquitectura significativamente más robusta y extensible.
+La Tabla~\ref{tab:costes_finales} muestra que el incremento de costes fue proporcional al incremento de tiempo de desarrollo (37.5\%). Este incremento se debe principalmente a la complejidad arquitectónica no anticipada que requirió múltiples refactorizaciones y el desarrollo de una arquitectura \acrshort{api} completa para resolver los problemas de integración identificados.
 
-El análisis coste-beneficio indica que el incremento económico fue justificado por el valor añadido del sistema final, que proporciona capacidades significativamente superiores a las planificadas inicialmente, estableciendo una base técnica sólida para futuras extensiones y aplicaciones en el dominio \acrshort{bci}.
+Las funcionalidades implementadas, incluyendo soporte para controladores, filtros avanzados, algoritmos \acrshort{ica}, integración \textbf{MNE-Python}, interfaces \acrshort{cli} y explorador web, constituyen implementaciones específicas necesarias para cumplir los objetivos generales del proyecto. El desarrollo de estas funcionalidades representó el enfoque natural de los módulos planificados durante la evolución del sistema.
+
+El análisis coste-beneficio indica que el incremento económico fue justificado por la necesidad de resolver desafíos técnicos fundamentales de integración que no pudieron anticiparse en la planificación inicial, resultando en un sistema funcional con una arquitectura robusta y extensible que establece las bases para futuras extensiones.
