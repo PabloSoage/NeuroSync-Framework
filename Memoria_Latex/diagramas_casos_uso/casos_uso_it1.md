@@ -22,11 +22,11 @@ graph TB
     Usuario --> CU01
 
     %% Relaciones entre casos de uso (UML estándar)
-    CU02 -.->|extends| CU01
-    CU04 -.->|includes| CU01
-    CU05 -.->|precedes| CU01
-    CU05 -.->|precedes| CU04
-    CU04 -.->|monitors| CU02
+    CU02 -.->|extend| CU01
+    CU04 -.->|include| CU01
+    CU05 -.->|include| CU01
+    CU05 -.->|include| CU04
+    CU04 -.->|include| CU02
 
     %% Estilos
     classDef actor fill:#e1f5fe,stroke:#01579b,stroke-width:2px

@@ -19,9 +19,9 @@ graph TB
     InvBCI --> CU06
 
     %% Relaciones entre casos de uso (fundamentos arquitectónicos)
-    CU03 -.->|enables| CU01
-    CU01 -.->|generates| CU06
-    CU03 -.->|facilitates| CU06
+    CU03 -.->|include| CU01
+    CU01 -.->|extend| CU06
+    CU03 -.->|include| CU06
 
     %% Estilos
     classDef actor fill:#e1f5fe,stroke:#01579b,stroke-width:2px

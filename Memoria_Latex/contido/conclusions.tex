@@ -91,8 +91,11 @@ Las limitaciones de rendimiento del \textit{\gls{polling}} inicial (pérdida de 
 
 Los problemas tardíos con dependencias \textbf{Qt} en modo \textit{\gls{headless}} revelaron la importancia de considerar múltiples contextos de ejecución desde las fases de diseño inicial. Aunque se resolvieron parcialmente mediante arquitecturas dirigidas por eventos, esta experiencia destacó la necesidad de validar requisitos no funcionales en diferentes entornos de ejecución durante el desarrollo.
 
+{
+\titlespacing*{\chapter}{0pt}{-0.1\textheight}{20pt}
 \chapter{Líneas de trabajo futuro}
 \label{chap:lineas_futuro}
+}
 
 El desarrollo del sistema ha identificado múltiples oportunidades de expansión y mejora que podrían ampliar significativamente sus capacidades y aplicabilidad. La resolución completa de las limitaciones del módulo de \gls{sincronizacion} integrado constituye la prioridad más inmediata, requiriendo la corrección de problemas en exportación \acrshort{edf+} y la verificación exhaustiva de formatos \acrshort{hdf5} y \acrshort{bids}~\cite{bids}. Esta finalización habilitaría capacidades de sincronización en tiempo real y generación de \textit{\glspl{dataset}} sincronizados en tiempo real. A partir de esta base, se podría desarrollar \textit{\gls{streaming}} de datos sincronizados en tiempo real como extensión del sistema, similar a como existen diferentes tipos de \textit{streamers} para archivo y red, expandiendo las aplicaciones del sistema hacia aplicaciones \acrshort{bci} interactivas.
 

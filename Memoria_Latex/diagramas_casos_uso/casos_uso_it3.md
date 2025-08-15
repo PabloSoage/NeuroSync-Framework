@@ -20,9 +20,9 @@ graph TB
     DevBCI --> CU06
 
     %% Relaciones entre casos de uso (capacidades avanzadas)
-    CU03 -.->|enables| CU06
-    CU04 -.->|provides data for| CU06
-    CU03 -.->|supports| CU04
+    CU03 -.->|include| CU06
+    CU04 -.->|extend| CU06
+    CU03 -.->|include| CU04
 
     %% Estilos
     classDef actor fill:#e1f5fe,stroke:#01579b,stroke-width:2px
