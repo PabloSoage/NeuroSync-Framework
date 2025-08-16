@@ -305,8 +305,10 @@ El cronograma real muestra una evolución significativamente diferente a la plan
   
   \ganttgroup{Iteración 1: Módulos básicos}{1}{19} \\
   \ganttbar[bar/.append style={fill=orange!70}]{Exploración Julia (abandonada)}{1}{3} \\
-  \ganttbar{Desarrollo \textit{inputs} + \acrshort{gui} PyQt5}{4}{7} \\
-  \ganttbar{Módulo \acrshort{eeg} + \textit{brain map}}{8}{12} \\
+  \ganttbar{Desarrollo módulo \textit{inputs}}{4}{6} \\
+  \ganttbar{Desarrollo \acrshort{gui} PyQt5}{6}{7} \\
+  \ganttbar{Desarrollo módulo \acrshort{eeg}}{8}{11} \\
+  \ganttbar{Implementación \textit{brain map}}{11}{12} \\
   \ganttbar[bar/.append style={fill=red!70}]{Primer intento integración (fallido)}{13}{19} \\
   \ganttmilestone[milestone/.append style={fill=orange}]{Fin Iteración 1}{19} \\
   
@@ -318,10 +320,14 @@ El cronograma real muestra una evolución significativamente diferente a la plan
   
   \ganttgroup{Iteración 3: Arquitectura \acrshort{api} y finalización}{43}{83} \\
   \ganttbar[bar/.append style={fill=green!70}]{\acrshort{api} acceso \textit{inputs}}{43}{47} \\
-  \ganttbar[bar/.append style={fill=green!70}]{\acrshort{api} acceso \acrshort{eeg} + explorador web}{48}{52} \\
-  \ganttbar[bar/.append style={fill=green!70}]{\acrshort{api} control \textit{inputs} + \acrshort{ps4}}{53}{60} \\
-  \ganttbar[bar/.append style={fill=green!70}]{\acrshort{cli} + optimizaciones}{61}{65} \\
-  \ganttbar[bar/.append style={fill=green!70}]{\acrshort{api} control \acrshort{eeg} + funcionalidades avanzadas}{66}{79} \\
+  \ganttbar[bar/.append style={fill=green!70}]{\acrshort{api} acceso \acrshort{eeg}}{48}{50} \\
+  \ganttbar[bar/.append style={fill=green!70}]{Desarrollo explorador web}{50}{52} \\
+  \ganttbar[bar/.append style={fill=green!70}]{\acrshort{api} control \textit{inputs}}{53}{57} \\
+  \ganttbar[bar/.append style={fill=green!70}]{Implementación soporte \acrshort{ps4}}{57}{60} \\
+  \ganttbar[bar/.append style={fill=green!70}]{Desarrollo \acrshort{cli}}{61}{63} \\
+  \ganttbar[bar/.append style={fill=green!70}]{Optimizaciones}{63}{65} \\
+  \ganttbar[bar/.append style={fill=green!70}]{\acrshort{api} control \acrshort{eeg}}{66}{71} \\
+  \ganttbar[bar/.append style={fill=green!70}]{Funcionalidades avanzadas}{71}{79} \\
   \ganttbar[bar/.append style={fill=orange!50}]{Integración \acrshort{lsl} (pausada)}{80}{83} \\
   \ganttmilestone[milestone/.append style={fill=orange}]{Fin Iteración 3 - Sistema funcional}{83} \\
   
