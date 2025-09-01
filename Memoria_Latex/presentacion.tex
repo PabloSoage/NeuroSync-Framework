@@ -1,0 +1,1050 @@
+\documentclass[10pt,thmsa]{beamer}
+%-- \documentclass[10pt,thmsa,handout]{beamer}
+
+\usepackage[english,spanish,es-noquoting,es-tabla]{babel}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{epsfig}
+%-- \usepackage{listings}
+\usepackage{verbatim}
+\usepackage{multimedia}
+\usepackage[]{algorithm}
+\usepackage{algorithmic}
+\usepackage{multirow}
+\usepackage{pgf,pgfarrows,pgfnodes,pgfautomata,pgfheaps}
+\usepackage{ulem}
+
+\usepackage{graphicx}
+\usepackage{booktabs,array}
+\usepackage[table]{xcolor}
+
+
+
+\definecolor{udcpink}{RGB}{177,0,114}
+\definecolor{udcgray}{RGB}{100,100,100}
+\definecolor{ficblue}{RGB}{50,110,118}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shadows.blur}
+
+
+
+\input{otros/comandoslatex}
+
+%-- \usetheme{default}
+\usetheme{Madrid}
+
+\usecolortheme{default}
+
+\usefonttheme{serif}
+% \usepackage{mathptmx}
+
+\usepackage{xcolor}
+% \newcommand{\rojo}[1]  {{\color[rgb]{1,0,0}{#1}}}
+% \newcommand{\azul}[1]  {{\color[rgb]{0,0,1}{#1}}}
+
+\usepackage{tikz}
+\usetikzlibrary{positioning,calc}
+
+\iffalse
+\lstset{
+  language=Python,                     % the language of the code
+  basicstyle=\footnotesize\ttfamily,   % the size of the fonts that are used for the code
+  numbers=left,                        % where to put the line-numbers
+  numberstyle=\tiny\color{gray},       % the style that is used for the line-numbers
+  stepnumber=1,                        % the step between two line-numbers. If it's 1, each line 
+                                       % will be numbered
+  numbersep=5pt,                       % how far the line-numbers are from the code
+  backgroundcolor=\color{white},       % choose the background color. You must add \usepackage{color}
+  showspaces=false,                    % show spaces adding particular underscores
+  showstringspaces=false,              % underline spaces within strings
+  showtabs=false,                      % show tabs within strings adding particular underscores
+  frame=single,                        % adds a frame around the code
+  rulecolor=\color{black},             % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. commens (green here))
+  tabsize=2,                           % sets default tabsize to 2 spaces
+  captionpos=b,                        % sets the caption-position to bottom
+  breaklines=true,                     % sets automatic line breaking
+  breakatwhitespace=false,             % sets if automatic breaks should only happen at whitespace
+  title=\lstname,                      % show the filename of files included with \lstinputlisting;
+                                       % also try caption instead of title
+  keywordstyle=\color{blue},           % keyword style
+  commentstyle=\color{dkgreen},        % comment style
+  stringstyle=\color{magenta},         % string literal style
+  escapeinside={\%*}{*)},              % if you want to add a comment within your code
+  morekeywords={*,...}                 % if you want to add more keywords to the set
+}
+\fi
+
+%---------------------------------------------------------------------------------
+
+\theoremstyle{plain}
+%-- \theorembodyfont{\rmfamily}
+
+\newtheorem{tma} {Theorem}
+\newtheorem{defi}{Definition}
+\newtheorem{prop}{Proposition}
+\newtheorem{coro}{Corollary}
+\newtheorem{lema}{Lemma}
+%-- \newtheorem{ejem}{Example}
+%-- \newtheorem{nota}{Remark}
+
+\floatname{algorithm}{Algorithm}
+
+%---------------------------------------------------------------------------------
+
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{section in toc}[sections numbered]
+%-- \setbeamertemplate{subsection in toc}[subsections numbered]
+%-- \setbeamertemplate{section in toc}[ball unnumbered]
+\setbeamertemplate{subsection in toc}[ball unnumbered]
+\AtBeginSection[]{
+    \begin{frame}
+    \frametitle{Índice general}
+    \tableofcontents[currentsection, hideothersubsections]
+    \end{frame}}
+
+%\addtobeamertemplate{navigation symbols}{}{               % Sigue apareciendo en la barra inferior.
+%    \usebeamerfont{footline}
+%    %-- \usebeamercolor[fg]{footline}
+%    \hspace{1em}
+%    \insertframenumber/\inserttotalframenumber}
+
+%-----------------------------------------------------------------------------
+
+\begin{document}
+
+%-- \setbeamercolor{math text}{fg = red}
+%-- \setbeamercolor{math text inlined}{fg = red}
+
+%-- \expandafter\def\expandafter\insertshorttitle\expandafter{
+%--     \insertshorttitle\hfill
+%--     \insertframenumber\,/\,\inserttotalframenumber}
+
+%-----------------------------------------------------------------------------
+
+\title[Interpolación B-Spline]
+       {\LARGE{Interpolación de datos entre mallas refinadas mediante técnicas spline}}
+\author[Mateo Ramos Rega]
+       {\Large{Mateo Ramos Rega} \\
+        \quad \\
+        \small{Grado en Ingeniería Informática} \\
+        \small{Mención en Computación}
+        \quad}
+\date[{Julio, 2025}]{Julio, 2025 \\
+      \quad \\ \quad \\
+      \includegraphics[width=45mm]{imaxes/udc.png}
+      }
+
+%-----------------------------------------------------------------------------
+
+\begin{frame}[plain, label=portada]
+
+\titlepage
+
+\end{frame}
+
+%-----------------------------------------------------------------------------
+
+\begin{frame}
+\frametitle{Índice general}
+\tableofcontents[hideallsubsections]
+\end{frame}
+
+%-----------------------------------------------------------------------------
+\section{Introducción}
+
+\begin{frame}
+\frametitle{Métodos de elementos finitos}
+
+\begin{itemize}
+\item Los métodos de elementos finitos (FEM) son una técnica numérica para resolver ecuaciones en derivadas parciales
+      \begin{itemize}
+      \item El dominio y las ecuaciones se discretizan en un conjunto discreto (malla)
+      \item Los métodos multinivel utilizan varias mallas con distinto grado de refinamiento
+      \end{itemize}
+\item Actualmente se emplea interpolación lineal
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{}
+  \begin{center}
+      \includegraphics[width=\linewidth]{imaxes/meshes/mesh-00.png}
+  \end{center}
+\end{frame}
+
+\begin{frame}{}
+  \begin{center}
+      \includegraphics[width=\linewidth]{imaxes/meshes/mesh-01.png}
+  \end{center}
+\end{frame}
+
+\begin{frame}{}
+  \begin{center}
+      \includegraphics[width=\linewidth]{imaxes/meshes/mesh-02.png}
+  \end{center}
+\end{frame}
+
+\begin{frame}{}
+  \begin{center}
+      \includegraphics[width=\linewidth]{imaxes/meshes/mesh-03.png}
+  \end{center}
+\end{frame}
+
+%-----------------------------------------------------------------------------
+
+\begin{frame}
+\frametitle{Ejemplo comparativo de interpolación}
+
+\begin{center}
+\includegraphics[width=0.45\textwidth]{imaxes/curves/poly/better_example/less_pts/BSpline_1_degree.png}
+\hspace{0.5cm}
+\includegraphics[width=0.45\textwidth]{imaxes/curves/poly/better_example/less_pts/BSpline_3_degree.png}
+\end{center}
+
+\end{frame}
+
+\begin{frame}{Objetivos}
+  \begin{itemize}
+    \item Desarrollar una librería ligera de interpolación B-Spline en C++
+    \item Comparar vieja interpolación con la nueva
+    \item Desarrollar interfaz gráfica
+  \end{itemize}
+\end{frame}
+
+
+%-----------------------------------------------------------------------------
+
+\section{Metodología}
+
+\begin{frame}{Enfoque metodológico}
+
+\textbf{Modelo incremental–iterativo}, combinando planificación estructurada y flexibilidad.
+
+\vspace{1em}
+
+\begin{itemize}
+    \item Incrementalidad: desarrollo en bloques funcionales:
+    % \begin{itemize}
+    %     \item Curvas 1D $\rightarrow$ Superficies 2D $\rightarrow$ NURBS $\rightarrow$ C++ e Interfaz gráfica
+    % \end{itemize}
+\end{itemize}
+\vspace{-0.49cm}
+\begin{center}
+    \includegraphics[width=0.8\textwidth]{presentacion/imagenes/_Diagrama de flujo_2.pdf}
+\end{center}
+\vspace{-1cm}
+\begin{itemize}
+    
+    \item Validación continua
+    
+    \item Seguimiento regular
+\end{itemize}
+
+\vspace{1em}
+
+Detección temprana de errores  y mejora continua
+
+\end{frame}
+
+\begin{frame}[fragile]{Cronograma general del proyecto}
+El trabajo se ha realizado entre febrero y junio de 2025
+\includegraphics[width=\textwidth]{presentacion/imagenes/gantt_new.pdf}
+\end{frame}
+
+% \begin{frame}[fragile]{Cronograma general del proyecto (febrero–junio 2025)}
+%   \begingroup
+%     \rowcolors{3}{udcgray!15}{white}
+%     \renewcommand{\arraystretch}{1.2}
+%     \resizebox{\textwidth}{!}{%
+%       \begin{tabular}{|>{\centering\arraybackslash}m{1.4cm}|
+%                         >{\centering\arraybackslash}m{8.1cm}|
+%                         >{\centering\arraybackslash}m{3.2cm}|}
+%         \hline
+%         \rowcolor{blue!35}\textbf{Fase} & \textbf{Actividad} & \textbf{Periodo (aprox.)} \\
+%         \hline
+%         1 & Estudio bibliográfico sobre elementos finitos, interpolación spline y geometría B–Spline/NURBS & 03/02–16/02 \\
+%         2 & Implementación de curvas B-Spline 1D en Python/NumPy y validación & 17/02–16/03 \\
+%         3 & Implementación de superficies B-Spline 2D con sus correspondientes pruebas & 17/03–06/04 \\
+%         4 & Extensión a NURBS (curvas y superficies) y validación comparativa & 07/04–27/04 \\
+%         5.1$^{\ast}$ & Portado de la librería a C++ utilizando Eigen & 28/04–15/06 \\
+%         5.2$^{\ast}$ & Desarrollo de la interfaz gráfica para visualización de superficies NURBS & 28/04–15/06 \\
+%         \hline
+%       \end{tabular}%
+%     }
+%   \endgroup
+
+%   \vspace{1ex}
+%   {\footnotesize $^{\ast}$Fases realizadas en paralelo según disponibilidad.}
+% \end{frame}
+
+\begin{frame}{Riesgos identificados}
+\includegraphics[
+    width=\textwidth,
+    height=0.9\textheight,
+    keepaspectratio
+  ]{presentacion/imagenes/riesgos.pdf}
+\end{frame}
+
+% % Diapositiva: Riesgos y cómo se gestionaron
+% \begin{frame}{Riesgos identificados y gestión}
+
+% Principales riesgos identificados y estrategias a seguir en caso de ser necesario
+
+% \begingroup
+% \rowcolors{3}{udcgray!15}{white}
+% \begin{table}[H]
+%   \centering
+%   \label{tab:riesgos}
+%   \renewcommand{\arraystretch}{1.2}
+%   \resizebox{\textwidth}{!}{
+%   \begin{tabular}{|>{\centering\arraybackslash}m{4.2cm}|>{\centering\arraybackslash}m{1.6cm}|>{\centering\arraybackslash}m{1.6cm}|>{\centering\arraybackslash}m{5.2cm}|}
+%     \hline
+%     \rowcolor{blue!35}\textbf{Riesgo} & \textbf{Prob.} & \textbf{Impacto} & \textbf{Estrategia}\\
+%     \hline
+%     Complicaciones durante la implementación de la lógica B-Spline en Python & Media & Alta & Revisar bibliografía adicional y plantear dudas en las reuniones.\\
+%     Curva de aprendizaje Eigen/C++ moderno & Media & Alta & Prototipar ejemplos reducidos, buscar recursos en línea y consultar dudas con el tutor.\\
+%     Desfase entre la librería de Python y C++ & Media & Media & Tests para comprobar el igual y correcto funcionamiento.\\
+%     Baja eficiencia de la GUI para mallas grandes & Baja & Media & Considerar opciones como OpenGL en Qt si fuera necesario.\\
+%     Subestimación de tiempos en la integración MEF & Media & Baja & Plantear una estragia a seguir en función de los problemas encontrados.\\
+%     \hline
+%   \end{tabular}
+%   }
+% \end{table}
+% \endgroup
+
+% \end{frame}
+
+
+%-----------------------------------------------------------------------------
+
+\section{Curvas}
+
+% Diapositiva: Introducción a las curvas
+\begin{frame}{Curvas}
+  \begin{itemize}
+    \item Definición: Una curva es una función $s(t)$ que describe un camino en el espacio.
+    \item Conceptos básicos:
+      \begin{itemize}
+        \item Puntos de control $\mathbf{c}_i$
+        \item Parámetro $\mathbf{t}$
+        \item Grado $\mathbf{p}$
+      \end{itemize}
+    \item Opciones planteadas:
+        \begin{itemize}
+        \item Curvas de Bézier
+        \item Curvas B-Spline
+      \end{itemize}
+  \end{itemize}
+\end{frame}
+
+% Diapositiva: Curvas de Bézier – explicación y fórmula
+\begin{frame}{Curvas de Bézier: definición}
+  \begin{itemize}
+    \item Dada una familia de $n+1$ puntos de control $c_0, \dots, c_n$, la curva de Bézier se define como:
+      \[
+        B(t) = \sum_{i=0}^{n} \binom{n}{i} (1 - t)^{n - i} t^{i} \, c_i,
+        \quad t \in [0,1]
+      \]
+    \item Resultados suaves
+    \item Control global: mover un punto de control modifica la curva entera
+  \end{itemize}
+\end{frame}
+
+% % Diapositiva: Ejemplos con Bézier
+% \begin{frame}{Ejemplos de curvas de Bézier}
+%   \begin{itemize}
+%       \item Produce resultados suaves
+%   \end{itemize}
+
+%   \begin{center}
+%     \includegraphics[width=0.45\textwidth]{imaxes/curves/just_bezier/bezier_1.png}
+%     \hspace{0.5cm}
+%     \includegraphics[width=0.45\textwidth]{imaxes/curves/just_bezier/bezier_3.png}
+%   \end{center}
+% \end{frame}
+
+\begin{frame}{Ejemplos de curvas de Bézier}
+
+  \begin{center}
+    \includegraphics[width=0.45\textwidth]{imaxes/curves/just_bezier/bezier_2.png}
+    \hspace{0.5cm}
+    \includegraphics[width=0.45\textwidth]{imaxes/curves/just_bezier/bezier_2_changed.png}
+  \end{center}
+  
+\end{frame}
+
+% Diapositiva: Curvas B-Spline – explicación y fórmula
+\begin{frame}{Curvas B-Spline}
+Definición: combinación lineal de funciones base $N_i^p(t)$ sobre un conjunto de nudos:
+          $$s(t) = \sum_{i=0}^{n} N_i^p(t) \, \mathbf{c}_i, \quad t \in [0, 1]$$
+          donde:
+          \begin{align*}
+          N_i^0(t) &= \begin{cases} 1 & \text{si } u_i \le t < u_{i+1}, \\
+                                    0 & \text{en otro caso}, \end{cases} \\[3mm]
+          N_i^p(t) &= \frac{t - u_i}{u_{i+p} - u_i} N_{i}^{p-1}(t)
+                    + \frac{u_{i+p+1} - t}{u_{i+p+1} - u_{i+1}} N_{i+1}^{p-1}(t).
+          \end{align*}
+\end{frame}
+
+% Diapositiva: Funciones base (Cox–de Boor)
+%\begin{frame}{Funciones base de B-Spline}
+%  Definición recursiva:
+%  \[
+%    N_i^0(t) = \begin{cases}
+%      1 & u_i \le t < u_{i+1}, \\
+%      0 & \text{en otro caso},
+%    \end{cases}
+%  \]
+%  \[
+%    N_i^p(t) = \frac{t - u_i}{u_{i+p} - u_i} N_{i}^{p-1}(t)
+%    + \frac{u_{i+p+1} - t}{u_{i+p+1} - u_{i+1}} N_{i+1}^{p-1}(t).
+%  \]
+%\end{frame}
+
+\begin{frame}{Funciones base de B-Spline}
+\begin{itemize}
+      \item Ejemplos de funciones base: $N^1_i$, $N^2_i$, $N^3_i$
+  \end{itemize}
+
+  \begin{center}
+    \includegraphics[width=0.4\textwidth]{imaxes/basis_functions/dots/Basis_Function_1_Degree_Dots.png}
+    \hspace{0.5cm}
+    \includegraphics[width=0.4\textwidth]{imaxes/basis_functions/dots/Basis_Function_2_Degree_Dots.png}
+    \hspace{0.5cm}
+    \includegraphics[width=0.4\textwidth]{imaxes/basis_functions/dots/Basis_Function_3_Degree_Dots.png}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Ejemplos de curvas B-Spline}
+    \begin{center}
+    \includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_1_closed.png}
+    \hspace{0.5cm}
+    \includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_2_closed.png}
+  \end{center}
+
+  Problemática: la curva se corta\\
+  Solución: uso de vectores de nodos abiertos
+  \[ u_0 = u_1 = \dots = u_p, \quad u_{m-p} = \dots = u_{m} \]
+\end{frame}
+
+\begin{frame}{Nuevas funciones base}
+    La suma de las funciones base sigue siendo igual a 1
+
+  \begin{center}
+    \includegraphics[width=0.4\textwidth]{imaxes/basis_functions/clampled/Basis_Function_1_Degree_Clampled.png}
+    \hspace{0.5cm}
+    \includegraphics[width=0.4\textwidth]{imaxes/basis_functions/clampled/Basis_Function_2_Degree_Clampled.png}
+    \hspace{0.5cm}
+    \includegraphics[width=0.4\textwidth]{imaxes/basis_functions/clampled/Basis_Function_3_Degree_Clampled.png}
+  \end{center}
+    
+\end{frame}
+
+\begin{frame}{Ejemplos de curvas B-Spline}
+  \begin{center}
+    \includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_1.png}
+    \hspace{0.5cm}
+    \includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_2.png}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Ejemplo 3D}
+    \includegraphics[width=0.9\textwidth]{presentacion/imagenes/3D.pdf}
+\end{frame}
+
+% Diapositiva: Ventajas de B-Spline frente a Bézier
+\begin{frame}{Ventajas de las curvas B-Spline}
+  \begin{itemize}
+    \item Se obtienen resultados suaves
+    \item Control local: mover $c_i$ afecta sólo a la vecindad local.
+  \end{itemize}
+
+  \begin{center}
+    \includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_1.png}
+    \hspace{0.5cm}
+    \includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_1_modified.png}
+  \end{center}
+  
+\end{frame}
+
+\begin{frame}{B-Splines Racionales}
+  \begin{itemize}
+    \item Extensión de B-Spline: suma ponderada de cocientes de polinomios:
+    \begin{equation*}
+    \ns (t) = \sumat{i}{0}{n} \nc_i \wh{N}_i^p (t) \, , \qquad
+      \text{donde} \quad
+      \wh{N}_i^p (t) = \dfrac{\omega_i N_i^p (t)}{\sumat{j}{0}{n} \omega_j N_j^p (t)} \, .
+      \end{equation*}
+    \item NURBS: uso de un vector de nudos no uniforme.
+    
+    Ejemplo de funciones base usando NURBS
+    \begin{center}
+    \includegraphics[width=0.45\textwidth]{imaxes/basis_functions/NURBS/Basis_Function_3_Degree_Campled_NURBS.png}
+    \end{center}
+    \end{itemize}
+\end{frame}
+
+% \begin{frame}{Interpolación racional en la práctica}
+
+% \begin{itemize}
+%   \item Cada punto se representa en coordenadas homogéneas, como $(\omega x, \omega y, \omega)$, con $\omega \neq 0$.
+%   \item La proyección al espacio cartesiano:
+%   \[
+%   (x, y) = \left( \frac{\omega x}{\omega}, \frac{\omega y}{\omega} \right)
+%   \]
+% \end{itemize}
+
+% \end{frame}
+
+\section{Interpolación de curvas}
+
+% Diapositiva: Definición de interpolación
+\begin{frame}{Interpolación de curvas}
+  \begin{itemize}
+    \item Interpolar: construir una curva que pase exactamente por puntos dados
+\end{itemize}
+    \begin{center}
+    \includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_3.png}
+    \hspace{0.5cm}
+    \includegraphics[width=0.45\textwidth]{imaxes/curves/poly/better_example/less_pts/BSpline_3_degree.png}
+  \end{center}
+    \begin{itemize}
+    \item Se resuelve un sistema lineal para obtener los $C_i$.
+  \end{itemize}
+\end{frame}
+
+% Diapositiva: Interpolación de NURBS
+\begin{frame}{Sistema a resolver}
+Dados:
+  \begin{itemize}
+    \item $t_i \in [0, 1]$ ($i=0, \ldots, n$)
+    \item $q_i$, los puntos de interpolación dados
+    \item $N_i^p(t)$ las funciones base
+  \end{itemize}
+  Buscamos los puntos de control $c_i$ tales que:
+    \[
+    \left\{
+    \begin{aligned}
+    N_0^p(t_0) \mathbf{c}_0 + \dots + N_n^p(t_0) \mathbf{c}_n &= \mathbf{q}_0 \\
+    N_0^p(t_1) \mathbf{c}_0 + \dots + N_n^p(t_1) \mathbf{c}_n &= \mathbf{q}_1 \\
+    &\vdots \\
+    N_0^p(t_n) \mathbf{c}_0 + \dots + N_n^p(t_n) \mathbf{c}_n &= \mathbf{q}_n
+    \end{aligned}
+    \right.
+    \]
+    % \begin{itemize}
+    %     \item Para el caso racional, se sustituyen las funciones base por las funciones base ponderadas con pesos
+    % \end{itemize}
+\end{frame}
+
+\begin{frame}{Comparativa con una función polinómica}
+
+El error de la interpolación realizada respecto a una función conocida, se calcula de la siguiente manera:
+
+\[
+\varepsilon = \frac{\left\lVert f(t) - s(t) \right\rVert}{\left\lVert f(t) \right\rVert}
+\]
+
+\begin{center}
+    \includegraphics[width=0.45\textwidth]{presentacion/imagenes/_func.png}
+    \hspace{0.5cm}
+    \includegraphics[width=0.45\textwidth]{presentacion/imagenes/_func_3.png}
+  \end{center}
+
+  \begin{itemize}
+      \item Error de la primera curva: $2.417\times10^{-1}$
+      \item Error de la segunda curva: $3.272\times10^{-16}$
+  \end{itemize}
+    
+\end{frame}
+
+% \begin{frame}{Ejemplos de interpolación racional}
+
+% Comparación entre las tres tipos de interpolaciones {\rojo{\quad menos puntos???}}
+
+% \begin{center}
+% \begin{minipage}{0.32\textwidth}
+%     \centering
+%     \includegraphics[width=\textwidth]{imaxes/curves/good_non_poly/BSpline_3_degree.png}
+    
+%     \scriptsize B-Spline, error: $5.290\times10^{-4}$
+% \end{minipage}
+% \hfill
+% \begin{minipage}{0.32\textwidth}
+%     \centering
+%     \includegraphics[width=\textwidth]{imaxes/curves/good_non_poly/Rational_BSpline_3_degree.png}
+    
+%     \scriptsize Racional, error: $1.689\times10^{-4}$
+% \end{minipage}
+% \hfill
+% \begin{minipage}{0.32\textwidth}
+%     \centering
+%     \includegraphics[width=\textwidth]{imaxes/curves/good_non_poly/NURBS_3_degree.png}
+    
+%     \scriptsize NURBS, error: $1.653\times10^{-4}$
+% \end{minipage}
+% \end{center}
+
+% \end{frame}
+
+
+
+
+
+%-----------------------------------------------------------------------------
+
+\section{Superficies}
+
+% Diapositiva: salto de curvas a superficies
+\begin{frame}{De curvas a superficies B-Spline}
+
+En las curvas:
+  \begin{itemize}
+    \item Empleabamos un parámetro $t$
+    \end{itemize}
+    \[
+        s(t) = \sum_{i=0}^{n} N_i^p(t) \, c_i,
+        \quad t \in [0, 1]
+    \]
+  
+En las superficies:
+  \begin{itemize}
+    \item Dos parámetros: $u$, $v$
+  \end{itemize}
+    \[
+        \mathbf{S}(u,v) = \sumat{i}{0}{n} \sumat{j}{0}{m} N_i^p(u) \, N_j^q(v) \, \nc_{i,j}, \quad u,v \in [0, 1]
+    \]
+\end{frame}
+
+% Diapositiva: cálculo de puntos de control
+\begin{frame}{Interpolación de superficies}
+  \begin{itemize}
+    \item Dada una malla de puntos de interpolación $\mathbf{q}_{ij}$ y los grados $p$ y $q$, buscamos $\mathbf{c}_{ij}$
+    \item En cada dirección ($u$, $v$):
+    \begin{itemize}
+      \item Parametrización: asignar valores $u_i$, $v_j$
+      \item Evaluar funciones base
+      \item Resolver sistemas lineales (como con las curvas)
+    \end{itemize}
+    \item Resultado: malla de puntos de control $\mathbf{c}_{ij}$
+  \end{itemize}
+\end{frame}
+
+% Diapositiva: relevancia de la parametrización
+\begin{frame}{Importancia de la parametrización}
+    \begin{center}
+    La calidad de la superficie interpolada depende de la parametrización elegida
+        \includegraphics[width=\textwidth]{presentacion/imagenes/comparación_parametrización_2.pdf}
+    \end{center}
+\end{frame}
+
+% \begin{frame}{Parametrización lineal}
+%   \begin{itemize}
+%     \item Parametrización: $u_i = \frac{i}{n}$ (espaciado uniforme)
+%     \item Vector de nudos: abierto y uniforme
+%     \item Ventaja: evaluación directa
+%     \item Problema: resultados pobres
+%   \end{itemize}
+
+%   \begin{center}
+%     \includegraphics[width=0.45\textwidth]{imaxes/surfaces/parametrization_comparison/surface_3_3_lin_uniform.png}
+%   \end{center}
+  
+% \end{frame}
+
+% \begin{frame}{Parametrización de cuerda}
+%   \begin{itemize}
+%     \item Parametrización proporcional a distancias reales
+%     \[ u_0 = 0, \quad
+%     u_i = u_{i-1} + \| \mathbf{q}_{i,j} - \mathbf{q}_{i-1,j} \|, \quad \text{normalizado a } [0,1] \]
+
+%     \[ v_0 = 0, \quad
+%     v_j = v_{j-1} + \| \mathbf{q}_{i,j} - \mathbf{q}_{i,j-1} \|, \quad \text{normalizado a } [0,1] \, .\]
+%     \item Vector de nudos: abierto y uniforme
+%     \item Ventaja: mejora con respecto al caso lineal
+%     \item Problema: evaluación no directa
+%   \end{itemize}
+% \end{frame}
+
+% \begin{frame}{Parametrización lineal con vector de nodos de medias}
+%   \begin{itemize}
+%     \item Parametrización lineal: $u_i = \frac{i}{n}$
+%     \item Vector de nudos: medias abiertas (promedios de parámetros internos)
+%     \end{itemize}
+%     \[
+%     U = \left[ \underbrace{0, \dots, 0}_{p+1},\; \frac{1}{p} \sum_{k=1}^{p} u_k,\; \dots,\; \frac{1}{p} \sum_{k=M-p-1}^{M-2} u_k,\; \underbrace{1, \dots, 1}_{p+1} \right]
+%     \]
+%     \begin{itemize}
+%     \item Ventajas:
+%     \begin{itemize}
+%       \item Evaluación es directa
+%       \item Buenos resultados
+%     \end{itemize}
+%   \end{itemize}
+
+%   \begin{center}
+%     \includegraphics[width=0.45\textwidth]{imaxes/surfaces/parametrization_comparison/surface_3_3_av.png}
+%   \end{center}
+  
+% \end{frame}
+
+\begin{frame}{Implementación}
+  \begin{block}{Resumen de la lógica de implementación}
+    \begin{itemize}
+      \item Interpolación en dos etapas: primero por filas, luego por columnas.
+      \item Reutilización de funciones para evaluación de bases y resolución de sistemas.
+      \item Flujo de datos análogo al de las curvas B-Spline.
+      \item Clase ``Interpolator''.
+    \end{itemize}
+  \end{block}
+
+El flujo de la clase ``Interpolator'' es el siguiente:
+
+\begin{center}
+    \includegraphics[width=1.0\textwidth]{presentacion/imagenes/Interpolator.pdf}
+\end{center}
+
+\end{frame}
+
+\begin{frame}{Caso de prueba: Cinta de Möbius}
+    \begin{center}
+    \vspace{-0.38cm}
+    \begin{minipage}{0.40\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{imaxes/surfaces/moebius/moebius_less_dots_1_degree.png}
+        
+        \scriptsize Grados $p = q = 1$
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.40\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{imaxes/surfaces/moebius/moebius_less_dots_3_degree.png}
+        
+        \scriptsize Grados $p = q = 3$
+    \end{minipage}
+
+    
+    \begin{minipage}{0.40\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{imaxes/surfaces/moebius/moebius_less_dots_p1_degree_3q_degree.png}
+        
+        \scriptsize Grados: $p=1$ y $q=3$
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.40\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{imaxes/surfaces/moebius/moebius_less_dots_p3_degree_1q_degree.png}
+        
+        \scriptsize Grados: $p=3$ y $q=1$
+    \end{minipage}
+    \end{center}
+\end{frame}
+
+% \begin{frame}{Caso de prueba: Toroide}
+% \begin{itemize}
+%     \item Toroide con grados $p=1$ y $q=3$:
+% \end{itemize}
+%     \begin{center}
+%     \begin{minipage}{0.40\textwidth}
+%         \centering
+%         \includegraphics[width=0.75\textwidth]{presentacion/imagenes/toro/Toroide_1_lat.pdf}
+%     \end{minipage}
+%     \hfill
+%     \begin{minipage}{0.40\textwidth}
+%         \centering
+%         \includegraphics[width=0.75\textwidth]{presentacion/imagenes/toro/Toroide_1_top.pdf}
+%     \end{minipage}
+% \end{center}
+% \begin{itemize}
+%     \item Toroide con grados $p=3$ y $q=1$:
+% \end{itemize}
+% \begin{center}
+%     \begin{minipage}{0.40\textwidth}
+%         \centering
+%         \includegraphics[width=0.75\textwidth]{presentacion/imagenes/toro/Toroide_2_side.pdf}
+%     \end{minipage}
+%     \hfill
+%     \begin{minipage}{0.40\textwidth}
+%         \centering
+%         \includegraphics[width=0.75\textwidth]{presentacion/imagenes/toro/Toro_2_top.pdf}
+%     \end{minipage}
+%     \end{center}
+% \end{frame}
+
+\section{Software desarrollado}
+
+\begin{frame}{Librería de C++}
+  \begin{center}
+    \includegraphics[width=0.35\textwidth]{presentacion/imagenes/logos/kisspng-the-c.png} \qquad
+    \includegraphics[width=0.35\textwidth]{presentacion/imagenes/logos/Eigen-135x135 (1).png}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Librería de C++}
+Cronograma del desarrollo de la librería:
+  \begin{center}
+    \includegraphics[width=1.0\textwidth]{presentacion/imagenes/Implementación en Cpp.pdf}
+  \end{center}
+Resultado análogo a la versión de Python:
+  \begin{center}
+    \includegraphics[width=1.0\textwidth]{presentacion/imagenes/Interpolator.pdf}
+  \end{center}
+\end{frame}
+
+
+\begin{frame}{Interfaz gráfica}
+  \begin{center}
+    \includegraphics[width=0.5\textwidth]{presentacion/imagenes/logos/pyqt6.png}
+  \end{center}
+  \begin{center}
+    \includegraphics[width=0.5\textwidth]{presentacion/imagenes/logos/Plotly-logo.png}
+  \end{center}
+  \begin{center}
+    \includegraphics[width=0.2\textwidth]{presentacion/imagenes/logos/numpy.png}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Arquitectura MVC}
+Componentes de la aplicación:
+  \begin{center}
+    \includegraphics[width=1.0\textwidth]{presentacion/imagenes/MVC_simplified.pdf}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Arquitectura MVC: Vista}
+  \begin{center}
+    \begin{minipage}{0.25\textwidth}
+      \includegraphics[width=\linewidth]{presentacion/imagenes/MVC_simplified_up_vista.png}
+    \end{minipage}
+    \hspace{0.5cm}
+    \begin{minipage}{0.45\textwidth}
+      \includegraphics[width=\linewidth]{presentacion/imagenes/app_window.pdf}
+    \end{minipage}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Arquitectura MVC: Controlador}
+  \begin{center}
+    \begin{minipage}{0.25\textwidth}
+      \includegraphics[width=\linewidth]{presentacion/imagenes/MVC_simplified_up_controlador.png}
+    \end{minipage}
+    \hspace{0.5cm}
+    \begin{minipage}{0.45\textwidth}
+      \includegraphics[width=\linewidth]{presentacion/imagenes/class_controlador.pdf}
+    \end{minipage}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Arquitectura MVC: Modelo}
+  \begin{center}
+    \begin{minipage}{0.25\textwidth}
+      \includegraphics[width=\linewidth]{presentacion/imagenes/MVC_simplified_up_modelo.png}
+    \end{minipage}
+    \hspace{0.5cm}
+    \begin{minipage}{0.45\textwidth}
+      \includegraphics[width=\linewidth]{presentacion/imagenes/class_modelo.pdf}
+    \end{minipage}
+  \end{center}
+\end{frame}
+
+\section{Conclusiones}
+
+\begin{frame}{Conclusiones}
+    \begin{itemize}
+        \item Objetivos cumplidos:
+        \begin{itemize}
+            \item Librería C++
+            \item GUI para visualización de superficies
+        \end{itemize}
+        \item []
+        \item Única pega: malla de puntos regular
+        % \item No representa un problema para el MEF {\rojo{\qquad ???}}
+        \item Actualmente en proceso de implementación y pruebas
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{}
+  \begin{center}
+      \includegraphics[width=\linewidth]{imaxes/meshes/mesh-00.png}
+  \end{center}
+\end{frame}
+
+\begin{frame}{}
+  \begin{center}
+      \includegraphics[width=\linewidth]{imaxes/meshes/mesh-01.png}
+  \end{center}
+\end{frame}
+
+\begin{frame}{}
+  \begin{center}
+      \includegraphics[width=\linewidth]{imaxes/meshes/mesh-02.png}
+  \end{center}
+\end{frame}
+
+\begin{frame}{}
+  \begin{center}
+      \includegraphics[width=\linewidth]{imaxes/meshes/mesh-03.png}
+  \end{center}
+\end{frame}
+
+% {
+% \usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{presentacion/imagenes/fondo.png}}
+\begin{frame}[plain]
+  \centering
+  \vfill
+  {\Huge \textbf{¡Muchas gracias por su atención!} \par}
+  \vspace{0.5cm}
+  \rule{0.6\linewidth}{0.4pt}
+  \vspace{0.5cm}
+
+  {\small
+    \begin{tabular}{rl}
+      \textbf{Alumno:} & Mateo Ramos Rega \\
+      \textbf{Director:} & Íñigo Arregui Álvarez  \\
+    \end{tabular}
+  }
+  \vfill
+\end{frame}
+% }
+
+{
+  \setbeamercolor{background canvas}{bg=black} % solo dentro del grupo
+  \begin{frame}[plain] % [plain] = sin cabecera/footline
+    \mbox{}            % cuadro vacío; quítalo si quieres escribir algo
+  \end{frame}
+}
+
+% Diapositiva: Interpolación de NURBS
+\begin{frame}{Interpolación racional}
+  \begin{itemize}
+    \item $3n$ incógnitas:
+    \begin{itemize}
+        \item Vector de coordenas $x$ : $n$ incógnitas
+        \item Vector de coordenas $y$ : $n$ incógnitas
+        \item Vector de pesos $\omega$ : $n$ incógnitas
+    \end{itemize}
+    \item Para poder resolver el sistema, de deben fijar $n$ incógnitas
+    \item Solución más práctica: fijar los pesos
+  \end{itemize}
+  Buscamos los puntos de control $c_i$ tales que:
+    \[
+    \left\{
+    \begin{aligned}
+    \wh{N}_0^p(t_0) \mathbf{c}_0 + \dots + \wh{N}_n^p(t_0) \mathbf{c}_n &= \mathbf{q}_0 \\
+    \wh{N}_0^p(t_1) \mathbf{c}_0 + \dots + \wh{N}_n^p(t_1) \mathbf{c}_n &= \mathbf{q}_1 \\
+    &\vdots \\
+    \wh{N}_0^p(t_n) \mathbf{c}_0 + \dots + \wh{N}_n^p(t_n) \mathbf{c}_n &= \mathbf{q}_n
+    \end{aligned}
+    \right.
+    \]
+    % \begin{itemize}
+    %     \item Para el caso racional, se sustituyen las funciones base por las funciones base ponderadas con pesos
+    % \end{itemize}
+\end{frame}
+
+\begin{frame}{Interpolación racional en la práctica}
+
+\begin{itemize}
+  \item Cada punto se representa en coordenadas homogéneas, como $(\omega x, \omega y, \omega)$, con $\omega \neq 0$.
+  \item La proyección al espacio cartesiano:
+  \[
+  (x, y) = \left( \frac{\omega x}{\omega}, \frac{\omega y}{\omega} \right)
+  \]
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{Parametrización lineal}
+  \begin{itemize}
+    \item Parametrización: $u_i = \frac{i}{n}$ (espaciado uniforme)
+    \item Vector de nudos: abierto y uniforme
+    \item Ventaja: evaluación directa
+    \item Problema: resultados pobres
+  \end{itemize}
+
+  \begin{center}
+    \includegraphics[width=0.45\textwidth]{imaxes/surfaces/parametrization_comparison/surface_3_3_lin_uniform.png}
+  \end{center}
+  
+\end{frame}
+
+\begin{frame}{Parametrización de cuerda}
+  \begin{itemize}
+    \item Parametrización proporcional a distancias reales
+    \[ u_0 = 0, \quad
+    u_i = u_{i-1} + \| \mathbf{q}_{i,j} - \mathbf{q}_{i-1,j} \|, \quad \text{normalizado a } [0,1] \]
+
+    \[ v_0 = 0, \quad
+    v_j = v_{j-1} + \| \mathbf{q}_{i,j} - \mathbf{q}_{i,j-1} \|, \quad \text{normalizado a } [0,1] \, .\]
+    \item Vector de nudos: abierto y uniforme
+    \item Ventaja: mejora con respecto al caso lineal
+    \item Problema: evaluación no directa
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Parametrización lineal con vector de nodos de medias}
+  \begin{itemize}
+    \item Parametrización lineal: $u_i = \frac{i}{n}$
+    \item Vector de nudos: medias abiertas (promedios de parámetros internos)
+    \end{itemize}
+    \[
+    U = \left[ \underbrace{0, \dots, 0}_{p+1},\; \frac{1}{p} \sum_{k=1}^{p} u_k,\; \dots,\; \frac{1}{p} \sum_{k=M-p-1}^{M-2} u_k,\; \underbrace{1, \dots, 1}_{p+1} \right]
+    \]
+    \begin{itemize}
+    \item Ventajas:
+    \begin{itemize}
+      \item Evaluación es directa
+      \item Buenos resultados
+    \end{itemize}
+  \end{itemize}
+
+  \begin{center}
+    \includegraphics[width=0.45\textwidth]{imaxes/surfaces/parametrization_comparison/surface_3_3_av.png}
+  \end{center}
+  
+\end{frame}
+
+\begin{frame}{Diagrama MVC}
+\begin{center}
+    \includegraphics[width=0.8\textwidth]{presentacion/imagenes/diagrama_clases_2.pdf}
+    \end{center}
+\end{frame}
+
+
+\end{document}
+
+
+%-----------------------------------------------------------------------------
+
+\section{Conclusiones}
+
+\begin{frame}
+\frametitle{Conclusiones}
+
+\begin{itemize}
+\item .....
+\item .....
+\item .....
+\end{itemize}
+\end{frame}
+
+%-----------------------------------------------------------------------------
+
+\begin{frame}[plain, allowframebreaks]
+\frametitle{Bibliografía}
+
+\bibliographystyle{plain}
+\small{\bibliography{../tfm-memoria/bib_tfm}}
+
+%-- {\small{
+%-- \begin{itemize}
+%-- \item {\sc }, {\it }.
+%-- \end{itemize}
+%-- }}
+\end{frame}
+
+%-----------------------------------------------------------------------------
+
+\end{document}
+
