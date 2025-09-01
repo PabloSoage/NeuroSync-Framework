@@ -27,10 +27,6 @@
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta, positioning, shadows.blur}
 
-
-
-\input{otros/comandoslatex}
-
 %-- \usetheme{default}
 \usetheme{Madrid}
 
@@ -132,7 +128,7 @@
         \quad}
 \date[{Julio, 2025}]{Julio, 2025 \\
       \quad \\ \quad \\
-      \includegraphics[width=45mm]{imaxes/udc.png}
+     %\includegraphics[width=45mm]{imaxes/udc.png}
       }
 
 %-----------------------------------------------------------------------------
@@ -169,25 +165,25 @@
 
 \begin{frame}{}
   \begin{center}
-      \includegraphics[width=\linewidth]{imaxes/meshes/mesh-00.png}
+%     %\includegraphics[width=\linewidth]{imaxes/meshes/mesh-00.png}
   \end{center}
 \end{frame}
 
 \begin{frame}{}
   \begin{center}
-      \includegraphics[width=\linewidth]{imaxes/meshes/mesh-01.png}
+%     %\includegraphics[width=\linewidth]{imaxes/meshes/mesh-01.png}
   \end{center}
 \end{frame}
 
 \begin{frame}{}
   \begin{center}
-      \includegraphics[width=\linewidth]{imaxes/meshes/mesh-02.png}
+%     %\includegraphics[width=\linewidth]{imaxes/meshes/mesh-02.png}
   \end{center}
 \end{frame}
 
 \begin{frame}{}
   \begin{center}
-      \includegraphics[width=\linewidth]{imaxes/meshes/mesh-03.png}
+%     %\includegraphics[width=\linewidth]{imaxes/meshes/mesh-03.png}
   \end{center}
 \end{frame}
 
@@ -197,9 +193,9 @@
 \frametitle{Ejemplo comparativo de interpolación}
 
 \begin{center}
-\includegraphics[width=0.45\textwidth]{imaxes/curves/poly/better_example/less_pts/BSpline_1_degree.png}
+%\includegraphics[width=0.45\textwidth]{imaxes/curves/poly/better_example/less_pts/BSpline_1_degree.png}
 \hspace{0.5cm}
-\includegraphics[width=0.45\textwidth]{imaxes/curves/poly/better_example/less_pts/BSpline_3_degree.png}
+%\includegraphics[width=0.45\textwidth]{imaxes/curves/poly/better_example/less_pts/BSpline_3_degree.png}
 \end{center}
 
 \end{frame}
@@ -225,13 +221,10 @@
 
 \begin{itemize}
     \item Incrementalidad: desarrollo en bloques funcionales:
-    % \begin{itemize}
-    %     \item Curvas 1D $\rightarrow$ Superficies 2D $\rightarrow$ NURBS $\rightarrow$ C++ e Interfaz gráfica
-    % \end{itemize}
 \end{itemize}
 \vspace{-0.49cm}
 \begin{center}
-    \includegraphics[width=0.8\textwidth]{presentacion/imagenes/_Diagrama de flujo_2.pdf}
+    %\includegraphics[width=0.8\textwidth]{presentacion/imagenes/_Diagrama de flujo_2.pdf}
 \end{center}
 \vspace{-1cm}
 \begin{itemize}
@@ -252,69 +245,13 @@ El trabajo se ha realizado entre febrero y junio de 2025
 \includegraphics[width=\textwidth]{presentacion/imagenes/gantt_new.pdf}
 \end{frame}
 
-% \begin{frame}[fragile]{Cronograma general del proyecto (febrero–junio 2025)}
-%   \begingroup
-%     \rowcolors{3}{udcgray!15}{white}
-%     \renewcommand{\arraystretch}{1.2}
-%     \resizebox{\textwidth}{!}{%
-%       \begin{tabular}{|>{\centering\arraybackslash}m{1.4cm}|
-%                         >{\centering\arraybackslash}m{8.1cm}|
-%                         >{\centering\arraybackslash}m{3.2cm}|}
-%         \hline
-%         \rowcolor{blue!35}\textbf{Fase} & \textbf{Actividad} & \textbf{Periodo (aprox.)} \\
-%         \hline
-%         1 & Estudio bibliográfico sobre elementos finitos, interpolación spline y geometría B–Spline/NURBS & 03/02–16/02 \\
-%         2 & Implementación de curvas B-Spline 1D en Python/NumPy y validación & 17/02–16/03 \\
-%         3 & Implementación de superficies B-Spline 2D con sus correspondientes pruebas & 17/03–06/04 \\
-%         4 & Extensión a NURBS (curvas y superficies) y validación comparativa & 07/04–27/04 \\
-%         5.1$^{\ast}$ & Portado de la librería a C++ utilizando Eigen & 28/04–15/06 \\
-%         5.2$^{\ast}$ & Desarrollo de la interfaz gráfica para visualización de superficies NURBS & 28/04–15/06 \\
-%         \hline
-%       \end{tabular}%
-%     }
-%   \endgroup
-
-%   \vspace{1ex}
-%   {\footnotesize $^{\ast}$Fases realizadas en paralelo según disponibilidad.}
-% \end{frame}
-
 \begin{frame}{Riesgos identificados}
-\includegraphics[
-    width=\textwidth,
-    height=0.9\textheight,
-    keepaspectratio
-  ]{presentacion/imagenes/riesgos.pdf}
+%\includegraphics[
+%    width=\textwidth,
+%    height=0.9\textheight,
+%    keepaspectratio
+%  ]{presentacion/imagenes/riesgos.pdf}
 \end{frame}
-
-% % Diapositiva: Riesgos y cómo se gestionaron
-% \begin{frame}{Riesgos identificados y gestión}
-
-% Principales riesgos identificados y estrategias a seguir en caso de ser necesario
-
-% \begingroup
-% \rowcolors{3}{udcgray!15}{white}
-% \begin{table}[H]
-%   \centering
-%   \label{tab:riesgos}
-%   \renewcommand{\arraystretch}{1.2}
-%   \resizebox{\textwidth}{!}{
-%   \begin{tabular}{|>{\centering\arraybackslash}m{4.2cm}|>{\centering\arraybackslash}m{1.6cm}|>{\centering\arraybackslash}m{1.6cm}|>{\centering\arraybackslash}m{5.2cm}|}
-%     \hline
-%     \rowcolor{blue!35}\textbf{Riesgo} & \textbf{Prob.} & \textbf{Impacto} & \textbf{Estrategia}\\
-%     \hline
-%     Complicaciones durante la implementación de la lógica B-Spline en Python & Media & Alta & Revisar bibliografía adicional y plantear dudas en las reuniones.\\
-%     Curva de aprendizaje Eigen/C++ moderno & Media & Alta & Prototipar ejemplos reducidos, buscar recursos en línea y consultar dudas con el tutor.\\
-%     Desfase entre la librería de Python y C++ & Media & Media & Tests para comprobar el igual y correcto funcionamiento.\\
-%     Baja eficiencia de la GUI para mallas grandes & Baja & Media & Considerar opciones como OpenGL en Qt si fuera necesario.\\
-%     Subestimación de tiempos en la integración MEF & Media & Baja & Plantear una estragia a seguir en función de los problemas encontrados.\\
-%     \hline
-%   \end{tabular}
-%   }
-% \end{table}
-% \endgroup
-
-% \end{frame}
-
 
 %-----------------------------------------------------------------------------
 
@@ -351,25 +288,12 @@ El trabajo se ha realizado entre febrero y junio de 2025
   \end{itemize}
 \end{frame}
 
-% % Diapositiva: Ejemplos con Bézier
-% \begin{frame}{Ejemplos de curvas de Bézier}
-%   \begin{itemize}
-%       \item Produce resultados suaves
-%   \end{itemize}
-
-%   \begin{center}
-%     \includegraphics[width=0.45\textwidth]{imaxes/curves/just_bezier/bezier_1.png}
-%     \hspace{0.5cm}
-%     \includegraphics[width=0.45\textwidth]{imaxes/curves/just_bezier/bezier_3.png}
-%   \end{center}
-% \end{frame}
-
 \begin{frame}{Ejemplos de curvas de Bézier}
 
   \begin{center}
-    \includegraphics[width=0.45\textwidth]{imaxes/curves/just_bezier/bezier_2.png}
+   %\includegraphics[width=0.45\textwidth]{imaxes/curves/just_bezier/bezier_2.png}
     \hspace{0.5cm}
-    \includegraphics[width=0.45\textwidth]{imaxes/curves/just_bezier/bezier_2_changed.png}
+   %\includegraphics[width=0.45\textwidth]{imaxes/curves/just_bezier/bezier_2_changed.png}
   \end{center}
   
 \end{frame}
@@ -387,40 +311,25 @@ Definición: combinación lineal de funciones base $N_i^p(t)$ sobre un conjunto 
           \end{align*}
 \end{frame}
 
-% Diapositiva: Funciones base (Cox–de Boor)
-%\begin{frame}{Funciones base de B-Spline}
-%  Definición recursiva:
-%  \[
-%    N_i^0(t) = \begin{cases}
-%      1 & u_i \le t < u_{i+1}, \\
-%      0 & \text{en otro caso},
-%    \end{cases}
-%  \]
-%  \[
-%    N_i^p(t) = \frac{t - u_i}{u_{i+p} - u_i} N_{i}^{p-1}(t)
-%    + \frac{u_{i+p+1} - t}{u_{i+p+1} - u_{i+1}} N_{i+1}^{p-1}(t).
-%  \]
-%\end{frame}
-
 \begin{frame}{Funciones base de B-Spline}
 \begin{itemize}
       \item Ejemplos de funciones base: $N^1_i$, $N^2_i$, $N^3_i$
   \end{itemize}
 
   \begin{center}
-    \includegraphics[width=0.4\textwidth]{imaxes/basis_functions/dots/Basis_Function_1_Degree_Dots.png}
+   %\includegraphics[width=0.4\textwidth]{imaxes/basis_functions/dots/Basis_Function_1_Degree_Dots.png}
     \hspace{0.5cm}
-    \includegraphics[width=0.4\textwidth]{imaxes/basis_functions/dots/Basis_Function_2_Degree_Dots.png}
+   %\includegraphics[width=0.4\textwidth]{imaxes/basis_functions/dots/Basis_Function_2_Degree_Dots.png}
     \hspace{0.5cm}
-    \includegraphics[width=0.4\textwidth]{imaxes/basis_functions/dots/Basis_Function_3_Degree_Dots.png}
+   %\includegraphics[width=0.4\textwidth]{imaxes/basis_functions/dots/Basis_Function_3_Degree_Dots.png}
   \end{center}
 \end{frame}
 
 \begin{frame}{Ejemplos de curvas B-Spline}
     \begin{center}
-    \includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_1_closed.png}
+   %\includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_1_closed.png}
     \hspace{0.5cm}
-    \includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_2_closed.png}
+   %\includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_2_closed.png}
   \end{center}
 
   Problemática: la curva se corta\\
@@ -432,25 +341,25 @@ Definición: combinación lineal de funciones base $N_i^p(t)$ sobre un conjunto 
     La suma de las funciones base sigue siendo igual a 1
 
   \begin{center}
-    \includegraphics[width=0.4\textwidth]{imaxes/basis_functions/clampled/Basis_Function_1_Degree_Clampled.png}
+   %\includegraphics[width=0.4\textwidth]{imaxes/basis_functions/clampled/Basis_Function_1_Degree_Clampled.png}
     \hspace{0.5cm}
-    \includegraphics[width=0.4\textwidth]{imaxes/basis_functions/clampled/Basis_Function_2_Degree_Clampled.png}
+   %\includegraphics[width=0.4\textwidth]{imaxes/basis_functions/clampled/Basis_Function_2_Degree_Clampled.png}
     \hspace{0.5cm}
-    \includegraphics[width=0.4\textwidth]{imaxes/basis_functions/clampled/Basis_Function_3_Degree_Clampled.png}
+   %\includegraphics[width=0.4\textwidth]{imaxes/basis_functions/clampled/Basis_Function_3_Degree_Clampled.png}
   \end{center}
     
 \end{frame}
 
 \begin{frame}{Ejemplos de curvas B-Spline}
   \begin{center}
-    \includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_1.png}
+   %\includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_1.png}
     \hspace{0.5cm}
-    \includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_2.png}
+   %\includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_2.png}
   \end{center}
 \end{frame}
 
 \begin{frame}{Ejemplo 3D}
-    \includegraphics[width=0.9\textwidth]{presentacion/imagenes/3D.pdf}
+   %\includegraphics[width=0.9\textwidth]{presentacion/imagenes/3D.pdf}
 \end{frame}
 
 % Diapositiva: Ventajas de B-Spline frente a Bézier
@@ -461,9 +370,9 @@ Definición: combinación lineal de funciones base $N_i^p(t)$ sobre un conjunto 
   \end{itemize}
 
   \begin{center}
-    \includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_1.png}
+   %\includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_1.png}
     \hspace{0.5cm}
-    \includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_1_modified.png}
+    %\includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_1_modified.png}
   \end{center}
   
 \end{frame}
@@ -480,22 +389,10 @@ Definición: combinación lineal de funciones base $N_i^p(t)$ sobre un conjunto 
     
     Ejemplo de funciones base usando NURBS
     \begin{center}
-    \includegraphics[width=0.45\textwidth]{imaxes/basis_functions/NURBS/Basis_Function_3_Degree_Campled_NURBS.png}
+    %\includegraphics[width=0.45\textwidth]{imaxes/basis_functions/NURBS/Basis_Function_3_Degree_Campled_NURBS.png}
     \end{center}
     \end{itemize}
 \end{frame}
-
-% \begin{frame}{Interpolación racional en la práctica}
-
-% \begin{itemize}
-%   \item Cada punto se representa en coordenadas homogéneas, como $(\omega x, \omega y, \omega)$, con $\omega \neq 0$.
-%   \item La proyección al espacio cartesiano:
-%   \[
-%   (x, y) = \left( \frac{\omega x}{\omega}, \frac{\omega y}{\omega} \right)
-%   \]
-% \end{itemize}
-
-% \end{frame}
 
 \section{Interpolación de curvas}
 
@@ -505,9 +402,9 @@ Definición: combinación lineal de funciones base $N_i^p(t)$ sobre un conjunto 
     \item Interpolar: construir una curva que pase exactamente por puntos dados
 \end{itemize}
     \begin{center}
-    \includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_3.png}
+   %\includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_3.png}
     \hspace{0.5cm}
-    \includegraphics[width=0.45\textwidth]{imaxes/curves/poly/better_example/less_pts/BSpline_3_degree.png}
+    %\includegraphics[width=0.45\textwidth]{imaxes/curves/poly/better_example/less_pts/BSpline_3_degree.png}
   \end{center}
     \begin{itemize}
     \item Se resuelve un sistema lineal para obtener los $C_i$.
@@ -533,9 +430,6 @@ Dados:
     \end{aligned}
     \right.
     \]
-    % \begin{itemize}
-    %     \item Para el caso racional, se sustituyen las funciones base por las funciones base ponderadas con pesos
-    % \end{itemize}
 \end{frame}
 
 \begin{frame}{Comparativa con una función polinómica}
@@ -547,9 +441,9 @@ El error de la interpolación realizada respecto a una función conocida, se cal
 \]
 
 \begin{center}
-    \includegraphics[width=0.45\textwidth]{presentacion/imagenes/_func.png}
+    %\includegraphics[width=0.45\textwidth]{presentacion/imagenes/_func.png}
     \hspace{0.5cm}
-    \includegraphics[width=0.45\textwidth]{presentacion/imagenes/_func_3.png}
+    %\includegraphics[width=0.45\textwidth]{presentacion/imagenes/_func_3.png}
   \end{center}
 
   \begin{itemize}
@@ -558,39 +452,6 @@ El error de la interpolación realizada respecto a una función conocida, se cal
   \end{itemize}
     
 \end{frame}
-
-% \begin{frame}{Ejemplos de interpolación racional}
-
-% Comparación entre las tres tipos de interpolaciones {\rojo{\quad menos puntos???}}
-
-% \begin{center}
-% \begin{minipage}{0.32\textwidth}
-%     \centering
-%     \includegraphics[width=\textwidth]{imaxes/curves/good_non_poly/BSpline_3_degree.png}
-    
-%     \scriptsize B-Spline, error: $5.290\times10^{-4}$
-% \end{minipage}
-% \hfill
-% \begin{minipage}{0.32\textwidth}
-%     \centering
-%     \includegraphics[width=\textwidth]{imaxes/curves/good_non_poly/Rational_BSpline_3_degree.png}
-    
-%     \scriptsize Racional, error: $1.689\times10^{-4}$
-% \end{minipage}
-% \hfill
-% \begin{minipage}{0.32\textwidth}
-%     \centering
-%     \includegraphics[width=\textwidth]{imaxes/curves/good_non_poly/NURBS_3_degree.png}
-    
-%     \scriptsize NURBS, error: $1.653\times10^{-4}$
-% \end{minipage}
-% \end{center}
-
-% \end{frame}
-
-
-
-
 
 %-----------------------------------------------------------------------------
 
@@ -635,59 +496,9 @@ En las superficies:
 \begin{frame}{Importancia de la parametrización}
     \begin{center}
     La calidad de la superficie interpolada depende de la parametrización elegida
-        \includegraphics[width=\textwidth]{presentacion/imagenes/comparación_parametrización_2.pdf}
+       %\includegraphics[width=\textwidth]{presentacion/imagenes/comparación_parametrización_2.pdf}
     \end{center}
 \end{frame}
-
-% \begin{frame}{Parametrización lineal}
-%   \begin{itemize}
-%     \item Parametrización: $u_i = \frac{i}{n}$ (espaciado uniforme)
-%     \item Vector de nudos: abierto y uniforme
-%     \item Ventaja: evaluación directa
-%     \item Problema: resultados pobres
-%   \end{itemize}
-
-%   \begin{center}
-%     \includegraphics[width=0.45\textwidth]{imaxes/surfaces/parametrization_comparison/surface_3_3_lin_uniform.png}
-%   \end{center}
-  
-% \end{frame}
-
-% \begin{frame}{Parametrización de cuerda}
-%   \begin{itemize}
-%     \item Parametrización proporcional a distancias reales
-%     \[ u_0 = 0, \quad
-%     u_i = u_{i-1} + \| \mathbf{q}_{i,j} - \mathbf{q}_{i-1,j} \|, \quad \text{normalizado a } [0,1] \]
-
-%     \[ v_0 = 0, \quad
-%     v_j = v_{j-1} + \| \mathbf{q}_{i,j} - \mathbf{q}_{i,j-1} \|, \quad \text{normalizado a } [0,1] \, .\]
-%     \item Vector de nudos: abierto y uniforme
-%     \item Ventaja: mejora con respecto al caso lineal
-%     \item Problema: evaluación no directa
-%   \end{itemize}
-% \end{frame}
-
-% \begin{frame}{Parametrización lineal con vector de nodos de medias}
-%   \begin{itemize}
-%     \item Parametrización lineal: $u_i = \frac{i}{n}$
-%     \item Vector de nudos: medias abiertas (promedios de parámetros internos)
-%     \end{itemize}
-%     \[
-%     U = \left[ \underbrace{0, \dots, 0}_{p+1},\; \frac{1}{p} \sum_{k=1}^{p} u_k,\; \dots,\; \frac{1}{p} \sum_{k=M-p-1}^{M-2} u_k,\; \underbrace{1, \dots, 1}_{p+1} \right]
-%     \]
-%     \begin{itemize}
-%     \item Ventajas:
-%     \begin{itemize}
-%       \item Evaluación es directa
-%       \item Buenos resultados
-%     \end{itemize}
-%   \end{itemize}
-
-%   \begin{center}
-%     \includegraphics[width=0.45\textwidth]{imaxes/surfaces/parametrization_comparison/surface_3_3_av.png}
-%   \end{center}
-  
-% \end{frame}
 
 \begin{frame}{Implementación}
   \begin{block}{Resumen de la lógica de implementación}
@@ -702,7 +513,7 @@ En las superficies:
 El flujo de la clase ``Interpolator'' es el siguiente:
 
 \begin{center}
-    \includegraphics[width=1.0\textwidth]{presentacion/imagenes/Interpolator.pdf}
+    %\includegraphics[width=1.0\textwidth]{presentacion/imagenes/Interpolator.pdf}
 \end{center}
 
 \end{frame}
@@ -712,14 +523,14 @@ El flujo de la clase ``Interpolator'' es el siguiente:
     \vspace{-0.38cm}
     \begin{minipage}{0.40\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{imaxes/surfaces/moebius/moebius_less_dots_1_degree.png}
+        %\includegraphics[width=\textwidth]{imaxes/surfaces/moebius/moebius_less_dots_1_degree.png}
         
         \scriptsize Grados $p = q = 1$
     \end{minipage}
     \hfill
     \begin{minipage}{0.40\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{imaxes/surfaces/moebius/moebius_less_dots_3_degree.png}
+        %\includegraphics[width=\textwidth]{imaxes/surfaces/moebius/moebius_less_dots_3_degree.png}
         
         \scriptsize Grados $p = q = 3$
     \end{minipage}
@@ -727,99 +538,69 @@ El flujo de la clase ``Interpolator'' es el siguiente:
     
     \begin{minipage}{0.40\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{imaxes/surfaces/moebius/moebius_less_dots_p1_degree_3q_degree.png}
+        %\includegraphics[width=\textwidth]{imaxes/surfaces/moebius/moebius_less_dots_p1_degree_3q_degree.png}
         
         \scriptsize Grados: $p=1$ y $q=3$
     \end{minipage}
     \hfill
     \begin{minipage}{0.40\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{imaxes/surfaces/moebius/moebius_less_dots_p3_degree_1q_degree.png}
+        %\includegraphics[width=\textwidth]{imaxes/surfaces/moebius/moebius_less_dots_p3_degree_1q_degree.png}
         
         \scriptsize Grados: $p=3$ y $q=1$
     \end{minipage}
     \end{center}
 \end{frame}
 
-% \begin{frame}{Caso de prueba: Toroide}
-% \begin{itemize}
-%     \item Toroide con grados $p=1$ y $q=3$:
-% \end{itemize}
-%     \begin{center}
-%     \begin{minipage}{0.40\textwidth}
-%         \centering
-%         \includegraphics[width=0.75\textwidth]{presentacion/imagenes/toro/Toroide_1_lat.pdf}
-%     \end{minipage}
-%     \hfill
-%     \begin{minipage}{0.40\textwidth}
-%         \centering
-%         \includegraphics[width=0.75\textwidth]{presentacion/imagenes/toro/Toroide_1_top.pdf}
-%     \end{minipage}
-% \end{center}
-% \begin{itemize}
-%     \item Toroide con grados $p=3$ y $q=1$:
-% \end{itemize}
-% \begin{center}
-%     \begin{minipage}{0.40\textwidth}
-%         \centering
-%         \includegraphics[width=0.75\textwidth]{presentacion/imagenes/toro/Toroide_2_side.pdf}
-%     \end{minipage}
-%     \hfill
-%     \begin{minipage}{0.40\textwidth}
-%         \centering
-%         \includegraphics[width=0.75\textwidth]{presentacion/imagenes/toro/Toro_2_top.pdf}
-%     \end{minipage}
-%     \end{center}
-% \end{frame}
 
 \section{Software desarrollado}
 
 \begin{frame}{Librería de C++}
   \begin{center}
-    \includegraphics[width=0.35\textwidth]{presentacion/imagenes/logos/kisspng-the-c.png} \qquad
-    \includegraphics[width=0.35\textwidth]{presentacion/imagenes/logos/Eigen-135x135 (1).png}
+    %\includegraphics[width=0.35\textwidth]{presentacion/imagenes/logos/kisspng-the-c.png} \qquad
+    %\includegraphics[width=0.35\textwidth]{presentacion/imagenes/logos/Eigen-135x135 (1).png}
   \end{center}
 \end{frame}
 
 \begin{frame}{Librería de C++}
 Cronograma del desarrollo de la librería:
   \begin{center}
-    \includegraphics[width=1.0\textwidth]{presentacion/imagenes/Implementación en Cpp.pdf}
+    %\includegraphics[width=1.0\textwidth]{presentacion/imagenes/Implementación en Cpp.pdf}
   \end{center}
 Resultado análogo a la versión de Python:
   \begin{center}
-    \includegraphics[width=1.0\textwidth]{presentacion/imagenes/Interpolator.pdf}
+    %\includegraphics[width=1.0\textwidth]{presentacion/imagenes/Interpolator.pdf}
   \end{center}
 \end{frame}
 
 
 \begin{frame}{Interfaz gráfica}
   \begin{center}
-    \includegraphics[width=0.5\textwidth]{presentacion/imagenes/logos/pyqt6.png}
+    %\includegraphics[width=0.5\textwidth]{presentacion/imagenes/logos/pyqt6.png}
   \end{center}
   \begin{center}
-    \includegraphics[width=0.5\textwidth]{presentacion/imagenes/logos/Plotly-logo.png}
+    %\includegraphics[width=0.5\textwidth]{presentacion/imagenes/logos/Plotly-logo.png}
   \end{center}
   \begin{center}
-    \includegraphics[width=0.2\textwidth]{presentacion/imagenes/logos/numpy.png}
+    %\includegraphics[width=0.2\textwidth]{presentacion/imagenes/logos/numpy.png}
   \end{center}
 \end{frame}
 
 \begin{frame}{Arquitectura MVC}
 Componentes de la aplicación:
   \begin{center}
-    \includegraphics[width=1.0\textwidth]{presentacion/imagenes/MVC_simplified.pdf}
+    %\includegraphics[width=1.0\textwidth]{presentacion/imagenes/MVC_simplified.pdf}
   \end{center}
 \end{frame}
 
 \begin{frame}{Arquitectura MVC: Vista}
   \begin{center}
     \begin{minipage}{0.25\textwidth}
-      \includegraphics[width=\linewidth]{presentacion/imagenes/MVC_simplified_up_vista.png}
+      %\includegraphics[width=\linewidth]{presentacion/imagenes/MVC_simplified_up_vista.png}
     \end{minipage}
     \hspace{0.5cm}
     \begin{minipage}{0.45\textwidth}
-      \includegraphics[width=\linewidth]{presentacion/imagenes/app_window.pdf}
+      %\includegraphics[width=\linewidth]{presentacion/imagenes/app_window.pdf}
     \end{minipage}
   \end{center}
 \end{frame}
@@ -827,11 +608,11 @@ Componentes de la aplicación:
 \begin{frame}{Arquitectura MVC: Controlador}
   \begin{center}
     \begin{minipage}{0.25\textwidth}
-      \includegraphics[width=\linewidth]{presentacion/imagenes/MVC_simplified_up_controlador.png}
+      %\includegraphics[width=\linewidth]{presentacion/imagenes/MVC_simplified_up_controlador.png}
     \end{minipage}
     \hspace{0.5cm}
     \begin{minipage}{0.45\textwidth}
-      \includegraphics[width=\linewidth]{presentacion/imagenes/class_controlador.pdf}
+      %\includegraphics[width=\linewidth]{presentacion/imagenes/class_controlador.pdf}
     \end{minipage}
   \end{center}
 \end{frame}
@@ -839,11 +620,11 @@ Componentes de la aplicación:
 \begin{frame}{Arquitectura MVC: Modelo}
   \begin{center}
     \begin{minipage}{0.25\textwidth}
-      \includegraphics[width=\linewidth]{presentacion/imagenes/MVC_simplified_up_modelo.png}
+      %\includegraphics[width=\linewidth]{presentacion/imagenes/MVC_simplified_up_modelo.png}
     \end{minipage}
     \hspace{0.5cm}
     \begin{minipage}{0.45\textwidth}
-      \includegraphics[width=\linewidth]{presentacion/imagenes/class_modelo.pdf}
+      %\includegraphics[width=\linewidth]{presentacion/imagenes/class_modelo.pdf}
     \end{minipage}
   \end{center}
 \end{frame}
@@ -866,30 +647,28 @@ Componentes de la aplicación:
 
 \begin{frame}{}
   \begin{center}
-      \includegraphics[width=\linewidth]{imaxes/meshes/mesh-00.png}
+      %\includegraphics[width=\linewidth]{imaxes/meshes/mesh-00.png}
   \end{center}
 \end{frame}
 
 \begin{frame}{}
   \begin{center}
-      \includegraphics[width=\linewidth]{imaxes/meshes/mesh-01.png}
+      %\includegraphics[width=\linewidth]{imaxes/meshes/mesh-01.png}
   \end{center}
 \end{frame}
 
 \begin{frame}{}
   \begin{center}
-      \includegraphics[width=\linewidth]{imaxes/meshes/mesh-02.png}
+      %\includegraphics[width=\linewidth]{imaxes/meshes/mesh-02.png}
   \end{center}
 \end{frame}
 
 \begin{frame}{}
   \begin{center}
-      \includegraphics[width=\linewidth]{imaxes/meshes/mesh-03.png}
+      %\includegraphics[width=\linewidth]{imaxes/meshes/mesh-03.png}
   \end{center}
 \end{frame}
 
-% {
-% \usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{presentacion/imagenes/fondo.png}}
 \begin{frame}[plain]
   \centering
   \vfill
@@ -938,9 +717,6 @@ Componentes de la aplicación:
     \end{aligned}
     \right.
     \]
-    % \begin{itemize}
-    %     \item Para el caso racional, se sustituyen las funciones base por las funciones base ponderadas con pesos
-    % \end{itemize}
 \end{frame}
 
 \begin{frame}{Interpolación racional en la práctica}
@@ -964,7 +740,7 @@ Componentes de la aplicación:
   \end{itemize}
 
   \begin{center}
-    \includegraphics[width=0.45\textwidth]{imaxes/surfaces/parametrization_comparison/surface_3_3_lin_uniform.png}
+    %\includegraphics[width=0.45\textwidth]{imaxes/surfaces/parametrization_comparison/surface_3_3_lin_uniform.png}
   \end{center}
   
 \end{frame}
@@ -1000,14 +776,14 @@ Componentes de la aplicación:
   \end{itemize}
 
   \begin{center}
-    \includegraphics[width=0.45\textwidth]{imaxes/surfaces/parametrization_comparison/surface_3_3_av.png}
+   %\includegraphics[width=0.45\textwidth]{imaxes/surfaces/parametrization_comparison/surface_3_3_av.png}
   \end{center}
   
 \end{frame}
 
 \begin{frame}{Diagrama MVC}
 \begin{center}
-    \includegraphics[width=0.8\textwidth]{presentacion/imagenes/diagrama_clases_2.pdf}
+   %\includegraphics[width=0.8\textwidth]{presentacion/imagenes/diagrama_clases_2.pdf}
     \end{center}
 \end{frame}
 
@@ -1037,14 +813,8 @@ Componentes de la aplicación:
 \bibliographystyle{plain}
 \small{\bibliography{../tfm-memoria/bib_tfm}}
 
-%-- {\small{
-%-- \begin{itemize}
-%-- \item {\sc }, {\it }.
-%-- \end{itemize}
-%-- }}
 \end{frame}
 
 %-----------------------------------------------------------------------------
 
 \end{document}
-
