@@ -18,6 +18,8 @@
 \usepackage{booktabs,array}
 \usepackage[table]{xcolor}
 
+\usepackage{pgfgantt}
+
 \definecolor{udcpink}{RGB}{177,0,114}
 \definecolor{udcgray}{RGB}{100,100,100}
 \definecolor{ficblue}{RGB}{50,110,118}
@@ -278,6 +280,213 @@
 
 \vspace{1em}
 \textbf{Dispositivo de validación}: g.tec Unicorn Hybrid Black (8 canales, 250Hz, 24 bits)
+
+\end{frame}
+
+%-----------------------------------------------------------------------------
+\section{Metodología y planificación}
+
+\begin{frame}
+\frametitle{Enfoque metodológico}
+
+\textbf{Modelo incremental-iterativo} combinando planificación estructurada con flexibilidad experimental.
+
+\vspace{1em}
+
+\begin{columns}
+\begin{column}{0.5\textwidth}
+\textbf{Incrementalidad}
+\begin{itemize}
+\item Desarrollo por módulos independientes
+\item Validación temprana de componentes
+\end{itemize}
+\end{column}
+
+\begin{column}{0.5\textwidth}
+\textbf{Iteración}
+\begin{itemize}
+\item Ciclos de refinamiento continuo
+\item Detección rápida de errores
+\item Adaptación a desafíos emergentes
+\end{itemize}
+\end{column}
+\end{columns}
+
+\vspace{1em}
+
+\begin{block}{Estructura de cada iteración}
+Análisis → Diseño → Implementación → Pruebas manuales → Evaluación
+\end{block}
+
+\vspace{0.5em}
+\textbf{Validación continua}: Pruebas con dispositivos reales y sintéticos en cada ciclo
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Planificación inicial del proyecto}
+
+\begin{table}[htbp!]
+  \centering
+  \begin{tabular}{c|l|l|c}
+    \textbf{Iteración} & \textbf{Objetivo principal} & \textbf{Entregables} & \textbf{Duración} \\
+    \hline
+    Iter. 1 & Módulos básicos independientes & Módulos inputs y EEG funcionales & 8 semanas \\
+    Iter. 2 & Integración y exportación & Sistema integrado con LSL & 4 semanas \\
+    Iter. 3 & Finalización y documentación & Sistema completo & 4 semanas \\
+  \end{tabular}
+  \caption{Planificación inicial - 16 semanas totales}
+\end{table}
+
+\vspace{1em}
+
+\textbf{Premisas iniciales}:
+\begin{itemize}
+\item Integración directa mediante Lab Streaming Layer (LSL)
+\item Desarrollo lineal sin refactorizaciones mayores
+\item Problemas técnicos limitados y predecibles
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Cronograma inicial planificado}
+
+\begin{center}
+\resizebox{0.9\textwidth}{!}{
+\begin{ganttchart}[
+    canvas/.append style={fill=none, draw=black!5, line width=.75pt},
+    hgrid style/.style={draw=black!5, line width=.75pt},
+    vgrid={*1{draw=black!5, line width=.75pt}},
+    title/.style={draw=none, fill=none},
+    title label font=\bfseries\footnotesize,
+    title label node/.append style={below=3pt},
+    include title in canvas=false,
+    bar label font=\scriptsize\color{black!70},
+    bar label node/.append style={left=1cm},
+    bar/.append style={draw=none, fill=black!63},
+    milestone/.append style={fill=yellow, draw=black, diamond},
+    group incomplete/.append style={fill=blue!20},
+    group left shift=0,
+    group right shift=0,
+    group height=.3,
+    group peaks tip position=0,
+    group label node/.append style={left=0.5cm},
+    group progress label font=\bfseries\footnotesize
+  ]{1}{32}
+  
+  \gantttitle{Marzo 2025}{8} \gantttitle{Abril 2025}{8} \gantttitle{Mayo 2025}{8} \gantttitle{Junio 2025}{8} \\
+  \gantttitlelist{1,8,15,22}{2} \gantttitlelist{29,5,12,19}{2} \gantttitlelist{26,3,10,17}{2} \gantttitlelist{24,31,7,14}{2} \\
+  
+  \ganttgroup{Iteración 1: Módulos básicos}{1}{16} \\
+  \ganttbar{Análisis y estado del arte}{1}{6} \\
+  \ganttbar{Desarrollo módulo inputs}{7}{12} \\
+  \ganttbar{Desarrollo módulo EEG}{13}{16} \\
+  
+  \ganttgroup{Iteración 2: Integración}{17}{24} \\
+  \ganttbar{Integración LSL}{17}{22} \\
+  \ganttbar{Exportación}{23}{24} \\
+  
+  \ganttgroup{Iteración 3: Finalización}{25}{32} \\
+  \ganttbar{Funcionalidades avanzadas}{25}{30} \\
+  \ganttbar{Documentación}{31}{32} \\
+  
+\end{ganttchart}
+}
+\end{center}
+
+\small{(Pág. 31)}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Evolución real del desarrollo}
+
+\begin{center}
+\resizebox{0.95\textwidth}{!}{
+\begin{ganttchart}[
+    canvas/.append style={fill=none, draw=black!5, line width=.75pt},
+    hgrid style/.style={draw=black!5, line width=.75pt},
+    vgrid={*1{draw=black!5, line width=.75pt}},
+    title/.style={draw=none, fill=none},
+    title label font=\bfseries\footnotesize,
+    title label node/.append style={below=3pt},
+    include title in canvas=false,
+    bar label font=\scriptsize\color{black!70},
+    bar label node/.append style={left=0.8cm},
+    bar/.append style={draw=none, fill=black!63},
+    bar incomplete/.append style={fill=red!50},
+    milestone/.append style={fill=yellow, draw=black, diamond},
+    group incomplete/.append style={fill=blue!20},
+    group left shift=0,
+    group right shift=0,
+    group height=.3,
+    group peaks tip position=0,
+    group label node/.append style={left=0.5cm},
+    group progress label font=\bfseries\footnotesize
+  ]{1}{42}
+  
+  \gantttitle{Abril 2025}{10} \gantttitle{Mayo 2025}{11} \gantttitle{Junio 2025}{11} \gantttitle{Final}{10} \\
+  \gantttitlelist{12,19,26}{3} \gantttitlelist{3,10,17}{4} \gantttitlelist{24,31,7}{4} \gantttitlelist{14,21,28}{3} \\
+  
+  \ganttgroup{Iteración 1: Módulos básicos}{1}{10} \\
+  \ganttbar{Desarrollo módulos}{1}{6} \\
+  \ganttbar[bar/.append style={fill=red!70}]{Primer intento integración (fallido)}{7}{10} \\
+  
+  \ganttgroup{Iteración 2: Refactorización}{11}{21} \\
+  \ganttbar[bar/.append style={fill=green!70}]{Refactorización SOLID}{11}{12} \\
+  \ganttbar[bar/.append style={fill=red!70}]{Segundo intento integración (fallido)}{13}{16} \\
+  \ganttbar[bar/.append style={fill=gray!50}]{Pausa compromisos académicos}{17}{21} \\
+  
+  \ganttgroup{Iteración 3: Arquitectura API}{22}{42} \\
+  \ganttbar[bar/.append style={fill=green!70}]{APIs de acceso}{22}{26} \\
+  \ganttbar[bar/.append style={fill=green!70}]{APIs de control + CLI}{27}{33} \\
+  \ganttbar[bar/.append style={fill=green!70}]{Funcionalidades avanzadas}{34}{40} \\
+  \ganttbar[bar/.append style={fill=orange!50}]{Integración LSL (pausada)}{41}{42} \\
+  
+\end{ganttchart}
+}
+\end{center}
+
+\small{(Pág. 36)}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Principales desvíos y adaptaciones}
+
+\begin{columns}
+\begin{column}{0.5\textwidth}
+\textbf{Desvíos críticos identificados}
+\begin{itemize}
+\item \textcolor{red}{Fallos de integración monolítica}: LSL insuficiente para comunicación entre módulos
+\item \textcolor{orange}{Cambio paradigmático}: Migración hacia arquitectura API
+\item \textcolor{gray}{Pausa no planificada}: Compromisos académicos (+13 días)
+\end{itemize}
+\end{column}
+
+\begin{column}{0.5\textwidth}
+\textbf{Soluciones implementadas}
+\begin{itemize}
+\item \textcolor{green}{Refactorización SOLID}: Mejora arquitectónica
+\item \textcolor{green}{APIs REST + WebSockets}: Comunicación robusta
+\item \textcolor{green}{Interfaces múltiples}: GUI, CLI, Web
+\end{itemize}
+\end{column}
+\end{columns}
+
+\vspace{1em}
+
+\begin{table}[htbp!]
+  \centering
+  \begin{tabular}{l|c|c|c}
+    \textbf{Aspecto} & \textbf{Planificado} & \textbf{Real} & \textbf{Desviación} \\
+    \hline
+    Duración & 16 semanas & 22 semanas & +37.5\% \\
+    Arquitectura & Monolítica + LSL & Modular + APIs & Cambio paradigmático \\
+    Resultado & Sistema básico & Sistema robusto & Objetivos ampliados \\
+  \end{tabular}
+\end{table}
 
 \end{frame}
 
