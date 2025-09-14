@@ -18,8 +18,6 @@
 \usepackage{booktabs,array}
 \usepackage[table]{xcolor}
 
-
-
 \definecolor{udcpink}{RGB}{177,0,114}
 \definecolor{udcgray}{RGB}{100,100,100}
 \definecolor{ficblue}{RGB}{50,110,118}
@@ -118,17 +116,21 @@
 
 %-----------------------------------------------------------------------------
 
-\title[Interpolación B-Spline]
-       {\LARGE{Interpolación de datos entre mallas refinadas mediante técnicas spline}}
-\author[Mateo Ramos Rega]
-       {\Large{Mateo Ramos Rega} \\
+\title[Framework de Captura y Sincronización BCI]
+       {\LARGE{Framework de Captura y Sincronización de Datos para la Creación de Datasets Orientados a Interfaces Cerebro-Computadora}}
+\author[Pablo Soage Rodas]
+       {\Large{Pablo Soage Rodas} \\
         \quad \\
         \small{Grado en Ingeniería Informática} \\
         \small{Mención en Computación}
-        \quad}
-\date[{Julio, 2025}]{Julio, 2025 \\
-      \quad \\ \quad \\
-     %\includegraphics[width=45mm]{imaxes/udc.png}
+        \quad
+        \vspace{-16pt}}
+\date[{Septiembre, 2025}]{
+    Septiembre, 2025 \\[6pt]
+    \small{Directores:} \\[2pt]
+    \small{Enrique Fernández Blanco} \\
+    \small{Daniel Reivero Cebrián} \\[8pt]
+    \includegraphics[width=45mm]{imaxes/udc.png}
       }
 
 %-----------------------------------------------------------------------------
@@ -147,674 +149,182 @@
 \end{frame}
 
 %-----------------------------------------------------------------------------
-\section{Introducción}
+\section{Introducción y contexto}
 
 \begin{frame}
-\frametitle{Métodos de elementos finitos}
+\frametitle{Evolución de la interacción humano-computadora}
 
 \begin{itemize}
-\item Los métodos de elementos finitos (FEM) son una técnica numérica para resolver ecuaciones en derivadas parciales
+\item Las interfaces tradicionales requieren actividad física consciente:
       \begin{itemize}
-      \item El dominio y las ecuaciones se discretizan en un conjunto discreto (malla)
-      \item Los métodos multinivel utilizan varias mallas con distinto grado de refinamiento
+      \item Comandos de texto, interfaces gráficas, reconocimiento de voz
+      \item Limitación: necesidad de movimiento muscular voluntario
       \end{itemize}
-\item Actualmente se emplea interpolación lineal
+\vspace{0.5em}      
+\item Las \textbf{Interfaces Cerebro-Computadora (BCI)} representan un paradigma revolucionario:
+      \begin{itemize}
+      \item Comunicación directa cerebro-dispositivo
+      \item Sin necesidad de actividad muscular consciente
+      \end{itemize}
+\vspace{0.5em}
+\item Aplicaciones transformadoras:
+      \begin{itemize}
+      \item Medicina rehabilitadora (lesiones medulares)
+      \item Accesibilidad tecnológica
+      \item Nuevos paradigmas de interacción
+      \end{itemize}
 \end{itemize}
 
 \end{frame}
 
-\begin{frame}{}
-  \begin{center}
-%     %\includegraphics[width=\linewidth]{imaxes/meshes/mesh-00.png}
-  \end{center}
-\end{frame}
+\begin{frame}
+\frametitle{Fundamentos de los sistemas BCI}
 
-\begin{frame}{}
-  \begin{center}
-%     %\includegraphics[width=\linewidth]{imaxes/meshes/mesh-01.png}
-  \end{center}
-\end{frame}
+\begin{itemize}
+\item \textbf{Principio básico}: Captura e interpretación de señales cerebrales
+\vspace{0.5em}
+\item \textbf{Modalidades principales}:
+      \begin{itemize}
+      \item \textbf{EEG} (Electroencefalografía): No invasiva, excelente resolución temporal
+      \item MEG, fNIRS, técnicas invasivas (ECoG, microelectrodos)
+      \end{itemize}
+\vspace{0.5em}
+\item \textbf{EEG como técnica predominante}:
+      \begin{itemize}
+      \item Resolución temporal de milisegundos
+      \item Dispositivos comerciales accesibles (g.tec Unicorn, Emotiv EPOC X)
+      \item Naturaleza completamente no invasiva
+      \end{itemize}
+\vspace{0.5em}
+\item \textbf{Desafío crítico}: Sincronización precisa entre señales cerebrales y acciones del usuario
+\end{itemize}
 
-\begin{frame}{}
-  \begin{center}
-%     %\includegraphics[width=\linewidth]{imaxes/meshes/mesh-02.png}
-  \end{center}
 \end{frame}
-
-\begin{frame}{}
-  \begin{center}
-%     %\includegraphics[width=\linewidth]{imaxes/meshes/mesh-03.png}
-  \end{center}
-\end{frame}
-
-%-----------------------------------------------------------------------------
 
 \begin{frame}
-\frametitle{Ejemplo comparativo de interpolación}
+\frametitle{El problema de la fragmentación en herramientas BCI}
 
-\begin{center}
-%\includegraphics[width=0.45\textwidth]{imaxes/curves/poly/better_example/less_pts/BSpline_1_degree.png}
-\hspace{0.5cm}
-%\includegraphics[width=0.45\textwidth]{imaxes/curves/poly/better_example/less_pts/BSpline_3_degree.png}
-\end{center}
+\begin{block}{Limitaciones del ecosistema actual}
+\begin{itemize}
+\item \textbf{Fragmentación de herramientas}: Cada aspecto cubierto por herramientas separadas
+      \begin{itemize}
+      \item BrainFlow: Solo adquisición EEG
+      \item Lab Streaming Layer: Sincronización, pero requiere programación extensiva
+      \item MNE-Python: Análisis avanzado, no tiempo real
+      \end{itemize}
+\vspace{0.5em}
+\item \textbf{Ausencia de captura sincronizada}: Ninguna solución integra EEG + eventos de usuario
+\vspace{0.5em}
+\item \textbf{Barreras de acceso}: Herramientas complejas para desarrolladores expertos
+\vspace{0.5em}
+\item \textbf{Falta de estandarización}: Formatos propietarios dificultan colaboración
+\end{itemize}
+\end{block}
+
+\vspace{0.5em}
+\textbf{Oportunidad}: Desarrollo de una plataforma integrada que unifique estas capacidades
 
 \end{frame}
-
-\begin{frame}{Objetivos}
-  \begin{itemize}
-    \item Desarrollar una librería ligera de interpolación B-Spline en C++
-    \item Comparar vieja interpolación con la nueva
-    \item Desarrollar interfaz gráfica
-  \end{itemize}
-\end{frame}
-
 
 %-----------------------------------------------------------------------------
+\section{Estado del arte y tecnologías}
 
-\section{Metodología}
+\begin{frame}
+\frametitle{Panorama actual de herramientas BCI}
 
-\begin{frame}{Enfoque metodológico}
+\begin{columns}
+\begin{column}{0.5\textwidth}
+\textbf{Adquisición de datos}
+\begin{itemize}
+\item \textbf{BrainFlow}: Abstracción para +20 dispositivos
+\item Soporte multiplataforma y multilenguaje
+\item \textit{Limitación}: Solo adquisición, sin procesamiento
+\end{itemize}
 
-\textbf{Modelo incremental–iterativo}, combinando planificación estructurada y flexibilidad.
+\vspace{0.5em}
+\textbf{Análisis científico}
+\begin{itemize}
+\item \textbf{MNE-Python}: Estándar para análisis EEG
+\item \textbf{EEGLAB}: Interfaz MATLAB madura
+\item \textit{Limitación}: No tiempo real
+\end{itemize}
+\end{column}
+
+\begin{column}{0.5\textwidth}
+\textbf{Sincronización}
+\begin{itemize}
+\item \textbf{Lab Streaming Layer}: Protocolo de streaming
+\item Corrección automática de deriva temporal
+\item \textit{Limitación}: Requiere programación personalizada
+\end{itemize}
+
+\vspace{0.5em}
+\textbf{Desarrollo BCI}
+\begin{itemize}
+\item \textbf{OpenViBE}: Desarrollo visual
+\item \textbf{BCI2000}: Framework modular C++
+\item \textit{Limitación}: Curva de aprendizaje elevada
+\end{itemize}
+\end{column}
+\end{columns}
 
 \vspace{1em}
-
-\begin{itemize}
-    \item Incrementalidad: desarrollo en bloques funcionales:
-\end{itemize}
-\vspace{-0.49cm}
-\begin{center}
-    %\includegraphics[width=0.8\textwidth]{presentacion/imagenes/_Diagrama de flujo_2.pdf}
-\end{center}
-\vspace{-1cm}
-\begin{itemize}
-    
-    \item Validación continua
-    
-    \item Seguimiento regular
-\end{itemize}
-
-\vspace{1em}
-
-Detección temprana de errores  y mejora continua
+\begin{alertblock}{Resultado}
+Ecosistema fragmentado que dificulta el desarrollo de aplicaciones BCI integradas
+\end{alertblock}
 
 \end{frame}
-
-\begin{frame}[fragile]{Cronograma general del proyecto}
-El trabajo se ha realizado entre febrero y junio de 2025
-\includegraphics[width=\textwidth]{presentacion/imagenes/gantt_new.pdf}
-\end{frame}
-
-\begin{frame}{Riesgos identificados}
-%\includegraphics[
-%    width=\textwidth,
-%    height=0.9\textheight,
-%    keepaspectratio
-%  ]{presentacion/imagenes/riesgos.pdf}
-\end{frame}
-
-%-----------------------------------------------------------------------------
-
-\section{Curvas}
-
-% Diapositiva: Introducción a las curvas
-\begin{frame}{Curvas}
-  \begin{itemize}
-    \item Definición: Una curva es una función $s(t)$ que describe un camino en el espacio.
-    \item Conceptos básicos:
-      \begin{itemize}
-        \item Puntos de control $\mathbf{c}_i$
-        \item Parámetro $\mathbf{t}$
-        \item Grado $\mathbf{p}$
-      \end{itemize}
-    \item Opciones planteadas:
-        \begin{itemize}
-        \item Curvas de Bézier
-        \item Curvas B-Spline
-      \end{itemize}
-  \end{itemize}
-\end{frame}
-
-% Diapositiva: Curvas de Bézier – explicación y fórmula
-\begin{frame}{Curvas de Bézier: definición}
-  \begin{itemize}
-    \item Dada una familia de $n+1$ puntos de control $c_0, \dots, c_n$, la curva de Bézier se define como:
-      \[
-        B(t) = \sum_{i=0}^{n} \binom{n}{i} (1 - t)^{n - i} t^{i} \, c_i,
-        \quad t \in [0,1]
-      \]
-    \item Resultados suaves
-    \item Control global: mover un punto de control modifica la curva entera
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Ejemplos de curvas de Bézier}
-
-  \begin{center}
-   %\includegraphics[width=0.45\textwidth]{imaxes/curves/just_bezier/bezier_2.png}
-    \hspace{0.5cm}
-   %\includegraphics[width=0.45\textwidth]{imaxes/curves/just_bezier/bezier_2_changed.png}
-  \end{center}
-  
-\end{frame}
-
-% Diapositiva: Curvas B-Spline – explicación y fórmula
-\begin{frame}{Curvas B-Spline}
-Definición: combinación lineal de funciones base $N_i^p(t)$ sobre un conjunto de nudos:
-          $$s(t) = \sum_{i=0}^{n} N_i^p(t) \, \mathbf{c}_i, \quad t \in [0, 1]$$
-          donde:
-          \begin{align*}
-          N_i^0(t) &= \begin{cases} 1 & \text{si } u_i \le t < u_{i+1}, \\
-                                    0 & \text{en otro caso}, \end{cases} \\[3mm]
-          N_i^p(t) &= \frac{t - u_i}{u_{i+p} - u_i} N_{i}^{p-1}(t)
-                    + \frac{u_{i+p+1} - t}{u_{i+p+1} - u_{i+1}} N_{i+1}^{p-1}(t).
-          \end{align*}
-\end{frame}
-
-\begin{frame}{Funciones base de B-Spline}
-\begin{itemize}
-      \item Ejemplos de funciones base: $N^1_i$, $N^2_i$, $N^3_i$
-  \end{itemize}
-
-  \begin{center}
-   %\includegraphics[width=0.4\textwidth]{imaxes/basis_functions/dots/Basis_Function_1_Degree_Dots.png}
-    \hspace{0.5cm}
-   %\includegraphics[width=0.4\textwidth]{imaxes/basis_functions/dots/Basis_Function_2_Degree_Dots.png}
-    \hspace{0.5cm}
-   %\includegraphics[width=0.4\textwidth]{imaxes/basis_functions/dots/Basis_Function_3_Degree_Dots.png}
-  \end{center}
-\end{frame}
-
-\begin{frame}{Ejemplos de curvas B-Spline}
-    \begin{center}
-   %\includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_1_closed.png}
-    \hspace{0.5cm}
-   %\includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_2_closed.png}
-  \end{center}
-
-  Problemática: la curva se corta\\
-  Solución: uso de vectores de nodos abiertos
-  \[ u_0 = u_1 = \dots = u_p, \quad u_{m-p} = \dots = u_{m} \]
-\end{frame}
-
-\begin{frame}{Nuevas funciones base}
-    La suma de las funciones base sigue siendo igual a 1
-
-  \begin{center}
-   %\includegraphics[width=0.4\textwidth]{imaxes/basis_functions/clampled/Basis_Function_1_Degree_Clampled.png}
-    \hspace{0.5cm}
-   %\includegraphics[width=0.4\textwidth]{imaxes/basis_functions/clampled/Basis_Function_2_Degree_Clampled.png}
-    \hspace{0.5cm}
-   %\includegraphics[width=0.4\textwidth]{imaxes/basis_functions/clampled/Basis_Function_3_Degree_Clampled.png}
-  \end{center}
-    
-\end{frame}
-
-\begin{frame}{Ejemplos de curvas B-Spline}
-  \begin{center}
-   %\includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_1.png}
-    \hspace{0.5cm}
-   %\includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_2.png}
-  \end{center}
-\end{frame}
-
-\begin{frame}{Ejemplo 3D}
-   %\includegraphics[width=0.9\textwidth]{presentacion/imagenes/3D.pdf}
-\end{frame}
-
-% Diapositiva: Ventajas de B-Spline frente a Bézier
-\begin{frame}{Ventajas de las curvas B-Spline}
-  \begin{itemize}
-    \item Se obtienen resultados suaves
-    \item Control local: mover $c_i$ afecta sólo a la vecindad local.
-  \end{itemize}
-
-  \begin{center}
-   %\includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_1.png}
-    \hspace{0.5cm}
-    %\includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_1_modified.png}
-  \end{center}
-  
-\end{frame}
-
-\begin{frame}{B-Splines Racionales}
-  \begin{itemize}
-    \item Extensión de B-Spline: suma ponderada de cocientes de polinomios:
-    \begin{equation*}
-    \ns (t) = \sumat{i}{0}{n} \nc_i \wh{N}_i^p (t) \, , \qquad
-      \text{donde} \quad
-      \wh{N}_i^p (t) = \dfrac{\omega_i N_i^p (t)}{\sumat{j}{0}{n} \omega_j N_j^p (t)} \, .
-      \end{equation*}
-    \item NURBS: uso de un vector de nudos no uniforme.
-    
-    Ejemplo de funciones base usando NURBS
-    \begin{center}
-    %\includegraphics[width=0.45\textwidth]{imaxes/basis_functions/NURBS/Basis_Function_3_Degree_Campled_NURBS.png}
-    \end{center}
-    \end{itemize}
-\end{frame}
-
-\section{Interpolación de curvas}
-
-% Diapositiva: Definición de interpolación
-\begin{frame}{Interpolación de curvas}
-  \begin{itemize}
-    \item Interpolar: construir una curva que pase exactamente por puntos dados
-\end{itemize}
-    \begin{center}
-   %\includegraphics[width=0.45\textwidth]{imaxes/curves/just_bsplines/bspline_3.png}
-    \hspace{0.5cm}
-    %\includegraphics[width=0.45\textwidth]{imaxes/curves/poly/better_example/less_pts/BSpline_3_degree.png}
-  \end{center}
-    \begin{itemize}
-    \item Se resuelve un sistema lineal para obtener los $C_i$.
-  \end{itemize}
-\end{frame}
-
-% Diapositiva: Interpolación de NURBS
-\begin{frame}{Sistema a resolver}
-Dados:
-  \begin{itemize}
-    \item $t_i \in [0, 1]$ ($i=0, \ldots, n$)
-    \item $q_i$, los puntos de interpolación dados
-    \item $N_i^p(t)$ las funciones base
-  \end{itemize}
-  Buscamos los puntos de control $c_i$ tales que:
-    \[
-    \left\{
-    \begin{aligned}
-    N_0^p(t_0) \mathbf{c}_0 + \dots + N_n^p(t_0) \mathbf{c}_n &= \mathbf{q}_0 \\
-    N_0^p(t_1) \mathbf{c}_0 + \dots + N_n^p(t_1) \mathbf{c}_n &= \mathbf{q}_1 \\
-    &\vdots \\
-    N_0^p(t_n) \mathbf{c}_0 + \dots + N_n^p(t_n) \mathbf{c}_n &= \mathbf{q}_n
-    \end{aligned}
-    \right.
-    \]
-\end{frame}
-
-\begin{frame}{Comparativa con una función polinómica}
-
-El error de la interpolación realizada respecto a una función conocida, se calcula de la siguiente manera:
-
-\[
-\varepsilon = \frac{\left\lVert f(t) - s(t) \right\rVert}{\left\lVert f(t) \right\rVert}
-\]
-
-\begin{center}
-    %\includegraphics[width=0.45\textwidth]{presentacion/imagenes/_func.png}
-    \hspace{0.5cm}
-    %\includegraphics[width=0.45\textwidth]{presentacion/imagenes/_func_3.png}
-  \end{center}
-
-  \begin{itemize}
-      \item Error de la primera curva: $2.417\times10^{-1}$
-      \item Error de la segunda curva: $3.272\times10^{-16}$
-  \end{itemize}
-    
-\end{frame}
-
-%-----------------------------------------------------------------------------
-
-\section{Superficies}
-
-% Diapositiva: salto de curvas a superficies
-\begin{frame}{De curvas a superficies B-Spline}
-
-En las curvas:
-  \begin{itemize}
-    \item Empleabamos un parámetro $t$
-    \end{itemize}
-    \[
-        s(t) = \sum_{i=0}^{n} N_i^p(t) \, c_i,
-        \quad t \in [0, 1]
-    \]
-  
-En las superficies:
-  \begin{itemize}
-    \item Dos parámetros: $u$, $v$
-  \end{itemize}
-    \[
-        \mathbf{S}(u,v) = \sumat{i}{0}{n} \sumat{j}{0}{m} N_i^p(u) \, N_j^q(v) \, \nc_{i,j}, \quad u,v \in [0, 1]
-    \]
-\end{frame}
-
-% Diapositiva: cálculo de puntos de control
-\begin{frame}{Interpolación de superficies}
-  \begin{itemize}
-    \item Dada una malla de puntos de interpolación $\mathbf{q}_{ij}$ y los grados $p$ y $q$, buscamos $\mathbf{c}_{ij}$
-    \item En cada dirección ($u$, $v$):
-    \begin{itemize}
-      \item Parametrización: asignar valores $u_i$, $v_j$
-      \item Evaluar funciones base
-      \item Resolver sistemas lineales (como con las curvas)
-    \end{itemize}
-    \item Resultado: malla de puntos de control $\mathbf{c}_{ij}$
-  \end{itemize}
-\end{frame}
-
-% Diapositiva: relevancia de la parametrización
-\begin{frame}{Importancia de la parametrización}
-    \begin{center}
-    La calidad de la superficie interpolada depende de la parametrización elegida
-       %\includegraphics[width=\textwidth]{presentacion/imagenes/comparación_parametrización_2.pdf}
-    \end{center}
-\end{frame}
-
-\begin{frame}{Implementación}
-  \begin{block}{Resumen de la lógica de implementación}
-    \begin{itemize}
-      \item Interpolación en dos etapas: primero por filas, luego por columnas.
-      \item Reutilización de funciones para evaluación de bases y resolución de sistemas.
-      \item Flujo de datos análogo al de las curvas B-Spline.
-      \item Clase ``Interpolator''.
-    \end{itemize}
-  \end{block}
-
-El flujo de la clase ``Interpolator'' es el siguiente:
-
-\begin{center}
-    %\includegraphics[width=1.0\textwidth]{presentacion/imagenes/Interpolator.pdf}
-\end{center}
-
-\end{frame}
-
-\begin{frame}{Caso de prueba: Cinta de Möbius}
-    \begin{center}
-    \vspace{-0.38cm}
-    \begin{minipage}{0.40\textwidth}
-        \centering
-        %\includegraphics[width=\textwidth]{imaxes/surfaces/moebius/moebius_less_dots_1_degree.png}
-        
-        \scriptsize Grados $p = q = 1$
-    \end{minipage}
-    \hfill
-    \begin{minipage}{0.40\textwidth}
-        \centering
-        %\includegraphics[width=\textwidth]{imaxes/surfaces/moebius/moebius_less_dots_3_degree.png}
-        
-        \scriptsize Grados $p = q = 3$
-    \end{minipage}
-
-    
-    \begin{minipage}{0.40\textwidth}
-        \centering
-        %\includegraphics[width=\textwidth]{imaxes/surfaces/moebius/moebius_less_dots_p1_degree_3q_degree.png}
-        
-        \scriptsize Grados: $p=1$ y $q=3$
-    \end{minipage}
-    \hfill
-    \begin{minipage}{0.40\textwidth}
-        \centering
-        %\includegraphics[width=\textwidth]{imaxes/surfaces/moebius/moebius_less_dots_p3_degree_1q_degree.png}
-        
-        \scriptsize Grados: $p=3$ y $q=1$
-    \end{minipage}
-    \end{center}
-\end{frame}
-
-
-\section{Software desarrollado}
-
-\begin{frame}{Librería de C++}
-  \begin{center}
-    %\includegraphics[width=0.35\textwidth]{presentacion/imagenes/logos/kisspng-the-c.png} \qquad
-    %\includegraphics[width=0.35\textwidth]{presentacion/imagenes/logos/Eigen-135x135 (1).png}
-  \end{center}
-\end{frame}
-
-\begin{frame}{Librería de C++}
-Cronograma del desarrollo de la librería:
-  \begin{center}
-    %\includegraphics[width=1.0\textwidth]{presentacion/imagenes/Implementación en Cpp.pdf}
-  \end{center}
-Resultado análogo a la versión de Python:
-  \begin{center}
-    %\includegraphics[width=1.0\textwidth]{presentacion/imagenes/Interpolator.pdf}
-  \end{center}
-\end{frame}
-
-
-\begin{frame}{Interfaz gráfica}
-  \begin{center}
-    %\includegraphics[width=0.5\textwidth]{presentacion/imagenes/logos/pyqt6.png}
-  \end{center}
-  \begin{center}
-    %\includegraphics[width=0.5\textwidth]{presentacion/imagenes/logos/Plotly-logo.png}
-  \end{center}
-  \begin{center}
-    %\includegraphics[width=0.2\textwidth]{presentacion/imagenes/logos/numpy.png}
-  \end{center}
-\end{frame}
-
-\begin{frame}{Arquitectura MVC}
-Componentes de la aplicación:
-  \begin{center}
-    %\includegraphics[width=1.0\textwidth]{presentacion/imagenes/MVC_simplified.pdf}
-  \end{center}
-\end{frame}
-
-\begin{frame}{Arquitectura MVC: Vista}
-  \begin{center}
-    \begin{minipage}{0.25\textwidth}
-      %\includegraphics[width=\linewidth]{presentacion/imagenes/MVC_simplified_up_vista.png}
-    \end{minipage}
-    \hspace{0.5cm}
-    \begin{minipage}{0.45\textwidth}
-      %\includegraphics[width=\linewidth]{presentacion/imagenes/app_window.pdf}
-    \end{minipage}
-  \end{center}
-\end{frame}
-
-\begin{frame}{Arquitectura MVC: Controlador}
-  \begin{center}
-    \begin{minipage}{0.25\textwidth}
-      %\includegraphics[width=\linewidth]{presentacion/imagenes/MVC_simplified_up_controlador.png}
-    \end{minipage}
-    \hspace{0.5cm}
-    \begin{minipage}{0.45\textwidth}
-      %\includegraphics[width=\linewidth]{presentacion/imagenes/class_controlador.pdf}
-    \end{minipage}
-  \end{center}
-\end{frame}
-
-\begin{frame}{Arquitectura MVC: Modelo}
-  \begin{center}
-    \begin{minipage}{0.25\textwidth}
-      %\includegraphics[width=\linewidth]{presentacion/imagenes/MVC_simplified_up_modelo.png}
-    \end{minipage}
-    \hspace{0.5cm}
-    \begin{minipage}{0.45\textwidth}
-      %\includegraphics[width=\linewidth]{presentacion/imagenes/class_modelo.pdf}
-    \end{minipage}
-  \end{center}
-\end{frame}
-
-\section{Conclusiones}
-
-\begin{frame}{Conclusiones}
-    \begin{itemize}
-        \item Objetivos cumplidos:
-        \begin{itemize}
-            \item Librería C++
-            \item GUI para visualización de superficies
-        \end{itemize}
-        \item []
-        \item Única pega: malla de puntos regular
-        % \item No representa un problema para el MEF {\rojo{\qquad ???}}
-        \item Actualmente en proceso de implementación y pruebas
-    \end{itemize}
-\end{frame}
-
-\begin{frame}{}
-  \begin{center}
-      %\includegraphics[width=\linewidth]{imaxes/meshes/mesh-00.png}
-  \end{center}
-\end{frame}
-
-\begin{frame}{}
-  \begin{center}
-      %\includegraphics[width=\linewidth]{imaxes/meshes/mesh-01.png}
-  \end{center}
-\end{frame}
-
-\begin{frame}{}
-  \begin{center}
-      %\includegraphics[width=\linewidth]{imaxes/meshes/mesh-02.png}
-  \end{center}
-\end{frame}
-
-\begin{frame}{}
-  \begin{center}
-      %\includegraphics[width=\linewidth]{imaxes/meshes/mesh-03.png}
-  \end{center}
-\end{frame}
-
-\begin{frame}[plain]
-  \centering
-  \vfill
-  {\Huge \textbf{¡Muchas gracias por su atención!} \par}
-  \vspace{0.5cm}
-  \rule{0.6\linewidth}{0.4pt}
-  \vspace{0.5cm}
-
-  {\small
-    \begin{tabular}{rl}
-      \textbf{Alumno:} & Mateo Ramos Rega \\
-      \textbf{Director:} & Íñigo Arregui Álvarez  \\
-    \end{tabular}
-  }
-  \vfill
-\end{frame}
-% }
-
-{
-  \setbeamercolor{background canvas}{bg=black} % solo dentro del grupo
-  \begin{frame}[plain] % [plain] = sin cabecera/footline
-    \mbox{}            % cuadro vacío; quítalo si quieres escribir algo
-  \end{frame}
-}
-
-% Diapositiva: Interpolación de NURBS
-\begin{frame}{Interpolación racional}
-  \begin{itemize}
-    \item $3n$ incógnitas:
-    \begin{itemize}
-        \item Vector de coordenas $x$ : $n$ incógnitas
-        \item Vector de coordenas $y$ : $n$ incógnitas
-        \item Vector de pesos $\omega$ : $n$ incógnitas
-    \end{itemize}
-    \item Para poder resolver el sistema, de deben fijar $n$ incógnitas
-    \item Solución más práctica: fijar los pesos
-  \end{itemize}
-  Buscamos los puntos de control $c_i$ tales que:
-    \[
-    \left\{
-    \begin{aligned}
-    \wh{N}_0^p(t_0) \mathbf{c}_0 + \dots + \wh{N}_n^p(t_0) \mathbf{c}_n &= \mathbf{q}_0 \\
-    \wh{N}_0^p(t_1) \mathbf{c}_0 + \dots + \wh{N}_n^p(t_1) \mathbf{c}_n &= \mathbf{q}_1 \\
-    &\vdots \\
-    \wh{N}_0^p(t_n) \mathbf{c}_0 + \dots + \wh{N}_n^p(t_n) \mathbf{c}_n &= \mathbf{q}_n
-    \end{aligned}
-    \right.
-    \]
-\end{frame}
-
-\begin{frame}{Interpolación racional en la práctica}
-
-\begin{itemize}
-  \item Cada punto se representa en coordenadas homogéneas, como $(\omega x, \omega y, \omega)$, con $\omega \neq 0$.
-  \item La proyección al espacio cartesiano:
-  \[
-  (x, y) = \left( \frac{\omega x}{\omega}, \frac{\omega y}{\omega} \right)
-  \]
-\end{itemize}
-
-\end{frame}
-
-\begin{frame}{Parametrización lineal}
-  \begin{itemize}
-    \item Parametrización: $u_i = \frac{i}{n}$ (espaciado uniforme)
-    \item Vector de nudos: abierto y uniforme
-    \item Ventaja: evaluación directa
-    \item Problema: resultados pobres
-  \end{itemize}
-
-  \begin{center}
-    %\includegraphics[width=0.45\textwidth]{imaxes/surfaces/parametrization_comparison/surface_3_3_lin_uniform.png}
-  \end{center}
-  
-\end{frame}
-
-\begin{frame}{Parametrización de cuerda}
-  \begin{itemize}
-    \item Parametrización proporcional a distancias reales
-    \[ u_0 = 0, \quad
-    u_i = u_{i-1} + \| \mathbf{q}_{i,j} - \mathbf{q}_{i-1,j} \|, \quad \text{normalizado a } [0,1] \]
-
-    \[ v_0 = 0, \quad
-    v_j = v_{j-1} + \| \mathbf{q}_{i,j} - \mathbf{q}_{i,j-1} \|, \quad \text{normalizado a } [0,1] \, .\]
-    \item Vector de nudos: abierto y uniforme
-    \item Ventaja: mejora con respecto al caso lineal
-    \item Problema: evaluación no directa
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Parametrización lineal con vector de nodos de medias}
-  \begin{itemize}
-    \item Parametrización lineal: $u_i = \frac{i}{n}$
-    \item Vector de nudos: medias abiertas (promedios de parámetros internos)
-    \end{itemize}
-    \[
-    U = \left[ \underbrace{0, \dots, 0}_{p+1},\; \frac{1}{p} \sum_{k=1}^{p} u_k,\; \dots,\; \frac{1}{p} \sum_{k=M-p-1}^{M-2} u_k,\; \underbrace{1, \dots, 1}_{p+1} \right]
-    \]
-    \begin{itemize}
-    \item Ventajas:
-    \begin{itemize}
-      \item Evaluación es directa
-      \item Buenos resultados
-    \end{itemize}
-  \end{itemize}
-
-  \begin{center}
-   %\includegraphics[width=0.45\textwidth]{imaxes/surfaces/parametrization_comparison/surface_3_3_av.png}
-  \end{center}
-  
-\end{frame}
-
-\begin{frame}{Diagrama MVC}
-\begin{center}
-   %\includegraphics[width=0.8\textwidth]{presentacion/imagenes/diagrama_clases_2.pdf}
-    \end{center}
-\end{frame}
-
-
-\end{document}
-
-
-%-----------------------------------------------------------------------------
-
-\section{Conclusiones}
 
 \begin{frame}
-\frametitle{Conclusiones}
+\frametitle{Tecnologías seleccionadas para el proyecto}
 
+\begin{columns}
+\begin{column}{0.5\textwidth}
+\textbf{Lenguajes principales}
 \begin{itemize}
-\item .....
-\item .....
-\item .....
+\item \textbf{Python}: Ecosistema científico maduro
+      \begin{itemize}
+      \item NumPy, SciPy, MNE-Python
+      \item Integración natural con BrainFlow
+      \end{itemize}
+\item \textbf{JavaScript ES6+}: Interfaces web interactivas
 \end{itemize}
+
+\vspace{0.5em}
+\textbf{Frameworks y bibliotecas}
+\begin{itemize}
+\item \textbf{PyQt5}: Interfaces gráficas nativas
+\item \textbf{FastAPI}: APIs REST de alto rendimiento
+\item \textbf{Typer + Rich}: CLI moderna y atractiva
+\end{itemize}
+\end{column}
+
+\begin{column}{0.5\textwidth}
+\textbf{Procesamiento científico}
+\begin{itemize}
+\item \textbf{NumPy/SciPy}: Computación matricial optimizada
+\item \textbf{MNE-Python}: Análisis neurocientífico avanzado
+\end{itemize}
+
+\vspace{0.5em}
+\textbf{Captura de entrada}
+\begin{itemize}
+\item \textbf{pynput}: Teclado/ratón multiplataforma
+\item \textbf{PySDL2}: Controladores de juego (PS4)
+\end{itemize}
+
+\vspace{0.5em}
+\textbf{Comunicación}
+\begin{itemize}
+\item \textbf{WebSockets}: Tiempo real web
+\item \textbf{Orjson}: Serialización optimizada
+\end{itemize}
+\end{column}
+\end{columns}
+
+\vspace{1em}
+\textbf{Dispositivo de validación}: g.tec Unicorn Hybrid Black (8 canales, 250Hz, 24 bits)
+
 \end{frame}
-
-%-----------------------------------------------------------------------------
-
-\begin{frame}[plain, allowframebreaks]
-\frametitle{Bibliografía}
-
-\bibliographystyle{plain}
-\small{\bibliography{../tfm-memoria/bib_tfm}}
-
-\end{frame}
-
-%-----------------------------------------------------------------------------
 
 \end{document}
