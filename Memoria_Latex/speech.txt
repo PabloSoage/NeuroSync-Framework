@@ -1,0 +1,48 @@
+Introducción - Estado del arte
+
+Buenos días, mi nombre es Pablo Soage Rodas y, con el permiso del tribunal, procederé a la presentación del TFG titulado "Framework de Captura y Sincronización de Datos para la Creación de Datasets Orientados a Interfaces Cerebro-Computadora"
+
+Inicialmente, me gustaría hacer una breve mención a la evolución de interacción entre humanos y computadoras.
+Tradicionalmente, se requería de una actividad consciente, ya sea por entrada de texto e interfaces gráficas o simplemente voz, lo que conlleva una limitación considerable, al existir la necesidad de actividad o movimiento muscular voluntario.
+
+Las Interfaces Cerebro-Computadora, también conocidas como BCI, representan un nuevo enfoque, permitiendo la comunicación directa entre el cerebro y el dispositivo en cuestión, sin necesidad de actividad muscular consciente.
+Esto, abre las puertas a multiples aplicaciones transformadoras, como pueden ser la medicina rehabilitadora (en caso de lexiones medulares por ejemplo), nuevos enfoques de accesibilidad o simplemente nuevos paradigmas de interacción no considerados hasta el momento.
+
+------------
+
+El principio básico de esta tecnología, es la captura e interpretación de estas señales cerebrales.
+Dicha captura, se puede llevar a cabo de diferentes formas, ya sea de manera no invasiva, como es el caso de la Electroencefalografía (o EEG), con una excelente resolución temporal, o técnicas más avanzadas, invasivas y más caras, como es el caso de la Magnetoencefalografía, entre otras.
+Para el proyecto, se ha seleccionado la EEG como técnica de mayor interés, debido a su excelente resolución temporal, la existencia de dispositivos comerciales accesibles y naturaleza no invasiva.
+
+Pero eso no es todo. A pesar de tener las señales cerebrales, estas carecen de utilidad si no tenemos constancia de las acciones del usuario a las que debemos asociar las mismas. Desde este punto de vista, es crucial la sincronización precisa entre estas y los eventos relacionados con el usuario.
+
+------------
+
+Sin embargo, en el ecosistema de herramientas actual, existe una limitación importante: cada aspecto o funcionalidad necesaria para alcanzar dicha sincronización, está cubierto por distintas herramientas (como es el caso de Brainflow para la adquisición de señales, el protocolo LSL para sincronización de eventos, o herramientas adicionales para análisis avanzados o captura de entradas del usuario).
+
+Ya que ninguna solución integra la captura de señales y eventos de usuario bajo una misma herramienta (sin depender de software privativo), esto supone una barrera de acceso significativa para investigadores o desarrolladores inexpertos que no tengan los conocimientos necesarios de programación.
+
+Adicionalmente, vale la pena destacar que cada software privativo tiende a usar su propio formato, con lo que se dificulta la colaboración entre investigadores con distintas placas
+
+Se propone por tanto el desarrollo de una plataforma integrada que unifique estas capacidades
+
+-------------
+Tecnologías
+-------------
+A continuación me gustaría hacer hincapié en las tecnologías principales consideradas para el desarrollo del proyecto.
+
+Como lenguaje principal, se ha seleccionado Python, debido a su amplio ecosistema científico, que incluye diversas herramientas, así como la posibilidad de realizar un desarrollo rápido y eficiente basado en pruebas continuas para cualquier cambio realizado.
+Para el desarrollo web, se ha empleado también JavaScript.
+
+En cuanto a frameworks o bibliotecas, podemos mencionar PyQt5 para interfaces gráficas, FastAPI para la creación sencilla de APIs REST, así como Typer y Rich para la interfaz CLI. 
+También se ha hecho uso de NumPy, SciPy y MNE-Python como librerías adicionales para análisis avanzados y procesamientos exigentes.
+Para la captura de eventos de usuario, se ha empleado pynput para el teclado y ratón o PySDL2 para el caso de controladores.
+En la interfaz web se han empledo WebSockets para los visualizadores de eventos y Orjson para una serialización más eficiente.
+
+Durante el desarrollo, se han empleado diversos dispositivos de validación, tanto físicos, como el propio casco G.Tec Unicorn, como virtuales, como la placa sintética de Brainflow, para asegurar que los módulos fuesen capaces de procesar correctamente la carga de dispositivos reales.
+
+-------------
+Metodología
+-------------
+
+

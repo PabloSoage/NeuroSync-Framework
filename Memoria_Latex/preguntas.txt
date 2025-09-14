@@ -1,0 +1,11 @@
+por que api web?
+debido a los problemas de acceso a datos e interacción con ciertas partes del sistema, necesitaba una forma de llamar manualmente yo a cada método independientemente del estado del sistema
+por eso se me ocurrió implementar una interfaz (estilo API) que me permitiese llamar a distintos métodos para acceso a datos inicialmente.
+pero para poder interactuar con esos métodos en tiempo de ejecución, necesitaba implementar una interfaz o una utilidad a parte (otra app por ejemplo) que me permitiese interactuar con los mismos
+
+como con anterioridad había implementado aplicaciones web empleando fastAPI, recordé su "pagina" /docs que permitía probar cada método de forma independiente y que con anterioridad esa característica resultó muy valiosa como debugging, por eso se me ocurrió decantarme por desarrollar un adaptador para exponer esos métodos internos hacia el servidor web fastapi
+
+---------------
+
+existen herramientas que empleen software privativos para sincronización de señales y que se consideren una solución íntegra per se?
+No exactamente. Lab streaming layer, es un protocolo, pero empleando una herramienta de captura de inputs de usuario compatible con LSL, se podría emplear softwares privativos de distintos fabricantes de placas (compatibles también con LSL), de forma que se sincronizase, pero solo ciertas placas y softwares privativos son compatibles, no todos (como es el caso del G.Te Unicorn Hybrid Black del que se dispuso para el desarrollo de este proyecto)
