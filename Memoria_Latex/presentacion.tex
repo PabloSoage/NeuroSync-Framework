@@ -287,9 +287,9 @@
 \section{Metodología y planificación}
 
 \begin{frame}
-\frametitle{Enfoque metodológico}
+\frametitle{Enfoque metodológico adoptado}
 
-\textbf{Modelo incremental-iterativo} combinando planificación estructurada con flexibilidad experimental.
+\textbf{Modelo incremental-iterativo} para abordar la complejidad de sistemas BCI experimentales.
 
 \vspace{1em}
 
@@ -297,16 +297,17 @@
 \begin{column}{0.5\textwidth}
 \textbf{Incrementalidad}
 \begin{itemize}
-\item Desarrollo por módulos independientes
-\item Validación temprana de componentes
+\item Módulos independientes funcionales
+\item Construcción progresiva del sistema
+\item Estabilidad garantizada en cada fase
 \end{itemize}
 \end{column}
 
 \begin{column}{0.5\textwidth}
 \textbf{Iteración}
 \begin{itemize}
-\item Ciclos de refinamiento continuo
-\item Detección rápida de errores
+\item Refinamiento continuo
+\item Validación temprana de componentes
 \item Adaptación a desafíos emergentes
 \end{itemize}
 \end{column}
@@ -314,38 +315,40 @@
 
 \vspace{1em}
 
-\begin{block}{Estructura de cada iteración}
-Análisis → Diseño → Implementación → Pruebas manuales → Evaluación
-\end{block}
+\textbf{Estructura de cada iteración}:
+Análisis → Diseño → Implementación → Pruebas → Evaluación
 
 \vspace{0.5em}
-\textbf{Validación continua}: Pruebas con dispositivos reales y sintéticos en cada ciclo
+
+\textbf{Validación continua}: Dispositivos reales (g.tec Unicorn) y sintéticos (BrainFlow)
 
 \end{frame}
 
 \begin{frame}
-\frametitle{Planificación inicial del proyecto}
+\frametitle{Planificación inicial: enfoque optimista}
 
-\begin{table}[htbp!]
-  \centering
-  \begin{tabular}{c|l|l|c}
-    \textbf{Iteración} & \textbf{Objetivo principal} & \textbf{Entregables} & \textbf{Duración} \\
-    \hline
-    Iter. 1 & Módulos básicos independientes & Módulos inputs y EEG funcionales & 8 semanas \\
-    Iter. 2 & Integración y exportación & Sistema integrado con LSL & 4 semanas \\
-    Iter. 3 & Finalización y documentación & Sistema completo & 4 semanas \\
-  \end{tabular}
-  \caption{Planificación inicial - 16 semanas totales}
-\end{table}
+\textbf{3 iteraciones, 16 semanas totales}
+
+\begin{itemize}
+\item \textbf{Iteración 1}: Desarrollo de módulos independientes (inputs y EEG)
+\item \textbf{Iteración 2}: Integración directa mediante Lab Streaming Layer (LSL)
+\item \textbf{Iteración 3}: Funcionalidades avanzadas y documentación
+\end{itemize}
 
 \vspace{1em}
 
 \textbf{Premisas iniciales}:
 \begin{itemize}
-\item Integración directa mediante Lab Streaming Layer (LSL)
+\item LSL suficiente para integración
 \item Desarrollo lineal sin refactorizaciones mayores
-\item Problemas técnicos limitados y predecibles
+\item Complejidad técnica limitada y predecible
 \end{itemize}
+
+\vspace{0.5em}
+
+\begin{alertblock}{Subestimación crítica}
+Se asignaron solo 2 semanas para la integración, considerándola trivial
+\end{alertblock}
 
 \end{frame}
 
@@ -400,7 +403,30 @@ Análisis → Diseño → Implementación → Pruebas manuales → Evaluación
 \end{frame}
 
 \begin{frame}
-\frametitle{Evolución real del desarrollo}
+\frametitle{Realidad del desarrollo: múltiples obstáculos}
+
+\textbf{22 semanas reales (+37.5\% de desvío)}
+
+\begin{itemize}
+\item \textbf{Iter. 1}: Módulos desarrollados → \textcolor{red}{\textbf{Primer fallo de integración}}
+\item \textbf{Iter. 2}: Refactorización SOLID → \textcolor{red}{\textbf{Segundo fallo de integración}}
+\item \textbf{Iter. 3}: \textcolor{green}{\textbf{Cambio paradigmático hacia arquitectura API}}
+\end{itemize}
+
+\vspace{1em}
+
+\textbf{Principales obstáculos encontrados}:
+\begin{itemize}
+\item LSL insuficiente para comunicación compleja entre módulos
+\item Necesidad de refactorización arquitectónica (principios SOLID)
+\item Desarrollo de solución API no planificada inicialmente
+\item Pausa no prevista por compromisos académicos (+13 días)
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Cronograma real ejecutado}
 
 \begin{center}
 \resizebox{0.95\textwidth}{!}{
@@ -453,40 +479,14 @@ Análisis → Diseño → Implementación → Pruebas manuales → Evaluación
 \end{frame}
 
 \begin{frame}
-\frametitle{Principales desvíos y adaptaciones}
+\frametitle{Resultado final obtenido}
 
-\begin{columns}
-\begin{column}{0.5\textwidth}
-\textbf{Desvíos críticos identificados}
 \begin{itemize}
-\item \textcolor{red}{Fallos de integración monolítica}: LSL insuficiente para comunicación entre módulos
-\item \textcolor{orange}{Cambio paradigmático}: Migración hacia arquitectura API
-\item \textcolor{gray}{Pausa no planificada}: Compromisos académicos (+13 días)
+\item Sistema funcional y extensible
+\item Arquitectura más robusta que la planificada
+\item Múltiples interfaces de usuario
+\item Base sólida para futuras extensiones
 \end{itemize}
-\end{column}
-
-\begin{column}{0.5\textwidth}
-\textbf{Soluciones implementadas}
-\begin{itemize}
-\item \textcolor{green}{Refactorización SOLID}: Mejora arquitectónica
-\item \textcolor{green}{APIs REST + WebSockets}: Comunicación robusta
-\item \textcolor{green}{Interfaces múltiples}: GUI, CLI, Web
-\end{itemize}
-\end{column}
-\end{columns}
-
-\vspace{1em}
-
-\begin{table}[htbp!]
-  \centering
-  \begin{tabular}{l|c|c|c}
-    \textbf{Aspecto} & \textbf{Planificado} & \textbf{Real} & \textbf{Desviación} \\
-    \hline
-    Duración & 16 semanas & 22 semanas & +37.5\% \\
-    Arquitectura & Monolítica + LSL & Modular + APIs & Cambio paradigmático \\
-    Resultado & Sistema básico & Sistema robusto & Objetivos ampliados \\
-  \end{tabular}
-\end{table}
 
 \end{frame}
 
