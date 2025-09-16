@@ -490,4 +490,229 @@ Se asignaron solo 2 semanas para la integración, considerándola trivial
 
 \end{frame}
 
+%-----------------------------------------------------------------------------
+\section{Desarrollo del sistema}
+
+\begin{frame}
+\frametitle{Evolución arquitectónica del desarrollo}
+
+El desarrollo se organizó en \textbf{tres iteraciones principales} que evolucionaron desde prototipos monolíticos hasta una arquitectura API robusta.
+
+\vspace{1em}
+
+\textbf{Análisis de requisitos evolutivo}:
+\begin{itemize}
+\item Identificación progresiva de funcionalidades necesarias
+\item Refinamiento continuo según necesidades detectadas
+\item Validación con dispositivos reales (g.tec Unicorn) y sintéticos
+\end{itemize}
+
+\vspace{1em}
+
+\textbf{Resumen de iteraciones}:
+\begin{itemize}
+\item \textbf{Iteración 1}: Módulos básicos monolíticos → \textcolor{red}{Fallo integración LSL}
+\item \textbf{Iteración 2}: Refactorización SOLID → \textcolor{red}{Segundo fallo integración}
+\item \textbf{Iteración 3}: \textcolor{green}{Arquitectura API exitosa + funcionalidades avanzadas}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Primera iteración: desarrollo monolítico}
+
+\textbf{Objetivo}: Desarrollar módulos básicos funcionales independientes
+
+\vspace{0.5em}
+
+\textbf{Módulo de captura de entrada}:
+\begin{itemize}
+\item Captura eventos teclado/ratón con \textbf{pynput}
+\item 4 modos tracking ratón (axis, angle, delta, joystick)
+\item Filtrado configurable de teclas
+\item Timestamps de precisión milisegundos
+\end{itemize}
+
+\vspace{0.5em}
+
+\textbf{Módulo EEG}:
+\begin{itemize}
+\item Integración \textbf{BrainFlow} para múltiples dispositivos
+\item Visualización multicanal en tiempo real (PyQt5)
+\item Monitor calidad señal y mapas topográficos
+\item Sistema ayuda contextual (25+ widgets)
+\end{itemize}
+
+\vspace{0.5em}
+
+\textcolor{red}{\textbf{Problema identificado}}: Arquitectura monolítica impidió integración LSL efectiva
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Flujo de datos inicial - Módulo entrada}
+
+\begin{center}
+\includegraphics[width=\textwidth]{diagramas/ic_samples_flowchart_it1.pdf}
+\end{center}
+
+\small{(Pág. 60)}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Flujo de datos inicial - Módulo EEG}
+
+\begin{center}
+\includegraphics[width=\textwidth]{diagramas/ep_samples_flowchart_it1.pdf}
+\end{center}
+
+\small{(Pág. 62)}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Segunda iteración: refactorización SOLID}
+
+\textbf{Objetivo}: Reestructurar arquitectura aplicando principios SOLID
+
+\vspace{0.5em}
+
+\textbf{Refactorización aplicada}:
+\begin{itemize}
+\item \textbf{Single Responsibility}: Servicios especializados independientes
+\item \textbf{Open-Closed}: Interfaces extensibles sin modificar código
+\item \textbf{Dependency Inversion}: Abstracción de implementaciones específicas
+\end{itemize}
+
+\vspace{0.5em}
+
+\textbf{Mejoras arquitectónicas logradas}:
+\begin{itemize}
+\item Reducción 60\% tamaño archivos individuales
+\item 70\% reducción tiempo depuración
+\item Servicios thread-safe con patrón Singleton
+\item Comunicación desacoplada mediante callbacks
+\end{itemize}
+
+\vspace{0.5em}
+
+\textcolor{red}{\textbf{Limitación persistente}}: Sin acceso directo a streams internos entre módulos
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Arquitectura refactorizada - UI y visualización}
+\small{(Pág. 68)}
+
+\begin{center}
+\vspace*{-0.085\textheight}
+\includegraphics[width=0.84\textwidth]{diagramas/ic_ui_visualization_it2.pdf}
+\end{center}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Nuevo flujo refactorizado - Módulo entrada}
+
+\begin{center}
+\hspace*{-0.025\textwidth}
+\includegraphics[width=1.05\textwidth]{diagramas/ic_samples_flowchart_it2.pdf}
+\end{center}
+
+\small{(Pág. 69)}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Servicios centrales refactorizados - Módulo EEG}
+
+\small{(Pág. 70)}
+
+\begin{center}
+\vspace*{-0.08\textheight}
+\includegraphics[width=\textwidth]{diagramas/ep_main_arch_services_core_it2.pdf}
+\end{center}
+
+\textbf{Nota}: El flujo de datos EEG evolucionó de forma similar al módulo entrada.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Tercera iteración: arquitectura API}
+
+\textbf{Objetivo}: Cambio paradigmático hacia APIs para acceso completo a datos internos
+
+\vspace{0.5em}
+
+\textbf{Arquitectura API multicapa implementada}:
+\begin{itemize}
+\item \textbf{APIs acceso datos}: Solo lectura, consulta estado/históricos
+\item \textbf{APIs control}: Modificación configuración, operaciones remotas
+\item \textbf{Streaming WebSockets}: Datos tiempo real, hasta 1000Hz validado
+\end{itemize}
+
+\vspace{0.5em}
+
+\textbf{Interfaces múltiples desarrolladas}:
+\begin{itemize}
+\item \textbf{GUI PyQt5}: Interfaces nativas completas
+\item \textbf{CLI}: Typer + Rich, documentación automática
+\item \textbf{Explorador web}: FastAPI, visualización tiempo real
+\end{itemize}
+
+\vspace{0.5em}
+
+\textbf{Funcionalidades avanzadas}: Soporte PS4, algoritmos ICA/wavelet, integración MNE-Python
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Arquitectura final - Flujo módulo entrada}
+
+\small{(Pág. 78)}
+
+\begin{center}
+\vspace*{-0.085\textheight}
+\includegraphics[width=0.85\textwidth]{diagramas/ic_samples_flowchart.pdf}
+\end{center}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Arquitectura final - Flujo módulo EEG}
+
+\begin{center}
+\hspace*{-0.03\textwidth}
+\includegraphics[width=1.05\textwidth]{diagramas/samples_flowchart_with_streamers.pdf}
+\end{center}
+
+\small{(Pág. 83)}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Resultado final del desarrollo}
+
+\textbf{Sistema funcional obtenido}:
+\begin{itemize}
+\item Arquitectura modular extensible con APIs completas
+\item Múltiples interfaces usuario (GUI, CLI, Web)
+\item Soporte dispositivos reales y sintéticos
+\item Algoritmos procesamiento avanzados
+\item Optimizaciones rendimiento hasta 1000Hz
+\end{itemize}
+
+\vspace{1em}
+
+\textbf{Evolución arquitectónica validada}:
+\begin{itemize}
+\item Monolítico → SOLID → API: Cada fallo condujo a solución superior
+\item Pérdida muestras: 30\% → <1\% tras migración callbacks
+\item Latencia procesamiento: <100ms algoritmos avanzados
+\item Base sólida para futuras extensiones
+\end{itemize}
+
+\end{frame}
+
 \end{document}

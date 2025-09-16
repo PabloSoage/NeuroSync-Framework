@@ -68,3 +68,65 @@ Llegados a este punto, se identifica la necesidad de un cambio paradigmático ha
 -------------
 
 Esto dio lugar a un a arquitectura modular extensible, más robusta que la planificada y con múltiples interfaces de usuario, siendo así una base sólida para futuras extensiones.
+
+-------------
+Desarrollo
+-------------
+Como se mencionó anteriormente, el desarrollo se organizó en tres iteraciones principales, evolucionando desde prototipos monolíticos hacia arquitecturas API.
+
+El Análisis de requisitos fue evolucionando y refinándose conforme se identificaban progresivamente nuevas funcionalidades, validando su viabilidad en secciones reducidas de código antes de aplicar los cambios a todo el desarrollo.
+
+En la primera iteración, se desarrollaron los módulos básicos independientes. En la segunda iteración, se llevó a cabo una refactorización completa del código y en la tercera y última iteración, se desarrolló la arquitectura basada en APIs, así como fucionalidades avanzadas auxiliares (las cuales, aunque previstas desde un inicio, no se habían implementado todavía).
+
+-------------
+
+En la primera iteración, se empleó pynput para la captura del teclado y ratón, incluyendo diversas opciones de configuración para el módulo.
+Para el módulo de señales, se empleó Brainflow para el soporte de múltiples dispositivos, incluyendo visualizadores en tiempo real para dichas señales empleando PyQtGraph para poder aprovechar la GPU y no saturar la CPU. Se incluía también una primera versión de un mapa topográfico para visualizar la posición de los electrodos junto con sus respectivas calidades de señal.
+
+Sin embargo, no se consideró desde un inicio la interacción entre módulos, resultando en una arquitectura monolítica que dificultaba trabajar en la integración entre módulos.
+
+<<<Diagrama Inputs>>>
+En este primer diagrama, podemos ver que, salvo un control de estado básico, los datos fluyen independientemente desde el propio collector hasta el visualizador o el sistema de logging, en el que se actualiza cada componente de forma independiente, elevando el acoplamiento entre las distintas partes del sistema
+
+<<<Diagrama EEG>>>
+Esta casuística es más destacable en el módulo de señales, ya que los datos fluyen desde el collector hacia distintos componentes del sistema de forma independiente, triplicando incluso el muestreo hacia el collector y aplicando filtros locales en ciertas partes del sistema, dificultando así la coherencia entre distintas partes del sistema.
+
+--------------
+
+Esto es lo que se ha abordado principalmente en la segunda iteración, en la cual se ha realizado una refactorización completa del código de forma que se centralice el acceso a ciertos datos mediante el patrón Singleton, creando componentes con responsabilidades únicas y haciendo uso de interfaces, entre otras cosas, reduciendo así el tamaño de los archivos individuales, lo que favoreció considerablemente el tiempo de depuración.
+
+Distintas partes del sistema estaban ahora desacopladas. Sin embargo, después de tratar de integrar nuevamente los módulos, perduraba la imposibilidad de acceso a los datos internos de los mismos.
+Era necesario un cambio de enfoque, que sería hacia arquitecturas API en la siguiente iteración.
+
+<<<Diagrama Clase Inputs>>>
+En este primer diagrama, se muestra un ejemplo de diagrama de clases del módulo de inputs. En concreto, es el diagrama de clases de la parte gráfica del módulo. Se puede observar que hay visualizadores especializados, que parten de un visualizador base, y que son gestionados de forma centralizada por distintos componentes.
+
+<<<Diagrama flujo inputs>>>
+En este otro diagrama, se puede observar como ahora el flujo de datos del módulo es más claro, separando claramente entre visualizadores y logging, pero con un estado centralizado para todos los componentes.
+
+<<<Diagrama clase señales>>>
+El módulo de señales, evolucionó de manera semejante, tal y como se ilustra en este diagrama, el cual refleja los servicios centrales del módulo. Se han separado claramente los distintos servicios existentes en el módulo, de forma que las modificaciones en uno de ellos son independientes del resto.
+El diagrama de flujo de este módulo evolucionaría de forma similar al módulo de inputs, pero se mostrará ya en la tercera iteración.
+
+-------------
+Como he mencionado, esta última iteración se basó principalmente en la implementación de una arquitectura basada en APIs
+
+Dicha arquitectura, está dividida principalmente en 3 partes diferenciadas: API de acceso a datos, de sólo lectura, API de control, para interactuar con el sistema y websockets para streaming de datos en tiempo real.
+
+En esta iteración, se han implementado también un módulo, al que llamaremos explorador web, que permite a los módulos registrar sus métodos API dinámicamente en el mismo, así como conectar los websocket. De este modo, disponemos de múltiples interfaces desarrolladas: la interfaz gráfica (GUI), basada en PyQt5, la interfaz CLI (baada en Typer y Rich) para el terminal y la interfaz web, basada en FastAPI. 
+Tanto la interfaz CLI como el explorador web, delegan en la arquitectura API desarrollada para interactuar con el módulo correspondiente.
+
+Por otro lado, se han implementado funcionalidades avanzadas/adicionales, como es el soporte para controladores, algoritmos avanzados, como el análisis de componentes independientes (ICA) o la integración con la herramienta MNE-Python.
+
+Por último, se ha avanzado en el desarrollo del módulo de sincronización, integrando ambos módulos bajo una misma interfaz y capaz de acceder a los streams de ambos y sincronizarlos en tiempo real en múltiples formatos. 
+
+Sin embargo, este módulo no se ha dado por completado debido a ciertos errores en la exportación del formato HDF/HDF+ y la falta de una verificación exhaustiva de que la sincronización realizada en el resto de formatos sea correcta independientemente del estado del sistema.
+
+Los diagramas de dicho módulo final no se mostrarán debido a su estado experimental. Sin embargo, este valida que la aproximación seleccionada, es correcta para el objetivo del proyecto. Adicionalmente, se mostrará su funcionamiento en un vídeo que mostraré posteriormente.
+
+<<<Diagrama flujo Inputs>>>
+En este diagrama, lo primero que me gustaría destacar es la centralización de los datos en un servicio dedicado, necesario para mantener la coherencia del sistema cuando diversas interfaces entran en juego.
+Lo siguiente que vale la pena destacar son los nuevos flujos hacia el API, como estos fluyen hasta el backend del explorador web y como la interfaz CLI delega en dicha API REST.
+
+
+
