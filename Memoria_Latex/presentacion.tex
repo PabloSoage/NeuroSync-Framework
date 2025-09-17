@@ -714,4 +714,108 @@ El desarrollo se organizó en \textbf{tres iteraciones principales} que evolucio
 
 \end{frame}
 
+%-----------------------------------------------------------------------------
+\section{Conclusiones y líneas futuras}
+
+\begin{frame}
+\frametitle{Conclusiones del proyecto}
+
+\textbf{Objetivos alcanzados}:
+\begin{itemize}
+\item Sistema robusto de captura EEG + eventos usuario con sincronización temporal
+\item Ecosistema completo de interfaces (GUI nativa, CLI rica, explorador web)
+\item Arquitectura extensible basada en principios SOLID y APIs
+\item Algoritmos avanzados integrados (ICA, wavelet, MNE-Python)
+\end{itemize}
+
+\vspace{1em}
+
+\textbf{Impacto en el ecosistema BCI}:
+\begin{itemize}
+\item Unifica capacidades tradicionalmente fragmentadas
+\item Elimina barreras de acceso para investigadores noveles
+\item Proporciona herramientas de código abierto multiplataforma
+\item Establece base técnica para democratización de tecnologías BCI
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Principales lecciones aprendidas}
+
+\begin{columns}
+\begin{column}{0.5\textwidth}
+\textbf{Decisiones exitosas}
+\begin{itemize}
+\item \textcolor{green}{\textbf{Arquitectura API}}: Solución robusta que superó limitaciones LSL
+\item \textcolor{green}{\textbf{Migración callbacks}}: Redujo pérdida muestras 30\% → <1\%
+\item \textcolor{green}{\textbf{Refactorización SOLID}}: Facilitó extensibilidad y depuración
+\end{itemize}
+\end{column}
+
+\begin{column}{0.5\textwidth}
+\textbf{Desafíos superados}
+\begin{itemize}
+\item \textcolor{orange}{\textbf{Fallos integración}}: Revelaron importancia diseño modular desde inicio
+\item \textcolor{orange}{\textbf{Rendimiento tiempo real}}: Optimizaciones Python válidas para BCI
+\item \textcolor{orange}{\textbf{Complejidad experimental}}: Metodología iterativa esencial
+\end{itemize}
+\end{column}
+\end{columns}
+
+\vspace{1em}
+
+\begin{alertblock}{Lección clave}
+Los fallos técnicos en sistemas experimentales pueden convertirse en oportunidades para soluciones arquitectónicas superiores
+\end{alertblock}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Líneas de trabajo futuro}
+
+\textbf{Prioridades inmediatas}:
+\begin{itemize}
+\item Finalización módulo sincronización: Corrección exportación EDF+, validación formatos
+\item Modo headless completo: Refactorización dependencias Qt restantes
+\item Streaming sincronizado tiempo real: Extensión arquitectura actual
+\end{itemize}
+
+\vspace{1em}
+
+\textbf{Expansiones a medio plazo}:
+\begin{itemize}
+\item \textbf{Dispositivos}: Eye-tracking, interfaces hápticas, sensores EMG/ECG
+\item \textbf{Algoritmos ML}: Clasificadores P300, SSVEP, imaginación motora en tiempo real
+\item \textbf{Optimizaciones}: Aceleración GPU (CUDA), visualización Three.js
+\end{itemize}
+
+\vspace{1em}
+
+\textbf{Visión a largo plazo}:
+\begin{itemize}
+\item Ecosistema plugins para extensiones comunitarias
+\item Colaboración distribuida multi-sitio
+\item Integración TensorFlow/PyTorch para modelos predictivos
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[plain]
+  \centering
+  \vfill
+  {\Huge \textbf{¡Muchas gracias por su atención!} \par}
+  \vspace{0.5cm}
+  \rule{0.6\linewidth}{0.4pt}
+  \vspace{0.5cm}
+
+  {\small
+    \begin{tabular}{rl}
+      \textbf{Alumno:} & Pablo Soage Rodas \\
+      \textbf{Directores:} & Enrique Fernández Blanco \\
+                          & Daniel Rivero Cebrián \\
+    \end{tabular}
+  }
+  \vfill
+\end{frame}
+
 \end{document}
