@@ -128,5 +128,16 @@ Los diagramas de dicho módulo final no se mostrarán debido a su estado experim
 En este diagrama, lo primero que me gustaría destacar es la centralización de los datos en un servicio dedicado, necesario para mantener la coherencia del sistema cuando diversas interfaces entran en juego.
 Lo siguiente que vale la pena destacar son los nuevos flujos hacia el API, como estos fluyen hasta el backend del explorador web y como la interfaz CLI delega en dicha API REST.
 
+<<<Diagrama fujo EEG>>>
+En este otro diagrama, se puede visualizar, junto al nuevo flujo de datos centralizado que parte del servicio de acceso a datos, la existencia de dos tipos de callbacks: Callbacks locales, para servir a servicios o utilidades locales del módulo, con mayor prioridad y sin latencia, al ser directos; y callbacks API.
 
+La finalidad de estos últimos es servir a aquello relacionado con las API, y se separan de los callbacks locales para no añadir sobrecarga a las utilidades locales, consideradas de mayor prioridad.
+
+Estos Callbacks API, a su vez, se dividen en dos tipos: directos, con baja latencia, y multiproceso, con mayor latencia pero con la posibilidad de aplicar filtros pesados en tiempo real sin comprometer a otros clientes. Por defecto, se emplean los directos.
+
+-------------
+
+En resumen, finalmente se ha obtenido un sistema con una arquitectura modular extensible, con APIs que facilitan la integración con otras herramientas, así como múltiples interfaces de usuario, que tiene soporte para múltiples dispositivos.
+
+Los módulos se refinaron desde unos prototipos monolíticos hasta una arquitectura API modular con bajo acoplamiento. Además, la pérdida de muestras durante la grabación, se redujo drásticamente al migrar de una estrategia de polling periódico hacia una arquitectura basada en callbacks.
 
