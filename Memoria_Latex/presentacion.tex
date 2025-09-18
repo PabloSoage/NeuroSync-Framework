@@ -234,8 +234,6 @@
 \begin{frame}
 \frametitle{Tecnologías seleccionadas para el proyecto}
 
-\begin{columns}
-\begin{column}{0.5\textwidth}
 \textbf{Lenguajes principales}
 \begin{itemize}
 \item \textbf{Python}: Ecosistema científico maduro
@@ -245,38 +243,6 @@
       \end{itemize}
 \item \textbf{JavaScript ES6+}: Interfaces web interactivas
 \end{itemize}
-
-\vspace{0.5em}
-\textbf{Frameworks y bibliotecas}
-\begin{itemize}
-\item \textbf{PyQt5}: Interfaces gráficas nativas
-\item \textbf{FastAPI}: APIs REST de alto rendimiento
-\item \textbf{Typer + Rich}: CLI moderna y atractiva
-\end{itemize}
-\end{column}
-
-\begin{column}{0.5\textwidth}
-\textbf{Procesamiento científico}
-\begin{itemize}
-\item \textbf{NumPy/SciPy}: Computación matricial optimizada
-\item \textbf{MNE-Python}: Análisis neurocientífico avanzado
-\end{itemize}
-
-\vspace{0.5em}
-\textbf{Captura de entrada}
-\begin{itemize}
-\item \textbf{pynput}: Teclado/ratón multiplataforma
-\item \textbf{PySDL2}: Controladores de juego (PS4)
-\end{itemize}
-
-\vspace{0.5em}
-\textbf{Comunicación}
-\begin{itemize}
-\item \textbf{WebSockets}: Tiempo real web
-\item \textbf{Orjson}: Serialización optimizada
-\end{itemize}
-\end{column}
-\end{columns}
 
 \vspace{1em}
 \textbf{Dispositivo de validación}: g.tec Unicorn Hybrid Black (8 canales, 250Hz, 24 bits)
@@ -694,18 +660,7 @@ El desarrollo se organizó en \textbf{tres iteraciones principales} que evolucio
 \begin{frame}
 \frametitle{Resultado final del desarrollo}
 
-\textbf{Sistema funcional obtenido}:
-\begin{itemize}
-\item Arquitectura modular extensible con APIs completas
-\item Múltiples interfaces usuario (GUI, CLI, Web)
-\item Soporte dispositivos reales y sintéticos
-\item Algoritmos procesamiento avanzados
-\item Optimizaciones rendimiento hasta 1000Hz
-\end{itemize}
-
-\vspace{1em}
-
-\textbf{Evolución arquitectónica validada}:
+\textbf{Evolución arquitectónica}:
 \begin{itemize}
 \item Monolítico → SOLID → API: Cada fallo condujo a solución superior
 \item Pérdida muestras: 30\% → <1\% tras migración callbacks
@@ -723,7 +678,7 @@ El desarrollo se organizó en \textbf{tres iteraciones principales} que evolucio
 \textbf{Objetivos alcanzados}:
 \begin{itemize}
 \item Sistema robusto de captura EEG + eventos usuario con sincronización temporal
-\item Ecosistema completo de interfaces (GUI nativa, CLI rica, explorador web)
+\item Ecosistema completo de interfaces (GUI nativa, CLI, explorador web)
 \item Arquitectura extensible basada en principios SOLID y APIs
 \item Algoritmos avanzados integrados (ICA, wavelet, MNE-Python)
 \end{itemize}
@@ -755,7 +710,7 @@ El desarrollo se organizó en \textbf{tres iteraciones principales} que evolucio
 \begin{column}{0.5\textwidth}
 \textbf{Desafíos superados}
 \begin{itemize}
-\item \textcolor{orange}{\textbf{Fallos integración}}: Revelaron importancia diseño modular desde inicio
+\item \textcolor{orange}{\textbf{Fallos integración}}: Revelaron importancia de considerar integración desde inicio
 \item \textcolor{orange}{\textbf{Rendimiento tiempo real}}: Python viable para sistemas BCI con optimizaciones
 \item \textcolor{orange}{\textbf{Complejidad experimental}}: Metodología iterativa esencial
 \end{itemize}

@@ -29,15 +29,10 @@ Se propone por tanto el desarrollo de una plataforma integrada que unifique esta
 -------------
 Tecnologías
 -------------
-A continuación me gustaría hacer hincapié en las tecnologías principales consideradas para el desarrollo del proyecto.
+A continuación me gustaría hacer un breve hincapié en las tecnologías principales consideradas para el desarrollo del proyecto.
 
 Como lenguaje principal, se ha seleccionado Python, debido a su amplio ecosistema científico, que incluye diversas herramientas, así como la posibilidad de realizar un desarrollo rápido y eficiente basado en pruebas continuas para cualquier cambio realizado.
 Para el desarrollo web, se ha empleado también JavaScript.
-
-En cuanto a frameworks o bibliotecas, podemos mencionar PyQt5 para interfaces gráficas, FastAPI para la creación sencilla de APIs REST, así como Typer y Rich para la interfaz CLI. 
-También se ha hecho uso de NumPy, SciPy y MNE-Python como librerías adicionales para análisis avanzados y procesamientos exigentes.
-Para la captura de eventos de usuario, se ha empleado pynput para el teclado y ratón o PySDL2 para el caso de controladores.
-En la interfaz web se han empleado WebSockets para los visualizadores de eventos y Orjson para una serialización más eficiente.
 
 Durante el desarrollo, se han empleado diversos dispositivos de validación, tanto físicos, como el propio casco G.Tec Unicorn, como virtuales, como la placa sintética de Brainflow, para asegurar que los módulos fuesen capaces de procesar correctamente la carga de dispositivos reales.
 
