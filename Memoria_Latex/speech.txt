@@ -83,13 +83,13 @@ En la primera iteración, se desarrollaron los módulos básicos independientes.
 En la primera iteración, se empleó pynput para la captura del teclado y ratón, incluyendo diversas opciones de configuración para el módulo.
 Para el módulo de señales, se empleó Brainflow para el soporte de múltiples dispositivos, incluyendo visualizadores en tiempo real para dichas señales empleando PyQtGraph para poder aprovechar la GPU y no saturar la CPU. Se incluía también una primera versión de un mapa topográfico para visualizar la posición de los electrodos junto con sus respectivas calidades de señal.
 
-Sin embargo, no se consideró desde un inicio la interacción entre módulos, resultando en una arquitectura monolítica que dificultaba trabajar en la integración entre módulos.
+Sin embargo, no se consideró desde un inicio la interacción entre módulos, resultando en una arquitectura monolítica que dificultaba trabajar en la integración entre los mismos.
 
 <<<Diagrama Inputs>>>
 En este primer diagrama, podemos ver que, salvo un control de estado básico, los datos fluyen independientemente desde el propio collector hasta el visualizador o el sistema de logging, en el que se actualiza cada componente de forma independiente, elevando el acoplamiento entre las distintas partes del sistema
 
 <<<Diagrama EEG>>>
-Esta casuística es más destacable en el módulo de señales, ya que los datos fluyen desde el collector hacia distintos componentes del sistema de forma independiente, triplicando incluso el muestreo hacia el collector y aplicando filtros locales en ciertas partes del sistema, dificultando así la coherencia entre distintas partes del sistema.
+Esta casuística es más destacable en el módulo de señales, ya que los datos fluyen desde el collector hacia distintos componentes del sistema de forma independiente, triplicando incluso el muestreo hacia el collector y aplicando filtros locales en ciertas partes del sistema, dificultando así la coherencia entre distintas secciones.
 
 --------------
 
