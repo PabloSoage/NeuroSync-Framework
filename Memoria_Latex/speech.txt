@@ -37,7 +37,7 @@ Para el desarrollo web, se ha empleado también JavaScript.
 En cuanto a frameworks o bibliotecas, podemos mencionar PyQt5 para interfaces gráficas, FastAPI para la creación sencilla de APIs REST, así como Typer y Rich para la interfaz CLI. 
 También se ha hecho uso de NumPy, SciPy y MNE-Python como librerías adicionales para análisis avanzados y procesamientos exigentes.
 Para la captura de eventos de usuario, se ha empleado pynput para el teclado y ratón o PySDL2 para el caso de controladores.
-En la interfaz web se han empledo WebSockets para los visualizadores de eventos y Orjson para una serialización más eficiente.
+En la interfaz web se han empleado WebSockets para los visualizadores de eventos y Orjson para una serialización más eficiente.
 
 Durante el desarrollo, se han empleado diversos dispositivos de validación, tanto físicos, como el propio casco G.Tec Unicorn, como virtuales, como la placa sintética de Brainflow, para asegurar que los módulos fuesen capaces de procesar correctamente la carga de dispositivos reales.
 
@@ -76,7 +76,7 @@ Como se mencionó anteriormente, el desarrollo se organizó en tres iteraciones 
 
 El Análisis de requisitos fue evolucionando y refinándose conforme se identificaban progresivamente nuevas funcionalidades, validando su viabilidad en secciones reducidas de código antes de aplicar los cambios a todo el desarrollo.
 
-En la primera iteración, se desarrollaron los módulos básicos independientes. En la segunda iteración, se llevó a cabo una refactorización completa del código y en la tercera y última iteración, se desarrolló la arquitectura basada en APIs, así como fucionalidades avanzadas auxiliares (las cuales, aunque previstas desde un inicio, no se habían implementado todavía).
+En la primera iteración, se desarrollaron los módulos básicos independientes. En la segunda iteración, se llevó a cabo una refactorización completa del código y en la tercera y última iteración, se desarrolló la arquitectura basada en APIs, así como funcionalidades avanzadas auxiliares (las cuales, aunque previstas desde un inicio, no se habían implementado todavía).
 
 -------------
 
@@ -113,7 +113,7 @@ Como he mencionado, esta última iteración se basó principalmente en la implem
 
 Dicha arquitectura, está dividida principalmente en 3 partes diferenciadas: API de acceso a datos, de sólo lectura, API de control, para interactuar con el sistema y websockets para streaming de datos en tiempo real.
 
-En esta iteración, se han implementado también un módulo, al que llamaremos explorador web, que permite a los módulos registrar sus métodos API dinámicamente en el mismo, así como conectar los websocket. De este modo, disponemos de múltiples interfaces desarrolladas: la interfaz gráfica (GUI), basada en PyQt5, la interfaz CLI (baada en Typer y Rich) para el terminal y la interfaz web, basada en FastAPI. 
+En esta iteración, se han implementado también un módulo, al que llamaremos explorador web, que permite a los módulos registrar sus métodos API dinámicamente en el mismo, así como conectar los websocket. De este modo, disponemos de múltiples interfaces desarrolladas: la interfaz gráfica (GUI), basada en PyQt5, la interfaz CLI (basada en Typer y Rich) para el terminal y la interfaz web, basada en FastAPI. 
 Tanto la interfaz CLI como el explorador web, delegan en la arquitectura API desarrollada para interactuar con el módulo correspondiente.
 
 Por otro lado, se han implementado funcionalidades avanzadas/adicionales, como es el soporte para controladores, algoritmos avanzados, como el análisis de componentes independientes (ICA) o la integración con la herramienta MNE-Python.
@@ -137,7 +137,47 @@ Estos Callbacks API, a su vez, se dividen en dos tipos: directos, con baja laten
 
 -------------
 
-En resumen, finalmente se ha obtenido un sistema con una arquitectura modular extensible, con APIs que facilitan la integración con otras herramientas, así como múltiples interfaces de usuario, que tiene soporte para múltiples dispositivos.
+En resumen, los módulos se refinaron desde unos prototipos monolíticos hasta una arquitectura API modular con bajo acoplamiento. Además, la pérdida de muestras durante la grabación, se redujo drásticamente al migrar de una estrategia de polling periódico hacia una arquitectura basada en callbacks.
 
-Los módulos se refinaron desde unos prototipos monolíticos hasta una arquitectura API modular con bajo acoplamiento. Además, la pérdida de muestras durante la grabación, se redujo drásticamente al migrar de una estrategia de polling periódico hacia una arquitectura basada en callbacks.
+-------------
+Conclusiones
+-------------
+
+Para recapitular, se ha desarrollado un sistema robusto de captura de señales EEG, así como de eventos de usuario, con la capacidad de ser sincronizados temporalmente, con un ecosistema de interfaces que incluyen interfaz gráfica, terminal y web.
+
+Dicho sistema, está basado en una arquitectura fácilmente extensible, gracias a los principios SOLID aplicados y a la arquitectura API que permite interactuar con los módulos.
+
+-------------
+
+Como se mencionó al comienzo de esta presentación, este sistema unificaría diversas utilidades, previamente fragmentadas, eliminando barreras de acceso para investigadores o desarrolladores sin experiencia en programación.
+
+Además, está basada en librerías de código abierto multiplataforma, eliminando así las restricciones que el software privativo conlleva.
+
+-------------
+
+Como decisiones exitosas durante el desarrollo, destacaría principalmente el desarrollo de una arquitectura API, facilitando el desarrollo de nuevas funcionalidades o interfaces (como fue el caso de la interfaz web y del CLI).
+
+Sin embargo, también vale la pena destacar el uso de callbacks en lugar del polling, que redujo drásticamente la pérdida de muestras y la aplicación de principios SOLID, ya que facilita la extensibilidad y legibilidad del código y reduce el tiempo de depuración de errores.
+
+-------------
+
+Los fallos de integración tempranos, revelaron la importancia de considerar la interacción entre módulos desde un inicio.
+A su vez, Python demostró poder ser adecuado para requisitos en tiempo real (como este caso), si se aplican las optimizaciones adecuadas y se hace uso de librerías optimizadas en C.
+
+Los fallos técnicos en un sistema experimental como este, finalmente dieron lugar a una solución arquitectónicamente superior.
+
+--------------
+Líneas trabajo futuro
+--------------
+
+Como prioridad inmediata a corto plazo, habría que corregir los errores de exportación de los formatos EDF y EDF+, así como validar que la sincronización del resto de formatos sea correcta. También habría que terminar de corregir problemas relacionados con el modo headless del módulo de captura de inputs, así como habilitar el streaming de datos sincronizados en tiempo real (en lugar de sólo streaming a archivo).
+
+A medio plazo, se podrían considerar nuevos tipos de dispositivos, nuevos algoritmos o incluso optimizaciones empleando librerías especializadas.
+
+A largo plazo incluso se podría considerar, por ejemplo, un ecosistema de plugins para facilitar la extensión de funcionalidades por parte de la comunidad.
+
+--------------
+Video
+--------------
+A continuación, mostraré un vídeo con la finalidad de ilustrar el sistema desarrollado.
 
