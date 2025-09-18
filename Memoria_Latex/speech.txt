@@ -58,12 +58,20 @@ Se planificó un mayor esfuerzo para el desarrollo de los módulos independiente
 
 -------------
 
+Esto se puede visualizar en el siguiente diagrama.
+
+-------------
+
 La planificación real del proyecto, se tradujo en un desvío de entorno al 37% respecto a lo planificado, debido a múltiples fallos en la integración de los módulos para la sincronización de los datos.
 
 Uno de los primeros obstáculos encontrados, fue la estructura monolítica inicial con la que contaban los módulos, con un alto acoplamiento que dificultaba identificar los puntos de integración. Para abordar este obstáculo, se decidió optar por una refactorización arquitectónica, basada en los principios SOLID, la cual facilitaría los trabajos de integración.
 
 Sin embargo, esto fue insuficiente, ya que los módulos desarrollados carecían de métodos que permitiesen acceder a sus estados o datos internos, imposibilitando la integración.
 Llegados a este punto, se identifica la necesidad de un cambio paradigmático hacia arquitecturas API, que presenten una forma estándar para acceder a dichos datos. 
+
+-------------
+
+En este diagrama, se muestra el cronograma real del desarrollo.
 
 -------------
 
@@ -147,7 +155,7 @@ Para recapitular, se ha desarrollado un sistema robusto de captura de señales E
 
 Dicho sistema, está basado en una arquitectura fácilmente extensible, gracias a los principios SOLID aplicados y a la arquitectura API que permite interactuar con los módulos.
 
--------------
+///////
 
 Como se mencionó al comienzo de esta presentación, este sistema unificaría diversas utilidades, previamente fragmentadas, eliminando barreras de acceso para investigadores o desarrolladores sin experiencia en programación.
 
@@ -159,7 +167,7 @@ Como decisiones exitosas durante el desarrollo, destacaría principalmente el de
 
 Sin embargo, también vale la pena destacar el uso de callbacks en lugar del polling, que redujo drásticamente la pérdida de muestras y la aplicación de principios SOLID, ya que facilita la extensibilidad y legibilidad del código y reduce el tiempo de depuración de errores.
 
--------------
+///////////
 
 Los fallos de integración tempranos, revelaron la importancia de considerar la interacción entre módulos desde un inicio.
 A su vez, Python demostró poder ser adecuado para requisitos en tiempo real (como este caso), si se aplican las optimizaciones adecuadas y se hace uso de librerías optimizadas en C.
