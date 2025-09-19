@@ -279,15 +279,6 @@
 \end{column}
 \end{columns}
 
-\vspace{1em}
-
-\textbf{Estructura de cada iteración}:
-Análisis → Diseño → Implementación → Pruebas → Evaluación
-
-\vspace{0.5em}
-
-\textbf{Validación continua}: Dispositivos reales (g.tec Unicorn) y sintéticos (BrainFlow)
-
 \end{frame}
 
 \begin{frame}
@@ -462,10 +453,6 @@ Se asignaron solo 2 semanas para la integración, considerándola trivial
 \begin{frame}
 \frametitle{Evolución arquitectónica del desarrollo}
 
-El desarrollo se organizó en \textbf{tres iteraciones principales} que evolucionaron desde prototipos monolíticos hasta una arquitectura API robusta.
-
-\vspace{1em}
-
 \textbf{Análisis de requisitos evolutivo}:
 \begin{itemize}
 \item Identificación progresiva de funcionalidades necesarias
@@ -506,7 +493,7 @@ El desarrollo se organizó en \textbf{tres iteraciones principales} que evolucio
 \item Integración \textbf{BrainFlow} para múltiples dispositivos
 \item Visualización multicanal en tiempo real (PyQt5 - PyQtGraph)
 \item Monitor calidad señal y mapas topográficos
-\item Sistema ayuda contextual (25+ widgets)
+\item Sistema ayuda contextual
 \end{itemize}
 
 \vspace{0.5em}
@@ -615,7 +602,7 @@ El desarrollo se organizó en \textbf{tres iteraciones principales} que evolucio
 \begin{itemize}
 \item \textbf{APIs acceso datos}: Solo lectura, consulta estado/históricos
 \item \textbf{APIs control}: Modificación configuración, operaciones remotas
-\item \textbf{Streaming WebSockets}: Datos tiempo real, hasta 1000Hz validado
+\item \textbf{Streaming WebSockets}: Datos tiempo real
 \end{itemize}
 
 \vspace{0.5em}
@@ -629,7 +616,7 @@ El desarrollo se organizó en \textbf{tres iteraciones principales} que evolucio
 
 \vspace{0.5em}
 
-\textbf{Funcionalidades avanzadas}: Soporte PS4, algoritmos ICA/wavelet, integración MNE-Python
+\textbf{Funcionalidades avanzadas}: Soporte PS4, algoritmos ICA, integración MNE-Python
 
 \end{frame}
 
@@ -664,7 +651,6 @@ El desarrollo se organizó en \textbf{tres iteraciones principales} que evolucio
 \begin{itemize}
 \item Monolítico → SOLID → API: Cada fallo condujo a solución superior
 \item Pérdida muestras: 30\% → <1\% tras migración callbacks
-\item Latencia procesamiento: <100ms algoritmos avanzados
 \end{itemize}
 
 \end{frame}
@@ -710,7 +696,7 @@ El desarrollo se organizó en \textbf{tres iteraciones principales} que evolucio
 \begin{column}{0.5\textwidth}
 \textbf{Desafíos superados}
 \begin{itemize}
-\item \textcolor{orange}{\textbf{Fallos integración}}: Revelaron importancia de considerar integración desde inicio
+\item \textcolor{orange}{\textbf{Fallos integración}}: Revelaron importancia de considerar interacción desde inicio
 \item \textcolor{orange}{\textbf{Rendimiento tiempo real}}: Python viable para sistemas BCI con optimizaciones
 \item \textcolor{orange}{\textbf{Complejidad experimental}}: Metodología iterativa esencial
 \end{itemize}
