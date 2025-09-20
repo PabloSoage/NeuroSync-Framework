@@ -129,6 +129,8 @@ Tanto la interfaz de línea de comandos como el explorador web, delegan en la ar
 
 Por otro lado, se han implementado funcionalidades adicionales, como es el soporte para controladores, algoritmos avanzados o la integración con la herramienta MNE-Python.
 
+------------
+
 Por último, se ha avanzado en el desarrollo del módulo de sincronización. Este, integra ambos módulos bajo una misma interfaz capaz de acceder a los streams de ambos, sincronizandolos en tiempo real en múltiples formatos. 
 
 Sin embargo, este módulo no se ha dado por completado debido a ciertos errores en la exportación del formato HDF/HDF+ y la falta de una verificación exhaustiva en la sincronización realizada en el resto de formatos

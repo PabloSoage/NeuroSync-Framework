@@ -630,6 +630,31 @@ Se asignaron solo 2 semanas para la integración, considerándola trivial
 \end{frame}
 
 \begin{frame}
+\frametitle{Módulo de sincronización}
+
+\textbf{Objetivo}: Integrar ambos módulos bajo interfaz unificada con sincronización temporal
+
+\vspace{0.5em}
+
+\textbf{Funcionalidades implementadas}:
+\begin{itemize}
+\item Acceso simultáneo a streams EEG + eventos usuario
+\item Sincronización tiempo real con timestamps precisos
+\item Exportación múltiples formatos (CSV, HDF5, BIDS, EDF/EDF+)
+\item Validación arquitectura API como solución viable
+\end{itemize}
+
+\vspace{0.5em}
+
+\textbf{Estado actual}: \textcolor{orange}{\textbf{Experimental - 85\% completado}}
+\begin{itemize}
+\item \textcolor{red}{Errores exportación EDF/EDF+}: Corrección pendiente
+\item \textcolor{orange}{Verificación exhaustiva}: Validación formatos restantes
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
 \frametitle{Arquitectura final - Flujo módulo entrada}
 
 \small{(Pág. 61)}
