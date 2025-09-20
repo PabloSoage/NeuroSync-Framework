@@ -131,7 +131,7 @@
     Septiembre, 2025 \\[6pt]
     \small{Directores:} \\[2pt]
     \small{Enrique Fernández Blanco} \\
-    \small{Daniel Reivero Cebrián} \\[8pt]
+    \small{Daniel Rivero Cebrián} \\[8pt]
     \includegraphics[width=45mm]{imaxes/udc.png}
       }
 
@@ -481,9 +481,7 @@ Se asignaron solo 2 semanas para la integración, considerándola trivial
 \textbf{Módulo de captura de entrada}:
 \begin{itemize}
 \item Captura eventos teclado/ratón con \textbf{pynput}
-\item 4 modos tracking ratón (axis, angle, delta, joystick)
-\item Filtrado configurable de teclas
-\item Timestamps de precisión milisegundos
+\item Con diversas opciones de configuración (modos de tracking, filtros...)
 \end{itemize}
 
 \vspace{0.5em}
@@ -492,13 +490,16 @@ Se asignaron solo 2 semanas para la integración, considerándola trivial
 \begin{itemize}
 \item Integración \textbf{BrainFlow} para múltiples dispositivos
 \item Visualización multicanal en tiempo real (PyQt5 - PyQtGraph)
-\item Monitor calidad señal y mapas topográficos
-\item Sistema ayuda contextual
+\item Monitor calidad señal, mapas topográficos...
 \end{itemize}
 
 \vspace{0.5em}
 
 \textcolor{red}{\textbf{Problema identificado}}: Arquitectura monolítica impidió integración LSL efectiva
+
+\vspace{2em}
+
+\textcolor{gray}{\textbf{Diagramas (4)}}: páginas \textbf{42} a \textbf{45} de la memoria
 
 \end{frame}
 
@@ -509,7 +510,7 @@ Se asignaron solo 2 semanas para la integración, considerándola trivial
 \includegraphics[width=\textwidth]{diagramas/ic_samples_flowchart_it1.pdf}
 \end{center}
 
-\small{(Pág. 60)}
+\small{(Pág. 43)}
 
 \end{frame}
 
@@ -520,7 +521,7 @@ Se asignaron solo 2 semanas para la integración, considerándola trivial
 \includegraphics[width=\textwidth]{diagramas/ep_samples_flowchart_it1.pdf}
 \end{center}
 
-\small{(Pág. 62)}
+\small{(Pág. 45)}
 
 \end{frame}
 
@@ -552,11 +553,15 @@ Se asignaron solo 2 semanas para la integración, considerándola trivial
 
 \textcolor{red}{\textbf{Limitación persistente}}: Sin acceso directo a streams internos entre módulos
 
+\vspace{2.0em}
+
+\textcolor{gray}{\textbf{Diagramas (7)}}: páginas \textbf{49} a \textbf{55} de la memoria
+
 \end{frame}
 
 \begin{frame}
 \frametitle{Arquitectura refactorizada - UI y visualización}
-\small{(Pág. 68)}
+\small{(Pág. 51)}
 
 \begin{center}
 \vspace*{-0.085\textheight}
@@ -573,14 +578,14 @@ Se asignaron solo 2 semanas para la integración, considerándola trivial
 \includegraphics[width=1.05\textwidth]{diagramas/ic_samples_flowchart_it2.pdf}
 \end{center}
 
-\small{(Pág. 69)}
+\small{(Pág. 52)}
 
 \end{frame}
 
 \begin{frame}
 \frametitle{Servicios centrales refactorizados - Módulo EEG}
 
-\small{(Pág. 70)}
+\small{(Pág. 53)}
 
 \begin{center}
 \vspace*{-0.08\textheight}
@@ -618,12 +623,16 @@ Se asignaron solo 2 semanas para la integración, considerándola trivial
 
 \textbf{Funcionalidades avanzadas}: Soporte PS4, algoritmos ICA, integración MNE-Python
 
+\vspace{2.0em}
+
+\textcolor{gray}{\textbf{Diagramas (6 + 35)}}: páginas \textbf{60} a \textbf{66} (memoria) y \textbf{90} a \textbf{143} (\textbf{Anexo C})
+
 \end{frame}
 
 \begin{frame}
 \frametitle{Arquitectura final - Flujo módulo entrada}
 
-\small{(Pág. 78)}
+\small{(Pág. 61)}
 
 \begin{center}
 \vspace*{-0.085\textheight}
@@ -640,7 +649,7 @@ Se asignaron solo 2 semanas para la integración, considerándola trivial
 \includegraphics[width=1.05\textwidth]{diagramas/samples_flowchart_with_streamers.pdf}
 \end{center}
 
-\small{(Pág. 83)}
+\small{(Pág. 66)}
 
 \end{frame}
 
