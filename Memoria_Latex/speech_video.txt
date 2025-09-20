@@ -1,0 +1,52 @@
+Comenzamos con el módulo de captura de señales
+Inicialmente, se muestra el visualizador de señales, con una pestaña por cada tipo de señal que hay disponible en el casco
+---------
+Aquí, se muestra brevemente la aplicación y modificación de filtros básicos en tiempo real.
+---------
+Ahora, se procede al análisis de componentes independientes con 16 componentes.
+Como se puede observar, existen distintos tipos de gráficos para los distintos componentes.
+Además, se permite la exportación de los resultados en tiempo real, como imágenes de alta resolución, tal y como se mostrará a continuación.
+
+Cabe mencionar, que también se permite el recalculado en tiempo real.
+---------
+En cuanto a la integración con MNE-Python, existen diversos modos.
+En concreto, se ilustrará el modo en tiempo real.
+Existen diversos tipos de visualizaciones, como el espectrograma que se muestra.
+Además, no afecta a otros componentes del sistema, como el stream de la derecha por ejemplo.
+---------
+Se muestra un ejemplo de plantillas para distintas placas, que indicarán los parámetros requeridos
+
+Se procede a parar el stream y desconectar la placa, antes de volver a reconectar la placa e iniciar nuevamente el stream
+
+Aquí se muestra otro ejemplo en el que se abren y cierran visualizadores.
+---------
+En cuanto al websocket, se pueden visualizar los datos como una tabla dinámica, mediante gráficas separadas, con una pestaña por cada tipo de señal, o incluso mediante una gráfica conjunta. 
+---------
+Para finalizar con este módulo, se procede a ilustrar la interfaz de línea de comandos. En este caso, se procede a la conexión de una placa, inicio del stream de datos y finalmente la monitorización de los mismos durante unos segundos
+
+####################################
+
+Procedemos ahora con el módulo de inputs
+Inicialmente se trata de conectarse a un mando cuando este no está conectado.
+Se conecta el mando y nuevamente se reintenta la conexión.
+
+A la izquierda, podemos ver visualmente el estado del mando y, a la derecha, podemos observar los logs y el estado de cada botón, joystick o trigger
+
+---------
+
+A la izquierda, podemos observar los logs generados en el websocket en tiempo real.
+
+Se diferencia en dos tipos de eventos: eventos digitales (como la pulsación de un botón), o eventos analógicos (como un joystick)
+
+---------
+
+Como ejemplo de la línea de comandos, se muestra un monitor del estado del mando.
+
+#####################################
+
+Finalmente, se procede a mostrar el módulo de sincronización
+Lo primero que haremos, será iniciar el stream de señales y el stream de entradas de usuario.
+
+Estableceremos la precisión de sincronización, y seleccionaremos uno de los formatos disponibles. En este caso, CSV.
+
+Aquí, se pueden observar los datos sincronizados como marcadores de las señales.
