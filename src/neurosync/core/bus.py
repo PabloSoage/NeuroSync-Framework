@@ -26,9 +26,6 @@ import threading
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum
-from typing import Generic, TypeVar
-
-T = TypeVar("T")
 
 
 class Policy(Enum):
@@ -53,7 +50,7 @@ class SubStats:
 
 
 @dataclass(frozen=True, slots=True)
-class Envelope(Generic[T]):
+class Envelope[T]:
     """What a subscriber receives: the message with its global order."""
 
     seq: int
@@ -61,7 +58,7 @@ class Envelope(Generic[T]):
     msg: T
 
 
-class Subscription(Generic[T]):
+class Subscription[T]:
     """Bounded queue of one subscriber. Created by :meth:`EventBus.subscribe`."""
 
     def __init__(
@@ -143,7 +140,7 @@ class Subscription(Generic[T]):
         self._bus._remove(self)
 
 
-class EventBus(Generic[T]):
+class EventBus[T]:
     """In-process pub/sub bus, by topic."""
 
     def __init__(self) -> None:

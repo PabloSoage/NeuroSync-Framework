@@ -105,7 +105,9 @@ class SignalRing:
             ValueError: if the chunk does not match the stream or does not fit.
         """
         if chunk.stream_id != self.info.stream_id:
-            raise ValueError(f"chunk of {chunk.stream_id!r} written to ring of {self.info.stream_id!r}")
+            raise ValueError(
+                f"chunk of {chunk.stream_id!r} written to ring of {self.info.stream_id!r}"
+            )
         if chunk.n_channels != self.info.n_channels:
             raise ValueError("channel count differs from the stream")
         n = chunk.n
