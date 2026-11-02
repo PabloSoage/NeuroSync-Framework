@@ -38,9 +38,47 @@ Nothing has been run locally yet; `ruff format` has not been applied (§3).
 1. §3: run everything locally once, apply `ruff format` and add the format check to CI.
 2. **F3 · `BrainFlowSource`** (§4, fully specified).
 3. **F4 · `Recorder` + `XdfWriter`** (§5, fully specified).
-4. F5 to F12: the phase plan is in the author's private notes
+4. **`docs/history.md`** (documentation task, can be done at any point; §2.1).
+5. F5 to F12: the phase plan is in the author's private notes
    (`ideas/tfg/08-plan-de-reescritura.md` and `ideas/tfg/tareas/`). Do not
    start a phase before the previous one meets its acceptance criterion.
+
+### 2.1 Task: `docs/history.md` (readable development history)
+
+The thesis commits have short or vague messages (`...`, `conc`,
+`comprehensive v2`). They are **not** rewritten (D-17). Instead, write
+`docs/history.md`, in English, on branch `v2` (it reaches `main` with the next
+merge). Steps, in this order:
+
+1. Get the data. Run from the repository root:
+   `git log --reverse --date=short --format='%h|%ad|%s' 582ec37`. Also run
+   `git log --reverse --date=short --stat --format='@@%h|%ad|%s' 582ec37`
+   for the files touched by each commit. The range is the whole development,
+   from the first commit (April 2025) to `582ec37` (2026-04-22, licence and
+   README).
+2. Split the commits into stages using **only** these sources, in this priority:
+   - the planned and actual schedule in `Memoria_Latex/contido/Chapter4_Met.tex`
+     (sections "Cronograma inicial planificado" and "Cronograma real ejecutado");
+   - the three iterations in `Memoria_Latex/contido/Chapter5_Dev_it1.tex`,
+     `Chapter5_Dev_it2.tex` and `Chapter5_Dev_it3.tex`;
+   - the commit dates and the directories each commit touches (`eeg_processor/`,
+     `input_collector/`, `synchronization_module/`, `api_explorer/`,
+     `Diagrams/`, `Memoria_Latex/`).
+3. For each stage write: name, date range, first and last commit hash, number
+   of commits, what changed (1–5 bullet points, citing the report section),
+   and the old development branches that belong to it. Those branches are
+   `API_Proofs`, `FastAPI_Proofs`, `ICA_Realtime_Process`, `It1_Diagrams`,
+   `It2_Diagrams`, `PS4_Test`, `SOLID_Integrated_proofs`, `Workspace_Chats` and
+   `synchronizer`; place each one with `git merge-base main <branch>` and its
+   own `git log`.
+4. End with the cleanup commit (`b84cd11`) and the start of v2.
+5. Rules:
+   - Describe only what the commits and the report show. If a stage cannot be
+     explained from them, write "unclear from the history" instead of guessing.
+   - Do not copy commit messages verbatim when they say nothing (`...`); give
+     the files and the report section instead.
+   - Keep it under ~250 lines.
+   - Add a link to `docs/history.md` in the README "Branches" section.
 
 ## 3. First step at home: local run and formatting
 
