@@ -27,7 +27,7 @@ def test_clocks_implement_the_protocol() -> None:
 def test_clock_resolution_is_microseconds_or_better() -> None:
     # F1 criterion: smallest step < 1 us. Measure the smallest non-zero increment.
     clock = PerfCounterClock()
-    steps = []
+    steps: list[int] = []
     prev = clock.now_ns()
     while len(steps) < 1000:
         now = clock.now_ns()
