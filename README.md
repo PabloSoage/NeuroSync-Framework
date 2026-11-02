@@ -53,7 +53,7 @@ A dynamic web middleware serving real-time data to external clients and browsers
 
 ### Prerequisites
 * Python 3.11.4 (Recommended)
-* FMOD / SDL libraries (provided in `/libs` for PS4 controller support)
+* PS4 controller support uses SDL2 through `pysdl2` and `pysdl2-dll`, both installed from `requirements.txt`
 
 ### Installation & Execution
 It is highly recommended to use a virtual environment. The required dependencies include `brainflow`, `PyQt5`, `pyqtgraph`, `scipy`, `mne`, `fastapi`, `typer`, `rich`, and optionally `pylsl`.
@@ -95,7 +95,38 @@ python synchronization_module/run.py
 
 Comprehensive technical documentation is included in the repository:
 * **`/Memoria_Latex`**: Contains the LaTeX source and the final PDF of the academic manuscript, detailing the mathematical foundations and methodology.
-* **`/Diagrams`**: Contains UML architectures, flowcharts, and component integrations rendered in Mermaid (`.md`) and `.pdf`.
+* **`/Diagrams`**: The final UML architectures, flowcharts, and component integrations of each module (`final_diagrams/`, Mermaid sources plus their `.pdf` renders, including the per-iteration versions in `It1/` and `It2/`), and a description of each module (`README_en.md`, `README_es.md`).
+
+---
+
+## Known Limitations
+
+This branch is the code as delivered for the Final Degree Project (2025). A later
+review found the following limitations, kept here so that nobody relies on them
+by accident:
+
+* **Synchronization is experimental.** The integrated synchronization module stamps
+  EEG chunks and input events with `time.time()` on arrival; it does not use LSL
+  clock correction. On Windows with Python 3.11 and 3.12, `time.time()` advances
+  in steps of about 15.6 ms. The report (`Memoria_Latex`) already lists the
+  synchronization module and the EDF+/HDF5/BIDS exports as future work.
+* **Long sessions.** Acquisition reads with `get_current_board_data()`, which does
+  not drain BrainFlow's ring buffer; with the default buffer the stream stops
+  delivering new data after about 30 minutes at 250 Hz.
+* **Applying filters while recording** re-sends the 30 s display buffer to
+  consumers, so recordings may contain duplicated samples.
+* **The web API is meant for local use only.** It has no authentication and its
+  CORS policy is permissive; do not expose it beyond `127.0.0.1`.
+
+These issues are addressed in the v2 rewrite (see below), not in this branch.
+
+## Branches
+
+| Branch | Contents |
+|---|---|
+| `main` | The final code of the Final Degree Project, its report (`Memoria_Latex`) and the final diagrams. Its history is the whole development (455 commits, April–September 2025) followed by a single cleanup commit that keeps only the final diagrams. |
+| `v2` | Work-in-progress rewrite: a single installable package (`src/neurosync`), one monotonic clock, lock-free ring buffers, XDF recording, a headless server with GUI/CLI/web clients and a Qt 6 GUI. See `docs/status.md` on that branch. |
+| `full-history` | The last development commit before the cleanup (`582ec37`), with every intermediate diagram and draft still in the tree. |
 
 ---
 
