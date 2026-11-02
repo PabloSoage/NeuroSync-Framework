@@ -29,20 +29,20 @@ written on. The first execution will be GitHub CI, or yours at home.
 | F2 | `SignalSource` interface and `SourceStats` | `src/neurosync/acquisition/source.py` | — |
 | F2 | `SimulatedSource`: deterministic signal, drift, drops, duplicates, synchronous mode (`emit_range`) and threaded mode | `src/neurosync/acquisition/simulated.py` | `tests/unit/test_simulated.py` |
 
-**None of this has been run.** Only the syntax was checked with `ast.parse`.
-Small mypy or ruff failures, or a test that needs adjusting, are likely: fixing
-them is the first job (§3).
+**CI is green** on commit `28313a1` (2026-11-02): ruff, strict mypy,
+import-linter and all tests on Ubuntu and Windows with Python 3.12 and 3.13.
+Nothing has been run locally yet; `ruff format` has not been applied (§3).
 
 ## 2. Remaining (mandatory order)
 
-1. §3: get CI green.
+1. §3: run everything locally once, apply `ruff format` and add the format check to CI.
 2. **F3 · `BrainFlowSource`** (§4, fully specified).
 3. **F4 · `Recorder` + `XdfWriter`** (§5, fully specified).
 4. F5 to F12: the phase plan is in the author's private notes
    (`ideas/tfg/08-plan-de-reescritura.md` and `ideas/tfg/tareas/`). Do not
    start a phase before the previous one meets its acceptance criterion.
 
-## 3. First step at home: green CI
+## 3. First step at home: local run and formatting
 
 On the Windows PC or workstation (PowerShell), with Python 3.13:
 
@@ -86,7 +86,8 @@ Rules when fixing failures:
 - Commit with `git -c user.name="Pablo Soage" -c user.email=p.soage@udc.es commit`,
   without `Co-Authored-By`, message in English.
 
-Exit criterion for §3: CI on branch `v2` green in the 4 test jobs and in `lint`.
+Exit criterion for §3: the same commands pass locally on Windows, `ruff format` is
+applied and committed, and CI (now including `ruff format --check`) is green.
 
 ## 4. F3 · `BrainFlowSource` (next phase)
 
