@@ -1,0 +1,96 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "neurosync"
+version = "0.1.0.dev0"
+description = "Synchronized capture of EEG and input events to build BCI datasets"
+readme = "README.md"
+license = "GPL-3.0-only"
+license-files = ["LICENSE"]
+authors = [{ name = "Pablo Soage Rodas", email = "p.soage@udc.es" }]
+requires-python = ">=3.12"
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+# Core: numpy only. Each phase adds its own extra (see docs/decisions.md).
+dependencies = ["numpy>=2.0,<3"]
+
+[project.optional-dependencies]
+brainflow = ["brainflow>=5.16,<6"]
+dev = [
+    "pytest>=8",
+    "hypothesis>=6.100",
+    "ruff>=0.7",
+    "mypy>=1.13",
+    "import-linter>=2.1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/neurosync"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+    "slow: tests longer than a few seconds (exclude with -m 'not slow')",
+    "windows: only meaningful on Windows",
+    "hardware: need real hardware (RP2040, Raspberry Pi); never in CI",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+# The thesis code stays as reference until phase F12; it is not linted.
+extend-exclude = ["eeg_processor", "input_collector", "synchronization_module", "api_explorer", "Memoria_Latex", "Diagrams", "delete_pycache.py"]
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",   # pycodestyle and pyflakes
+    "I",             # import order
+    "B",             # bugbear
+    "BLE",           # blind except (BLE001)
+    "E722",          # bare except
+    "T20",           # no print
+    "DTZ",           # no naive datetime
+    "UP",            # modern syntax
+    "SIM",
+    "RUF",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["T20"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+files = ["src", "tests"]
+
+[[tool.mypy.overrides]]
+module = ["brainflow.*"]
+ignore_missing_imports = true
+
+[tool.importlinter]
+root_packages = ["neurosync"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "core depends on nothing heavy nor on the rest of the package"
+type = "forbidden"
+source_modules = ["neurosync.core"]
+forbidden_modules = [
+    "neurosync.acquisition",
+    "PyQt5", "PyQt6", "PySide6", "fastapi", "uvicorn", "brainflow", "pylsl", "mne",
+]
+
+[[tool.importlinter.contracts]]
+name = "acquisition does not depend on user interfaces"
+type = "forbidden"
+source_modules = ["neurosync.acquisition"]
+forbidden_modules = ["PyQt5", "PyQt6", "PySide6", "fastapi", "uvicorn"]

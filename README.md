@@ -1,5 +1,13 @@
 # NeuroSync Framework
 
+> **Branch `v2`: rewrite in progress.** The new code lives in `src/neurosync`
+> (tests in `tests/`, CI in `.github/workflows/ci.yml`). Start with
+> [`docs/status.md`](docs/status.md) (what is done and the exact next steps) and
+> [`docs/decisions.md`](docs/decisions.md) (closed design decisions). The thesis
+> code below (`eeg_processor/`, `input_collector/`, `synchronization_module/`,
+> `api_explorer/`) is kept unchanged as reference until v2 reaches parity.
+
+
 An open-source software suite developed for the simultaneous capture, processing, and visualization of neurophysiological signals (EEG) and human-interface device (HID) inputs. 
 
 Developed as a **Final Degree Project** in **Computer Engineering (Computing Specialization)**, this framework provides a modular pipeline for real-time data ingestion from commercial EEG headsets, signal filtering, artifact rejection (ICA), and user interaction tracking.
