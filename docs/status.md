@@ -1,7 +1,8 @@
 # v2 status and how to continue
 
-Last update: 2026-11-02. Working branch: **`v2`** (branched from the clean
-`main`; the old history is on branch `full-history`).
+Last update: 2026-11-02. Working branch: **`v2`**, branched from `main`. `main`
+is the whole development history of the thesis (455 commits) plus one cleanup
+commit; branch `full-history` points to the last commit before that cleanup.
 
 This file says what is done, what has not been verified, and **exactly** what
 to do next, step by step. It is written so that anyone (or any agent) can follow
