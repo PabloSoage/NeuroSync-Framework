@@ -18,16 +18,29 @@ Developed as a **Final Degree Project (TFG)** in **Computer Engineering (Computi
 
 All user interfaces run out of the box and can be tested without physical hardware using the built-in synthetic board engine.
 
-| Desktop EEG Visualizer | EEG Processing & Control |
+### 1. EEG Biosignal Processing & Analysis
+| Multi-Channel Waveform Oscilloscope | Digital Filtering & DSP Controls |
 |:---:|:---:|
-| <img src="assets/screenshots/gui_eeg_signals.webp" width="460" alt="EEG Multi-signal Visualizer"> | <img src="assets/screenshots/gui_eeg_processor.webp" width="460" alt="EEG Processor Desktop GUI"> |
-| Real-time multi-channel EEG waveform streaming (`SYNTHETIC_BOARD`) | Connection management, filter configuration, and DSP controls |
-| **Input Collector (Keyboard & Mouse)** | **Input Collector (DualShock 4)** |
-| <img src="assets/screenshots/gui_input_collector.webp" width="460" alt="Input Collector Keyboard and Mouse"> | <img src="assets/screenshots/gui_input_ps4.webp" width="460" alt="Input Collector PS4 Controller"> |
-| Real-time keyboard/mouse event listener & coordinate tracking | DualShock 4 controller visualizer with SDL2 event pump |
-| **Dynamic Web API Explorer (FastAPI)** | **Interactive Terminal CLI (Rich & Typer)** |
+| <img src="assets/screenshots/gui_eeg_waves.webp" width="460" alt="EEG Multi-signal Visualizer"> | <img src="assets/screenshots/gui_dsp_filters.webp" width="460" alt="EEG Filters and Processing Panel"> |
+| Real-time 16-channel EEG oscilloscope streaming (`SYNTHETIC_BOARD`) | Bandpass (Butterworth/Chebyshev/Bessel), Notch 50Hz, detrending & metrics |
+| **Brain Topomap (10-20 System)** | **MNE-Python & Spectrogram** |
+| <img src="assets/screenshots/gui_brain_topomap.webp" width="460" alt="10-20 Brain Topomap Quality Visualizer"> | <img src="assets/screenshots/gui_mne_spectrogram.webp" width="460" alt="MNE Spectrogram and PSD Panel"> |
+| 2D electrode scalp layout with dynamic signal quality color indicators | Real-time continuous spectrogram, Power Spectral Density (PSD) & raw MNE |
+| **Artifact Rejection (FastICA)** | **Hardware Connection & Presets** |
+| <img src="assets/screenshots/gui_fastica_analysis.webp" width="460" alt="FastICA Component Decomposition"> | <img src="assets/screenshots/gui_eeg_processor.webp" width="460" alt="EEG Connection Management"> |
+| Independent Component Analysis (ICA) in isolated worker processes | Headset device selection, baudrate configuration, and stream initialization |
+
+### 2. Behavioral HID Ingestion & Peripherals
+| Sony DualShock 4 Controller (SDL2) | Keyboard & Mouse Capture |
+|:---:|:---:|
+| <img src="assets/screenshots/gui_input_ps4.webp" width="460" alt="DualShock 4 Visualizer"> | <img src="assets/screenshots/gui_input_collector.webp" width="460" alt="Keyboard and Mouse Input Collector"> |
+| Interactive gamepad visualizer with analog stick tracking & button overlays | Real-time keydown/keyup listener, mouse position deltas, and live logging |
+
+### 3. Remote Streaming & Terminal Environments
+| Dynamic Web API Explorer (FastAPI) | Interactive Terminal CLI (Rich & Typer) |
+|:---:|:---:|
 | <img src="assets/screenshots/web_api_explorer.webp" width="460" alt="FastAPI Web Explorer"> | <img src="assets/screenshots/cli_interactive_terminal.webp" width="460" alt="Interactive CLI Terminal"> |
-| In-browser interactive dashboard with WebSocket streaming and dark mode | REPL shell and live status tables with Rich telemetry |
+| In-browser interactive dashboard with WebSocket streaming and dark mode | Headless REPL shell and live status tables with Rich telemetry |
 
 ---
 
