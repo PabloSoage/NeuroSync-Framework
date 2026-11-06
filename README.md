@@ -23,11 +23,22 @@ All user interfaces run out of the box and can be tested without physical hardwa
 |:---:|:---:|
 | <img src="assets/screenshots/gui_eeg_waves.webp" width="460" alt="EEG Multi-channel Waveform Oscilloscope"> | <img src="assets/screenshots/gui_dsp_filters.webp" width="460" alt="EEG Digital Filters and DSP Panel"> |
 | Real-time 16-channel EEG streaming (`SYNTHETIC_BOARD`) with adjustable time scales | IIR bandpass (Butterworth, Chebyshev, Bessel), Notch 50Hz, detrending & SNR metrics |
-| **Brain Topomap (10-20 Electrode System)** | **Artifact Rejection (FastICA Decomposition)** |
-| <img src="assets/screenshots/gui_brain_topomap.webp" width="460" alt="10-20 Brain Topomap Quality Visualizer"> | <img src="assets/screenshots/gui_fastica_analysis.webp" width="460" alt="FastICA Component Decomposition"> |
-| 2D electrode scalp layout with dynamic impedance & signal quality color indicators | Independent Component Analysis (ICA) offloaded to background worker processes |
+| **Brain Topomap (10-20 Electrode System)** | **Hardware Connection & Presets** |
+| <img src="assets/screenshots/gui_brain_topomap.webp" width="460" alt="10-20 Brain Topomap Quality Visualizer"> | <img src="assets/screenshots/gui_eeg_processor.webp" width="460" alt="EEG Connection Management"> |
+| 2D electrode scalp layout with dynamic impedance & signal quality color indicators | Headset device selection, baudrate configuration, and stream initialization |
 
-### 2. Advanced Scientific Analysis with MNE-Python
+### 2. Advanced Signal Processing & FastICA Artifact Rejection
+CPU-intensive mathematical transformations are offloaded to dedicated background multiprocessing worker pools (`ICAProcessService`), keeping the Qt GUI reactive at all times:
+
+| Advanced Processing Configuration Panel | FastICA Component Visualization Dialog |
+|:---:|:---:|
+| <img src="assets/screenshots/gui_advanced_processing.webp" width="460" alt="Advanced Signal Processing Panel"> | <img src="assets/screenshots/gui_fastica_analysis.webp" width="460" alt="FastICA Component Decomposition Dialog"> |
+| Real-time ICA parameter tuning, Wavelet multiresolution denoising (db4), and Decimation | Interactive component viewer displaying Mixing/Unmixing matrices and independent sources |
+| **Standalone ICA Decomposition Render** | **Wavelet & Filter Pipeline** |
+| <img src="assets/screenshots/ica_decomposition_overview.webp" width="460" alt="FastICA Spatial Filters and Source Separation"> | <img src="assets/screenshots/gui_dsp_filters.webp" width="460" alt="Real-time Signal Conditioning"> |
+| High-resolution separation of ocular blink artifacts and occipital alpha rhythms | Microsecond-latency pipeline combining hardware streaming with mathematical transforms |
+
+### 3. Scientific Spectral Analysis with MNE-Python
 The framework bridges raw BrainFlow ring-buffers directly into `MNE-Python` scientific data structures (`mne.io.RawArray`), enabling high-fidelity spectral and time-frequency transformations:
 
 | Time-Frequency Spectrogram (0.5 – 50 Hz) | Multi-Channel Welch Power Spectral Density (PSD) |
@@ -38,13 +49,13 @@ The framework bridges raw BrainFlow ring-buffers directly into `MNE-Python` scie
 | <img src="assets/screenshots/gui_mne_topomap.webp" width="460" alt="MNE Band Power Topomap"> | <img src="assets/screenshots/mne_spectrogram_render.webp" width="460" alt="MNE Spectrogram High-Resolution Render"> |
 | Multi-electrode spatial band power (Alpha 8–13 Hz, Beta, Theta) with plasma colormap | Direct publication-ready scientific plot exported from the MNE visualizer worker |
 
-### 3. Behavioral HID Ingestion & Gamepads
+### 4. Behavioral HID Ingestion & Gamepads
 | Sony DualShock 4 Controller (SDL2) | Keyboard & Mouse Capture |
 |:---:|:---:|
 | <img src="assets/screenshots/gui_input_ps4.webp" width="460" alt="DualShock 4 Visualizer"> | <img src="assets/screenshots/gui_input_collector.webp" width="460" alt="Keyboard and Mouse Input Collector"> |
 | Interactive gamepad visualizer with analog stick tracking & button state overlays | Real-time keydown/keyup listener, mouse delta logging, and microsecond timestamps |
 
-### 4. Remote Streaming & Terminal Environments
+### 5. Remote Streaming & Terminal Environments
 | Dynamic Web API Explorer (FastAPI) | Interactive Terminal CLI (Rich & Typer) |
 |:---:|:---:|
 | <img src="assets/screenshots/web_api_explorer.webp" width="460" alt="FastAPI Web Explorer"> | <img src="assets/screenshots/cli_interactive_terminal.webp" width="460" alt="Interactive CLI Terminal"> |
