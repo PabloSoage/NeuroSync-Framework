@@ -121,6 +121,11 @@ class BrainFlowSource:
         return dataclasses.replace(self._stats)
 
     @property
+    def is_alive(self) -> bool:
+        """Whether the acquisition reading thread is currently running."""
+        return self._thread is not None and self._thread.is_alive()
+
+    @property
     def error(self) -> Exception | None:
         """Exception that stopped the thread, if any."""
         return self._error

@@ -27,6 +27,12 @@ dsp = [
     "scikit-learn>=1.4",
 ]
 input = ["pynput>=1.7"]
+server = [
+    "pydantic>=2.0",
+    "fastapi>=0.110",
+    "uvicorn>=0.28",
+    "websockets>=12.0",
+]
 dev = [
     "pytest>=8",
     "hypothesis>=6.100",
@@ -38,6 +44,11 @@ dev = [
     "scipy>=1.13",
     "scikit-learn>=1.4",
     "pynput>=1.7",
+    "pydantic>=2.0",
+    "fastapi>=0.110",
+    "uvicorn>=0.28",
+    "websockets>=12.0",
+    "httpx>=0.27",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -100,6 +111,7 @@ forbidden_modules = [
     "neurosync.dsp",
     "neurosync.input",
     "neurosync.export",
+    "neurosync.server",
     "PyQt5", "PyQt6", "PySide6", "fastapi", "uvicorn", "brainflow", "pylsl", "mne", "scipy", "sklearn",
 ]
 
@@ -132,3 +144,9 @@ name = "export does not depend on user interfaces"
 type = "forbidden"
 source_modules = ["neurosync.export"]
 forbidden_modules = ["PyQt5", "PyQt6", "PySide6", "fastapi", "uvicorn"]
+
+[[tool.importlinter.contracts]]
+name = "server does not depend on Qt"
+type = "forbidden"
+source_modules = ["neurosync.server"]
+forbidden_modules = ["PyQt5", "PyQt6", "PySide6"]

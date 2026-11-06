@@ -345,6 +345,11 @@ class Recorder:
             self._error = exc
 
     @property
+    def is_alive(self) -> bool:
+        """Whether the recording thread is currently active."""
+        return self._thread is not None and self._thread.is_alive()
+
+    @property
     def error(self) -> Exception | None:
         """Exception that stopped the thread, if any."""
         return self._error
