@@ -29,17 +29,17 @@ written on. The first execution will be GitHub CI, or yours at home.
 | F2 | `SignalSource` interface and `SourceStats` | `src/neurosync/acquisition/source.py` | — |
 | F2 | `SimulatedSource`: deterministic signal, drift, drops, duplicates, synchronous mode (`emit_range`) and threaded mode | `src/neurosync/acquisition/simulated.py` | `tests/unit/test_simulated.py` |
 | F3 | `BrainFlowSource` with lossless seqlock ingestion | `src/neurosync/acquisition/brainflow_source.py` | `tests/unit/test_brainflow_source.py`, `tests/integration/test_brainflow_long.py` |
+| F4 | `Recorder` and `XdfWriter` (lossless append-only XDF + sidecar) | `src/neurosync/recording/` | `tests/unit/test_xdf_writer.py`, `tests/unit/test_recorder.py` |
 
 **CI is green** on commit `28313a1` (2026-11-02): ruff, strict mypy,
 import-linter and all tests on Ubuntu and Windows with Python 3.12 and 3.13.
-Local test and formatting run on Windows with Python 3.13 completed (52 tests passed),
-`ruff format` applied and `ruff format --check` added to CI (§3 completed). F3 completed.
+Local test and formatting run on Windows with Python 3.13 completed (60 tests passed),
+`ruff format` applied and `ruff format --check` added to CI (§3 completed). F3 and F4 completed.
 
 ## 2. Remaining (mandatory order)
 
-1. **F4 · `Recorder` + `XdfWriter`** (§5, fully specified).
-2. **`docs/history.md`** (documentation task, can be done at any point; §2.1).
-3. F5 to F12: the phase plan is in the author's private notes
+1. **`docs/history.md`** (documentation task, can be done at any point; §2.1).
+2. F5 to F12: the phase plan is in the author's private notes
    (`ideas/tfg/08-plan-de-reescritura.md` and `ideas/tfg/tareas/`). Do not
    start a phase before the previous one meets its acceptance criterion.
 
