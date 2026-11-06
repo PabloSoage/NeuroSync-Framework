@@ -18,7 +18,7 @@ h5py==3.13.0
 tables==3.10.2
 
 # Optional EDF+ support
-pyedflib==0.1.40
+pyedflib>=0.1.40
 
 # Optional BIDS support and MNE visualization
 mne==1.9.0
