@@ -18,29 +18,37 @@ Developed as a **Final Degree Project (TFG)** in **Computer Engineering (Computi
 
 All user interfaces run out of the box and can be tested without physical hardware using the built-in synthetic board engine.
 
-### 1. EEG Biosignal Processing & Analysis
-| Multi-Channel Waveform Oscilloscope | Digital Filtering & DSP Controls |
+### 1. EEG Biosignal Acquisition & Real-Time DSP
+| Multi-Channel Waveform Oscilloscope | Digital Filtering & Frequency Tuning |
 |:---:|:---:|
-| <img src="assets/screenshots/gui_eeg_waves.webp" width="460" alt="EEG Multi-signal Visualizer"> | <img src="assets/screenshots/gui_dsp_filters.webp" width="460" alt="EEG Filters and Processing Panel"> |
-| Real-time 16-channel EEG oscilloscope streaming (`SYNTHETIC_BOARD`) | Bandpass (Butterworth/Chebyshev/Bessel), Notch 50Hz, detrending & metrics |
-| **Brain Topomap (10-20 System)** | **MNE-Python & Spectrogram** |
-| <img src="assets/screenshots/gui_brain_topomap.webp" width="460" alt="10-20 Brain Topomap Quality Visualizer"> | <img src="assets/screenshots/gui_mne_spectrogram.webp" width="460" alt="MNE Spectrogram and PSD Panel"> |
-| 2D electrode scalp layout with dynamic signal quality color indicators | Real-time continuous spectrogram, Power Spectral Density (PSD) & raw MNE |
-| **Artifact Rejection (FastICA)** | **Hardware Connection & Presets** |
-| <img src="assets/screenshots/gui_fastica_analysis.webp" width="460" alt="FastICA Component Decomposition"> | <img src="assets/screenshots/gui_eeg_processor.webp" width="460" alt="EEG Connection Management"> |
-| Independent Component Analysis (ICA) in isolated worker processes | Headset device selection, baudrate configuration, and stream initialization |
+| <img src="assets/screenshots/gui_eeg_waves.webp" width="460" alt="EEG Multi-channel Waveform Oscilloscope"> | <img src="assets/screenshots/gui_dsp_filters.webp" width="460" alt="EEG Digital Filters and DSP Panel"> |
+| Real-time 16-channel EEG streaming (`SYNTHETIC_BOARD`) with adjustable time scales | IIR bandpass (Butterworth, Chebyshev, Bessel), Notch 50Hz, detrending & SNR metrics |
+| **Brain Topomap (10-20 Electrode System)** | **Artifact Rejection (FastICA Decomposition)** |
+| <img src="assets/screenshots/gui_brain_topomap.webp" width="460" alt="10-20 Brain Topomap Quality Visualizer"> | <img src="assets/screenshots/gui_fastica_analysis.webp" width="460" alt="FastICA Component Decomposition"> |
+| 2D electrode scalp layout with dynamic impedance & signal quality color indicators | Independent Component Analysis (ICA) offloaded to background worker processes |
 
-### 2. Behavioral HID Ingestion & Peripherals
+### 2. Advanced Scientific Analysis with MNE-Python
+The framework bridges raw BrainFlow ring-buffers directly into `MNE-Python` scientific data structures (`mne.io.RawArray`), enabling high-fidelity spectral and time-frequency transformations:
+
+| Time-Frequency Spectrogram (0.5 – 50 Hz) | Multi-Channel Welch Power Spectral Density (PSD) |
+|:---:|:---:|
+| <img src="assets/screenshots/gui_mne_spectrogram.webp" width="460" alt="MNE Time-Frequency Spectrogram"> | <img src="assets/screenshots/gui_mne_psd.webp" width="460" alt="MNE Welch Power Spectral Density"> |
+| Short-Time Fourier Transform (STFT) spectrogram with Viridis colormap and dB power scale | Individual multi-channel Welch PSD curves across 1–50 Hz with channel legends |
+| **Scalp Band-Power Topographical Mapping** | **High-Resolution Spectral Render** |
+| <img src="assets/screenshots/gui_mne_topomap.webp" width="460" alt="MNE Band Power Topomap"> | <img src="assets/screenshots/mne_spectrogram_render.webp" width="460" alt="MNE Spectrogram High-Resolution Render"> |
+| Multi-electrode spatial band power (Alpha 8–13 Hz, Beta, Theta) with plasma colormap | Direct publication-ready scientific plot exported from the MNE visualizer worker |
+
+### 3. Behavioral HID Ingestion & Gamepads
 | Sony DualShock 4 Controller (SDL2) | Keyboard & Mouse Capture |
 |:---:|:---:|
 | <img src="assets/screenshots/gui_input_ps4.webp" width="460" alt="DualShock 4 Visualizer"> | <img src="assets/screenshots/gui_input_collector.webp" width="460" alt="Keyboard and Mouse Input Collector"> |
-| Interactive gamepad visualizer with analog stick tracking & button overlays | Real-time keydown/keyup listener, mouse position deltas, and live logging |
+| Interactive gamepad visualizer with analog stick tracking & button state overlays | Real-time keydown/keyup listener, mouse delta logging, and microsecond timestamps |
 
-### 3. Remote Streaming & Terminal Environments
+### 4. Remote Streaming & Terminal Environments
 | Dynamic Web API Explorer (FastAPI) | Interactive Terminal CLI (Rich & Typer) |
 |:---:|:---:|
 | <img src="assets/screenshots/web_api_explorer.webp" width="460" alt="FastAPI Web Explorer"> | <img src="assets/screenshots/cli_interactive_terminal.webp" width="460" alt="Interactive CLI Terminal"> |
-| In-browser interactive dashboard with WebSocket streaming and dark mode | Headless REPL shell and live status tables with Rich telemetry |
+| Dark-mode browser dashboard with WebSocket telemetry and dynamic API testing | Headless REPL shell with Rich telemetry tables for remote server deployments |
 
 ---
 
