@@ -19,6 +19,7 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: pip install -e ".[dev]"
       - run: ruff check src tests
+      - run: ruff format --check src tests
       # The thesis mypy.ini is still at the root; force the pyproject config.
       - run: mypy --config-file pyproject.toml
       - run: lint-imports
