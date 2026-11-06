@@ -17,7 +17,18 @@ SRC = Path(__file__).resolve().parents[2] / "src" / "neurosync"
 WALL_CLOCK_ALLOWED = {SRC / "core" / "anchors.py"}
 
 #: Packages ``neurosync.core`` must not load, not even indirectly (D-01).
-HEAVY = {"PyQt5", "PyQt6", "PySide6", "fastapi", "uvicorn", "brainflow", "pylsl", "mne", "scipy"}
+HEAVY = {
+    "PyQt5",
+    "PyQt6",
+    "PySide6",
+    "fastapi",
+    "uvicorn",
+    "brainflow",
+    "pylsl",
+    "mne",
+    "scipy",
+    "sklearn",
+}
 
 
 def _py_files() -> list[Path]:

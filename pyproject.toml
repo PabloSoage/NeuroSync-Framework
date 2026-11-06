@@ -22,6 +22,10 @@ dependencies = ["numpy>=2.0,<3"]
 
 [project.optional-dependencies]
 brainflow = ["brainflow>=5.16,<6"]
+dsp = [
+    "scipy>=1.13",
+    "scikit-learn>=1.4",
+]
 dev = [
     "pytest>=8",
     "hypothesis>=6.100",
@@ -30,6 +34,8 @@ dev = [
     "import-linter>=2.1",
     "brainflow>=5.16,<6",
     "pyxdf>=1.18",
+    "scipy>=1.13",
+    "scikit-learn>=1.4",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -75,7 +81,7 @@ warn_unreachable = true
 files = ["src", "tests"]
 
 [[tool.mypy.overrides]]
-module = ["brainflow.*", "pyxdf.*"]
+module = ["brainflow.*", "pyxdf.*", "sklearn.*", "scipy.*"]
 ignore_missing_imports = true
 
 [tool.importlinter]
@@ -89,7 +95,8 @@ source_modules = ["neurosync.core"]
 forbidden_modules = [
     "neurosync.acquisition",
     "neurosync.recording",
-    "PyQt5", "PyQt6", "PySide6", "fastapi", "uvicorn", "brainflow", "pylsl", "mne",
+    "neurosync.dsp",
+    "PyQt5", "PyQt6", "PySide6", "fastapi", "uvicorn", "brainflow", "pylsl", "mne", "scipy", "sklearn",
 ]
 
 [[tool.importlinter.contracts]]
@@ -102,4 +109,10 @@ forbidden_modules = ["PyQt5", "PyQt6", "PySide6", "fastapi", "uvicorn"]
 name = "recording does not depend on user interfaces"
 type = "forbidden"
 source_modules = ["neurosync.recording"]
+forbidden_modules = ["PyQt5", "PyQt6", "PySide6", "fastapi", "uvicorn"]
+
+[[tool.importlinter.contracts]]
+name = "dsp does not depend on user interfaces"
+type = "forbidden"
+source_modules = ["neurosync.dsp"]
 forbidden_modules = ["PyQt5", "PyQt6", "PySide6", "fastapi", "uvicorn"]

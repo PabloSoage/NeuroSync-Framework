@@ -71,6 +71,13 @@ class RecordingError(NeuroSyncError):
     http_status = 500
 
 
+class ProcessingError(NeuroSyncError):
+    """Failure during signal processing or transformation."""
+
+    code = "processing_error"
+    http_status = 500
+
+
 class StopTimeout(NeuroSyncError):
     """A thread or process did not stop in time. Never ignored."""
 
