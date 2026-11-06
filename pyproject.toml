@@ -99,6 +99,7 @@ forbidden_modules = [
     "neurosync.recording",
     "neurosync.dsp",
     "neurosync.input",
+    "neurosync.export",
     "PyQt5", "PyQt6", "PySide6", "fastapi", "uvicorn", "brainflow", "pylsl", "mne", "scipy", "sklearn",
 ]
 
@@ -124,4 +125,10 @@ forbidden_modules = ["PyQt5", "PyQt6", "PySide6", "fastapi", "uvicorn"]
 name = "input does not depend on user interfaces"
 type = "forbidden"
 source_modules = ["neurosync.input"]
+forbidden_modules = ["PyQt5", "PyQt6", "PySide6", "fastapi", "uvicorn"]
+
+[[tool.importlinter.contracts]]
+name = "export does not depend on user interfaces"
+type = "forbidden"
+source_modules = ["neurosync.export"]
 forbidden_modules = ["PyQt5", "PyQt6", "PySide6", "fastapi", "uvicorn"]
