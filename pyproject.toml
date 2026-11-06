@@ -26,6 +26,7 @@ dsp = [
     "scipy>=1.13",
     "scikit-learn>=1.4",
 ]
+input = ["pynput>=1.7"]
 dev = [
     "pytest>=8",
     "hypothesis>=6.100",
@@ -36,6 +37,7 @@ dev = [
     "pyxdf>=1.18",
     "scipy>=1.13",
     "scikit-learn>=1.4",
+    "pynput>=1.7",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -43,7 +45,7 @@ packages = ["src/neurosync"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra --strict-markers"
+addopts = "-ra --strict-markers -m 'not slow'"
 markers = [
     "slow: tests longer than a few seconds (exclude with -m 'not slow')",
     "windows: only meaningful on Windows",
@@ -81,7 +83,7 @@ warn_unreachable = true
 files = ["src", "tests"]
 
 [[tool.mypy.overrides]]
-module = ["brainflow.*", "pyxdf.*", "sklearn.*", "scipy.*"]
+module = ["brainflow.*", "pyxdf.*", "sklearn.*", "scipy.*", "pynput.*"]
 ignore_missing_imports = true
 
 [tool.importlinter]
@@ -96,6 +98,7 @@ forbidden_modules = [
     "neurosync.acquisition",
     "neurosync.recording",
     "neurosync.dsp",
+    "neurosync.input",
     "PyQt5", "PyQt6", "PySide6", "fastapi", "uvicorn", "brainflow", "pylsl", "mne", "scipy", "sklearn",
 ]
 
@@ -115,4 +118,10 @@ forbidden_modules = ["PyQt5", "PyQt6", "PySide6", "fastapi", "uvicorn"]
 name = "dsp does not depend on user interfaces"
 type = "forbidden"
 source_modules = ["neurosync.dsp"]
+forbidden_modules = ["PyQt5", "PyQt6", "PySide6", "fastapi", "uvicorn"]
+
+[[tool.importlinter.contracts]]
+name = "input does not depend on user interfaces"
+type = "forbidden"
+source_modules = ["neurosync.input"]
 forbidden_modules = ["PyQt5", "PyQt6", "PySide6", "fastapi", "uvicorn"]
