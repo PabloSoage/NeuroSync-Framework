@@ -56,15 +56,13 @@ The framework bridges raw BrainFlow ring-buffers directly into `MNE-Python` scie
 | Interactive gamepad visualizer with analog stick tracking & button state overlays | Real-time keydown/keyup listener, mouse delta logging, and microsecond timestamps |
 
 ### 5. Remote Streaming & Terminal Environments
-| Web Real-Time Signal Visualizer (Chart.js) | Dynamic Web API Explorer (FastAPI) |
+| Web Signal Streaming (Combined Channels) | Web Signal Streaming (Separated Channels) |
 |:---:|:---:|
-| <img src="assets/screenshots/web_api_signal_visualizer.webp" width="460" alt="Web Real-Time Signal Streaming Visualizer"> | <img src="assets/screenshots/web_api_explorer.webp" width="460" alt="FastAPI Web Explorer"> |
-| In-browser multi-channel biosignal streaming over WebSockets with live Chart.js waveforms | Dark-mode interactive dashboard with dynamic REST endpoint testing and parameter inspection |
-
-| Interactive Terminal CLI (Rich & Typer) |
-|:---:|
-| <img src="assets/screenshots/cli_interactive_terminal.webp" width="700" alt="Interactive CLI Terminal"> |
-| Headless REPL shell and live status tables with Rich telemetry for server and headless deployments |
+| <img src="assets/screenshots/web_api_signal_visualizer.webp" width="460" alt="Web Real-Time Signal Streaming - Combined Multi-channel Chart"> | <img src="assets/screenshots/web_api_signals_separated.webp" width="460" alt="Web Real-Time Signal Streaming - Separated Channels Grid"> |
+| Real-time multi-signal overlay with dynamic scaling and WebSocket telemetry | Individual channel oscilloscope grid with independent scaling per electrode |
+| **Dynamic Web API Explorer (FastAPI)** | **Interactive Terminal CLI (Rich & Typer)** |
+| <img src="assets/screenshots/web_api_explorer.webp" width="460" alt="FastAPI Web Explorer"> | <img src="assets/screenshots/cli_interactive_terminal.webp" width="460" alt="Interactive CLI Terminal"> |
+| Dark-mode browser dashboard with dynamic REST endpoint testing and parameter inspection | Headless REPL shell and live status tables with Rich telemetry for server deployments |
 
 ---
 
