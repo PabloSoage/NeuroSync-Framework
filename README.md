@@ -136,6 +136,8 @@ These issues are addressed in the v2 rewrite (see below), not in this branch.
 | `v2` | Work-in-progress rewrite: a single installable package (`src/neurosync`), one monotonic clock, lock-free ring buffers, XDF recording, a headless server with GUI/CLI/web clients and a Qt 6 GUI. See `docs/status.md` on that branch. |
 | `full-history` | The last development commit before the cleanup (`582ec37`), with every intermediate diagram and draft still in the tree. |
 
+A detailed account of the 455 thesis commits correlated with the report methodology is available in [`docs/history.md`](docs/history.md).
+
 ---
 
 ## ⚖️ License
