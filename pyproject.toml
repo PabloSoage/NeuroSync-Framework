@@ -28,6 +28,7 @@ dev = [
     "ruff>=0.7",
     "mypy>=1.13",
     "import-linter>=2.1",
+    "brainflow>=5.16,<6",
 ]
 
 [tool.hatch.build.targets.wheel]
