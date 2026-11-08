@@ -432,7 +432,7 @@
 
         // Label
         oscCtx.fillStyle = color;
-        oscCtx.font = "11px ui-monospace, monospace";
+        oscCtx.font = "11px 'Segoe UI', Consolas, monospace";
         oscCtx.fillText(name, 10, centerY + 4);
 
         // Signal trace
@@ -472,7 +472,7 @@
 
         // Label
         oscCtx.fillStyle = color;
-        oscCtx.font = "11px ui-monospace, monospace";
+        oscCtx.font = "11px 'Segoe UI', Consolas, monospace";
         oscCtx.fillText(name, 10, centerY + 4);
 
         // Signal trace
@@ -549,7 +549,7 @@
       psdCtx.fillRect(bx + 4, by, barW - 8, pwr);
 
       psdCtx.fillStyle = "rgba(255, 255, 255, 0.7)";
-      psdCtx.font = "10px ui-monospace, monospace";
+      psdCtx.font = "10px 'Segoe UI', Consolas, monospace";
       psdCtx.textAlign = "center";
       psdCtx.fillText(b.name.split(" ")[0], bx + barW / 2, cssH - 8);
     });

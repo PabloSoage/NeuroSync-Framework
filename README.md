@@ -77,7 +77,21 @@ Built on **PySide6** and **pyqtgraph**, providing ultra-low latency real-time bi
 | <img src="assets/screenshots/gui_v2_desktop_stacked.webp" width="460" alt="NeuroSync v2 Desktop GUI Multi-channel Oscilloscope"> | <img src="assets/screenshots/gui_v2_desktop_spectral.webp" width="460" alt="NeuroSync v2 Spectral PSD and Band Power Analyzer"> |
 | Real-time 16-channel EEG streaming (`SYNTHETIC_BOARD`) with adjustable time scales (2s/5s/10s), gain multipliers, and channel montage labels | Welch Power Spectral Density (1–50 Hz) and real-time power bars for Delta, Theta, Alpha, Beta, and Gamma bands |
 
-### 2. Real-Time Web Dashboard & Visualizer (`neurosyncd`)
+### 2. EEG Biosignal Visualizer & Acquisition Suite
+The framework provides comprehensive visualization and hardware management tools:
+
+| Multi-Channel Waveform Oscilloscope | Digital Filtering & Frequency Tuning |
+|:---:|:---:|
+| <img src="assets/screenshots/gui_eeg_waves.webp" width="460" alt="EEG Multi-channel Waveform Oscilloscope"> | <img src="assets/screenshots/gui_dsp_filters.webp" width="460" alt="EEG Digital Filters and DSP Panel"> |
+| Real-time 16-channel EEG streaming (`SYNTHETIC_BOARD`) with adjustable time scales | IIR bandpass (Butterworth, Chebyshev, Bessel), Notch 50Hz, detrending & SNR metrics |
+| **Brain Topomap (10-20 Electrode System)** | **Hardware Connection & Device Presets** |
+| <img src="assets/screenshots/gui_brain_topomap.webp" width="460" alt="10-20 Brain Topomap Quality Visualizer"> | <img src="assets/screenshots/gui_eeg_processor.webp" width="460" alt="EEG Connection Management"> |
+| 2D electrode scalp layout with dynamic impedance & signal quality color indicators | Headset device selection, baudrate configuration, and stream initialization |
+| **HID Input Event Collector** | **Gamepad & Controller Tracking (PS4)** |
+| <img src="assets/screenshots/gui_input_collector.webp" width="460" alt="Keyboard and Mouse Input Collector Visualizer"> | <img src="assets/screenshots/gui_input_ps4.webp" width="460" alt="PS4 Gamepad Input Visualizer"> |
+| Synchronized tracking of keyboard keystrokes and mouse movements/clicks | Low-latency axis and button telemetry capturing gamepad inputs alongside EEG |
+
+### 3. Real-Time Web Dashboard & Visualizer (`neurosyncd`)
 High-performance HTML5 Canvas oscilloscope served directly from `neurosyncd` on `http://127.0.0.1:8000/` with binary and JSON WebSockets:
 
 | Real-Time Web Dashboard (All Channels Combined) | Individual Channel Separation Mode |
@@ -88,7 +102,7 @@ High-performance HTML5 Canvas oscilloscope served directly from `neurosyncd` on 
 | <img src="assets/screenshots/web_api_explorer.webp" width="460" alt="FastAPI Interactive API Explorer Documentation"> | <img src="assets/screenshots/web_api_signal_visualizer.webp" width="460" alt="Real-time Event Stream and Data Table"> |
 | Dynamic endpoint execution and schema inspection | High-throughput WebSocket stream of input events, hardware markers, and EEG chunks |
 
-### 3. Interactive Command Line Interface (`neurosync`)
+### 4. Interactive Command Line Interface (`neurosync`)
 Command-line client with Rich-rendered tables for terminal-only, remote server, or scripting workflows:
 
 | Typer CLI Daemon Monitoring & Session Control |
@@ -96,7 +110,7 @@ Command-line client with Rich-rendered tables for terminal-only, remote server, 
 | <img src="assets/screenshots/cli_interactive_terminal.webp" width="700" alt="NeuroSync Typer CLI Interactive Terminal"> |
 | Interactive status checking, background recording control, causal DSP filter configuration, and offline dataset exports |
 
-### 4. Advanced Signal Processing & FastICA Artifact Rejection
+### 5. Advanced Signal Processing & FastICA Artifact Rejection
 CPU-intensive mathematical transformations are offloaded to dedicated background multiprocessing worker pools (`FastIcaProcess`), keeping user interfaces reactive at all times:
 
 | Advanced Processing Configuration Panel | FastICA Component Visualization Dialog |
@@ -107,7 +121,7 @@ CPU-intensive mathematical transformations are offloaded to dedicated background
 | <img src="assets/screenshots/ica_decomposition_overview.webp" width="460" alt="FastICA Spatial Filters and Source Separation"> | <img src="assets/screenshots/gui_dsp_filters.webp" width="460" alt="Real-time Signal Conditioning"> |
 | High-resolution separation of ocular blink artifacts and occipital alpha rhythms | Microsecond-latency pipeline combining hardware streaming with mathematical transforms |
 
-### 5. Scientific Spectral Analysis with MNE-Python
+### 6. Scientific Spectral Analysis with MNE-Python
 The framework bridges raw ring-buffers directly into scientific data structures (`mne.io.RawArray`), enabling high-fidelity spectral and time-frequency transformations:
 
 | Time-Frequency Spectrogram (0.5 – 50 Hz) | Multi-Channel Welch Power Spectral Density (PSD) |

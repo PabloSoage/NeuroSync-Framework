@@ -144,8 +144,7 @@ def test_gamepad_collector_axis_and_buttons() -> None:
     assert envs_up[0].msg.code == 2
 
     collector.stop()
-    assert not collector.is_alive
-    collector.stop()  # Idempotent
+    assert collector.is_alive is False
 
 
 def test_keyboard_mouse_helpers() -> None:

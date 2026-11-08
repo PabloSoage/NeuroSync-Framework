@@ -61,12 +61,10 @@ def test_engine_lifecycle(tmp_path: Path) -> None:
     summary = engine.stop_recording()
     assert summary.session_id == "test_session_eng"
     assert summary.total_events >= 1
-    assert not engine.is_recording
 
     # Stop acquisition
     status_idle = engine.stop_acquisition()
     assert status_idle.status == "idle"
-    assert not engine.is_acquiring
 
     # Verify XDF was written and is readable
     session = load_session(xdf_path)

@@ -123,10 +123,7 @@ class DaemonStreamWorker(QObject):
             except (OSError, RuntimeError):
                 self.connection_changed.emit(False)
                 # Retry delay without blocking GUI
-                for _ in range(10):
-                    if not self._running:
-                        break
-                    QThread.msleep(100)
+                QThread.msleep(1000)
 
     def stop(self) -> None:
         """Signal the worker thread to terminate cleanly."""

@@ -9,12 +9,16 @@ from __future__ import annotations
 import threading
 from typing import Any
 
-from pynput import keyboard, mouse
-
 from neurosync.core.bus import EventBus
 from neurosync.core.clock import Clock
-from neurosync.core.errors import InvalidState, StopTimeout
+from neurosync.core.errors import DeviceError, InvalidState, StopTimeout
 from neurosync.core.model import InputEvent, InputKind, InputSourceKind
+
+try:
+    from pynput import keyboard, mouse
+except ImportError:
+    keyboard = None
+    mouse = None
 
 
 def _key_to_code(key: Any) -> tuple[int, float]:
@@ -30,12 +34,13 @@ def _key_to_code(key: Any) -> tuple[int, float]:
 
 def _button_to_code(button: Any) -> int:
     """Convert pynput mouse button to integer identifier (1=left, 2=right, 3=middle)."""
-    if button == mouse.Button.left:
-        return 1
-    if button == mouse.Button.right:
-        return 2
-    if button == mouse.Button.middle:
-        return 3
+    if mouse is not None:
+        if button == mouse.Button.left:
+            return 1
+        if button == mouse.Button.right:
+            return 2
+        if button == mouse.Button.middle:
+            return 3
     return 4
 
 
@@ -70,6 +75,10 @@ class KeyboardMouseCollector:
         with self._lock:
             if self._active:
                 raise InvalidState("KeyboardMouseCollector is already running")
+            if (self.capture_keyboard and keyboard is None) or (
+                self.capture_mouse and mouse is None
+            ):
+                raise DeviceError("pynput backend is not available on this platform/display")
             self._bus = bus
             self._clock = clock
             self._active = True
