@@ -124,13 +124,17 @@ CPU-intensive mathematical transformations are offloaded to dedicated background
 ### 6. Scientific Spectral Analysis with MNE-Python
 The framework bridges raw ring-buffers directly into scientific data structures (`mne.io.RawArray`), enabling high-fidelity spectral and time-frequency transformations:
 
-| Time-Frequency Spectrogram (0.5 – 50 Hz) | Multi-Channel Welch Power Spectral Density (PSD) |
+| Interactive MNE Analysis Dialog | High-Resolution Scientific Publication Render |
 |:---:|:---:|
-| <img src="assets/screenshots/gui_mne_spectrogram.webp" width="460" alt="MNE Time-Frequency Spectrogram"> | <img src="assets/screenshots/gui_mne_psd.webp" width="460" alt="MNE Welch Power Spectral Density"> |
-| Short-Time Fourier Transform (STFT) spectrogram with Viridis colormap and dB power scale | Individual multi-channel Welch PSD curves across 1–50 Hz with channel legends |
-| **Scalp Band-Power Topographical Mapping** | **High-Resolution Spectral Render** |
-| <img src="assets/screenshots/gui_brain_topomap.webp" width="460" alt="Scalp Band-Power Topographical Mapping"> | <img src="assets/screenshots/mne_psd_render.webp" width="460" alt="Welch Power Spectral Density Curves"> |
-| Power distribution mapped across Delta, Theta, Alpha, Beta, and Gamma bands | Welch PSD across 1–50 Hz highlighting alpha peaks (8–12 Hz) |
+| **Time-Frequency Spectrogram (0.5 – 50 Hz)** | **High-Resolution STFT Spectrogram Render** |
+| <img src="assets/screenshots/gui_mne_spectrogram.webp" width="460" alt="MNE Time-Frequency Spectrogram Dialog"> | <img src="assets/screenshots/mne_spectrogram_render.webp" width="460" alt="High-Resolution STFT Spectrogram Render"> |
+| Short-Time Fourier Transform (STFT) spectrogram with interactive channel and frequency tuning | High-resolution publication render with Viridis colormap and calibrated dB power scale |
+| **Multi-Channel Welch Power Spectral Density (PSD)** | **High-Resolution Welch PSD Curves** |
+| <img src="assets/screenshots/gui_mne_psd.webp" width="460" alt="MNE Welch Power Spectral Density Dialog"> | <img src="assets/screenshots/mne_psd_render.webp" width="460" alt="High-Resolution Welch PSD Curves"> |
+| Interactive Welch PSD across 1–50 Hz with individual color-coded channel traces and legends | High-resolution spectral density curves highlighting dominant alpha peaks (8–12 Hz) |
+| **Scalp Band-Power Topographical Mapping (8–13 Hz)** | **High-Resolution Scalp Topomap Render** |
+| <img src="assets/screenshots/gui_mne_topomap.webp" width="460" alt="MNE Scalp Alpha Band-Power Topographical Mapping Dialog"> | <img src="assets/screenshots/mne_topomap_render.webp" width="460" alt="High-Resolution Scalp Topomap Render"> |
+| Scalp electrode power distribution dialog across the Alpha rhythm band (8–13 Hz) | 16-channel publication-quality electrode scalp activation layout with exact power values |
 
 
 ---
