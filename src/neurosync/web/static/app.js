@@ -216,10 +216,12 @@
       const resp = await fetch("/api/status");
       if (resp.ok) {
         const data = await resp.json();
-        state.acquiring = data.acquiring;
-        state.recording = data.recording;
-        state.srateDisplay = data.nominal_fs;
-        el.srateDisplay.textContent = `${data.nominal_fs} Hz`;
+        state.acquiring = data.status === "acquiring" || data.status === "recording";
+        state.recording = data.status === "recording";
+        const fs = (data.primary_stream && data.primary_stream.nominal_fs) ? data.primary_stream.nominal_fs : 250;
+        state.nominalFs = fs;
+        state.srateDisplay = fs;
+        el.srateDisplay.textContent = `${fs} Hz`;
         el.lostDisplay.textContent = String(data.lost_samples || 0);
         updateStatusHeader();
       }
@@ -262,9 +264,7 @@
   async function startAcquisition() {
     const boardType = el.boardTypeSelect.value;
     const req = {
-      source_type: boardType === "synthetic" ? "brainflow_synthetic" : "simulated",
       board_id: boardType === "synthetic" ? -1 : 0,
-      stream_id: "eeg_primary",
     };
     try {
       const res = await fetch("/api/acquisition/start", {
@@ -289,7 +289,7 @@
 
   async function startRecording() {
     const sessionName = el.sessionNameInput.value.trim() || `session_${Date.now()}`;
-    const req = { session_name: sessionName };
+    const req = { output_path: `${sessionName}.xdf`, session_id: sessionName };
     try {
       const res = await fetch("/api/recording/start", {
         method: "POST",

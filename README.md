@@ -98,9 +98,9 @@ High-performance HTML5 Canvas oscilloscope served directly from `neurosyncd` on 
 |:---:|:---:|
 | <img src="assets/screenshots/web_v2_dashboard_stacked.webp" width="460" alt="NeuroSync Web Visualizer Dashboard"> | <img src="assets/screenshots/web_api_signals_separated.webp" width="460" alt="Web Multi-Channel Signal Separation Mode"> |
 | 60 FPS HTML5 Canvas oscilloscope with daemon hardware controls, marker injection, and recording panel | Independent channel strip visualizer isolating individual signal traces |
-| **Interactive OpenAPI Documentation** | **Real-Time Synchronized Event Stream** |
-| <img src="assets/screenshots/web_api_explorer.webp" width="460" alt="FastAPI Interactive API Explorer Documentation"> | <img src="assets/screenshots/web_api_signal_visualizer.webp" width="460" alt="Real-time Event Stream and Data Table"> |
-| Dynamic endpoint execution and schema inspection | High-throughput WebSocket stream of input events, hardware markers, and EEG chunks |
+| **Interactive OpenAPI Documentation** | **Real-Time Spectral Band Power & Synchronized Event Stream** |
+| <img src="assets/screenshots/web_api_explorer.webp" width="460" alt="FastAPI Interactive API Explorer Documentation"> | <img src="assets/screenshots/web_v2_dashboard_diagnostics.webp" width="460" alt="Web Real-time Spectral Band Power and Synchronized Event Stream"> |
+| Dynamic endpoint execution and schema inspection | Real-time Welch PSD band powers (Delta–Gamma) and synchronized low-latency event stream |
 
 ### 4. Interactive Command Line Interface (`neurosync`)
 Command-line client with Rich-rendered tables for terminal-only, remote server, or scripting workflows:
