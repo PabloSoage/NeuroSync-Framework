@@ -1,22 +1,73 @@
 # NeuroSync Framework 🧠⚡
 
-[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14-blue.svg)](https://www.python.org/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Platform: Windows | Linux](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgrey.svg)]()
 [![BrainFlow](https://img.shields.io/badge/BrainFlow-5.16.0-orange.svg)](https://brainflow.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688.svg)](https://fastapi.tiangolo.com/)
+[![PySide6](https://img.shields.io/badge/GUI-PySide6%20%7C%20pyqtgraph-green.svg)](https://wiki.qt.io/Qt_for_Python)
 
 An open-source software suite developed for the simultaneous capture, real-time digital processing, synchronization, and multi-interface visualization of neurophysiological signals (EEG) and human-interface device (HID) inputs.
 
-Developed as a **Final Degree Project (TFG)** in **Computer Engineering (Computing Specialization)** at Universidade da Coruña (UDC), this framework delivers a modular pipeline for data ingestion from commercial EEG headsets, digital filtering, artifact rejection (FastICA), user interaction tracking, and dynamic streaming over WebSockets and REST APIs.
+Originally developed as a **Final Degree Project (TFG)** in **Computer Engineering (Computing Specialization)** at Universidade da Coruña (UDC), the repository has been completely rewritten in **v2** into a unified, high-performance, strictly typed Python architecture (`src/neurosync`) adhering to the formal design decisions in [`docs/decisions.md`](docs/decisions.md).
 
-> **Branch notice:** This branch (`main`) contains the consolidated reference implementation of the Final Degree Project (2025). Active development for the high-performance next-generation rewrite is ongoing in the [`v2`](https://github.com/PabloSoage/NeuroSync-Framework/tree/v2) branch.
+---
+
+## 🚀 Quickstart
+
+Install with optional extras depending on your target workflow:
+
+```bash
+# Minimal installation (core DSP + single-clock engine)
+pip install -e .
+
+# Full installation (BrainFlow hardware, server daemon, CLI, web visualizer, and Qt GUI)
+pip install -e ".[dev]"
+```
+
+### 1. Launch the Server Daemon (`neurosyncd`)
+```bash
+neurosyncd --host 127.0.0.1 --port 8000
+```
+* Serves the real-time web dashboard at **http://127.0.0.1:8000/**.
+* Provides high-throughput binary and JSON WebSockets on `/ws/stream` and `/ws/events`.
+* Exposes typed OpenAPI REST endpoints on `/docs`.
+
+### 2. Desktop GUI (`neurosync-gui`)
+```bash
+neurosync-gui
+```
+* Built on **PySide6** and **pyqtgraph** for ultra-low latency rendering.
+* Stacked multi-channel EEG montage and separate channel sub-panels.
+* Real-time Welch Power Spectral Density (PSD) and band-power estimation (Delta, Theta, Alpha, Beta, Gamma).
+* Event logging, experimental marker injection, and offline export dialog.
+
+### 3. Command Line Interface (`neurosync`)
+```bash
+# Query daemon status
+neurosync status
+
+# Start acquisition on synthetic board (16 channels at 250 Hz)
+neurosync start --board-id -1
+
+# Begin streaming lossless recording to an append-only XDF file
+neurosync record --session session_001
+
+# Emit experimental marker trigger
+neurosync marker 42 --value 1.0
+
+# Stop recording and display summary
+neurosync stop-record
+
+# Offline export to CSV, EDF+, BIDS, or NumPy
+neurosync export session_001.xdf --format bids --output-dir ./bids_dataset
+```
 
 ---
 
 ## 📸 Interface Showcase
 
-All user interfaces run out of the box and can be tested without physical hardware using the built-in synthetic board engine.
+All user interfaces run out of the box and can be tested without physical hardware using the built-in synthetic board engine or deterministic simulated sources.
 
 ### 1. EEG Biosignal Acquisition & Real-Time DSP
 | Multi-Channel Waveform Oscilloscope | Digital Filtering & Frequency Tuning |
@@ -28,7 +79,7 @@ All user interfaces run out of the box and can be tested without physical hardwa
 | 2D electrode scalp layout with dynamic impedance & signal quality color indicators | Headset device selection, baudrate configuration, and stream initialization |
 
 ### 2. Advanced Signal Processing & FastICA Artifact Rejection
-CPU-intensive mathematical transformations are offloaded to dedicated background multiprocessing worker pools (`ICAProcessService`), keeping the Qt GUI reactive at all times:
+CPU-intensive mathematical transformations are offloaded to dedicated background multiprocessing worker pools (`FastIcaProcess`), keeping user interfaces reactive at all times:
 
 | Advanced Processing Configuration Panel | FastICA Component Visualization Dialog |
 |:---:|:---:|
@@ -39,153 +90,49 @@ CPU-intensive mathematical transformations are offloaded to dedicated background
 | High-resolution separation of ocular blink artifacts and occipital alpha rhythms | Microsecond-latency pipeline combining hardware streaming with mathematical transforms |
 
 ### 3. Scientific Spectral Analysis with MNE-Python
-The framework bridges raw BrainFlow ring-buffers directly into `MNE-Python` scientific data structures (`mne.io.RawArray`), enabling high-fidelity spectral and time-frequency transformations:
+The framework bridges raw ring-buffers directly into scientific data structures (`mne.io.RawArray`), enabling high-fidelity spectral and time-frequency transformations:
 
 | Time-Frequency Spectrogram (0.5 – 50 Hz) | Multi-Channel Welch Power Spectral Density (PSD) |
 |:---:|:---:|
 | <img src="assets/screenshots/gui_mne_spectrogram.webp" width="460" alt="MNE Time-Frequency Spectrogram"> | <img src="assets/screenshots/gui_mne_psd.webp" width="460" alt="MNE Welch Power Spectral Density"> |
 | Short-Time Fourier Transform (STFT) spectrogram with Viridis colormap and dB power scale | Individual multi-channel Welch PSD curves across 1–50 Hz with channel legends |
 | **Scalp Band-Power Topographical Mapping** | **High-Resolution Spectral Render** |
-| <img src="assets/screenshots/gui_mne_topomap.webp" width="460" alt="MNE Band Power Topomap"> | <img src="assets/screenshots/mne_spectrogram_render.webp" width="460" alt="MNE Spectrogram High-Resolution Render"> |
-| Multi-electrode spatial band power (Alpha 8–13 Hz, Beta, Theta) with plasma colormap | Direct publication-ready scientific plot exported from the MNE visualizer worker |
+| <img src="assets/screenshots/gui_brain_topomap.webp" width="460" alt="Scalp Band-Power Topographical Mapping"> | <img src="assets/screenshots/gui_mne_psd.webp" width="460" alt="Welch Power Spectral Density Curves"> |
+| Power distribution mapped across Delta, Theta, Alpha, Beta, and Gamma bands | Welch PSD across 1–50 Hz highlighting alpha peaks (8–12 Hz) |
 
-### 4. Behavioral HID Ingestion & Gamepads
-| Sony DualShock 4 Controller (SDL2) | Keyboard & Mouse Capture |
+### 4. Real-Time Web API Explorer & Signal Visualizer
+| Multi-Channel Signal Oscilloscope (All Channels Combined) | Individual Multi-Channel Separation Mode |
 |:---:|:---:|
-| <img src="assets/screenshots/gui_input_ps4.webp" width="460" alt="DualShock 4 Visualizer"> | <img src="assets/screenshots/gui_input_collector.webp" width="460" alt="Keyboard and Mouse Input Collector"> |
-| Interactive gamepad visualizer with analog stick tracking & button state overlays | Real-time keydown/keyup listener, mouse delta logging, and microsecond timestamps |
-
-### 5. Remote Streaming & Terminal Environments
-| Web Signal Streaming (Combined Channels) | Web Signal Streaming (Separated Channels) |
-|:---:|:---:|
-| <img src="assets/screenshots/web_api_signal_visualizer.webp" width="460" alt="Web Real-Time Signal Streaming - Combined Multi-channel Chart"> | <img src="assets/screenshots/web_api_signals_separated.webp" width="460" alt="Web Real-Time Signal Streaming - Separated Channels Grid"> |
-| Real-time multi-signal overlay with dynamic scaling and WebSocket telemetry | Individual channel oscilloscope grid with independent scaling per electrode |
-| **Dynamic Web API Explorer (FastAPI)** | **Interactive Terminal CLI (Rich & Typer)** |
-| <img src="assets/screenshots/web_api_explorer.webp" width="460" alt="FastAPI Web Explorer"> | <img src="assets/screenshots/cli_interactive_terminal.webp" width="460" alt="Interactive CLI Terminal"> |
-| Dark-mode browser dashboard with dynamic REST endpoint testing and parameter inspection | Headless REPL shell and live status tables with Rich telemetry for server deployments |
+| <img src="assets/screenshots/web_api_signal_visualizer_all.webp" width="460" alt="Web API Multi-Channel Signal Visualizer Combined View"> | <img src="assets/screenshots/web_api_signal_visualizer_separate.webp" width="460" alt="Web API Multi-Channel Signal Visualizer Separate Channels View"> |
+| Real-time multi-channel oscilloscope streaming 16 synthetic EEG channels simultaneously | Independent channel strip visualizer isolating waveforms per channel |
+| **Interactive OpenAPI Documentation** | **Real-Time Synchronized Event Stream** |
+| <img src="assets/screenshots/web_api_explorer_overview.webp" width="460" alt="FastAPI Interactive API Explorer Documentation"> | <img src="assets/screenshots/web_api_signal_visualizer.webp" width="460" alt="Real-time Event Stream and Data Table"> |
+| Dynamic endpoint execution and schema inspection | High-throughput WebSocket stream of input events, hardware markers, and EEG chunks |
 
 ---
 
-## 🏗️ Core Architecture & Modules
+## 🏛️ v2 Architecture & Technical Decisions
 
-The framework is structured as a monorepo comprising four core subsystems designed to operate autonomously or as an integrated pipeline:
+The framework follows 17 strict and closed architectural decisions documented in [`docs/decisions.md`](docs/decisions.md):
 
-```
-NeuroSync-Framework/
-├── eeg_processor/           # EEG acquisition, DSP, FastICA & PyQt5 GUI
-├── input_collector/         # Keyboard, Mouse & PS4 controller capture
-├── synchronization_module/  # Experimental unified timeline & export
-├── api_explorer/            # Shared FastAPI + WebSocket web dashboard
-├── Diagrams/                # Consolidated final architecture diagrams & specs
-└── Memoria_Latex/           # Complete academic degree thesis & presentation
-```
-
-### 1. EEG Processor (`/eeg_processor`)
-Handles real-time biosignal acquisition and digital signal processing (DSP):
-* **Hardware Abstraction:** Interfaces through `BrainFlow` to communicate with research and consumer headsets (e.g., g.tec Unicorn, OpenBCI, Muse), as well as a synthetic generator (`SYNTHETIC_BOARD`).
-* **Digital Signal Conditioning:** Implements configurable IIR filters (Butterworth, Chebyshev, Bessel), notch filters (50/60 Hz), and wavelet decomposition.
-* **Multiprocessing Isolation:** Offloads CPU-bound algorithms—such as FastICA (Independent Component Analysis) artifact rejection and `MNE-Python` continuous PSD/topomap generation—into independent OS worker processes (`multiprocessing`), ensuring the GUI thread never drops frames.
-
-### 2. Input Collector (`/input_collector`)
-Tracks and logs behavioral interaction data with microsecond-level polling:
-* **Multi-Device Tracking:** Asynchronously captures keyboard and mouse events (`pynput`) as well as Sony PlayStation 4 (DualShock 4) gamepads (via SDL2 event loops using `pysdl2` and `pysdl2-dll`).
-* **Normalized Event Engine:** Dispatches unified event payloads (`timestamp`, `device_id`, `event_type`, `state`) agnostic of the physical hardware source.
-
-### 3. Web API Explorer (`/api_explorer`)
-A high-throughput web gateway serving real-time telemetry to browsers and external clients:
-* **Dynamic Endpoint Discovery:** Auto-registers endpoints exposed by active modules at runtime.
-* **Worker Pool Architecture:** Efficient WebSocket client pool management with `orjson` serialization and batch buffering for low-latency transmission.
-* **Interactive Dashboard:** Built-in web interface featuring dark mode, dynamic method invocation forms, real-time event logs, and `Chart.js` signal streaming.
-
-### 4. Synchronization Module (`/synchronization_module`) - *Experimental*
-An integration layer unifying asynchronous EEG samples and HID event streams into a single synchronized timeline:
-* **Clock Alignment:** Leverages Lab Streaming Layer (LSL) concepts to reconcile clock offsets between hardware clocks.
-* **Standard Scientific Export:** Exports synchronized recording sessions to standard formats (CSV, HDF5 via `h5py`/`tables`, and BIDS / EDF+ structures).
+* **Single Nanosecond Monotonic Clock (D-02):** Outside of precision clock anchoring (`core/anchors.py`), only `Clock.now_ns()` is used.
+* **Lossless SPMC Ring Buffer (D-04):** `SignalRing` with sequence counters, seqlock synchronization, and zero silent data drops.
+* **Append-Only RAW XDF Recording (D-08):** Continuous in-process streaming to standard XDF files with sidecar metadata.
+* **Causal Stateful DSP (D-09):** `scipy.signal.sosfilt` with maintained initial conditions (`zi`).
+* **Decoupled Server Daemon (D-10):** `neurosyncd` owns acquisition, causal filtering, and recording without Qt or GUI dependencies.
+* **Typed Command Registry (D-11):** Pydantic v2 schemas shared across REST, WebSockets, CLI, and GUI.
+* **Standard Offline Exporters (D-08):** Pure-Python exporters for CSV, clinical EDF+ (with TAL annotations), BIDS 1.9+, and NumPy (`.npz`).
+* **Modern Desktop GUI (D-12):** PySide6 + pyqtgraph isolated strictly within `neurosync.gui.qt`.
 
 ---
 
-## 🖥️ Multi-Interface Architecture
+## 📚 Technical Documentation & Thesis History
 
-To ensure operational flexibility across experimental laboratories, server environments, and remote monitoring stations, the framework provides three distinct interface layers:
-
-1. **Native Desktop GUI (PyQt5):** Panel-based desktop application providing multi-signal oscilloscopes, 10-20 system Brain Topomaps, live filter frequency tuning, and gamepad button overlays.
-2. **Interactive CLI (Typer & Rich):** Headless terminal interface featuring an interactive command REPL (`start-stream`, `apply-filters`, etc.) and live Rich telemetry tables for server deployments.
-3. **Web API & Explorer (FastAPI):** Dynamic REST and WebSocket server with interactive dashboard and Chart.js signal plotting.
-
----
-
-## ⚙️ Quick Start
-
-### Prerequisites
-* **Python 3.11** (Recommended)
-* PS4 controller support uses SDL2 via `pysdl2` and `pysdl2-dll` (installed automatically from `requirements.txt`).
-
-### Installation
-Clone the repository and set up a virtual environment:
-
-**Windows (PowerShell / CMD):**
-```powershell
-python -m venv .venv
-.\.venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-**Linux / macOS:**
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
----
-
-### Launching the Modules
-
-You can launch the core modules independently with custom interface flags:
-
-```bash
-# 1. Launch the EEG Processor (Desktop GUI)
-python eeg_processor/run.py
-
-# 2. Launch the Input Collector (Desktop GUI + CLI shell side-by-side)
-python input_collector/run.py --cli
-
-# 3. Launch in Headless mode with the FastAPI Web Explorer enabled
-python eeg_processor/run.py --no-gui --enable-web-api --api-port 8000
-
-# 4. (Experimental) Launch the unified synchronization application
-python synchronization_module/run.py
-```
-
-### 🧪 Testing Without Physical Hardware (Synthetic Mode)
-
-You do not need a physical EEG headset or gamepad to test the entire system:
-1. Run `python eeg_processor/run.py`.
-2. In the **Connection** panel, select **Synthetic Board** (`BrainFlow BoardIds.SYNTHETIC_BOARD`).
-3. Click **Connect**, then **Start Stream**, and click **Show Visualization Window**.
-4. The multi-signal oscilloscope will immediately plot 16 channels of simulated EEG waves in real time.
-5. In another terminal, run `python input_collector/run.py` to test keyboard and mouse tracking.
-
----
-
-## 📚 Technical Documentation & Diagrams
-
-Comprehensive documentation is provided in the repository:
+* **[`docs/decisions.md`](docs/decisions.md)**: Formal architectural decisions and rules.
+* **[`docs/status.md`](docs/status.md)**: Implementation roadmap and verification criteria.
+* **[`docs/history.md`](docs/history.md)**: Chronological development log correlating the 455 thesis commits with the academic report.
 * **[`Memoria_Latex/memoria_tfg.pdf`](Memoria_Latex/memoria_tfg.pdf)**: Complete academic manuscript (in Galician) detailing the theoretical foundations, signal processing algorithms, and engineering methodology.
-* **[`Diagrams/`](Diagrams/)**: Consolidated architectural diagrams, component charts, and flowcharts in Mermaid (`.md`) and vector `.pdf` format for each module (`ApiExplorer`, `EegProcessor`, `InputCollector`), along with their respective technical specifications (`README_en.md`, `README_es.md`).
-
----
-
-## ⚠️ Known Limitations
-
-This branch represents the code as delivered for the Final Degree Project (2025). A later technical review identified the following constraints:
-
-* **Synchronization is experimental:** The integrated synchronization module stamps EEG chunks and input events with `time.time()` upon arrival rather than using hardware clock corrections. On Windows, `time.time()` advances in discrete steps of ~15.6 ms. The academic report lists EDF+/HDF5/BIDS exports and advanced clock synchronization as future work.
-* **Long recording sessions:** Signal acquisition reads using `get_current_board_data()`, which does not drain BrainFlow's internal ring buffer. With default buffer sizes, stream updates halt after ~30 minutes at 250 Hz.
-* **Filter re-transmission:** Applying digital filters during an active recording re-emits the 30-second display buffer to consumers, which can cause duplicated samples in naive recording listeners.
-* **Web API loopback:** The FastAPI server is designed for local laboratory use without authentication; do not expose it beyond `127.0.0.1`.
-
-*These architectural limitations are directly addressed in the [`v2`](https://github.com/PabloSoage/NeuroSync-Framework/tree/v2) rewrite.*
+* **[`Diagrams/`](Diagrams/)**: Consolidated architectural diagrams, component charts, and flowcharts in Mermaid and vector PDF formats.
 
 ---
 
@@ -193,9 +140,9 @@ This branch represents the code as delivered for the Final Degree Project (2025)
 
 | Branch | Description |
 |---|---|
-| `main` | Final reference code of the Final Degree Project, academic report (`Memoria_Latex`), final consolidated diagrams, and documentation. |
-| [`v2`](https://github.com/PabloSoage/NeuroSync-Framework/tree/v2) | Next-generation rewrite: unified installable package (`src/neurosync`), monotonic nanosecond clock, lock-free ring buffers, XDF recording, headless core, and Qt 6 GUI. |
-| `full-history` | Archived branch (`commit 582ec37`) preserving every intermediate diagram, draft, and commit prior to the final repository cleanup. |
+| `main` | Production branch containing the consolidated v2 rewrite (`src/neurosync`), full test suite, academic report (`Memoria_Latex`), and diagrams. |
+| [`v2`](https://github.com/PabloSoage/NeuroSync-Framework/tree/v2) | Feature branch for ongoing v2 development and experimental pipelines. |
+| `full-history` | Archived branch (`commit 582ec37`) preserving every intermediate commit prior to the final repository cleanup. |
 
 ---
 
