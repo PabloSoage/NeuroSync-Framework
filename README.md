@@ -69,16 +69,34 @@ neurosync export session_001.xdf --format bids --output-dir ./bids_dataset
 
 All user interfaces run out of the box and can be tested without physical hardware using the built-in synthetic board engine or deterministic simulated sources.
 
-### 1. EEG Biosignal Acquisition & Real-Time DSP
-| Multi-Channel Waveform Oscilloscope | Digital Filtering & Frequency Tuning |
-|:---:|:---:|
-| <img src="assets/screenshots/gui_eeg_waves.webp" width="460" alt="EEG Multi-channel Waveform Oscilloscope"> | <img src="assets/screenshots/gui_dsp_filters.webp" width="460" alt="EEG Digital Filters and DSP Panel"> |
-| Real-time 16-channel EEG streaming (`SYNTHETIC_BOARD`) with adjustable time scales | IIR bandpass (Butterworth, Chebyshev, Bessel), Notch 50Hz, detrending & SNR metrics |
-| **Brain Topomap (10-20 Electrode System)** | **Hardware Connection & Presets** |
-| <img src="assets/screenshots/gui_brain_topomap.webp" width="460" alt="10-20 Brain Topomap Quality Visualizer"> | <img src="assets/screenshots/gui_eeg_processor.webp" width="460" alt="EEG Connection Management"> |
-| 2D electrode scalp layout with dynamic impedance & signal quality color indicators | Headset device selection, baudrate configuration, and stream initialization |
+### 1. Next-Generation v2 Desktop GUI (`neurosync-gui`)
+Built on **PySide6** and **pyqtgraph**, providing ultra-low latency real-time biosignal visualization, causal filter controls, and session recording:
 
-### 2. Advanced Signal Processing & FastICA Artifact Rejection
+| Multi-Channel Real-Time Oscilloscope (Stacked Montage) | Real-Time Welch PSD & EEG Band Powers |
+|:---:|:---:|
+| <img src="assets/screenshots/gui_v2_desktop_stacked.webp" width="460" alt="NeuroSync v2 Desktop GUI Multi-channel Oscilloscope"> | <img src="assets/screenshots/gui_v2_desktop_spectral.webp" width="460" alt="NeuroSync v2 Spectral PSD and Band Power Analyzer"> |
+| Real-time 16-channel EEG streaming (`SYNTHETIC_BOARD`) with adjustable time scales (2s/5s/10s), gain multipliers, and channel montage labels | Welch Power Spectral Density (1–50 Hz) and real-time power bars for Delta, Theta, Alpha, Beta, and Gamma bands |
+
+### 2. Real-Time Web Dashboard & Visualizer (`neurosyncd`)
+High-performance HTML5 Canvas oscilloscope served directly from `neurosyncd` on `http://127.0.0.1:8000/` with binary and JSON WebSockets:
+
+| Real-Time Web Dashboard (All Channels Combined) | Individual Channel Separation Mode |
+|:---:|:---:|
+| <img src="assets/screenshots/web_v2_dashboard_stacked.webp" width="460" alt="NeuroSync Web Visualizer Dashboard"> | <img src="assets/screenshots/web_api_signals_separated.webp" width="460" alt="Web Multi-Channel Signal Separation Mode"> |
+| 60 FPS HTML5 Canvas oscilloscope with daemon hardware controls, marker injection, and recording panel | Independent channel strip visualizer isolating individual signal traces |
+| **Interactive OpenAPI Documentation** | **Real-Time Synchronized Event Stream** |
+| <img src="assets/screenshots/web_api_explorer.webp" width="460" alt="FastAPI Interactive API Explorer Documentation"> | <img src="assets/screenshots/web_api_signal_visualizer.webp" width="460" alt="Real-time Event Stream and Data Table"> |
+| Dynamic endpoint execution and schema inspection | High-throughput WebSocket stream of input events, hardware markers, and EEG chunks |
+
+### 3. Interactive Command Line Interface (`neurosync`)
+Command-line client with Rich-rendered tables for terminal-only, remote server, or scripting workflows:
+
+| Typer CLI Daemon Monitoring & Session Control |
+|:---:|
+| <img src="assets/screenshots/cli_interactive_terminal.webp" width="700" alt="NeuroSync Typer CLI Interactive Terminal"> |
+| Interactive status checking, background recording control, causal DSP filter configuration, and offline dataset exports |
+
+### 4. Advanced Signal Processing & FastICA Artifact Rejection
 CPU-intensive mathematical transformations are offloaded to dedicated background multiprocessing worker pools (`FastIcaProcess`), keeping user interfaces reactive at all times:
 
 | Advanced Processing Configuration Panel | FastICA Component Visualization Dialog |
@@ -89,7 +107,7 @@ CPU-intensive mathematical transformations are offloaded to dedicated background
 | <img src="assets/screenshots/ica_decomposition_overview.webp" width="460" alt="FastICA Spatial Filters and Source Separation"> | <img src="assets/screenshots/gui_dsp_filters.webp" width="460" alt="Real-time Signal Conditioning"> |
 | High-resolution separation of ocular blink artifacts and occipital alpha rhythms | Microsecond-latency pipeline combining hardware streaming with mathematical transforms |
 
-### 3. Scientific Spectral Analysis with MNE-Python
+### 5. Scientific Spectral Analysis with MNE-Python
 The framework bridges raw ring-buffers directly into scientific data structures (`mne.io.RawArray`), enabling high-fidelity spectral and time-frequency transformations:
 
 | Time-Frequency Spectrogram (0.5 – 50 Hz) | Multi-Channel Welch Power Spectral Density (PSD) |
@@ -97,17 +115,9 @@ The framework bridges raw ring-buffers directly into scientific data structures 
 | <img src="assets/screenshots/gui_mne_spectrogram.webp" width="460" alt="MNE Time-Frequency Spectrogram"> | <img src="assets/screenshots/gui_mne_psd.webp" width="460" alt="MNE Welch Power Spectral Density"> |
 | Short-Time Fourier Transform (STFT) spectrogram with Viridis colormap and dB power scale | Individual multi-channel Welch PSD curves across 1–50 Hz with channel legends |
 | **Scalp Band-Power Topographical Mapping** | **High-Resolution Spectral Render** |
-| <img src="assets/screenshots/gui_brain_topomap.webp" width="460" alt="Scalp Band-Power Topographical Mapping"> | <img src="assets/screenshots/gui_mne_psd.webp" width="460" alt="Welch Power Spectral Density Curves"> |
+| <img src="assets/screenshots/gui_brain_topomap.webp" width="460" alt="Scalp Band-Power Topographical Mapping"> | <img src="assets/screenshots/mne_psd_render.webp" width="460" alt="Welch Power Spectral Density Curves"> |
 | Power distribution mapped across Delta, Theta, Alpha, Beta, and Gamma bands | Welch PSD across 1–50 Hz highlighting alpha peaks (8–12 Hz) |
 
-### 4. Real-Time Web API Explorer & Signal Visualizer
-| Multi-Channel Signal Oscilloscope (All Channels Combined) | Individual Multi-Channel Separation Mode |
-|:---:|:---:|
-| <img src="assets/screenshots/web_api_signal_visualizer_all.webp" width="460" alt="Web API Multi-Channel Signal Visualizer Combined View"> | <img src="assets/screenshots/web_api_signal_visualizer_separate.webp" width="460" alt="Web API Multi-Channel Signal Visualizer Separate Channels View"> |
-| Real-time multi-channel oscilloscope streaming 16 synthetic EEG channels simultaneously | Independent channel strip visualizer isolating waveforms per channel |
-| **Interactive OpenAPI Documentation** | **Real-Time Synchronized Event Stream** |
-| <img src="assets/screenshots/web_api_explorer_overview.webp" width="460" alt="FastAPI Interactive API Explorer Documentation"> | <img src="assets/screenshots/web_api_signal_visualizer.webp" width="460" alt="Real-time Event Stream and Data Table"> |
-| Dynamic endpoint execution and schema inspection | High-throughput WebSocket stream of input events, hardware markers, and EEG chunks |
 
 ---
 
