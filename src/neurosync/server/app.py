@@ -1,6 +1,7 @@
-"""FastAPI application for neurosyncd server (phase F8, per D-10 & D-11).
+"""FastAPI application for neurosyncd server (phase F8 & F10, per D-10 & D-11).
 
-Provides typed REST endpoints and high-throughput real-time binary WebSockets.
+Provides typed REST endpoints, high-throughput real-time binary WebSockets,
+and serves the real-time web visualizer dashboard.
 """
 
 from __future__ import annotations
@@ -14,7 +15,10 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
+from neurosync.core.bus import Policy
 from neurosync.core.errors import InvalidInput, InvalidState, NeuroSyncError
 from neurosync.server.engine import ServerEngine
 from neurosync.server.schema import (
@@ -27,6 +31,7 @@ from neurosync.server.schema import (
     StartRecordingRequest,
     StopRecordingResponse,
 )
+from neurosync.web import get_static_dir, get_web_dir
 
 
 def create_app(engine: ServerEngine | None = None) -> FastAPI:
@@ -57,6 +62,19 @@ def create_app(engine: ServerEngine | None = None) -> FastAPI:
 
     # Expose engine on app.state for testing and dependency injection
     app.state.engine = active_engine
+
+    # Mount static assets for the real-time web dashboard (Phase F10)
+    static_dir = get_static_dir()
+    if static_dir.exists():
+        app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+    @app.get("/")
+    async def index() -> FileResponse:
+        """Serve the real-time web visualizer dashboard."""
+        index_file = get_web_dir() / "index.html"
+        if not index_file.exists():
+            raise HTTPException(status_code=404, detail="Dashboard index not found")
+        return FileResponse(index_file)
 
     @app.get("/health")
     async def health() -> dict[str, str]:
@@ -124,46 +142,78 @@ def create_app(engine: ServerEngine | None = None) -> FastAPI:
         """
         await ws.accept()
 
-        ring = active_engine.filtered_ring if stream == "filtered" else active_engine.raw_ring
-        if ring is None:
-            ring = active_engine.raw_ring
-
-        if ring is None:
-            await ws.close(code=1000, reason="No active signal stream")
-            return
-
-        reader = ring.reader()
-
         fmt_mode = ws.query_params.get("format", fmt)
+        current_ring = None
+        reader = None
 
         with contextlib.suppress(WebSocketDisconnect, asyncio.CancelledError):
             while True:
-                chunk = reader.read_new()
-                if chunk is not None and chunk.n > 0:
-                    n_channels = int(chunk.data.shape[0])
-                    t_host = int(chunk.t_host_ns[0]) if len(chunk.t_host_ns) > 0 else 0
-                    if fmt_mode == "json":
-                        payload = {
-                            "n_samples": chunk.n,
-                            "n_channels": n_channels,
-                            "t_host_ns": t_host,
-                            "data": chunk.data.tolist(),
-                        }
-                        await ws.send_json(payload)
-                    else:
-                        # Binary framing: [4B 'NSYC'][4B n_ch][4B n_samples][8B t_host_ns]
-                        header = struct.pack(
-                            "<4sIIQ",
-                            b"NSYC",
-                            n_channels,
-                            chunk.n,
-                            t_host,
-                        )
-                        # contiguous float64 array bytes
-                        data_bytes = chunk.data.astype("<f8").tobytes()
-                        await ws.send_bytes(header + data_bytes)
+                target_ring = (
+                    active_engine.filtered_ring if stream == "filtered" else active_engine.raw_ring
+                )
+                if target_ring is None:
+                    target_ring = active_engine.raw_ring
+
+                if target_ring is not current_ring:
+                    current_ring = target_ring
+                    reader = current_ring.reader() if current_ring is not None else None
+
+                if reader is not None:
+                    chunk = reader.read_new()
+                    if chunk is not None and chunk.n > 0:
+                        n_channels = int(chunk.data.shape[0])
+                        t_host = int(chunk.t_host_ns[0]) if len(chunk.t_host_ns) > 0 else 0
+                        if fmt_mode == "json":
+                            payload = {
+                                "n_samples": chunk.n,
+                                "n_channels": n_channels,
+                                "t_host_ns": t_host,
+                                "data": chunk.data.tolist(),
+                            }
+                            await ws.send_json(payload)
+                        else:
+                            # Binary framing: [4B 'NSYC'][4B n_ch][4B n_samples][8B t_host_ns]
+                            header = struct.pack(
+                                "<4sIIQ",
+                                b"NSYC",
+                                n_channels,
+                                chunk.n,
+                                t_host,
+                            )
+                            # contiguous float64 array bytes
+                            data_bytes = chunk.data.astype("<f8").tobytes()
+                            await ws.send_bytes(header + data_bytes)
 
                 # ~25Hz flush rate for client stream
                 await asyncio.sleep(0.040)
+
+    @app.websocket("/ws/events")
+    async def events_websocket(ws: WebSocket) -> None:
+        """Stream real-time input and marker events over WebSocket."""
+        await ws.accept()
+        sub = active_engine.bus.subscribe(
+            topic="input_events",
+            name="ws-events",
+            maxsize=1024,
+            policy=Policy.DROP_OLDEST,
+        )
+
+        try:
+            with contextlib.suppress(WebSocketDisconnect, asyncio.CancelledError):
+                while True:
+                    envelopes = sub.drain(max_n=50)
+                    for env in envelopes:
+                        ev = env.msg
+                        await ws.send_json(
+                            {
+                                "seq": env.seq,
+                                "code": ev.code,
+                                "t_host_ns": ev.t_host_ns,
+                                "payload": {"value": ev.value, "kind": ev.kind.value},
+                            }
+                        )
+                    await asyncio.sleep(0.040)
+        finally:
+            sub.close()
 
     return app

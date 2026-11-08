@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NeuroSync Framework v2 · Real-Time Dashboard</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="dashboard-header">
+    <div class="logo-area">
+      <h1>NeuroSync</h1>
+      <span class="version-badge">v2.0-rewrite</span>
+    </div>
+    <div class="header-status-bar">
+      <div class="status-pill">
+        <div id="daemonStatus" class="indicator"></div>
+        <span>Daemon: Connecting...</span>
+      </div>
+      <div class="status-pill">
+        <div id="acqStatus" class="indicator"></div>
+        <span>Acquisition</span>
+      </div>
+      <div class="status-pill">
+        <div id="recStatus" class="indicator"></div>
+        <span>Recording</span>
+      </div>
+      <div class="status-pill">
+        <span>Rate: <strong id="srateDisplay">250 Hz</strong></span>
+      </div>
+      <div class="status-pill">
+        <span>Lost: <strong id="lostDisplay">0</strong></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Grid -->
+  <div class="dashboard-grid">
+    <!-- Sidebar Controls -->
+    <aside class="sidebar">
+      <!-- Acquisition Card -->
+      <div class="card">
+        <div class="card-title">Hardware & Acquisition</div>
+        <div class="card-body">
+          <div class="form-group">
+            <label for="boardTypeSelect">Signal Source</label>
+            <select id="boardTypeSelect">
+              <option value="synthetic">BrainFlow Synthetic Board (16ch)</option>
+              <option value="simulated">NeuroSync Deterministic Source</option>
+            </select>
+          </div>
+          <div class="btn-group">
+            <button id="btnStartAcq" class="btn btn-primary" style="flex: 1;">Start Acq</button>
+            <button id="btnStopAcq" class="btn btn-danger" style="flex: 1;" disabled>Stop Acq</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recording Card -->
+      <div class="card">
+        <div class="card-title">XDF Recording (Append-Only)</div>
+        <div class="card-body">
+          <div class="form-group">
+            <label for="sessionNameInput">Session Name</label>
+            <input type="text" id="sessionNameInput" placeholder="session_001" value="session_001">
+          </div>
+          <div class="btn-group">
+            <button id="btnStartRec" class="btn btn-success" style="flex: 1;" disabled>Start Record</button>
+            <button id="btnStopRec" class="btn btn-danger" style="flex: 1;" disabled>Stop Record</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Marker Trigger Card -->
+      <div class="card">
+        <div class="card-title">Event Markers</div>
+        <div class="card-body">
+          <div class="btn-group">
+            <button id="quickMarker1" class="btn btn-sm" style="flex: 1;">MK 1</button>
+            <button id="quickMarker2" class="btn btn-sm" style="flex: 1;">MK 2</button>
+            <button id="quickMarker3" class="btn btn-sm" style="flex: 1;">MK 3</button>
+          </div>
+          <div class="form-group" style="margin-top: 8px;">
+            <label for="customMarkerInput">Custom Marker</label>
+            <div style="display: flex; gap: 6px;">
+              <input type="text" id="customMarkerInput" placeholder="STIM_START" style="flex: 1;">
+              <button id="btnSendCustomMarker" class="btn btn-primary btn-sm">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Real-time DSP Filters Card -->
+      <div class="card">
+        <div class="card-title">Causal DSP Filters</div>
+        <div class="card-body">
+          <label class="checkbox-row">
+            <input type="checkbox" id="filterNotch" checked>
+            <span>Notch Filter (50 Hz / Q=30)</span>
+          </label>
+          <label class="checkbox-row">
+            <input type="checkbox" id="filterBandpass" checked>
+            <span>Bandpass (1.0 – 40.0 Hz, Order 4)</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Offline Export Card -->
+      <div class="card">
+        <div class="card-title">Offline Exporters</div>
+        <div class="card-body">
+          <div class="form-group">
+            <label for="exportFormatSelect">Export Format</label>
+            <select id="exportFormatSelect">
+              <option value="csv">CSV (Raw + Events)</option>
+              <option value="edf">EDF+ (Standard Clinical)</option>
+              <option value="bids">BIDS (Brain Imaging Data Structure)</option>
+              <option value="npz">NumPy (.npz)</option>
+            </select>
+          </div>
+          <button id="btnExport" class="btn btn-primary">Run Export</button>
+          <div id="exportStatus" style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);"></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Visualizer Area -->
+    <main class="main-content">
+      <!-- Oscilloscope Visualizer Card -->
+      <div class="card visualizer-card">
+        <div class="visualizer-toolbar">
+          <div class="view-mode-selector">
+            <label for="viewModeSelect">Display Mode:</label>
+            <select id="viewModeSelect">
+              <option value="stacked">Combined (All Channels Stacked)</option>
+              <option value="separate">Separate Channels (Sub-Panels)</option>
+            </select>
+          </div>
+
+          <div class="time-window-selector">
+            <label for="timeWindowSelect">Time Window:</label>
+            <select id="timeWindowSelect">
+              <option value="2">2 Seconds</option>
+              <option value="5" selected>5 Seconds</option>
+              <option value="10">10 Seconds</option>
+            </select>
+          </div>
+
+          <div class="gain-selector">
+            <label for="gainMultiplierSelect">Gain:</label>
+            <select id="gainMultiplierSelect">
+              <option value="0.5">0.5x</option>
+              <option value="1.0" selected>1.0x</option>
+              <option value="2.0">2.0x</option>
+              <option value="5.0">5.0x</option>
+              <option value="10.0">10.0x</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="canvas-container">
+          <canvas id="oscilloscopeCanvas"></canvas>
+        </div>
+
+        <div id="channelTagsContainer" class="channel-tags"></div>
+      </div>
+
+      <!-- Lower Diagnostics Grid -->
+      <div class="lower-grid">
+        <!-- PSD / Band-Power Card -->
+        <div class="card">
+          <div class="card-title">Real-time Spectral Band Power (Welch / FFT)</div>
+          <div class="psd-container">
+            <canvas id="psdCanvas"></canvas>
+          </div>
+        </div>
+
+        <!-- Event Stream Card -->
+        <div class="card">
+          <div class="card-title">Synchronized Event Stream</div>
+          <div class="events-table-wrapper">
+            <table class="events-table">
+              <thead>
+                <tr>
+                  <th style="width: 50px;">Seq</th>
+                  <th style="width: 80px;">Time</th>
+                  <th style="width: 100px;">Event</th>
+                  <th>Payload</th>
+                </tr>
+              </thead>
+              <tbody id="eventsTableBody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -167,3 +167,10 @@ name = "cli does not depend on Qt"
 type = "forbidden"
 source_modules = ["neurosync.cli"]
 forbidden_modules = ["PyQt5", "PyQt6", "PySide6"]
+
+[[tool.importlinter.contracts]]
+name = "web does not depend on Qt"
+type = "forbidden"
+source_modules = ["neurosync.web"]
+forbidden_modules = ["PyQt5", "PyQt6", "PySide6"]
+
