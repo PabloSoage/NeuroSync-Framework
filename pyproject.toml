@@ -37,6 +37,10 @@ cli = [
     "typer>=0.12",
     "rich>=13.0",
 ]
+gui = [
+    "PySide6>=6.6",
+    "pyqtgraph>=0.13",
+]
 dev = [
     "pytest>=8",
     "hypothesis>=6.100",
@@ -55,11 +59,14 @@ dev = [
     "httpx>=0.27",
     "typer>=0.12",
     "rich>=13.0",
+    "PySide6>=6.6",
+    "pyqtgraph>=0.13",
 ]
 
 [project.scripts]
 neurosync = "neurosync.cli.main:app"
 neurosyncd = "neurosync.server.service:run_server"
+neurosync-gui = "neurosync.gui.qt:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/neurosync"]
@@ -104,7 +111,7 @@ warn_unreachable = true
 files = ["src", "tests"]
 
 [[tool.mypy.overrides]]
-module = ["brainflow.*", "pyxdf.*", "sklearn.*", "scipy.*", "pynput.*"]
+module = ["brainflow.*", "pyxdf.*", "sklearn.*", "scipy.*", "pynput.*", "pyqtgraph.*"]
 ignore_missing_imports = true
 
 [tool.importlinter]
@@ -173,4 +180,21 @@ name = "web does not depend on Qt"
 type = "forbidden"
 source_modules = ["neurosync.web"]
 forbidden_modules = ["PyQt5", "PyQt6", "PySide6"]
+
+[[tool.importlinter.contracts]]
+name = "no module imports gui except gui"
+type = "forbidden"
+source_modules = [
+    "neurosync.core",
+    "neurosync.acquisition",
+    "neurosync.recording",
+    "neurosync.dsp",
+    "neurosync.input",
+    "neurosync.export",
+    "neurosync.server",
+    "neurosync.cli",
+    "neurosync.web",
+]
+forbidden_modules = ["neurosync.gui"]
+
 
