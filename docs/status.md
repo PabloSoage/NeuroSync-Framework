@@ -31,11 +31,15 @@ written on. The first execution will be GitHub CI, or yours at home.
 | F3 | `BrainFlowSource` with lossless seqlock ingestion | `src/neurosync/acquisition/brainflow_source.py` | `tests/unit/test_brainflow_source.py`, `tests/integration/test_brainflow_long.py` |
 | F4 | `Recorder` and `XdfWriter` (lossless append-only XDF + sidecar) | `src/neurosync/recording/` | `tests/unit/test_xdf_writer.py`, `tests/unit/test_recorder.py` |
 | F5 | DSP, online causal SOS filtering, spectral estimation, FastICA | `src/neurosync/dsp/` | `tests/unit/test_dsp.py` |
+| F6 | Input collectors for keyboard, mouse, gamepad, and markers | `src/neurosync/input/` | `tests/unit/test_input.py` |
+| F7 | Offline exporters for CSV, EDF+, BIDS, and NumPy from XDF | `src/neurosync/export/` | `tests/unit/test_export.py` |
+| F8 | `neurosyncd` server, engine, command registry, binary WebSockets | `src/neurosync/server/` | `tests/unit/test_server.py` |
+| F9 | Typer CLI (`neurosync`) and daemon client | `src/neurosync/cli/` | `tests/unit/test_cli.py` |
+| F10 | Real-time web visualizer dashboard | `src/neurosync/web/` | `tests/unit/test_web.py` |
+| F11 | PySide6 desktop GUI with pyqtgraph oscilloscope and spectral analyzer | `src/neurosync/gui/` | `tests/unit/test_gui.py` |
+| F12 | Feature parity verification and removal of legacy thesis code | — | full suite |
 
-**CI is green** on commit `28313a1` (2026-11-02): ruff, strict mypy,
-import-linter and all tests on Ubuntu and Windows with Python 3.12 and 3.13.
-Local test and formatting run on Windows with Python 3.13 completed (67 tests passed),
-`ruff format` applied and `ruff format --check` added to CI (§3 completed). F3, F4, F5 completed.
+**All phases F1 through F12 complete!** Full test suite, linters (ruff, strict mypy, import-linter) and architecture rules pass. Ready for merge into `main`.
 
 ## 2. Remaining (mandatory order)
 

@@ -84,8 +84,8 @@ markers = [
 line-length = 100
 target-version = "py312"
 src = ["src", "tests"]
-# The thesis code stays as reference until phase F12; it is not linted.
-extend-exclude = ["eeg_processor", "input_collector", "synchronization_module", "api_explorer", "Memoria_Latex", "Diagrams", "delete_pycache.py"]
+# Academic thesis LaTeX documentation and diagrams are preserved.
+extend-exclude = ["Memoria_Latex", "Diagrams"]
 
 [tool.ruff.lint]
 select = [
